@@ -42,6 +42,11 @@ export class EvaluateSustentationFormComponent {
     return stateList;
   }
 
+  // --- Getter de Sustentación Activa ---
+  get currentSustentation(): any {
+    return this.thesisWork?.sustentations?.[0] || null;
+  }
+
   // --- Getters de Información de Personal ---
   getStudentNames(): string {
     const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
@@ -64,7 +69,7 @@ export class EvaluateSustentationFormComponent {
   }
 
   getAssignedJurors(): string {
-    const jurors = this.thesisWork?.sustentation?.assignedJurors || [];
+    const jurors = this.currentSustentation?.assignedJurors || [];
     if (jurors.length === 0) return 'No asignados';
     return jurors.map((j: any) => this.userService.getUserFullName(j.id || j)).join(' y ');
   }
@@ -126,5 +131,3 @@ export class EvaluateSustentationFormComponent {
     });
   }
 }
-
-

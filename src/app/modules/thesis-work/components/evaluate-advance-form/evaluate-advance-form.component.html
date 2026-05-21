@@ -24,17 +24,22 @@
       </div>
 
       <div class="flex flex-col gap-2">
-        <span class="font-display font-semibold text-primary text-size-section">Archivos</span>
-        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
-          <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
-            <div class="flex flex-col">
-              <span class="text-sm font-bold text-primary">{{ currentDocument?.name || 'Documento de Avance' }}</span>
-              <span class="text-xs text-[#777680]">Cargado por el estudiante</span>
+        <span class="font-display font-semibold text-primary text-size-section">Archivos de Evidencia</span>
+
+        @for (doc of advanceDocuments; track doc.id) {
+          <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm mb-2">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
+              <div class="flex flex-col">
+                <span class="text-sm font-bold text-primary">{{ doc.name }}</span>
+                <span class="text-xs text-[#777680]">Cargado por el estudiante</span>
+              </div>
             </div>
+            <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadAdvance.emit()"></app-button-component>
           </div>
-          <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadAdvance.emit()"></app-button-component>
-        </div>
+        } @empty {
+          <p class="text-sm text-gray-400 italic">No se encontraron archivos en este avance.</p>
+        }
       </div>
     </div>
   </section>

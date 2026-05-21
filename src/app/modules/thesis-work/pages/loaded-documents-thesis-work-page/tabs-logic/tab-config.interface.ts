@@ -1,10 +1,13 @@
 // tab-config.interface.ts
 import { Column, TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
+// Asegúrate de ajustar estas rutas a la ubicación real de tus modelos
+import { ThesisWork } from '../../../interfaces/thesis-work.interface';
+import { User } from '../../../../users/interfaces/user.interface';
 
 export interface ThesisEvaluationContext {
-  thesisWork: any;
-  currentUser: any;
+  thesisWork: ThesisWork | null;
+  currentUser: User | null;
   isAdmin: boolean;
   isStudent: boolean;
   isDirector: boolean;
@@ -13,18 +16,24 @@ export interface ThesisEvaluationContext {
   isAdvisor: boolean;
   latestAdvanceId: string | null;
   isLatestAdvancePending: boolean;
-  [key: string]: any; // 📌 Permite añadir propiedades dinámicas de otras pestañas en el futuro
+  // Usamos 'unknown' en lugar de 'any' para forzar la aserción de tipos
+  // cuando se consuman propiedades dinámicas en el futuro.
+  [key: string]: unknown;
 }
 
 export interface TabConfiguration {
   tabValue: string;
   columns: Column[];
 
-  // 📐 NUEVO: Cada pestaña procesa y enriquece el contexto con sus propias reglas de negocio
+  // 📐 Cada pestaña procesa y enriquece el contexto con sus propias reglas de negocio
   enrichEvaluationContext: (baseContext: ThesisEvaluationContext) => ThesisEvaluationContext;
 
-  getTableData: (documents: Document[], context: ThesisEvaluationContext) => any[];
+  // 'Record<string, unknown>[]' nos asegura que retornamos un arreglo de objetos,
+  // evitando el uso de 'any[]' que apagaría el linter en la tabla.
+  getTableData: (documents: Document[], context: ThesisEvaluationContext) => Record<string, unknown>[];
+
   getHeaderButtons: (context: ThesisEvaluationContext) => TableButton[];
+
   modalConfig: {
     uploadDescription: string;
     uploadedByText: string;

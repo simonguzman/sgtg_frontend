@@ -100,8 +100,8 @@ export class CorrectedDocumentsPageComponent implements OnInit {
   isJuror = computed(() => {
     const thesis = this.currentThesisWork();
     const user = this.authService.currentUser();
-    if (!thesis || !user || !thesis.sustentation) return false;
-    return thesis.sustentation.assignedJurors?.some(juror => juror.id === user.id) ?? false;
+    if (!thesis || !user || !thesis.sustentations?.[0]) return false;
+    return thesis.sustentations?.[0].assignedJurors?.some(juror => juror.id === user.id) ?? false;
   });
 
   // =========================================================================
@@ -173,7 +173,8 @@ export class CorrectedDocumentsPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['../'], { relativeTo: this.route });
+    // 🚀 Sube dos niveles: sale del path '' y luego sale de 'corrected_documents'
+    this.router.navigate(['../../'], { relativeTo: this.route });
   }
 
   hasUploadedCorrections = computed(() => {

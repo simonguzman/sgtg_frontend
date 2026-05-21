@@ -156,7 +156,7 @@ export const thesisWorkRoutes: Routes = [
                 }
               },
               {
-                path: 'evaluate_sustentation',
+                path: 'evaluate_sustentation/:sustentationId',
                 component: EvaluateSustentationPageComponent,
                 canActivate: [roleGuard],
                 title: 'Evaluar sustentación',
@@ -172,7 +172,7 @@ export const thesisWorkRoutes: Routes = [
                 title: 'Registrar Correspondencia Final',
                 data: {
                   breadcrumb: 'Registrar correspondencia',
-                  roles: [UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR]
+                  roles: [UserRoleType.ADMINISTRADOR, UserRoleType.JURADO]
                 }
               },
               {
@@ -197,7 +197,7 @@ export const thesisWorkRoutes: Routes = [
               },
               // 🚀 Agrupación de Sustentación limpia como hermanos directos bajo loaded_documents
               {
-                path: 'view_sustentation_details',
+                path: 'view_sustentation_details/:id',
                 component: SustentationDetailsPageComponent,
                 canActivate: [roleGuard],
                 title: 'Detalles de la sustentación',

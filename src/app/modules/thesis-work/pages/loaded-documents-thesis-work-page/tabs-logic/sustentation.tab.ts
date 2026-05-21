@@ -2,6 +2,7 @@ import { TableButton } from '../../../../../shared/components/table-component/ta
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
+import { SustentationRegistry, JurorVerdict } from '../../../interfaces/thesis-work.interface';
 
 export const SustentationTabConfig: TabConfiguration = {
   tabValue: 'SUSTENTACION',
@@ -22,21 +23,25 @@ export const SustentationTabConfig: TabConfiguration = {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
 
-    // 🔍 1. ¿Hay un Paz y Salvo APROBADO?
+    // 1. Validar Paz y Salvo Aprobado
     const hasApprovedPazYSalvo = thesis.documents?.some(
-      (doc: any) => doc.type === DocumentType['PAZ Y SALVO'] && doc.status === stateList.APROBADO
+      (doc: Document) => doc.type === DocumentType['PAZ Y SALVO'] && doc.status === stateList.APROBADO
     ) ?? false;
 
-    // 🔍 2. ¿Ya se registró la programación de la sustentación?
-    const hasSustentationRegistered = !!thesis.sustentation;
+    // 2. Colección completa e indicador de si hay al menos una registrada
+    const currentSustentations: SustentationRegistry[] = thesis.sustentations ?? [];
+    const hasSustentationRegistered = currentSustentations.length > 0;
 
-    // 🔍 3. Validar si el usuario actual es un jurado asignado
-    const isJuror = thesis.sustentation?.assignedJurors?.some(
-      (juror: any) => juror.id === baseContext.currentUser?.id
+    // 3. Tomamos la última sustentación cronológica (la activa/actual en la posición 0)
+    const activeSustentation = currentSustentations[0];
+
+    // 4. Verificar si el usuario actual es jurado asignado en la sustentación activa
+    const isJuror = activeSustentation?.assignedJurors?.some(
+      (juror) => juror.id === baseContext.currentUser?.id
     ) ?? false;
 
-    // 🔍 4. ¿La sustentación ya cuenta con alguna evaluación registrada?
-    const isSustentationEvaluated = (thesis.sustentation?.verdicts?.length ?? 0) > 0;
+    // 5. Evaluar si la sustentación activa ya tiene veredictos asentados
+    const isSustentationEvaluated = (activeSustentation?.verdicts?.length ?? 0) > 0;
 
     return {
       ...baseContext,
@@ -47,67 +52,80 @@ export const SustentationTabConfig: TabConfiguration = {
     };
   },
 
-  getTableData: (documents: Document[], context: ThesisEvaluationContext) => {
+  getTableData: (documents: Document[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
     const thesis = context.thesisWork;
-    if (!thesis.sustentation) return [];
-
-    const dateRaw = thesis.sustentation.sustentationDate;
-    const dateStr = dateRaw ? new Date(dateRaw).toLocaleDateString('es-ES') : 'Fecha pendiente';
-
-    const verdictsList = thesis.sustentation.verdicts || [];
-    const isSustentationEvaluated = verdictsList.length > 0;
-
-    // Obtenemos el último estado registrado en la sustentación
-    const currentStatus = isSustentationEvaluated ? verdictsList[verdictsList.length - 1].veredict : stateList.EN_REVISION;
-
-    const allowedActions = ['view_sustentation_details'];
-    const isJuror = context['isJuror'] ?? false;
-
-    // El botón de evaluar SOLO aparece si es Jurado/Admin Y NADIE ha evaluado todavía.
-    if ((isJuror || context.isAdmin) && !isSustentationEvaluated) {
-      allowedActions.push('evaluate_sustentation');
+    if (!thesis || !thesis.sustentations || thesis.sustentations.length === 0) {
+      return [];
     }
 
-    return [{
-      id: thesis.thesisWorkId,
-      name: 'Programación oficial de Sustentación',
-      date: dateStr,
-      status: currentStatus,
-      allowedActions
-    }];
+    const isJurorContext = context['isJuror'] as boolean ?? false;
+    const totalSustentations = thesis.sustentations.length;
+
+    // Mapeamos todo el historial de sustentaciones para renderizar una fila por cada una
+    return thesis.sustentations.map((sustentation: SustentationRegistry, index: number) => {
+      const dateRaw = sustentation.sustentationDate;
+      const dateStr = dateRaw ? new Date(dateRaw).toLocaleDateString('es-ES') : 'Fecha pendiente';
+
+      const verdictsList: JurorVerdict[] = sustentation.verdicts || [];
+      const isThisEvaluated = verdictsList.length > 0;
+
+      // El estado de la fila depende de su veredicto. Si no tiene, se encuentra EN_REVISION
+      const currentStatus = isThisEvaluated
+        ? (verdictsList[verdictsList.length - 1].veredict ?? stateList.EN_REVISION)
+        : stateList.EN_REVISION;
+
+      const allowedActions: string[] = ['view_sustentation_details'];
+
+      // REGLA DE NEGOCIO: Solo se permite evaluar si el usuario es jurado/admin
+      // y si esa sustentación específica aún no ha sido dictaminada.
+      if ((isJurorContext || context.isAdmin) && !isThisEvaluated) {
+        allowedActions.push('evaluate_sustentation');
+      }
+
+      // Enumeramos las sustentaciones en orden inverso para claridad visual (ej: "Sustentación #2")
+      const sustentationNumber = totalSustentations - index;
+
+      return {
+        id: sustentation.id, // ID específico de la sustentación (vital para el ruteo de la acción)
+        name: `Programación oficial de Sustentación #${sustentationNumber}`,
+        date: dateStr,
+        status: currentStatus,
+        allowedActions
+      };
+    });
   },
 
-  getHeaderButtons: (context: ThesisEvaluationContext) => {
+  getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
     const buttons: TableButton[] = [];
-    const { isConsejo, hasApprovedPazYSalvo, hasSustentationRegistered, isSustentationEvaluated, thesisWork } = context as any;
+    const thesis = context.thesisWork;
+
+    // Extracción segura usando las propiedades extendidas en el context
+    const isConsejo = context['isConsejo'] as boolean ?? false;
+    const hasApprovedPazYSalvo = context['hasApprovedPazYSalvo'] as boolean ?? false;
+    const hasSustentationRegistered = context['hasSustentationRegistered'] as boolean ?? false;
+    const isSustentationEvaluated = context['isSustentationEvaluated'] as boolean ?? false;
 
     if (isConsejo) {
+      const activeSustentation = thesis?.sustentations?.[0];
+      const verdictsList: JurorVerdict[] = activeSustentation?.verdicts || [];
+      const lastVerdict = verdictsList.length > 0 ? verdictsList[verdictsList.length - 1].veredict : null;
+
       let buttonLabel = 'Registrar Sustentación';
       let buttonDisabled = false;
-
-      // 🧠 Extraemos el último veredicto para evaluar la nueva regla de negocio
-      const verdictsList = thesisWork?.sustentation?.verdicts || [];
-      const lastVerdict = verdictsList.length > 0 ? verdictsList[verdictsList.length - 1].veredict : null;
 
       if (!hasApprovedPazYSalvo) {
         buttonLabel = 'Requiere Paz y Salvo Aprobado';
         buttonDisabled = true;
       } else if (!hasSustentationRegistered) {
-        // Escenario 1: No hay ninguna sustentación registrada
         buttonLabel = 'Registrar Sustentación';
-        buttonDisabled = false;
       } else {
-        // Ya existe un registro de sustentación, revisamos su estado final
+        // Si la última sustentación fue aplazada, el Consejo puede agendar una nueva en el historial
         if (lastVerdict === stateList.APLAZADO) {
-          // Escenario 2: REGLA DE NEGOCIO - Fue aplazada, se vuelve a habilitar
-          buttonLabel = 'Reprogramar Sustentación';
-          buttonDisabled = false;
+          buttonLabel = 'Registrar Nueva Sustentación';
         } else if (isSustentationEvaluated) {
-          // Escenario 3: Evaluada con éxito/fracaso definitivo
           buttonLabel = 'Sustentación Evaluada';
           buttonDisabled = true;
         } else {
-          // Escenario 4: Está programada pero esperando el dictamen del jurado
           buttonLabel = 'Sustentación Programada';
           buttonDisabled = true;
         }
@@ -128,6 +146,6 @@ export const SustentationTabConfig: TabConfiguration = {
     uploadDescription: '',
     uploadedByText: '',
     confirmDescription: '',
-    uploadDocumentType: 'Sustentacion' as any
+    uploadDocumentType: DocumentType['FORMATO E']
   }
 };

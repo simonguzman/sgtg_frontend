@@ -102,15 +102,23 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     const isConsejo = this.authService.hasAnyRole([UserRoleType.CONSEJO]);
 
     const baseContext: ThesisEvaluationContext = {
-      thesisWork: thesis,
+      thesisWork: thesis ?? null,
       currentUser: user,
       isAdmin,
       isDecanatura,
       isConsejo,
-      isStudent: thesis?.preliminaryDraftData?.proposalData?.authors?.some((a: any) => (typeof a === 'string' ? a : a.id) === user?.id) ?? false,
+      isStudent: thesis?.preliminaryDraftData?.proposalData?.authors?.some(
+        (a: { id?: string } | string) => (typeof a === 'string' ? a : a.id) === user?.id
+      ) ?? false,
       isDirector: thesis?.preliminaryDraftData?.proposalData?.director?.id === user?.id,
       isCodirector: thesis?.preliminaryDraftData?.proposalData?.codirector?.id === user?.id,
       isAdvisor: thesis?.preliminaryDraftData?.proposalData?.advisor?.id === user?.id,
+
+      // 🕵️‍♂️ LÓGICA DE DETECCIÓN DE JURADO ASIGNADO AÑADIDA AQUÍ:
+      isJuror: thesis?.sustentations?.[0]?.assignedJurors?.some(
+        (j: any) => (typeof j === 'string' ? j : j.id) === user?.id
+      ) ?? false,
+
       latestAdvanceId: null,
       isLatestAdvancePending: false
     };
@@ -151,26 +159,33 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     }
   }
 
-  handleTableAction(event: { action: string; row: any }): void {
-    // 🛡️ Si la fila tiene restricciones explícitas y la acción actual no está permitida, bloqueamos el flujo.
-    if (event.row.allowedActions && !event.row.allowedActions.includes(event.action)) {
+  handleTableAction(event: { action: string; row: Record<string, unknown> }): void {
+    const rowAllowedActions = event.row['allowedActions'] as string[] | undefined;
+    const rowId = event.row['id'] as string;
+
+    if (rowAllowedActions && !rowAllowedActions.includes(event.action)) {
       this.showRestrictedActionNotification();
       return;
     }
 
-    // 🚀 Orquestación corregida de rutas planas vs dinámicas
     switch (event.action) {
       case 'download':
-        this.handleDownload(event.row);
+        this.handleDownload(event.row as unknown as Document);
         break;
 
       case 'evaluate-advance':
-        this.router.navigate(['evaluate_advance', event.row.id], { relativeTo: this.route });
+        this.router.navigate(['evaluate_advance', rowId], { relativeTo: this.route });
         break;
 
       case 'evaluate_special_request':
-        // 🌟 Forzamos el array de segmentos en un único string o aseguramos que use el snapshot correcto
-        this.router.navigate([`./evaluate_special_request`, event.row.id], { relativeTo: this.route });
+        this.router.navigate([`./evaluate_special_request`, rowId], { relativeTo: this.route });
+        break;
+
+      case 'view_sustentation_details':
+        this.router.navigate([event.action, rowId], { relativeTo: this.route });
+        break;
+      case 'evaluate_sustentation':
+        this.router.navigate([event.action, rowId], { relativeTo: this.route });
         break;
 
       default:

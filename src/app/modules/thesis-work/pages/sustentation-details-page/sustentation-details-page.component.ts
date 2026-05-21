@@ -4,7 +4,7 @@ import { ThesisWorkService } from '../../services/thesis-work.service';
 import { UserService } from '../../../users/services/user.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
-import { JurorVerdict, ThesisWork } from '../../interfaces/thesis-work.interface';
+import { JurorVerdict, ThesisWork, SustentationRegistry } from '../../interfaces/thesis-work.interface';
 import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
@@ -26,23 +26,29 @@ export class SustentationDetailsPageComponent implements OnInit {
   private readonly downloadService = inject(FileDownloadService);
 
   thesisWorkDetails = signal<ThesisWork | null>(null);
+  // Guardamos el ID de la sustentación que viene en la URL
+  sustentationId = signal<string | null>(null);
 
-  // Computado para obtener el último veredicto (Acta final)
-  latestVerdict = computed<JurorVerdict | null>(() => {
+  // Computado: Filtra la sustentación específica por su ID
+  selectedSustentation = computed<SustentationRegistry | null>(() => {
     const work = this.thesisWorkDetails();
-    if (!work || !work.sustentation || !work.sustentation.verdicts) return null;
-
-    const verdicts = work.sustentation.verdicts;
-    return verdicts.length > 0 ? verdicts[verdicts.length - 1] : null;
+    const id = this.sustentationId();
+    if (!work || !work.sustentations || !id) return null;
+    return work.sustentations.find(s => s.id === id) || null;
   });
 
-  // 🧠 REGLA DE NEGOCIO: Mostrar botón solo si fue aprobado con observaciones
+  // Computado: Último veredicto de la sustentación seleccionada
+  latestVerdict = computed<JurorVerdict | null>(() => {
+    const sustentation = this.selectedSustentation();
+    if (!sustentation || !sustentation.verdicts) return null;
+    return sustentation.verdicts.length > 0 ? sustentation.verdicts[sustentation.verdicts.length - 1] : null;
+  });
+
   showCorrectedDocumentsButton = computed<boolean>(() => {
     const verdict = this.latestVerdict();
     return verdict?.veredict === stateList.APROBADO_CON_OBSERVACIONES;
   });
 
-  // Computado para obtener el archivo de sustentación (Formato G)
   actaDocument = computed<Document | null>(() => {
     const work = this.thesisWorkDetails();
     if (!work || !work.documents) return null;
@@ -50,7 +56,13 @@ export class SustentationDetailsPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    const thesisWorkId = this.route.snapshot.paramMap.get('id') || this.route.parent?.snapshot.paramMap.get('id');
+    // Obtenemos el ID de la sustentación desde la ruta (ej: /view_sustentation_details/:id)
+    const sId = this.route.snapshot.paramMap.get('id');
+    this.sustentationId.set(sId);
+
+    // Obtenemos el ID del trabajo de grado desde la ruta padre
+    const thesisWorkId = this.route.parent?.snapshot.paramMap.get('id');
+
     if (!thesisWorkId) {
       this.handleNavigationError();
       return;
@@ -68,15 +80,8 @@ export class SustentationDetailsPageComponent implements OnInit {
       error: (error) => {
         this.showErrorNotification();
         this.goBack();
-        console.error('Error al recuperar detalles:', error);
       }
     });
-  }
-
-  // --- Navegación a Documentos Corregidos ---
-  navigateToCorrectedDocuments(): void {
-    // Al ser una ruta hermana de "view_sustentation_details", subimos un nivel con '../'
-    this.router.navigate(['../corrected_documents'], { relativeTo: this.route });
   }
 
   getMemberName(userId: string | undefined): string {
@@ -87,11 +92,16 @@ export class SustentationDetailsPageComponent implements OnInit {
     return this.userService.getAuthorsNames(ids);
   }
 
+  // Ahora usa selectedSustentation()
   getAssignedJurors(): string {
-    const work = this.thesisWorkDetails();
-    const jurors = work?.sustentation?.assignedJurors || [];
+    const sustentation = this.selectedSustentation();
+    const jurors = sustentation?.assignedJurors || [];
     if (jurors.length === 0) return 'No asignados';
     return jurors.map((j: any) => this.userService.getUserFullName(j.id || j)).join(' y ');
+  }
+
+  navigateToCorrectedDocuments(): void {
+    this.router.navigate(['../../corrected_documents'], { relativeTo: this.route });
   }
 
   downloadDocument(): void {
@@ -104,40 +114,23 @@ export class SustentationDetailsPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['../'], { relativeTo: this.route });
+    this.router.navigate(['../../'], { relativeTo: this.route });
   }
 
-  // --- Notificaciones de Error ---
   private handleNavigationError(): void {
-    this.notificationService.show({
-      title: 'Identificador faltante',
-      message: 'No se pudo procesar la solicitud debido a un ID inválido.',
-      type: NotificationType.ERROR
-    });
+    this.notificationService.show({ title: 'Error', message: 'ID inválido.', type: NotificationType.ERROR });
     this.goBack();
   }
 
   private showNotFoundNotification(): void {
-    this.notificationService.show({
-      title: 'Registro inexistente',
-      message: 'El trabajo de grado solicitado no se encuentra registrado.',
-      type: NotificationType.ERROR
-    });
+    this.notificationService.show({ title: 'No encontrado', message: 'Trabajo no registrado.', type: NotificationType.ERROR });
   }
 
   private showErrorNotification(): void {
-    this.notificationService.show({
-      title: 'Error de comunicación',
-      message: 'Hubo un problema al intentar conectar con el repositorio.',
-      type: NotificationType.ERROR
-    });
+    this.notificationService.show({ title: 'Error', message: 'Error de comunicación.', type: NotificationType.ERROR });
   }
 
   private showDownloadError() {
-    this.notificationService.show({
-      title: 'Archivo no disponible',
-      message: 'El acta de sustentación no se encuentra adjunta.',
-      type: NotificationType.ERROR
-    });
+    this.notificationService.show({ title: 'Error', message: 'Acta no encontrada.', type: NotificationType.ERROR });
   }
 }

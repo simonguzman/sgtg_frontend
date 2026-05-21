@@ -78,7 +78,8 @@ export class ThesisWorkPageComponent {
           )
         : false;
 
-      const isJuror = work.sustentation?.assignedJurors?.some(juror => String(juror.id) === currentUserId) ?? false;
+      // Accedemos de forma segura a través de cada nivel
+      const isJuror = work.sustentations?.[0]?.assignedJurors?.some(juror => String(juror.id) === currentUserId) ?? false;
 
       const hasViewPermission = hasFullAccessRole || isDirector || isCodirector || isAdvisor || isStudentAuthor || isJuror;
       const isOwnerOrAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]) || isDirector;

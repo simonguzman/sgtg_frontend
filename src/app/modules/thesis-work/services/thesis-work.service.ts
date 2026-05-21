@@ -1,4 +1,3 @@
-// thesis-work.service.ts
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { delay, Observable, of, tap } from 'rxjs';
 
@@ -56,6 +55,7 @@ export class ThesisWorkService {
       documents: [],
       advances: [],
       evaluations: [],
+      sustentations: [], // 👈 Inicializado como arreglo
       specialRequests: [],
       state: stateList.EN_DESARROLLO,
       createdDate: new Date()
@@ -70,7 +70,12 @@ export class ThesisWorkService {
     const isAuthor = proposal.authors?.some(author =>
       typeof author === 'string' ? author === userId : (author as any)?.id === userId
     ) ?? false;
-    const isJuror = work.sustentation?.assignedJurors?.some(juror => juror.id === userId) ?? false;
+
+    // 👈 Búsqueda en el arreglo histórico de sustentaciones
+    const isJuror = work.sustentations?.some(s =>
+      s.assignedJurors?.some(juror => juror.id === userId)
+    ) ?? false;
+
     return isDirector || isCodirector || isAdvisor || isAuthor || isJuror;
   }
 
@@ -85,7 +90,6 @@ export class ThesisWorkService {
         this._thesisWorksList.update(list => list.map(work => {
           if (work.thesisWorkId !== thesisWorkId) return work;
 
-          // Si el documento no es de tipo 'Avance', mantenemos la lógica global
           if ((document.type as string) !== 'Avance') {
             const nextState = document.type === 'Formato' ? stateList.EN_REVISION : work.state;
             return {
@@ -95,25 +99,19 @@ export class ThesisWorkService {
             };
           }
 
-          // --- LOGICA DE AGRUPACIÓN PARA AVANCES ---
           const existingAdvances = work.advances || [];
-          // Verificamos si ya existe un bloque de avance creado por este lote de subida (mismo ID)
           const advanceExists = existingAdvances.some(adv => adv.id === document.id);
 
           let updatedAdvances;
-
           if (advanceExists) {
-            // Si ya existe, mapeamos los avances para añadir el documento al avance correspondiente
             updatedAdvances = existingAdvances.map(adv => {
               if (adv.id !== document.id) return adv;
               return {
                 ...adv,
-                // Conservamos los documentos previos de este avance y adjuntamos el nuevo
                 documents: [...adv.documents, document]
               };
             });
           } else {
-            // Si es el primer archivo del lote, creamos el registro base del Avance
             const newAdvance = {
               id: document.id,
               title: advanceMeta?.title || document.name,
@@ -121,7 +119,7 @@ export class ThesisWorkService {
               uploadDate: new Date(document.uploadDate),
               studentId: advanceMeta?.studentId || '',
               status: stateList.EN_REVISION,
-              documents: [document] // Inicializa con el primer documento
+              documents: [document]
             };
             updatedAdvances = [newAdvance, ...existingAdvances];
           }
@@ -137,16 +135,30 @@ export class ThesisWorkService {
   }
 
   addEvaluationMock(thesisWorkId: string, evaluation: Evaluation): Observable<void> {
-    return of(undefined).pipe(
-      delay(800),
-      tap(() => {
-        this._thesisWorksList.update(list => list.map(work => {
-          if (work.thesisWorkId !== thesisWorkId) return work;
-          return { ...work, evaluations: [evaluation, ...work.evaluations] };
-        }));
-      })
-    );
-  }
+  return of(undefined).pipe(
+    delay(800),
+    tap(() => {
+      this._thesisWorksList.update(list => list.map(work => {
+        if (work.thesisWorkId !== thesisWorkId) return work;
+
+        // Actualizamos el estado del avance específico que se evaluó
+        const updatedAdvances = (work.advances || []).map(adv => {
+          if (adv.id !== evaluation.documentId) return adv;
+          return {
+            ...adv,
+            status: evaluation.veredict // Cambia a EVALUADO o EN_REVISION según el veredicto
+          };
+        });
+
+        return {
+          ...work,
+          advances: updatedAdvances,
+          evaluations: [evaluation, ...(work.evaluations || [])]
+        };
+      }));
+    })
+  );
+}
 
   saveSustentationRegistryMock(thesisWorkId: string, formData: any): Observable<void> {
     return of(undefined).pipe(
@@ -168,6 +180,7 @@ export class ThesisWorkService {
             month: '2-digit',
             year: 'numeric'
           }).replaceAll('/', ' - ');
+
           const sustentationDoc: Document = {
             id: formData.formatEDocument?.id || crypto.randomUUID(),
             name: formData.formatEDocument?.fileName || 'Formato E - Sustentación',
@@ -176,6 +189,7 @@ export class ThesisWorkService {
             type: DocumentType['FORMATO E'] || ('Formato E' as any),
             status: stateList.EN_REVISION
           };
+
           const sustentationRegistry: SustentationRegistry = {
             id: crypto.randomUUID(),
             sustentationDate: formData.sustentationDate ? new Date(formData.sustentationDate) : undefined,
@@ -187,9 +201,11 @@ export class ThesisWorkService {
             ],
             verdicts: []
           };
+
           return {
             ...work,
-            sustentation: sustentationRegistry,
+            // 👈 Mantenemos el historial de sustentaciones insertando al inicio
+            sustentations: [sustentationRegistry, ...(work.sustentations || [])],
             documents: [sustentationDoc, ...(work.documents || [])],
             state: work.state
           };
@@ -205,6 +221,7 @@ export class ThesisWorkService {
         this._thesisWorksList.update(list => list.map(work => {
           if (work.thesisWorkId !== thesisWorkId) return work;
           const dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
+
           const docMonograph: Document = {
             id: crypto.randomUUID(),
             name: monograph.name.replace('.pdf', ''),
@@ -213,6 +230,7 @@ export class ThesisWorkService {
             type: DocumentType.MONONGRAFIA,
             status: stateList.EN_REVISION
           };
+
           const docFormatE: Document = {
             id: crypto.randomUUID(),
             name: formatE.name.replace('.pdf', ''),
@@ -221,6 +239,7 @@ export class ThesisWorkService {
             type: DocumentType['FORMATO E'],
             status: stateList.EN_REVISION
           };
+
           const newDocuments = [docMonograph, docFormatE];
           if (annexes) {
             newDocuments.push({
@@ -255,6 +274,7 @@ export class ThesisWorkService {
           const isFullyApproved = payload.academicApproved && payload.financialApproved;
           const dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
           const docId = crypto.randomUUID();
+
           const pazYSalvoDoc: Document = {
             id: docId,
             name: file.name.replace('.pdf', ''),
@@ -263,6 +283,7 @@ export class ThesisWorkService {
             type: DocumentType['PAZ Y SALVO'],
             status: isFullyApproved ? stateList.APROBADO : stateList.NO_APROBADO
           };
+
           let updatedDocuments = [pazYSalvoDoc, ...(work.documents || [])];
           if (!isFullyApproved) {
             updatedDocuments = updatedDocuments.map(doc => {
@@ -272,6 +293,7 @@ export class ThesisWorkService {
               return doc;
             });
           }
+
           return {
             ...work,
             pazYSalvo: {
@@ -307,7 +329,6 @@ export class ThesisWorkService {
             year: 'numeric'
           }).replaceAll('/', ' - ');
 
-          // 1. Construcción del nuevo documento de sustentación (Formato G)
           const sustentationFileDoc: Document = {
             id: crypto.randomUUID(),
             name: file.name.replace('.pdf', ''),
@@ -317,7 +338,6 @@ export class ThesisWorkService {
             status: payload.veredict
           };
 
-          // 💡 2. Regla de Negocio: Actualizar "Formato E" de [EN_REVISION] a [EVALUADO]
           const updatedExistingDocuments = (work.documents || []).map(doc => {
             const isFormatoE = doc.type === (DocumentType['FORMATO E'] || 'Formato E');
             const isEnRevision = doc.status === stateList.EN_REVISION;
@@ -331,7 +351,6 @@ export class ThesisWorkService {
             return doc;
           });
 
-          // 3. Estructuración del veredicto del jurado
           const newVerdict: JurorVerdict = {
             jurorId: jurorId,
             evaluationDate: payload.evaluationDate,
@@ -339,13 +358,13 @@ export class ThesisWorkService {
             observations: payload.observations
           };
 
-          const currentSustentation = work.sustentation || {
-            id: crypto.randomUUID(),
-            assignedJurors: [],
-            verdicts: []
-          };
+          // 👈 Modificamos solo la sustentación activa (la de la posición 0)
+          const currentSustentations = work.sustentations || [];
+          const activeSustentation = currentSustentations.length > 0
+            ? { ...currentSustentations[0] }
+            : { id: crypto.randomUUID(), assignedJurors: [], verdicts: [] };
 
-          const updatedVerdicts = [...(currentSustentation.verdicts || [])];
+          const updatedVerdicts = [...(activeSustentation.verdicts || [])];
           const existingVerdictIndex = updatedVerdicts.findIndex(v => v.jurorId === jurorId);
 
           if (existingVerdictIndex !== -1) {
@@ -354,15 +373,16 @@ export class ThesisWorkService {
             updatedVerdicts.push(newVerdict);
           }
 
-          const updatedSustentation: SustentationRegistry = {
-            ...currentSustentation,
-            verdicts: updatedVerdicts
-          };
+          activeSustentation.verdicts = updatedVerdicts;
 
-          // 4. Retorno del nuevo estado inmutable del Trabajo de Grado
+          // 👈 Ensamblamos la sustentación activa con el resto del historial
+          const updatedSustentations = currentSustentations.length > 0
+            ? [activeSustentation, ...currentSustentations.slice(1)]
+            : [activeSustentation];
+
           return {
             ...work,
-            sustentation: updatedSustentation,
+            sustentations: updatedSustentations, // Asignamos el arreglo
             documents: [sustentationFileDoc, ...updatedExistingDocuments],
             state: payload.veredict
           };
@@ -378,6 +398,7 @@ export class ThesisWorkService {
         this._thesisWorksList.update(list => list.map(work => {
           if (work.thesisWorkId !== thesisWorkId) return work;
           const dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
+
           const docMonograph: Document = {
             id: crypto.randomUUID(),
             name: monograph.name.replace('.pdf', ''),
@@ -386,6 +407,7 @@ export class ThesisWorkService {
             type: DocumentType.CORRECCION,
             status: stateList.EN_REVISION
           };
+
           const newDocuments = [docMonograph];
           if (annexes) {
             newDocuments.push({
@@ -418,8 +440,10 @@ export class ThesisWorkService {
         const activeUser = this.authService.currentUser();
         const jurorId = activeUser ? activeUser.id : 'jurado-desconocido';
         const dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
+
         this._thesisWorksList.update(list => list.map(work => {
           if (work.thesisWorkId !== thesisWorkId) return work;
+
           const docFormatG: Document = {
             id: crypto.randomUUID(),
             name: `Formato G - Acta de Sustentación`,
@@ -428,38 +452,46 @@ export class ThesisWorkService {
             type: DocumentType.CORRECCION,
             status: evaluationData.veredict
           };
+
           const newEvaluation: Evaluation = {
             ...evaluationData,
             id: crypto.randomUUID(),
             date: new Date(),
             signedDocuments: [docFormatG.url]
           };
-          const currentSustentation = work.sustentation || {
-            id: crypto.randomUUID(),
-            assignedJurors: [],
-            verdicts: []
-          };
-          const updatedVerdicts = [...(currentSustentation.verdicts || [])];
+
+          // 👈 Aplicamos la misma lógica del historial para mantener la estructura
+          const currentSustentations = work.sustentations || [];
+          const activeSustentation = currentSustentations.length > 0
+            ? { ...currentSustentations[0] }
+            : { id: crypto.randomUUID(), assignedJurors: [], verdicts: [] };
+
           const updatedJurorVerdict = {
             jurorId: jurorId,
             evaluationDate: new Date(),
             veredict: evaluationData.veredict as any,
             observations: evaluationData.observations
           };
+
+          const updatedVerdicts = [...(activeSustentation.verdicts || [])];
           const existingVerdictIndex = updatedVerdicts.findIndex(v => v.jurorId === jurorId);
+
           if (existingVerdictIndex !== -1) {
             updatedVerdicts[existingVerdictIndex] = updatedJurorVerdict;
           } else {
             updatedVerdicts.push(updatedJurorVerdict);
           }
-          const updatedSustentation: SustentationRegistry = {
-            ...currentSustentation,
-            verdicts: updatedVerdicts
-          };
+
+          activeSustentation.verdicts = updatedVerdicts;
+
+          const updatedSustentations = currentSustentations.length > 0
+            ? [activeSustentation, ...currentSustentations.slice(1)]
+            : [activeSustentation];
+
           return {
             ...work,
             state: evaluationData.veredict,
-            sustentation: updatedSustentation,
+            sustentations: updatedSustentations, // Asignamos el arreglo
             documents: [docFormatG, ...(work.documents || [])],
             evaluations: [newEvaluation, ...(work.evaluations || [])]
           };
@@ -486,10 +518,6 @@ export class ThesisWorkService {
     );
   }
 
-  /**
-   * 🚀 REGISTRO REACTIVO DE SOLICITUDES ESPECIALES
-   * Inserta la solicitud en la colección interna del proyecto correspondiente.
-   */
   createSpecialRequestMock(payload: { requestType: string, comments: string, thesisId: string }): Observable<void> {
     return of(undefined).pipe(
       delay(800),
@@ -520,14 +548,11 @@ export class ThesisWorkService {
     payload: { status: stateList.APROBADO | stateList.NO_APROBADO; resolutionDetails: string }
   ): Observable<void> {
     return of(undefined).pipe(
-      delay(900), // Simula latencia de red
+      delay(900),
       tap(() => {
         this._thesisWorksList.update(list =>
           list.map((work: ThesisWork) => {
-            // Si no es el trabajo de grado objetivo, se mantiene intacto
             if (work.thesisWorkId !== thesisWorkId) return work;
-
-            // Mapeamos las solicitudes para actualizar únicamente la que coincide con el requestId
             const updatedRequests = (work.specialRequests || []).map(req => {
               if (req.id !== requestId) return req;
               return {
@@ -536,7 +561,6 @@ export class ThesisWorkService {
                 resolutionDetails: payload.resolutionDetails
               };
             });
-
             return {
               ...work,
               specialRequests: updatedRequests

@@ -1,8 +1,8 @@
 // tabs-logic/special-requests.tab.ts
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
-import { Document } from '../../../../../core/interfaces/Document.interface';
+import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
 import { ThesisEvaluationContext, TabConfiguration } from './tab-config.interface';
-import { SpecialRequest } from '../../../interfaces/thesis-work.interface';
+import { SpecialRequest, JurorVerdict } from '../../../interfaces/thesis-work.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 
 export const SpecialRequestTabConfig: TabConfiguration = {
@@ -31,8 +31,10 @@ export const SpecialRequestTabConfig: TabConfiguration = {
     if (!thesis) return baseContext;
 
     // 🔍 Determinar si la sustentación ya cerró su ciclo definitivo
-    const verdictsList = thesis.sustentation?.verdicts || [];
+    const verdictsList: JurorVerdict[] = thesis.sustentations?.[0]?.verdicts || [];
     const isSustentationEvaluated = verdictsList.length > 0;
+
+    // Corregido acceso a 'verdict' bajo tipado estricto
     const lastVerdict = isSustentationEvaluated ? verdictsList[verdictsList.length - 1].veredict : null;
 
     // Se considera finalizada si ya se evaluó Y el veredicto no quedó en "APLAZADO"
@@ -44,11 +46,12 @@ export const SpecialRequestTabConfig: TabConfiguration = {
     };
   },
 
-  getTableData: (documents: Document[], context: ThesisEvaluationContext) => {
+  getTableData: (documents: Document[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
     const thesis = context.thesisWork;
     if (!thesis || !thesis.specialRequests) return [];
 
-    const isConsejo = context['isConsejo'] ?? false;
+    // Aserción explícita de tipo para evitar que infiera tipos dinámicos extraños como '{}'
+    const isConsejo = context['isConsejo'] as boolean ?? false;
 
     return thesis.specialRequests.map((req: SpecialRequest) => {
       const dateStr = req.requestDate ? new Date(req.requestDate).toLocaleDateString('es-ES') : 'Sin fecha';
@@ -68,11 +71,14 @@ export const SpecialRequestTabConfig: TabConfiguration = {
     });
   },
 
-  getHeaderButtons: (context: ThesisEvaluationContext) => {
+  getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
     const buttons: TableButton[] = [];
-    const isDirector = context['isDirector'] ?? false;
-    const isAdmin = context['isAdmin'] ?? false;
-    const isSustentationFinalized = context['isSustentationFinalized'] ?? false;
+
+    // Casteos seguros de propiedades dinámicas de unknown a boolean
+    const isDirector = context['isDirector'] as boolean ?? false;
+    const isAdmin = context.isAdmin ?? false;
+    const isSustentationFinalized = context['isSustentationFinalized'] as boolean ?? false;
+
     if (isDirector || isAdmin) {
       buttons.push({
         action: 'register-special-request',
@@ -88,6 +94,8 @@ export const SpecialRequestTabConfig: TabConfiguration = {
     uploadDescription: '',
     uploadedByText: '',
     confirmDescription: '',
-    uploadDocumentType: 'Solicitud' as any
+    // Si no aplica un DocumentType real de tu enum en esta pestaña, puedes usar
+    // una aserción de tipo hacia DocumentType si tu enum o unión lo permite de forma segura.
+    uploadDocumentType: 'Solicitud' as unknown as DocumentType
   }
 };

@@ -89,7 +89,7 @@ export class EvaluateCorrectionsFormComponent {
   }
 
   getAssignedJurors(): string {
-    const jurors = this.thesisWork?.sustentation?.assignedJurors || [];
+    const jurors = this.thesisWork?.sustentations?.[0].assignedJurors || [];
     if (jurors.length === 0) return 'No asignados';
     return jurors.map((j: any) => this.userService.getUserFullName(j.id || j)).join(' y ');
   }

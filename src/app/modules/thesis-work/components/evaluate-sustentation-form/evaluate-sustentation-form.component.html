@@ -69,19 +69,19 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Fecha</span>
-        <input type="text" [value]="(thesisWork?.sustentation?.sustentationDate | date:'dd/MM/yyyy') || 'No programada'" disabled
+        <input type="text" [value]="(currentSustentation?.sustentationDate | date:'dd/MM/yyyy') || 'No programada'" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Hora</span>
-        <input type="text" [value]="(thesisWork?.sustentation?.sustentationDate | date:'shortTime') || 'No programada'" disabled
+        <input type="text" [value]="(currentSustentation?.sustentationDate | date:'shortTime') || 'No programada'" disabled
               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Lugar / Aula / Enlace</span>
-        <input type="text" [value]="thesisWork?.sustentation?.location || 'No definido'" disabled
+        <input type="text" [value]="currentSustentation?.location || 'No definido'" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
     </div>

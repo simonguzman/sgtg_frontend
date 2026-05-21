@@ -45,6 +45,10 @@ export class EvaluateAdvanceFormComponent {
     return docs[0];
   }
 
+  get advanceDocuments() {
+    return this.advanceData.documents || [];
+  }
+
   handleFeedbackUploaded(event: { fileName: string; file: File }): void {
     this.uploadedFeedbackFile.set(event);
     this.isFeedbackModalOpen.set(false);

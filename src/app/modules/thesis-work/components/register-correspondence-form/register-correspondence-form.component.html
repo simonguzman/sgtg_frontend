@@ -53,7 +53,7 @@
     <div>
       <span class="block text-sm font-semibold text-primary mb-1">Jurados</span>
       <div class="w-full bg-[#F2F6FC] border border-[#E5E7EB] rounded px-4 py-2 text-[#777680] text-sm">
-        @for (juror of thesisWork().sustentation?.assignedJurors; track juror.id) {
+        @for (juror of thesisWork().sustentations?.[0]?.assignedJurors; track juror.id) {
           <span>{{ getMemberName(juror.id) }}{{ $last ? '' : ' - ' }}</span>
         } @empty {
           <span>Sin jurados asignados</span>
@@ -63,7 +63,7 @@
     <div>
       <span class="block text-sm font-semibold text-primary mb-1">Fecha de sustentación</span>
       <div class="w-full bg-[#F2F6FC] border border-[#E5E7EB] rounded px-4 py-2 text-[#777680] text-sm">
-        {{ (thesisWork().sustentation?.sustentationDate | date:'dd/MM/yyyy') || 'Pendiente' }}
+        {{ (thesisWork().sustentations?.[0]?.sustentationDate | date:'dd/MM/yyyy') || 'Pendiente' }}
       </div>
     </div>
   </div>

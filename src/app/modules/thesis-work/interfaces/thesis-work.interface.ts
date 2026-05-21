@@ -63,7 +63,7 @@ export interface ThesisWork {
   pazYSalvo?: PazYSalvoRegistry;
 
   evaluations: Evaluation[];
-  sustentation?: SustentationRegistry;
+  sustentations?: SustentationRegistry[];
   specialRequests: SpecialRequest[];
   state: stateList;
   createdDate: Date;

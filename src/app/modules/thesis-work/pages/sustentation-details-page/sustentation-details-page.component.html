@@ -95,21 +95,21 @@
       <div class="p-3 information-block rounded">
         <span class="font-semibold font-display text-size-section text-primary">Fecha</span>
         <p class="font-normal font-sans text-size-section text-[#777680]">
-          {{ (work.sustentation?.sustentationDate | date:'dd/MM/yyyy') || 'No programada' }}
+          {{ (work.sustentations?.[0]?.sustentationDate | date:'dd/MM/yyyy') || 'No programada' }}
         </p>
       </div>
 
       <div class="p-3 information-block rounded">
         <span class="font-semibold font-display text-size-section text-primary">Hora</span>
         <p class="font-normal font-sans text-size-section text-[#777680]">
-          {{ (work.sustentation?.sustentationDate | date:'shortTime') || 'No programada' }}
+          {{ (work.sustentations?.[0]?.sustentationDate | date:'shortTime') || 'No programada' }}
         </p>
       </div>
 
       <div class="p-3 information-block rounded">
         <span class="font-semibold font-display text-size-section text-primary">Lugar / Aula / Enlace</span>
         <p class="font-normal font-sans text-size-section text-[#777680]">
-          {{ work.sustentation?.location || 'No definido' }}
+          {{ work.sustentations?.[0]?.location || 'No definido' }}
         </p>
       </div>
     </div>
