@@ -10,6 +10,7 @@ import { NotificationType } from '../../../../shared/components/notifications/mo
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { DatePipe } from '@angular/common';
 import { stateList } from '../../../../core/enums/state.enum';
+import { User } from '../../../users/interfaces/user.interface';
 
 @Component({
   selector: 'app-sustentation-details-page',
@@ -88,8 +89,8 @@ export class SustentationDetailsPageComponent implements OnInit {
     return this.userService.getUserFullName(userId);
   }
 
-  getAuthors(ids: string[] | undefined): string {
-    return this.userService.getAuthorsNames(ids);
+  getAuthors(authors: User[] | undefined): string {
+    return this.userService.getAuthorsNames(authors);
   }
 
   // Ahora usa selectedSustentation()

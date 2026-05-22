@@ -54,7 +54,7 @@ export class ProposalFormComponent implements OnInit {
     const current = this.proposal();
 
     return allStudents.filter(student => {
-      const pWithStudent = allProposals.find(p => p.authors.includes(student.id));
+      const pWithStudent = allProposals.find(p => p.authors.some(author => author.id === student.id));
       return !pWithStudent || (current ? pWithStudent.id === current.id : false);
     });
   });
@@ -147,8 +147,10 @@ export class ProposalFormComponent implements OnInit {
     const raw = this.proposalForm.getRawValue();
     if (raw.codirector) this.userService.addRoleToUser(raw.codirector, UserRoleType.CODIRECTOR);
 
-    const authorsArray = [raw.student1 as string];
-    if (raw.student2) authorsArray.push(raw.student2);
+    const authorsArray = this.userService.students().filter(student =>
+      student.id === raw.student1 ||
+      student.id === raw.student2
+    );
 
     const result: Proposal = {
       ...(this.proposal() ?? {}),
@@ -180,7 +182,7 @@ export class ProposalFormComponent implements OnInit {
 
   private initEditForm(proposal: Proposal): void {
     this.proposalForm.get('document')?.clearValidators();
-    const s1 = proposal.authors[0] ?? '';
+    const s1 = proposal.authors[0]?.id ?? '';
     this.selectedStudent1Id.set(s1);
 
     this.proposalForm.patchValue({
@@ -189,7 +191,7 @@ export class ProposalFormComponent implements OnInit {
       modality: proposal.modality,
       codirector: proposal.codirector?.id ?? '',
       student1: s1,
-      student2: proposal.authors[1] ?? '',
+      student2: proposal.authors[1]?.id ?? '',
       advisor: proposal.advisor?.id ?? ''
     });
 

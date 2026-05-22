@@ -45,3 +45,21 @@
   (confirm)="confirmUpload()"
   (onClose)="cancelUpload()"
 ></app-confirmation-action-modal>
+
+<app-register-information-modal
+  [isOpen]="isDetailsModalOpen()"
+  [modalHeader]="'Detalles del avance'"
+  [subTitle]="'Información del avance cargado'"
+  [title]="selectedAdvance()?.title || ''"
+  [comments]="selectedAdvance()?.comments || ''"
+  [modality]="modalityName()"
+  [student]="studentName()"
+  [director]="directorName()"
+  [codirector]="codirectorName()"
+  [adviser]="advisorName()"
+  [chargeDate]="selectedAdvance()?.uploadDate || defaultFallbackDate"
+  [state]="selectedAdvance()?.status"
+  [documents]="selectedAdvanceDocuments()"
+  (onClose)="isDetailsModalOpen.set(false)"
+  (onDownloadFile)="downloadAdvanceFile($event)">
+</app-register-information-modal>

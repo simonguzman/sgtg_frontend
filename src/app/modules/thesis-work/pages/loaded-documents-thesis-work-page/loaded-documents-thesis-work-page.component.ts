@@ -21,12 +21,14 @@ import { PazYSalvoTabConfig } from './tabs-logic/paz_y_salvo.tab';
 import { SustentationTabConfig } from './tabs-logic/sustentation.tab';
 import { CorrespondenceTabConfig } from './tabs-logic/correspondence.tab';
 import { SpecialRequestTabConfig } from './tabs-logic/special-request.tab';
+import { RegisterInformationModalComponent } from "../../../../shared/components/modals/register-information-modal/register-information-modal.component";
+import { UserService } from '../../../users/services/user.service';
 
 @Component({
   selector: 'app-loaded-documents-thesis-work-page',
   templateUrl: './loaded-documents-thesis-work-page.component.html',
   styleUrls: ['./loaded-documents-thesis-work-page.component.css'],
-  imports: [FileUploadModalComponent, ConfirmationActionModalComponent, TableComponent, TabsComponent]
+  imports: [FileUploadModalComponent, ConfirmationActionModalComponent, TableComponent, TabsComponent, RegisterInformationModalComponent]
 })
 export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
@@ -34,6 +36,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
+  private readonly userService = inject(UserService);
   private readonly authService = inject(AuthService);
   private readonly breadcrumbService = inject(BreadcrumbService);
   private readonly titleService = inject(Title);
@@ -62,6 +65,11 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   isUploadModalOpen = signal(false);
   isConfirmModalOpen = signal(false);
   uploadContext = signal<{ fileName: string, file: File } | null>(null);
+  isDetailsModalOpen = signal(false);
+  selectedAdvance = signal<any | null>(null);
+
+  // Fallback seguro de fecha para evitar la inicialización nativa directa en el HTML
+  readonly defaultFallbackDate = new Date();
 
   constructor() {
     effect(() => {
@@ -113,12 +121,9 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       isDirector: thesis?.preliminaryDraftData?.proposalData?.director?.id === user?.id,
       isCodirector: thesis?.preliminaryDraftData?.proposalData?.codirector?.id === user?.id,
       isAdvisor: thesis?.preliminaryDraftData?.proposalData?.advisor?.id === user?.id,
-
-      // 🕵️‍♂️ LÓGICA DE DETECCIÓN DE JURADO ASIGNADO AÑADIDA AQUÍ:
       isJuror: thesis?.sustentations?.[0]?.assignedJurors?.some(
         (j: any) => (typeof j === 'string' ? j : j.id) === user?.id
       ) ?? false,
-
       latestAdvanceId: null,
       isLatestAdvancePending: false
     };
@@ -139,6 +144,71 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     return this.currentStrategy().getTableData(docs, context);
   });
 
+  // ==========================================
+  // 🧠 PROCESADORES REACTIVOS PARA EL MODAL DE DETALLES
+  // ==========================================
+  selectedAdvanceDocuments = computed<string[]>(() => {
+    const advance = this.selectedAdvance();
+    return advance?.documents?.map((d: Document) => d.name) || [];
+  });
+
+  studentName = computed<string>(() => {
+    const authors = this.evaluationContext()
+      .thesisWork
+      ?.preliminaryDraftData
+      ?.proposalData
+      ?.authors;
+
+    return this.userService.getAuthorsNames(authors) || 'Sin estudiante';
+  });
+
+  directorName = computed<string>(() => {
+    const director = this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.director;
+    return this.getUserFullName(director) || 'Sin director';
+  });
+
+  codirectorName = computed<string | undefined>(() => {
+    const codirector = this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.codirector;
+    return this.getUserFullName(codirector);
+  });
+
+  advisorName = computed<string | undefined>(() => {
+    const advisor = this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.advisor;
+    return this.getUserFullName(advisor);
+  });
+
+  modalityName = computed<string>(() => {
+    return this.evaluationContext()
+      .thesisWork
+      ?.preliminaryDraftData
+      ?.proposalData
+      ?.modality || 'Sin modalidad';
+  });
+
+  private getUserFullName(user: any): string | undefined {
+    if (!user) return undefined;
+
+    // Caso: viene directamente como string
+    if (typeof user === 'string') {
+      return user;
+    }
+
+    // Caso: objeto User completo
+    if (user.firstName || user.lastName) {
+      return `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    }
+
+    // Caso fallback
+    if (user.name) {
+      return user.name;
+    }
+
+    return undefined;
+  }
+
+  // ==========================================
+  // 🚀 MANEJO DE ACCIONES Y EVENTOS
+  // ==========================================
   handleHeaderButton(button: TableButton): void {
     if (button.label?.toLowerCase().includes('cargar') || button.label?.toLowerCase().includes('registrar')) {
       if (this.activeTab() === 'AVANCES') {
@@ -187,7 +257,9 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       case 'evaluate_sustentation':
         this.router.navigate([event.action, rowId], { relativeTo: this.route });
         break;
-
+      case 'view-details':
+        this.openAdvanceDetails(rowId);
+        break;
       default:
         this.router.navigate([event.action], { relativeTo: this.route });
         break;
@@ -235,6 +307,42 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
 
   goBack(): void {
     this.router.navigate(['../'], { relativeTo: this.route });
+  }
+
+  downloadAdvanceFile(fileName: string): void {
+    const advance = this.selectedAdvance();
+    if (!advance?.documents) return;
+
+    const document = advance.documents.find((doc: Document) => doc.name === fileName);
+
+    if (document?.url) {
+      this.downloadService.download(document.url, fileName);
+    } else {
+      this.notificationService.show({
+        title: 'Archivo no disponible',
+        message: 'El archivo seleccionado no tiene una URL válida vinculada.',
+        type: NotificationType.ERROR
+      });
+    }
+  }
+
+  private openAdvanceDetails(advanceId: string): void {
+    const thesis = this.currentThesisWork();
+    if (!thesis?.advances) return;
+
+    const advance = thesis.advances.find(a => a.id === advanceId);
+
+    if (!advance) {
+      this.notificationService.show({
+        title: 'No encontrado',
+        message: 'No fue posible encontrar el avance seleccionado.',
+        type: NotificationType.ERROR
+      });
+      return;
+    }
+
+    this.selectedAdvance.set(advance);
+    this.isDetailsModalOpen.set(true);
   }
 
   private formatDate(date: Date): string {

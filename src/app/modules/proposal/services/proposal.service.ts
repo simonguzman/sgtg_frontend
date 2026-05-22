@@ -36,7 +36,7 @@ export class ProposalService {
       modality: Modality.PP,
       description: 'Desarrollar un prototipo del FrontEnd...',
       state: stateList.APROBADO,
-      authors: ['user-001'],
+      authors: [this.getMockUser('user-001')],
       director: this.getMockUser('doc-005'),
       codirector: this.getMockUser('doc-001'),
       advisor: this.getMockUser('doc-002'),
@@ -50,7 +50,7 @@ export class ProposalService {
       modality: Modality.TI,
       description: 'Investigación sobre seguridad en protocolos Zigbee...',
       state: stateList.APROBADO_CON_OBSERVACIONES,
-      authors: ['user-001'],
+      authors: [this.getMockUser('user-001')],
       director: this.getMockUser('doc-005'),
       documents: [],
       evaluations: [],
@@ -62,7 +62,7 @@ export class ProposalService {
       modality: Modality.PP,
       description: 'Migración de monolito a microservicios...',
       state: stateList.NO_APROBADO,
-      authors: ['user-456'],
+      authors: [this.getMockUser('user-456')],
       director: this.getMockUser('doc-005'),
       advisor: this.getMockUser('doc-002'),
       documents: [],
@@ -75,7 +75,7 @@ export class ProposalService {
       modality: Modality.TI,
       description: 'Optimización de rutas de buses...',
       state: stateList.APROBADO_CON_OBSERVACIONES,
-      authors: ['user-003'],
+      authors: [this.getMockUser('user-003')],
       director: this.getMockUser('doc-001'),
       codirector: this.getMockUser('doc-008'),
       documents: [],
@@ -97,7 +97,7 @@ export class ProposalService {
     }
 
     return activeProposals.filter(proposal => {
-      const isAuthor = proposal.authors?.includes(currentUser.id);
+      const isAuthor = proposal.authors?.some( author => author.id === currentUser.id );
       const isDirector = proposal.director?.id === currentUser.id;
       const isCodirector = proposal.codirector?.id === currentUser.id;
       const isAdvisor = proposal.advisor?.id === currentUser.id;
@@ -156,13 +156,13 @@ export class ProposalService {
 
     // Regla: Máximo 2 propuestas por estudiante
     if (proposal.authors && proposal.authors.length > 0) {
-      for (const authorId of proposal.authors) {
+      for (const author of proposal.authors) {
         const activeCount = this._proposalsList().filter(p =>
-          p.authors?.includes(authorId) && p.id !== proposal.id
+          p.authors?.some(a => a.id === author.id) &&
+          p.id !== proposal.id
         ).length;
-
         if (activeCount >= 2) {
-          const studentName = this.userService.getUserFullName(authorId);
+          const studentName = this.userService.getUserFullName(author.id);
           return `El estudiante ${studentName} ya tiene 2 propuestas (límite máximo).`;
         }
       }

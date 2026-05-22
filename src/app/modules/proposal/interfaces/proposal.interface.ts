@@ -14,7 +14,7 @@ export interface Proposal {
   description: string;
   modality: Modality;
   lineOfResearch?: string;
-  authors: string[];
+  authors: User[];
   director: User;
   codirector?: User;
   advisor?: User;

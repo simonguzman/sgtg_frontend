@@ -421,9 +421,20 @@ export class UserService {
     return user ? this.formatFullName(user) : id;
   }
 
-  getAuthorsNames(ids: string[] | undefined): string {
-    if (!ids || ids.length === 0) return 'Sin autores';
-    return ids.map(id => this.getUserFullName(id)).join(', ');
+  getAuthorsNames(authors: (string | User)[] | undefined): string {
+    if (!authors || authors.length === 0) return 'Sin autores';
+
+    return authors
+      .map(author => {
+        // Si viene como string (id)
+        if (typeof author === 'string') {
+          return this.getUserFullName(author);
+        }
+
+        // Si viene como objeto User
+        return this.formatFullName(author);
+      })
+      .join(', ');
   }
 
   getAllUsers(): User[] {

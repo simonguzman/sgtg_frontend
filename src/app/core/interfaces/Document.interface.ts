@@ -5,6 +5,7 @@ export enum DocumentType{
   'ANTEPROYECTO' = 'Anteproyecto',
   'MONONGRAFIA' = 'Monografia',
   'ANEXO' = 'Anexo',
+  'AVANCE' = 'Avance',
   'CORRECCION' = 'Correccion',
   'FORMATO' = 'Formato',
   'FORMATO E' = 'Formato E',

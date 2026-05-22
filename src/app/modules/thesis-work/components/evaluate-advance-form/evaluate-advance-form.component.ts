@@ -4,6 +4,7 @@ import { stateList } from '../../../../core/enums/state.enum';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { Advance } from '../../interfaces/thesis-work.interface';
+import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playload.interface';
 
 // Importaciones de tus interfaces reales
 
@@ -20,29 +21,24 @@ export class EvaluateAdvanceFormComponent {
   @Input({ required: true }) advanceData!: Advance;
   @Input({ required: true }) thesisWorkTitle!: string;
   @Input() isSubmitting = false;
+  @Input() alreadyEvaluated = false;
+  @Input() isFullyEvaluated = false;
 
   @Output() onBack = new EventEmitter<void>();
-  @Output() onSaveEvaluation = new EventEmitter<{ formValues: any, file?: File }>();
+  @Output() onSaveEvaluation = new EventEmitter<SubmitAdvanceEvaluationPayload>();
   @Output() onDownloadAdvance = new EventEmitter<void>();
 
   // Manejo de archivo opcional de correcciones/anotaciones
   uploadedFeedbackFile = signal<{ fileName: string; file: File } | null>(null);
   isFeedbackModalOpen = signal(false);
 
-  readonly evaluationForm = this.fb.group({
-    result: ['', Validators.required],
-    comments: ['', Validators.required]
+  readonly evaluationForm = this.fb.nonNullable.group({
+    result: this.fb.control(AdvanceEvaluationResult.EN_REVISION, Validators.required),
+    comments: this.fb.control('', Validators.required)
   });
 
   get isReadOnly(): boolean {
-    return this.advanceData.status === stateList.EVALUADO;
-  }
-
-  // Obtiene el documento principal cargado por el estudiante usando la interfaz genérica
-  get currentDocument() {
-    const docs = this.advanceData.documents || [];
-    if (docs.length === 0) return null;
-    return docs[0];
+    return this.alreadyEvaluated || this.isFullyEvaluated;
   }
 
   get advanceDocuments() {
@@ -54,8 +50,8 @@ export class EvaluateAdvanceFormComponent {
     this.isFeedbackModalOpen.set(false);
   }
 
-  isFieldInvalid(fieldName: string): boolean {
-    const control = this.evaluationForm.get(fieldName);
+  isFieldInvalid(fieldName: keyof typeof this.evaluationForm.controls): boolean {
+    const control = this.evaluationForm.controls[fieldName];
     return !!(control?.invalid && control?.touched);
   }
 
@@ -64,12 +60,15 @@ export class EvaluateAdvanceFormComponent {
       this.evaluationForm.markAllAsTouched();
       return;
     }
-
     const feedbackData = this.uploadedFeedbackFile();
-
+    const values = this.evaluationForm.getRawValue();
+    // El autocompletado aquí ahora es 100% seguro
     this.onSaveEvaluation.emit({
-      formValues: this.evaluationForm.value,
-      file: feedbackData ? feedbackData.file : undefined // Opcional
+      formValues: {
+        result: values.result as AdvanceEvaluationResult,
+        comments: values.comments as string
+      },
+      file: feedbackData ? feedbackData.file : undefined
     });
   }
 }

@@ -1,15 +1,17 @@
 // tabs-logic/advances.tab.ts
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
-import { stateList } from '../../../../../core/enums/state.enum';
 import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
+import { stateList } from '../../../../../core/enums/state.enum';
 
 // Ajustamos la interfaz interna para que coincida exactamente con tus modelos globales
 interface AdvanceRegistry {
   id: string;
   title: string;
+  comments: string;
   uploadDate: Date; // 🚀 Corregido: Ahora es de tipo Date nativo
   documents?: Document[];
+  status: stateList;
 }
 
 interface EvaluationRegistry {
@@ -27,7 +29,7 @@ export const AdvancesTabConfig: TabConfiguration = {
     {
       field: 'acciones', header: 'Acciones', type: 'actions', width: '25%',
       actions: [
-        { action: 'download', label: 'Descargar', icon: 'download', variant: 'primary', disabled: false },
+        { action: 'view-details', label: 'Ver detalles', icon: 'visibility', variant: 'primary', disabled: false },
         { action: 'evaluate-advance', label: 'Evaluar avance', icon: 'assignment', variant: 'primary', disabled: false }
       ]
     }
@@ -48,15 +50,7 @@ export const AdvancesTabConfig: TabConfiguration = {
     const advances: AdvanceRegistry[] = thesis.advances || [];
     const latestAdvance = advances.length > 0 ? advances[0] : null;
 
-    let isLatestAdvancePending = false;
-    if (latestAdvance) {
-      const evaluations: EvaluationRegistry[] = thesis.evaluations?.filter(
-        (ev: EvaluationRegistry) => ev.documentId === latestAdvance.id
-      ) || [];
-
-      // 🧠 2. Está pendiente si el número de evaluaciones es menor a los requeridos
-      isLatestAdvancePending = evaluations.length < requiredEvaluatorsCount;
-    }
+    const isLatestAdvancePending = latestAdvance?.status === stateList.EN_REVISION;
 
     // 🔍 Verificar si ya existe el Formato E (Entrega Final) registrado en el proyecto
     const hasFinalDelivery = thesis.documents?.some(
@@ -74,20 +68,14 @@ export const AdvancesTabConfig: TabConfiguration = {
 
   getTableData: (documents: Document[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
     const activeAdvances: AdvanceRegistry[] = context.thesisWork?.advances || [];
-
-    const requiredCount = context['requiredEvaluatorsCount'] as number ?? 1;
     const hasFinalDelivery = context['hasFinalDelivery'] as boolean ?? false;
 
     return activeAdvances.map((adv: AdvanceRegistry) => {
-      const allowedActions = ['download'];
+      const allowedActions = ['view-details'];
 
       const evaluationsForThisAdvance: EvaluationRegistry[] = context.thesisWork?.evaluations?.filter(
         (ev: EvaluationRegistry) => ev.documentId === adv.id
       ) || [];
-
-      const isFullyEvaluated = evaluationsForThisAdvance.length >= requiredCount;
-
-      const displayStatus = isFullyEvaluated ? stateList.EVALUADO : stateList.EN_REVISION;
 
       const userFullName = `${context.currentUser?.firstName || ''} ${context.currentUser?.lastName || ''}`.trim();
       const alreadyEvaluated = evaluationsForThisAdvance.some(
@@ -96,20 +84,38 @@ export const AdvancesTabConfig: TabConfiguration = {
 
       const isAssignedEvaluator = context.isDirector || context.isCodirector || context.isAdvisor || context.isAdmin;
 
-      if (isAssignedEvaluator && !alreadyEvaluated && !isFullyEvaluated && !hasFinalDelivery) {
+      if (isAssignedEvaluator && !alreadyEvaluated && !hasFinalDelivery && adv.status !== stateList.EVALUADO) {
         allowedActions.push('evaluate-advance');
       }
 
-      // 🚀 Al ser adv.uploadDate un objeto Date, quitamos el envoltorio innecesario 'new Date()'
-      const dateStr = adv.uploadDate
-        ? adv.uploadDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ')
-        : 'Sin fecha';
+      if (evaluationsForThisAdvance.length > 0) {
+        allowedActions.push('view-details');
+      }
+
+      // 🚀 CAMBIO: Manejo a prueba de balas para las fechas
+      let dateStr = 'Sin fecha';
+      if (adv.uploadDate) {
+        // Garantizamos que sea un objeto Date válido en memoria
+        const dateObj = typeof adv.uploadDate === 'string'
+          ? new Date(adv.uploadDate)
+          : adv.uploadDate;
+
+        // Validamos que la fecha no sea "Invalid Date"
+        if (!Number.isNaN(dateObj.getTime())) {
+          dateStr = dateObj.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          }).replaceAll('/', ' - ');
+        }
+      }
 
       return {
         id: adv.id,
         name: adv.title,
+        comments: adv.comments,
         uploadDate: dateStr,
-        status: displayStatus,
+        status: adv.status,
         documents: adv.documents || [],
         url: adv.documents?.[0]?.url || '',
         allowedActions

@@ -5,10 +5,11 @@ import { NotificationService } from '../../../../shared/components/notifications
 import { ActivatedRoute, Router } from '@angular/router';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { Document } from '../../../../core/interfaces/Document.interface';
+import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
 import { forkJoin, Observable } from 'rxjs';
 import { UploadAdvanceFormComponent } from "../../components/upload-advance-form/upload-advance-form.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
+import { UploadAdvancePayload } from '../../interfaces/advance-playload.interface';
 
 @Component({
   selector: 'app-upload-advance-page',
@@ -27,7 +28,7 @@ export class UploadAdvancePageComponent implements OnInit {
   isConfirmModalOpen = signal(false);
   isSaving = signal(false);
 
-  pendingAdvanceData = signal<{ formValues: { title: string, comments: string }, files: File[] } | null>(null);
+  pendingAdvanceData = signal<UploadAdvancePayload | null>(null);
 
   ngOnInit() {
     let currentRoute = this.route;
@@ -74,7 +75,7 @@ export class UploadAdvancePageComponent implements OnInit {
     });
   }
 
-  handleSaveRequest(data: { formValues: { title: string, comments: string }, files: File[] }) {
+  handleSaveRequest(data: UploadAdvancePayload) {
     this.pendingAdvanceData.set(data);
     this.isConfirmModalOpen.set(true);
   }
@@ -87,26 +88,33 @@ export class UploadAdvancePageComponent implements OnInit {
     if (!data || !thesisWork || !currentUser) return;
 
     this.isSaving.set(true);
-    const advanceBlockId = crypto.randomUUID();
 
+    // 🚀 1. Generamos UN ÚNICO ID para agrupar todo el bloque de avance
+    const globalAdvanceBlockId = crypto.randomUUID();
+
+    // 🚀 2. Definimos la metadata que compartirá todo el lote de archivos
+    const advanceMeta = {
+      title: data.formValues.title,
+      comments: data.formValues.comments,
+      studentId: currentUser.id,
+      advanceId: globalAdvanceBlockId
+    };
+
+    // 🚀 3. Asignamos un ID único independiente a cada archivo físico
     const documentsToUpload: Document[] = data.files.map(file => ({
-      id: advanceBlockId,
+      id: crypto.randomUUID(),
       name: `${data.formValues.title} - ${file.name}`,
       url: 'url-pendiente-de-carga-s3',
-      type: 'Avance' as any,
+      type: DocumentType.AVANCE,
       uploadDate: new Date().toISOString()
     }));
 
-    // 📌 Pasamos los parámetros complementarios al primer archivo del bloque mapeado
-    const uploadRequests: Observable<void>[] = documentsToUpload.map((doc, index) =>
+    // 🚀 4. Enviamos la MISMA metadata a todas las peticiones para garantizar la agrupación
+    const uploadRequests: Observable<void>[] = documentsToUpload.map(doc =>
       this.thesisWorkService.uploadDocumentMock(
         thesisWork.thesisWorkId,
         doc,
-        index === 0 ? {
-          title: data.formValues.title,
-          comments: data.formValues.comments,
-          studentId: currentUser.id
-        } : undefined
+        advanceMeta
       )
     );
 

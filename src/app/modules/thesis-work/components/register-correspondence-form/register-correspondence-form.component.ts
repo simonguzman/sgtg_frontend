@@ -7,6 +7,7 @@ import { Document, DocumentType } from '../../../../core/interfaces/Document.int
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { DatePipe } from '@angular/common';
+import { User } from '../../../users/interfaces/user.interface';
 
 @Component({
   selector: 'app-register-correspondence-form',
@@ -39,8 +40,8 @@ export class RegisterCorrespondenceFormComponent {
     return userId ? this.userService.getUserFullName(userId) : 'No asignado';
   }
 
-  getAuthors(ids: string[] | undefined): string {
-    return this.userService.getAuthorsNames(ids);
+  getAuthors(authors: User[] | undefined): string {
+    return this.userService.getAuthorsNames(authors);
   }
 
   downloadDocument(doc: Document | undefined | null): void {

@@ -5,6 +5,7 @@ import { NotificationService } from '../../../../shared/components/notifications
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
+import { UploadAdvancePayload } from '../../interfaces/advance-playload.interface';
 
 @Component({
   selector: 'app-upload-advance-form',
@@ -19,17 +20,16 @@ export class UploadAdvanceFormComponent {
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
 
-  @Output() onSaveAdvance = new EventEmitter<{ formValues: { title: string, comments: string }, files: File[] }>();
+  @Output() onSaveAdvance = new EventEmitter<UploadAdvancePayload>();
   @Output() onGoBack = new EventEmitter<void>();
 
   // Signal para manejar múltiples archivos
   uploadedFiles = signal<{ fileName: string; file: File }[]>([]);
   isUploadModalOpen = signal(false);
 
-  readonly advanceForm = this.fb.group({
+  readonly advanceForm = this.fb.nonNullable.group({
     title: ['', Validators.required],
-    comments: ['', Validators.required],
-    documents: [null]
+    comments: ['', Validators.required]
   });
 
   handleFileUploaded(event: { fileName: string; file: File }): void {
@@ -61,18 +61,18 @@ export class UploadAdvanceFormComponent {
       });
       return;
     }
-
+    const formValues = this.advanceForm.getRawValue();
     this.onSaveAdvance.emit({
       formValues: {
-        title: this.advanceForm.value.title!,
-        comments: this.advanceForm.value.comments!,
+        title: formValues.title,
+        comments: formValues.comments,
       },
       files: this.uploadedFiles().map(item => item.file)
     });
   }
 
-  isFieldInvalid(fieldName: string): boolean {
-    const control = this.advanceForm.get(fieldName);
+  isFieldInvalid(fieldName: keyof typeof this.advanceForm.controls): boolean {
+    const control = this.advanceForm.controls[fieldName];
     return !!(control?.invalid && control?.touched);
   }
 

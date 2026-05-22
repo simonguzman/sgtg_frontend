@@ -19,6 +19,7 @@ export class RegisterInformationModalComponent  {
   @Input() subTitle: string = 'Información del trabajo de grado'; // Título de la sección
   @Input() isOpen: boolean = false;
   @Input() title: string = '';
+  @Input() comments: string = '';
   @Input() modality: string = '';
   @Input() student: string = '';
   @Input() director: string = '';

@@ -9,6 +9,7 @@ import { FileDownloadService } from '../../../../core/services/filedownload/file
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
+import { User } from '../../../users/interfaces/user.interface';
 
 @Component({
   selector: 'app-preliminary-draft-details-page',
@@ -62,8 +63,8 @@ export class PreliminaryDraftDetailsPageComponent implements OnInit {
     return this.userService.getUserFullName(userId);
   }
 
-  getAuthors(ids: string[] | undefined): string {
-    return this.userService.getAuthorsNames(ids);
+  getAuthors(authors: User[] | undefined): string {
+    return this.userService.getAuthorsNames(authors);
   }
 
   downloadDocument(): void {

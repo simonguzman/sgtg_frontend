@@ -21,6 +21,10 @@
       <div class="grid grid-cols-[150px_1fr] gap-y-4 items-center font-sans text-sm">
         <p class="font-bold text-primary m-0">Titulo:</p>
         <p class="m-0 text-gray-700">{{ title }}</p>
+        <p class="font-bold text-primary m-0">Descripción:</p>
+        <p class="m-0 text-gray-700 whitespace-pre-line">
+          {{ comments || 'Sin descripción registrada' }}
+        </p>
         <p class="font-bold text-primary m-0">Modalidad:</p>
         <p class="m-0 text-gray-700">{{ modality }}</p>
         <p class="font-bold text-primary m-0">Estudiante:</p>

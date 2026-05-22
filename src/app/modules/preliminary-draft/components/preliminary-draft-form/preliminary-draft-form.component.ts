@@ -141,8 +141,8 @@ export class PreliminaryDraftFormComponent implements OnInit {
       .join(' ');
   }
 
-  getAuthorsNames(ids: string[] | undefined): string {
-    return this.userService.getAuthorsNames(ids);
+  getAuthorsNames(authors: User[] | undefined): string {
+    return this.userService.getAuthorsNames(authors);
   }
 
   handleFileUploaded(event: { fileName: string; file: File }): void {

@@ -5,5 +5,5 @@ export enum stateList{
   APLAZADO = 'Aplazado',
   EN_DESARROLLO = 'En desarrollo',
   EVALUADO = 'Evaluado',
-  EN_REVISION = 'En revision'
+  EN_REVISION = 'En revisión'
 }

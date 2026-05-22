@@ -29,7 +29,7 @@ const COLUMNS_ACTIONS: Column[] = [
 
 const ROWS = [
   { nombre: 'Simón Guzmán', correo: 'simonguzman@unicauca.edu.co', estado: 'Aprobado' },
-  { nombre: 'Vanessa Agredo', correo: 'vanessaagredo@Unicauca.edu.co', estado: 'En revision' },
+  { nombre: 'Vanessa Agredo', correo: 'vanessaagredo@Unicauca.edu.co', estado: 'En revisión' },
 ];
 
 async function mountTable(

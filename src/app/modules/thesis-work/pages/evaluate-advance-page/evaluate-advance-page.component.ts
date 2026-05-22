@@ -10,6 +10,7 @@ import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { EvaluateAdvanceFormComponent } from "../../components/evaluate-advance-form/evaluate-advance-form.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
+import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playload.interface';
 
 @Component({
   selector: 'app-evaluate-advance-page',
@@ -30,7 +31,7 @@ export class EvaluateAdvancePageComponent implements OnInit {
   advanceId = signal<string | null>(null);
 
   isConfirmModalOpen = signal(false);
-  pendingReviewData = signal<{ formValues: any, file?: File } | null>(null);
+  pendingReviewData = signal<SubmitAdvanceEvaluationPayload | null>(null);
 
   // Extraemos dinámicamente el avance específico usando tus interfaces nativas
   currentAdvance = computed<Advance | null>(() => {
@@ -91,7 +92,7 @@ export class EvaluateAdvancePageComponent implements OnInit {
     this.router.navigate(['../../'], { relativeTo: this.route });
   }
 
-  handleRequestConfirmation(data: { formValues: any, file?: File }) {
+  handleRequestConfirmation(data: SubmitAdvanceEvaluationPayload) {
     this.pendingReviewData.set(data);
     this.isConfirmModalOpen.set(true);
   }
@@ -107,7 +108,7 @@ export class EvaluateAdvancePageComponent implements OnInit {
     const documentsNames: string[] = [];
     if (data.file) documentsNames.push(data.file.name);
 
-    const isApproved = data.formValues.result === 'Evaluado';
+    const isApproved = data.formValues.result === AdvanceEvaluationResult.EVALUADO;
 
     // Construimos la evaluación apuntando al id del avance (documentId)
     const evaluation: Evaluation = {
@@ -116,8 +117,8 @@ export class EvaluateAdvancePageComponent implements OnInit {
       documentId: advance.id,
       evaluatorName: `${user.firstName} ${user.lastName}`,
       evaluatorRole: 'Docente / Evaluador',
-      veredict: isApproved ? stateList.EVALUADO : stateList.EN_REVISION,
-      observations: data.formValues.comments,
+      veredict: stateList.EVALUADO,
+      observations: `[${data.formValues.result.toUpperCase()}] ${data.formValues.comments}`,
       signedDocuments: documentsNames,
       date: new Date()
     };

@@ -97,8 +97,8 @@ export class AssignEvaluatorsFormComponent implements OnInit {
       .join(' ');
   }
 
-  getAuthorsNames(ids: string[] | undefined): string {
-    return this.userService.getAuthorsNames(ids) || 'No asignado';
+  getAuthorsNames(authors: User[] | undefined): string {
+    return this.userService.getAuthorsNames(authors) || 'No asignado';
   }
 
   isFieldInvalid(fieldName: string): boolean {

@@ -79,7 +79,7 @@ export class PreliminaryDraftPageComponent implements OnInit {
       const isCodirector = isMatchingUser(proposal?.codirector);
       const isAdvisor = isMatchingUser(proposal?.advisor);
       const isStudentAuthor = (currentUserId != null && Array.isArray(proposal?.authors))
-        ? proposal.authors.includes(currentUserId)
+        ? proposal.authors.some(author => author.id === currentUserId)
         : false;
       const isAssignedEvaluator = isUserInList(preliminaryDraft.evaluators);
       const hasViewPermission = hasFullAccessRole || isDirector || isCodirector || isAdvisor || isStudentAuthor || isAssignedEvaluator;

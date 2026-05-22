@@ -9,6 +9,7 @@ import { NotificationType } from '../../../../shared/components/notifications/mo
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
 import { UserRoleType } from '../../../../core/models/user-role';
+import { User } from '../../../users/interfaces/user.interface';
 
 @Component({
   selector: 'app-thesis-work-details-page',
@@ -146,8 +147,8 @@ export class ThesisWorkDetailsPageComponent implements OnInit {
     return this.userService.getUserFullName(userId);
   }
 
-  getAuthors(ids: string[] | undefined): string {
-    return this.userService.getAuthorsNames(ids);
+  getAuthors(authors: User[] | undefined): string {
+    return this.userService.getAuthorsNames(authors);
   }
 
   downloadDocument(): void {

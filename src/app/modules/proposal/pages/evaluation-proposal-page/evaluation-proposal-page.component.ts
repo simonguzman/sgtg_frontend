@@ -14,6 +14,7 @@ import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
 import { UserService } from '../../../users/services/user.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
+import { User } from '../../../users/interfaces/user.interface';
 
 const RESULT_TO_STATE: Record<string, stateList> = {
   'Aprobado':                    stateList.APROBADO,
@@ -66,8 +67,18 @@ export class EvaluationProposalPageComponent implements OnInit  {
     ];
   });
 
-  getStudentNames(authors: string[] | undefined): string {
-    return this.userService.getAuthorsNames(authors);
+  getStudentNames(authors: User[] | undefined): string {
+    if (!authors || authors.length === 0) {
+      return 'Sin autores';
+    }
+
+    return authors
+      .map(author =>
+        `${author.firstName} ${author.secondName || ''} ${author.lastName} ${author.secondLastName || ''}`
+          .replace(/\s+/g, ' ')
+          .trim()
+      )
+      .join(', ');
   }
 
   getDirectorName(directorId: string | undefined): string {

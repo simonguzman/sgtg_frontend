@@ -13,6 +13,7 @@ import { ThesisWorkSustentationService } from './thesis-work-sustentation.servic
 import { Document } from '../../../core/interfaces/Document.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
+import { CreateAdvanceRequest } from '../interfaces/advance-playload.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -41,7 +42,7 @@ export class ThesisWorkService {
   }
 
   // --- 🚀 Avances (Advance Service) ---
-  uploadDocumentMock(thesisWorkId: string, document: Document, advanceMeta?: { title: string; comments: string; studentId: string }) {
+  uploadDocumentMock(thesisWorkId: string, document: Document, advanceMeta?: CreateAdvanceRequest ) {
     return this.advanceService.uploadDocumentMock(thesisWorkId, document, advanceMeta);
   }
 

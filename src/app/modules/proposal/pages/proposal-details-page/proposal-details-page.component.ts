@@ -58,8 +58,8 @@ export class ProposalDetailsPageComponent implements OnInit {
     ].filter(name => !!name).join(' ');
   }
 
-  getAuthors(ids: string[] | undefined): string {
-    return this.userService.getAuthorsNames(ids);
+  getAuthors(authors: User[] | undefined): string {
+    return this.userService.getAuthorsNames(authors);
   }
 
   private handleNavigationError(): void {
