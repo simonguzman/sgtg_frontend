@@ -1,9 +1,10 @@
-import { Component, EventEmitter, inject, Input, OnInit, Output, signal } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { UserService } from '../../../users/services/user.service';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
+import { ThesisWork } from '../../interfaces/thesis-work.interface';
 
 @Component({
   selector: 'app-upload-final-delivery-form',
@@ -15,7 +16,7 @@ export class UploadFinalDeliveryFormComponent {
   private readonly notificationService = inject(NotificationService);
   public readonly userService = inject(UserService);
 
-  @Input({ required: true }) thesisWork!: any; // Tipar con la interfaz de tu Trabajo de Grado
+  @Input({ required: true }) thesisWork!: ThesisWork; // Tipar con la interfaz de tu Trabajo de Grado
   @Input() isSubmitting = false;
 
   @Output() onSaveDelivery = new EventEmitter<{ monograph: File, formatE: File, annexes?: File }>();
@@ -91,7 +92,7 @@ export class UploadFinalDeliveryFormComponent {
     if (!monograph || !formatE) {
       this.notificationService.show({
         title: 'Documentos faltantes',
-        message: 'Debe adjuntar obligatoriamente la Monografía y el Formato E para continuar.',
+        message: 'Debe adjuntar obligatoriamente la Monografía y el Formato_E para continuar.',
         type: NotificationType.ERROR
       });
       return;

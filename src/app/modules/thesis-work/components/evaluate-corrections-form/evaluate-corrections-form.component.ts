@@ -111,7 +111,7 @@ export class EvaluateCorrectionsFormComponent {
     this.isModalOpen.set(false);
     this.notificationService.show({
       title: 'Acta Adjunta',
-      message: 'El Formato G se ha vinculado correctamente a la evaluación.',
+      message: 'El Formato_G se ha vinculado correctamente a la evaluación.',
       type: NotificationType.INFO
     });
   }
@@ -132,7 +132,7 @@ export class EvaluateCorrectionsFormComponent {
     }
 
     if (!this.uploadedFormatG()) {
-      this.notificationService.show({ title: 'Formato G Faltante', message: 'Es obligatorio cargar el Formato G firmado para continuar.', type: NotificationType.ERROR });
+      this.notificationService.show({ title: 'Formato_G Faltante', message: 'Es obligatorio cargar el Formato_G firmado para continuar.', type: NotificationType.ERROR });
       return;
     }
 
@@ -140,6 +140,7 @@ export class EvaluateCorrectionsFormComponent {
     const evaluationData: Omit<Evaluation, 'id' | 'date'> = {
       documentId: this.correctedDocuments()[0]?.id || '',
       proposalId: this.thesisWork.preliminaryDraftData?.proposalData?.id || '',
+      evaluatorId: user?.id || '',
       evaluatorName: user ? `${user.firstName} ${user.lastName}` : 'Jurado Asignado',
       evaluatorRole: 'JURADO',
       veredict: verdict,

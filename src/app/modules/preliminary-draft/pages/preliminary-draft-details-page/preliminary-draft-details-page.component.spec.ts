@@ -47,7 +47,7 @@ describe('PreliminaryDraftDetailsPageComponent', () => {
       authors: ['student-1', 'student-2']
     },
     documents: [
-      { id: 'doc-1', type: 'Anexo', name: 'anexo.pdf', url: 'url-anexo' },
+      { id: 'doc-1', type: 'Anexos', name: 'anexo.pdf', url: 'url-anexo' },
       { id: 'doc-2', type: 'Anteproyecto', name: 'principal.pdf', url: 'url-principal' }
     ]
   };

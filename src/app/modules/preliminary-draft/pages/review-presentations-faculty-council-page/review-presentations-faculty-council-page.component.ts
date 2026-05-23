@@ -55,7 +55,7 @@ export class ReviewPresentationsFacultyCouncilPageComponent implements OnInit {
         fileRef === document.id || fileRef === document.name
       );
 
-      const isPermanentReference = ['Propuesta', 'Formato', 'Anexo'].includes(document.type);
+      const isPermanentReference = ['Propuesta', 'Formato', 'Anexos'].includes(document.type);
       return isLatestIterationBase || isLinkedEvaluationOutput || isPermanentReference;
     });
     return {
@@ -116,6 +116,7 @@ export class ReviewPresentationsFacultyCouncilPageComponent implements OnInit {
       id: crypto.randomUUID(),
       documentId: presentationDoc?.id || '',
       proposalId: preliminaryDraftState.preliminaryDraftId,
+      evaluatorId: currentUser?.id || '',
       evaluatorName: currentUserName,
       evaluatorRole: 'Consejo de facultad',
       veredict: finalState,

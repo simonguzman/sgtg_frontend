@@ -12,7 +12,7 @@ import { BreadcrumbService } from '../../../../core/services/breadcrumb/Breadcru
 import { Title } from '@angular/platform-browser';
 import { TabItem, TabsComponent } from '../../../../shared/components/tabs/tabs.component';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { Document } from '../../../../core/interfaces/Document.interface';
+import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { stateList } from '../../../../core/enums/state.enum';
@@ -23,6 +23,8 @@ import { CorrespondenceTabConfig } from './tabs-logic/correspondence.tab';
 import { SpecialRequestTabConfig } from './tabs-logic/special-request.tab';
 import { RegisterInformationModalComponent } from "../../../../shared/components/modals/register-information-modal/register-information-modal.component";
 import { UserService } from '../../../users/services/user.service';
+import { Advance } from '../../interfaces/thesis-work.interface';
+import { User } from '../../../users/interfaces/user.interface';
 
 @Component({
   selector: 'app-loaded-documents-thesis-work-page',
@@ -66,7 +68,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   isConfirmModalOpen = signal(false);
   uploadContext = signal<{ fileName: string, file: File } | null>(null);
   isDetailsModalOpen = signal(false);
-  selectedAdvance = signal<any | null>(null);
+  selectedAdvance = signal<Advance | null>(null);
 
   // Fallback seguro de fecha para evitar la inicialización nativa directa en el HTML
   readonly defaultFallbackDate = new Date();
@@ -122,7 +124,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       isCodirector: thesis?.preliminaryDraftData?.proposalData?.codirector?.id === user?.id,
       isAdvisor: thesis?.preliminaryDraftData?.proposalData?.advisor?.id === user?.id,
       isJuror: thesis?.sustentations?.[0]?.assignedJurors?.some(
-        (j: any) => (typeof j === 'string' ? j : j.id) === user?.id
+        (j: User) => j.id === user?.id
       ) ?? false,
       latestAdvanceId: null,
       isLatestAdvancePending: false
@@ -185,25 +187,10 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       ?.modality || 'Sin modalidad';
   });
 
-  private getUserFullName(user: any): string | undefined {
+  private getUserFullName(user?: User): string | undefined {
     if (!user) return undefined;
 
-    // Caso: viene directamente como string
-    if (typeof user === 'string') {
-      return user;
-    }
-
-    // Caso: objeto User completo
-    if (user.firstName || user.lastName) {
-      return `${user.firstName || ''} ${user.lastName || ''}`.trim();
-    }
-
-    // Caso fallback
-    if (user.name) {
-      return user.name;
-    }
-
-    return undefined;
+    return `${user.firstName || ''} ${user.lastName || ''}`.trim();
   }
 
   // ==========================================
@@ -258,7 +245,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
         this.router.navigate([event.action, rowId], { relativeTo: this.route });
         break;
       case 'view-details':
-        this.openAdvanceDetails(rowId);
+        this.openDetailsModal(rowId);
         break;
       default:
         this.router.navigate([event.action], { relativeTo: this.route });
@@ -309,40 +296,138 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     this.router.navigate(['../'], { relativeTo: this.route });
   }
 
-  downloadAdvanceFile(fileName: string): void {
-    const advance = this.selectedAdvance();
-    if (!advance?.documents) return;
+  ensureDate(date: Date | string | undefined | null): Date {
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      return date;
+    }
+    if (typeof date === 'string' && date.trim() !== '') {
+      const parsed = new Date(date);
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+    // Si todo falla, devolvemos la fecha actual para que el pipe no rompa
+    return new Date();
+  }
 
-    const document = advance.documents.find((doc: Document) => doc.name === fileName);
+  modalDetailsHeader = computed<string>(() => {
+    if (this.activeTab() === 'AVANCES') return 'Detalles del avance';
+    if (this.activeTab() === 'ENTREGA FINAL') return 'Detalles de la Entrega Final';
+    if (this.activeTab() === 'PAZ Y SALVO') return 'Detalles de Paz y Salvo';
+    return 'Detalles del Registro';
+  });
 
-    if (document?.url) {
-      this.downloadService.download(document.url, fileName);
+  modalDetailsSubtitle = computed<string>(() => {
+    if (this.activeTab() === 'AVANCES') return 'Información del avance cargado';
+    if (this.activeTab() === 'ENTREGA FINAL') return 'Información de los documentos de entrega final';
+    if (this.activeTab() === 'PAZ Y SALVO') return 'Información de aprobaciones académicas y financieras';
+    return 'Información del documento cargado';
+  });
+
+  downloadDocumentByName(fileName: string): void {
+    let targetDocument: Document | undefined;
+    // 🟢 Si estamos en Avances, buscamos dentro del avance seleccionado
+    if (this.activeTab() === 'AVANCES') {
+      targetDocument = this.selectedAdvance()?.documents?.find(
+        (doc: Document) => doc.name === fileName
+      );
+    }
+    // 🔵 Para cualquier otra pestaña, buscamos en los documentos globales del Trabajo de Grado
+    else {
+      targetDocument = this.currentThesisWork()?.documents?.find(
+        (doc: Document) => doc.name === fileName
+      );
+    }
+    // Ejecutamos la descarga si encontramos el documento
+    if (targetDocument) {
+      this.handleDownload(targetDocument);
     } else {
-      this.notificationService.show({
-        title: 'Archivo no disponible',
-        message: 'El archivo seleccionado no tiene una URL válida vinculada.',
-        type: NotificationType.ERROR
-      });
+      // 👈 SOLUCIÓN: Casteo explícito a 'as Document' para silenciar el compilador en el fallback
+      this.handleDownload({
+        name: fileName,
+        url: ''
+      } as Document);
     }
   }
 
-  private openAdvanceDetails(advanceId: string): void {
+  private openDetailsModal(rowId: string): void {
     const thesis = this.currentThesisWork();
-    if (!thesis?.advances) return;
+    if (!thesis) return;
 
-    const advance = thesis.advances.find(a => a.id === advanceId);
+    // 🟢 LÓGICA PARA LA PESTAÑA DE AVANCES
+    if (this.activeTab() === 'AVANCES') {
+      const advance = thesis.advances?.find(a => a.id === rowId);
 
-    if (!advance) {
-      this.notificationService.show({
-        title: 'No encontrado',
-        message: 'No fue posible encontrar el avance seleccionado.',
-        type: NotificationType.ERROR
-      });
-      return;
+      if (advance) {
+        this.selectedAdvance.set(advance);
+        this.isDetailsModalOpen.set(true);
+      } else {
+        this.showNotFoundError();
+      }
     }
+    // 🔵 LÓGICA PARA LA PESTAÑA DE ENTREGA FINAL
+    else if (this.activeTab() === 'ENTREGA FINAL') {
+      // Simplemente buscamos por el ID del contenedor
+      const delivery = thesis.finalDeliveries?.find(d => d.id === rowId);
 
-    this.selectedAdvance.set(advance);
-    this.isDetailsModalOpen.set(true);
+      if (!delivery) {
+        this.showNotFoundError();
+        return;
+      }
+
+      // Agrupamos los documentos de forma limpia
+      const finalDeliveryDocs: Document[] = [delivery.monograph, delivery.formatE];
+      if (delivery.annexes) {
+        finalDeliveryDocs.push(delivery.annexes);
+      }
+
+      // Mapeamos a la interfaz Advance para que el modal lo lea
+      const deliveryMock: Advance = {
+        id: delivery.id,
+        title: 'Entrega Final del Trabajo de Grado',
+        comments: 'Documentos oficiales cargados para el proceso de revisión y sustentación.',
+        uploadDate: delivery.uploadDate,
+        studentId: '',
+        status: delivery.status || stateList.EN_REVISION,
+        documents: finalDeliveryDocs // 👈 Archivos listos y ordenados
+      };
+
+      this.selectedAdvance.set(deliveryMock);
+      this.isDetailsModalOpen.set(true);
+    }
+    // 🟠 NUEVA LÓGICA PARA LA PESTAÑA DE PAZ Y SALVO
+    else if (this.activeTab() === 'PAZ Y SALVO') {
+
+      // 👈 Cambio: Buscamos en el historial el registro cuyo documento coincida con el rowId
+      const pyS = thesis.pazYSalvos?.find(p => p.document.id === rowId);
+
+      // Verificamos que el registro exista
+      if (!pyS) {
+        this.showNotFoundError();
+        return;
+      }
+
+      // Construimos un string amigable con los comentarios de las dos aprobaciones
+      let formatComments = `Aprobación Académica: ${pyS.academicApproved ? '✅ Sí' : '❌ No'}`;
+      if (pyS.academicComments) formatComments += `\nObs: ${pyS.academicComments}`;
+
+      formatComments += `\n\nAprobación Financiera: ${pyS.financialApproved ? '✅ Sí' : '❌ No'}`;
+      if (pyS.financialComments) formatComments += `\nObs: ${pyS.financialComments}`;
+
+      // Patrón Adaptador: Mapeamos el PazYSalvoRegistry a la interfaz Advance
+      const pazYSalvoMock: Advance = {
+        id: pyS.id,
+        title: 'Registro de Paz y Salvo Institucional',
+        comments: formatComments,
+        uploadDate: pyS.registrationDate,
+        studentId: '', // El HTML usa el computed studentName()
+        status: pyS.document.status || stateList.EN_REVISION,
+        documents: [pyS.document]
+      };
+
+      this.selectedAdvance.set(pazYSalvoMock);
+      this.isDetailsModalOpen.set(true);
+    }
   }
 
   private formatDate(date: Date): string {
@@ -355,6 +440,10 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       return;
     }
     this.downloadService.download(doc.url, `${doc.name}.pdf`);
+  }
+
+  private showNotFoundError(): void {
+    this.notificationService.show({ title: 'Registro no encontrado', message: 'No fue posible cargar los detalles de este registro.', type: NotificationType.ERROR });
   }
 
   private showProcessingNotification() {

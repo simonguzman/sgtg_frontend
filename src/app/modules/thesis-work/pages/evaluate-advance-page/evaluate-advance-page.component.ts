@@ -114,7 +114,8 @@ export class EvaluateAdvancePageComponent implements OnInit {
     const evaluation: Evaluation = {
       id: crypto.randomUUID(),
       proposalId: work.preliminaryDraftData.proposalId,
-      documentId: advance.id,
+      advanceId: advance.id,
+      evaluatorId: user.id,
       evaluatorName: `${user.firstName} ${user.lastName}`,
       evaluatorRole: 'Docente / Evaluador',
       veredict: stateList.EVALUADO,

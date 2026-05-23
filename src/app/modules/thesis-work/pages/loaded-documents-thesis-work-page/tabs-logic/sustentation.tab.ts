@@ -25,7 +25,7 @@ export const SustentationTabConfig: TabConfiguration = {
 
     // 1. Validar Paz y Salvo Aprobado
     const hasApprovedPazYSalvo = thesis.documents?.some(
-      (doc: Document) => doc.type === DocumentType['PAZ Y SALVO'] && doc.status === stateList.APROBADO
+      (doc: Document) => doc.type === DocumentType['PAZ_Y_SALVO'] && doc.status === stateList.APROBADO
     ) ?? false;
 
     // 2. Colección completa e indicador de si hay al menos una registrada
@@ -146,6 +146,6 @@ export const SustentationTabConfig: TabConfiguration = {
     uploadDescription: '',
     uploadedByText: '',
     confirmDescription: '',
-    uploadDocumentType: DocumentType['FORMATO E']
+    uploadDocumentType: DocumentType['FORMATO_E']
   }
 };

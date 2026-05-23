@@ -14,6 +14,7 @@ import { Document } from '../../../core/interfaces/Document.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { CreateAdvanceRequest } from '../interfaces/advance-playload.interface';
+import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -59,7 +60,7 @@ export class ThesisWorkService {
     return this.deliveryService.registerCorrespondenceDocumentMock(thesisWorkId, document);
   }
 
-  registerPazYSalvoMock(thesisWorkId: string, payload: { academicApproved: boolean; academicComments?: string; financialApproved: boolean; financialComments?: string; }, file: File) {
+  registerPazYSalvoMock(thesisWorkId: string, payload: PazYSalvoPayload , file: File) {
     return this.deliveryService.registerPazYSalvoMock(thesisWorkId, payload, file);
   }
 

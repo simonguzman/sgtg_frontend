@@ -9,15 +9,15 @@ interface AdvanceRegistry {
   id: string;
   title: string;
   comments: string;
-  uploadDate: Date; // 🚀 Corregido: Ahora es de tipo Date nativo
+  uploadDate: Date | string; // 🚀 Corregido: Ahora es de tipo Date nativo
   documents?: Document[];
   status: stateList;
 }
 
 interface EvaluationRegistry {
   id: string;
-  documentId: string;
-  evaluatorName?: string;
+  advanceId?: string;
+  evaluatorId?: string;
 }
 
 export const AdvancesTabConfig: TabConfiguration = {
@@ -52,9 +52,9 @@ export const AdvancesTabConfig: TabConfiguration = {
 
     const isLatestAdvancePending = latestAdvance?.status === stateList.EN_REVISION;
 
-    // 🔍 Verificar si ya existe el Formato E (Entrega Final) registrado en el proyecto
+    // 🔍 Verificar si ya existe el Formato_E (Entrega Final) registrado en el proyecto
     const hasFinalDelivery = thesis.documents?.some(
-      (doc: Document) => doc.type === DocumentType['FORMATO E']
+      (doc: Document) => doc.type === DocumentType['FORMATO_E']
     ) ?? false;
 
     return {
@@ -74,12 +74,12 @@ export const AdvancesTabConfig: TabConfiguration = {
       const allowedActions = ['view-details'];
 
       const evaluationsForThisAdvance: EvaluationRegistry[] = context.thesisWork?.evaluations?.filter(
-        (ev: EvaluationRegistry) => ev.documentId === adv.id
+        (ev: EvaluationRegistry) => ev.advanceId === adv.id
       ) || [];
 
-      const userFullName = `${context.currentUser?.firstName || ''} ${context.currentUser?.lastName || ''}`.trim();
       const alreadyEvaluated = evaluationsForThisAdvance.some(
-        (ev: EvaluationRegistry) => ev.evaluatorName?.trim() === userFullName
+        (ev: EvaluationRegistry) =>
+          ev.evaluatorId === context.currentUser?.id
       );
 
       const isAssignedEvaluator = context.isDirector || context.isCodirector || context.isAdvisor || context.isAdmin;
@@ -152,6 +152,6 @@ export const AdvancesTabConfig: TabConfiguration = {
     uploadDescription: 'Seleccione el archivo PDF del avance de desarrollo',
     uploadedByText: 'Estudiante',
     confirmDescription: '¿Está seguro de cargar este avance? Se notificará al director, codirector y asesor (si aplican).',
-    uploadDocumentType: DocumentType.ANEXO
+    uploadDocumentType: DocumentType.AVANCE
   }
 };

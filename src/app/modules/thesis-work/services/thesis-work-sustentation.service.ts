@@ -19,7 +19,7 @@ export class ThesisWorkSustentationService {
   private readonly authService = inject(AuthService);
 
   /**
-   * Registra una nueva sustentación programada (Formato E) y asigna roles de Jurado
+   * Registra una nueva sustentación programada (Formato_E) y asigna roles de Jurado
    */
   saveSustentationRegistryMock(thesisWorkId: string, formData: any): Observable<void> {
     return of(undefined).pipe(
@@ -39,10 +39,10 @@ export class ThesisWorkSustentationService {
 
           const sustentationDoc: Document = {
             id: formData.formatEDocument?.id || crypto.randomUUID(),
-            name: formData.formatEDocument?.fileName || 'Formato E - Sustentación',
+            name: formData.formatEDocument?.fileName || 'Formato_E - Sustentación',
             url: formData.formatEDocument?.url || 'uploads/sustentation/formato_e_registro.pdf',
             uploadDate: dateStr,
-            type: DocumentType['FORMATO E'] || ('Formato E' as any),
+            type: DocumentType['FORMATO_E'] || ('Formato_E' as any),
             status: stateList.EN_REVISION
           };
 
@@ -69,7 +69,7 @@ export class ThesisWorkSustentationService {
   }
 
   /**
-   * Registra el veredicto individual de un jurado (Formato G) sobre la sustentación activa
+   * Registra el veredicto individual de un jurado (Formato_G) sobre la sustentación activa
    */
   registerSustentationVerdictMock(
     thesisWorkId: string,
@@ -92,12 +92,12 @@ export class ThesisWorkSustentationService {
             name: file.name.replace('.pdf', ''),
             url: `uploads/sustentaciones/resultado_${file.name}`,
             uploadDate: dateStr,
-            type: DocumentType['FORMATO G'] || ('Formato G' as any),
+            type: DocumentType['FORMATO_G'] || ('Formato_G' as any),
             status: payload.veredict
           };
 
           const updatedExistingDocuments = (work.documents || []).map(doc => {
-            const isFormatoE = doc.type === (DocumentType['FORMATO E'] || 'Formato E');
+            const isFormatoE = doc.type === (DocumentType['FORMATO_E'] || 'Formato_E');
             const isEnRevision = doc.status === stateList.EN_REVISION;
             return isFormatoE && isEnRevision ? { ...doc, status: stateList.EVALUADO } : doc;
           });
@@ -158,7 +158,7 @@ export class ThesisWorkSustentationService {
         this.storage.updateWork(thesisWorkId, (work) => {
           const docFormatG: Document = {
             id: crypto.randomUUID(),
-            name: `Formato G - Acta de Sustentación`,
+            name: `Formato_G - Acta de Sustentación`,
             url: 'uploads/evaluations/' + formatGFile.name,
             uploadDate: dateStr,
             type: DocumentType.CORRECCION,

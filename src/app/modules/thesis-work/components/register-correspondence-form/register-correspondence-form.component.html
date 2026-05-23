@@ -76,7 +76,7 @@
         <div class="flex items-center gap-3">
           <span class="material-symbols-outlined text-[#DB141C]">picture_as_pdf</span>
           <div class="flex flex-col">
-            <span class="text-sm font-bold text-primary">Formato de presentación (Formato E)</span>
+            <span class="text-sm font-bold text-primary">Formato de presentación (Formato_E)</span>
             <span class="text-xs text-gray-500">{{ docE.name }} - Cargado en Entrega Final</span>
           </div>
         </div>
@@ -89,7 +89,7 @@
         <div class="flex items-center gap-3">
           <span class="material-symbols-outlined text-[#DB141C]">picture_as_pdf</span>
           <div class="flex flex-col">
-            <span class="text-sm font-bold text-primary">Paz y salvo (Formato F)</span>
+            <span class="text-sm font-bold text-primary">Paz_y_salvo (Formato F)</span>
             <span class="text-xs text-gray-500">{{ docF.name }} - Cargado por Facultad</span>
           </div>
         </div>
@@ -102,7 +102,7 @@
         <div class="flex items-center gap-3">
           <span class="material-symbols-outlined text-[#DB141C]">picture_as_pdf</span>
           <div class="flex flex-col">
-            <span class="text-sm font-bold text-primary">Acta de Sustentación (Formato G)</span>
+            <span class="text-sm font-bold text-primary">Acta de Sustentación (Formato_G)</span>
             <span class="text-xs text-gray-500">{{ docG.name }} - Calificación del Jurado</span>
           </div>
         </div>
@@ -111,7 +111,7 @@
     }
   </div>
 
-  <h3 class="font-semibold text-size-header-title font-display text-primary mt-10 mb-4">Carga del Formato H (Resolución Final)</h3>
+  <h3 class="font-semibold text-size-header-title font-display text-primary mt-10 mb-4">Carga del Formato_H (Resolución Final)</h3>
 
   <div class="p-6 bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg text-center">
     @if (!selectedFile()) {
@@ -121,7 +121,7 @@
       <input type="file" id="correspondenceFileInput" class="hidden" accept=".pdf" (change)="onFileSelected($event)">
       <div class="flex justify-center">
         <app-button-component
-          label="Seleccionar Formato H (PDF)"
+          label="Seleccionar Formato_H (PDF)"
           variant="secondary"
           (onClick)="triggerFileInput()">
         </app-button-component>

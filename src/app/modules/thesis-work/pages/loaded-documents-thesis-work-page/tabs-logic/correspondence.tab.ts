@@ -23,7 +23,7 @@ export const CorrespondenceTabConfig: TabConfiguration = {
 
     // 🔍 Única validación: ¿El jurado ya asentó la resolución/correspondencia?
     const hasCorrespondence = thesis.documents?.some(
-      (doc: Document) => doc.type === DocumentType['FORMATO H']
+      (doc: Document) => doc.type === DocumentType['FORMATO_H']
     ) ?? false;
 
     return {
@@ -37,7 +37,7 @@ export const CorrespondenceTabConfig: TabConfiguration = {
 
     // Filtrar únicamente los formatos de resolución correspondientes
     const correspondenceDocs = documents.filter(
-      (doc: Document) => doc.type === DocumentType['FORMATO H']
+      (doc: Document) => doc.type === DocumentType['FORMATO_H']
     );
 
     return correspondenceDocs.map(doc => ({
@@ -73,6 +73,6 @@ export const CorrespondenceTabConfig: TabConfiguration = {
     uploadDescription: 'Subir documento oficial de correspondencia o resolución de consejo.',
     uploadedByText: 'Cargado por el Jurado evaluador', // Texto actualizado
     confirmDescription: '¿Está seguro de que desea registrar este documento oficial de correspondencia?',
-    uploadDocumentType: DocumentType['FORMATO H']
+    uploadDocumentType: DocumentType['FORMATO_H']
   }
 };

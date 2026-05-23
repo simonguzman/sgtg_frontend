@@ -22,7 +22,7 @@ export class RegisterCorrectedDocumentFormComponent {
   @Output() onSaveDocuments = new EventEmitter<{ monograph: File, annexes?: File }>();
   @Output() onGoBack = new EventEmitter<void>();
 
-  // Señales para los archivos (Sin Formato E)
+  // Señales para los archivos (Sin Formato_E)
   uploadedMonograph = signal<{ fileName: string; file: File } | null>(null);
   uploadedAnnexes = signal<{ fileName: string; file: File } | null>(null);
 

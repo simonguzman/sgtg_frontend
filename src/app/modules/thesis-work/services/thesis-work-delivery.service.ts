@@ -9,6 +9,8 @@ import {
   Document,
   DocumentType
 } from '../../../core/interfaces/Document.interface';
+import { FinalDelivery } from '../interfaces/thesis-work.interface';
+import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -20,7 +22,7 @@ export class ThesisWorkDeliveryService {
   /**
    * Entrega final del trabajo de grado:
    * - Monografía
-   * - Formato E
+   * - Formato_E
    * - Anexos
    */
   uploadFinalDeliveryMock(thesisWorkId: string, monograph: File, formatE: File, annexes?: File ): Observable<void> {
@@ -29,47 +31,54 @@ export class ThesisWorkDeliveryService {
       tap(() => {
         this.storage.updateWork(thesisWorkId, (work) => {
           const dateStr = new Date()
-            .toLocaleDateString('es-ES', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric'
-            })
+            .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
             .replaceAll('/', ' - ');
+
           const docMonograph: Document = {
             id: crypto.randomUUID(),
             name: monograph.name.replace('.pdf', ''),
             url: 'uploads/final-delivery/monografia_' + monograph.name,
             uploadDate: dateStr,
-            type: DocumentType.MONONGRAFIA,
+            type: DocumentType.MONOGRAFIA,
             status: stateList.EN_REVISION
           };
+
           const docFormatE: Document = {
             id: crypto.randomUUID(),
             name: formatE.name.replace('.pdf', ''),
             url: 'uploads/final-delivery/formato_e_' + formatE.name,
             uploadDate: dateStr,
-            type: DocumentType['FORMATO E'],
+            type: DocumentType.FORMATO_E,
             status: stateList.EN_REVISION
           };
-          const newDocuments: Document[] = [
-            docMonograph,
-            docFormatE
-          ];
+
+          let docAnnexes: Document | undefined;
           if (annexes) {
-            newDocuments.push({
+            docAnnexes = {
               id: crypto.randomUUID(),
               name: annexes.name,
               url: 'uploads/final-delivery/anexos_' + annexes.name,
               uploadDate: dateStr,
-              type: 'Anexos' as any,
+              type: DocumentType.ANEXOS,
               status: stateList.EN_REVISION
-            });
+            };
           }
+
+          // 📦 Empaquetamos la entrega completa
+          const newDelivery: FinalDelivery = {
+            id: crypto.randomUUID(), // ID único del contenedor
+            uploadDate: dateStr,
+            monograph: docMonograph,
+            formatE: docFormatE,
+            annexes: docAnnexes,
+            status: stateList.EN_REVISION
+          };
+
           return {
             ...work,
-            documents: [
-              ...newDocuments,
-              ...(work.documents || [])
+            finalDeliveries: [
+              newDelivery,
+              ...(work.finalDeliveries || [])
             ],
             state: stateList.EN_REVISION
           };
@@ -81,67 +90,67 @@ export class ThesisWorkDeliveryService {
   /**
    * Registro de Paz y Salvo académico/financiero
    */
-  registerPazYSalvoMock(
-    thesisWorkId: string,
-    payload: {
-      academicApproved: boolean;
-      academicComments?: string;
-      financialApproved: boolean;
-      financialComments?: string;
-    },
-    file: File
-  ): Observable<void> {
+  registerPazYSalvoMock( thesisWorkId: string, payload: PazYSalvoPayload, file: File ): Observable<void> {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
         this.storage.updateWork(thesisWorkId, (work) => {
-          const isFullyApproved =
-            payload.academicApproved &&
-            payload.financialApproved;
+          const isFullyApproved = payload.academicApproved && payload.financialApproved;
           const dateStr = new Date()
-            .toLocaleDateString('es-ES', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric'
-            })
+            .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
             .replaceAll('/', ' - ');
-          const docId = crypto.randomUUID();
+
+          // 1. Construimos el documento del Paz y Salvo
           const pazYSalvoDoc: Document = {
-            id: docId,
+            id: crypto.randomUUID(),
             name: file.name.replace('.pdf', ''),
             url: 'uploads/paz-y-salvo/' + file.name,
             uploadDate: dateStr,
-            type: DocumentType['PAZ Y SALVO'],
-            status: isFullyApproved
-              ? stateList.APROBADO
-              : stateList.NO_APROBADO
+            type: DocumentType['PAZ_Y_SALVO'],
+            status: isFullyApproved ? stateList.APROBADO : stateList.NO_APROBADO
           };
+
+          // 2. Mantenemos la actualización en la lista general por si acaso
           let updatedDocuments = [
             pazYSalvoDoc,
             ...(work.documents || [])
           ];
-          // Si no fue aprobado completamente,
-          // invalidamos el Formato E
-          if (!isFullyApproved) {
-            updatedDocuments = updatedDocuments.map(doc => {
-              if (doc.type === DocumentType['FORMATO E']) {
+
+          // 3. 🚀 NUEVA LÓGICA: Si falla la aprobación, invalidamos la entrega final activa
+          let updatedDeliveries = work.finalDeliveries || [];
+          if (!isFullyApproved && updatedDeliveries.length > 0) {
+            // Mapeamos las entregas, cambiando el estado de la última (la más reciente) a NO_APROBADO
+            updatedDeliveries = updatedDeliveries.map((delivery, index) => {
+              if (index === 0) { // Asumiendo que las manejas en orden descendente [0] es la última
                 return {
-                  ...doc,
-                  status: stateList.NO_APROBADO
+                  ...delivery,
+                  status: stateList.NO_APROBADO,
+                  // Opcional: Si quieres invalidar también los sub-documentos internos para consistencia visual
+                  monograph: { ...delivery.monograph, status: stateList.NO_APROBADO },
+                  formatE: { ...delivery.formatE, status: stateList.NO_APROBADO }
                 };
               }
-              return doc;
+              return delivery;
             });
           }
+
           return {
             ...work,
-            pazYSalvo: {
-              id: crypto.randomUUID(),
-              ...payload,
-              documentId: docId,
-              registrationDate: new Date()
-            },
-            documents: updatedDocuments
+            pazYSalvos: [ // 👈 Cambio: Ahora construimos el historial de registros
+              {
+                id: crypto.randomUUID(),
+                academicApproved: payload.academicApproved,
+                academicComments: payload.academicComments,
+                financialApproved: payload.financialApproved,
+                financialComments: payload.financialComments,
+                document: pazYSalvoDoc,
+                registrationDate: new Date()
+              },
+              ...(work.pazYSalvos || [])
+            ],
+            documents: updatedDocuments,
+            finalDeliveries: updatedDeliveries,
+            state: isFullyApproved ? work.state : stateList.NO_APROBADO
           };
         });
       })

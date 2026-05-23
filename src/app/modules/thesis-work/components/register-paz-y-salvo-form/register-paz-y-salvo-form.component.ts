@@ -6,6 +6,7 @@ import { FileUploadModalComponent } from "../../../../shared/components/modals/f
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { Document } from '../../../../core/interfaces/Document.interface';
 import { ThesisWork } from '../../interfaces/thesis-work.interface'; // 📌 Ajusta la ruta según tu árbol de carpetas
+import { PazYSalvoPayload } from '../../interfaces/paz-y-salvo-playload.interface';
 
 @Component({
   selector: 'app-register-paz-y-salvo-form',
@@ -21,12 +22,8 @@ export class RegisterPazYSalvoFormComponent {
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
 
-  @Output() onSave = new EventEmitter<{
-    payload: { academicApproved: boolean, academicComments: string, financialApproved: boolean, financialComments: string },
-    file: File
-  }>();
-
-  @Output() onBack = new EventEmitter<void>();
+  @Output() onSave = new EventEmitter<{ payload: PazYSalvoPayload, file: File }>();
+  @Output() onGoBack = new EventEmitter<void>();
   @Output() onDownloadFile = new EventEmitter<Document>();
 
   // 📡 Señales de estado del formulario
@@ -64,23 +61,29 @@ export class RegisterPazYSalvoFormComponent {
 
   // --- 🧠 CORREGIDO: Buscador flexible con tolerancia a Mayúsculas/Minúsculas y Nombres Compuestos ---
   getExistingDocument(type: string): Document | null {
+    const targetType = type.toUpperCase().trim();
+
+    // 1. Buscar primero en la última Entrega Final (finalDeliveries)
+    if (this.thesisWork?.finalDeliveries && this.thesisWork.finalDeliveries.length > 0) {
+      // Tomamos la entrega más reciente
+      const lastDelivery = this.thesisWork.finalDeliveries[this.thesisWork.finalDeliveries.length - 1];
+
+      if (targetType === 'MONOGRAFIA' && lastDelivery.monograph) return lastDelivery.monograph;
+      if ((targetType === 'FORMATO' || targetType === 'FORMATO_E') && lastDelivery.formatE) return lastDelivery.formatE;
+      if (targetType === 'ANEXOS' && lastDelivery.annexes) return lastDelivery.annexes;
+    }
+
+    // 2. Fallback: Buscar en el arreglo global de documents
     if (!this.thesisWork?.documents) return null;
 
     return this.thesisWork.documents.find((doc: Document) => {
-      const currentDocType = doc.type.toUpperCase().trim();
-      const targetType = type.toUpperCase().trim();
+      const currentDocType = (doc.type || '').toUpperCase().trim();
 
-      // Mapeos inteligentes para los tipos de documentos de la base de datos simulada
-      if (targetType === 'MONOGRAFIA') {
-        return currentDocType === 'MONOGRAFIA';
+      if (targetType === 'MONOGRAFIA') return currentDocType === 'MONOGRAFIA';
+      if (targetType === 'FORMATO' || targetType === 'FORMATO_E') {
+        return currentDocType === 'FORMATO_E' || currentDocType === 'FORMATO';
       }
-      if (targetType === 'FORMATO') {
-        // Soporta tanto si viene guardado como "Formato E" o "Formato"
-        return currentDocType === 'FORMATO E' || currentDocType === 'FORMATO';
-      }
-      if (targetType === 'ANEXOS') {
-        return currentDocType === 'ANEXOS';
-      }
+      if (targetType === 'ANEXOS') return currentDocType === 'ANEXOS';
 
       return currentDocType === targetType;
     }) || null;

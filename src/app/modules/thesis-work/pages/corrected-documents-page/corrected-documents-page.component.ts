@@ -116,10 +116,10 @@ export class CorrectedDocumentsPageComponent implements OnInit {
     // 1. Check por histórico: ¿Ya se registró alguna evaluación formal?
     const hasEvaluations = (thesis.evaluations?.length ?? 0) > 0;
 
-    // 2. Check por documento: ¿El documento de evaluación (Formato G) ya fue aprobado/revisado?
+    // 2. Check por documento: ¿El documento de evaluación (Formato_G) ya fue aprobado/revisado?
     const hasFormatoGEvaluated = thesis.documents?.some(doc =>
       doc.type === DocumentType.CORRECCION &&
-      doc.name.includes('Formato G') &&
+      doc.name.includes('Formato_G') &&
       doc.status !== stateList.EN_REVISION
     ) ?? false;
 

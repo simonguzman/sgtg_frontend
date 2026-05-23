@@ -62,7 +62,7 @@ export class RegisterCorrespondencePageComponent implements OnInit {
       name: file.name.replace('.pdf', ''),
       url: `uploads/correspondencia/resolucion_${crypto.randomUUID().substring(0, 8)}.pdf`,
       uploadDate: dateStr,
-      type: DocumentType['FORMATO H'] || ('Resolución' as any),
+      type: DocumentType['FORMATO_H'] || ('Resolución' as any),
       status: stateList.APROBADO
     };
 

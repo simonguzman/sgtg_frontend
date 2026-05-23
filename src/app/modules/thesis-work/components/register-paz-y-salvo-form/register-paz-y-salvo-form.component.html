@@ -1,9 +1,15 @@
 <div class="pt-2 max-w-4xl mx-auto pb-10">
 
-  <div class="mb-6">
-    <button (click)="onBack.emit()" class="flex items-center gap-2 text-primary hover:text-opacity-80 transition-all font-display font-semibold text-size-section">
-      <span class="material-symbols-outlined">arrow_back</span>
-      Regresar
+  <div class="mb-4">
+    <button
+      type="button"
+      (click)="onGoBack.emit()"
+      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
+    >
+      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
+        arrow_back
+      </span>
+      <span class="return-arrow-option">Regresar</span>
     </button>
   </div>
 
@@ -62,7 +68,7 @@
   <hr class="border-gray-200 mb-8">
 
   <section class="mb-10">
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Paz y salvo académico</h3>
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Paz_y_salvo académico</h3>
     <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm" [class.border-red-500]="isSubmitAttempted() && academicApproved() === null">
 
       <div class="p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-4">
@@ -93,7 +99,7 @@
   </section>
 
   <section class="mb-10">
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Paz y salvo financiero</h3>
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Paz_y_salvo financiero</h3>
     <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm" [class.border-red-500]="isSubmitAttempted() && financialApproved() === null">
 
       <div class="p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-4">
@@ -135,12 +141,17 @@
           <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
           <div class="flex flex-col">
             <span class="text-sm font-bold text-primary">
-              {{ getExistingDocument('MONOGRAFIA')?.name || 'Monografía' }}
+              {{ getExistingDocument('MONOGRAFIA')?.name || 'Monografía no encontrada' }}
             </span>
-            <span class="text-xs text-[#777680]">Monografía • Cargado por el director</span>
+            <span class="text-xs text-[#777680]">Monografía • Cargado en entrega final</span>
           </div>
         </div>
-        <app-button-component label="Descargar" variant="secondary" (onClick)="downloadDocument(getExistingDocument('MONOGRAFIA'))"></app-button-component>
+        <app-button-component
+          label="Descargar"
+          variant="secondary"
+          (onClick)="downloadDocument(getExistingDocument('MONOGRAFIA'))"
+          [disabled]="!getExistingDocument('MONOGRAFIA')">
+        </app-button-component>
       </div>
 
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
@@ -148,12 +159,17 @@
           <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
           <div class="flex flex-col">
             <span class="text-sm font-bold text-primary">
-              {{ getExistingDocument('FORMATO')?.name || 'Formato de presentación (Formato E)' }}
+              {{ getExistingDocument('FORMATO')?.name || 'Formato de presentación no encontrado' }}
             </span>
-            <span class="text-xs text-[#777680]">Formato de presentación (Formato E) • Cargado por el director</span>
+            <span class="text-xs text-[#777680]">Formato de presentación • Cargado en entrega final</span>
           </div>
         </div>
-        <app-button-component label="Descargar" variant="secondary" (onClick)="downloadDocument(getExistingDocument('FORMATO'))"></app-button-component>
+        <app-button-component
+          label="Descargar"
+          variant="secondary"
+          (onClick)="downloadDocument(getExistingDocument('FORMATO'))"
+          [disabled]="!getExistingDocument('FORMATO')">
+        </app-button-component>
       </div>
 
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
@@ -161,12 +177,17 @@
           <span class="material-symbols-outlined text-[#DB141C] text-4xl">folder_open</span>
           <div class="flex flex-col">
             <span class="text-sm font-bold text-primary">
-              {{ getExistingDocument('ANEXOS')?.name || 'Anexos' }}
+              {{ getExistingDocument('ANEXOS')?.name || 'Sin anexos registrados' }}
             </span>
-            <span class="text-xs text-[#777680]">Anexos • Cargado por el director</span>
+            <span class="text-xs text-[#777680]">Anexos • Cargado en entrega final</span>
           </div>
         </div>
-        <app-button-component label="Descargar" variant="secondary" (onClick)="downloadDocument(getExistingDocument('ANEXOS'))"></app-button-component>
+        <app-button-component
+          label="Descargar"
+          variant="secondary"
+          (onClick)="downloadDocument(getExistingDocument('ANEXOS'))"
+          [disabled]="!getExistingDocument('ANEXOS')">
+        </app-button-component>
       </div>
 
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm"
@@ -177,7 +198,7 @@
             {{ uploadedFormat() ? 'task' : 'picture_as_pdf' }}
           </span>
           <div class="flex flex-col">
-            <span class="text-sm font-bold" [class.text-primary]="uploadedFormat()" [class.text-red-500]="isSubmitAttempted() && !uploadedFormat()">{{ uploadedFormat()?.fileName || 'Paz y salvo' }}</span>
+            <span class="text-sm font-bold" [class.text-primary]="uploadedFormat()" [class.text-red-500]="isSubmitAttempted() && !uploadedFormat()">{{ uploadedFormat()?.fileName || 'Paz_y_salvo' }}</span>
             <span class="text-xs text-[#777680]">
               {{ uploadedFormat() ? 'Documento cargado con éxito' : 'No ha sido cargado ningún archivo, para completar el proceso debe cargar el formato de paz y salvo con los datos diligenciados.' }}
             </span>

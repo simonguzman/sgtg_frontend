@@ -31,9 +31,9 @@ export class RegisterCorrespondenceFormComponent {
   // --- Computados para Filtrar los Formatos Previos ---
   historicalDocuments = computed(() => this.thesisWork().documents || []);
 
-  formatoEDoc = computed(() => this.historicalDocuments().find(doc => doc.type === DocumentType['FORMATO E'] || doc.type === 'Formato E' as any));
-  formatoFDoc = computed(() => this.historicalDocuments().find(doc => doc.type === DocumentType['PAZ Y SALVO'] || doc.type === 'Formato F' as any));
-  formatoGDoc = computed(() => this.historicalDocuments().find(doc => doc.type === DocumentType['FORMATO G'] || doc.type === 'Formato G' as any));
+  formatoEDoc = computed(() => this.historicalDocuments().find(doc => doc.type === DocumentType['FORMATO_E'] || doc.type === 'Formato_E' as any));
+  formatoFDoc = computed(() => this.historicalDocuments().find(doc => doc.type === DocumentType['PAZ_Y_SALVO'] || doc.type === 'Formato F' as any));
+  formatoGDoc = computed(() => this.historicalDocuments().find(doc => doc.type === DocumentType['FORMATO_G'] || doc.type === 'Formato_G' as any));
 
   // --- Mapeos de Datos ---
   getMemberName(userId: string | undefined): string {

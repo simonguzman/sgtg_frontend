@@ -24,7 +24,7 @@ export class ThesisWorkEvaluationService {
 
           // 2. Filtramos cuántas evaluaciones tiene ESTE avance en específico
           const evaluationsForThisAdvance = updatedEvaluations.filter(
-            e => e.documentId === evaluation.documentId
+            e => e.advanceId === evaluation.advanceId
           );
 
           // 3. Calculamos la cuota requerida de evaluadores (Regla de negocio)
@@ -35,8 +35,8 @@ export class ThesisWorkEvaluationService {
           if (proposal?.advisor) requiredCount++;
 
           // 4. Verificamos si ya todos emitieron su evaluación
-          const isFullyEvaluated = evaluationsForThisAdvance.length >= requiredCount;
-
+          const uniqueEvaluators = new Set( evaluationsForThisAdvance.map(e => e.evaluatorId));
+          const isFullyEvaluated =uniqueEvaluators.size >= requiredCount;
           // 5. (Opcional pero recomendado) Si ALGÚN evaluador pide correcciones,
           // el avance general debería quedarse "En revisión" aunque todos hayan evaluado.
           const someoneRequestedRevisions = evaluationsForThisAdvance.some(
@@ -49,7 +49,7 @@ export class ThesisWorkEvaluationService {
 
           // 6. Actualizamos el estado del avance
           const updatedAdvances = (work.advances || []).map(adv => {
-            if (adv.id !== evaluation.documentId) return adv;
+            if (adv.id !== evaluation.advanceId) return adv;
             return {
               ...adv,
               status: finalStatus // 🚀 Ahora respeta la regla de los 3 evaluadores

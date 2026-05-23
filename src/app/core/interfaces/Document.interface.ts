@@ -3,15 +3,15 @@ import { stateList } from "../enums/state.enum";
 export enum DocumentType{
   'PROPUESTA' = 'Propuesta',
   'ANTEPROYECTO' = 'Anteproyecto',
-  'MONONGRAFIA' = 'Monografia',
-  'ANEXO' = 'Anexo',
+  'MONOGRAFIA' = 'Monografia',
+  'ANEXOS' = 'Anexos',
   'AVANCE' = 'Avance',
   'CORRECCION' = 'Correccion',
   'FORMATO' = 'Formato',
-  'FORMATO E' = 'Formato E',
-  'FORMATO G' = 'Formato G',
-  'FORMATO H' = 'Formato H',
-  'PAZ Y SALVO' = 'Paz y salvo',
+  'FORMATO_E' = 'Formato_E',
+  'FORMATO_G' = 'Formato_G',
+  'FORMATO_H' = 'Formato_H',
+  'PAZ_Y_SALVO' = 'Paz_y_salvo',
   'RESOLUCION' = 'Resolucion'
 }
 

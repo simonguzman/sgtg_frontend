@@ -5,6 +5,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { RegisterPazYSalvoFormComponent } from "../../components/register-paz-y-salvo-form/register-paz-y-salvo-form.component";
+import { ThesisWork } from '../../interfaces/thesis-work.interface';
+import { PazYSalvoPayload } from '../../interfaces/paz-y-salvo-playload.interface';
 
 @Component({
   selector: 'app-register-paz-y-salvo-page',
@@ -18,11 +20,11 @@ export class RegisterPazYSalvoPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
-  thesisWorkState = signal<any | null>(null);
+  thesisWorkState = signal<ThesisWork | null>(null);
   isConfirmModalOpen = signal(false);
   isSubmitting = signal(false);
 
-  pendingData = signal<{ payload: any, file: File } | null>(null);
+  pendingData = signal<{ payload: PazYSalvoPayload, file: File } | null>(null);
 
   ngOnInit() {
     let currentRoute: ActivatedRoute | null = this.route;

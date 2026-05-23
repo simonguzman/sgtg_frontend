@@ -53,7 +53,7 @@ export class SustentationDetailsPageComponent implements OnInit {
   actaDocument = computed<Document | null>(() => {
     const work = this.thesisWorkDetails();
     if (!work || !work.documents) return null;
-    return work.documents.find(doc => doc.type === (DocumentType['FORMATO G'] || 'Formato G')) || null;
+    return work.documents.find(doc => doc.type === (DocumentType['FORMATO_G'] || 'Formato_G')) || null;
   });
 
   ngOnInit(): void {

@@ -138,7 +138,7 @@ export class RegisterSustentationFormComponent {
     if (this.form.invalid || !this.uploadedFormatE()) {
       this.notificationService.show({
         title: 'Formulario incompleto',
-        message: 'Debe diligenciar todos los campos y adjuntar el Formato E.',
+        message: 'Debe diligenciar todos los campos y adjuntar el Formato_E.',
         type: NotificationType.ERROR
       });
       return;

@@ -49,7 +49,7 @@ describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
       { id: 'doc-old', type: 'Anteproyecto', uploadDate: '2026-01-01', name: 'v1.pdf' },
       { id: 'doc-new', type: 'Correccion', uploadDate: '2026-02-01', name: 'v2.pdf' },
       { id: 'doc-format', type: 'Formato', uploadDate: '2026-02-01', name: 'formato.pdf', url: 'url-f' },
-      { id: 'doc-extra', type: 'Anexo', uploadDate: '2026-02-01', name: 'anexo.pdf' }
+      { id: 'doc-extra', type: 'Anexos', uploadDate: '2026-02-01', name: 'anexo.pdf' }
     ],
     evaluations: [
       { documentId: 'doc-new', signedDocuments: ['eval-doc.pdf'] }

@@ -3,6 +3,7 @@ import { TableButton } from '../../../../../shared/components/table-component/ta
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
+import { FinalDelivery } from '../../../interfaces/thesis-work.interface';
 
 export const FinalDeliveryTabConfig: TabConfiguration = {
   tabValue: 'FORMATO_E',
@@ -13,7 +14,7 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
     {
       field: 'acciones', header: 'Acciones', type: 'actions', width: '20%',
       actions: [
-        { action: 'download', label: 'Descargar', icon: 'download', variant: 'primary', disabled: false }
+        { action: 'view-details', label: 'Ver detalles', icon: 'visibility', variant: 'primary', disabled: false },
       ]
     }
   ],
@@ -22,33 +23,34 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
 
-    // 🔍 REGLA DE NEGOCIO: Validamos si ya existe el Formato E cargado en los documentos globales
-    const hasFinalDelivery = thesis.documents?.some(
-      (doc: any) => doc.type === DocumentType['FORMATO E'] && doc.status !== stateList.NO_APROBADO
+    // 🔍 Buscamos en el nuevo array de entregas
+    const hasFinalDelivery = thesis.finalDeliveries?.some(
+      (delivery: FinalDelivery) => delivery.status !== stateList.NO_APROBADO
     ) ?? false;
 
     return {
       ...baseContext,
-      hasFinalDelivery // 🏷️ Exportamos el estado al contexto interno de la pestaña
+      hasFinalDelivery
     };
   },
 
   getTableData: (documents: Document[], context: ThesisEvaluationContext) => {
-    // 🔍 Filtramos los documentos usando estrictamente tu enum de dominio
-    const finalDocs = documents.filter(doc => doc.type === DocumentType['FORMATO E']);
+    // 🔍 Ignoramos 'documents' genéricos y sacamos la data de finalDeliveries
+    const deliveries = context.thesisWork?.finalDeliveries || [];
 
-    return finalDocs.map((doc: Document) => {
-      const formattedDate = typeof doc.uploadDate === 'string'
-        ? doc.uploadDate
-        : doc.uploadDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
+    return deliveries.map((delivery: FinalDelivery) => {
+      const date = delivery.uploadDate;
+      const formattedDate = typeof date === 'string'
+        ? date
+        : date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
 
       return {
-        id: doc.id,
-        name: doc.name,
+        id: delivery.id, // ID del contenedor (FinalDelivery)
+        name: `Entrega Final - ${delivery.monograph.name}`,
         uploadDate: formattedDate,
-        status: doc.status || stateList.EN_REVISION,
-        url: doc.url || '',
-        allowedActions: ['download']
+        status: delivery.status || stateList.EN_REVISION,
+        url: '',
+        allowedActions: ['view-details']
       };
     });
   },
@@ -79,9 +81,9 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
   },
 
   modalConfig: {
-    uploadDescription: 'Seleccione el archivo PDF oficial de la entrega final (Formato E)',
+    uploadDescription: 'Seleccione el archivo PDF oficial de la entrega final (Formato_E)',
     uploadedByText: 'Director de Trabajo de Grado',
     confirmDescription: '¿Está seguro de registrar este documento como la entrega final? Se actualizará el flujo del proyecto.',
-    uploadDocumentType: DocumentType['FORMATO E']
+    uploadDocumentType: DocumentType.FORMATO_E
   }
 };

@@ -197,7 +197,8 @@ export class EvaluationProposalPageComponent implements OnInit  {
     const newEvaluation: Evaluation = {
       id: crypto.randomUUID(),
       proposalId: currentProposal.id,
-      documentId: targetDocument.id, // <-- SOLUCIÓN: Vinculamos el ID del documento
+      documentId: targetDocument.id,
+      evaluatorId: currentUser.id,
       evaluatorName: this.userService.getUserFullName(currentUser.id),
       evaluatorRole: currentUser.roles[0] ?? 'Evaluador',
       signedDocuments: this.signedFile() ? [this.signedFile()!.name] : [],

@@ -1,7 +1,9 @@
+// tabs-logic/paz_y_salvo.tab.ts
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
+import { FinalDelivery } from '../../../interfaces/thesis-work.interface';
 
 export const PazYSalvoTabConfig: TabConfiguration = {
   tabValue: 'PAZ_Y_SALVO',
@@ -12,7 +14,7 @@ export const PazYSalvoTabConfig: TabConfiguration = {
     {
       field: 'acciones', header: 'Acciones', type: 'actions', width: '20%',
       actions: [
-        { action: 'download', label: 'Descargar', icon: 'download', variant: 'primary', disabled: false }
+        { action: 'view-details', label: 'Ver detalles', icon: 'visibility', variant: 'primary', disabled: false },
       ]
     }
   ],
@@ -21,15 +23,15 @@ export const PazYSalvoTabConfig: TabConfiguration = {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
 
-    // 🔍 1. ¿Hay una Entrega Final ACTIVA? (Usa el tipo de la Entrega Final)
-    const hasActiveFinalDelivery = thesis.documents?.some(
-      (doc: any) => doc.type === DocumentType['FORMATO E'] && doc.status !== stateList.NO_APROBADO
+    // 🔍 1. ¿Hay una Entrega Final ACTIVA?
+    const hasActiveFinalDelivery = thesis.finalDeliveries?.some(
+      (delivery: FinalDelivery) => delivery.status !== stateList.NO_APROBADO
     ) ?? false;
 
     // 🔍 2. ¿Ya se registró un Paz y Salvo (aprobado)?
-    // 🛑 CORREGIDO: Debe buscar por el tipo de documento de Paz y Salvo, no el de la entrega final
-    const hasApprovedPazYSalvo = thesis.documents?.some(
-      (doc: any) => doc.type === DocumentType['PAZ Y SALVO'] && doc.status === stateList.APROBADO // 👈 Usa tu enum correspondiente (ej. PAZ_Y_SALVO o FORMATO_F)
+    // 👈 Cambio: Usamos some() sobre el nuevo arreglo pazYSalvos
+    const hasApprovedPazYSalvo = thesis.pazYSalvos?.some(
+      (pys) => pys.document.status === stateList.APROBADO
     ) ?? false;
 
     return {
@@ -40,9 +42,8 @@ export const PazYSalvoTabConfig: TabConfiguration = {
   },
 
   getTableData: (documents: Document[], context: ThesisEvaluationContext) => {
-    // 🛑 CORREGIDO: Filtramos únicamente por los documentos de tipo Paz y Salvo.
-    // Al hacer esto, si no se ha registrado ninguno, la tabla aparecerá completamente vacía.
-    const pySDocs = documents.filter(doc => doc.type === DocumentType['PAZ Y SALVO']); // 👈 Cambiado aquí
+    // Se mantiene leyendo los documentos globales o puedes mapear context.thesisWork?.pazYSalvo?.document
+    const pySDocs = documents.filter(doc => doc.type === DocumentType['PAZ_Y_SALVO']);
 
     return pySDocs.map((doc: Document) => {
       const formattedDate = typeof doc.uploadDate === 'string'
@@ -55,7 +56,7 @@ export const PazYSalvoTabConfig: TabConfiguration = {
         uploadDate: formattedDate,
         status: doc.status || stateList.EN_REVISION,
         url: doc.url || '',
-        allowedActions: ['download']
+        allowedActions: ['view-details']
       };
     });
   },
@@ -74,7 +75,7 @@ export const PazYSalvoTabConfig: TabConfiguration = {
         buttonDisabled = true;
       } else if (!hasActiveFinalDelivery) {
         buttonLabel = 'Requiere Entrega Final';
-        buttonDisabled = true;
+        buttonDisabled = true; // 🔓 Ahora cambiará a false porque hasActiveFinalDelivery será true
       }
 
       buttons.push({
@@ -91,6 +92,6 @@ export const PazYSalvoTabConfig: TabConfiguration = {
     uploadDescription: '',
     uploadedByText: '',
     confirmDescription: '',
-    uploadDocumentType: DocumentType['PAZ Y SALVO'] // 👈 Asegúrate de actualizarlo aquí también si se llega a usar
+    uploadDocumentType: DocumentType.PAZ_Y_SALVO
   }
 };

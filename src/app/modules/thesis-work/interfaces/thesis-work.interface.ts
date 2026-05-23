@@ -4,12 +4,21 @@ import { Evaluation } from "../../../core/interfaces/evaluation.interface";
 import { PreliminaryDraft } from "../../preliminary-draft/interfaces/preliminary-draft.interface";
 import { User } from "../../users/interfaces/user.interface";
 
+export interface FinalDelivery {
+  id: string;
+  uploadDate: Date | string;
+  monograph: Document;
+  formatE: Document;
+  annexes?: Document;
+  status: stateList;
+}
+
 // --- NUEVA INTERFAZ PARA AVANCES ---
 export interface Advance {
   id: string;
   title: string;
   comments: string;
-  uploadDate: Date;
+  uploadDate: Date | string;
   studentId: string;
   status: stateList;
   documents: Document[]; // Aprovechamos la interfaz genérica de Document
@@ -21,7 +30,7 @@ export interface PazYSalvoRegistry {
   academicComments?: string;
   financialApproved: boolean;
   financialComments?: string;
-  documentId: string;
+  document: Document;
   registrationDate: Date;
 }
 
@@ -60,7 +69,8 @@ export interface ThesisWork {
 
   // --- NUEVO: COLECCIÓN DE AVANCES ---
   advances?: Advance[];
-  pazYSalvo?: PazYSalvoRegistry;
+  finalDeliveries?: FinalDelivery[];
+  pazYSalvos?: PazYSalvoRegistry[];
 
   evaluations: Evaluation[];
   sustentations?: SustentationRegistry[];

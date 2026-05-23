@@ -20,6 +20,7 @@ import { NotificationService } from '../../components/notifications/services/not
 import { EvaluationModalComponent } from '../../components/modals/evaluation-modal/evaluation-modal.component';
 import { stateList } from '../../../core/enums/state.enum';
 import { UserService } from '../../../modules/users/services/user.service';
+import { ThesisWork } from '../../../modules/thesis-work/interfaces/thesis-work.interface';
 
 const EVALUATIONS_COLUMNS: Column[] = [
   { field: 'evaluatorName',      header: 'Nombre',                type: 'text',   width: '20%' },
@@ -98,39 +99,40 @@ export class EvaluationsPerformedPageComponent implements OnInit {
     // 3. Módulo Trabajos de Grado
     else if (currentUrl.includes('thesis')) {
       const thesis = this.thesisWorkService.thesisWorks()
-        .find((t: any) => t.thesisWorkId === id);
+        .find((t: ThesisWork) => t.thesisWorkId === id);
 
       if (thesis) {
         rawEvaluations = [...(thesis.evaluations || [])];
         allDocuments = thesis.documents || [];
         defaultTitle = thesis.preliminaryDraftData?.proposalData?.title || 'Trabajo de Grado';
 
-        // Adaptador Paz y Salvo
-        if (thesis.pazYSalvo) {
-          const pys = thesis.pazYSalvo;
-          const isFullyApproved = pys.academicApproved && pys.financialApproved;
+        // 🔄 ADAPTADOR CORREGIDO: Mapea el historial completo de Paz y Salvos
+        if (thesis.pazYSalvos && thesis.pazYSalvos.length > 0) {
+          thesis.pazYSalvos.forEach((pys) => {
+            const isFullyApproved = pys.academicApproved && pys.financialApproved;
 
-          // Si el usuario en sesión es Administrador, usamos su nombre real
-          const adminName = sessionUser?.roles.includes('Administrador' as any)
-            ? `${sessionUser.firstName} ${sessionUser.lastName}`.trim()
-            : 'Revisión Institucional';
+            // Si el usuario en sesión es Administrador, usamos su nombre real
+            const adminName = sessionUser?.roles.includes('Administrador' as any)
+              ? `${sessionUser.firstName} ${sessionUser.lastName}`.trim()
+              : 'Revisión Institucional';
 
-          rawEvaluations.push({
-            id: pys.id,
-            documentId: pys.documentId || 'paz-y-salvo',
-            date: pys.registrationDate,
-            evaluatorName: adminName,
-            evaluatorRole: 'Administración',
-            veredict: isFullyApproved ? stateList.APROBADO : stateList.EN_REVISION,
-            observations: `Académico: ${pys.academicComments || 'Aprobado'} | Financiero: ${pys.financialComments || 'Aprobado'}`
-          } as unknown as Evaluation);
+            rawEvaluations.push({
+              id: pys.id,
+              documentId: pys.document?.id || 'paz-y-salvo',
+              date: pys.registrationDate,
+              evaluatorName: adminName,
+              evaluatorRole: 'Administración',
+              veredict: isFullyApproved ? stateList.APROBADO : stateList.NO_APROBADO, // 💡 Ajustado a NO_APROBADO si no cumple ambos
+              observations: `Académico: ${pys.academicComments || 'Aprobado'} | Financiero: ${pys.financialComments || 'Aprobado'}`
+            } as unknown as Evaluation);
+          });
         }
 
         // Adaptador Sustentaciones
         if (thesis.sustentations) {
+          // ... (se mantiene igual tu lógica de sustentaciones)
           thesis.sustentations.forEach((sust: any) => {
             sust.verdicts?.forEach((verdict: any) => {
-              // Si el usuario en sesión es Jurado, usamos su nombre real de forma dinámica
               const jurorName = sessionUser?.roles.includes('Jurado' as any)
                 ? `${sessionUser.firstName} ${sessionUser.lastName}`.trim()
                 : 'Jurado';

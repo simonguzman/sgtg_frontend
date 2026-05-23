@@ -79,7 +79,7 @@ export class UploadFinalDeliveryPageComponent implements OnInit {
       next: () => {
         this.notification.show({
           title: '¡Entrega Registrada!',
-          message: 'La monografía y el Formato E se han procesado de manera oficial.',
+          message: 'La monografía y el Formato_E se han procesado de manera oficial.',
           type: NotificationType.CONFIRMATION
         });
         this.isSubmitting.set(false);

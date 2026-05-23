@@ -93,6 +93,7 @@ export class ReviewPreliminaryDraftPageComponent implements OnInit {
       id: crypto.randomUUID(),
       proposalId: PreliminaryDraft.proposalId,
       documentId: revision.id,
+      evaluatorId: user.id,
       evaluatorName: `${user.firstName} ${user.lastName}`,
       evaluatorRole: 'Evaluador',
       veredict: isApproved ? stateList.APROBADO : stateList.NO_APROBADO,

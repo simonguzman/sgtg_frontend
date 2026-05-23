@@ -48,8 +48,8 @@
 
 <app-register-information-modal
   [isOpen]="isDetailsModalOpen()"
-  [modalHeader]="'Detalles del avance'"
-  [subTitle]="'Información del avance cargado'"
+  [modalHeader]="modalDetailsHeader()"
+  [subTitle]="modalDetailsSubtitle()"
   [title]="selectedAdvance()?.title || ''"
   [comments]="selectedAdvance()?.comments || ''"
   [modality]="modalityName()"
@@ -57,9 +57,9 @@
   [director]="directorName()"
   [codirector]="codirectorName()"
   [adviser]="advisorName()"
-  [chargeDate]="selectedAdvance()?.uploadDate || defaultFallbackDate"
+  [chargeDate]="ensureDate(selectedAdvance()?.uploadDate)"
   [state]="selectedAdvance()?.status"
   [documents]="selectedAdvanceDocuments()"
   (onClose)="isDetailsModalOpen.set(false)"
-  (onDownloadFile)="downloadAdvanceFile($event)">
+  (onDownloadFile)="downloadDocumentByName($event)">
 </app-register-information-modal>
