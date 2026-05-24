@@ -91,82 +91,112 @@
       Programación de la sustentación
     </h3>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
       <div class="p-3 information-block rounded">
         <span class="font-semibold font-display text-size-section text-primary">Fecha</span>
         <p class="font-normal font-sans text-size-section text-[#777680]">
-          {{ (work.sustentations?.[0]?.sustentationDate | date:'dd/MM/yyyy') || 'No programada' }}
+          {{ (selectedSustentation()?.sustentationDate | date:'dd/MM/yyyy') || 'No programada' }}
         </p>
       </div>
 
       <div class="p-3 information-block rounded">
         <span class="font-semibold font-display text-size-section text-primary">Hora</span>
         <p class="font-normal font-sans text-size-section text-[#777680]">
-          {{ (work.sustentations?.[0]?.sustentationDate | date:'shortTime') || 'No programada' }}
+          {{ (selectedSustentation()?.sustentationDate | date:'shortTime') || 'No programada' }}
         </p>
       </div>
 
       <div class="p-3 information-block rounded">
         <span class="font-semibold font-display text-size-section text-primary">Lugar / Aula / Enlace</span>
         <p class="font-normal font-sans text-size-section text-[#777680]">
-          {{ work.sustentations?.[0]?.location || 'No definido' }}
+          {{ selectedSustentation()?.location || 'No definido' }}
         </p>
       </div>
     </div>
 
-    @if (latestVerdict(); as verdict) {
-      <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
-        Evaluación del jurado
-      </h3>
-
-      <div class="space-y-3">
-        <div class="p-3 information-block rounded"
-             [class.border-l-4]="true"
-             [class.border-l-green-500]="verdict.veredict === 'Aprobado'"
-             [class.border-l-amber-500]="verdict.veredict === 'Aprobado con observaciones'"
-             [class.border-l-red-500]="verdict.veredict === 'No aprobado'">
-          <span class="font-semibold font-display text-size-section text-primary">Veredicto Final</span>
-          <p class="font-bold font-sans text-size-section text-[#777680] mt-1">{{ verdict.veredict }}</p>
+    @if (selectedSustentation()?.formatEDocument) {
+      <div class="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-xl mb-8">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+          <div class="flex flex-col overflow-hidden">
+            <span class="text-sm font-bold text-primary truncate">
+              {{ selectedSustentation()?.formatEDocument?.name || 'Formato_E_Programacion.pdf' }}
+            </span>
+            <span class="text-xs text-[#777680] font-sans">Documento de programación avalado por el consejo</span>
+          </div>
         </div>
+        <app-button-component
+          label="Descargar Formato_E"
+          variant="secondary"
+          (onClick)="downloadDocument(selectedSustentation()?.formatEDocument)"
+        ></app-button-component>
+      </div>
+    }
 
-        <div class="p-3 information-block rounded">
-          <span class="font-semibold font-display text-size-section text-primary">Observaciones y comentarios</span>
-          <p class="font-normal font-sans text-size-section text-[#777680] mt-1 whitespace-pre-line">
-            {{ verdict.observations || 'Sin observaciones adicionales.' }}
-          </p>
-        </div>
+    <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
+      Evaluaciones de los jurados
+    </h3>
+
+    @if (selectedSustentation()?.verdicts?.length) {
+      <div class="flex flex-col gap-6">
+        @for (veredict of selectedSustentation()?.verdicts; track veredict.jurorId) {
+
+          <div class="space-y-3 p-5 border border-gray-100 rounded-xl shadow-sm bg-white">
+
+            <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-2">
+               <span class="font-display font-bold text-primary text-size-section">
+                 Jurado: {{ getMemberName(veredict.jurorId) }}
+               </span>
+               <span class="text-sm font-sans text-gray-500">
+                 Evaluado el {{ veredict.evaluationDate | date:'dd/MM/yyyy' }}
+               </span>
+            </div>
+
+            <div class="p-3 information-block rounded"
+                 [class.border-l-4]="true"
+                 [class.border-l-green-500]="veredict.veredict === 'Aprobado'"
+                 [class.border-l-amber-500]="veredict.veredict === 'Aprobado con observaciones'"
+                 [class.border-l-orange-500]="veredict.veredict === 'Aplazado'"
+                 [class.border-l-red-500]="veredict.veredict === 'No aprobado'">
+              <span class="font-semibold font-display text-size-section text-primary">Veredicto Final</span>
+              <p class="font-bold font-sans text-size-section text-[#777680] mt-1">{{ veredict.veredict }}</p>
+            </div>
+
+            <div class="p-3 information-block rounded">
+              <span class="font-semibold font-display text-size-section text-primary">Observaciones y comentarios</span>
+              <p class="font-normal font-sans text-size-section text-[#777680] mt-1 whitespace-pre-line">
+                {{ veredict.observations || 'Sin observaciones adicionales.' }}
+              </p>
+            </div>
+
+            @if (veredict.attachedDocument) {
+              <div class="mt-4 flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                <div class="flex items-center gap-3 overflow-hidden">
+                  <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+                  <div class="flex flex-col overflow-hidden">
+                    <span class="text-sm font-bold text-primary truncate">
+                      {{ veredict.attachedDocument.name || 'Acta_Sustentacion.pdf' }}
+                    </span>
+                    <span class="text-xs text-[#777680] font-sans">Acta firmada y cargada por este calificador</span>
+                  </div>
+                </div>
+                <app-button-component
+                  label="Descargar acta"
+                  variant="secondary"
+                  (onClick)="downloadDocument(veredict.attachedDocument)"
+                ></app-button-component>
+              </div>
+            }
+          </div>
+
+        }
       </div>
     } @else {
       <div class="mt-8 p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680]">
-        La sustentación ha sido programada, pero aún no se ha emitido un veredicto por parte del jurado calificador.
+        La sustentación ha sido programada, pero aún no se ha emitido ningún veredicto por parte de los jurados calificadores.
       </div>
     }
 
-    @if (actaDocument(); as doc) {
-      <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
-        Archivos adjuntos
-      </h3>
-
-      <div class="flex flex-col gap-3">
-        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
-          <div class="flex items-center gap-3 overflow-hidden">
-            <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
-            <div class="flex flex-col overflow-hidden">
-              <span class="text-size-body font-bold text-primary truncate">
-                {{ doc.name || 'Acta_Sustentacion.pdf' }}
-              </span>
-              <span class="text-size-role-footer text-[#777680] font-sans">Documento oficial con firmas de evaluación final</span>
-            </div>
-          </div>
-
-          <app-button-component
-            label="Descargar acta"
-            variant="secondary"
-            (onClick)="downloadDocument()"
-          ></app-button-component>
-        </div>
-      </div>
-    }
   }
 
 </div>

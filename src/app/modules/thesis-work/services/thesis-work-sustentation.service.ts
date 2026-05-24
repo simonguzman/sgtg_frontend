@@ -37,15 +37,21 @@ export class ThesisWorkSustentationService {
             day: '2-digit', month: '2-digit', year: 'numeric'
           }).replaceAll('/', ' - ');
 
+          // 1. Manejo seguro del archivo (soporta File nativo o el objeto emitido por tu modal)
+          const uploadedFile = formData.formatEDocument;
+          const fileName = uploadedFile?.name || uploadedFile?.fileName || 'Formato_E_Programacion.pdf';
+
+          // 2. Construcción del Documento
           const sustentationDoc: Document = {
-            id: formData.formatEDocument?.id || crypto.randomUUID(),
-            name: formData.formatEDocument?.fileName || 'Formato_E - Sustentación',
-            url: formData.formatEDocument?.url || 'uploads/sustentation/formato_e_registro.pdf',
+            id: uploadedFile?.id || crypto.randomUUID(),
+            name: fileName,
+            url: uploadedFile?.url || `uploads/sustentaciones/${fileName}`,
             uploadDate: dateStr,
             type: DocumentType['FORMATO_E'] || ('Formato_E' as any),
             status: stateList.EN_REVISION
           };
 
+          // 3. Construcción del Registro vinculando el Documento
           const sustentationRegistry: SustentationRegistry = {
             id: crypto.randomUUID(),
             sustentationDate: formData.sustentationDate ? new Date(formData.sustentationDate) : undefined,
@@ -55,13 +61,14 @@ export class ThesisWorkSustentationService {
               ...(juror1User ? [juror1User] : []),
               ...(juror2User ? [juror2User] : [])
             ],
-            verdicts: []
+            verdicts: [],
+            formatEDocument: sustentationDoc // <-- VINCULACIÓN DIRECTA
           };
 
           return {
             ...work,
             sustentations: [sustentationRegistry, ...(work.sustentations || [])],
-            documents: [sustentationDoc, ...(work.documents || [])]
+            documents: [sustentationDoc, ...(work.documents || [])] // También lo mantenemos en el histórico global
           };
         });
       })
@@ -106,7 +113,8 @@ export class ThesisWorkSustentationService {
             jurorId: jurorId,
             evaluationDate: payload.evaluationDate,
             veredict: payload.veredict as any,
-            observations: payload.observations
+            observations: payload.observations,
+            attachedDocument: sustentationFileDoc
           };
 
           const currentSustentations = work.sustentations || [];

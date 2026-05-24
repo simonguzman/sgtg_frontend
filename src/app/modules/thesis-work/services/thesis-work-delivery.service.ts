@@ -9,7 +9,7 @@ import {
   Document,
   DocumentType
 } from '../../../core/interfaces/Document.interface';
-import { FinalDelivery } from '../interfaces/thesis-work.interface';
+import { CorrectedDelivery, FinalDelivery } from '../interfaces/thesis-work.interface';
 import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
 
 @Injectable({
@@ -166,12 +166,10 @@ export class ThesisWorkDeliveryService {
       tap(() => {
         this.storage.updateWork(thesisWorkId, (work) => {
           const dateStr = new Date()
-            .toLocaleDateString('es-ES', {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric'
-            })
+            .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
             .replaceAll('/', ' - ');
+
+          // 1. Crear documento de la Monografía
           const docMonograph: Document = {
             id: crypto.randomUUID(),
             name: monograph.name.replace('.pdf', ''),
@@ -180,22 +178,42 @@ export class ThesisWorkDeliveryService {
             type: DocumentType.CORRECCION,
             status: stateList.EN_REVISION
           };
+
+          // 2. Crear documento de Anexos (si existe)
+          let docAnnexes: Document | undefined;
           const newDocuments: Document[] = [docMonograph];
+
           if (annexes) {
-            newDocuments.push({
+            docAnnexes = {
               id: crypto.randomUUID(),
               name: annexes.name,
               url: 'uploads/corrected-documents/' + annexes.name,
               uploadDate: dateStr,
               type: DocumentType.CORRECCION,
               status: stateList.EN_REVISION
-            });
+            };
+            newDocuments.push(docAnnexes);
           }
+
+          // 3. 📦 Empaquetar ambos en un solo registro de Entrega de Corrección
+          const newCorrectedDelivery: CorrectedDelivery = {
+            id: crypto.randomUUID(),
+            uploadDate: dateStr,
+            monograph: docMonograph,
+            annexes: docAnnexes,
+            status: stateList.EN_REVISION
+          };
+
           return {
             ...work,
             documents: [
               ...newDocuments,
               ...(work.documents || [])
+            ],
+            // 👉 Guardamos el paquete en el nuevo arreglo
+            correctedDeliveries: [
+              newCorrectedDelivery,
+              ...(work.correctedDeliveries || [])
             ],
             state: stateList.EN_REVISION
           };

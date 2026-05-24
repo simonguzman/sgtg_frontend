@@ -73,16 +73,19 @@ export class EvaluateSustentationPageComponent implements OnInit {
     this.isSubmitting.set(true);
     this.isConfirmModalOpen.set(false);
 
-    // Llamado al servicio para incrustar el veredicto y subir el archivo simulado
     this.thesisWorkService.registerSustentationVerdictMock(thesisId, data.payload, data.file).subscribe({
       next: () => {
         const decision = data.payload.veredict;
         let alertTitle = 'Sustentación Evaluada';
         let typeN = NotificationType.CONFIRMATION;
 
+        // Validaciones dinámicas de la notificación según el estado
         if (decision === stateList.NO_APROBADO) {
           alertTitle = 'Sustentación No Aprobada';
-          typeN = NotificationType.INFO;
+          typeN = NotificationType.ERROR; // o INFO, según lo maneje tu NotificationType
+        } else if (decision === stateList.APLAZADO) {
+          alertTitle = 'Sustentación Aplazada';
+          typeN = NotificationType.INFO; // Puedes usar WARNING si lo tienes en tu enum
         }
 
         this.notification.show({

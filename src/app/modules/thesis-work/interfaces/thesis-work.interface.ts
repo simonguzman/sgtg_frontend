@@ -39,6 +39,15 @@ export interface JurorVerdict {
   evaluationDate: Date;
   veredict: stateList.APROBADO | stateList.APROBADO_CON_OBSERVACIONES | stateList.NO_APROBADO | stateList.APLAZADO;
   observations: string;
+  attachedDocument?: Document;
+}
+
+export interface CorrectedDelivery {
+  id: string;
+  uploadDate: Date | string;
+  monograph: Document;
+  annexes?: Document;
+  status: stateList;
 }
 
 export interface SustentationRegistry {
@@ -47,6 +56,7 @@ export interface SustentationRegistry {
   sustentationTime?: string;
   location?: string;
   assignedJurors: User[];
+  formatEDocument?: Document;
   verdicts: JurorVerdict[];
 }
 
@@ -71,7 +81,7 @@ export interface ThesisWork {
   advances?: Advance[];
   finalDeliveries?: FinalDelivery[];
   pazYSalvos?: PazYSalvoRegistry[];
-
+  correctedDeliveries?: CorrectedDelivery[];
   evaluations: Evaluation[];
   sustentations?: SustentationRegistry[];
   specialRequests: SpecialRequest[];

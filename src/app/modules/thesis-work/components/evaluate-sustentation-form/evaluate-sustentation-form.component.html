@@ -116,6 +116,11 @@
                  [checked]="verdictSelected() === states.NO_APROBADO" (change)="verdictSelected.set(states.NO_APROBADO)">
           <span class="text-sm font-medium text-gray-700">No aprobado</span>
         </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="verdict" class="w-4 h-4 text-orange-500 focus:ring-orange-500"
+                [checked]="verdictSelected() === states.APLAZADO" (change)="verdictSelected.set(states.APLAZADO)">
+          <span class="text-sm font-medium text-gray-700">Aplazado</span>
+        </label>
       </div>
 
       @if(isSubmitAttempted() && verdictSelected() === null) {

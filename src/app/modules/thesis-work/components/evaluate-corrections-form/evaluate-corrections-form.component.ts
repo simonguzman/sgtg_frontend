@@ -1,3 +1,4 @@
+// features/thesis-work/components/evaluate-corrections-form/evaluate-corrections-form.component.ts
 import { Component, EventEmitter, inject, Input, computed, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -10,7 +11,7 @@ import { AuthService } from '../../../../core/services/auth/auth.service';
 
 // Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
+import { Document } from '../../../../core/interfaces/Document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
@@ -35,7 +36,6 @@ export class EvaluateCorrectionsFormComponent {
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
 
-  // Emitimos la evaluación estructurada con tu contrato e interfaz, junto al archivo binario
   @Output() onSubmitEvaluation = new EventEmitter<{ evaluation: Omit<Evaluation, 'id' | 'date'>, file: File }>();
   @Output() onGoBack = new EventEmitter<void>();
 
@@ -48,12 +48,10 @@ export class EvaluateCorrectionsFormComponent {
   isModalOpen = signal(false);
   isSubmitAttempted = signal(false);
 
-  // Exponer el enum al template para que funcione con tu estándar visual
   public get states(): typeof stateList {
     return stateList;
   }
 
-  // Mapeo directo de opciones usando los valores reales de tu stateList
   verdictOptions = [
     { value: stateList.APROBADO, label: 'Aprobado' },
     { value: stateList.APROBADO_CON_OBSERVACIONES, label: 'Aprobado con Observaciones' },
@@ -61,13 +59,13 @@ export class EvaluateCorrectionsFormComponent {
     { value: stateList.APLAZADO, label: 'Aplazado' }
   ];
 
-  // Filtro reactivo para listar los documentos que subió el director previamente
-  correctedDocuments = computed(() => {
-    if (!this.thesisWork || !this.thesisWork.documents) return [];
-    return this.thesisWork.documents.filter(doc => doc.type === DocumentType.CORRECCION);
+  // 📦 Se obtiene la lista estructurada de entregas unificadas
+  correctedDeliveriesList = computed(() => {
+    if (!this.thesisWork || !this.thesisWork.correctedDeliveries) return [];
+    return this.thesisWork.correctedDeliveries;
   });
 
-  // --- Getters de Información de Personal (Locales para alimentar el HTML estándar) ---
+  // --- Getters de Información de Personal ---
   getStudentNames(): string {
     const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
     return this.userService.getAuthorsNames(authors);
@@ -89,13 +87,13 @@ export class EvaluateCorrectionsFormComponent {
   }
 
   getAssignedJurors(): string {
-    const jurors = this.thesisWork?.sustentations?.[0].assignedJurors || [];
+    const jurors = this.thesisWork?.sustentations?.[0]?.assignedJurors || [];
     if (jurors.length === 0) return 'No asignados';
     return jurors.map((j: any) => this.userService.getUserFullName(j.id || j)).join(' y ');
   }
 
   downloadDocument(doc: Document): void {
-    if (!doc.url) {
+    if (!doc?.url) {
       this.notificationService.show({
         title: 'Error de archivo',
         message: 'Este documento no posee una ruta válida de descarga.',
@@ -136,9 +134,12 @@ export class EvaluateCorrectionsFormComponent {
       return;
     }
 
-    // Construcción limpia respetando estrictamente tu interfaz original de Evaluation
+    // Se extrae el ID de la monografía del paquete de entrega más reciente [0]
+    const currentDelivery = this.correctedDeliveriesList()[0];
+    const targetDocumentId = currentDelivery?.monograph?.id || '';
+
     const evaluationData: Omit<Evaluation, 'id' | 'date'> = {
-      documentId: this.correctedDocuments()[0]?.id || '',
+      documentId: targetDocumentId,
       proposalId: this.thesisWork.preliminaryDraftData?.proposalData?.id || '',
       evaluatorId: user?.id || '',
       evaluatorName: user ? `${user.firstName} ${user.lastName}` : 'Jurado Asignado',

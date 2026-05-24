@@ -67,25 +67,37 @@
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Documentos Corregidos Radicados</h3>
     <p class="text-sm text-gray-600 mb-4">Haga clic sobre cualquiera de los archivos cargados por el equipo del proyecto para revisarlo antes de emitir el dictamen.</p>
 
-    @if (correctedDocuments().length > 0) {
+    @if (correctedDeliveriesList().length > 0) {
       <div class="flex flex-col gap-3">
-        @for (doc of correctedDocuments(); track doc.id) {
-          <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+        @for (delivery of correctedDeliveriesList(); track delivery.id) {
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm gap-4">
             <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
+              <span class="material-symbols-outlined text-primary text-4xl">folder_zip</span>
               <div class="flex flex-col">
-                <span class="text-sm font-bold text-primary">{{ doc.name }}</span>
-                <span class="text-xs text-[#777680]">Cargado el: {{ doc.uploadDate || 'Sin fecha' }}</span>
+                <span class="text-sm font-bold text-primary">Paquete de Correcciones Radicado</span>
+                <span class="text-xs text-[#777680]">Cargado el: {{ delivery.uploadDate || 'Sin fecha' }}</span>
+                <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-gray-500">
+                  <span class="flex items-center gap-1">📄 {{ delivery.monograph.name }}</span>
+                  @if (delivery.annexes) {
+                    <span class="flex items-center gap-1">📎 Anexos incluidos</span>
+                  }
+                </div>
               </div>
             </div>
-            <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(doc)"></app-button-component>
+
+            <div class="flex items-center gap-2 self-end sm:self-auto">
+              <app-button-component label="Descargar Monografía" variant="primary" (onClick)="downloadDocument(delivery.monograph)"></app-button-component>
+              @if (delivery.annexes) {
+                <app-button-component label="Descargar Anexos" variant="secondary" (onClick)="downloadDocument(delivery.annexes)"></app-button-component>
+              }
+            </div>
           </div>
         }
       </div>
     } @else {
       <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 flex items-center gap-2">
         <span class="material-symbols-outlined">warning</span>
-        No se registran documentos cargados en esta fase. El jurado puede proceder a pre-evaluar si lo considera pertinente.
+        No se registran entregas completas de documentos corregidos en esta fase.
       </div>
     }
   </section>

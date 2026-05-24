@@ -39,14 +39,14 @@ export class SustentationDetailsPageComponent implements OnInit {
   });
 
   // Computado: Último veredicto de la sustentación seleccionada
-  latestVerdict = computed<JurorVerdict | null>(() => {
+  latestVeredict = computed<JurorVerdict | null>(() => {
     const sustentation = this.selectedSustentation();
     if (!sustentation || !sustentation.verdicts) return null;
     return sustentation.verdicts.length > 0 ? sustentation.verdicts[sustentation.verdicts.length - 1] : null;
   });
 
   showCorrectedDocumentsButton = computed<boolean>(() => {
-    const verdict = this.latestVerdict();
+    const verdict = this.latestVeredict();
     return verdict?.veredict === stateList.APROBADO_CON_OBSERVACIONES;
   });
 
@@ -105,13 +105,12 @@ export class SustentationDetailsPageComponent implements OnInit {
     this.router.navigate(['../../corrected_documents'], { relativeTo: this.route });
   }
 
-  downloadDocument(): void {
-    const targetDocument = this.actaDocument();
-    if (!targetDocument?.url) {
+  downloadDocument(doc?: Document): void {
+    if (!doc?.url) {
       this.showDownloadError();
       return;
     }
-    this.downloadService.download(targetDocument.url, targetDocument.name);
+    this.downloadService.download(doc.url, doc.name);
   }
 
   goBack(): void {

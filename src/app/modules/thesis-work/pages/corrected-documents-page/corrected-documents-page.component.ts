@@ -10,21 +10,23 @@ import { FileDownloadService } from '../../../../core/services/filedownload/file
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 
 // Interfaces y Enums
-import { Document } from '../../../../core/interfaces/Document.interface';
-import { DocumentType } from '../../../../core/interfaces/Document.interface';
+import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 
 // Componentes Reutilizables
 import { Column, TableComponent } from "../../../../shared/components/table-component/table-component.component";
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
+import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
+import { User } from '../../../users/interfaces/user.interface';
+import { UserService } from '../../../users/services/user.service';
 
 @Component({
   selector: 'app-corrected-documents-page',
   templateUrl: './corrected-documents-page.component.html',
   styleUrls: ['./corrected-documents-page.component.css'],
   standalone: true,
-  imports: [TableComponent, ButtonComponent]
+  imports: [TableComponent, ButtonComponent, RegisterInformationModalComponent]
 })
 export class CorrectedDocumentsPageComponent implements OnInit {
   // --- Inyección de Dependencias ---
@@ -36,13 +38,18 @@ export class CorrectedDocumentsPageComponent implements OnInit {
   private readonly titleService = inject(Title);
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
+  private readonly userService = inject(UserService);
 
   // --- Estado de la Página ---
   thesisWorkId = signal<string | null>(null);
 
+  // --- Estado del Modal de Detalles ---
+  isDetailsModalOpen = signal<boolean>(false);
+  selectedDelivery = signal<any | null>(null);
+
   // --- Configuración de la Tabla ---
   protected columns: Column[] = [
-    { field: 'name', header: 'Nombre del Documento', type: 'text', width: '40%' },
+    { field: 'name', header: 'Nombre de la Entrega', type: 'text', width: '40%' },
     { field: 'date', header: 'Fecha de Carga', type: 'text', width: '20%' },
     { field: 'status', header: 'Estado', type: 'state', width: '20%' },
     {
@@ -51,7 +58,7 @@ export class CorrectedDocumentsPageComponent implements OnInit {
       type: 'actions',
       width: '20%',
       actions: [
-        { action: 'download', label: 'Descargar', icon: 'download', variant: 'primary', disabled: false }
+        { action: 'view-details', label: 'Ver Detalles', icon: 'visibility', variant: 'primary', disabled: false }
       ]
     }
   ];
@@ -81,14 +88,12 @@ export class CorrectedDocumentsPageComponent implements OnInit {
     }
   }
 
-  // --- Selectores Reactivos (Computed Signals) ---
-
-  private readonly currentThesisWork = computed(() => {
+  // --- Selectores Reactivos Principales ---
+  protected readonly currentThesisWork = computed(() => {
     const id = this.thesisWorkId();
     return id ? this.thesisWorkService.thesisWorks().find(w => w.thesisWorkId === id) : null;
   });
 
-  // Valida si el usuario en sesión es el Director del proyecto
   isDirector = computed(() => {
     const thesis = this.currentThesisWork();
     const user = this.authService.currentUser();
@@ -96,7 +101,6 @@ export class CorrectedDocumentsPageComponent implements OnInit {
     return thesis.preliminaryDraftData?.proposalData?.director?.id === user.id;
   });
 
-  // Valida si el usuario en sesión es un Jurado asignado
   isJuror = computed(() => {
     const thesis = this.currentThesisWork();
     const user = this.authService.currentUser();
@@ -104,62 +108,128 @@ export class CorrectedDocumentsPageComponent implements OnInit {
     return thesis.sustentations?.[0].assignedJurors?.some(juror => juror.id === user.id) ?? false;
   });
 
-  // =========================================================================
-  // 🚀 NUEVA REGLA DE NEGOCIO: ¿Ya se evaluaron las correcciones?
-  // =========================================================================
-  // Si el estado macro del proyecto ya no es EN_REVISION (por ejemplo, pasó a APROBADO,
-  // APROBADO_CON_OBSERVACIONES, APLAZADO, etc.), significa que un jurado ya asentó el dictamen.
   isAlreadyEvaluated = computed(() => {
     const thesis = this.currentThesisWork();
     if (!thesis) return false;
 
-    // 1. Check por histórico: ¿Ya se registró alguna evaluación formal?
     const hasEvaluations = (thesis.evaluations?.length ?? 0) > 0;
-
-    // 2. Check por documento: ¿El documento de evaluación (Formato_G) ya fue aprobado/revisado?
     const hasFormatoGEvaluated = thesis.documents?.some(doc =>
       doc.type === DocumentType.CORRECCION &&
       doc.name.includes('Formato_G') &&
       doc.status !== stateList.EN_REVISION
     ) ?? false;
 
-    // Si cualquiera de las dos condiciones se cumple, se bloquea el flujo de carga y evaluación
     return hasEvaluations || hasFormatoGEvaluated;
   });
 
-  // Mapea y filtra los documentos de tipo CORRECCION
   tableData = computed(() => {
     const thesis = this.currentThesisWork();
-    if (!thesis || !thesis.documents) return [];
+    if (!thesis || !thesis.correctedDeliveries) return [];
 
-    const correctedDocs = thesis.documents.filter(
-      (doc: Document) => doc.type === DocumentType.CORRECCION
-    );
-
-    return correctedDocs.map(doc => ({
-      id: doc.id,
-      name: doc.name,
-      date: doc.uploadDate || 'Sin fecha',
-      status: doc.status || stateList.EN_REVISION,
-      allowedActions: ['download'],
-      url: doc.url
+    return thesis.correctedDeliveries.map((delivery, index) => ({
+      id: delivery.id,
+      name: `Paquete de Correcciones Radicado ${index + 1}`,
+      date: delivery.uploadDate || 'Sin fecha',
+      status: delivery.monograph?.status || stateList.EN_REVISION,
+      allowedActions: ['view-details'],
+      rawDelivery: delivery // Se guarda la referencia completa
     }));
   });
+
+  hasUploadedCorrections = computed(() => {
+    return this.tableData().length > 0;
+  });
+
+  // =========================================================================
+  // 🧠 PROCESADORES REACTIVOS PARA EL MODAL DE DETALLES
+  // =========================================================================
+
+  selectedDeliveryDocuments = computed<string[]>(() => {
+    const delivery = this.selectedDelivery();
+    if (!delivery) return [];
+    const docs: string[] = [];
+    if (delivery.monograph?.name) docs.push(delivery.monograph.name);
+    if (delivery.annexes?.name) docs.push(delivery.annexes.name);
+    return docs;
+  });
+
+  studentName = computed<string>(() => {
+    const authors = this.currentThesisWork()
+      ?.preliminaryDraftData
+      ?.proposalData
+      ?.authors;
+    // Utiliza el método especializado de tu servicio heredado del otro componente
+    return this.userService.getAuthorsNames(authors) || 'Sin estudiante';
+  });
+
+  directorName = computed<string>(() => {
+    const director = this.currentThesisWork()?.preliminaryDraftData?.proposalData?.director;
+    return director ? `${director.firstName || ''} ${director.lastName || ''}`.trim() : 'Sin director';
+  });
+
+  codirectorName = computed<string | undefined>(() => {
+    const codirector = this.currentThesisWork()?.preliminaryDraftData?.proposalData?.codirector;
+    return codirector ? `${codirector.firstName || ''} ${codirector.lastName || ''}`.trim() : undefined;
+  });
+
+  advisorName = computed<string | undefined>(() => {
+    const advisor = this.currentThesisWork()?.preliminaryDraftData?.proposalData?.advisor;
+    return advisor ? `${advisor.firstName || ''} ${advisor.lastName || ''}`.trim() : undefined;
+  });
+
+  modalityName = computed<string>(() => {
+    return this.currentThesisWork()?.preliminaryDraftData?.proposalData?.modality || 'Sin modalidad';
+  });
+
+  ensureDate(date: Date | string | undefined | null): Date {
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      return date;
+    }
+    if (typeof date === 'string' && date.trim() !== '') {
+      const parsed = new Date(date);
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+    return new Date();
+  }
 
   // --- Controladores de Interacción y Acciones ---
 
   handleTableAction(event: { action: string; row: any }): void {
-    if (event.action === 'download') {
-      if (!event.row.url) {
-        this.notificationService.show({
-          title: 'Error de descarga',
-          message: 'No existe un enlace de descarga válido para este archivo.',
-          type: NotificationType.ERROR
-        });
-        return;
-      }
-      this.downloadService.download(event.row.url, `${event.row.name}.pdf`);
+    if (event.action === 'view-details') {
+      this.selectedDelivery.set(event.row.rawDelivery);
+      this.isDetailsModalOpen.set(true);
     }
+  }
+
+  downloadDocumentByName(fileName: string): void {
+    const delivery = this.selectedDelivery();
+    if (!delivery) return;
+
+    let targetDocument: Document | undefined;
+
+    if (delivery.monograph?.name === fileName) {
+      targetDocument = delivery.monograph;
+    } else if (delivery.annexes?.name === fileName) {
+      targetDocument = delivery.annexes;
+    }
+
+    if (targetDocument) {
+      this.downloadDocument(targetDocument);
+    }
+  }
+
+  private downloadDocument(doc: Document): void {
+    if (!doc.url) {
+      this.notificationService.show({
+        title: 'Error de descarga',
+        message: 'No existe un enlace de descarga válido para este archivo.',
+        type: NotificationType.ERROR
+      });
+      return;
+    }
+    this.downloadService.download(doc.url, `${doc.name}.pdf`);
   }
 
   // --- Navegación ---
@@ -173,11 +243,6 @@ export class CorrectedDocumentsPageComponent implements OnInit {
   }
 
   goBack(): void {
-    // 🚀 Sube dos niveles: sale del path '' y luego sale de 'corrected_documents'
     this.router.navigate(['../../'], { relativeTo: this.route });
   }
-
-  hasUploadedCorrections = computed(() => {
-    return this.tableData().length > 0;
-  });
 }
