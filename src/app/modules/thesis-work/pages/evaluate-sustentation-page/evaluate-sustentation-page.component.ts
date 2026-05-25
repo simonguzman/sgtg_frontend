@@ -5,7 +5,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { stateList } from '../../../../core/enums/state.enum';
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
-import { EvaluateSustentationFormComponent } from "../../components/evaluate-sustentation-form/evaluate-sustentation-form.component";
+import { EvaluateSustentationFormComponent, SustentationEvaluationPayload } from "../../components/evaluate-sustentation-form/evaluate-sustentation-form.component";
+import { ThesisWork } from '../../interfaces/thesis-work.interface'; // 👈 Importación necesaria
 
 @Component({
   selector: 'app-evaluate-sustentation-page',
@@ -19,18 +20,18 @@ export class EvaluateSustentationPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
-  // States controlados mediante signals reactivas
-  thesisWorkState = signal<any | null>(null);
-  isConfirmModalOpen = signal(false);
-  isSubmitting = signal(false);
+  // 👈 Tipado estricto
+  thesisWorkState = signal<ThesisWork | null>(null);
+  isConfirmModalOpen = signal<boolean>(false);
+  isSubmitting = signal<boolean>(false);
 
-  pendingData = signal<{ payload: any; file: File } | null>(null);
+  // 👈 Estructura mapeada sin any
+  pendingData = signal<{ payload: SustentationEvaluationPayload; file: File } | null>(null);
 
-  ngOnInit() {
+  ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
     let id: string | null = null;
 
-    // Extracción recursiva ascendente del ID del trabajo de grado
     while (currentRoute && !id) {
       id = currentRoute.snapshot.paramMap.get('id');
       currentRoute = currentRoute.parent;
@@ -43,9 +44,9 @@ export class EvaluateSustentationPageComponent implements OnInit {
     }
   }
 
-  private loadThesisData(id: string) {
+  private loadThesisData(id: string): void {
     this.thesisWorkService.getThesisWorkByIdMock(id).subscribe({
-      next: (data) => {
+      next: (data: ThesisWork | undefined) => { // 👈 Soporte para undefined si el servicio falla internamente
         if (data) this.thesisWorkState.set(data);
       },
       error: () => {
@@ -59,12 +60,13 @@ export class EvaluateSustentationPageComponent implements OnInit {
     });
   }
 
-  handleSaveTriggered(data: { payload: any; file: File }) {
+  // 👈 Firma reemplazada
+  handleSaveTriggered(data: { payload: SustentationEvaluationPayload; file: File }): void {
     this.pendingData.set(data);
     this.isConfirmModalOpen.set(true);
   }
 
-  processSustentationEvaluation() {
+  processSustentationEvaluation(): void {
     const data = this.pendingData();
     const thesisId = this.thesisWorkState()?.thesisWorkId;
 
@@ -79,13 +81,12 @@ export class EvaluateSustentationPageComponent implements OnInit {
         let alertTitle = 'Sustentación Evaluada';
         let typeN = NotificationType.CONFIRMATION;
 
-        // Validaciones dinámicas de la notificación según el estado
         if (decision === stateList.NO_APROBADO) {
           alertTitle = 'Sustentación No Aprobada';
-          typeN = NotificationType.ERROR; // o INFO, según lo maneje tu NotificationType
+          typeN = NotificationType.ERROR;
         } else if (decision === stateList.APLAZADO) {
           alertTitle = 'Sustentación Aplazada';
-          typeN = NotificationType.INFO; // Puedes usar WARNING si lo tienes en tu enum
+          typeN = NotificationType.INFO;
         }
 
         this.notification.show({
@@ -108,7 +109,7 @@ export class EvaluateSustentationPageComponent implements OnInit {
     });
   }
 
-  goBack() {
+  goBack(): void {
     this.router.navigate(['../'], { relativeTo: this.route });
   }
 }

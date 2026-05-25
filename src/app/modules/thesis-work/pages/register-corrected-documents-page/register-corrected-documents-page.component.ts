@@ -25,11 +25,11 @@ private readonly thesisWorkService = inject(ThesisWorkService);
 
   pendingFilesData = signal<{ monograph: File, annexes?: File } | null>(null);
 
-  ngOnInit() {
+  ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
     let id: string | null = null;
 
-    // Búsqueda recursiva del ID hacia arriba en el árbol de rutas
+    // Búsqueda recursiva asegurando tipado estricto
     while (currentRoute && !id) {
       id = currentRoute.snapshot.paramMap.get('id');
       currentRoute = currentRoute.parent;

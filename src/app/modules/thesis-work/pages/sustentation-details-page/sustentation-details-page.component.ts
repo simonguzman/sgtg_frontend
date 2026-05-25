@@ -27,7 +27,6 @@ export class SustentationDetailsPageComponent implements OnInit {
   private readonly downloadService = inject(FileDownloadService);
 
   thesisWorkDetails = signal<ThesisWork | null>(null);
-  // Guardamos el ID de la sustentación que viene en la URL
   sustentationId = signal<string | null>(null);
 
   // Computado: Filtra la sustentación específica por su ID
@@ -53,15 +52,14 @@ export class SustentationDetailsPageComponent implements OnInit {
   actaDocument = computed<Document | null>(() => {
     const work = this.thesisWorkDetails();
     if (!work || !work.documents) return null;
-    return work.documents.find(doc => doc.type === (DocumentType['FORMATO_G'] || 'Formato_G')) || null;
+    // 👈 Cambiado a notación de punto para el Enum
+    return work.documents.find(doc => doc.type === DocumentType.FORMATO_G) || null;
   });
 
   ngOnInit(): void {
-    // Obtenemos el ID de la sustentación desde la ruta (ej: /view_sustentation_details/:id)
     const sId = this.route.snapshot.paramMap.get('id');
     this.sustentationId.set(sId);
 
-    // Obtenemos el ID del trabajo de grado desde la ruta padre
     const thesisWorkId = this.route.parent?.snapshot.paramMap.get('id');
 
     if (!thesisWorkId) {
@@ -70,7 +68,8 @@ export class SustentationDetailsPageComponent implements OnInit {
     }
 
     this.thesisWorkService.getThesisWorkByIdMock(thesisWorkId).subscribe({
-      next: (foundData) => {
+      // 👈 Tipado explícito de la respuesta del servicio
+      next: (foundData: ThesisWork | undefined) => {
         if (foundData) {
           this.thesisWorkDetails.set(foundData);
         } else {
@@ -78,7 +77,7 @@ export class SustentationDetailsPageComponent implements OnInit {
           this.goBack();
         }
       },
-      error: (error) => {
+      error: () => {
         this.showErrorNotification();
         this.goBack();
       }
@@ -86,26 +85,32 @@ export class SustentationDetailsPageComponent implements OnInit {
   }
 
   getMemberName(userId: string | undefined): string {
+    // 👈 Type guard defensivo para evitar enviar undefined al servicio
+    if (!userId) return 'No asignado';
     return this.userService.getUserFullName(userId);
   }
 
   getAuthors(authors: User[] | undefined): string {
-    return this.userService.getAuthorsNames(authors);
+    // 👈 Asumimos que getAuthorsNames maneja internamente el mapeo o casteo si es necesario
+    return this.userService.getAuthorsNames(authors as any) || 'No asignados';
+    // Nota: Si 'getAuthorsNames' espera un arreglo de IDs (string[]), usa (authors as unknown as string[])
+    // Si espera User[], simplemente quita el 'as any'.
   }
 
-  // Ahora usa selectedSustentation()
   getAssignedJurors(): string {
     const sustentation = this.selectedSustentation();
     const jurors = sustentation?.assignedJurors || [];
     if (jurors.length === 0) return 'No asignados';
-    return jurors.map((j: any) => this.userService.getUserFullName(j.id || j)).join(' y ');
+
+    // 👈 ¡Adiós al any! Iteramos estrictamente sobre la interfaz User
+    return jurors.map((j: User) => this.userService.getUserFullName(j.id)).join(' y ');
   }
 
   navigateToCorrectedDocuments(): void {
     this.router.navigate(['../../corrected_documents'], { relativeTo: this.route });
   }
 
-  downloadDocument(doc?: Document): void {
+  downloadDocument(doc?: Document | null): void {
     if (!doc?.url) {
       this.showDownloadError();
       return;
@@ -130,7 +135,7 @@ export class SustentationDetailsPageComponent implements OnInit {
     this.notificationService.show({ title: 'Error', message: 'Error de comunicación.', type: NotificationType.ERROR });
   }
 
-  private showDownloadError() {
+  private showDownloadError(): void {
     this.notificationService.show({ title: 'Error', message: 'Acta no encontrada.', type: NotificationType.ERROR });
   }
 }

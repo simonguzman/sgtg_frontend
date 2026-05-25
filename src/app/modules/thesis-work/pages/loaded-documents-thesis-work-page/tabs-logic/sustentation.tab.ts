@@ -58,7 +58,7 @@ export const SustentationTabConfig: TabConfiguration = {
       return [];
     }
 
-    const isJurorContext = context['isJuror'] as boolean ?? false;
+    const isJurorContext = !!context.isJuror;
     const totalSustentations = thesis.sustentations.length;
 
     // Mapeamos todo el historial de sustentaciones para renderizar una fila por cada una
@@ -99,11 +99,8 @@ export const SustentationTabConfig: TabConfiguration = {
     const buttons: TableButton[] = [];
     const thesis = context.thesisWork;
 
-    // Extracción segura usando las propiedades extendidas en el context
-    const isConsejo = context['isConsejo'] as boolean ?? false;
-    const hasApprovedPazYSalvo = context['hasApprovedPazYSalvo'] as boolean ?? false;
-    const hasSustentationRegistered = context['hasSustentationRegistered'] as boolean ?? false;
-    const isSustentationEvaluated = context['isSustentationEvaluated'] as boolean ?? false;
+    // Acceso directo y tipado gracias a la interfaz actualizada
+    const { isConsejo, hasApprovedPazYSalvo, hasSustentationRegistered, isSustentationEvaluated } = context;
 
     if (isConsejo) {
       const activeSustentation = thesis?.sustentations?.[0];
@@ -119,7 +116,6 @@ export const SustentationTabConfig: TabConfiguration = {
       } else if (!hasSustentationRegistered) {
         buttonLabel = 'Registrar Sustentación';
       } else {
-        // Si la última sustentación fue aplazada, el Consejo puede agendar una nueva en el historial
         if (lastVerdict === stateList.APLAZADO) {
           buttonLabel = 'Registrar Nueva Sustentación';
         } else if (isSustentationEvaluated) {
@@ -146,6 +142,6 @@ export const SustentationTabConfig: TabConfiguration = {
     uploadDescription: '',
     uploadedByText: '',
     confirmDescription: '',
-    uploadDocumentType: DocumentType['FORMATO_E']
+    uploadDocumentType: DocumentType.FORMATO_E
   }
 };

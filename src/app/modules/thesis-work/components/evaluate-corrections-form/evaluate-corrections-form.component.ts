@@ -1,4 +1,3 @@
-// features/thesis-work/components/evaluate-corrections-form/evaluate-corrections-form.component.ts
 import { Component, EventEmitter, inject, Input, computed, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -10,11 +9,12 @@ import { FileDownloadService } from '../../../../core/services/filedownload/file
 import { AuthService } from '../../../../core/services/auth/auth.service';
 
 // Interfaces y Enums
-import { ThesisWork } from '../../interfaces/thesis-work.interface';
+import { ThesisWork, CorrectedDelivery } from '../../interfaces/thesis-work.interface';
 import { Document } from '../../../../core/interfaces/Document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
+import { User } from '../../../users/interfaces/user.interface'; // 👈 Importación agregada
 
 // Componentes Reutilizables de la aplicación
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
@@ -45,8 +45,8 @@ export class EvaluateCorrectionsFormComponent {
   uploadedFormatG = signal<{ fileName: string; file: File } | null>(null);
 
   // Estados visuales de interacción
-  isModalOpen = signal(false);
-  isSubmitAttempted = signal(false);
+  isModalOpen = signal<boolean>(false);
+  isSubmitAttempted = signal<boolean>(false);
 
   public get states(): typeof stateList {
     return stateList;
@@ -60,7 +60,7 @@ export class EvaluateCorrectionsFormComponent {
   ];
 
   // 📦 Se obtiene la lista estructurada de entregas unificadas
-  correctedDeliveriesList = computed(() => {
+  correctedDeliveriesList = computed<CorrectedDelivery[]>(() => {
     if (!this.thesisWork || !this.thesisWork.correctedDeliveries) return [];
     return this.thesisWork.correctedDeliveries;
   });
@@ -89,7 +89,8 @@ export class EvaluateCorrectionsFormComponent {
   getAssignedJurors(): string {
     const jurors = this.thesisWork?.sustentations?.[0]?.assignedJurors || [];
     if (jurors.length === 0) return 'No asignados';
-    return jurors.map((j: any) => this.userService.getUserFullName(j.id || j)).join(' y ');
+    // 👈 Cambiado (j: any) por su respectivo tipado estricto (j: User)
+    return jurors.map((j: User) => this.userService.getUserFullName(j.id)).join(' y ');
   }
 
   downloadDocument(doc: Document): void {

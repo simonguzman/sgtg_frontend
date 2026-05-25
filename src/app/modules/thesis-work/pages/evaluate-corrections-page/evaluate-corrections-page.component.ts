@@ -59,7 +59,7 @@ export class EvaluateCorrectionsPageComponent implements OnInit {
 
   private loadData(id: string): void {
     this.thesisWorkService.getThesisWorkByIdMock(id).subscribe({
-      next: (data) => {
+      next: (data: ThesisWork | undefined) => {
         if (!data) {
           this.notification.show({ title: 'No encontrado', message: 'El proyecto de grado solicitado no existe en la base de datos.', type: NotificationType.INFO });
           this.goBack();

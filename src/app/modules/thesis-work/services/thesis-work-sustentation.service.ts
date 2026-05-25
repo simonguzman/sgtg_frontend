@@ -47,7 +47,7 @@ export class ThesisWorkSustentationService {
             name: fileName,
             url: uploadedFile?.url || `uploads/sustentaciones/${fileName}`,
             uploadDate: dateStr,
-            type: DocumentType['FORMATO_E'] || ('Formato_E' as any),
+            type: DocumentType.FORMATO_E,
             status: stateList.EN_REVISION
           };
 
@@ -99,12 +99,12 @@ export class ThesisWorkSustentationService {
             name: file.name.replace('.pdf', ''),
             url: `uploads/sustentaciones/resultado_${file.name}`,
             uploadDate: dateStr,
-            type: DocumentType['FORMATO_G'] || ('Formato_G' as any),
+            type: DocumentType.FORMATO_G,
             status: payload.veredict
           };
 
           const updatedExistingDocuments = (work.documents || []).map(doc => {
-            const isFormatoE = doc.type === (DocumentType['FORMATO_E'] || 'Formato_E');
+            const isFormatoE = doc.type === (DocumentType.FORMATO_E);
             const isEnRevision = doc.status === stateList.EN_REVISION;
             return isFormatoE && isEnRevision ? { ...doc, status: stateList.EVALUADO } : doc;
           });

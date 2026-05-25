@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, Input, OnInit, Output, signal } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { UserService } from '../../../users/services/user.service';
 import { stateList } from '../../../../core/enums/state.enum';
@@ -8,6 +8,15 @@ import { FileUploadModalComponent } from "../../../../shared/components/modals/f
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { DatePipe } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
+import { SustentationRegistry, ThesisWork } from '../../interfaces/thesis-work.interface'; // 👈 Importaciones necesarias
+import { User } from '../../../users/interfaces/user.interface'; // 👈 Importación para tipar los jurados
+
+// 👈 Definimos la interfaz del payload para reutilizarla
+export interface SustentationEvaluationPayload {
+  veredict: stateList;
+  observations: string;
+  evaluationDate: Date;
+}
 
 @Component({
   selector: 'app-evaluate-sustentation-form',
@@ -19,13 +28,12 @@ export class EvaluateSustentationFormComponent {
   private readonly notificationService = inject(NotificationService);
   public readonly userService = inject(UserService);
 
-  @Input({ required: true }) thesisWork!: any;
+  // 👈 Tipado estricto
+  @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
 
-  @Output() onSave = new EventEmitter<{
-    payload: { veredict: stateList; observations: string; evaluationDate: Date };
-    file: File;
-  }>();
+  // 👈 Usamos la nueva interfaz
+  @Output() onSave = new EventEmitter<{ payload: SustentationEvaluationPayload; file: File }>();
   @Output() onBack = new EventEmitter<void>();
   @Output() onDownloadFile = new EventEmitter<Document>();
 
@@ -34,23 +42,23 @@ export class EvaluateSustentationFormComponent {
   observations = signal<string>('');
   uploadedFormat = signal<{ fileName: string; file: File } | null>(null);
 
-  isModalOpen = signal(false);
-  isSubmitAttempted = signal(false);
+  isModalOpen = signal<boolean>(false);
+  isSubmitAttempted = signal<boolean>(false);
 
   // Exponer el enum al template
   public get states(): typeof stateList {
     return stateList;
   }
 
-  // --- Getter de Sustentación Activa ---
-  get currentSustentation(): any {
+  // --- Getter de Sustentación Activa con Tipado ---
+  get currentSustentation(): SustentationRegistry | null { // 👈 Eliminado el any
     return this.thesisWork?.sustentations?.[0] || null;
   }
 
   // --- Getters de Información de Personal ---
   getStudentNames(): string {
     const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
-    return this.userService.getAuthorsNames(authors);
+    return this.userService.getAuthorsNames(authors as User[]); // 👈 Casteo seguro según lo que espere el servicio
   }
 
   getDirectorName(): string {
@@ -71,7 +79,8 @@ export class EvaluateSustentationFormComponent {
   getAssignedJurors(): string {
     const jurors = this.currentSustentation?.assignedJurors || [];
     if (jurors.length === 0) return 'No asignados';
-    return jurors.map((j: any) => this.userService.getUserFullName(j.id || j)).join(' y ');
+    // 👈 Reemplazado (j: any) por (j: User)
+    return jurors.map((j: User) => this.userService.getUserFullName(j.id)).join(' y ');
   }
 
   getExistingDocument(type: string): Document | null {

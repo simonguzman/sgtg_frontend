@@ -13,13 +13,13 @@
     <div class="flex flex-col gap-4">
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Título</span>
-        <input type="text" [value]="thesisWork?.preliminaryDraftData?.proposalData?.title || ''" disabled
+        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</span>
-        <input type="text" [value]="thesisWork?.preliminaryDraftData?.proposalData?.modality || ''" disabled
+        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
@@ -128,7 +128,7 @@
       }
 
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-semibold text-primary">Observaciones y comentarios descriptivos</label>
+        <span class="text-sm font-semibold text-primary">Observaciones y comentarios descriptivos</span>
         <textarea rows="4" class="p-3 border rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm"
                   placeholder="Ingrese el desglose detallado de las razones del veredicto o los ajustes exigidos al estudiante..."
                   (input)="observations.set($any($event.target).value)"></textarea>

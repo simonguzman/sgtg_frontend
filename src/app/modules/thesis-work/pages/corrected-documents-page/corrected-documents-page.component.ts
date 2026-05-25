@@ -18,7 +18,6 @@ import { NotificationType } from '../../../../shared/components/notifications/mo
 import { Column, TableComponent } from "../../../../shared/components/table-component/table-component.component";
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
-import { User } from '../../../users/interfaces/user.interface';
 import { UserService } from '../../../users/services/user.service';
 
 @Component({

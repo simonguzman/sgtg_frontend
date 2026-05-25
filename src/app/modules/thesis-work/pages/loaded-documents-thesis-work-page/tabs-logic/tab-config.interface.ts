@@ -14,6 +14,8 @@ export interface ThesisEvaluationContext {
   isDecanatura: boolean;
   isCodirector: boolean;
   isAdvisor: boolean;
+  isJuror: boolean;
+  isConsejo: boolean;
   latestAdvanceId: string | null;
   isLatestAdvancePending: boolean;
   // Usamos 'unknown' en lugar de 'any' para forzar la aserción de tipos

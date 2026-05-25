@@ -106,7 +106,7 @@ export class ThesisWorkDeliveryService {
             name: file.name.replace('.pdf', ''),
             url: 'uploads/paz-y-salvo/' + file.name,
             uploadDate: dateStr,
-            type: DocumentType['PAZ_Y_SALVO'],
+            type: DocumentType.PAZ_Y_SALVO,
             status: isFullyApproved ? stateList.APROBADO : stateList.NO_APROBADO
           };
 
