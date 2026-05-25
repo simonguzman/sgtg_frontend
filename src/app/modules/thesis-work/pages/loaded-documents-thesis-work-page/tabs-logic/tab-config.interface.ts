@@ -26,6 +26,7 @@ export interface ThesisEvaluationContext {
 export interface TabConfiguration {
   tabValue: string;
   columns: Column[];
+  headerActionRoute?: string;
 
   // 📐 Cada pestaña procesa y enriquece el contexto con sus propias reglas de negocio
   enrichEvaluationContext: (baseContext: ThesisEvaluationContext) => ThesisEvaluationContext;

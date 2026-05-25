@@ -1,18 +1,18 @@
 import { Component, computed, effect, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { TabConfiguration, ThesisEvaluationContext } from './tabs-logic/tab-config.interface';
 import { AdvancesTabConfig } from './tabs-logic/advaces.tab';
 import { UserRoleType } from '../../../../core/models/user-role';
 import { TableButton, TableComponent } from '../../../../shared/components/table-component/table-component.component';
-import { ActivatedRoute, Router } from '@angular/router';
 import { ThesisWorkService } from '../../services/thesis-work.service';
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { BreadcrumbService } from '../../../../core/services/breadcrumb/Breadcrumb.service';
-import { Title } from '@angular/platform-browser';
 import { TabItem, TabsComponent } from '../../../../shared/components/tabs/tabs.component';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
+import { Document } from '../../../../core/interfaces/Document.interface';
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { stateList } from '../../../../core/enums/state.enum';
@@ -70,7 +70,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   isDetailsModalOpen = signal(false);
   selectedAdvance = signal<Advance | null>(null);
 
-  // Fallback seguro de fecha para evitar la inicialización nativa directa en el HTML
   readonly defaultFallbackDate = new Date();
 
   constructor() {
@@ -146,21 +145,13 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     return this.currentStrategy().getTableData(docs, context);
   });
 
-  // ==========================================
-  // 🧠 PROCESADORES REACTIVOS PARA EL MODAL DE DETALLES
-  // ==========================================
   selectedAdvanceDocuments = computed<string[]>(() => {
     const advance = this.selectedAdvance();
     return advance?.documents?.map((d: Document) => d.name) || [];
   });
 
   studentName = computed<string>(() => {
-    const authors = this.evaluationContext()
-      .thesisWork
-      ?.preliminaryDraftData
-      ?.proposalData
-      ?.authors;
-
+    const authors = this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.authors;
     return this.userService.getAuthorsNames(authors) || 'Sin estudiante';
   });
 
@@ -180,39 +171,25 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   });
 
   modalityName = computed<string>(() => {
-    return this.evaluationContext()
-      .thesisWork
-      ?.preliminaryDraftData
-      ?.proposalData
-      ?.modality || 'Sin modalidad';
+    return this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.modality || 'Sin modalidad';
   });
 
   private getUserFullName(user?: User): string | undefined {
     if (!user) return undefined;
-
     return `${user.firstName || ''} ${user.lastName || ''}`.trim();
   }
 
   // ==========================================
-  // 🚀 MANEJO DE ACCIONES Y EVENTOS
+  // 🚀 MANEJO DE ACCIONES Y EVENTOS REFACTORIZADO
   // ==========================================
   handleHeaderButton(button: TableButton): void {
-    if (button.label?.toLowerCase().includes('cargar') || button.label?.toLowerCase().includes('registrar')) {
-      if (this.activeTab() === 'AVANCES') {
-        this.router.navigate(['upload_advance'], { relativeTo: this.route });
-      } else if (this.activeTab() === 'ENTREGA FINAL') {
-        this.router.navigate(['upload_final_delivery'], { relativeTo: this.route });
-      } else if (this.activeTab() === 'PAZ Y SALVO') {
-        this.router.navigate(['register_paz_y_salvo'], { relativeTo: this.route });
-      } else if (this.activeTab() === 'SUSTENTACION') {
-        this.router.navigate(['register_sustentation'], { relativeTo: this.route });
-      } else if (this.activeTab() === 'CORRESPONDENCIA') {
-        this.router.navigate(['register_correspondence'], { relativeTo: this.route });
-      } else if (this.activeTab() === 'SOLICITUDES') {
-        this.router.navigate(['register_special_request'], { relativeTo: this.route });
-      } else {
-        this.isUploadModalOpen.set(true);
-      }
+    // Se elimina el condicional anidado gigante leyendo directamente el path de la estrategia activa
+    const routePath = this.currentStrategy().headerActionRoute;
+
+    if (routePath) {
+      this.router.navigate([routePath], { relativeTo: this.route });
+    } else {
+      this.isUploadModalOpen.set(true);
     }
   }
 
@@ -226,9 +203,14 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     }
 
     switch (event.action) {
-      case 'download':
-        this.handleDownload(event.row as unknown as Document);
+      case 'download': {
+        // Extracción segura en tiempo de ejecución para evitar el bypass de tipado del linter
+        const urlObj = typeof event.row['url'] === 'string' ? event.row['url'] : '';
+        const nameObj = typeof event.row['name'] === 'string' ? event.row['name'] : 'documento_sin_titulo';
+
+        this.handleDownload({ url: urlObj, name: nameObj } as Document);
         break;
+      }
 
       case 'evaluate-advance':
         this.router.navigate(['evaluate_advance', rowId], { relativeTo: this.route });
@@ -239,14 +221,14 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
         break;
 
       case 'view_sustentation_details':
-        this.router.navigate([event.action, rowId], { relativeTo: this.route });
-        break;
       case 'evaluate_sustentation':
         this.router.navigate([event.action, rowId], { relativeTo: this.route });
         break;
+
       case 'view-details':
         this.openDetailsModal(rowId);
         break;
+
       default:
         this.router.navigate([event.action], { relativeTo: this.route });
         break;
@@ -306,7 +288,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
         return parsed;
       }
     }
-    // Si todo falla, devolvemos la fecha actual para que el pipe no rompa
     return new Date();
   }
 
@@ -314,6 +295,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     if (this.activeTab() === 'AVANCES') return 'Detalles del avance';
     if (this.activeTab() === 'ENTREGA FINAL') return 'Detalles de la Entrega Final';
     if (this.activeTab() === 'PAZ Y SALVO') return 'Detalles de Paz y Salvo';
+    if (this.activeTab() === 'CORRESPONDENCIA') return 'Detalles de Correspondencia'; // 🚀 Añadido
     return 'Detalles del Registro';
   });
 
@@ -321,32 +303,27 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     if (this.activeTab() === 'AVANCES') return 'Información del avance cargado';
     if (this.activeTab() === 'ENTREGA FINAL') return 'Información de los documentos de entrega final';
     if (this.activeTab() === 'PAZ Y SALVO') return 'Información de aprobaciones académicas y financieras';
+    if (this.activeTab() === 'CORRESPONDENCIA') return 'Información de la resolución o correspondencia oficial'; // 🚀 Añadido
     return 'Información del documento cargado';
   });
 
   downloadDocumentByName(fileName: string): void {
     let targetDocument: Document | undefined;
-    // 🟢 Si estamos en Avances, buscamos dentro del avance seleccionado
+
     if (this.activeTab() === 'AVANCES') {
       targetDocument = this.selectedAdvance()?.documents?.find(
         (doc: Document) => doc.name === fileName
       );
-    }
-    // 🔵 Para cualquier otra pestaña, buscamos en los documentos globales del Trabajo de Grado
-    else {
+    } else {
       targetDocument = this.currentThesisWork()?.documents?.find(
         (doc: Document) => doc.name === fileName
       );
     }
-    // Ejecutamos la descarga si encontramos el documento
+
     if (targetDocument) {
       this.handleDownload(targetDocument);
     } else {
-      // 👈 SOLUCIÓN: Casteo explícito a 'as Document' para silenciar el compilador en el fallback
-      this.handleDownload({
-        name: fileName,
-        url: ''
-      } as Document);
+      this.handleDownload({ name: fileName, url: '' } as Document);
     }
   }
 
@@ -354,10 +331,8 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     const thesis = this.currentThesisWork();
     if (!thesis) return;
 
-    // 🟢 LÓGICA PARA LA PESTAÑA DE AVANCES
     if (this.activeTab() === 'AVANCES') {
       const advance = thesis.advances?.find(a => a.id === rowId);
-
       if (advance) {
         this.selectedAdvance.set(advance);
         this.isDetailsModalOpen.set(true);
@@ -365,23 +340,18 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
         this.showNotFoundError();
       }
     }
-    // 🔵 LÓGICA PARA LA PESTAÑA DE ENTREGA FINAL
     else if (this.activeTab() === 'ENTREGA FINAL') {
-      // Simplemente buscamos por el ID del contenedor
       const delivery = thesis.finalDeliveries?.find(d => d.id === rowId);
-
       if (!delivery) {
         this.showNotFoundError();
         return;
       }
 
-      // Agrupamos los documentos de forma limpia
       const finalDeliveryDocs: Document[] = [delivery.monograph, delivery.formatE];
       if (delivery.annexes) {
         finalDeliveryDocs.push(delivery.annexes);
       }
 
-      // Mapeamos a la interfaz Advance para que el modal lo lea
       const deliveryMock: Advance = {
         id: delivery.id,
         title: 'Entrega Final del Trabajo de Grado',
@@ -389,43 +359,57 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
         uploadDate: delivery.uploadDate,
         studentId: '',
         status: delivery.status || stateList.EN_REVISION,
-        documents: finalDeliveryDocs // 👈 Archivos listos y ordenados
+        documents: finalDeliveryDocs
       };
 
       this.selectedAdvance.set(deliveryMock);
       this.isDetailsModalOpen.set(true);
     }
-    // 🟠 NUEVA LÓGICA PARA LA PESTAÑA DE PAZ Y SALVO
     else if (this.activeTab() === 'PAZ Y SALVO') {
-
-      // 👈 Cambio: Buscamos en el historial el registro cuyo documento coincida con el rowId
       const pyS = thesis.pazYSalvos?.find(p => p.document.id === rowId);
-
-      // Verificamos que el registro exista
       if (!pyS) {
         this.showNotFoundError();
         return;
       }
 
-      // Construimos un string amigable con los comentarios de las dos aprobaciones
       let formatComments = `Aprobación Académica: ${pyS.academicApproved ? '✅ Sí' : '❌ No'}`;
       if (pyS.academicComments) formatComments += `\nObs: ${pyS.academicComments}`;
 
       formatComments += `\n\nAprobación Financiera: ${pyS.financialApproved ? '✅ Sí' : '❌ No'}`;
       if (pyS.financialComments) formatComments += `\nObs: ${pyS.financialComments}`;
 
-      // Patrón Adaptador: Mapeamos el PazYSalvoRegistry a la interfaz Advance
       const pazYSalvoMock: Advance = {
         id: pyS.id,
         title: 'Registro de Paz y Salvo Institucional',
         comments: formatComments,
         uploadDate: pyS.registrationDate,
-        studentId: '', // El HTML usa el computed studentName()
+        studentId: '',
         status: pyS.document.status || stateList.EN_REVISION,
         documents: [pyS.document]
       };
 
       this.selectedAdvance.set(pazYSalvoMock);
+      this.isDetailsModalOpen.set(true);
+    }
+    // 🚀 NUEVA SECCIÓN: Soporte adaptativo para la pestaña de Correspondencia
+    else if (this.activeTab() === 'CORRESPONDENCIA') {
+      const doc = thesis.documents?.find(d => d.id === rowId);
+      if (!doc) {
+        this.showNotFoundError();
+        return;
+      }
+
+      const correspondenceMock: Advance = {
+        id: doc.id,
+        title: 'Resolución / Correspondencia Final Oficial',
+        comments: 'Documento oficial cargado por el Jurado Evaluador (Formato_H) que ratifica y da por terminado formalmente el proceso del trabajo de grado.',
+        uploadDate: doc.uploadDate,
+        studentId: '',
+        status: doc.status || stateList.APROBADO,
+        documents: [doc]
+      };
+
+      this.selectedAdvance.set(correspondenceMock);
       this.isDetailsModalOpen.set(true);
     }
   }

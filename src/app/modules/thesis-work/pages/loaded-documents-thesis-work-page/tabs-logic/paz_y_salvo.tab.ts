@@ -1,4 +1,3 @@
-// tabs-logic/paz_y_salvo.tab.ts
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
@@ -7,6 +6,10 @@ import { FinalDelivery } from '../../../interfaces/thesis-work.interface';
 
 export const PazYSalvoTabConfig: TabConfiguration = {
   tabValue: 'PAZ_Y_SALVO',
+
+  // 🚀 Se registra la ruta de acción del botón principal para la navegación automática del contenedor
+  headerActionRoute: 'register_paz_y_salvo',
+
   columns: [
     { field: 'name', header: 'Nombre del Documento', type: 'text', width: '40%' },
     { field: 'uploadDate', header: 'Fecha de Carga', type: 'text', width: '20%' },
@@ -29,7 +32,6 @@ export const PazYSalvoTabConfig: TabConfiguration = {
     ) ?? false;
 
     // 🔍 2. ¿Ya se registró un Paz y Salvo (aprobado)?
-    // 👈 Cambio: Usamos some() sobre el nuevo arreglo pazYSalvos
     const hasApprovedPazYSalvo = thesis.pazYSalvos?.some(
       (pys) => pys.document.status === stateList.APROBADO
     ) ?? false;
@@ -42,13 +44,21 @@ export const PazYSalvoTabConfig: TabConfiguration = {
   },
 
   getTableData: (documents: Document[], context: ThesisEvaluationContext) => {
-    // Se mantiene leyendo los documentos globales o puedes mapear context.thesisWork?.pazYSalvo?.document
     const pySDocs = documents.filter(doc => doc.type === DocumentType['PAZ_Y_SALVO']);
 
     return pySDocs.map((doc: Document) => {
-      const formattedDate = typeof doc.uploadDate === 'string'
-        ? doc.uploadDate
-        : doc.uploadDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
+      // 🚀 Manejo robusto y a prueba de fallos para el formateo de las fechas
+      let formattedDate = 'Sin fecha';
+
+      if (doc.uploadDate) {
+        if (typeof doc.uploadDate === 'string') {
+          formattedDate = doc.uploadDate;
+        } else if (doc.uploadDate instanceof Date && !isNaN(doc.uploadDate.getTime())) {
+          formattedDate = doc.uploadDate
+            .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            .replaceAll('/', ' - ');
+        }
+      }
 
       return {
         id: doc.id,
@@ -65,7 +75,8 @@ export const PazYSalvoTabConfig: TabConfiguration = {
     const buttons: TableButton[] = [];
 
     if (context.isDecanatura || context.isAdmin) {
-      const { hasActiveFinalDelivery, hasApprovedPazYSalvo } = context as any;
+      // 🚀 Eliminamos por completo el casteo inseguro 'as any'
+      const { hasActiveFinalDelivery, hasApprovedPazYSalvo } = context;
 
       let buttonLabel = 'Registrar Paz y Salvo';
       let buttonDisabled = false;
@@ -75,10 +86,11 @@ export const PazYSalvoTabConfig: TabConfiguration = {
         buttonDisabled = true;
       } else if (!hasActiveFinalDelivery) {
         buttonLabel = 'Requiere Entrega Final';
-        buttonDisabled = true; // 🔓 Ahora cambiará a false porque hasActiveFinalDelivery será true
+        buttonDisabled = true;
       }
 
       buttons.push({
+        action: 'register_paz_y_salvo',
         label: buttonLabel,
         variant: 'primary',
         disabled: buttonDisabled

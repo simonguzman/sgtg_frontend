@@ -23,7 +23,9 @@ export class RegisterCorrespondenceFormComponent {
   // --- Inputs & Outputs Reactivos ---
   thesisWork = input.required<ThesisWork>();
   isSubmitting = input<boolean>(false);
+
   onSave = output<File>();
+  onGoBack = output<void>(); // 🚀 Añadido para el botón superior "Regresar"
 
   // Estado local para el archivo H
   selectedFile = signal<{ fileName: string, file: File } | null>(null);
@@ -35,15 +37,32 @@ export class RegisterCorrespondenceFormComponent {
   formatoFDoc = computed(() => this.historicalDocuments().find(doc => doc.type === DocumentType['PAZ_Y_SALVO'] || doc.type === 'Formato F' as any));
   formatoGDoc = computed(() => this.historicalDocuments().find(doc => doc.type === DocumentType['FORMATO_G'] || doc.type === 'Formato_G' as any));
 
-  // --- Mapeos de Datos ---
+  // --- Funciones Limpias para la Plantilla (Evita encadenamientos largos en el HTML) ---
+  getStudentNames(): string {
+    const authors = this.thesisWork().preliminaryDraftData?.proposalData?.authors;
+    return authors ? this.userService.getAuthorsNames(authors) : 'Sin estudiantes asignados';
+  }
+
+  getDirectorName(): string {
+    const directorId = this.thesisWork().preliminaryDraftData?.proposalData?.director?.id;
+    return this.getMemberName(directorId);
+  }
+
+  getCodirectorName(): string | null {
+    const codirectorId = this.thesisWork().preliminaryDraftData?.proposalData?.codirector?.id;
+    return codirectorId ? this.getMemberName(codirectorId) : null;
+  }
+
+  getAdvisorName(): string | null {
+    const advisorId = this.thesisWork().preliminaryDraftData?.proposalData?.advisor?.id;
+    return advisorId ? this.getMemberName(advisorId) : null;
+  }
+
   getMemberName(userId: string | undefined): string {
     return userId ? this.userService.getUserFullName(userId) : 'No asignado';
   }
 
-  getAuthors(authors: User[] | undefined): string {
-    return this.userService.getAuthorsNames(authors);
-  }
-
+  // --- Lógica de Descarga ---
   downloadDocument(doc: Document | undefined | null): void {
     if (!doc?.url) {
       this.notificationService.show({
@@ -56,11 +75,12 @@ export class RegisterCorrespondenceFormComponent {
     this.downloadService.download(doc.url, doc.name);
   }
 
-  // --- Lógica del File Input ---
+  // --- Lógica del File Input (Formato H) ---
   onFileSelected(event: Event): void {
     const inputElement = event.target as HTMLInputElement;
     if (inputElement.files && inputElement.files.length > 0) {
       const file = inputElement.files[0];
+
       if (file.type !== 'application/pdf') {
         this.notificationService.show({
           title: 'Formato inválido',
@@ -79,6 +99,11 @@ export class RegisterCorrespondenceFormComponent {
 
   removeSelectedFile(): void {
     this.selectedFile.set(null);
+    // 🚀 Limpiamos el valor del input file nativo para que permita volver a seleccionar el mismo archivo si es necesario
+    const inputElement = document.getElementById('correspondenceFileInput') as HTMLInputElement;
+    if (inputElement) {
+      inputElement.value = '';
+    }
   }
 
   submitForm(): void {

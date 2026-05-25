@@ -230,12 +230,34 @@ export class ThesisWorkDeliveryService {
       delay(800),
       tap(() => {
         this.storage.updateWork(thesisWorkId, (work) => {
+
+          // 🚀 1. Buscamos y aprobamos la Entrega Final activa (la más reciente)
+          let updatedDeliveries = work.finalDeliveries || [];
+          if (updatedDeliveries.length > 0) {
+            updatedDeliveries = updatedDeliveries.map((delivery, index) => {
+              // Asumimos que la posición [0] es la última entrega cargada
+              if (index === 0) {
+                return {
+                  ...delivery,
+                  status: stateList.APROBADO,
+                  // Propagamos la aprobación a los documentos internos
+                  monograph: { ...delivery.monograph, status: stateList.APROBADO },
+                  formatE: { ...delivery.formatE, status: stateList.APROBADO },
+                  annexes: delivery.annexes ? { ...delivery.annexes, status: stateList.APROBADO } : undefined
+                };
+              }
+              return delivery;
+            });
+          }
+
+          // 🚀 2. Retornamos el estado global actualizado
           return {
             ...work,
             documents: [
               document,
               ...(work.documents || [])
             ],
+            finalDeliveries: updatedDeliveries, // 👈 Se inyectan las entregas con su nuevo estado
             state: stateList.APROBADO
           };
         });

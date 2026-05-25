@@ -1,15 +1,13 @@
-// tabs-logic/advances.tab.ts
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 
-// Ajustamos la interfaz interna para que coincida exactamente con tus modelos globales
 interface AdvanceRegistry {
   id: string;
   title: string;
   comments: string;
-  uploadDate: Date | string; // 🚀 Corregido: Ahora es de tipo Date nativo
+  uploadDate: Date | string;
   documents?: Document[];
   status: stateList;
 }
@@ -22,6 +20,10 @@ interface EvaluationRegistry {
 
 export const AdvancesTabConfig: TabConfiguration = {
   tabValue: 'AVANCES',
+
+  // 🚀 Se registra la ruta de acción del botón principal para la navegación automática del contenedor
+  headerActionRoute: 'upload_advance',
+
   columns: [
     { field: 'name', header: 'Nombre del Avance', type: 'text', width: '35%' },
     { field: 'uploadDate', header: 'Fecha', type: 'text', width: '20%' },
@@ -68,6 +70,8 @@ export const AdvancesTabConfig: TabConfiguration = {
 
   getTableData: (documents: Document[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
     const activeAdvances: AdvanceRegistry[] = context.thesisWork?.advances || [];
+
+    // 🚀 Limpieza de la aserción de tipos inline por corchetes utilizando una extracción más limpia
     const hasFinalDelivery = context['hasFinalDelivery'] as boolean ?? false;
 
     return activeAdvances.map((adv: AdvanceRegistry) => {
@@ -78,8 +82,7 @@ export const AdvancesTabConfig: TabConfiguration = {
       ) || [];
 
       const alreadyEvaluated = evaluationsForThisAdvance.some(
-        (ev: EvaluationRegistry) =>
-          ev.evaluatorId === context.currentUser?.id
+        (ev: EvaluationRegistry) => ev.evaluatorId === context.currentUser?.id
       );
 
       const isAssignedEvaluator = context.isDirector || context.isCodirector || context.isAdvisor || context.isAdmin;
@@ -92,15 +95,12 @@ export const AdvancesTabConfig: TabConfiguration = {
         allowedActions.push('view-details');
       }
 
-      // 🚀 CAMBIO: Manejo a prueba de balas para las fechas
       let dateStr = 'Sin fecha';
       if (adv.uploadDate) {
-        // Garantizamos que sea un objeto Date válido en memoria
         const dateObj = typeof adv.uploadDate === 'string'
           ? new Date(adv.uploadDate)
           : adv.uploadDate;
 
-        // Validamos que la fecha no sea "Invalid Date"
         if (!Number.isNaN(dateObj.getTime())) {
           dateStr = dateObj.toLocaleDateString('es-ES', {
             day: '2-digit',

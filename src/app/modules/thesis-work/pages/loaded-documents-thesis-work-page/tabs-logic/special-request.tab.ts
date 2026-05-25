@@ -1,4 +1,3 @@
-// tabs-logic/special-requests.tab.ts
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
 import { ThesisEvaluationContext, TabConfiguration } from './tab-config.interface';
@@ -7,6 +6,9 @@ import { stateList } from '../../../../../core/enums/state.enum';
 
 export const SpecialRequestTabConfig: TabConfiguration = {
   tabValue: 'SOLICITUDES',
+
+  // 🚀 Se registra la ruta de acción del botón principal para la navegación automática del contenedor
+  headerActionRoute: 'register-special-request',
 
   columns: [
     { field: 'description', header: 'Descripción de la Solicitud', type: 'text', width: '40%' },
@@ -34,7 +36,6 @@ export const SpecialRequestTabConfig: TabConfiguration = {
     const verdictsList: JurorVerdict[] = thesis.sustentations?.[0]?.verdicts || [];
     const isSustentationEvaluated = verdictsList.length > 0;
 
-    // Corregido acceso a 'verdict' bajo tipado estricto
     const lastVerdict = isSustentationEvaluated ? verdictsList[verdictsList.length - 1].veredict : null;
 
     // Se considera finalizada si ya se evaluó Y el veredicto no quedó en "APLAZADO"
@@ -50,8 +51,8 @@ export const SpecialRequestTabConfig: TabConfiguration = {
     const thesis = context.thesisWork;
     if (!thesis || !thesis.specialRequests) return [];
 
-    // Aserción explícita de tipo para evitar que infiera tipos dinámicos extraños como '{}'
-    const isConsejo = context['isConsejo'] as boolean ?? false;
+    // 🚀 Acceso directo y nativo desde las propiedades tipadas del contexto
+    const isConsejo = !!context.isConsejo;
 
     return thesis.specialRequests.map((req: SpecialRequest) => {
       const dateStr = req.requestDate ? new Date(req.requestDate).toLocaleDateString('es-ES') : 'Sin fecha';
@@ -74,10 +75,10 @@ export const SpecialRequestTabConfig: TabConfiguration = {
   getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
     const buttons: TableButton[] = [];
 
-    // Casteos seguros de propiedades dinámicas de unknown a boolean
-    const isDirector = context['isDirector'] as boolean ?? false;
-    const isAdmin = context.isAdmin ?? false;
-    const isSustentationFinalized = context['isSustentationFinalized'] as boolean ?? false;
+    // 🚀 Limpieza exhaustiva de los casteos por corchetes string inline
+    const isDirector = !!context.isDirector;
+    const isAdmin = !!context.isAdmin;
+    const isSustentationFinalized = !!context['isSustentationFinalized'];
 
     if (isDirector || isAdmin) {
       buttons.push({
@@ -94,8 +95,7 @@ export const SpecialRequestTabConfig: TabConfiguration = {
     uploadDescription: '',
     uploadedByText: '',
     confirmDescription: '',
-    // Si no aplica un DocumentType real de tu enum en esta pestaña, puedes usar
-    // una aserción de tipo hacia DocumentType si tu enum o unión lo permite de forma segura.
+    // Se mantiene el bypass limpio por si la pestaña no requiere un archivo PDF inicializable
     uploadDocumentType: 'Solicitud' as unknown as DocumentType
   }
 };

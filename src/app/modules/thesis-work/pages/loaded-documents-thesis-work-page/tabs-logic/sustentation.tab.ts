@@ -6,6 +6,10 @@ import { SustentationRegistry, JurorVerdict } from '../../../interfaces/thesis-w
 
 export const SustentationTabConfig: TabConfiguration = {
   tabValue: 'SUSTENTACION',
+
+  // 🚀 Se registra la ruta de acción del botón principal para la navegación automática del contenedor
+  headerActionRoute: 'register_sustentation',
+
   columns: [
     { field: 'name', header: 'Detalle', type: 'text', width: '40%' },
     { field: 'date', header: 'Fecha Programada', type: 'text', width: '20%' },
@@ -99,7 +103,7 @@ export const SustentationTabConfig: TabConfiguration = {
     const buttons: TableButton[] = [];
     const thesis = context.thesisWork;
 
-    // Acceso directo y tipado gracias a la interfaz actualizada
+    // Acceso tipado nativo y limpio gracias al tipado de la interfaz unificada
     const { isConsejo, hasApprovedPazYSalvo, hasSustentationRegistered, isSustentationEvaluated } = context;
 
     if (isConsejo) {

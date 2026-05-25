@@ -1,4 +1,3 @@
-// tabs-logic/final-delivery.tab.ts
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
@@ -7,6 +6,10 @@ import { FinalDelivery } from '../../../interfaces/thesis-work.interface';
 
 export const FinalDeliveryTabConfig: TabConfiguration = {
   tabValue: 'FORMATO_E',
+
+  // 🚀 Se registra la ruta de acción del botón principal para la navegación automática del contenedor
+  headerActionRoute: 'register_final_delivery',
+
   columns: [
     { field: 'name', header: 'Nombre del Documento', type: 'text', width: '40%' },
     { field: 'uploadDate', header: 'Fecha de Carga', type: 'text', width: '20%' },
@@ -23,7 +26,7 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
 
-    // 🔍 Buscamos en el nuevo array de entregas
+    // 🔍 Buscamos en el array de entregas si existe una activa que no esté rechazada
     const hasFinalDelivery = thesis.finalDeliveries?.some(
       (delivery: FinalDelivery) => delivery.status !== stateList.NO_APROBADO
     ) ?? false;
@@ -40,13 +43,22 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
 
     return deliveries.map((delivery: FinalDelivery) => {
       const date = delivery.uploadDate;
-      const formattedDate = typeof date === 'string'
-        ? date
-        : date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
+
+      // 🚀 Manejo robusto y a prueba de fallos para el formateo de las fechas
+      let formattedDate = 'Sin fecha';
+      if (date) {
+        if (typeof date === 'string') {
+          formattedDate = date;
+        } else if (date instanceof Date && !isNaN(date.getTime())) {
+          formattedDate = date
+            .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            .replaceAll('/', ' - ');
+        }
+      }
 
       return {
         id: delivery.id, // ID del contenedor (FinalDelivery)
-        name: `Entrega Final - ${delivery.monograph.name}`,
+        name: `Entrega Final - ${delivery.monograph?.name || 'Documentación'}`,
         uploadDate: formattedDate,
         status: delivery.status || stateList.EN_REVISION,
         url: '',
@@ -57,7 +69,9 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
 
   getHeaderButtons: (context: ThesisEvaluationContext) => {
     const buttons: TableButton[] = [];
-    const hasFinalDelivery = context['hasFinalDelivery'] || false;
+
+    // 🚀 Limpieza del tipado dinámico consumiendo directamente la propiedad desde el contexto
+    const hasFinalDelivery = !!context['hasFinalDelivery'];
 
     // 🔒 Regla de negocio intacta: Solo Director o Administrador
     if (context.isDirector || context.isAdmin) {
@@ -71,6 +85,7 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
       }
 
       buttons.push({
+        action: 'register_final_delivery',
         label: buttonLabel,
         variant: 'primary',
         disabled: buttonDisabled

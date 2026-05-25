@@ -1,148 +1,200 @@
-<div class="space-y-4">
-  <div>
-    <span class="block text-sm font-semibold text-primary mb-1">Título</span>
-    <div class=" information-block w-full bg-[#F2F6FC] border border-[#E5E7EB] rounded px-4 py-2 text-[#777680] text-sm">
-      {{ thesisWork().preliminaryDraftData.proposalData.title }}
-    </div>
+<div class="pt-2 max-w-4xl mx-auto pb-10">
+
+  <div class="mb-4">
+    <button
+      type="button"
+      (click)="onGoBack.emit()"
+      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
+    >
+      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
+        arrow_back
+      </span>
+      <span class="return-arrow-option">Regresar</span>
+    </button>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <span class="block text-sm font-semibold text-primary mb-1">Modalidad del trabajo de grado</span>
-      <div class="information-block w-full bg-[#F2F6FC] border border-[#E5E7EB] rounded px-4 py-2 text-[#777680] text-sm">
-        {{ thesisWork().preliminaryDraftData.proposalData.modality }}
-      </div>
-    </div>
-    <div>
-      <span class="block text-sm font-semibold text-primary mb-1">Estudiante</span>
-      <div class="information-block w-full bg-[#F2F6FC] border border-[#E5E7EB] rounded px-4 py-2 text-[#777680] text-sm">
-        {{ getAuthors(thesisWork().preliminaryDraftData.proposalData.authors) }}
-      </div>
-    </div>
-  </div>
+  <section class="mb-8">
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <span class="block text-sm font-semibold text-primary mb-1">Director</span>
-      <div class="information-block w-full bg-[#F2F6FC] border border-[#E5E7EB] rounded px-4 py-2 text-[#777680] text-sm">
-        {{ getMemberName(thesisWork().preliminaryDraftData.proposalData.director.id) }}
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-1">
+        <span class="font-display font-semibold text-primary text-size-section">Título</span>
+        <input type="text" [value]="thesisWork().preliminaryDraftData.proposalData.title || ''" disabled
+               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
-    </div>
-    <div>
-      <span class="block text-sm font-semibold text-primary mb-1">Codirector</span>
-      <div class="information-block w-full bg-[#F2F6FC] border border-[#E5E7EB] rounded px-4 py-2 text-[#777680] text-sm">
-        {{ getMemberName(thesisWork().preliminaryDraftData.proposalData.codirector?.id) }}
-      </div>
-    </div>
-    <div>
-      <span class="block text-sm font-semibold text-primary mb-1">Asesor</span>
-      <div class="information-block w-full bg-[#F2F6FC] border border-[#E5E7EB] rounded px-4 py-2 text-[#777680] text-sm">
-        {{ getMemberName(thesisWork().preliminaryDraftData.proposalData.advisor?.id) }}
-      </div>
-    </div>
-    <div>
-      <span class="block text-sm font-semibold text-primary mb-1">Estado actual</span>
-      <div class="information-block w-full bg-[#F2F6FC] border border-[#E5E7EB] rounded px-4 py-2 text-[#777680] text-sm font-semibold">
-        {{ thesisWork().state }}
-      </div>
-    </div>
-  </div>
 
-  <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">Sustentación</h3>
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <span class="block text-sm font-semibold text-primary mb-1">Jurados</span>
-      <div class="information-block w-full bg-[#F2F6FC] border border-[#E5E7EB] rounded px-4 py-2 text-[#777680] text-sm">
-        @for (juror of thesisWork().sustentations?.[0]?.assignedJurors; track juror.id) {
-          <span>{{ getMemberName(juror.id) }}{{ $last ? '' : ' - ' }}</span>
-        } @empty {
-          <span>Sin jurados asignados</span>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex flex-col gap-1">
+          <span class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</span>
+          <input type="text" [value]="thesisWork().preliminaryDraftData.proposalData.modality || ''" disabled
+                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="font-display font-semibold text-primary text-size-section">Estudiante</span>
+          <input type="text" [value]="getStudentNames()" disabled
+                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="flex flex-col gap-1">
+          <span class="font-display font-semibold text-primary text-size-section">Director</span>
+          <input type="text" [value]="getDirectorName()" disabled
+                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+        </div>
+
+        @if (thesisWork().preliminaryDraftData.proposalData.codirector) {
+          <div class="flex flex-col gap-1">
+            <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
+            <input type="text" [value]="getCodirectorName()" disabled
+                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+          </div>
+        }
+
+        @if (thesisWork().preliminaryDraftData.proposalData.advisor) {
+          <div class="flex flex-col gap-1">
+            <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
+            <input type="text" [value]="getAdvisorName()" disabled
+                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+          </div>
         }
       </div>
-    </div>
-    <div>
-      <span class="block text-sm font-semibold text-primary mb-1">Fecha de sustentación</span>
-      <div class="information-block w-full bg-[#F2F6FC] border border-[#E5E7EB] rounded px-4 py-2 text-[#777680] text-sm">
-        {{ (thesisWork().sustentations?.[0]?.sustentationDate | date:'dd/MM/yyyy') || 'Pendiente' }}
+
+      <div class="flex flex-col gap-1">
+        <span class="font-display font-semibold text-primary text-size-section">Estado Actual</span>
+        <input type="text" [value]="thesisWork().state" disabled
+               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
       </div>
     </div>
-  </div>
+  </section>
 
-  <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">Archivos adjuntos cargados</h3>
+  <section class="mb-8">
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Detalles de Sustentación</h3>
 
-  <div class="space-y-4">
-    @if (formatoEDoc(); as docE) {
-      <div class="flex items-center justify-between border-b border-gray-200 pb-2">
-        <div class="flex items-center gap-3">
-          <span class="material-symbols-outlined text-[#DB141C]">picture_as_pdf</span>
-          <div class="flex flex-col">
-            <span class="text-sm font-bold text-primary">Formato de presentación (Formato_E)</span>
-            <span class="text-xs text-gray-500">{{ docE.name }} - Cargado en Entrega Final</span>
-          </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="flex flex-col gap-1">
+        <span class="font-display font-semibold text-primary text-size-section">Jurados Asignados</span>
+        <div class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full min-h-10 flex items-center gap-1">
+          @for (juror of thesisWork().sustentations?.[0]?.assignedJurors; track juror.id) {
+            <span>{{ getMemberName(juror.id) }}{{ $last ? '' : ' - ' }}</span>
+          } @empty {
+            <span class="italic text-gray-400">Sin jurados asignados</span>
+          }
         </div>
-        <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docE)"></app-button-component>
       </div>
-    }
 
-    @if (formatoFDoc(); as docF) {
-      <div class="flex items-center justify-between border-b border-gray-200 pb-2">
-        <div class="flex items-center gap-3">
-          <span class="material-symbols-outlined text-[#DB141C]">picture_as_pdf</span>
-          <div class="flex flex-col">
-            <span class="text-sm font-bold text-primary">Paz_y_salvo (Formato F)</span>
-            <span class="text-xs text-gray-500">{{ docF.name }} - Cargado por Facultad</span>
+      <div class="flex flex-col gap-1">
+        <span class="font-display font-semibold text-primary text-size-section">Fecha de Sustentación</span>
+        <input type="text" [value]="(thesisWork().sustentations?.[0]?.sustentationDate | date:'dd / MM / yyyy') || 'Pendiente'" disabled
+               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+      </div>
+    </div>
+  </section>
+
+  <hr class="border-gray-200 mb-8">
+
+  <section class="mb-8">
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Archivos adjuntos cargados</h3>
+
+    <div class="flex flex-col gap-4">
+      @if (formatoEDoc(); as docE) {
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-[#000066] rounded-xl shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-4xl text-[#DB141C]">picture_as_pdf</span>
+            <div class="flex flex-col">
+              <span class="text-sm font-bold text-primary">Formato de presentación (Formato_E)</span>
+              <span class="text-xs text-[#777680]">{{ docE.name }} • Cargado en Entrega Final</span>
+            </div>
           </div>
+          <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docE)"></app-button-component>
         </div>
-        <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docF)"></app-button-component>
-      </div>
-    }
+      }
 
-    @if (formatoGDoc(); as docG) {
-      <div class="flex items-center justify-between border-b border-gray-200 pb-2">
-        <div class="flex items-center gap-3">
-          <span class="material-symbols-outlined text-[#DB141C]">picture_as_pdf</span>
-          <div class="flex flex-col">
-            <span class="text-sm font-bold text-primary">Acta de Sustentación (Formato_G)</span>
-            <span class="text-xs text-gray-500">{{ docG.name }} - Calificación del Jurado</span>
+      @if (formatoFDoc(); as docF) {
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-[#000066] rounded-xl shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-4xl text-[#DB141C]">picture_as_pdf</span>
+            <div class="flex flex-col">
+              <span class="text-sm font-bold text-primary">Paz y Salvo (Formato F)</span>
+              <span class="text-xs text-[#777680]">{{ docF.name }} • Cargado por Facultad</span>
+            </div>
           </div>
+          <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docF)"></app-button-component>
         </div>
-        <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docG)"></app-button-component>
-      </div>
-    }
-  </div>
+      }
 
-  <h3 class="font-semibold text-size-header-title font-display text-primary mt-10 mb-4">Carga del Formato H</h3>
+      @if (formatoGDoc(); as docG) {
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-[#000066] rounded-xl shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-4xl text-[#DB141C]">picture_as_pdf</span>
+            <div class="flex flex-col">
+              <span class="text-sm font-bold text-primary">Acta de Sustentación (Formato_G)</span>
+              <span class="text-xs text-[#777680]">{{ docG.name }} • Calificación del Jurado</span>
+            </div>
+          </div>
+          <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docG)"></app-button-component>
+        </div>
+      }
+    </div>
+  </section>
 
-  <div class="p-6 bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg text-center">
-    @if (!selectedFile()) {
-      <p class="text-sm text-[#777680] mb-4">
-        No ha sido cargado ningún archivo. Para dar por terminado el proceso de trabajo de grado, cargue el formato de correspondencia definitivo.
-      </p>
-      <input type="file" id="correspondenceFileInput" class="hidden" accept=".pdf" (change)="onFileSelected($event)">
-      <div class="flex justify-center">
-        <app-button-component
-          label="Seleccionar Formato_H (PDF)"
-          variant="secondary"
-          (onClick)="triggerFileInput()">
-        </app-button-component>
-      </div>
-    } @else {
-      <div class="flex flex-col items-center gap-2">
-        <span class="material-symbols-outlined text-[#DB141C] text-4xl">task</span>
-        <span class="font-semibold text-primary">{{ selectedFile()?.fileName }}</span>
-        <button (click)="removeSelectedFile()" class="text-sm text-red-600 hover:underline mt-1">
-          Cambiar archivo seleccionado
-        </button>
-      </div>
-    }
-  </div>
+  <section>
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Carga del Formato H</h3>
 
-  <div class="flex justify-end mt-8">
-    <app-button-component
-      label="Registrar y Finalizar Proceso"
-      variant="primary"
-      [disabled]="!selectedFile() || isSubmitting()"
-      (onClick)="submitForm()">
-    </app-button-component>
-  </div>
+    <input type="file" id="correspondenceFileInput" class="hidden" accept=".pdf" (change)="onFileSelected($event)">
+
+    <div class="flex flex-col gap-4">
+
+      @if (!selectedFile()) {
+        <div class="p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-2">
+          No ha sido cargado ningún archivo. Para dar por terminado el proceso de trabajo de grado de manera formal, debe cargar el documento oficial de correspondencia o resolución de consejo (Formato_H).
+        </div>
+
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-dashed">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-4xl text-gray-400">picture_as_pdf</span>
+            <div class="flex flex-col">
+              <span class="text-sm font-bold text-gray-400">Documento de Correspondencia / Resolución</span>
+              <span class="text-xs text-[#777680]">Formato_H requerido (Obligatorio - PDF)</span>
+            </div>
+          </div>
+          <app-button-component
+            label="Cargar"
+            variant="secondary"
+            (onClick)="triggerFileInput()">
+          </app-button-component>
+        </div>
+      }
+
+      @else {
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-state-approved rounded-xl shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-4xl text-state-approved">task</span>
+            <div class="flex flex-col">
+              <span class="text-sm font-bold text-primary">{{ selectedFile()?.fileName }}</span>
+              <span class="text-xs text-state-approved font-medium">Archivo seleccionado correctamente para la resolución</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            (click)="removeSelectedFile()"
+            class="text-gray-400 hover:text-red-500 transition-colors flex items-center p-1"
+            title="Cambiar archivo seleccionado">
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        </div>
+      }
+
+    </div>
+
+    <div class="flex gap-4 justify-end mt-10">
+      <app-button-component
+        label="Registrar y Finalizar Proceso"
+        variant="primary"
+        [disabled]="!selectedFile() || isSubmitting()"
+        (onClick)="submitForm()">
+      </app-button-component>
+    </div>
+  </section>
+
 </div>

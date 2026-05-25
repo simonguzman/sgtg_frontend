@@ -5,6 +5,10 @@ import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interfac
 
 export const CorrespondenceTabConfig: TabConfiguration = {
   tabValue: 'CORRESPONDENCIA',
+
+  // 🚀 Se registra la ruta de acción del botón principal para la navegación automática del contenedor
+  headerActionRoute: 'register_correspondence',
+
   columns: [
     { field: 'name', header: 'Documento / Resolución Final', type: 'text', width: '50%' },
     { field: 'date', header: 'Fecha de Registro', type: 'text', width: '30%' },
@@ -12,7 +16,7 @@ export const CorrespondenceTabConfig: TabConfiguration = {
     {
       field: 'acciones', header: 'Acciones', type: 'actions', width: '20%',
       actions: [
-        { action: 'download', label: 'Descargar', icon: 'download', variant: 'primary', disabled: false }
+        { action: 'view-details', label: 'Ver detalles', icon: 'visibility', variant: 'primary', disabled: false },
       ]
     }
   ],
@@ -23,7 +27,7 @@ export const CorrespondenceTabConfig: TabConfiguration = {
 
     // 🔍 Única validación: ¿El jurado ya asentó la resolución/correspondencia?
     const hasCorrespondence = thesis.documents?.some(
-      (doc: Document) => doc.type === DocumentType['FORMATO_H']
+      (doc: Document) => doc.type === DocumentType.FORMATO_H
     ) ?? false;
 
     return {
@@ -37,7 +41,7 @@ export const CorrespondenceTabConfig: TabConfiguration = {
 
     // Filtrar únicamente los formatos de resolución correspondientes
     const correspondenceDocs = documents.filter(
-      (doc: Document) => doc.type === DocumentType['FORMATO_H']
+      (doc: Document) => doc.type === DocumentType.FORMATO_H
     );
 
     return correspondenceDocs.map(doc => ({
@@ -45,7 +49,7 @@ export const CorrespondenceTabConfig: TabConfiguration = {
       name: doc.name,
       date: doc.uploadDate || 'Sin fecha',
       status: doc.status || stateList.APROBADO,
-      allowedActions: ['download'],
+      allowedActions: ['view-details'],
       url: doc.url
     }));
   },
@@ -53,8 +57,8 @@ export const CorrespondenceTabConfig: TabConfiguration = {
   getHeaderButtons: (context: ThesisEvaluationContext) => {
     const buttons: TableButton[] = [];
 
-    // Extraemos isJuror en lugar de isDirector
-    const { isJuror, hasCorrespondence } = context as any;
+    // 🚀 Eliminamos el casteo "as any" ya que las propiedades existen de forma segura en ThesisEvaluationContext
+    const { isJuror, hasCorrespondence } = context;
 
     // 🧠 REGLA DE NEGOCIO CORREGIDA: Solo el Jurado ejecuta la acción
     if (isJuror) {
@@ -62,7 +66,7 @@ export const CorrespondenceTabConfig: TabConfiguration = {
         action: 'register_correspondence',
         label: hasCorrespondence ? 'Correspondencia Registrada' : 'Registrar Correspondencia',
         variant: 'primary',
-        disabled: hasCorrespondence // Se deshabilita si el registro ya fue completado
+        disabled: !!hasCorrespondence // Se deshabilita si el registro ya fue completado
       });
     }
 
@@ -71,8 +75,8 @@ export const CorrespondenceTabConfig: TabConfiguration = {
 
   modalConfig: {
     uploadDescription: 'Subir documento oficial de correspondencia o resolución de consejo.',
-    uploadedByText: 'Cargado por el Jurado evaluador', // Texto actualizado
+    uploadedByText: 'Cargado por el Jurado evaluador',
     confirmDescription: '¿Está seguro de que desea registrar este documento oficial de correspondencia?',
-    uploadDocumentType: DocumentType['FORMATO_H']
+    uploadDocumentType: DocumentType.FORMATO_H
   }
 };
