@@ -37,11 +37,9 @@ export class ThesisWorkSustentationService {
             day: '2-digit', month: '2-digit', year: 'numeric'
           }).replaceAll('/', ' - ');
 
-          // 1. Manejo seguro del archivo (soporta File nativo o el objeto emitido por tu modal)
           const uploadedFile = formData.formatEDocument;
           const fileName = uploadedFile?.name || uploadedFile?.fileName || 'Formato_E_Programacion.pdf';
 
-          // 2. Construcción del Documento
           const sustentationDoc: Document = {
             id: uploadedFile?.id || crypto.randomUUID(),
             name: fileName,
@@ -51,7 +49,6 @@ export class ThesisWorkSustentationService {
             status: stateList.EN_REVISION
           };
 
-          // 3. Construcción del Registro vinculando el Documento
           const sustentationRegistry: SustentationRegistry = {
             id: crypto.randomUUID(),
             sustentationDate: formData.sustentationDate ? new Date(formData.sustentationDate) : undefined,
@@ -62,7 +59,7 @@ export class ThesisWorkSustentationService {
               ...(juror2User ? [juror2User] : [])
             ],
             verdicts: [],
-            formatEDocument: sustentationDoc // <-- VINCULACIÓN DIRECTA
+            formatEDocument: sustentationDoc
           };
 
           return {

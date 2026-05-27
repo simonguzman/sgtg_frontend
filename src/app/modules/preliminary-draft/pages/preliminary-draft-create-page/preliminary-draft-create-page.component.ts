@@ -26,7 +26,6 @@ export class PreliminaryDraftCreatePageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly location = inject(Location);
 
-  // Signal para manejar el flujo de confirmación y estado de carga
   confirmState = signal({
     isOpen: false,
     pendingData: null as PreliminaryDraft | null,
@@ -44,7 +43,6 @@ export class PreliminaryDraftCreatePageComponent implements OnInit {
     }
   }
 
-  // Recibe los datos del FormComponent
   handleCreatePreliminaryDraft(preliminaryDraft: PreliminaryDraft): void {
     this.confirmState.set({
       isOpen: true,
@@ -81,8 +79,6 @@ export class PreliminaryDraftCreatePageComponent implements OnInit {
     this.confirmState.set({ isOpen: false, pendingData: null, isProcessing: false });
     this.router.navigate(['/preliminary-draft']);
   }
-
-  // --- MÉTODOS DE NOTIFICACIÓN ---
 
   private showSuccessNotification(): void {
     this.notificationService.show({

@@ -20,12 +20,9 @@ export class EvaluateSustentationPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
-  // 👈 Tipado estricto
   thesisWorkState = signal<ThesisWork | null>(null);
   isConfirmModalOpen = signal<boolean>(false);
   isSubmitting = signal<boolean>(false);
-
-  // 👈 Estructura mapeada sin any
   pendingData = signal<{ payload: SustentationEvaluationPayload; file: File } | null>(null);
 
   ngOnInit(): void {
@@ -46,7 +43,7 @@ export class EvaluateSustentationPageComponent implements OnInit {
 
   private loadThesisData(id: string): void {
     this.thesisWorkService.getThesisWorkByIdMock(id).subscribe({
-      next: (data: ThesisWork | undefined) => { // 👈 Soporte para undefined si el servicio falla internamente
+      next: (data: ThesisWork | undefined) => {
         if (data) this.thesisWorkState.set(data);
       },
       error: () => {
@@ -60,7 +57,6 @@ export class EvaluateSustentationPageComponent implements OnInit {
     });
   }
 
-  // 👈 Firma reemplazada
   handleSaveTriggered(data: { payload: SustentationEvaluationPayload; file: File }): void {
     this.pendingData.set(data);
     this.isConfirmModalOpen.set(true);

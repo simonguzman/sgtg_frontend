@@ -19,19 +19,14 @@ export class EvaluateSpecialRequestPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
-  // States
   thesisWorkState = signal<ThesisWork | null>(null);
   specialRequestState = signal<SpecialRequest | null>(null);
-
   isConfirmModalOpen = signal(false);
   isSubmitting = signal(false);
   pendingData = signal<{ status: any; resolutionDetails: string } | null>(null);
 
   ngOnInit() {
-    // 1. Capturamos el ID de la solicitud tal como se llama en el path (':requestId')
     const requestId = this.route.snapshot.paramMap.get('requestId');
-
-    // 2. Escalamos de forma segura para encontrar el parámetro ':id' del trabajo de grado
     let thesisId = this.route.snapshot.paramMap.get('id');
     let currentRoute = this.route.parent;
 
@@ -40,7 +35,6 @@ export class EvaluateSpecialRequestPageComponent implements OnInit {
       currentRoute = currentRoute.parent;
     }
 
-    // 3. Evaluamos usando las variables correctas
     if (thesisId && requestId) {
       this.loadData(thesisId, requestId);
     } else {
@@ -54,7 +48,6 @@ export class EvaluateSpecialRequestPageComponent implements OnInit {
       next: (data) => {
         if (data) {
           this.thesisWorkState.set(data);
-          // Encontramos la solicitud específica dentro del arreglo
           const request = data.specialRequests?.find((req: SpecialRequest) => req.id === reqId);
           if (request) {
             this.specialRequestState.set(request);

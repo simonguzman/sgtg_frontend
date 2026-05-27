@@ -8,10 +8,9 @@ import { FileUploadModalComponent } from "../../../../shared/components/modals/f
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { DatePipe } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
-import { SustentationRegistry, ThesisWork } from '../../interfaces/thesis-work.interface'; // 👈 Importaciones necesarias
-import { User } from '../../../users/interfaces/user.interface'; // 👈 Importación para tipar los jurados
+import { SustentationRegistry, ThesisWork } from '../../interfaces/thesis-work.interface';
+import { User } from '../../../users/interfaces/user.interface';
 
-// 👈 Definimos la interfaz del payload para reutilizarla
 export interface SustentationEvaluationPayload {
   veredict: stateList;
   observations: string;
@@ -28,37 +27,30 @@ export class EvaluateSustentationFormComponent {
   private readonly notificationService = inject(NotificationService);
   public readonly userService = inject(UserService);
 
-  // 👈 Tipado estricto
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
 
-  // 👈 Usamos la nueva interfaz
   @Output() onSave = new EventEmitter<{ payload: SustentationEvaluationPayload; file: File }>();
   @Output() onBack = new EventEmitter<void>();
   @Output() onDownloadFile = new EventEmitter<Document>();
 
-  // 📡 Signals de control de estado
   verdictSelected = signal<stateList | null>(null);
   observations = signal<string>('');
   uploadedFormat = signal<{ fileName: string; file: File } | null>(null);
-
   isModalOpen = signal<boolean>(false);
   isSubmitAttempted = signal<boolean>(false);
 
-  // Exponer el enum al template
   public get states(): typeof stateList {
     return stateList;
   }
 
-  // --- Getter de Sustentación Activa con Tipado ---
-  get currentSustentation(): SustentationRegistry | null { // 👈 Eliminado el any
+  get currentSustentation(): SustentationRegistry | null {
     return this.thesisWork?.sustentations?.[0] || null;
   }
 
-  // --- Getters de Información de Personal ---
   getStudentNames(): string {
     const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
-    return this.userService.getAuthorsNames(authors as User[]); // 👈 Casteo seguro según lo que espere el servicio
+    return this.userService.getAuthorsNames(authors as User[]);
   }
 
   getDirectorName(): string {
@@ -87,7 +79,6 @@ export class EvaluateSustentationFormComponent {
     return this.thesisWork?.documents?.find((doc: Document) => doc.type === type) || null;
   }
 
-  // --- Handlers ---
   handleFileUploaded(event: { fileName: string; file: File }): void {
     this.uploadedFormat.set(event);
     this.isModalOpen.set(false);

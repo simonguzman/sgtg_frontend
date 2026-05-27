@@ -27,10 +27,8 @@ export class PreliminaryDraftEditPageComponent implements OnInit {
   private readonly notificationService = inject(NotificationService);
   private readonly authService = inject(AuthService);
 
-  // Variable de estado principal renombrada para mayor claridad
   preliminaryDraftToEdit = signal<PreliminaryDraft | null>(null);
 
-  // Signal para manejar el flujo de confirmación (reemplaza el objeto plano)
   confirmState = signal({
     isOpen: false,
     pendingData: null as PreliminaryDraft | null,
@@ -116,8 +114,6 @@ export class PreliminaryDraftEditPageComponent implements OnInit {
     this.showNotFoundNotification();
     this.router.navigate(['/preliminary-draft']);
   }
-
-  // --- MÉTODOS DE NOTIFICACIÓN ---
 
   private showUpdateInfoNotification() {
     this.notificationService.show({

@@ -25,15 +25,12 @@ export class UploadFinalDeliveryPageComponent implements OnInit {
   pendingFilesData = signal<{ monograph: File, formatE: File, annexes?: File } | null>(null);
 
   ngOnInit() {
-    // 🔍 Búsqueda recursiva segura del ID en la jerarquía de rutas
     let currentRoute: ActivatedRoute | null = this.route;
     let id: string | null = null;
-
     while (currentRoute && !id) {
       id = currentRoute.snapshot.paramMap.get('id');
       currentRoute = currentRoute.parent;
     }
-
     if (id) {
       this.loadData(id);
     } else {
@@ -68,13 +65,9 @@ export class UploadFinalDeliveryPageComponent implements OnInit {
   processFinalDelivery() {
     const files = this.pendingFilesData();
     const thesisId = this.thesisWorkState()?.thesisWorkId;
-
     if (!files || !thesisId) return;
-
     this.isSubmitting.set(true);
     this.isConfirmModalOpen.set(false);
-
-    // ⚡ Consumo del nuevo método reactivo del servicio
     this.thesisWorkService.uploadFinalDeliveryMock(thesisId, files.monograph, files.formatE, files.annexes).subscribe({
       next: () => {
         this.notification.show({

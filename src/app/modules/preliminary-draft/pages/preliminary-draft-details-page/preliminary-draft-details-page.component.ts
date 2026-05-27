@@ -25,9 +25,8 @@ export class PreliminaryDraftDetailsPageComponent implements OnInit {
   private readonly notificationService = inject(NotificationService);
   private readonly downloadService = inject(FileDownloadService);
 
-  // Variable de estado renombrada para mayor claridad
   preliminayDraftDetails = signal<PreliminaryDraft | null>(null);
-  // Selector reactivo para el documento principal
+
   mainDocument = computed(() => {
     const currentDraft = this.preliminayDraftDetails();
     if (!currentDraft) return null;
@@ -79,8 +78,6 @@ export class PreliminaryDraftDetailsPageComponent implements OnInit {
     this.downloadService.download(targetDocument.url, targetDocument.name);
     this.showDownloadFileSuccessNotification();
   }
-
-  // --- MÉTODOS DE NOTIFICACIÓN (MANTENIENDO NOMBRES) ---
 
   private showDownloadFileSuccessNotification(): void {
     this.notificationService.show({

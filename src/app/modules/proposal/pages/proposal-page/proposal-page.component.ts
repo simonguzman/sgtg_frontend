@@ -93,7 +93,6 @@ export class ProposalPageComponent implements OnInit {
   }
 
   handleTableAction(event: { action: string, row: any }): void {
-    // Validamos que la acción esté permitida para esta fila (doble check de seguridad)
     if (event.row.allowedActions && !event.row.allowedActions.includes(event.action)) {
       this.showRestrictedAccessNotification();
       return;

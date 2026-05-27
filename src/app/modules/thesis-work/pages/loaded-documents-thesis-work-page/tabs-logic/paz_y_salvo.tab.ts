@@ -7,7 +7,6 @@ import { FinalDelivery } from '../../../interfaces/thesis-work.interface';
 export const PazYSalvoTabConfig: TabConfiguration = {
   tabValue: 'PAZ_Y_SALVO',
 
-  // 🚀 Se registra la ruta de acción del botón principal para la navegación automática del contenedor
   headerActionRoute: 'register_paz_y_salvo',
 
   columns: [
@@ -26,12 +25,10 @@ export const PazYSalvoTabConfig: TabConfiguration = {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
 
-    // 🔍 1. ¿Hay una Entrega Final ACTIVA?
     const hasActiveFinalDelivery = thesis.finalDeliveries?.some(
       (delivery: FinalDelivery) => delivery.status !== stateList.NO_APROBADO
     ) ?? false;
 
-    // 🔍 2. ¿Ya se registró un Paz y Salvo (aprobado)?
     const hasApprovedPazYSalvo = thesis.pazYSalvos?.some(
       (pys) => pys.document.status === stateList.APROBADO
     ) ?? false;
@@ -45,11 +42,8 @@ export const PazYSalvoTabConfig: TabConfiguration = {
 
   getTableData: (documents: Document[], context: ThesisEvaluationContext) => {
     const pySDocs = documents.filter(doc => doc.type === DocumentType['PAZ_Y_SALVO']);
-
     return pySDocs.map((doc: Document) => {
-      // 🚀 Manejo robusto y a prueba de fallos para el formateo de las fechas
       let formattedDate = 'Sin fecha';
-
       if (doc.uploadDate) {
         if (typeof doc.uploadDate === 'string') {
           formattedDate = doc.uploadDate;
@@ -73,14 +67,10 @@ export const PazYSalvoTabConfig: TabConfiguration = {
 
   getHeaderButtons: (context: ThesisEvaluationContext) => {
     const buttons: TableButton[] = [];
-
     if (context.isDecanatura || context.isAdmin) {
-      // 🚀 Eliminamos por completo el casteo inseguro 'as any'
       const { hasActiveFinalDelivery, hasApprovedPazYSalvo } = context;
-
       let buttonLabel = 'Registrar Paz y Salvo';
       let buttonDisabled = false;
-
       if (hasApprovedPazYSalvo) {
         buttonLabel = 'Paz y Salvo Registrado';
         buttonDisabled = true;
@@ -88,7 +78,6 @@ export const PazYSalvoTabConfig: TabConfiguration = {
         buttonLabel = 'Requiere Entrega Final';
         buttonDisabled = true;
       }
-
       buttons.push({
         action: 'register_paz_y_salvo',
         label: buttonLabel,
@@ -96,7 +85,6 @@ export const PazYSalvoTabConfig: TabConfiguration = {
         disabled: buttonDisabled
       });
     }
-
     return buttons;
   },
 

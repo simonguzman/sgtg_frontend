@@ -7,6 +7,7 @@ import { PreliminaryDraftService } from '../../preliminary-draft/services/prelim
 import { stateList } from '../../../core/enums/state.enum';
 import { UserRoleType } from '../../../core/models/user-role';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
+import { User } from '../../users/interfaces/user.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -15,10 +16,8 @@ export class ThesisWorkStorageService {
   private readonly authService = inject(AuthService);
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
 
-  // 📌 Única señal con el estado global en memoria
   private readonly _thesisWorksList = signal<ThesisWork[]>(this.initializeThesisWorks());
 
-  // 🔍 Selector reactivo con filtros de seguridad por rol
   public thesisWorks = computed(() => {
     const currentUser = this.authService.currentUser();
     const allWorks = this._thesisWorksList();
@@ -36,10 +35,38 @@ export class ThesisWorkStorageService {
   });
 
   constructor() {
-    // Sincronización automática con LocalStorage
     effect(() => {
       localStorage.setItem('thesisWorks', JSON.stringify(this._thesisWorksList()));
     });
+    effect(() => {
+      const approvedDrafts = this.preliminaryDraftService.preliminaryDrafts()
+        .filter(draft => draft.state === stateList.APROBADO);
+      this._thesisWorksList.update(currentWorks => {
+        let hasChanges = false;
+        const updatedWorks = [...currentWorks];
+
+        approvedDrafts.forEach(draft => {
+          const exists = updatedWorks.some(w => w.preliminaryDraftId === draft.preliminaryDraftId);
+
+          if (!exists) {
+            updatedWorks.push({
+              thesisWorkId: crypto.randomUUID(),
+              preliminaryDraftId: draft.preliminaryDraftId!,
+              preliminaryDraftData: draft,
+              documents: [],
+              advances: [],
+              evaluations: [],
+              sustentations: [],
+              specialRequests: [],
+              state: stateList.EN_DESARROLLO,
+              createdDate: new Date()
+            });
+            hasChanges = true;
+          }
+        });
+        return hasChanges ? updatedWorks : currentWorks;
+      });
+    }, { allowSignalWrites: true });
   }
 
   /**
@@ -63,23 +90,7 @@ export class ThesisWorkStorageService {
 
   private initializeThesisWorks(): ThesisWork[] {
     const stored = localStorage.getItem('thesisWorks');
-    if (stored) return JSON.parse(stored);
-
-    const approvedDrafts = this.preliminaryDraftService.preliminaryDrafts()
-      .filter(draft => draft.state === stateList.APROBADO);
-
-    return approvedDrafts.map(draft => ({
-      thesisWorkId: crypto.randomUUID(),
-      preliminaryDraftId: draft.preliminaryDraftId!,
-      preliminaryDraftData: draft,
-      documents: [],
-      advances: [],
-      evaluations: [],
-      sustentations: [],
-      specialRequests: [],
-      state: stateList.EN_DESARROLLO,
-      createdDate: new Date()
-    }));
+    return stored ? JSON.parse(stored) : [];
   }
 
   private canUserAccessThesisWork(work: ThesisWork, userId: string): boolean {
@@ -88,7 +99,7 @@ export class ThesisWorkStorageService {
     const isCodirector = proposal.codirector?.id === userId;
     const isAdvisor = proposal.advisor?.id === userId;
     const isAuthor = proposal.authors?.some(author =>
-      typeof author === 'string' ? author === userId : (author as any)?.id === userId
+      typeof author === 'string' ? author === userId : (author as User)?.id === userId
     ) ?? false;
 
     const isJuror = work.sustentations?.some(s =>

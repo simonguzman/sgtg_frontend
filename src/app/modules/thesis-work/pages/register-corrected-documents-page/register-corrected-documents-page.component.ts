@@ -28,13 +28,10 @@ private readonly thesisWorkService = inject(ThesisWorkService);
   ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
     let id: string | null = null;
-
-    // Búsqueda recursiva asegurando tipado estricto
     while (currentRoute && !id) {
       id = currentRoute.snapshot.paramMap.get('id');
       currentRoute = currentRoute.parent;
     }
-
     if (id) {
       this.loadData(id);
     } else {
@@ -93,7 +90,6 @@ private readonly thesisWorkService = inject(ThesisWorkService);
   }
 
   goBack() {
-    // Al estar hermanos con details, subimos un nivel para volver a la tabla/detalles
     this.router.navigate(['../'], { relativeTo: this.route });
   }
 }

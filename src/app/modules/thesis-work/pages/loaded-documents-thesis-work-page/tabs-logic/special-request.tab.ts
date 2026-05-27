@@ -7,7 +7,6 @@ import { stateList } from '../../../../../core/enums/state.enum';
 export const SpecialRequestTabConfig: TabConfiguration = {
   tabValue: 'SOLICITUDES',
 
-  // 🚀 Se registra la ruta de acción del botón principal para la navegación automática del contenedor
   headerActionRoute: 'register-special-request',
 
   columns: [
@@ -31,14 +30,9 @@ export const SpecialRequestTabConfig: TabConfiguration = {
   enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
-
-    // 🔍 Determinar si la sustentación ya cerró su ciclo definitivo
     const verdictsList: JurorVerdict[] = thesis.sustentations?.[0]?.verdicts || [];
     const isSustentationEvaluated = verdictsList.length > 0;
-
     const lastVerdict = isSustentationEvaluated ? verdictsList[verdictsList.length - 1].veredict : null;
-
-    // Se considera finalizada si ya se evaluó Y el veredicto no quedó en "APLAZADO"
     const isSustentationFinalized = isSustentationEvaluated && lastVerdict !== stateList.APLAZADO;
 
     return {
@@ -50,8 +44,6 @@ export const SpecialRequestTabConfig: TabConfiguration = {
   getTableData: (documents: Document[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
     const thesis = context.thesisWork;
     if (!thesis || !thesis.specialRequests) return [];
-
-    // 🚀 Acceso directo y nativo desde las propiedades tipadas del contexto
     const isConsejo = !!context.isConsejo;
 
     return thesis.specialRequests.map((req: SpecialRequest) => {
@@ -74,8 +66,6 @@ export const SpecialRequestTabConfig: TabConfiguration = {
 
   getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
     const buttons: TableButton[] = [];
-
-    // 🚀 Limpieza exhaustiva de los casteos por corchetes string inline
     const isDirector = !!context.isDirector;
     const isAdmin = !!context.isAdmin;
     const isSustentationFinalized = !!context['isSustentationFinalized'];
@@ -95,7 +85,6 @@ export const SpecialRequestTabConfig: TabConfiguration = {
     uploadDescription: '',
     uploadedByText: '',
     confirmDescription: '',
-    // Se mantiene el bypass limpio por si la pestaña no requiere un archivo PDF inicializable
     uploadDocumentType: 'Solicitud' as unknown as DocumentType
   }
 };

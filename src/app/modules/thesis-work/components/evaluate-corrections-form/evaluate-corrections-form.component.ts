@@ -2,21 +2,18 @@ import { Component, EventEmitter, inject, Input, computed, Output, signal } from
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
-// Servicios
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { UserService } from '../../../users/services/user.service';
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 
-// Interfaces y Enums
 import { ThesisWork, CorrectedDelivery } from '../../interfaces/thesis-work.interface';
 import { Document } from '../../../../core/interfaces/Document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
-import { User } from '../../../users/interfaces/user.interface'; // 👈 Importación agregada
+import { User } from '../../../users/interfaces/user.interface';
 
-// Componentes Reutilizables de la aplicación
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 
@@ -39,12 +36,9 @@ export class EvaluateCorrectionsFormComponent {
   @Output() onSubmitEvaluation = new EventEmitter<{ evaluation: Omit<Evaluation, 'id' | 'date'>, file: File }>();
   @Output() onGoBack = new EventEmitter<void>();
 
-  // Estados reactivos del formulario
   selectedVerdict = signal<stateList | null>(null);
   observations = signal<string>('');
   uploadedFormatG = signal<{ fileName: string; file: File } | null>(null);
-
-  // Estados visuales de interacción
   isModalOpen = signal<boolean>(false);
   isSubmitAttempted = signal<boolean>(false);
 
@@ -59,13 +53,11 @@ export class EvaluateCorrectionsFormComponent {
     { value: stateList.APLAZADO, label: 'Aplazado' }
   ];
 
-  // 📦 Se obtiene la lista estructurada de entregas unificadas
   correctedDeliveriesList = computed<CorrectedDelivery[]>(() => {
     if (!this.thesisWork || !this.thesisWork.correctedDeliveries) return [];
     return this.thesisWork.correctedDeliveries;
   });
 
-  // --- Getters de Información de Personal ---
   getStudentNames(): string {
     const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
     return this.userService.getAuthorsNames(authors);
@@ -89,7 +81,6 @@ export class EvaluateCorrectionsFormComponent {
   getAssignedJurors(): string {
     const jurors = this.thesisWork?.sustentations?.[0]?.assignedJurors || [];
     if (jurors.length === 0) return 'No asignados';
-    // 👈 Cambiado (j: any) por su respectivo tipado estricto (j: User)
     return jurors.map((j: User) => this.userService.getUserFullName(j.id)).join(' y ');
   }
 
@@ -135,7 +126,6 @@ export class EvaluateCorrectionsFormComponent {
       return;
     }
 
-    // Se extrae el ID de la monografía del paquete de entrega más reciente [0]
     const currentDelivery = this.correctedDeliveriesList()[0];
     const targetDocumentId = currentDelivery?.monograph?.id || '';
 

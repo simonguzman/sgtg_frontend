@@ -26,14 +26,11 @@ export class EvaluateAdvancePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
-  // Mantenemos la referencia al Trabajo de Grado completo
   thesisWorkState = signal<ThesisWork | null>(null);
   advanceId = signal<string | null>(null);
-
   isConfirmModalOpen = signal(false);
   pendingReviewData = signal<SubmitAdvanceEvaluationPayload | null>(null);
 
-  // Extraemos dinámicamente el avance específico usando tus interfaces nativas
   currentAdvance = computed<Advance | null>(() => {
     const work = this.thesisWorkState();
     const advId = this.advanceId();
@@ -42,16 +39,13 @@ export class EvaluateAdvancePageComponent implements OnInit {
   });
 
   ngOnInit() {
-    // 🔍 BÚSQUEDA PROFUNDA: Subimos por el árbol de rutas hasta encontrar el 'id' del proyecto
     let currentRoute: ActivatedRoute | null = this.route;
     let thesisId: string | null = null;
-
     while (currentRoute && !thesisId) {
       thesisId = currentRoute.snapshot.paramMap.get('id');
       currentRoute = currentRoute.parent;
     }
 
-    // Extraemos el ID del avance
     const advId = this.route.snapshot.paramMap.get('advanceId');
 
     if (thesisId && advId) {
@@ -88,7 +82,6 @@ export class EvaluateAdvancePageComponent implements OnInit {
   }
 
   navigateBack() {
-    // Sube dos niveles para salir de /:advanceId y /evaluate_advance regresando a /loaded_documents
     this.router.navigate(['../../'], { relativeTo: this.route });
   }
 
@@ -110,7 +103,6 @@ export class EvaluateAdvancePageComponent implements OnInit {
 
     const isApproved = data.formValues.result === AdvanceEvaluationResult.EVALUADO;
 
-    // Construimos la evaluación apuntando al id del avance (documentId)
     const evaluation: Evaluation = {
       id: crypto.randomUUID(),
       proposalId: work.preliminaryDraftData.proposalId,

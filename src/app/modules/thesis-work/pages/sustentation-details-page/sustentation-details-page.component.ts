@@ -29,7 +29,6 @@ export class SustentationDetailsPageComponent implements OnInit {
   thesisWorkDetails = signal<ThesisWork | null>(null);
   sustentationId = signal<string | null>(null);
 
-  // Computado: Filtra la sustentación específica por su ID
   selectedSustentation = computed<SustentationRegistry | null>(() => {
     const work = this.thesisWorkDetails();
     const id = this.sustentationId();
@@ -37,7 +36,6 @@ export class SustentationDetailsPageComponent implements OnInit {
     return work.sustentations.find(s => s.id === id) || null;
   });
 
-  // Computado: Último veredicto de la sustentación seleccionada
   latestVeredict = computed<JurorVerdict | null>(() => {
     const sustentation = this.selectedSustentation();
     if (!sustentation || !sustentation.verdicts) return null;
@@ -52,23 +50,18 @@ export class SustentationDetailsPageComponent implements OnInit {
   actaDocument = computed<Document | null>(() => {
     const work = this.thesisWorkDetails();
     if (!work || !work.documents) return null;
-    // 👈 Cambiado a notación de punto para el Enum
     return work.documents.find(doc => doc.type === DocumentType.FORMATO_G) || null;
   });
 
   ngOnInit(): void {
     const sId = this.route.snapshot.paramMap.get('id');
     this.sustentationId.set(sId);
-
     const thesisWorkId = this.route.parent?.snapshot.paramMap.get('id');
-
     if (!thesisWorkId) {
       this.handleNavigationError();
       return;
     }
-
     this.thesisWorkService.getThesisWorkByIdMock(thesisWorkId).subscribe({
-      // 👈 Tipado explícito de la respuesta del servicio
       next: (foundData: ThesisWork | undefined) => {
         if (foundData) {
           this.thesisWorkDetails.set(foundData);
@@ -85,24 +78,18 @@ export class SustentationDetailsPageComponent implements OnInit {
   }
 
   getMemberName(userId: string | undefined): string {
-    // 👈 Type guard defensivo para evitar enviar undefined al servicio
     if (!userId) return 'No asignado';
     return this.userService.getUserFullName(userId);
   }
 
   getAuthors(authors: User[] | undefined): string {
-    // 👈 Asumimos que getAuthorsNames maneja internamente el mapeo o casteo si es necesario
     return this.userService.getAuthorsNames(authors as any) || 'No asignados';
-    // Nota: Si 'getAuthorsNames' espera un arreglo de IDs (string[]), usa (authors as unknown as string[])
-    // Si espera User[], simplemente quita el 'as any'.
   }
 
   getAssignedJurors(): string {
     const sustentation = this.selectedSustentation();
     const jurors = sustentation?.assignedJurors || [];
     if (jurors.length === 0) return 'No asignados';
-
-    // 👈 ¡Adiós al any! Iteramos estrictamente sobre la interfaz User
     return jurors.map((j: User) => this.userService.getUserFullName(j.id)).join(' y ');
   }
 

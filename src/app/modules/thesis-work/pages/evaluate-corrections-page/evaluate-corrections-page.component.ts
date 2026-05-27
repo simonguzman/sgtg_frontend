@@ -1,15 +1,12 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
-// Servicios
 import { ThesisWorkService } from '../../services/thesis-work.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 
-// Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 
-// Componentes dependientes
 import { EvaluateCorrectionsFormComponent } from '../../components/evaluate-corrections-form/evaluate-corrections-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
@@ -27,19 +24,15 @@ export class EvaluateCorrectionsPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
-  // Estados del contenedor padre
   thesisWorkState = signal<ThesisWork | null>(null);
   isConfirmModalOpen = signal(false);
   isSubmitting = signal(false);
-
-  // Estructura de almacenamiento temporal del payload usando tu interfaz original
   pendingEvaluationData = signal<{ evaluation: Omit<Evaluation, 'id' | 'date'>, file: File } | null>(null);
 
   ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
     let id: string | null = null;
 
-    // Estrategia de búsqueda recursiva en el árbol de rutas activas para capturar el ID
     while (currentRoute && !id) {
       id = currentRoute.snapshot.paramMap.get('id');
       currentRoute = currentRoute.parent;
@@ -88,7 +81,6 @@ export class EvaluateCorrectionsPageComponent implements OnInit {
     this.isSubmitting.set(true);
     this.isConfirmModalOpen.set(false);
 
-    // Despachamos los parámetros tipados al servicio unificado
     this.thesisWorkService.evaluateCorrectedDocumentsMock(thesisId, data.evaluation, data.file).subscribe({
       next: () => {
         this.notification.show({

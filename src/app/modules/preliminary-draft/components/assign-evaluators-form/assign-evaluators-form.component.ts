@@ -3,18 +3,15 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-// Interfaces y Modelos
 import { User } from '../../../users/interfaces/user.interface';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { UserRoleType } from '../../../../core/models/user-role';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 
-// Servicios
 import { UserService } from '../../../users/services/user.service';
 import { PreliminaryDraftService } from '../../services/preliminary-draft.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 
-// Componentes compartidos
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 
 @Component({
@@ -30,18 +27,16 @@ export class AssignEvaluatorsFormComponent implements OnInit {
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
   private readonly notificationService = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
-  // Inputs y Outputs
+
   preliminaryDraft = input.required<PreliminaryDraft>();
   @Output() onSave = new EventEmitter<{ ev1: string, ev2: string }>();
-  // Estado reactivo para el filtrado
+
   private readonly firstEvaluatorSelectedId = signal<string>('');
 
   readonly form = this.fb.group({
     evaluator1: ['', Validators.required],
     evaluator2: ['', Validators.required]
   });
-
-  // --- Lógica de Filtrado (Tu lógica original preservada) ---
 
   availableEvaluators = computed(() => {
     const allUsers = this.userService.users();
@@ -88,8 +83,6 @@ export class AssignEvaluatorsFormComponent implements OnInit {
       });
   }
 
-  // --- Helpers Semánticos ---
-
   getMemberFullName(user: User | undefined): string {
     if (!user) return 'No asignado';
     return [user.firstName, user.secondName, user.lastName, user.secondLastName]
@@ -106,8 +99,6 @@ export class AssignEvaluatorsFormComponent implements OnInit {
     return !!(control?.invalid && control?.touched);
   }
 
-  // --- Acciones ---
-
   submit(): void {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
@@ -119,7 +110,6 @@ export class AssignEvaluatorsFormComponent implements OnInit {
       return;
     }
     const { evaluator1, evaluator2 } = this.form.value;
-    // Validación de reglas de negocio del servicio
     const validationError = this.preliminaryDraftService.validateReviewersRules(
       this.preliminaryDraft().proposalData,
       evaluator1!,
@@ -133,7 +123,6 @@ export class AssignEvaluatorsFormComponent implements OnInit {
       });
       return;
     }
-    // Éxito: Emitir datos tal cual los espera el padre
     this.onSave.emit({ ev1: evaluator1!, ev2: evaluator2! });
 
     this.notificationService.show({

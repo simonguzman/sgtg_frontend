@@ -32,31 +32,27 @@ export class PreliminaryDraftFormComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
   private readonly destroyRef = inject(DestroyRef);
-  // Inputs y Outputs
+
   preliminaryDraft = input<PreliminaryDraft | null>(null);
   @Output() onSave = new EventEmitter<PreliminaryDraft>();
-  // Formulario reactivo
+
   readonly form = this.fb.group({
     proposalId: ['', Validators.required],
     title: ['', Validators.required],
     description: ['', Validators.required],
     document: [null as any, Validators.required]
   });
-  // Estados gestionados con Signals
+
   attachmentState = signal({ hasFile: false, name: null as string | null });
   isUploadModalOpen = signal(false);
   selectedProposalId = signal<string>('');
 
-  /**
-   * Filtra las propuestas disponibles (Aprobadas, donde el usuario es director y no están registradas)
-   */
   protected availableProposals = computed(() => {
     const allProposals = this.proposalService.proposals();
     const currentUser = this.authService.currentUser();
     const existingPreliminaryDrafts = this.preliminaryDraftService.preliminaryDrafts();
     const activePrelimminaryDraft = this.preliminaryDraft();
     return allProposals.filter(proposal => {
-      // Si estamos editando, incluimos la propuesta actual
       if (activePrelimminaryDraft && proposal.id === activePrelimminaryDraft.proposalId) return true;
       const isApproved =
         proposal.state === stateList.APROBADO ||
@@ -72,9 +68,6 @@ export class PreliminaryDraftFormComponent implements OnInit {
     return this.availableProposals().find(proposal => proposal.id === id) || null;
   });
 
-  /**
-   * Obtiene el nombre del documento de evaluación firmado de la propuesta seleccionada
-   */
   protected proposalEvaluationDocument = computed(() => {
     const proposal = this.selectedProposal();
     if (!proposal?.evaluations?.length) return null;
@@ -94,7 +87,6 @@ export class PreliminaryDraftFormComponent implements OnInit {
     } else {
       this.initCreateMode();
     }
-    // Sincronización del ID seleccionado con el Signal
     this.form.get('proposalId')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(id => this.selectedProposalId.set(id ?? ''));
@@ -117,7 +109,6 @@ export class PreliminaryDraftFormComponent implements OnInit {
   }
 
   private initCreateMode(): void {
-    // En creación, estos campos suelen heredarse de la propuesta seleccionada
     this.form.get('title')?.disable();
     this.form.get('description')?.disable();
   }
@@ -131,9 +122,6 @@ export class PreliminaryDraftFormComponent implements OnInit {
     return !!(control?.invalid && control?.touched);
   }
 
-  /**
-   * Resuelve el nombre completo de un usuario
-   */
   getMemberName(user: User | undefined): string {
     if (!user) return 'No asignado';
     return [user.firstName, user.secondName, user.lastName, user.secondLastName]
@@ -202,7 +190,6 @@ export class PreliminaryDraftFormComponent implements OnInit {
     const preliminaryDraft = this.preliminaryDraft();
     const existingDocument = preliminaryDraft?.documents.find(document => document.type === 'Anteproyecto');
     const currentAttachment = this.attachmentState();
-    // Si el archivo adjunto es el mismo que ya existía (en edición), devolvemos el original
     if (currentAttachment.hasFile && currentAttachment.name === existingDocument?.name) {
       return existingDocument;
     }

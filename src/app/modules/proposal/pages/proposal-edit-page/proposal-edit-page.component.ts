@@ -21,13 +21,12 @@ export class ProposalEditPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
-  private readonly proposalService = inject(ProposalService);     // ← minúscula
+  private readonly proposalService = inject(ProposalService);
   private readonly notificationService = inject(NotificationService);
   private readonly authService = inject(AuthService);
 
   proposalToEdit = signal<Proposal | null>(null);
 
-  // Estado del flujo de confirmación agrupado
   confirmState = {
     show:        false,
     pendingData: null as Proposal | null

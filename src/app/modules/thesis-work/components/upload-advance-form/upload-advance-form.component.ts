@@ -23,7 +23,6 @@ export class UploadAdvanceFormComponent {
   @Output() onSaveAdvance = new EventEmitter<UploadAdvancePayload>();
   @Output() onGoBack = new EventEmitter<void>();
 
-  // Signal para manejar múltiples archivos
   uploadedFiles = signal<{ fileName: string; file: File }[]>([]);
   isUploadModalOpen = signal(false);
 
@@ -33,7 +32,6 @@ export class UploadAdvanceFormComponent {
   });
 
   handleFileUploaded(event: { fileName: string; file: File }): void {
-    // Agregamos el nuevo archivo al arreglo existente
     this.uploadedFiles.update(files => [...files, event]);
     this.isUploadModalOpen.set(false);
   }

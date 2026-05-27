@@ -23,7 +23,6 @@ export class EvaluateSpecialRequestFormComponent {
   @Output() onSave = new EventEmitter<{ status: stateList; resolutionDetails: string }>();
   @Output() onBack = new EventEmitter<void>();
 
-  // Signals de control de estado
   verdictSelected = signal<stateList | null>(null);
   observations = signal<string>('');
   isSubmitAttempted = signal(false);
@@ -32,7 +31,6 @@ export class EvaluateSpecialRequestFormComponent {
     return stateList;
   }
 
-  // --- Getters de Información de Personal ---
   getStudentNames(): string {
     const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
     return this.userService.getAuthorsNames(authors);
@@ -54,11 +52,9 @@ export class EvaluateSpecialRequestFormComponent {
   }
 
   getRequestType(): string {
-    // Si extendiste la interfaz para incluir requestType:
     return (this.specialRequest as any).requestType || 'Prórroga';
   }
 
-  // --- Handlers ---
   submit(): void {
     this.isSubmitAttempted.set(true);
 

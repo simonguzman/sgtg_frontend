@@ -12,7 +12,6 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { UserRoleType } from '../../../../core/models/user-role';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-// Definimos la interfaz exacta del payload del formulario para eliminar el any del Output
 export interface SustentationFormPayload {
   sustentationDate: string | Date;
   location: string;
@@ -39,15 +38,12 @@ export class RegisterSustentationFormComponent implements OnInit {
   private readonly notificationService = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
 
-  // Inputs y Outputs estrictos
   thesisWork = input.required<ThesisWork>();
   isSubmitting = input<boolean>(false);
 
-  // 👈 Tipado estricto para el evento de guardado
   @Output() onSave = new EventEmitter<{ payload: SustentationFormPayload; file: File }>();
   @Output() onBack = new EventEmitter<void>();
 
-  // Estados del componente
   private readonly firstJurorSelectedId = signal<string>('');
   isModalOpen = signal<boolean>(false);
   uploadedFormatE = signal<{ fileName: string; file: File } | null>(null); // 👈 Tipado correcto de la carga de archivos
@@ -58,7 +54,6 @@ export class RegisterSustentationFormComponent implements OnInit {
     return fileData ? fileData.fileName : 'Formato_E - Sustentación';
   });
 
-  // Formulario reactivo
   readonly form = this.fb.group({
     sustentationDate: ['', Validators.required],
     location: ['', Validators.required],
@@ -66,7 +61,6 @@ export class RegisterSustentationFormComponent implements OnInit {
     juror2: ['', Validators.required]
   });
 
-  // --- Lógica de Filtrado de Jurados ---
   availableJurors = computed<User[]>(() => {
     const allUsers = this.userService.users();
     const currentWork = this.thesisWork();
@@ -80,7 +74,6 @@ export class RegisterSustentationFormComponent implements OnInit {
     if (data.advisor?.id) forbiddenIds.add(data.advisor.id);
 
     data.authors?.forEach(auth => {
-      // 👈 Type guard seguro para evitar usar (auth as any)
       const id = typeof auth === 'string' ? auth : (auth as User)?.id;
       if (id) forbiddenIds.add(id);
     });
@@ -118,7 +111,6 @@ export class RegisterSustentationFormComponent implements OnInit {
       });
   }
 
-  // --- Helpers Semánticos ---
   getMemberFullName(user: User | undefined): string {
     if (!user) return 'No asignado';
     return [user.firstName, user.secondName, user.lastName, user.secondLastName]
@@ -135,13 +127,11 @@ export class RegisterSustentationFormComponent implements OnInit {
     return !!(this.isSubmitAttempted() && control?.invalid) || !!(control?.invalid && control?.touched);
   }
 
-  // --- Acciones de Archivos ---
   handleFileUploaded(event: { fileName: string; file: File }): void { // 👈 Corregido la firma del evento
     this.uploadedFormatE.set(event);
     this.isModalOpen.set(false);
   }
 
-  // --- Envío del Formulario ---
   submit(): void {
     this.isSubmitAttempted.set(true);
     this.form.markAllAsTouched();
@@ -157,7 +147,6 @@ export class RegisterSustentationFormComponent implements OnInit {
       return;
     }
 
-    // Emitimos con tipado fuerte y estructurado
     this.onSave.emit({
       payload: this.form.value as SustentationFormPayload,
       file: currentFile.file

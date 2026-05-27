@@ -7,7 +7,6 @@ import { SustentationRegistry, JurorVerdict } from '../../../interfaces/thesis-w
 export const SustentationTabConfig: TabConfiguration = {
   tabValue: 'SUSTENTACION',
 
-  // 🚀 Se registra la ruta de acción del botón principal para la navegación automática del contenedor
   headerActionRoute: 'register_sustentation',
 
   columns: [
@@ -26,25 +25,16 @@ export const SustentationTabConfig: TabConfiguration = {
   enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
-
-    // 1. Validar Paz y Salvo Aprobado
     const hasApprovedPazYSalvo = thesis.documents?.some(
       (doc: Document) => doc.type === DocumentType['PAZ_Y_SALVO'] && doc.status === stateList.APROBADO
     ) ?? false;
 
-    // 2. Colección completa e indicador de si hay al menos una registrada
     const currentSustentations: SustentationRegistry[] = thesis.sustentations ?? [];
     const hasSustentationRegistered = currentSustentations.length > 0;
-
-    // 3. Tomamos la última sustentación cronológica (la activa/actual en la posición 0)
     const activeSustentation = currentSustentations[0];
-
-    // 4. Verificar si el usuario actual es jurado asignado en la sustentación activa
     const isJuror = activeSustentation?.assignedJurors?.some(
       (juror) => juror.id === baseContext.currentUser?.id
     ) ?? false;
-
-    // 5. Evaluar si la sustentación activa ya tiene veredictos asentados
     const isSustentationEvaluated = (activeSustentation?.verdicts?.length ?? 0) > 0;
 
     return {
@@ -61,36 +51,24 @@ export const SustentationTabConfig: TabConfiguration = {
     if (!thesis || !thesis.sustentations || thesis.sustentations.length === 0) {
       return [];
     }
-
     const isJurorContext = !!context.isJuror;
     const totalSustentations = thesis.sustentations.length;
-
-    // Mapeamos todo el historial de sustentaciones para renderizar una fila por cada una
     return thesis.sustentations.map((sustentation: SustentationRegistry, index: number) => {
       const dateRaw = sustentation.sustentationDate;
       const dateStr = dateRaw ? new Date(dateRaw).toLocaleDateString('es-ES') : 'Fecha pendiente';
-
       const verdictsList: JurorVerdict[] = sustentation.verdicts || [];
       const isThisEvaluated = verdictsList.length > 0;
-
-      // El estado de la fila depende de su veredicto. Si no tiene, se encuentra EN_REVISION
       const currentStatus = isThisEvaluated
         ? (verdictsList[verdictsList.length - 1].veredict ?? stateList.EN_REVISION)
         : stateList.EN_REVISION;
-
       const allowedActions: string[] = ['view_sustentation_details'];
-
-      // REGLA DE NEGOCIO: Solo se permite evaluar si el usuario es jurado/admin
-      // y si esa sustentación específica aún no ha sido dictaminada.
       if ((isJurorContext || context.isAdmin) && !isThisEvaluated) {
         allowedActions.push('evaluate_sustentation');
       }
-
-      // Enumeramos las sustentaciones en orden inverso para claridad visual (ej: "Sustentación #2")
       const sustentationNumber = totalSustentations - index;
 
       return {
-        id: sustentation.id, // ID específico de la sustentación (vital para el ruteo de la acción)
+        id: sustentation.id,
         name: `Programación oficial de Sustentación #${sustentationNumber}`,
         date: dateStr,
         status: currentStatus,
@@ -102,18 +80,13 @@ export const SustentationTabConfig: TabConfiguration = {
   getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
     const buttons: TableButton[] = [];
     const thesis = context.thesisWork;
-
-    // Acceso tipado nativo y limpio gracias al tipado de la interfaz unificada
     const { isConsejo, hasApprovedPazYSalvo, hasSustentationRegistered, isSustentationEvaluated } = context;
-
     if (isConsejo) {
       const activeSustentation = thesis?.sustentations?.[0];
       const verdictsList: JurorVerdict[] = activeSustentation?.verdicts || [];
       const lastVerdict = verdictsList.length > 0 ? verdictsList[verdictsList.length - 1].veredict : null;
-
       let buttonLabel = 'Registrar Sustentación';
       let buttonDisabled = false;
-
       if (!hasApprovedPazYSalvo) {
         buttonLabel = 'Requiere Paz y Salvo Aprobado';
         buttonDisabled = true;

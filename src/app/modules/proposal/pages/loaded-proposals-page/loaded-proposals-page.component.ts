@@ -53,7 +53,6 @@ export class LoadedProposalsPageComponent implements OnInit {
     return this.proposalService.proposals().find(p => p.id === id);
   });
 
-  // LÓGICA DE DATOS Y PERMISOS POR FILA
   documentsTableData = computed(() => {
     const proposal = this.currentProposal();
     const user = this.authService.currentUser();
@@ -62,17 +61,14 @@ export class LoadedProposalsPageComponent implements OnInit {
     const canEvaluateRole = this.authService.hasAnyRole([UserRoleType.COMITE, UserRoleType.ADMINISTRADOR]);
 
     return proposal.documents.map(doc => {
-      // Definimos los permisos dinámicos para este documento
       const allowed = ['download'];
-
-      // Solo puede evaluar si tiene el rol Y el documento está en revisión
       if (canEvaluateRole && doc.status === stateList.EN_REVISION) {
         allowed.push('evaluate');
       }
 
       return {
         ...doc,
-        allowedActions: allowed // Inyectamos el array de strings
+        allowedActions: allowed
       };
     });
   });
@@ -105,7 +101,6 @@ export class LoadedProposalsPageComponent implements OnInit {
   }
 
   handleTableAction(event: { action: string; row: any }): void {
-    // Validación de seguridad (el TableComponent ya oculta los botones, esto es preventivo)
     if (event.row.allowedActions && !event.row.allowedActions.includes(event.action)) {
       return;
     }
@@ -120,7 +115,6 @@ export class LoadedProposalsPageComponent implements OnInit {
     }
   }
 
-  // ... handleHeaderButton, onFileSelected, confirmUpload y métodos privados se mantienen igual ...
 
   handleHeaderButton(): void {
     const proposal = this.currentProposal();

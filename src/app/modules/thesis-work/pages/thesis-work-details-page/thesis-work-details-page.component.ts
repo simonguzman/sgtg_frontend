@@ -26,65 +26,36 @@ export class ThesisWorkDetailsPageComponent implements OnInit {
   private readonly notificationService = inject(NotificationService);
   private readonly downloadService = inject(FileDownloadService);
 
-  // Variable de estado reactivo para almacenar el Trabajo de Grado actual
   thesisWorkDetails = signal<ThesisWork | null>(null);
 
-  // Selector reactivo para el documento principal (Buscamos la propuesta original del anteproyecto)
   mainDocument = computed<Document | null>(() => {
     const currentWork = this.thesisWorkDetails();
     if (!currentWork || !currentWork.preliminaryDraftData) return null;
-
     const preliminaryDraft = currentWork.preliminaryDraftData;
     const evaluations = preliminaryDraft.evaluations || [];
 
-    // 1. Filtrar las evaluaciones cuyo rol sea "Consejo de facultad"
     const consejoEvaluations = evaluations.filter(e =>
       e.evaluatorRole && e.evaluatorRole.toUpperCase().includes('CONSEJO')
     );
 
     if (consejoEvaluations.length > 0) {
-      // Tomamos la última evaluación registrada por el consejo
       const lastConsejoEval = consejoEvaluations[consejoEvaluations.length - 1];
-
-      // Verificamos el arreglo de documentos firmados/cargados en la evaluación por el Consejo
       if (lastConsejoEval.signedDocuments && lastConsejoEval.signedDocuments.length > 0) {
-
-        // REGLA DE NEGOCIO: Si el arreglo contiene tanto el archivo original como la resolución cargada,
-        // usualmente la resolución cargada por el evaluador es el ÚLTIMO elemento del arreglo,
-        // o si solo hay uno, es el que se encuentra en el índice 0.
         const resolutionUrl = lastConsejoEval.signedDocuments[lastConsejoEval.signedDocuments.length - 1];
-
-        // -------------------------------------------------------------------------
-        // ESTRATEGIA 1: Buscar si el documento de la resolución existe en la lista de documentos globales
-        // evitando hacer match con el "documentId" de presentación.
-        // -------------------------------------------------------------------------
         const allSystemDocs = [
           ...(preliminaryDraft.documents || []),
           ...(currentWork.documents || [])
         ];
-
-        // Buscamos un documento cuyo URL coincida con el archivo adjuntado en la evaluación,
-        // pero que explícitamente NO sea el documento base de presentación (anteproyecto original)
         const exactDocument = allSystemDocs.find(doc =>
           doc.url === resolutionUrl && doc.id !== lastConsejoEval.documentId
         );
-
         if (exactDocument) {
-          return exactDocument; // Si existe el objeto nativo formal con su nombre real, lo retorna
+          return exactDocument;
         }
-
-        // -------------------------------------------------------------------------
-        // ESTRATEGIA 2: Extraer el nombre real directamente desde la URL del archivo cargado en el modal
-        // -------------------------------------------------------------------------
         let realName = 'Resolucion_Aprobacion_Consejo.pdf';
         try {
-          // Decodifica espacios (%20) y caracteres especiales de la URL del storage
           const decodedUrl = decodeURIComponent(resolutionUrl);
-
-          // Aísla la parte del nombre de archivo antes de parámetros de descarga de Firebase/S3 (?)
           let fileNameFromUrl = decodedUrl.substring(decodedUrl.lastIndexOf('/') + 1).split('?')[0];
-
-          // Si la URL viene de Firebase Storage, las subcarpetas se codifican como %2F
           if (fileNameFromUrl.includes('%2F')) {
             fileNameFromUrl = fileNameFromUrl.substring(fileNameFromUrl.lastIndexOf('%2F') + 3);
           } else if (fileNameFromUrl.includes('/')) {
@@ -97,8 +68,6 @@ export class ThesisWorkDetailsPageComponent implements OnInit {
         } catch (error) {
           console.warn('No se pudo procesar el nombre real desde la URL del modal.', error);
         }
-
-        // Retorna el contrato de interfaz 'Document' apuntando al archivo del modal ("Memorias del subsuelo...")
         return {
           id: lastConsejoEval.id,
           name: realName,
@@ -108,9 +77,6 @@ export class ThesisWorkDetailsPageComponent implements OnInit {
         };
       }
     }
-
-    // --- FALLBACKS DE SEGURIDAD GENERAL ---
-    // Si el consejo no ha evaluado aún, buscamos si hay algún archivo explícito marcado como RESOLUCION
     const draftDocs = preliminaryDraft.documents || [];
     const resolutionInDraft = draftDocs.find(doc => doc.type === DocumentType.RESOLUCION);
     if (resolutionInDraft) return resolutionInDraft;
@@ -163,8 +129,6 @@ export class ThesisWorkDetailsPageComponent implements OnInit {
     this.downloadService.download(targetDocument.url, targetDocument.name);
     this.showDownloadFileSuccessNotification();
   }
-
-  // --- MÉTODOS DE NOTIFICACIÓN DE RETORNO Y TRAZABILIDAD ---
 
   private showDownloadFileSuccessNotification(): void {
     this.notificationService.show({

@@ -57,7 +57,6 @@ export class PreliminaryDraftPageComponent implements OnInit {
   protected columns: Column[] = PRELIMINARY_DRAFT_COLUMNS;
   protected headerButtons: TableButton[] = [];
 
-  // Variables renombradas para mayor claridad
   descriptionModal = signal({ isOpen: false, title: '', content: '' });
   deleteState = signal({ isOpen: false, draftId: null as string | null, draftTitle: '', isProcessing: false });
 
@@ -87,7 +86,6 @@ export class PreliminaryDraftPageComponent implements OnInit {
       const isAproved = preliminaryDraft.state === stateList.APROBADO;
       let allowed: string[] = ['ver descripción'];
       if (hasViewPermission) allowed.push('ver');
-      // Regla: No editar/eliminar si ya está aprobado
       if (isOwnerOrAdmin && !isAproved) {
         allowed.push('editar', 'eliminar');
       }
@@ -175,7 +173,6 @@ export class PreliminaryDraftPageComponent implements OnInit {
     this.deleteState.set({ isOpen: false, draftId: null, draftTitle: '', isProcessing: false });
   }
 
-  // Métodos de notificación para feedback
   private showDeleteSuccessNotification(): void {
     this.notificationService.show({
       title: 'Anteproyecto eliminado',

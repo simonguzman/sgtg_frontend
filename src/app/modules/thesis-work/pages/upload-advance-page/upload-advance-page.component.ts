@@ -33,12 +33,10 @@ export class UploadAdvancePageComponent implements OnInit {
   ngOnInit() {
     let currentRoute = this.route;
     let id: string | null = null;
-
     while (currentRoute && !id) {
       id = currentRoute.snapshot.paramMap.get('id');
       currentRoute = currentRoute.parent!;
     }
-
     if (id) {
       this.loadThesisWork(id);
     } else {
@@ -84,23 +82,15 @@ export class UploadAdvancePageComponent implements OnInit {
     const data = this.pendingAdvanceData();
     const thesisWork = this.thesisWorkState();
     const currentUser = this.authService.currentUser();
-
     if (!data || !thesisWork || !currentUser) return;
-
     this.isSaving.set(true);
-
-    // 🚀 1. Generamos UN ÚNICO ID para agrupar todo el bloque de avance
     const globalAdvanceBlockId = crypto.randomUUID();
-
-    // 🚀 2. Definimos la metadata que compartirá todo el lote de archivos
     const advanceMeta = {
       title: data.formValues.title,
       comments: data.formValues.comments,
       studentId: currentUser.id,
       advanceId: globalAdvanceBlockId
     };
-
-    // 🚀 3. Asignamos un ID único independiente a cada archivo físico
     const documentsToUpload: Document[] = data.files.map(file => ({
       id: crypto.randomUUID(),
       name: `${data.formValues.title} - ${file.name}`,
@@ -108,8 +98,6 @@ export class UploadAdvancePageComponent implements OnInit {
       type: DocumentType.AVANCE,
       uploadDate: new Date().toISOString()
     }));
-
-    // 🚀 4. Enviamos la MISMA metadata a todas las peticiones para garantizar la agrupación
     const uploadRequests: Observable<void>[] = documentsToUpload.map(doc =>
       this.thesisWorkService.uploadDocumentMock(
         thesisWork.thesisWorkId,
@@ -117,7 +105,6 @@ export class UploadAdvancePageComponent implements OnInit {
         advanceMeta
       )
     );
-
     forkJoin(uploadRequests).subscribe({
       next: () => {
         this.notification.show({

@@ -18,7 +18,6 @@ export class RegisterPazYSalvoFormComponent {
   private readonly notificationService = inject(NotificationService);
   public readonly userService = inject(UserService);
 
-  // 🚀 MEJORA: Tipado fuerte en lugar de 'any'
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
 
@@ -26,19 +25,14 @@ export class RegisterPazYSalvoFormComponent {
   @Output() onGoBack = new EventEmitter<void>();
   @Output() onDownloadFile = new EventEmitter<Document>();
 
-  // 📡 Señales de estado del formulario
   academicApproved = signal<boolean | null>(null);
   academicComments = signal<string>('');
-
   financialApproved = signal<boolean | null>(null);
   financialComments = signal<string>('');
-
   uploadedFormat = signal<{ fileName: string; file: File } | null>(null);
-
   isModalOpen = signal(false);
   isSubmitAttempted = signal(false);
 
-  // --- Getters de Información de Personal ---
   getStudentNames(): string {
     const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
     return this.userService.getAuthorsNames(authors);
@@ -59,21 +53,15 @@ export class RegisterPazYSalvoFormComponent {
     return advisorId ? this.userService.getUserFullName(advisorId) : '';
   }
 
-  // --- 🧠 CORREGIDO: Buscador flexible con tolerancia a Mayúsculas/Minúsculas y Nombres Compuestos ---
   getExistingDocument(type: string): Document | null {
     const targetType = type.toUpperCase().trim();
-
-    // 1. Buscar primero en la última Entrega Final (finalDeliveries)
     if (this.thesisWork?.finalDeliveries && this.thesisWork.finalDeliveries.length > 0) {
-      // Tomamos la entrega más reciente
       const lastDelivery = this.thesisWork.finalDeliveries[this.thesisWork.finalDeliveries.length - 1];
-
       if (targetType === 'MONOGRAFIA' && lastDelivery.monograph) return lastDelivery.monograph;
       if ((targetType === 'FORMATO' || targetType === 'FORMATO_E') && lastDelivery.formatE) return lastDelivery.formatE;
       if (targetType === 'ANEXOS' && lastDelivery.annexes) return lastDelivery.annexes;
     }
 
-    // 2. Fallback: Buscar en el arreglo global de documents
     if (!this.thesisWork?.documents) return null;
 
     return this.thesisWork.documents.find((doc: Document) => {
@@ -89,7 +77,6 @@ export class RegisterPazYSalvoFormComponent {
     }) || null;
   }
 
-  // --- Handlers ---
   handleFileUploaded(event: { fileName: string; file: File }): void {
     this.uploadedFormat.set(event);
     this.isModalOpen.set(false);

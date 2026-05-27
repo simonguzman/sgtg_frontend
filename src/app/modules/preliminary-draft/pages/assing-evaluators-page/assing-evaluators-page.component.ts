@@ -19,13 +19,12 @@ export class AssingEvaluatorsPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
   private readonly notificationService = inject(NotificationService);
-  // Signals con nombres descriptivos
+
   targetPreliminaryDraftId = signal<string | null>(null);
   selectedPreliminaryDraft = signal<PreliminaryDraft | null>(null);
   isDataLoading = signal<boolean>(true);
 
   ngOnInit(): void {
-    // Se mantiene la lógica de búsqueda en niveles superiores de la ruta (indispensable para la arquitectura actual)
     const resolvedId = this.route.snapshot.paramMap.get('id') ??
                       this.route.parent?.snapshot.paramMap.get('id') ??
                       this.route.parent?.parent?.snapshot.paramMap.get('id');
@@ -78,8 +77,6 @@ export class AssingEvaluatorsPageComponent implements OnInit {
   goBack(): void {
     this.router.navigate(['../'], { relativeTo: this.route });
   }
-
-  // --- MÉTODOS DE NOTIFICACIÓN ---
 
   private showProcessingNotification(): void {
     this.notificationService.show({

@@ -108,7 +108,6 @@ export class EvaluationProposalPageComponent implements OnInit  {
 
     if (evaluableDocs.length === 0) return null;
 
-    // Creamos una copia con [...] y luego ordenamos
     return [...evaluableDocs].sort((a, b) => {
       const dateA = new Date(a.uploadDate).getTime();
       const dateB = new Date(b.uploadDate).getTime();
@@ -173,7 +172,7 @@ export class EvaluationProposalPageComponent implements OnInit  {
     }
     if (!this.signedFile()) {
       this.showMissingFileNotification();
-      return; // ← faltaba este return
+      return;
     }
     this.setConfirmModal(true);
   }

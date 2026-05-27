@@ -7,7 +7,6 @@ import { FinalDelivery } from '../../../interfaces/thesis-work.interface';
 export const FinalDeliveryTabConfig: TabConfiguration = {
   tabValue: 'FORMATO_E',
 
-  // 🚀 Se registra la ruta de acción del botón principal para la navegación automática del contenedor
   headerActionRoute: 'register_final_delivery',
 
   columns: [
@@ -25,8 +24,6 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
   enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
-
-    // 🔍 Buscamos en el array de entregas si existe una activa que no esté rechazada
     const hasFinalDelivery = thesis.finalDeliveries?.some(
       (delivery: FinalDelivery) => delivery.status !== stateList.NO_APROBADO
     ) ?? false;
@@ -38,13 +35,9 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
   },
 
   getTableData: (documents: Document[], context: ThesisEvaluationContext) => {
-    // 🔍 Ignoramos 'documents' genéricos y sacamos la data de finalDeliveries
     const deliveries = context.thesisWork?.finalDeliveries || [];
-
     return deliveries.map((delivery: FinalDelivery) => {
       const date = delivery.uploadDate;
-
-      // 🚀 Manejo robusto y a prueba de fallos para el formateo de las fechas
       let formattedDate = 'Sin fecha';
       if (date) {
         if (typeof date === 'string') {
@@ -57,7 +50,7 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
       }
 
       return {
-        id: delivery.id, // ID del contenedor (FinalDelivery)
+        id: delivery.id,
         name: `Entrega Final - ${delivery.monograph?.name || 'Documentación'}`,
         uploadDate: formattedDate,
         status: delivery.status || stateList.EN_REVISION,
@@ -69,16 +62,10 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
 
   getHeaderButtons: (context: ThesisEvaluationContext) => {
     const buttons: TableButton[] = [];
-
-    // 🚀 Limpieza del tipado dinámico consumiendo directamente la propiedad desde el contexto
     const hasFinalDelivery = !!context['hasFinalDelivery'];
-
-    // 🔒 Regla de negocio intacta: Solo Director o Administrador
     if (context.isDirector || context.isAdmin) {
       let buttonLabel = 'Cargar entrega final';
       let buttonDisabled = false;
-
-      // 🛑 Bloqueo Reactivo: Si ya existe una entrega registrada, congelamos el botón
       if (hasFinalDelivery) {
         buttonLabel = 'Entrega final registrada';
         buttonDisabled = true;

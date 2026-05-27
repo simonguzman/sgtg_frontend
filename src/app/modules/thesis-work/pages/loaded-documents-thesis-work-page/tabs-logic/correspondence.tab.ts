@@ -6,7 +6,6 @@ import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interfac
 export const CorrespondenceTabConfig: TabConfiguration = {
   tabValue: 'CORRESPONDENCIA',
 
-  // 🚀 Se registra la ruta de acción del botón principal para la navegación automática del contenedor
   headerActionRoute: 'register_correspondence',
 
   columns: [
@@ -24,8 +23,6 @@ export const CorrespondenceTabConfig: TabConfiguration = {
   enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
-
-    // 🔍 Única validación: ¿El jurado ya asentó la resolución/correspondencia?
     const hasCorrespondence = thesis.documents?.some(
       (doc: Document) => doc.type === DocumentType.FORMATO_H
     ) ?? false;
@@ -38,8 +35,6 @@ export const CorrespondenceTabConfig: TabConfiguration = {
 
   getTableData: (documents: Document[], context: ThesisEvaluationContext) => {
     if (!documents) return [];
-
-    // Filtrar únicamente los formatos de resolución correspondientes
     const correspondenceDocs = documents.filter(
       (doc: Document) => doc.type === DocumentType.FORMATO_H
     );
@@ -56,17 +51,13 @@ export const CorrespondenceTabConfig: TabConfiguration = {
 
   getHeaderButtons: (context: ThesisEvaluationContext) => {
     const buttons: TableButton[] = [];
-
-    // 🚀 Eliminamos el casteo "as any" ya que las propiedades existen de forma segura en ThesisEvaluationContext
     const { isJuror, hasCorrespondence } = context;
-
-    // 🧠 REGLA DE NEGOCIO CORREGIDA: Solo el Jurado ejecuta la acción
     if (isJuror) {
       buttons.push({
         action: 'register_correspondence',
         label: hasCorrespondence ? 'Correspondencia Registrada' : 'Registrar Correspondencia',
         variant: 'primary',
-        disabled: !!hasCorrespondence // Se deshabilita si el registro ya fue completado
+        disabled: !!hasCorrespondence
       });
     }
 

@@ -23,25 +23,19 @@ export class RegisterSustentationPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
-  // 👈 Reemplazados los estados 'any' por tipados rigurosos
   thesisWorkState = signal<ThesisWork | null>(null);
   teachersState = signal<User[]>([]);
-
   isConfirmModalOpen = signal<boolean>(false);
   isSubmitting = signal<boolean>(false);
-
-  // 👈 Estructura interna mapeada sin rastro de any
   pendingData = signal<{ payload: SustentationFormPayload; file: File } | null>(null);
 
   ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
     let id: string | null = null;
-
     while (currentRoute && !id) {
       id = currentRoute.snapshot.paramMap.get('id');
       currentRoute = currentRoute.parent;
     }
-
     if (id) {
       this.loadData(id);
     } else {
@@ -51,14 +45,12 @@ export class RegisterSustentationPageComponent implements OnInit {
   }
 
   private loadData(id: string): void {
-    // 1. Cargar el Trabajo de Grado (Manejando la asincronía estricta)
     this.thesisWorkService.getThesisWorkByIdMock(id).subscribe({
       next: (data: ThesisWork | undefined) => {
         if (data) this.thesisWorkState.set(data);
       }
     });
 
-    // 2. Cargar los docentes para la búsqueda predictiva
     this.userService.getUsersByRole(UserRoleType.DOCENTE).subscribe({
       next: (teachers: User[] | undefined) => {
         if (teachers) this.teachersState.set(teachers);
@@ -74,13 +66,9 @@ export class RegisterSustentationPageComponent implements OnInit {
   processSustentacion(): void {
     const data = this.pendingData();
     const thesisId = this.thesisWorkState()?.thesisWorkId;
-
     if (!data || !thesisId) return;
-
     this.isSubmitting.set(true);
     this.isConfirmModalOpen.set(false);
-
-    // Combinamos los datos limpios mapeando el binario al campo correspondiente
     const requestData = {
       ...data.payload,
       formatEDocument: data.file

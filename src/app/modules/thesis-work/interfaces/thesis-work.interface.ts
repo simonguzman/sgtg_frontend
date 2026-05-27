@@ -13,7 +13,6 @@ export interface FinalDelivery {
   status: stateList;
 }
 
-// --- NUEVA INTERFAZ PARA AVANCES ---
 export interface Advance {
   id: string;
   title: string;
@@ -21,7 +20,7 @@ export interface Advance {
   uploadDate: Date | string;
   studentId: string;
   status: stateList;
-  documents: Document[]; // Aprovechamos la interfaz genérica de Document
+  documents: Document[];
 }
 
 export interface PazYSalvoRegistry {
@@ -73,11 +72,7 @@ export interface ThesisWork {
   thesisWorkId: string;
   preliminaryDraftId: string;
   preliminaryDraftData: PreliminaryDraft;
-
-  // CENTRALIZACIÓN DE DOCUMENTOS GLOBALES
   documents: Document[];
-
-  // --- NUEVO: COLECCIÓN DE AVANCES ---
   advances?: Advance[];
   finalDeliveries?: FinalDelivery[];
   pazYSalvos?: PazYSalvoRegistry[];

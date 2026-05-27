@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, Input, OnInit, Output, signal } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { UserService } from '../../../users/services/user.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
@@ -22,15 +22,11 @@ export class RegisterCorrectedDocumentFormComponent {
   @Output() onSaveDocuments = new EventEmitter<{ monograph: File, annexes?: File }>();
   @Output() onGoBack = new EventEmitter<void>();
 
-  // Señales para los archivos (Sin Formato_E)
   uploadedMonograph = signal<{ fileName: string; file: File } | null>(null);
   uploadedAnnexes = signal<{ fileName: string; file: File } | null>(null);
-
-  // Estados de los modales de carga
   activeModal = signal<'MONOGRAPH' | 'ANNEXES' | null>(null);
   isSubmitAttempted = signal(false);
 
-  // --- Getters de Información ---
   getStudentNames(): string {
     const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
     return this.userService.getAuthorsNames(authors);
@@ -51,7 +47,6 @@ export class RegisterCorrectedDocumentFormComponent {
     return advisorId ? this.userService.getUserFullName(advisorId) : '';
   }
 
-  // --- Handlers de Archivos ---
   openModal(type: 'MONOGRAPH' | 'ANNEXES'): void {
     this.activeModal.set(type);
   }
@@ -80,11 +75,8 @@ export class RegisterCorrectedDocumentFormComponent {
 
   submit(): void {
     this.isSubmitAttempted.set(true);
-
     const monograph = this.uploadedMonograph();
     const annexes = this.uploadedAnnexes();
-
-    // Validación de obligatorios (Solo Monografía)
     if (!monograph) {
       this.notificationService.show({
         title: 'Documento faltante',

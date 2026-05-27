@@ -16,22 +16,19 @@ export class UploadFinalDeliveryFormComponent {
   private readonly notificationService = inject(NotificationService);
   public readonly userService = inject(UserService);
 
-  @Input({ required: true }) thesisWork!: ThesisWork; // Tipar con la interfaz de tu Trabajo de Grado
+  @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
 
   @Output() onSaveDelivery = new EventEmitter<{ monograph: File, formatE: File, annexes?: File }>();
   @Output() onGoBack = new EventEmitter<void>();
 
-  // Señales para los archivos
   uploadedMonograph = signal<{ fileName: string; file: File } | null>(null);
   uploadedFormatE = signal<{ fileName: string; file: File } | null>(null);
   uploadedAnnexes = signal<{ fileName: string; file: File } | null>(null);
 
-  // Estados de los modales de carga
   activeModal = signal<'MONOGRAPH' | 'FORMAT_E' | 'ANNEXES' | null>(null);
   isSubmitAttempted = signal(false);
 
-  // --- Getters de Información ---
   getStudentNames(): string {
     const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
     return this.userService.getAuthorsNames(authors);
@@ -52,7 +49,6 @@ export class UploadFinalDeliveryFormComponent {
     return advisorId ? this.userService.getUserFullName(advisorId) : '';
   }
 
-  // --- Handlers de Archivos ---
   openModal(type: 'MONOGRAPH' | 'FORMAT_E' | 'ANNEXES'): void {
     this.activeModal.set(type);
   }
@@ -88,7 +84,6 @@ export class UploadFinalDeliveryFormComponent {
     const formatE = this.uploadedFormatE();
     const annexes = this.uploadedAnnexes();
 
-    // Validación de obligatorios
     if (!monograph || !formatE) {
       this.notificationService.show({
         title: 'Documentos faltantes',

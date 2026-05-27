@@ -29,12 +29,10 @@ export class RegisterPazYSalvoPageComponent implements OnInit {
   ngOnInit() {
     let currentRoute: ActivatedRoute | null = this.route;
     let id: string | null = null;
-
     while (currentRoute && !id) {
       id = currentRoute.snapshot.paramMap.get('id');
       currentRoute = currentRoute.parent;
     }
-
     if (id) {
       this.loadData(id);
     } else {
@@ -58,13 +56,10 @@ export class RegisterPazYSalvoPageComponent implements OnInit {
   processPazYSalvo() {
     const data = this.pendingData();
     const thesisId = this.thesisWorkState()?.thesisWorkId;
-
     if (!data || !thesisId) return;
-
     this.isSubmitting.set(true);
     this.isConfirmModalOpen.set(false);
 
-    // ⚡ Consumo del método del servicio que armamos en el paso anterior
     this.thesisWorkService.registerPazYSalvoMock(thesisId, data.payload, data.file).subscribe({
       next: () => {
         const isApproved = data.payload.academicApproved && data.payload.financialApproved;

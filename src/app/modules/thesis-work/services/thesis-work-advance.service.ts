@@ -19,8 +19,6 @@ export class ThesisWorkAdvanceService {
       delay(800),
       tap(() => {
         this.storage.updateWork(thesisWorkId, (work) => {
-
-          // Si no es un documento de tipo avance, va al repositorio global
           if ((document.type as string) !== DocumentType.AVANCE) {
             const nextState = document.type === 'Formato' ? stateList.EN_REVISION : work.state;
             return {
@@ -30,16 +28,11 @@ export class ThesisWorkAdvanceService {
             };
           }
 
-          // 🚀 CAMBIO CLAVE: El ID del avance viene en la meta, si no existe (retrocompatibilidad) cae al del documento
           const targetAdvanceId = advanceMeta?.advanceId || document.id;
-
           const existingAdvances = work.advances || [];
           const advanceExists = existingAdvances.some(adv => adv.id === targetAdvanceId);
-
           let updatedAdvances;
-
           if (advanceExists) {
-            // Si el bloque de avance ya existe, le agregamos el nuevo archivo adjunto (que tiene su propio ID único)
             updatedAdvances = existingAdvances.map(adv => {
               if (adv.id !== targetAdvanceId) return adv;
               return {
@@ -48,15 +41,14 @@ export class ThesisWorkAdvanceService {
               };
             });
           } else {
-            // Si es el primer archivo de este lote, creamos la entidad Advance usando targetAdvanceId
             const newAdvance = {
-              id: targetAdvanceId, // ID del grupo/bloque
+              id: targetAdvanceId,
               title: advanceMeta?.title || document.name,
               comments: advanceMeta?.comments || '',
               uploadDate: new Date(document.uploadDate),
               studentId: advanceMeta?.studentId || '',
               status: stateList.EN_REVISION,
-              documents: [document] // Primer documento con su ID único
+              documents: [document]
             };
             updatedAdvances = [newAdvance, ...existingAdvances];
           }

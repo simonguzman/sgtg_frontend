@@ -1,7 +1,6 @@
 <div class="w-full">
   <div class="bg-white rounded-lg shadow-sm p-6">
 
-    <!-- Botón de retorno -->
     <div class="mb-6">
       <button (click)="goBack()" class="flex items-center gap-2 text-navy-900 font-bold group w-fit">
         <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
@@ -11,14 +10,12 @@
       </button>
     </div>
 
-    <!-- Navegación por pestañas -->
     <app-tabs
       [tabs]="tabs"
       [activeTab]="activeTab()"
       (tabChange)="activeTab.set($event)"
     ></app-tabs>
 
-    <!-- Tabla de documentos -->
     <div class="mt-6">
       <app-table-component
         [value]="currentTableData()"
@@ -36,7 +33,6 @@
   </div>
 </div>
 
-<!-- Modal para selección de archivos -->
 <app-file-upload-modal
   [isOpen]="isUploadModalOpen()"
   [description]="activeTab() === 'ANTEPROYECTOS'
@@ -47,7 +43,6 @@
   (onClose)="isUploadModalOpen.set(false)"
 ></app-file-upload-modal>
 
-<!-- Modal de confirmación de carga -->
 <app-confirmation-action-modal
   [isOpen]="isConfirmModalOpen()"
   [description]="activeTab() === 'ANTEPROYECTOS'

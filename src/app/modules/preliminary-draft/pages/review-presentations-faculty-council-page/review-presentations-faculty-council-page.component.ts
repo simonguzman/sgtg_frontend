@@ -103,7 +103,7 @@ export class ReviewPresentationsFacultyCouncilPageComponent implements OnInit {
     const resolutionDoc: Document = {
       id: crypto.randomUUID(),
       name: data.file.name,
-      url: '', // En un entorno real, aquí iría la URL tras subir el archivo
+      url: '',
       uploadDate: new Date().toLocaleDateString(),
       type: DocumentType.RESOLUCION,
       status: finalState

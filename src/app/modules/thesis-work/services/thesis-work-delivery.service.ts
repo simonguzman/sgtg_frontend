@@ -64,9 +64,8 @@ export class ThesisWorkDeliveryService {
             };
           }
 
-          // 📦 Empaquetamos la entrega completa
           const newDelivery: FinalDelivery = {
-            id: crypto.randomUUID(), // ID único del contenedor
+            id: crypto.randomUUID(),
             uploadDate: dateStr,
             monograph: docMonograph,
             formatE: docFormatE,
@@ -100,7 +99,6 @@ export class ThesisWorkDeliveryService {
             .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
             .replaceAll('/', ' - ');
 
-          // 1. Construimos el documento del Paz y Salvo
           const pazYSalvoDoc: Document = {
             id: crypto.randomUUID(),
             name: file.name.replace('.pdf', ''),
@@ -110,22 +108,18 @@ export class ThesisWorkDeliveryService {
             status: isFullyApproved ? stateList.APROBADO : stateList.NO_APROBADO
           };
 
-          // 2. Mantenemos la actualización en la lista general por si acaso
           let updatedDocuments = [
             pazYSalvoDoc,
             ...(work.documents || [])
           ];
 
-          // 3. 🚀 NUEVA LÓGICA: Si falla la aprobación, invalidamos la entrega final activa
           let updatedDeliveries = work.finalDeliveries || [];
           if (!isFullyApproved && updatedDeliveries.length > 0) {
-            // Mapeamos las entregas, cambiando el estado de la última (la más reciente) a NO_APROBADO
             updatedDeliveries = updatedDeliveries.map((delivery, index) => {
-              if (index === 0) { // Asumiendo que las manejas en orden descendente [0] es la última
+              if (index === 0) {
                 return {
                   ...delivery,
                   status: stateList.NO_APROBADO,
-                  // Opcional: Si quieres invalidar también los sub-documentos internos para consistencia visual
                   monograph: { ...delivery.monograph, status: stateList.NO_APROBADO },
                   formatE: { ...delivery.formatE, status: stateList.NO_APROBADO }
                 };
@@ -136,7 +130,7 @@ export class ThesisWorkDeliveryService {
 
           return {
             ...work,
-            pazYSalvos: [ // 👈 Cambio: Ahora construimos el historial de registros
+            pazYSalvos: [
               {
                 id: crypto.randomUUID(),
                 academicApproved: payload.academicApproved,
@@ -169,7 +163,6 @@ export class ThesisWorkDeliveryService {
             .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
             .replaceAll('/', ' - ');
 
-          // 1. Crear documento de la Monografía
           const docMonograph: Document = {
             id: crypto.randomUUID(),
             name: monograph.name.replace('.pdf', ''),
@@ -179,7 +172,6 @@ export class ThesisWorkDeliveryService {
             status: stateList.EN_REVISION
           };
 
-          // 2. Crear documento de Anexos (si existe)
           let docAnnexes: Document | undefined;
           const newDocuments: Document[] = [docMonograph];
 
@@ -195,7 +187,6 @@ export class ThesisWorkDeliveryService {
             newDocuments.push(docAnnexes);
           }
 
-          // 3. 📦 Empaquetar ambos en un solo registro de Entrega de Corrección
           const newCorrectedDelivery: CorrectedDelivery = {
             id: crypto.randomUUID(),
             uploadDate: dateStr,
@@ -210,7 +201,6 @@ export class ThesisWorkDeliveryService {
               ...newDocuments,
               ...(work.documents || [])
             ],
-            // 👉 Guardamos el paquete en el nuevo arreglo
             correctedDeliveries: [
               newCorrectedDelivery,
               ...(work.correctedDeliveries || [])
@@ -231,16 +221,13 @@ export class ThesisWorkDeliveryService {
       tap(() => {
         this.storage.updateWork(thesisWorkId, (work) => {
 
-          // 🚀 1. Buscamos y aprobamos la Entrega Final activa (la más reciente)
           let updatedDeliveries = work.finalDeliveries || [];
           if (updatedDeliveries.length > 0) {
             updatedDeliveries = updatedDeliveries.map((delivery, index) => {
-              // Asumimos que la posición [0] es la última entrega cargada
               if (index === 0) {
                 return {
                   ...delivery,
                   status: stateList.APROBADO,
-                  // Propagamos la aprobación a los documentos internos
                   monograph: { ...delivery.monograph, status: stateList.APROBADO },
                   formatE: { ...delivery.formatE, status: stateList.APROBADO },
                   annexes: delivery.annexes ? { ...delivery.annexes, status: stateList.APROBADO } : undefined
@@ -250,14 +237,13 @@ export class ThesisWorkDeliveryService {
             });
           }
 
-          // 🚀 2. Retornamos el estado global actualizado
           return {
             ...work,
             documents: [
               document,
               ...(work.documents || [])
             ],
-            finalDeliveries: updatedDeliveries, // 👈 Se inyectan las entregas con su nuevo estado
+            finalDeliveries: updatedDeliveries,
             state: stateList.APROBADO
           };
         });

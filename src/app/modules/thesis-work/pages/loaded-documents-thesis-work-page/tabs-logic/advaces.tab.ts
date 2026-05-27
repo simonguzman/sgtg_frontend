@@ -21,7 +21,6 @@ interface EvaluationRegistry {
 export const AdvancesTabConfig: TabConfiguration = {
   tabValue: 'AVANCES',
 
-  // 🚀 Se registra la ruta de acción del botón principal para la navegación automática del contenedor
   headerActionRoute: 'upload_advance',
 
   columns: [
@@ -40,21 +39,14 @@ export const AdvancesTabConfig: TabConfiguration = {
   enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
-
     const proposal = thesis.preliminaryDraftData?.proposalData;
-
-    // 🧠 1. Calcular cuántos docentes DEBEN evaluar obligatoriamente
     let requiredEvaluatorsCount = 0;
     if (proposal?.director) requiredEvaluatorsCount++;
     if (proposal?.codirector) requiredEvaluatorsCount++;
     if (proposal?.advisor) requiredEvaluatorsCount++;
-
     const advances: AdvanceRegistry[] = thesis.advances || [];
     const latestAdvance = advances.length > 0 ? advances[0] : null;
-
     const isLatestAdvancePending = latestAdvance?.status === stateList.EN_REVISION;
-
-    // 🔍 Verificar si ya existe el Formato_E (Entrega Final) registrado en el proyecto
     const hasFinalDelivery = thesis.documents?.some(
       (doc: Document) => doc.type === DocumentType['FORMATO_E']
     ) ?? false;
@@ -70,31 +62,22 @@ export const AdvancesTabConfig: TabConfiguration = {
 
   getTableData: (documents: Document[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
     const activeAdvances: AdvanceRegistry[] = context.thesisWork?.advances || [];
-
-    // 🚀 Limpieza de la aserción de tipos inline por corchetes utilizando una extracción más limpia
-    const hasFinalDelivery = context['hasFinalDelivery'] as boolean ?? false;
-
+    const hasFinalDelivery = context['hasFinalDelivery'] as boolean ?? false
     return activeAdvances.map((adv: AdvanceRegistry) => {
       const allowedActions = ['view-details'];
-
       const evaluationsForThisAdvance: EvaluationRegistry[] = context.thesisWork?.evaluations?.filter(
         (ev: EvaluationRegistry) => ev.advanceId === adv.id
       ) || [];
-
       const alreadyEvaluated = evaluationsForThisAdvance.some(
         (ev: EvaluationRegistry) => ev.evaluatorId === context.currentUser?.id
       );
-
       const isAssignedEvaluator = context.isDirector || context.isCodirector || context.isAdvisor || context.isAdmin;
-
       if (isAssignedEvaluator && !alreadyEvaluated && !hasFinalDelivery && adv.status !== stateList.EVALUADO) {
         allowedActions.push('evaluate-advance');
       }
-
       if (evaluationsForThisAdvance.length > 0) {
         allowedActions.push('view-details');
       }
-
       let dateStr = 'Sin fecha';
       if (adv.uploadDate) {
         const dateObj = typeof adv.uploadDate === 'string'

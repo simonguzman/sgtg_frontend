@@ -126,7 +126,7 @@ export const thesisWorkRoutes: Routes = [
                 }
               },
               {
-                path: 'upload_final_delivery',
+                path: 'register_final_delivery',
                 component: UploadFinalDeliveryPageComponent,
                 canActivate: [roleGuard],
                 title: 'Registrar entrega final',

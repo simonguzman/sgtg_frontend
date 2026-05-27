@@ -20,9 +20,6 @@ import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
   providedIn: 'root'
 })
 export class ThesisWorkService {
-  // ==========================================
-  // INYECCIÓN DE DEPENDENCIAS (Angular >= 14)
-  // ==========================================
   private readonly storage = inject(ThesisWorkStorageService);
   private readonly advanceService = inject(ThesisWorkAdvanceService);
   private readonly deliveryService = inject(ThesisWorkDeliveryService);
@@ -30,24 +27,16 @@ export class ThesisWorkService {
   private readonly specialRequestService = inject(ThesisWorkSpecialRequestService);
   private readonly sustentationService = inject(ThesisWorkSustentationService);
 
-  // --- Exposición del Estado Reactivo Global ---
   readonly thesisWorks = this.storage.thesisWorks;
 
-  // ==========================================
-  // DELEGACIÓN DE MÉTODOS (Patrón Fachada)
-  // ==========================================
-
-  // --- 📖 Lecturas (Storage) ---
   getThesisWorkByIdMock(id: string) {
     return this.storage.getById(id);
   }
 
-  // --- 🚀 Avances (Advance Service) ---
   uploadDocumentMock(thesisWorkId: string, document: Document, advanceMeta?: CreateAdvanceRequest ) {
     return this.advanceService.uploadDocumentMock(thesisWorkId, document, advanceMeta);
   }
 
-  // --- 📦 Entregas, Correcciones y Cierre (Delivery Service) ---
   uploadFinalDeliveryMock(thesisWorkId: string, monograph: File, formatE: File, annexes?: File) {
     return this.deliveryService.uploadFinalDeliveryMock(thesisWorkId, monograph, formatE, annexes);
   }
@@ -64,12 +53,10 @@ export class ThesisWorkService {
     return this.deliveryService.registerPazYSalvoMock(thesisWorkId, payload, file);
   }
 
-  // --- 📝 Evaluaciones (Evaluation Service) ---
   addEvaluationMock(thesisWorkId: string, evaluation: Evaluation) {
     return this.evaluationService.addEvaluationMock(thesisWorkId, evaluation);
   }
 
-  // --- 🎓 Sustentaciones (Sustentation Service) ---
   saveSustentationRegistryMock(thesisWorkId: string, formData: any) {
     return this.sustentationService.saveSustentationRegistryMock(thesisWorkId, formData);
   }
@@ -82,7 +69,6 @@ export class ThesisWorkService {
     return this.sustentationService.evaluateCorrectedDocumentsMock(thesisWorkId, evaluationData, formatGFile);
   }
 
-  // --- ⚠️ Solicitudes Especiales (Special Request Service) ---
   createSpecialRequestMock(payload: { requestType: string; comments: string; thesisId: string }) {
     return this.specialRequestService.createSpecialRequestMock(payload);
   }

@@ -1,4 +1,4 @@
-import { Component, computed, EventEmitter, inject, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 
 import { UserService } from '../../../users/services/user.service';
@@ -28,7 +28,6 @@ export class ReviewPresentationsFacultyCouncilFormComponent {
   @Output() onSaveEvaluation = new EventEmitter<{ formValues: any, file: File }>();
   @Output() onDownloadFile = new EventEmitter<Document>();
 
-  // Estados gestionados con Signals para mayor reactividad
   uploadedSignedFile = signal<{ fileName: string; file: File } | null>(null);
   isUploadModalOpen = signal(false);
 
@@ -38,14 +37,10 @@ export class ReviewPresentationsFacultyCouncilFormComponent {
     document: [null]
   });
 
-  // Evaluación de estado de solo lectura mediante computed
   get isReadOnly(): boolean {
     return this.preliminaryDraft.state === stateList.APROBADO;
   }
 
-  /**
-   * Obtiene el documento de propuesta firmado más reciente
-   */
   get signedProposalDocument(): Document | undefined {
     const proposal = this.preliminaryDraft.proposalData;
     if (!proposal?.evaluations?.length) return undefined;
@@ -70,9 +65,6 @@ export class ReviewPresentationsFacultyCouncilFormComponent {
     };
   }
 
-  /**
-   * Documentos específicos del flujo de anteproyecto
-   */
   get approvedPreliminaryDraftDocument(): Document | undefined {
     return this.preliminaryDraft.documents.find(document =>
       document.type === 'Anteproyecto' || document.type === 'Correccion'
@@ -83,9 +75,6 @@ export class ReviewPresentationsFacultyCouncilFormComponent {
     return this.preliminaryDraft.documents.find(doc => doc.type === 'Formato');
   }
 
-  /**
-   * Lista de archivos de evaluación aprobados
-   */
   get evaluationFiles() {
     return this.preliminaryDraft.evaluations
       .filter(evaluation => evaluation.veredict === stateList.APROBADO)
@@ -100,26 +89,20 @@ export class ReviewPresentationsFacultyCouncilFormComponent {
     const rawDate = firstDocument?.uploadDate;
 
     if (!rawDate) return 'No disponible';
-
-    // 1. Si ya es un objeto Date, lo formateamos directamente
     if (rawDate instanceof Date) {
       return rawDate.toLocaleDateString('es-ES');
     }
 
-    // 2. Limpiamos espacios en blanco ("15 - 05 - 2026" -> "15-05-2026")
     const cleanDateStr = rawDate.replace(/\s+/g, '');
-
-    // 3. Intentamos un parseo estándar (por si es ISO o compatible)
     const standardDate = new Date(cleanDateStr);
     if (!isNaN(standardDate.getTime())) {
       return standardDate.toLocaleDateString('es-ES');
     }
 
-    // 4. Fallback manual: Si el formato es DD-MM-YYYY (común en tu LocalStorage)
     const parts = cleanDateStr.split('-');
     if (parts.length === 3) {
       const day = +parts[0];
-      const month = +parts[1] - 1; // Los meses en JS van de 0 a 11
+      const month = +parts[1] - 1;
       const year = +parts[2];
 
       const manualDate = new Date(year, month, day);
@@ -131,9 +114,6 @@ export class ReviewPresentationsFacultyCouncilFormComponent {
     return 'Fecha inválida';
   }
 
-  /**
-   * Helpers para visualización de nombres (Interacción con UserService)
-   */
   getStudentNames(): string {
     return this.userService.getAuthorsNames(this.preliminaryDraft.proposalData.authors);
   }
@@ -162,9 +142,6 @@ export class ReviewPresentationsFacultyCouncilFormComponent {
     this.isUploadModalOpen.set(false);
   }
 
-  /**
-   * Procesa el envío de la evaluación con validaciones reforzadas
-   */
   submit(): void {
     const fileData = this.uploadedSignedFile();
     if (this.evaluationForm.invalid || !fileData) {

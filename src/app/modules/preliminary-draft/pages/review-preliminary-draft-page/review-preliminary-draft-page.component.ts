@@ -121,8 +121,6 @@ export class ReviewPreliminaryDraftPageComponent implements OnInit {
     }
   }
 
-  // --- MÉTODOS PRIVADOS DE NOTIFICACIÓN ---
-
   private showEvaluationSuccessNotification(isApproved: boolean) {
     this.notification.show({
       title: 'Evaluación Registrada',

@@ -30,7 +30,6 @@ export class RegisterCorrespondencePageComponent implements OnInit {
       this.handleNavigationError();
       return;
     }
-
     this.thesisWorkService.getThesisWorkByIdMock(thesisWorkId).subscribe({
       next: (foundData) => {
         if (foundData) {
@@ -48,7 +47,6 @@ export class RegisterCorrespondencePageComponent implements OnInit {
     });
   }
 
-  // --- Manejador del Evento de Salvado emitido por el Form ---
   handleCorrespondenceSave(file: File): void {
     const currentWork = this.thesisWorkDetails();
     if (!currentWork) return;

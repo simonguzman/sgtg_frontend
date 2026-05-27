@@ -1,12 +1,9 @@
 import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
-import { stateList } from '../../../../core/enums/state.enum';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { Advance } from '../../interfaces/thesis-work.interface';
 import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playload.interface';
-
-// Importaciones de tus interfaces reales
 
 @Component({
   selector: 'app-evaluate-advance-form',
@@ -17,7 +14,6 @@ import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../i
 export class EvaluateAdvanceFormComponent {
   private readonly fb = inject(FormBuilder);
 
-  // Usamos tus interfaces nativas directas
   @Input({ required: true }) advanceData!: Advance;
   @Input({ required: true }) thesisWorkTitle!: string;
   @Input() isSubmitting = false;
@@ -28,7 +24,6 @@ export class EvaluateAdvanceFormComponent {
   @Output() onSaveEvaluation = new EventEmitter<SubmitAdvanceEvaluationPayload>();
   @Output() onDownloadAdvance = new EventEmitter<void>();
 
-  // Manejo de archivo opcional de correcciones/anotaciones
   uploadedFeedbackFile = signal<{ fileName: string; file: File } | null>(null);
   isFeedbackModalOpen = signal(false);
 
@@ -62,7 +57,6 @@ export class EvaluateAdvanceFormComponent {
     }
     const feedbackData = this.uploadedFeedbackFile();
     const values = this.evaluationForm.getRawValue();
-    // El autocompletado aquí ahora es 100% seguro
     this.onSaveEvaluation.emit({
       formValues: {
         result: values.result as AdvanceEvaluationResult,

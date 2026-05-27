@@ -20,8 +20,6 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
 
   isLoading = signal(true);
   isSubmitting = signal(false);
-
-  // ✅ Alineado con el servicio usando 'undefined' en lugar de 'null'
   thesisWorkData = signal<ThesisWork | undefined>(undefined);
 
   ngOnInit(): void {
@@ -35,7 +33,6 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
 
   loadThesisWorkData(id: string): void {
     this.thesisWorkService.getThesisWorkByIdMock(id).subscribe({
-      // ✅ El parámetro de tipado ahora coincide con el flujo estricto del Observable
       next: (data: ThesisWork | undefined) => {
         if (data) {
           this.thesisWorkData.set(data);
@@ -64,10 +61,8 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
   handleSaveRequest(event: { requestType: string, comments: string }): void {
     const currentWork = this.thesisWorkData();
     if (!currentWork) return;
-
     this.isSubmitting.set(true);
     const thesisId = currentWork.thesisWorkId;
-
     const payload = {
       ...event,
       thesisId: thesisId

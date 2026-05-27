@@ -7,6 +7,7 @@ import { AuthService } from '../../../../core/services/auth/auth.service';
 import { UserRoleType } from '../../../../core/models/user-role';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { DescriptionModalComponent } from "../../../../shared/components/modals/description-modal/description-modal.component";
+import { User } from '../../../users/interfaces/user.interface';
 
 const THESIS_WORK_COLUMNS: Column[] = [
   { field: 'title', header: 'Título', type: 'text', width: '30%' },
@@ -45,17 +46,14 @@ export class ThesisWorkPageComponent {
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly authService = inject(AuthService);
   private readonly notificationService = inject(NotificationService);
-
   protected columns: Column[] = THESIS_WORK_COLUMNS;
   protected headerButtons: TableButton[] = HEADER_BUTTONS;
 
-  // Manejo de estado idéntico mediante Signals
   descriptionModal = signal({ isOpen: false, title: '', content: '' });
 
   protected tableData = computed(() => {
     const currentUser = this.authService.currentUser();
     const currentUserId = currentUser?.id ? String(currentUser.id) : null;
-
     const hasFullAccessRole = this.authService.hasAnyRole([
       UserRoleType.ADMINISTRADOR,
       UserRoleType.DECANATURA,
@@ -63,31 +61,22 @@ export class ThesisWorkPageComponent {
     ]);
 
     const thesisWorkList = this.thesisWorkService.thesisWorks();
-
     return thesisWorkList.map(work => {
       const proposal = work.preliminaryDraftData?.proposalData;
-
-      // Validación estricta de participantes involucrados en el Trabajo de Grado
       const isDirector = proposal?.director?.id != null && String(proposal.director.id) === currentUserId;
       const isCodirector = proposal?.codirector?.id != null && String(proposal.codirector.id) === currentUserId;
       const isAdvisor = proposal?.advisor?.id != null && String(proposal.advisor.id) === currentUserId;
-
       const isStudentAuthor = (currentUserId != null && Array.isArray(proposal?.authors))
-        ? proposal.authors.some((author: any) =>
+        ? proposal.authors.some((author: User) =>
             typeof author === 'string' ? author === currentUserId : String(author?.id) === currentUserId
           )
         : false;
-
-      // Accedemos de forma segura a través de cada nivel
       const isJuror = work.sustentations?.[0]?.assignedJurors?.some(juror => String(juror.id) === currentUserId) ?? false;
-
       const hasViewPermission = hasFullAccessRole || isDirector || isCodirector || isAdvisor || isStudentAuthor || isJuror;
       const isOwnerOrAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]) || isDirector;
-
       let allowed: string[] = ['ver descripción'];
       if (hasViewPermission) allowed.push('ver');
       if (isOwnerOrAdmin) allowed.push('editar');
-
       return {
         id: work.thesisWorkId,
         title: proposal?.title || 'Sin título',

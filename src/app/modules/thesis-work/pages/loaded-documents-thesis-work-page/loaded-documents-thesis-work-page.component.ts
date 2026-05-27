@@ -179,13 +179,8 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     return `${user.firstName || ''} ${user.lastName || ''}`.trim();
   }
 
-  // ==========================================
-  // 🚀 MANEJO DE ACCIONES Y EVENTOS REFACTORIZADO
-  // ==========================================
   handleHeaderButton(button: TableButton): void {
-    // Se elimina el condicional anidado gigante leyendo directamente el path de la estrategia activa
     const routePath = this.currentStrategy().headerActionRoute;
-
     if (routePath) {
       this.router.navigate([routePath], { relativeTo: this.route });
     } else {
@@ -196,7 +191,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   handleTableAction(event: { action: string; row: Record<string, unknown> }): void {
     const rowAllowedActions = event.row['allowedActions'] as string[] | undefined;
     const rowId = event.row['id'] as string;
-
     if (rowAllowedActions && !rowAllowedActions.includes(event.action)) {
       this.showRestrictedActionNotification();
       return;
@@ -204,31 +198,24 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
 
     switch (event.action) {
       case 'download': {
-        // Extracción segura en tiempo de ejecución para evitar el bypass de tipado del linter
         const urlObj = typeof event.row['url'] === 'string' ? event.row['url'] : '';
         const nameObj = typeof event.row['name'] === 'string' ? event.row['name'] : 'documento_sin_titulo';
-
         this.handleDownload({ url: urlObj, name: nameObj } as Document);
         break;
       }
-
       case 'evaluate-advance':
         this.router.navigate(['evaluate_advance', rowId], { relativeTo: this.route });
         break;
-
       case 'evaluate_special_request':
         this.router.navigate([`./evaluate_special_request`, rowId], { relativeTo: this.route });
         break;
-
       case 'view_sustentation_details':
       case 'evaluate_sustentation':
         this.router.navigate([event.action, rowId], { relativeTo: this.route });
         break;
-
       case 'view-details':
         this.openDetailsModal(rowId);
         break;
-
       default:
         this.router.navigate([event.action], { relativeTo: this.route });
         break;
@@ -245,9 +232,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     const selectedFileData = this.uploadContext();
     const thesisId = this.thesisWorkId();
     if (!selectedFileData || !thesisId) return;
-
     this.showProcessingNotification();
-
     const newDocumentRecord: Document = {
       id: crypto.randomUUID(),
       name: selectedFileData.fileName.replace('.pdf', ''),
@@ -256,7 +241,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       type: this.currentStrategy().modalConfig.uploadDocumentType,
       status: stateList.EN_REVISION
     };
-
     this.thesisWorkService.uploadDocumentMock(thesisId, newDocumentRecord).subscribe({
       next: () => {
         this.showSuccessNotification();
@@ -391,7 +375,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       this.selectedAdvance.set(pazYSalvoMock);
       this.isDetailsModalOpen.set(true);
     }
-    // 🚀 NUEVA SECCIÓN: Soporte adaptativo para la pestaña de Correspondencia
     else if (this.activeTab() === 'CORRESPONDENCIA') {
       const doc = thesis.documents?.find(d => d.id === rowId);
       if (!doc) {
