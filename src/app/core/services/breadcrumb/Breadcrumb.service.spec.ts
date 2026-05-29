@@ -1,7 +1,7 @@
 /* tslint:disable:no-unused-variable */
 
 import { TestBed } from '@angular/core/testing';
-import { BreadcrumbService } from './Breadcrumb.service';
+import { BreadcrumbService } from './breadcrumb.service';
 import { NavigationEnd, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 

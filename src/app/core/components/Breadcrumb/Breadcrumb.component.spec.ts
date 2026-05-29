@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { BreadcrumbComponent } from './Breadcrumb.component';
 import { By } from '@angular/platform-browser';
-import { BreadcrumbService } from '../../services/breadcrumb/Breadcrumb.service';
+import { BreadcrumbService } from '../../services/breadcrumb/breadcrumb.service';
 import { BehaviorSubject } from 'rxjs';
 import { provideRouter } from '@angular/router';
 

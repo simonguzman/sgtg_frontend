@@ -9,7 +9,7 @@ import { ThesisWorkService } from '../../services/thesis-work.service';
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
-import { BreadcrumbService } from '../../../../core/services/breadcrumb/Breadcrumb.service';
+import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
 import { TabItem, TabsComponent } from '../../../../shared/components/tabs/tabs.component';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { Document } from '../../../../core/interfaces/Document.interface';

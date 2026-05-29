@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core'; // Asegúrate de importar inject
 import { AsyncPipe } from '@angular/common'; // Importante para usar | async
 import { RouterLink } from '@angular/router';
-import { BreadcrumbService } from '../../services/breadcrumb/Breadcrumb.service';
+import { BreadcrumbService } from '../../services/breadcrumb/breadcrumb.service';
 
 @Component({
   selector: 'app-breadcrumb', // O el nombre que tenga tu componente

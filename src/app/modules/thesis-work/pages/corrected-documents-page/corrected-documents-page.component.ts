@@ -5,7 +5,7 @@ import { Title } from '@angular/platform-browser';
 // Servicios de Core y Shared
 import { ThesisWorkService } from '../../services/thesis-work.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
-import { BreadcrumbService } from '../../../../core/services/breadcrumb/Breadcrumb.service';
+import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 

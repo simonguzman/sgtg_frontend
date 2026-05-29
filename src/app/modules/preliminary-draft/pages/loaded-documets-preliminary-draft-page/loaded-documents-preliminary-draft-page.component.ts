@@ -6,7 +6,7 @@ import { PreliminaryDraftService } from '../../services/preliminary-draft.servic
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
-import { BreadcrumbService } from '../../../../core/services/breadcrumb/Breadcrumb.service';
+import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
 
 import { TabItem, TabsComponent } from '../../../../shared/components/tabs/tabs.component';
 import { TableButton, TableComponent } from '../../../../shared/components/table-component/table-component.component';
