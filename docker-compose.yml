@@ -1,7 +1,56 @@
-services:
-  web:
-    build: .
-    ports:
-      - "8080:80"
-    restart: unless-stopped
+version: "3.9"
 
+services:
+  # 1. Base de Datos (Configuración de tu compañero)
+  mysql:
+    image: mysql:8.0
+    container_name: sgtg_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: oracle
+      MYSQL_DATABASE: sgtg
+      MYSQL_TCP_PORT: 3307
+    ports:
+      - "3307:3307"
+    command: --port=3307 --bind-address=0.0.0.0
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - sgtg_network
+
+  # 2. Backend (Spring Boot - Configuración de tu compañero)
+  backend:
+    build: ./tu-carpeta-del-backend # <- Cambia por la ruta de la carpeta del backend
+    container_name: sgtg_backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_APPLICATION_NAME: backend
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3307/sgtg?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: oracle
+      SPRING_SECURITY_USER_NAME: admin
+      SPRING_SECURITY_USER_PASSWORD: admin
+    depends_on:
+      - mysql
+    networks:
+      - sgtg_network
+
+  # 3. Tu Frontend (Angular + Nginx)
+  web:
+    build: ./Sistema-de-gesti-n-de-trabajos-de-grado # PATH a la carpeta de tu frontend
+    container_name: sgtg_frontend
+    ports:
+      - "4200:80" # Tu sistema completo se abrirá en http://localhost:4200
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - sgtg_network
+
+networks:
+  sgtg_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
