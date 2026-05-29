@@ -4,7 +4,7 @@ import { RouterModule, Router, NavigationEnd, ActivatedRoute } from "@angular/ro
 import { HeaderComponent } from "../header/header.component";
 import { SidebarComponent } from "../sidebar/sidebar.component";
 import { filter, map } from 'rxjs/operators';
-import { BreadcrumbComponent } from '../../../components/breadcrumb-temp/breadcrumb-temp.component';
+import { BreadcrumbComponent } from '../../../components/breadcrumb/breadcrumb.component';
 import { BreadcrumbService } from '../../../services/breadcrumb/breadcrumb.service';
 
 @Component({

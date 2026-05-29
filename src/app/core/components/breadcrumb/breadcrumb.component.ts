@@ -7,7 +7,7 @@ import { BreadcrumbService } from '../../services/breadcrumb/breadcrumb.service'
   selector: 'app-breadcrumb', // O el nombre que tenga tu componente
   standalone: true,
   imports: [AsyncPipe, RouterLink], // Agrega estos imports para que el HTML funcione
-  templateUrl: './breadcrumb-temp.component.html'
+  templateUrl: './breadcrumb.component.html'
 })
 export class BreadcrumbComponent {
   // Inyectamos el servicio
