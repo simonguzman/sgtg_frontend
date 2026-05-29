@@ -20,7 +20,7 @@ services:
 
   # 2. Backend (Spring Boot - Configuración de tu compañero)
   backend:
-    build: ./tu-carpeta-del-backend # <- Cambia por la ruta de la carpeta del backend
+    build: ./sgtg_backend # <- Cambia por la ruta de la carpeta del backend
     container_name: sgtg_backend
     ports:
       - "8080:8080"
@@ -38,7 +38,7 @@ services:
 
   # 3. Tu Frontend (Angular + Nginx)
   web:
-    build: ./Sistema-de-gesti-n-de-trabajos-de-grado # PATH a la carpeta de tu frontend
+    build: ./sgtg_frontend # PATH a la carpeta de tu frontend
     container_name: sgtg_frontend
     ports:
       - "4200:80" # Tu sistema completo se abrirá en http://localhost:4200
