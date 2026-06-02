@@ -20,6 +20,7 @@ export interface Proposal {
   advisor?: User;
   state: stateList;
   createdAt: Date;
+  evaluationDeadline?: Date;
   documents: Document[];
   evaluations: Evaluation[];
   isActive?: boolean;

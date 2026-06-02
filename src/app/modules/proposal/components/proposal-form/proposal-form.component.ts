@@ -12,10 +12,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserRoleType } from '../../../../core/models/user-role';
 import { ProposalService } from '../../services/proposal.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 
 @Component({
   selector: 'app-proposal-form',
-  imports: [ReactiveFormsModule ,ButtonComponent, FileUploadModalComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent],
   templateUrl: './proposal-form.component.html',
   styleUrls: ['./proposal-form.component.css']
 })

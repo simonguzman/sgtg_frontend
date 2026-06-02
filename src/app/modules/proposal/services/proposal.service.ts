@@ -12,6 +12,7 @@ import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { Document } from '../../../core/interfaces/Document.interface';
 import { UserRoleType } from '../../../core/models/user-role';
 import { stateList } from '../../../core/enums/state.enum';
+import { addBusinessDays } from '../../../core/utils/date-utils';
 
 @Injectable({
   providedIn: 'root'
@@ -29,10 +30,13 @@ export class ProposalService {
   }
 
   createProposalMock(proposal: Proposal): Observable<Proposal> {
+    const nowDate = new Date;
+    const deadlineDate = addBusinessDays(nowDate, 10);
     const newProposal: Proposal = {
       ...proposal,
       id: Math.random().toString(36).substring(2, 11),
-      createdAt: new Date(),
+      createdAt: nowDate,
+      evaluationDeadline: deadlineDate,
       state: stateList.EN_REVISION,
       documents: proposal.documents ? proposal.documents.map(doc => ({
         ...doc,

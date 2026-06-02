@@ -69,6 +69,7 @@
   --text-size-header-title:  20px; /* Título principal del header          */
   --text-size-modal-title:   24px; /* Títulos dentro de modales            */
   --text-title-section:      28px; /* Título de página (H1/H2)             */
+  --text-file:               36px;
   --font-bold-weight:        700;
   --font-semibold-weight:    600;
   --font-regular-weight:     400;

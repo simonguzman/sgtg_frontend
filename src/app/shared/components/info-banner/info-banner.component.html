@@ -1,0 +1,11 @@
+<div class="bg-blue-50 border-l-4 border-state-in-development p-5 rounded-r-xl mb-6 shadow-sm">
+  <div class="flex items-start gap-3">
+    <span class="material-symbols-outlined text-state-in-development mt-0.5">{{ icon() }}</span>
+    <div>
+      <h3 class="font-bold text-state-in-development text-size-section mb-1">{{ title() }}</h3>
+      <p class="text-black text-size-body leading-relaxed">
+        <ng-content></ng-content>
+      </p>
+    </div>
+  </div>
+</div>

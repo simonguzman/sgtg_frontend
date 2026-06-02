@@ -4,6 +4,7 @@ import { ProposalStorageService } from './proposal-storage.service';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { Document } from '../../../core/interfaces/Document.interface';
 import { stateList } from '../../../core/enums/state.enum';
+import { addBusinessDays } from '../../../core/utils/date-utils';
 
 @Injectable({
   providedIn: 'root'
@@ -21,11 +22,21 @@ export class ProposalDocumentService {
         this.storage.updateProposals(list => list.map(p => {
           if (p.id !== proposalId) return p;
 
+          // Si la fecha actual supera el deadline, se marca como retrasada
+          const evaluatedLate = p.evaluationDeadline
+            ? new Date() > new Date(p.evaluationDeadline)
+            : false;
+
           const updatedProposal = {
             ...p,
             state: evaluation.veredict,
             evaluations: [
-              { ...evaluation, id: Math.random().toString(36).substring(2, 7) },
+              {
+                ...evaluation,
+                id: Math.random().toString(36).substring(2, 7),
+                date: new Date(),
+                isDelayed: evaluatedLate // <--- Registrado para tus estadísticas futuras
+              },
               ...(p.evaluations || [])
             ]
           };
@@ -48,9 +59,17 @@ export class ProposalDocumentService {
     return of(undefined).pipe(
       delay(1200),
       tap(() => {
+        const now = new Date();
+        const newDeadline = addBusinessDays(now, 10); // <--- Reiniciamos el reloj (10 días hábiles)
+
         this.storage.updateProposals(list =>
           list.map(p => p.id === proposalId
-            ? { ...p, documents: [newDoc, ...(p.documents || [])], state: stateList.EN_REVISION }
+            ? {
+                ...p,
+                documents: [newDoc, ...(p.documents || [])],
+                state: stateList.EN_REVISION,
+                evaluationDeadline: newDeadline // <--- Asignamos el nuevo plazo
+              }
             : p
           )
         );

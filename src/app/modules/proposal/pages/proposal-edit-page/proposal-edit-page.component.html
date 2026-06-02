@@ -3,7 +3,7 @@
     (click)="goBack()"
     class="flex items-center gap-2 text-navy-900 hover:text-navy-700 transition-colors font-bold group"
   >
-    <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
+    <span class="material-symbols-outlined text-[#000066] font-semibold text-size-sidebar-title font-display group-hover:-translate-x-1 transition-transform">
       arrow_back
     </span>
     <span class="return-arrow-option">Regresar</span>
@@ -11,6 +11,10 @@
 </div>
 
 @if (proposalToEdit()) {
+  <app-info-banner title="Edición de propuesta registrada" class="mb-6 block">
+    Modifique la información necesaria o actualice el documento adjunto. Tenga en cuenta que los cambios guardados se <strong>reflejarán inmediatamente</strong> en el sistema para todos los participantes del trabajo de grado.
+  </app-info-banner>
+
   <app-proposal-form
     [proposal]="proposalToEdit()"
     (onSubmit)="handleUpdate($event)"

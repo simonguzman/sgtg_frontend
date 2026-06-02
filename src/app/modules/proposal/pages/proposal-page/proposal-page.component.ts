@@ -8,6 +8,7 @@ import { Column, TableButton, TableComponent } from '../../../../shared/componen
 import { DescriptionModalComponent } from '../../../../shared/components/modals/description-modal/description-modal.component';
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { UserRoleType } from '../../../../core/models/user-role';
+import { getRemainingBusinessDays } from '../../../../core/utils/date-utils';
 
 const PROPOSAL_COLUMNS: Column[] = [
   { field: 'title', header: 'Titulo', type: 'text', width: '30%' },
@@ -20,6 +21,8 @@ const PROPOSAL_COLUMNS: Column[] = [
     width: 'auto'
   },
   { field: 'state', header: 'Estado', type: 'state', width: 'auto' },
+  // Nueva columna para visualizar el estado de la fecha límite basada en días hábiles
+  { field: 'deadlineStatus', header: 'Plazo Evaluación', type: 'text', width: 'auto' },
   {
     field: 'acciones',
     header: 'Acciones',
@@ -60,8 +63,14 @@ export class ProposalPageComponent implements OnInit {
 
     return this.rawProposals().map(proposal => {
       const isOwner = proposal.director?.id === currentUser?.id;
+
+      // Calculamos la etiqueta del plazo límite en días hábiles para esta propuesta
+      const badgeInfo = this.getDeadlineBadge(proposal.evaluationDeadline);
+
       return {
         ...proposal,
+        // Asignamos el texto formateado al campo de la columna 'deadlineStatus'
+        deadlineStatus: badgeInfo.label,
         allowedActions: (isAdmin || isOwner)
           ? ['ver descripcion', 'ver', 'editar', 'eliminar']
           : ['ver descripcion', 'ver']
@@ -71,9 +80,9 @@ export class ProposalPageComponent implements OnInit {
 
   descriptionModal = { show: false, title: '', content: '' };
   deleteState = {
-    show:    false,
-    id:      null as string | null,
-    title:   '',
+    show:     false,
+    id:       null as string | null,
+    title:    '',
     loading: false
   };
 
@@ -131,6 +140,34 @@ export class ProposalPageComponent implements OnInit {
       case 'Formatos descargables':
         this.router.navigate(['/proposal/downloadable_formats']);
         break;
+    }
+  }
+
+  getDeadlineBadge(deadline?: Date) {
+    if (!deadline) return { label: 'Sin límite', css: 'bg-gray-100 text-gray-700' };
+
+    const remainingDays = getRemainingBusinessDays(deadline);
+
+    if (remainingDays < 0) {
+      return {
+        label: `Plazo vencido (${Math.abs(remainingDays)} días hábiles de retraso)`,
+        css: 'bg-red-100 text-red-700 font-bold border border-red-300'
+      };
+    } else if (remainingDays === 0) {
+      return {
+        label: '¡Vence hoy!',
+        css: 'bg-orange-100 text-orange-700 font-bold'
+      };
+    } else if (remainingDays <= 3) {
+      return {
+        label: `Quedan ${remainingDays} días hábiles`,
+        css: 'bg-yellow-100 text-yellow-700'
+      };
+    } else {
+      return {
+        label: `Quedan ${remainingDays} días hábiles`,
+        css: 'bg-green-100 text-green-700'
+      };
     }
   }
 

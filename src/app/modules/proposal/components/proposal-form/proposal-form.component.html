@@ -1,16 +1,22 @@
 <div class="p-6 bg-white rounded-lg">
   <form [formGroup]="proposalForm" (ngSubmit)="submit()" class="flex flex-col gap-8">
 
+    @if (!isEditMode) {
+      <app-info-banner title="Registro de nueva propuesta">
+        Diligencie los campos requeridos y cargue el documento de la propuesta (Formato A). Una vez registrada, el <strong>Comité del Programa</strong> será notificado para iniciar su evaluación. Por favor, <strong>revise bien la información</strong> antes de confirmar el registro.
+      </app-info-banner>
+    }
+
     <section>
       <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">Información de la propuesta</h3>
       <div class="flex flex-col gap-4">
 
         <div class="flex flex-col gap-1">
-          <label for="title" class="font-display font-semibold text-size-section title-textbox">Título <span class="text-orange-500">*</span></label>
+          <label for="title" class="font-display font-semibold text-size-section title-textbox">Título <span class="text-[#ED7D31]">*</span></label>
           <div class="relative flex items-center">
             <input id="title" type="text" formControlName="title" placeholder="Ej: Frontend de las funcionalidades..."
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-orange-500]="isFieldInvalid('title')"
+                   [class.border-[#ED7D31]]="isFieldInvalid('title')"
                    [class.input-success]="proposalForm.get('title')?.valid && proposalForm.get('title')?.touched">
             @if (proposalForm.get('title')?.valid && proposalForm.get('title')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -26,7 +32,7 @@
           <div class="relative flex items-center">
             <input id="description" type="text" formControlName="description" placeholder="Ej: Optimizar los procesos..."
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-orange-500]="isFieldInvalid('description')"
+                   [class.border-[#ED7D31]]="isFieldInvalid('description')"
                    [class.input-success]="proposalForm.get('description')?.valid && proposalForm.get('description')?.touched">
             @if (proposalForm.get('description')?.valid && proposalForm.get('description')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -42,8 +48,8 @@
           <div class="relative flex items-center">
             <select id="modality" formControlName="modality"
                     class="font-sans font-normal text-size-body custom-select p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10"
-                    [class.border-orange-500]="isFieldInvalid('modality')"
-                    [class.text-gray-400]="!proposalForm.get('modality')?.value"
+                    [class.border-[#ED7D31]]="isFieldInvalid('modality')"
+                    [class.text-[#777680]]="!proposalForm.get('modality')?.value"
                     [class.text-textbox]="proposalForm.get('modality')?.value"
                     [class.input-success]="proposalForm.get('modality')?.valid && proposalForm.get('modality')?.touched">
               <option value="" disabled>Modalidad</option>
@@ -71,8 +77,8 @@
           <div class="relative flex items-center">
             <select id="student1" formControlName="student1"
                     class="font-sans font-normal text-size-body custom-select p-2 border rounded-md w-full bg-gray-50 pr-10 focus:ring-1 focus:ring-primary"
-                    [class.border-orange-500]="isFieldInvalid('student1')"
-                    [class.text-gray-400]="!proposalForm.get('student1')?.value"
+                    [class.border-[#ED7D31]]="isFieldInvalid('student1')"
+                    [class.text-[#777680]]="!proposalForm.get('student1')?.value"
                     [class.text-textbox]="proposalForm.get('student1')?.value"
                     [class.input-success]="proposalForm.get('student1')?.valid && proposalForm.get('student1')?.touched">
               <option value="" disabled selected>Seleccione un estudiante</option>
@@ -95,7 +101,7 @@
           <div class="relative flex items-center">
             <select id="student2" formControlName="student2"
                     class="font-sans font-normal text-size-body custom-select p-2 border rounded-md w-full bg-gray-50 pr-10 focus:ring-1 focus:ring-primary"
-                    [class.text-gray-400]="!proposalForm.get('student2')?.value"
+                    [class.text-[#777680]]="!proposalForm.get('student2')?.value"
                     [class.text-textbox]="proposalForm.get('student2')?.value">
               <option value="">Ninguno / Seleccione estudiante</option>
               @for (student of filteredStudentsForS2(); track student.id) {
@@ -111,7 +117,7 @@
           <div class="relative flex items-center">
             <select id="codirector" formControlName="codirector"
                     class="font-sans font-normal text-size-body custom-select p-2 border rounded-md w-full bg-gray-50 pr-10 focus:ring-1 focus:ring-primary"
-                    [class.text-gray-400]="!proposalForm.get('codirector')?.value"
+                    [class.text-[#777680]]="!proposalForm.get('codirector')?.value"
                     [class.text-textbox]="proposalForm.get('codirector')?.value">
               <option value="" disabled>Seleccionar codirector</option>
               @for (teacher of teachers(); track teacher.id) {
@@ -128,8 +134,8 @@
             <div class="relative flex items-center">
               <select id="advisor" formControlName="advisor"
                       class="font-sans font-normal text-size-body custom-select p-2 border rounded-md w-full bg-gray-50 pr-10 focus:ring-1 focus:ring-primary"
-                      [class.border-orange-500]="isFieldInvalid('advisor')"
-                      [class.text-gray-400]="!proposalForm.get('advisor')?.value"
+                      [class.border-[#ED7D31]]="isFieldInvalid('advisor')"
+                      [class.text-[#777680]]="!proposalForm.get('advisor')?.value"
                       [class.text-textbox]="proposalForm.get('advisor')?.value"
                       [class.input-success]="proposalForm.get('advisor')?.valid && proposalForm.get('advisor')?.touched">
                 <option value="" disabled>Seleccionar asesor</option>
@@ -151,47 +157,66 @@
     </section>
 
     <section class="mt-2">
-      <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">Formato de propuesta (Formato A)</h3>
-      <div class="flex flex-wrap justify-between items-center mt-4 gap-4">
-        @if (isFieldInvalid('document')) {
-          <span class="text-textbox-alert">
-            Debe adjuntar el documento de la propuesta
-          </span>
-        }
-        <div class="flex items-center">
-          @if (attachedFile.hasFile) {
-            <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-white shadow-sm min-w-75">
-              <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-[#DB141C] text-3xl">picture_as_pdf</span>
-                <div class="flex flex-col">
-                  <span class="text-size-body font-bold text-primary max-w-50 truncate" [title]="attachedFile.name">{{ attachedFile.name }}</span>
-                  <span class="text-size-role-footer text-[#777680] font-sans">Cargado por el estudiante</span>
-                </div>
-              </div>
-              <button type="button" (click)="removeFile()" class="text-gray-400 hover:text-red-500 transition-colors ml-4 flex items-center justify-center">
-                <span class="material-symbols-outlined text-xl">close</span>
-              </button>
-            </div>
-          }
-        </div>
+      <h3 class="font-display font-semibold text-primary text-size-header-title mb-6 border-b pb-2">Archivos adjuntos</h3>
 
-        <div class="flex items-center gap-2">
-          @if (!attachedFile.hasFile) {
+      @if (!attachedFile.hasFile) {
+        <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-6">
+          No ha sido cargado ningún archivo, para realizar el registro de la propuesta de grado debe cargar el formato de propuesta (Formato A) para poder continuar con el proceso.
+        </div>
+      }
+
+      <div class="flex flex-col gap-4">
+        <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm"
+             [class.border-[#777680]]="!isFieldInvalid('document')"
+             [class.border-[#ED7D31]]="isFieldInvalid('document')"
+             [class.border-l-4]="attachedFile.hasFile"
+             [class.border-l-state-approved]="attachedFile.hasFile">
+
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-4xl"
+                  [class.text-state-approved]="attachedFile.hasFile"
+                  [class.text-[#ED7D31]]="isFieldInvalid('document')"
+                  [class.text-[#777680]]="!attachedFile.hasFile && !isFieldInvalid('document')">
+              {{ attachedFile.hasFile ? 'task' : 'picture_as_pdf' }}
+            </span>
+            <div class="flex flex-col">
+              <span class="text-size-body font-bold"
+                    [class.text-primary]="attachedFile.hasFile"
+                    [class.text-[#ED7D31]]="isFieldInvalid('document')">
+                {{ attachedFile.name || 'Formato de propuesta (Formato A)' }}
+              </span>
+              <span class="text-size-role-footer text-[#777680]">Documento de la propuesta (Obligatorio)</span>
+              @if (isFieldInvalid('document')) {
+                <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span>
+              }
+            </div>
+          </div>
+
+          @if (attachedFile.hasFile) {
+            <button type="button" (click)="removeFile()" class="text-[#777680] hover:text-[#DB141C]">
+              <span class="material-symbols-outlined">delete</span>
+            </button>
+          } @else {
             <app-button-component
-              label="Cargar formato de propuesta"
+              label="Cargar propuesta(Formato A)"
               variant="secondary"
               type="button"
-              (click)="uploadModalOpen = true"
-            ></app-button-component>
+              (onClick)="uploadModalOpen = true"
+              (click)="uploadModalOpen = true">
+            </app-button-component>
           }
-          <app-button-component
-            [label]="isEditMode ? 'Actualizar propuesta' : 'Registrar propuesta'"
-            variant="primary"
-            type="submit"
-          ></app-button-component>
         </div>
       </div>
+
+      <div class="flex gap-4 justify-end mt-10">
+        <app-button-component
+          [label]="isEditMode ? 'Actualizar propuesta' : 'Registrar propuesta'"
+          variant="primary"
+          type="submit">
+        </app-button-component>
+      </div>
     </section>
+
   </form>
 </div>
 

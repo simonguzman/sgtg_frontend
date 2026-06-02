@@ -9,12 +9,13 @@ import { ConfirmationActionModalComponent } from "../../../../shared/components/
 import { ProposalFormComponent } from "../../components/proposal-form/proposal-form.component";
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { UserRoleType } from '../../../../core/models/user-role';
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 
 @Component({
   selector: 'app-proposal-edit-page',
   templateUrl: './proposal-edit-page.component.html',
   styleUrls: ['./proposal-edit-page.component.css'],
-  imports: [ConfirmationActionModalComponent, ProposalFormComponent]
+  imports: [ConfirmationActionModalComponent, ProposalFormComponent, InfoBannerComponent]
 })
 export class ProposalEditPageComponent implements OnInit {
 

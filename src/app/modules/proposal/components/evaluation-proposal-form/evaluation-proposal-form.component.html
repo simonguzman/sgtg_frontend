@@ -1,0 +1,211 @@
+<div class="pt-2 max-w-4xl mx-auto pb-10">
+
+  <div class="mb-6">
+    <button (click)="goBack()"
+      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold-weight group">
+      <span class="material-symbols-outlined text-[#000066] font-semibold text-size-sidebar-title font-display group-hover:-translate-x-1 transition-transform">
+        arrow_back
+      </span>
+      <span class="return-arrow-option">Regresar</span>
+    </button>
+  </div>
+
+  @if (!proposal()) {
+    <div class="text-center text-[#777680] font-display font-bold my-10">
+      Cargando información de la propuesta...
+    </div>
+  }
+
+  @if (proposal(); as proposal) {
+
+    <app-info-banner title="Evaluación de propuesta de grado" class="mb-8 block">
+      Revise detenidamente la información del proyecto y descargue el documento adjunto. Posteriormente, seleccione el veredicto oficial del Comité, redacte las observaciones pertinentes y <strong>cargue obligatoriamente el Formato A debidamente firmado</strong> para oficializar la decisión.
+    </app-info-banner>
+
+    <section class="mb-10 bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+      <h3 class="font-display font-semibold text-primary text-size-header-title mb-6 border-b pb-2">
+        Información del formato de propuesta
+      </h3>
+
+      <div class="flex flex-col gap-4">
+        @for (field of [
+          { label: 'Título',                         value: proposal.title                    },
+          { label: 'Fecha de carga',                 value: documentUploadDate         },
+          { label: 'Modalidad del trabajo de grado', value: proposal.modality                 },
+          { label: 'Estudiante(s)',                  value: getStudentNames(proposal.authors) }
+        ]; track field.label) {
+          <div class="flex flex-col gap-1">
+            <span class="font-display font-semibold text-primary text-size-section">{{ field.label }}</span>
+            <input type="text" [value]="field.value" disabled
+                  class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed">
+          </div>
+        }
+
+        <div class="flex flex-col gap-1">
+          <span class="font-display font-semibold text-primary text-size-section">Director</span>
+          <input type="text" [value]="getDirectorName(proposal.director.id)" disabled
+                class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed">
+        </div>
+
+        @if (proposal.codirector) {
+          <div class="flex flex-col gap-1">
+            <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
+            <input type="text" [value]="getCodirectorName(proposal.codirector.id)" disabled
+                  class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed">
+          </div>
+        }
+
+        @if (proposal.advisor) {
+          <div class="flex flex-col gap-1">
+            <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
+            <input type="text" [value]="getAdvisorName(proposal.advisor.id)" disabled
+                  class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed">
+          </div>
+        }
+
+        <div class="flex flex-col gap-1">
+          <span class="font-display font-semibold text-primary text-size-section">Estado actual</span>
+          <input type="text" [value]="proposal.state" disabled
+                class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed">
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+      <h3 class="font-display font-semibold text-primary text-size-header-title mb-6 border-b pb-2">
+        Resultado de la evaluación
+      </h3>
+
+      <form [formGroup]="evaluationForm" (ngSubmit)="initiateEvaluationSubmit()" class="flex flex-col gap-6">
+
+        <div class="flex items-center justify-center gap-8 py-2 bg-gray-50 rounded-md">
+          @for (option of [
+            { value: 'Aprobado',    color: 'text-green-600' },
+            { value: 'No aprobado', color: 'text-red-600'   }
+          ]; track option.value) {
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" formControlName="result" [value]="option.value"
+                     class="w-4 h-4 focus:ring-[#000066]">
+              <span class="text-size-body font-sans text-[#777680]">{{ option.value }}</span>
+            </label>
+          }
+        </div>
+
+        @if (evaluationForm.get('result')?.invalid && evaluationForm.get('result')?.touched) {
+          <span class="text-textbox-alert text-center -mt-2">
+            Debe seleccionar un resultado de evaluación
+          </span>
+        }
+
+        <div class="flex flex-col gap-1">
+          <span class="font-display font-semibold text-primary text-size-section">Comentarios u Observaciones</span>
+          <textarea formControlName="comments" rows="4"
+            class="font-sans font-normal text-size-section text-[#777680] p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-[#000066]"
+            [class.border-[#ED7D31]]="evaluationForm.get('comments')?.invalid && evaluationForm.get('comments')?.touched"
+            placeholder="Ingrese los comentarios detallados de la revisión aquí...">
+          </textarea>
+          @if (evaluationForm.get('comments')?.invalid && evaluationForm.get('comments')?.touched) {
+            <span class="text-textbox-alert">Los comentarios son obligatorios</span>
+          }
+        </div>
+
+        <div class="flex flex-col gap-4 mt-2">
+          <h3 class="font-display font-semibold text-primary text-size-header-title mb-2 border-b pb-2">Archivos adjuntos</h3>
+
+          @if (!signedFile()) {
+            <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-size-body text-[#777680] mb-2">
+              No ha sido cargado ningún archivo de veredicto. Para guardar la evaluación, es mandatorio adjuntar el formato de propuesta (Formato A) firmado por el comité evaluador.
+            </div>
+          }
+
+          <div class="flex flex-col gap-4">
+
+            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+              <div class="flex items-center gap-3 overflow-hidden">
+                <span class="material-symbols-outlined text-[#DB141C] text-file shrink-0">picture_as_pdf</span>
+                <div class="flex flex-col overflow-hidden">
+                  <span class="text-size-body font-bold text-primary truncate">
+                    {{ originalDocument?.name ?? 'Documento no disponible' }}
+                  </span>
+                  <span class="text-size-role-footer text-[#777680] font-sans">Documento de propuesta radicado</span>
+                </div>
+              </div>
+              <app-button-component
+                label="Descargar"
+                variant="primary"
+                type="button"
+                (onClick)="downloadOriginalDocument()"
+              ></app-button-component>
+            </div>
+
+            <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm transition-all"
+              [class.border-gray-200]="!isFileInvalid && !signedFile()"
+              [class.border-[#ED7D31]]="isFileInvalid"
+              [class.border-l-4]="signedFile()"
+              [class.border-l-state-approved]="signedFile()">
+
+              <div class="flex items-center gap-3 overflow-hidden">
+                <span class="material-symbols-outlined text-4xl shrink-0"
+                      [class.text-state-approved]="signedFile()"
+                      [class.text-[#ED7D31]]="isFileInvalid"
+                      [class.text-[#777680]]="!signedFile() && !isFileInvalid">
+                  {{ signedFile() ? 'task' : 'picture_as_pdf' }}
+                </span>
+                <div class="flex flex-col overflow-hidden">
+                  <span class="text-size-body font-bold truncate"
+                        [class.text-primary]="signedFile()"
+                        [class.text-[#ED7D31]]="isFileInvalid">
+                    {{ signedFile()?.name || 'Formato de evaluación firmado (Formato A)' }}
+                  </span>
+                  <span class="text-size-role-footer text-[#777680]">Documento de evaluación de la propuesta (Obligatorio)</span>
+
+                  @if (isFileInvalid) {
+                    <span class="text-size-body text-textbox-alert mt-1 font-sans">Este archivo es requerido para registrar la evaluación</span>
+                  }
+                </div>
+              </div>
+
+              @if (signedFile()) {
+                <button type="button" (click)="removeSignedFile()" class="text-[#777680] hover:text-[#DB141C] shrink-0 ml-4">
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
+              } @else {
+                <app-button-component
+                  label="Cargar formato a firmado"
+                  variant="secondary"
+                  type="button"
+                  (onClick)="setUploadModal(true)">
+                </app-button-component>
+              }
+            </div>
+
+          </div>
+        </div>
+
+        <div class="flex gap-4 justify-end mt-6">
+          <app-button-component
+            label="Guardar Evaluación"
+            variant="primary"
+            type="submit"
+          ></app-button-component>
+        </div>
+
+      </form>
+    </section>
+  }
+</div>
+
+<app-file-upload-modal
+  [isOpen]="modalState().upload"
+  description="Subir formato de evaluación firmado"
+  uploadedBy="Cargado por el evaluador"
+  (onFileUploaded)="handleFileUploaded($event)"
+  (onClose)="setUploadModal(false)"
+></app-file-upload-modal>
+
+<app-confirmation-action-modal
+  [isOpen]="modalState().confirm"
+  description="¿Está seguro de guardar esta evaluación? Se notificará al estudiante y se actualizará el estado de la propuesta."
+  (onClose)="cancelEvaluation()"
+  (confirm)="confirmEvaluation()"
+></app-confirmation-action-modal>

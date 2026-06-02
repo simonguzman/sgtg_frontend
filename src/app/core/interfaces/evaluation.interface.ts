@@ -12,4 +12,5 @@ export interface Evaluation {
   observations: string;
   signedDocuments?: string[];
   date: Date;
+  isDelayed?: boolean;
 }
