@@ -72,11 +72,11 @@
         <div class="flex items-center justify-center gap-8">
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="radio" formControlName="result" value="Aprobado" [attr.disabled]="isReadOnly ? true : null">
-            <span class="text-sm font-sans text-[#777680]">Aprobado</span>
+            <span class="text-size-body font-sans text-[#777680]">Aprobado</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="radio" formControlName="result" value="No aprobado" [attr.disabled]="isReadOnly ? true : null">
-            <span class="text-sm font-sans text-[#777680]">No aprobado</span>
+            <span class="text-size-body font-sans text-[#777680]">No aprobado</span>
           </label>
         </div>
         @if (isFieldInvalid('result')) {
@@ -88,7 +88,7 @@
         <label for="comments" class="font-display font-semibold text-primary text-size-section">Observaciones del consejo <span class="text-orange-500">*</span></label>
         <textarea id="comments" formControlName="comments" rows="4" [attr.disabled]="isReadOnly ? true : null"
           class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans"
-          [class.border-orange-500]="isFieldInvalid('comments')"
+          [class.border-[#ED7D31]]="isFieldInvalid('comments')"
           [class.input-success]="evaluationForm.get('comments')?.valid && evaluationForm.get('comments')?.touched"
           placeholder="Ingrese los detalles de la resolución..."></textarea>
         @if (isFieldInvalid('comments')) {
@@ -102,10 +102,10 @@
         <div class="flex flex-col gap-3">
           <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
             <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
+              <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
               <div class="flex flex-col">
-                <span class="text-sm font-bold text-primary">{{ signedProposalDocument?.name || 'Formato A' }}</span>
-                <span class="text-xs text-[#777680]">Propuesta original aprobada por comité</span>
+                <span class="text-size-body font-bold text-primary">{{ signedProposalDocument?.name || 'Formato A' }}</span>
+                <span class="text-size-role-footer text-[#777680]">Propuesta original aprobada por comité</span>
               </div>
             </div>
             <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(signedProposalDocument!)"></app-button-component>
@@ -114,10 +114,10 @@
           @for (evalFile of evaluationFiles; track evalFile.name) {
             <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
               <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
+                <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
                 <div class="flex flex-col">
-                  <span class="text-sm font-bold text-primary">{{ evalFile.name }}</span>
-                  <span class="text-xs text-[#777680]">Evaluación docente: {{ evalFile.evaluator }}</span>
+                  <span class="text-size-body font-bold text-primary">{{ evalFile.name }}</span>
+                  <span class="text-size-role-footer text-[#777680]">Evaluación docente: {{ evalFile.evaluator }}</span>
                 </div>
               </div>
               <app-button-component label="Descargar" variant="primary"></app-button-component>
@@ -126,10 +126,10 @@
 
           <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
             <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
+              <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
               <div class="flex flex-col">
-                <span class="text-sm font-bold text-primary">{{ approvedPreliminaryDraftDocument?.name || 'Anteproyecto' }}</span>
-                <span class="text-xs text-[#777680]">Documento de anteproyecto aprobado</span>
+                <span class="text-size-body font-bold text-primary">{{ approvedPreliminaryDraftDocument?.name || 'Anteproyecto' }}</span>
+                <span class="text-size-role-footer text-[#777680]">Documento de anteproyecto aprobado</span>
               </div>
             </div>
             <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(approvedPreliminaryDraftDocument!)"></app-button-component>
@@ -137,10 +137,10 @@
 
           <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
             <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
+              <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
               <div class="flex flex-col">
-                <span class="text-sm font-bold text-primary">{{ presentationDocument?.name || 'Presentación' }}</span>
-                <span class="text-xs text-[#777680]">Cargado por el jefe de departamento</span>
+                <span class="text-size-body font-bold text-primary">{{ presentationDocument?.name || 'Presentación' }}</span>
+                <span class="text-size-role-footer text-[#777680]">Cargado por el jefe de departamento</span>
               </div>
             </div>
             <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(presentationDocument!)"></app-button-component>
@@ -149,10 +149,10 @@
           @if (uploadedSignedFile(); as signed) {
             <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-green-500">
               <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
+                <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
                 <div class="flex flex-col">
-                  <span class="text-sm font-bold text-primary">{{ signed.fileName }}</span>
-                  <span class="text-xs text-[#777680]">Resolución del consejo de facultad</span>
+                  <span class="text-size-body font-bold text-primary">{{ signed.fileName }}</span>
+                  <span class="text-size-role-footer text-[#777680]">Resolución del consejo de facultad</span>
                 </div>
               </div>
               @if (!isReadOnly) {

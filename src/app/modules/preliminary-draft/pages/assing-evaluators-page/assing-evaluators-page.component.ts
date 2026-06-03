@@ -5,6 +5,7 @@ import { PreliminaryDraftService } from '../../services/preliminary-draft.servic
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 
 import { AssignEvaluatorsFormComponent } from "../../components/assign-evaluators-form/assign-evaluators-form.component";
+import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 
@@ -12,7 +13,7 @@ import { NotificationType } from '../../../../shared/components/notifications/mo
   selector: 'app-assing-evaluators-page',
   templateUrl: './assing-evaluators-page.component.html',
   styleUrls: ['./assing-evaluators-page.component.css'],
-  imports: [AssignEvaluatorsFormComponent]
+  imports: [AssignEvaluatorsFormComponent, ConfirmationActionModalComponent]
 })
 export class AssingEvaluatorsPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
@@ -24,10 +25,17 @@ export class AssingEvaluatorsPageComponent implements OnInit {
   selectedPreliminaryDraft = signal<PreliminaryDraft | null>(null);
   isDataLoading = signal<boolean>(true);
 
+  // Estado para controlar el modal de confirmación
+  confirmState = signal({
+    isOpen: false,
+    pendingData: null as { ev1: string; ev2: string } | null,
+    isProcessing: false
+  });
+
   ngOnInit(): void {
     const resolvedId = this.route.snapshot.paramMap.get('id') ??
-                      this.route.parent?.snapshot.paramMap.get('id') ??
-                      this.route.parent?.parent?.snapshot.paramMap.get('id');
+                       this.route.parent?.snapshot.paramMap.get('id') ??
+                       this.route.parent?.parent?.snapshot.paramMap.get('id');
     if (!resolvedId) {
       this.showNavigationErrorNotification();
       this.goBack();
@@ -57,21 +65,41 @@ export class AssingEvaluatorsPageComponent implements OnInit {
   }
 
   handleAssign(evaluators: { ev1: string; ev2: string }): void {
+    // En lugar de disparar el servicio de inmediato, abrimos el modal
+    this.confirmState.set({
+      isOpen: true,
+      pendingData: evaluators,
+      isProcessing: false
+    });
+  }
+
+  confirmAssignment(): void {
+    const { pendingData, isProcessing } = this.confirmState();
     const preliminaryDraft = this.selectedPreliminaryDraft();
-    if (!preliminaryDraft?.preliminaryDraftId) return;
+
+    if (!pendingData || !preliminaryDraft?.preliminaryDraftId || isProcessing) return;
+
+    this.confirmState.update(state => ({ ...state, isProcessing: true }));
     this.showProcessingNotification();
+
     this.preliminaryDraftService.assignReviewersMock(
       preliminaryDraft.preliminaryDraftId,
-      [evaluators.ev1, evaluators.ev2]
+      [pendingData.ev1, pendingData.ev2]
     ).subscribe({
       next: () => {
         this.showAssingEvaluatorsSuccessNotification();
+        this.confirmState.set({ isOpen: false, pendingData: null, isProcessing: false });
         this.goBack();
       },
       error: () => {
+        this.confirmState.update(state => ({ ...state, isProcessing: false, isOpen: false }));
         this.showConnectionErrorNotification();
       }
     });
+  }
+
+  cancelAssignment(): void {
+    this.confirmState.set({ isOpen: false, pendingData: null, isProcessing: false });
   }
 
   goBack(): void {

@@ -13,17 +13,22 @@ import { UserRoleType } from '../../../../core/models/user-role';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { stateList } from '../../../../core/enums/state.enum';
 
+// Importación de la utilidad adaptada (Ajusta la ruta relativa si es necesario en tu estructura)
+import { getRemainingBusinessDays } from '../../../../core/utils/date-utils';
+
 const PRELIMINARY_DRAFT_COLUMNS: Column[] = [
-  { field: 'title', header: 'Titulo', type: 'text', width: '30%' },
+  { field: 'title', header: 'Titulo', type: 'text', width: '25%' },
   { field: 'modality', header: 'Modalidad', type: 'text', width: '15%' },
   {
     field: 'description',
     header: 'Descripción',
     type: 'actions',
     actions: [{ action: 'ver descripción', label: 'Ver descripción', variant: 'primary', disabled: false }],
-    width: '20%'
+    width: '15%'
   },
   { field: 'state', header: 'Estado', type: 'state', width: '15%' },
+  // Nueva columna para visibilizar de forma transparente el acuerdo de nivel de servicio (SLA) de 10 días
+  { field: 'remainingTime', header: 'Plazo Evaluación', type: 'text', width: '15%' },
   {
     field: 'actions',
     header: 'Acciones',
@@ -33,7 +38,7 @@ const PRELIMINARY_DRAFT_COLUMNS: Column[] = [
       { action: 'editar', icon: 'edit', variant: 'primary', disabled: false },
       { action: 'eliminar', icon: 'delete', variant: 'primary', disabled: false }
     ],
-    width: '20%'
+    width: '15%'
   },
 ];
 
@@ -81,20 +86,44 @@ export class PreliminaryDraftPageComponent implements OnInit {
         ? proposal.authors.some(author => author.id === currentUserId)
         : false;
       const isAssignedEvaluator = isUserInList(preliminaryDraft.evaluators);
+
       const hasViewPermission = hasFullAccessRole || isDirector || isCodirector || isAdvisor || isStudentAuthor || isAssignedEvaluator;
       const isOwnerOrAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]) || isDirector;
       const isAproved = preliminaryDraft.state === stateList.APROBADO;
+
       let allowed: string[] = ['ver descripción'];
       if (hasViewPermission) allowed.push('ver');
       if (isOwnerOrAdmin && !isAproved) {
         allowed.push('editar', 'eliminar');
       }
+
+      // --- Mapeo Lógico y Modular del Plazo de 10 Días Hábiles ---
+      let remainingTimeLabel = 'No asignado';
+
+      if (preliminaryDraft.evaluationDeadline) {
+        const days = getRemainingBusinessDays(preliminaryDraft.evaluationDeadline);
+
+        if (days > 0) {
+          remainingTimeLabel = `${days} días hábiles`;
+        } else if (days === 0) {
+          remainingTimeLabel = 'Vence hoy';
+        } else {
+          remainingTimeLabel = `Vencido hace ${Math.abs(days)} días`;
+        }
+      }
+
+      // Si el flujo ya culminó con éxito, limpiamos la etiqueta de tiempo para no confundir al usuario
+      if (preliminaryDraft.state === stateList.APROBADO) {
+        remainingTimeLabel = 'Evaluación completada';
+      }
+
       return {
         id: preliminaryDraft.preliminaryDraftId,
         title: proposal?.title || 'Sin título',
         description: proposal?.description,
         modality: proposal?.modality || 'No definida',
         state: preliminaryDraft.state,
+        remainingTime: remainingTimeLabel, // Inyección de la propiedad vinculada al 'field' de la columna
         allowedActions: allowed
       };
     });

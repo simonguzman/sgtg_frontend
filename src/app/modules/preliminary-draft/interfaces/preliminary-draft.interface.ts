@@ -13,4 +13,5 @@ export interface PreliminaryDraft {
   documents: Document[];
   state: stateList;
   createdData: Date;
+  evaluationDeadline?: Date | string;
 }

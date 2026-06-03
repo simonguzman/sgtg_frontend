@@ -28,7 +28,7 @@
   </div>
 
   @if (!preliminayDraftDetails()) {
-    <div class="text-center text-gray-500 font-display my-10">
+    <div class="text-center text-[#777680] font-display my-10">
       Cargando información del anteproyecto...
     </div>
   }
@@ -89,7 +89,7 @@
     <div class="flex flex-col gap-3">
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
         <div class="flex items-center gap-3 overflow-hidden">
-          <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+          <span class="material-symbols-outlined text-[#DB141C] text-file shrink-0">picture_as_pdf</span>
           <div class="flex flex-col overflow-hidden">
             <span class="text-size-body font-bold text-primary truncate">
               {{ mainDocument()?.name || 'Documento_Anteproyecto.pdf' }}

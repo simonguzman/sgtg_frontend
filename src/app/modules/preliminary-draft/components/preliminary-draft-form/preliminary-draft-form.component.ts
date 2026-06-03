@@ -17,12 +17,13 @@ import { Document, DocumentType } from '../../../../core/interfaces/Document.int
 import { User } from '../../../users/interfaces/user.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 
 @Component({
   selector: 'app-preliminary-draft-form',
   templateUrl: './preliminary-draft-form.component.html',
   styleUrls: ['./preliminary-draft-form.component.css'],
-  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, NgTemplateOutlet]
+  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, NgTemplateOutlet, InfoBannerComponent]
 })
 export class PreliminaryDraftFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);

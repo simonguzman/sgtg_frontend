@@ -1,6 +1,10 @@
 <div class="p-4">
   <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-8">
 
+    <app-info-banner title="Asignación de jurados evaluadores">
+      Seleccione los docentes encargados de realizar la evaluación de este anteproyecto. Recuerde <strong>verificar los posibles conflictos de interés</strong> antes de proceder con la asignación. Una vez confirmada, los jurados serán notificados para iniciar su proceso de revisión.
+    </app-info-banner>
+
     <section>
       <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">
         Información del anteproyecto
@@ -56,8 +60,8 @@
             <select
               formControlName="evaluator1"
               class="font-sans font-normal text-size-body custom-select p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10"
-              [class.border-orange-500]="isFieldInvalid('evaluator1')"
-              [class.text-gray-400]="!form.get('evaluator1')?.value"
+              [class.border-[#ED7D31]]="isFieldInvalid('evaluator1')"
+              [class.text-[#777680]]="!form.get('evaluator1')?.value"
               [class.text-textbox]="form.get('evaluator1')?.value"
               [class.input-success]="form.get('evaluator1')?.valid && form.get('evaluator1')?.touched"
             >
@@ -84,8 +88,8 @@
             <select
               formControlName="evaluator2"
               class="font-sans font-normal text-size-body custom-select p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10"
-              [class.border-orange-500]="isFieldInvalid('evaluator2')"
-              [class.text-gray-400]="!form.get('evaluator2')?.value"
+              [class.border-[#ED7D31]]="isFieldInvalid('evaluator2')"
+              [class.text-[#777680]]="!form.get('evaluator2')?.value"
               [class.text-textbox]="form.get('evaluator2')?.value"
               [class.input-success]="form.get('evaluator2')?.valid && form.get('evaluator2')?.touched"
             >

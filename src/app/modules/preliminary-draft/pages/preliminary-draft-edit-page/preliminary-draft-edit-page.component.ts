@@ -12,12 +12,13 @@ import { UserRoleType } from '../../../../core/models/user-role';
 
 import { PreliminaryDraftFormComponent } from "../../components/preliminary-draft-form/preliminary-draft-form.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 
 @Component({
   selector: 'app-preliminary-draft-edit-page',
   templateUrl: './preliminary-draft-edit-page.component.html',
   styleUrls: ['./preliminary-draft-edit-page.component.css'],
-  imports: [PreliminaryDraftFormComponent, ConfirmationActionModalComponent]
+  imports: [PreliminaryDraftFormComponent, ConfirmationActionModalComponent, InfoBannerComponent]
 })
 export class PreliminaryDraftEditPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);

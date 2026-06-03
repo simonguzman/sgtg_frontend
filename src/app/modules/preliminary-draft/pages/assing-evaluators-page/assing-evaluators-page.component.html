@@ -20,3 +20,10 @@
   }
 
 </div>
+
+<app-confirmation-action-modal
+  [isOpen]="confirmState().isOpen"
+  description="¿Está seguro de asignar a estos docentes como jurados evaluadores? Una vez confirmada la asignación, el plazo de evaluación de 10 días hábiles comenzará a correr."
+  (onClose)="cancelAssignment()"
+  (confirm)="confirmAssignment()"
+></app-confirmation-action-modal>

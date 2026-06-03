@@ -13,6 +13,7 @@ import { NotificationType } from '../../../../shared/components/notifications/mo
 
 import { ReviewPreliminaryDraftFormComponent } from "../../components/review-preliminary-draft-form/review-preliminary-draft-form.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
+
 @Component({
   selector: 'app-review-preliminary-draft-page',
   templateUrl: './review-preliminary-draft-page.component.html',
@@ -119,6 +120,11 @@ export class ReviewPreliminaryDraftPageComponent implements OnInit {
     } else {
       this.showDownloadErrorNotification();
     }
+  }
+
+  // MÉTODO AÑADIDO PARA RETORNAR
+  goBack(): void {
+    this.router.navigate(['../'], { relativeTo: this.route });
   }
 
   private showEvaluationSuccessNotification(isApproved: boolean) {

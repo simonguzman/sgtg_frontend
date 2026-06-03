@@ -1,4 +1,4 @@
-import { Component, computed, EventEmitter, inject, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
@@ -11,10 +11,11 @@ import { FileUploadModalComponent } from '../../../../shared/components/modals/f
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 
 @Component({
   selector: 'app-review-preliminary-draft-form',
-  imports: [CommonModule, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent],
   templateUrl: './review-preliminary-draft-form.component.html',
   styleUrls: ['./review-preliminary-draft-form.component.css']
 })

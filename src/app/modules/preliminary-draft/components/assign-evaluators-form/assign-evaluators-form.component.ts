@@ -13,10 +13,11 @@ import { PreliminaryDraftService } from '../../services/preliminary-draft.servic
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
+import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 
 @Component({
   selector: 'app-assign-evaluators-form',
-  imports: [ReactiveFormsModule, ButtonComponent, NgTemplateOutlet, DatePipe],
+  imports: [ReactiveFormsModule, ButtonComponent, NgTemplateOutlet, DatePipe, InfoBannerComponent],
   providers: [DatePipe],
   templateUrl: './assign-evaluators-form.component.html',
   styleUrls: ['./assign-evaluators-form.component.css']
@@ -123,12 +124,8 @@ export class AssignEvaluatorsFormComponent implements OnInit {
       });
       return;
     }
-    this.onSave.emit({ ev1: evaluator1!, ev2: evaluator2! });
 
-    this.notificationService.show({
-      title: 'Asignación preparada',
-      message: 'Se han seleccionado los evaluadores correctamente.',
-      type: NotificationType.CONFIRMATION
-    });
+    // Emitimos el evento, la página padre se encarga de abrir el modal
+    this.onSave.emit({ ev1: evaluator1!, ev2: evaluator2! });
   }
 }

@@ -1,4 +1,11 @@
 <div class="pt-2 max-w-4xl mx-auto pb-10">
+
+  @if (!isReadOnly) {
+    <app-info-banner title="Evaluación de anteproyecto" class="mb-6 block">
+      Revise el documento original y registre su veredicto. Es <strong>obligatorio</strong> cargar el formato de evaluación (Formato B) firmado. Opcionalmente, puede adjuntar el documento original con sus respectivas anotaciones o correcciones.
+    </app-info-banner>
+  }
+
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del anteproyecto</h3>
 
@@ -71,11 +78,11 @@
         <div class="flex items-center justify-center gap-8">
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="radio" formControlName="result" value="Aprobado" [attr.disabled]="isReadOnly ? true : null">
-            <span class="text-sm font-sans text-[#777680]">Aprobado</span>
+            <span class="text-size-body font-bold font-sans text-[#777680]">Aprobado</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="radio" formControlName="result" value="No aprobado" [attr.disabled]="isReadOnly ? true : null">
-            <span class="text-sm font-sans text-[#777680]">No aprobado</span>
+            <span class="text-size-body font-bold font-sans text-[#777680]">No aprobado</span>
           </label>
         </div>
         @if (isFieldInvalid('result')) {
@@ -84,10 +91,11 @@
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Observaciones <span class="text-orange-500">*</span></span>
+        <span class="font-display font-semibold text-primary text-size-section">Observaciones <span class="text-[#ED7D31]">*</span></span>
         <textarea formControlName="comments" rows="4"
-                  class="p-3 border rounded-md w-full focus:outline-none font-sans"
+                  class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-textbox"
                   [class.bg-gray-50]="isReadOnly"
+                  [class.border-[#ED7D31]]="isFieldInvalid('comments')"
                   [attr.disabled]="isReadOnly ? true : null"
                   placeholder="Escriba aquí sus comentarios..."></textarea>
         @if (isFieldInvalid('comments')) {
@@ -98,73 +106,104 @@
       <div class="flex flex-col gap-4">
         <span class="font-display font-semibold text-primary text-size-section">Archivos de evaluación</span>
 
-        <div class="flex flex-col gap-3">
+        <div class="flex flex-col gap-4">
+
           <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
             <div class="flex items-center gap-3">
               <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
               <div class="flex flex-col">
-                <span class="text-sm font-bold text-primary">{{ currentDocument?.name || 'Documento' }}</span>
-                <span class="text-xs text-[#777680]">Documento a evaluar</span>
+                <span class="text-size-body font-bold text-primary">{{ currentDocument?.name || 'Documento a evaluar' }}</span>
+                <span class="text-size-role-footer text-[#777680]">Anteproyecto entregado por el estudiante</span>
               </div>
             </div>
             <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadPreliminaryDraft.emit()"></app-button-component>
           </div>
 
-          @if (uploadedSignedFile(); as signed) {
-            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-green-500 rounded-xl shadow-sm">
-              <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-green-600 text-4xl">task</span>
-                <div class="flex flex-col">
-                  <span class="text-sm font-bold text-primary">{{ signed.fileName }}</span>
-                  <span class="text-xs text-[#777680]">Formato B diligenciado y firmado</span>
-                </div>
-              </div>
-              @if (!isReadOnly) {
-                <button type="button" (click)="uploadedSignedFile.set(null)" class="text-gray-400 hover:text-red-500 transition-colors">
-                  <span class="material-symbols-outlined">close</span>
-                </button>
-              }
-            </div>
-          }
+          <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm"
+               [class.border-[#777680]]="evaluationForm.touched && uploadedSignedFile()"
+               [class.border-[#ED7D31]]="evaluationForm.touched && !uploadedSignedFile()"
+               [class.border-l-4]="uploadedSignedFile()"
+               [class.border-l-state-approved]="uploadedSignedFile()">
 
-          <div class="flex flex-col gap-3">
-            @if (uploadedAnnotatedFile(); as annotated) {
-              <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-xl shadow-sm">
-                <div class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-blue-600 text-4xl">edit_note</span>
-                  <div class="flex flex-col">
-                    <span class="text-sm font-bold text-primary">{{ annotated.fileName }}</span>
-                    <span class="text-xs text-[#777680]">Anteproyecto con anotaciones (Opcional)</span>
-                  </div>
-                </div>
-                @if (!isReadOnly) {
-                  <button type="button" (click)="uploadedAnnotatedFile.set(null)" class="text-gray-400 hover:text-red-500 transition-colors">
-                    <span class="material-symbols-outlined">close</span>
-                  </button>
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-4xl"
+                    [class.text-state-approved]="uploadedSignedFile()"
+                    [class.text-[#ED7D31]]="evaluationForm.touched && !uploadedSignedFile()"
+                    [class.text-[#777680]]="!uploadedSignedFile() && !(evaluationForm.touched && !uploadedSignedFile())">
+                {{ uploadedSignedFile() ? 'task' : 'picture_as_pdf' }}
+              </span>
+              <div class="flex flex-col">
+                <span class="text-size-body font-bold"
+                      [class.text-primary]="uploadedSignedFile()"
+                      [class.text-[#ED7D31]]="evaluationForm.touched && !uploadedSignedFile()">
+                  {{ uploadedSignedFile()?.fileName || 'Formato B (Evaluación)' }}
+                </span>
+                <span class="text-size-role-footer text-[#777680]">Documento de evaluación (Obligatorio)</span>
+                @if (evaluationForm.touched && !uploadedSignedFile()) {
+                  <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span>
                 }
               </div>
+            </div>
+
+            @if (uploadedSignedFile()) {
+              @if (!isReadOnly) {
+                <button type="button" (click)="uploadedSignedFile.set(null)" class="text-[#777680] hover:text-[#DB141C]">
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
+              }
             } @else {
-              <div class="flex justify-start">
-                <app-button-component
-                  label="Cargar anteproyecto con anotaciones"
-                  variant="secondary"
-                  (onClick)="isAnnotatedUploadModalOpen.set(true)"
-                  [disabled]="isReadOnly">
-                </app-button-component>
-              </div>
+              <app-button-component
+                label="Cargar Formato B"
+                variant="secondary"
+                type="button"
+                (onClick)="isUploadModalOpen.set(true)"
+                [disabled]="isReadOnly">
+              </app-button-component>
             }
           </div>
+
+          <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm"
+               [class.border-[#777680]]="!uploadedAnnotatedFile()"
+               [class.border-l-4]="uploadedAnnotatedFile()"
+               [class.border-l-state-in-development]="uploadedAnnotatedFile()">
+
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-4xl"
+                    [class.text-state-in-development]="uploadedAnnotatedFile()"
+                    [class.text-[#777680]]="!uploadedAnnotatedFile()">
+                {{ uploadedAnnotatedFile() ? 'edit_note' : 'picture_as_pdf' }}
+              </span>
+              <div class="flex flex-col">
+                <span class="text-size-body font-bold"
+                      [class.text-primary]="uploadedAnnotatedFile()"
+                      [class.text-[#777680]]="!uploadedAnnotatedFile()">
+                  {{ uploadedAnnotatedFile()?.fileName || 'Anteproyecto con anotaciones' }}
+                </span>
+                <span class="text-size-role-footer text-[#777680]">Feedback adicional (Opcional)</span>
+              </div>
+            </div>
+
+            @if (uploadedAnnotatedFile()) {
+              @if (!isReadOnly) {
+                <button type="button" (click)="uploadedAnnotatedFile.set(null)" class="text-[#777680] hover:text-[#DB141C]">
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
+              }
+            } @else {
+              <app-button-component
+                label="Cargar anotaciones"
+                variant="secondary"
+                type="button"
+                (onClick)="isAnnotatedUploadModalOpen.set(true)"
+                [disabled]="isReadOnly">
+              </app-button-component>
+            }
+          </div>
+
         </div>
       </div>
 
-      <div class="flex gap-4 justify-end mt-10">
-        <app-button-component
-          [label]="uploadedSignedFile() ? 'Cambiar Formato B' : 'Cargar Formato B'"
-          variant="secondary"
-          (onClick)="isUploadModalOpen.set(true)"
-          [disabled]="isReadOnly">
-        </app-button-component>
-
+      <div class="flex justify-end mt-10">
         <app-button-component
           label="Guardar evaluación"
           variant="primary"

@@ -6,6 +6,7 @@ import { Document } from '../../../core/interfaces/Document.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
+import { addBusinessDays } from '../../../core/utils/date-utils';
 
 @Injectable({
   providedIn: 'root'
@@ -39,10 +40,12 @@ export class PreliminaryDraftDocumentService {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
+        const renewedDeadLine = addBusinessDays(new Date(), 10);
         this.storage.updateDraft(preliminaryDraftId, (draft) => ({
           ...draft,
           documents: [document, ...(draft.documents || [])],
-          state: stateList.EN_REVISION
+          state: stateList.EN_REVISION,
+          evaluationDeadline: renewedDeadLine,
         }));
       })
     );
@@ -70,31 +73,46 @@ export class PreliminaryDraftDocumentService {
   }
 
   /**
-   * Calcula el estado visual detallado de un documento específico en base al veredicto de los jurados.
+   * Calcula el estado visual detallado de un documento específico esperando a todos los jurados.
    */
   calculateDocumentStatus(documentId: string, evaluations: Evaluation[], totalEvaluators: number): stateList {
     const documentEvaluations = evaluations?.filter(ev => ev.documentId === documentId) || [];
-    if (documentEvaluations.length === 0) return stateList.EN_REVISION;
 
+    // 1. Si aún faltan jurados por evaluar, el documento sigue en revisión obligatoriamente.
+    if (documentEvaluations.length < totalEvaluators) {
+      return stateList.EN_REVISION;
+    }
+
+    // 2. Una vez que todos han evaluado, revisamos si hay algún rechazo.
     if (documentEvaluations.some(ev => ev.veredict === stateList.NO_APROBADO)) {
       return stateList.NO_APROBADO;
     }
 
-    if (totalEvaluators > 0 && documentEvaluations.length >= totalEvaluators) {
-      return stateList.APROBADO;
-    }
-
-    return stateList.EN_REVISION;
+    // 3. Si todos evaluaron y no hay rechazos, se aprueba.
+    return stateList.APROBADO;
   }
 
+  /**
+   * Calcula el estado general del anteproyecto esperando a todos los evaluadores asignados.
+   */
   private calculatePreliminaryDraftState(preliminaryDraft: PreliminaryDraft, evaluations: Evaluation[]): stateList {
     const lastDocumentId = preliminaryDraft.documents[0]?.id;
     if (!lastDocumentId) return stateList.EN_REVISION;
 
     const currentVersionEvaluations = evaluations.filter(ev => ev.documentId === lastDocumentId);
-    const hasRejection = currentVersionEvaluations.some(ev => ev.veredict === stateList.NO_APROBADO);
 
+    // Obtenemos la cantidad de evaluadores asignados (por defecto 2 si no viene en el arreglo)
+    const totalAssignedEvaluators = preliminaryDraft.evaluators?.length || 2;
+
+    // 1. Mientras las evaluaciones emitidas sean menores a los evaluadores, seguimos en revisión
+    if (currentVersionEvaluations.length < totalAssignedEvaluators) {
+      return stateList.EN_REVISION;
+    }
+
+    // 2. Solo cuando TODOS hayan evaluado, sacamos la conclusión final
+    const hasRejection = currentVersionEvaluations.some(ev => ev.veredict === stateList.NO_APROBADO);
     if (hasRejection) return stateList.NO_APROBADO;
-    return stateList.EN_REVISION;
+
+    return stateList.APROBADO;
   }
 }

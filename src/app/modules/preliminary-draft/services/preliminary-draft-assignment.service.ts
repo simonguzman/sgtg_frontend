@@ -7,6 +7,7 @@ import { Proposal } from '../../proposal/interfaces/proposal.interface';
 import { UserRoleType } from '../../../core/models/user-role';
 import { User } from '../../users/interfaces/user.interface';
 import { stateList } from '../../../core/enums/state.enum';
+import { addBusinessDays } from '../../../core/utils/date-utils';
 
 @Injectable({
   providedIn: 'root'
@@ -60,10 +61,13 @@ export class PreliminaryDraftAssignmentService {
           .map(id => this.userService.users().find(user => user.id === id))
           .filter((user): user is User => !!user);
 
+        const deadline = addBusinessDays(new Date(), 10);
+
         this.storage.updateDraft(preliminaryDraftId, (draft) => ({
           ...draft,
           evaluators: evaluatorUsers,
-          state: stateList.EN_REVISION
+          state: stateList.EN_REVISION,
+          evaluationDeadline: deadline
         }));
       })
     );
