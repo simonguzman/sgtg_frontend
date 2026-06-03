@@ -22,14 +22,25 @@ export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
 
   getTableData: (documents: Document[], context: PreliminaryDraftEvaluationContext, preliminaryDraftService: any) => {
     const { preliminaryDraft, latestPresentacionId } = context;
-    const filteredDocs = documents.filter(doc => doc.type === 'Formato');
+    const filteredDocs = documents.filter(doc => doc.type === DocumentType.FORMATO_C);
 
     return filteredDocs.map(document => {
       const isLatestDoc = document.id === latestPresentacionId;
 
-      let status = preliminaryDraftService.calculateDocumentStatus(document.id, preliminaryDraft.evaluations || [], 1);
+      // 1. Respetamos la independencia del documento tomando su propio estado nativo primero
+      let status = document.status || stateList.EN_REVISION;
 
-      if (isLatestDoc && preliminaryDraft.state === stateList.APROBADO) {
+      // 2. Verificamos si este documento en específico tiene evaluaciones vinculadas
+      const documentEvaluations = (preliminaryDraft.evaluations || []).filter(ev => ev.documentId === document.id);
+
+      // 3. Solo si tiene evaluaciones propias, dejamos que el servicio determine el estado final
+      if (documentEvaluations.length > 0) {
+        status = preliminaryDraftService.calculateDocumentStatus(document.id, preliminaryDraft.evaluations || [], 1);
+      }
+
+      // Opcional: Si aún quieres que herede el "Aprobado" global del anteproyecto,
+      // lo condicionamos para que NUNCA sobreescriba un "No aprobado" de la presentación.
+      if (isLatestDoc && preliminaryDraft.state === stateList.APROBADO && status !== stateList.NO_APROBADO) {
         status = stateList.APROBADO;
       }
 
@@ -45,7 +56,7 @@ export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
   getHeaderButtons: (context: PreliminaryDraftEvaluationContext, preliminaryDraftService: any) => {
     if (!context.isJefe && !context.isAdmin) return [];
 
-    const latestDoc = context.preliminaryDraft.documents?.find((d: any) => d.type !== 'Formato');
+    const latestDoc = context.preliminaryDraft.documents?.find((d: any) => d.type !== DocumentType.FORMATO_C);
     const status = latestDoc
       ? preliminaryDraftService.calculateDocumentStatus(latestDoc.id, context.preliminaryDraft.evaluations || [], context.totalEvaluatorsCount)
       : null;
@@ -62,7 +73,7 @@ export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
     uploadDescription: 'Seleccione el archivo PDF de la presentación al consejo',
     uploadedByText: 'Jefe de Departamento',
     confirmDescription: '¿Está seguro de cargar esta presentación al consejo?',
-    uploadDocumentType: DocumentType.FORMATO,
+    uploadDocumentType: DocumentType.FORMATO_C,
     emptyMessage: 'No hay presentaciones registradas para este anteproyecto'
   }
 };

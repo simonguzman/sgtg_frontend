@@ -51,7 +51,7 @@ export class PreliminaryDraftStorageService {
    * Agrega un nuevo anteproyecto a la lista global.
    */
   public addDraft(draft: PreliminaryDraft): void {
-    this._preliminaryDraftsList.update(list => [...list, draft]);
+    this._preliminaryDraftsList.update(list => [draft, ...list]);
   }
 
   /**

@@ -55,7 +55,7 @@ export class ReviewPresentationsFacultyCouncilPageComponent implements OnInit {
         fileRef === document.id || fileRef === document.name
       );
 
-      const isPermanentReference = ['Propuesta', 'Formato', 'Anexos'].includes(document.type);
+      const isPermanentReference = ['Propuesta', DocumentType.FORMATO_B, DocumentType.FORMATO_C, 'Anexos'].includes(document.type);
       return isLatestIterationBase || isLinkedEvaluationOutput || isPermanentReference;
     });
     return {
@@ -92,14 +92,21 @@ export class ReviewPresentationsFacultyCouncilPageComponent implements OnInit {
   processCouncilDecision() {
     const data = this.pendingData();
     const preliminaryDraftState = this.preliminaryDraft();
+
     if (!data || !preliminaryDraftState?.preliminaryDraftId) {
       this.showValidationCouncilFacultyErrorNotification();
       return;
     }
+
     const finalState = data.formValues.result === 'Aprobado'
       ? stateList.APROBADO
       : stateList.NO_APROBADO;
-    const presentationDoc = preliminaryDraftState.documents.find(document => document.type === 'Formato');
+
+    // 👈 1. Extraemos la fecha máxima enviada desde el formulario
+    const maxDeliveryDate = data.formValues.maximumDeliveryDate;
+
+    const presentationDoc = preliminaryDraftState.documents.find(document => document.type === DocumentType.FORMATO_C);
+
     const resolutionDoc: Document = {
       id: crypto.randomUUID(),
       name: data.file.name,
@@ -108,10 +115,12 @@ export class ReviewPresentationsFacultyCouncilPageComponent implements OnInit {
       type: DocumentType.RESOLUCION,
       status: finalState
     };
+
     const currentUser = this.authService.currentUser();
     const currentUserName = currentUser
       ? this.userService.getUserFullName(currentUser.id)
       : 'Consejo de Facultad';
+
     const councilEvaluation: Evaluation = {
       id: crypto.randomUUID(),
       documentId: presentationDoc?.id || '',
@@ -124,11 +133,14 @@ export class ReviewPresentationsFacultyCouncilPageComponent implements OnInit {
       date: new Date(),
       signedDocuments: [resolutionDoc.name]
     };
+
+    // 👈 2. Enviamos el nuevo parámetro al servicio
     this.preliminaryDraftService.uploadCouncilResolutionMock(
       preliminaryDraftState.preliminaryDraftId,
       resolutionDoc,
       finalState,
-      councilEvaluation
+      councilEvaluation,
+      maxDeliveryDate
     ).subscribe({
       next: () => {
         this.showCouncilFacultyDecisionSuccessNotification();
@@ -160,6 +172,7 @@ export class ReviewPresentationsFacultyCouncilPageComponent implements OnInit {
       type: NotificationType.INFO
     });
   }
+
   private showChargeServerErrorNotification(): void {
     this.notification.show({
       title: 'Error de carga',
@@ -191,6 +204,7 @@ export class ReviewPresentationsFacultyCouncilPageComponent implements OnInit {
       type: NotificationType.ERROR
     });
   }
+
   private showValidationCouncilFacultyErrorNotification(): void {
     this.notification.show({
       title: 'Error de validación',

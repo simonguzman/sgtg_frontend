@@ -5,7 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 // Interfaces & Models
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { NotificationType } from '../../components/notifications/models/notification.model';
-import { Document } from '../../../core/interfaces/Document.interface';
+import { Document, DocumentType } from '../../../core/interfaces/Document.interface';
 import { Column, TableComponent } from '../../components/table-component/table-component.component';
 import { User } from '../../../modules/users/interfaces/user.interface';
 import { ThesisWork } from '../../../modules/thesis-work/interfaces/thesis-work.interface';
@@ -189,11 +189,17 @@ export class EvaluationsPerformedPageComponent implements OnInit {
       const evaluatorName = evaluation.evaluatorName || (isCouncil ? 'Consejo de Facultad' : 'Evaluador');
       const evaluatorRole = evaluation.evaluatorRole || (isCouncil ? 'Consejo' : 'Evaluador');
 
-      // Si el mapeo previo ya definió un nombre de documento, lo respetamos
+      // --- LÓGICA ESTRICTA CON LOS NUEVOS FORMATOS ---
       let docName = evaluation.documentTargetName || targetDocument?.name;
+
       if (!docName) {
-        if (isCouncil) docName = 'Presentación al consejo de facultad';
-        else docName = globalDocuments.find(d => d.type?.includes('Formato'))?.name || defaultTitle;
+        if (isCouncil) {
+          // El consejo evalúa la presentación/aval (Formato C)
+          docName = globalDocuments.find(d => d.type === DocumentType.FORMATO_C)?.name || 'Presentación al consejo de facultad';
+        } else {
+          // Los jurados evalúan el anteproyecto (Formato B)
+          docName = globalDocuments.find(d => d.type === DocumentType.FORMATO_B)?.name || defaultTitle;
+        }
       }
 
       // Si la evaluación ya trae signedDocuments (como Paz y Salvo), los usamos. Si no, usamos el targetDocument global.

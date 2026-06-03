@@ -13,8 +13,10 @@ import { UserRoleType } from '../../../../core/models/user-role';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { stateList } from '../../../../core/enums/state.enum';
 
-// Importación de la utilidad adaptada (Ajusta la ruta relativa si es necesario en tu estructura)
+// Importación de la utilidad adaptada
 import { getRemainingBusinessDays } from '../../../../core/utils/date-utils';
+import { User } from '../../../users/interfaces/user.interface';
+import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 
 const PRELIMINARY_DRAFT_COLUMNS: Column[] = [
   { field: 'title', header: 'Titulo', type: 'text', width: '25%' },
@@ -27,7 +29,6 @@ const PRELIMINARY_DRAFT_COLUMNS: Column[] = [
     width: '15%'
   },
   { field: 'state', header: 'Estado', type: 'state', width: '15%' },
-  // Nueva columna para visibilizar de forma transparente el acuerdo de nivel de servicio (SLA) de 10 días
   { field: 'remainingTime', header: 'Plazo Evaluación', type: 'text', width: '15%' },
   {
     field: 'actions',
@@ -65,66 +66,26 @@ export class PreliminaryDraftPageComponent implements OnInit {
   descriptionModal = signal({ isOpen: false, title: '', content: '' });
   deleteState = signal({ isOpen: false, draftId: null as string | null, draftTitle: '', isProcessing: false });
 
+  // --- ORQUESTADOR PRINCIPAL ---
   protected tableData = computed(() => {
-    const currentUser = this.authService.currentUser();
-    const currentUserId = currentUser?.id ? String(currentUser.id) : null;
-    const hasFullAccessRole = this.authService.hasAnyRole([
-      UserRoleType.ADMINISTRADOR,
-      UserRoleType.JEFE_DEP,
-      UserRoleType.CONSEJO
-    ]);
-    const isMatchingUser = (entity: any) => entity?.id != null && String(entity.id) === currentUserId;
-    const isUserInList = (list?: any[]) => Array.isArray(list) && list.some(isMatchingUser);
     const preliminaryDraftList = this.preliminaryDraftService.preliminaryDrafts();
 
-    return preliminaryDraftList.map(preliminaryDraft => {
-      const proposal = preliminaryDraft.proposalData;
-      const isDirector = isMatchingUser(proposal?.director);
-      const isCodirector = isMatchingUser(proposal?.codirector);
-      const isAdvisor = isMatchingUser(proposal?.advisor);
-      const isStudentAuthor = (currentUserId != null && Array.isArray(proposal?.authors))
-        ? proposal.authors.some(author => author.id === currentUserId)
-        : false;
-      const isAssignedEvaluator = isUserInList(preliminaryDraft.evaluators);
+    // Invertimos el orden de la lista de forma segura sin mutar el estado original
+    const reversedList = [...preliminaryDraftList].reverse();
+    // Nota: Si manejas ES2023+, también puedes usar: preliminaryDraftList.toReversed();
 
-      const hasViewPermission = hasFullAccessRole || isDirector || isCodirector || isAdvisor || isStudentAuthor || isAssignedEvaluator;
-      const isOwnerOrAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]) || isDirector;
-      const isAproved = preliminaryDraft.state === stateList.APROBADO;
-
-      let allowed: string[] = ['ver descripción'];
-      if (hasViewPermission) allowed.push('ver');
-      if (isOwnerOrAdmin && !isAproved) {
-        allowed.push('editar', 'eliminar');
-      }
-
-      // --- Mapeo Lógico y Modular del Plazo de 10 Días Hábiles ---
-      let remainingTimeLabel = 'No asignado';
-
-      if (preliminaryDraft.evaluationDeadline) {
-        const days = getRemainingBusinessDays(preliminaryDraft.evaluationDeadline);
-
-        if (days > 0) {
-          remainingTimeLabel = `${days} días hábiles`;
-        } else if (days === 0) {
-          remainingTimeLabel = 'Vence hoy';
-        } else {
-          remainingTimeLabel = `Vencido hace ${Math.abs(days)} días`;
-        }
-      }
-
-      // Si el flujo ya culminó con éxito, limpiamos la etiqueta de tiempo para no confundir al usuario
-      if (preliminaryDraft.state === stateList.APROBADO) {
-        remainingTimeLabel = 'Evaluación completada';
-      }
+    return reversedList.map(draft => {
+      const allowedActions = this.calculateAllowedActions(draft);
+      const remainingTimeLabel = this.calculateRemainingTimeLabel(draft);
 
       return {
-        id: preliminaryDraft.preliminaryDraftId,
-        title: proposal?.title || 'Sin título',
-        description: proposal?.description,
-        modality: proposal?.modality || 'No definida',
-        state: preliminaryDraft.state,
-        remainingTime: remainingTimeLabel, // Inyección de la propiedad vinculada al 'field' de la columna
-        allowedActions: allowed
+        id: draft.preliminaryDraftId,
+        title: draft.proposalData?.title || 'Sin título',
+        description: draft.proposalData?.description,
+        modality: draft.proposalData?.modality || 'No definida',
+        state: draft.state,
+        remainingTime: remainingTimeLabel,
+        allowedActions: allowedActions
       };
     });
   });
@@ -132,6 +93,75 @@ export class PreliminaryDraftPageComponent implements OnInit {
   ngOnInit(): void {
     this.initHeaderButtons();
   }
+
+  // --- MÉTODOS PRIVADOS DE LÓGICA DE NEGOCIO ---
+
+  private calculateAllowedActions(draft: PreliminaryDraft): string[] {
+    const currentUser = this.authService.currentUser();
+    const currentUserId = currentUser?.id ? String(currentUser.id) : null;
+
+    const hasFullAccessRole = this.authService.hasAnyRole([
+      UserRoleType.ADMINISTRADOR,
+      UserRoleType.JEFE_DEP,
+      UserRoleType.CONSEJO
+    ]);
+
+    const isMatchingUser = (entity: any) => entity?.id != null && String(entity.id) === currentUserId;
+    const isUserInList = (list?: any[]) => Array.isArray(list) && list.some(isMatchingUser);
+
+    const proposal = draft.proposalData;
+    const isDirector = isMatchingUser(proposal?.director);
+    const isCodirector = isMatchingUser(proposal?.codirector);
+    const isAdvisor = isMatchingUser(proposal?.advisor);
+
+    const isStudentAuthor = (currentUserId != null && Array.isArray(proposal?.authors))
+      ? proposal.authors.some((author: User) => author.id === currentUserId)
+      : false;
+
+    const isAssignedEvaluator = isUserInList(draft.evaluators);
+
+    const hasViewPermission = hasFullAccessRole || isDirector || isCodirector || isAdvisor || isStudentAuthor || isAssignedEvaluator;
+    const isOwnerOrAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]) || isDirector;
+    const isAproved = draft.state === stateList.APROBADO;
+
+    let allowed: string[] = ['ver descripción'];
+
+    if (hasViewPermission) {
+      allowed.push('ver');
+    }
+
+    if (isOwnerOrAdmin && !isAproved) {
+      allowed.push('editar', 'eliminar');
+    }
+
+    return allowed;
+  }
+
+  private calculateRemainingTimeLabel(draft: PreliminaryDraft): string {
+    // Si el flujo ya culminó (sea Aprobado o No Aprobado), limpiamos la etiqueta
+    if (
+      draft.state === stateList.APROBADO ||
+      draft.state === stateList.NO_APROBADO
+    ) {
+      return 'Evaluación completada';
+    }
+
+    if (!draft.evaluationDeadline) {
+      return 'No asignado';
+    }
+
+    const days = getRemainingBusinessDays(draft.evaluationDeadline);
+
+    if (days > 0) {
+      return `${days} días hábiles`;
+    } else if (days === 0) {
+      return 'Vence hoy';
+    } else {
+      return `Vencido hace ${Math.abs(days)} días`;
+    }
+  }
+
+  // --- MÉTODOS DE INTERACCIÓN DE LA VISTA ---
 
   private initHeaderButtons(): void {
     const canRegister = this.authService.hasAnyRole([

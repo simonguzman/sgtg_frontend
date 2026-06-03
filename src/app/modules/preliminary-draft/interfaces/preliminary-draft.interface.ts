@@ -14,4 +14,5 @@ export interface PreliminaryDraft {
   state: stateList;
   createdData: Date;
   evaluationDeadline?: Date | string;
+  maximumDeliveryDate?: Date | string;
 }

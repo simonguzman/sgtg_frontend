@@ -35,12 +35,16 @@ export class ThesisWorkStorageService {
   });
 
   constructor() {
+    // Primer efecto: Sincroniza con LocalStorage
     effect(() => {
       localStorage.setItem('thesisWorks', JSON.stringify(this._thesisWorksList()));
     });
+
+    // Segundo efecto: Escucha anteproyectos aprobados y crea los Trabajos de Grado
     effect(() => {
       const approvedDrafts = this.preliminaryDraftService.preliminaryDrafts()
         .filter(draft => draft.state === stateList.APROBADO);
+
       this._thesisWorksList.update(currentWorks => {
         let hasChanges = false;
         const updatedWorks = [...currentWorks];
@@ -64,9 +68,10 @@ export class ThesisWorkStorageService {
             hasChanges = true;
           }
         });
+
         return hasChanges ? updatedWorks : currentWorks;
       });
-    }, { allowSignalWrites: true });
+    });
   }
 
   /**

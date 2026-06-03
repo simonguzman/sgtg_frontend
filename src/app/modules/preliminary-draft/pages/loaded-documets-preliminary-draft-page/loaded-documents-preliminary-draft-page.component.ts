@@ -13,7 +13,7 @@ import { TableButton, TableComponent } from '../../../../shared/components/table
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 
-import { Document } from '../../../../core/interfaces/Document.interface';
+import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { UserRoleType } from '../../../../core/models/user-role';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
@@ -104,7 +104,7 @@ export class LoadedDocumentsPreliminaryDraftPageComponent implements OnInit, OnD
       isConsejoMember: this.authService.hasAnyRole([UserRoleType.CONSEJO]),
       totalEvaluatorsCount: draft?.evaluators?.length || 0,
       latestAnteproyectoId: documents.find(d => d.type === 'Anteproyecto' || d.type === 'Correccion')?.id,
-      latestPresentacionId: documents.find(d => d.type === 'Formato')?.id
+      latestPresentacionId: documents.find(d => d.type === DocumentType.FORMATO_C)?.id
     };
 
     return this.currentStrategy().enrichEvaluationContext(baseContext);

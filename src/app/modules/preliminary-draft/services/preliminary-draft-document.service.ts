@@ -15,7 +15,9 @@ export class PreliminaryDraftDocumentService {
   private readonly storage = inject(PreliminaryDraftStorageService);
 
   /**
-   * Registra una evaluación de un jurado y recalcula el estado dinámico del anteproyecto.
+   * Registra una evaluación de un jurado.
+   * Se modificó para mantener intacto el estado general del anteproyecto (stateList.EN_REVISION),
+   * evitando mutaciones prematuras antes de la decisión del Consejo de Facultad.
    */
   addEvaluationMock(preliminaryDraftId: string, evaluation: Evaluation): Observable<void> {
     return of(undefined).pipe(
@@ -26,7 +28,8 @@ export class PreliminaryDraftDocumentService {
           return {
             ...draft,
             evaluations: newEvaluations,
-            state: this.calculatePreliminaryDraftState(draft, newEvaluations)
+            // 🔒 Preservamos el estado actual del anteproyecto sin alterarlo automáticamente
+            state: draft.state
           };
         });
       })
@@ -53,16 +56,26 @@ export class PreliminaryDraftDocumentService {
 
   /**
    * Sube el acta/formato final de resolución emitido por el consejo de facultad.
+   * Este método sigue siendo el único responsable de consolidar el cambio de estado definitivo
+   * y ahora también registra opcionalmente la fecha máxima de entrega del trabajo de grado.
    */
-  uploadCouncilResolutionMock(id: string, document: Document, state: stateList, evaluation: Evaluation): Observable<PreliminaryDraft | undefined> {
+  uploadCouncilResolutionMock(
+    id: string,
+    document: Document,
+    state: stateList,
+    evaluation: Evaluation,
+    maximumDeliveryDate?: Date | string // 👈 1. Añadimos el nuevo parámetro manual
+  ): Observable<PreliminaryDraft | undefined> {
     return this.storage.getById(id).pipe(
       map(draft => {
         if (draft) {
-          const updatedDraft = {
+          const updatedDraft: PreliminaryDraft = {
             ...draft,
             documents: [...(draft.documents || []), document],
-            state: state,
-            evaluations: [...(draft.evaluations || []), evaluation]
+            state: state, // Aquí es donde se asigna el APROBADO o NO_APROBADO final del Consejo
+            evaluations: [...(draft.evaluations || []), evaluation],
+            // 👈 2. Lógica condicional: Solo persistimos la fecha si el veredicto es APROBADO
+            maximumDeliveryDate: state === stateList.APROBADO ? maximumDeliveryDate : draft.maximumDeliveryDate
           };
           this.storage.updateDraft(id, () => updatedDraft);
           return updatedDraft;
@@ -74,6 +87,7 @@ export class PreliminaryDraftDocumentService {
 
   /**
    * Calcula el estado visual detallado de un documento específico esperando a todos los jurados.
+   * Mantiene su vigencia para la tabla interna de control de archivos cargados.
    */
   calculateDocumentStatus(documentId: string, evaluations: Evaluation[], totalEvaluators: number): stateList {
     const documentEvaluations = evaluations?.filter(ev => ev.documentId === documentId) || [];
@@ -89,30 +103,6 @@ export class PreliminaryDraftDocumentService {
     }
 
     // 3. Si todos evaluaron y no hay rechazos, se aprueba.
-    return stateList.APROBADO;
-  }
-
-  /**
-   * Calcula el estado general del anteproyecto esperando a todos los evaluadores asignados.
-   */
-  private calculatePreliminaryDraftState(preliminaryDraft: PreliminaryDraft, evaluations: Evaluation[]): stateList {
-    const lastDocumentId = preliminaryDraft.documents[0]?.id;
-    if (!lastDocumentId) return stateList.EN_REVISION;
-
-    const currentVersionEvaluations = evaluations.filter(ev => ev.documentId === lastDocumentId);
-
-    // Obtenemos la cantidad de evaluadores asignados (por defecto 2 si no viene en el arreglo)
-    const totalAssignedEvaluators = preliminaryDraft.evaluators?.length || 2;
-
-    // 1. Mientras las evaluaciones emitidas sean menores a los evaluadores, seguimos en revisión
-    if (currentVersionEvaluations.length < totalAssignedEvaluators) {
-      return stateList.EN_REVISION;
-    }
-
-    // 2. Solo cuando TODOS hayan evaluado, sacamos la conclusión final
-    const hasRejection = currentVersionEvaluations.some(ev => ev.veredict === stateList.NO_APROBADO);
-    if (hasRejection) return stateList.NO_APROBADO;
-
     return stateList.APROBADO;
   }
 }

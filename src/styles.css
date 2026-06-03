@@ -646,3 +646,39 @@ html, body {
   border-color: var(--color-primary) !important;
   padding-right: 40px !important; /* Espacio para que el texto no pise el icono */
 }
+
+
+/* ==========================================================================
+   PERSONALIZACIÓN: PrimeNG Calendar (Datepicker)
+   Propósito: Sincronizar el selector de fecha con el sistema de diseño.
+   ========================================================================== */
+
+/* Ajustes generales del calendario */
+.p-datepicker {
+  /* Color del día seleccionado y rango */
+  --p-datepicker-date-selected-background: var(--color-primary);
+  --p-datepicker-date-selected-color: var(--color-text-white);
+
+  /* Color al pasar el mouse (hover) sobre un día */
+  --p-datepicker-date-hover-background: var(--color-primary-hover);
+  --p-datepicker-date-hover-color: var(--color-text-white);
+
+  /* Color del día actual */
+  --p-datepicker-today-background: var(--color-primary-active);
+  --p-datepicker-today-color: var(--color-text-white);
+
+  /* Tipografía */
+  --p-datepicker-font-family: var(--font-sans);
+}
+
+/* Asegurar que el input del datepicker respete el estilo de los inputs */
+.p-datepicker .p-inputtext:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 0, 102, 0.15) !important;
+}
+
+/* Opcional: Ajustar el color de las flechas de navegación a azul institucional */
+.p-datepicker .p-datepicker-header .p-datepicker-prev,
+.p-datepicker .p-datepicker-header .p-datepicker-next {
+  color: var(--color-primary);
+}

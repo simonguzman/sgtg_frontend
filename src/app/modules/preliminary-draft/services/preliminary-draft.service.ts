@@ -79,8 +79,15 @@ export class PreliminaryDraftService {
     return this.documentService.uploadDocumentMock(preliminaryDraftId, document);
   }
 
-  uploadCouncilResolutionMock(id: string, document: Document, state: stateList, evaluation: Evaluation): Observable<PreliminaryDraft | undefined> {
-    return this.documentService.uploadCouncilResolutionMock(id, document, state, evaluation);
+  uploadCouncilResolutionMock(
+    id: string,
+    document: Document,
+    state: stateList,
+    evaluation: Evaluation,
+    maximumDeliveryDate?: Date | string // 👈 Mapeamos el nuevo parámetro aquí
+  ): Observable<PreliminaryDraft | undefined> {
+    // 👈 Lo pasamos de manera transparente al sub-servicio documental
+    return this.documentService.uploadCouncilResolutionMock(id, document, state, evaluation, maximumDeliveryDate);
   }
 
   calculateDocumentStatus(documentId: string, evaluations: Evaluation[], totalEvaluators: number): stateList {

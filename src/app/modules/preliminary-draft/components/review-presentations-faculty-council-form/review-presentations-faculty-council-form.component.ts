@@ -1,5 +1,6 @@
-import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output, signal, OnInit } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { DatePicker } from 'primeng/datepicker';
 
 import { UserService } from '../../../users/services/user.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
@@ -11,13 +12,15 @@ import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
+
 @Component({
   selector: 'app-review-presentations-faculty-council-form',
-  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, DatePicker],
   templateUrl: './review-presentations-faculty-council-form.component.html',
   styleUrls: ['./review-presentations-faculty-council-form.component.css']
 })
-export class ReviewPresentationsFacultyCouncilFormComponent {
+export class ReviewPresentationsFacultyCouncilFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly notificationService = inject(NotificationService);
   public readonly userService = inject(UserService);
@@ -34,8 +37,29 @@ export class ReviewPresentationsFacultyCouncilFormComponent {
   readonly evaluationForm = this.fb.group({
     result: ['', Validators.required],
     comments: ['', Validators.required],
+    maximumDeliveryDate: [null],
     document: [null]
   });
+
+  ngOnInit(): void {
+    // 1. Escucha reactiva para validación condicional de la fecha límite
+    this.evaluationForm.get('result')?.valueChanges.subscribe(value => {
+      const dateControl = this.evaluationForm.get('maximumDeliveryDate');
+
+      if (value === 'Aprobado') {
+        dateControl?.setValidators([Validators.required]);
+      } else {
+        dateControl?.clearValidators();
+        dateControl?.setValue(null);
+      }
+      dateControl?.updateValueAndValidity();
+    });
+
+    // 2. CORRECCIÓN: Fuente de verdad única para el estado del formulario en modo lectura
+    if (this.isReadOnly) {
+      this.evaluationForm.disable();
+    }
+  }
 
   get isReadOnly(): boolean {
     return this.preliminaryDraft.state === stateList.APROBADO;
@@ -60,7 +84,7 @@ export class ReviewPresentationsFacultyCouncilFormComponent {
       name: fileName,
       url: '',
       uploadDate: new Date().toLocaleDateString(),
-      type: DocumentType.FORMATO,
+      type: DocumentType.FORMATO_C,
       status: stateList.APROBADO
     };
   }
@@ -72,7 +96,7 @@ export class ReviewPresentationsFacultyCouncilFormComponent {
   }
 
   get presentationDocument(): Document | undefined {
-    return this.preliminaryDraft.documents.find(doc => doc.type === 'Formato');
+    return this.preliminaryDraft.documents.find(doc => doc.type === DocumentType.FORMATO_C);
   }
 
   get evaluationFiles() {

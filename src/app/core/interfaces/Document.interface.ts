@@ -8,6 +8,8 @@ export enum DocumentType{
   'AVANCE' = 'Avance',
   'CORRECCION' = 'Correccion',
   'FORMATO' = 'Formato',
+  'FORMATO_B' = 'Formato_B',
+  'FORMATO_C' = 'Formato_C',
   'FORMATO_E' = 'Formato_E',
   'FORMATO_G' = 'Formato_G',
   'FORMATO_H' = 'Formato_H',
