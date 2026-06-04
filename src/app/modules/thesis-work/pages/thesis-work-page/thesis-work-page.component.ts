@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { Column, TableButton, TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { Router } from '@angular/router';
@@ -10,16 +10,17 @@ import { DescriptionModalComponent } from "../../../../shared/components/modals/
 import { User } from '../../../users/interfaces/user.interface';
 
 const THESIS_WORK_COLUMNS: Column[] = [
-  { field: 'title', header: 'Título', type: 'text', width: '30%' },
+  { field: 'title', header: 'Título', type: 'text', width: '25%' },
   { field: 'modality', header: 'Modalidad', type: 'text', width: '15%' },
   {
     field: 'description',
     header: 'Descripción',
     type: 'actions',
     actions: [{ action: 'ver descripción', label: 'Ver descripción', variant: 'primary', disabled: false }],
-    width: '20%'
+    width: '15%'
   },
   { field: 'state', header: 'Estado', type: 'state', width: '15%' },
+  { field: 'maxDeliveryDate', header: 'Plazo Máximo', type: 'text', width: '15%' }, // 👈 Columna de la fecha límite
   {
     field: 'actions',
     header: 'Acciones',
@@ -27,7 +28,7 @@ const THESIS_WORK_COLUMNS: Column[] = [
     actions: [
       { action: 'ver', icon: 'visibility', variant: 'primary', disabled: false },
     ],
-    width: '20%'
+    width: '15%'
   },
 ];
 
@@ -41,7 +42,7 @@ const HEADER_BUTTONS: TableButton[] = [
   templateUrl: './thesis-work-page.component.html',
   styleUrl: './thesis-work-page.component.css',
 })
-export class ThesisWorkPageComponent {
+export class ThesisWorkPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly authService = inject(AuthService);
@@ -62,7 +63,20 @@ export class ThesisWorkPageComponent {
 
     const thesisWorkList = this.thesisWorkService.thesisWorks();
     return thesisWorkList.map(work => {
-      const proposal = work.preliminaryDraftData?.proposalData;
+      const draft = work.preliminaryDraftData;
+      const proposal = draft?.proposalData;
+
+      // --- Extracción directa desde la raíz de PreliminaryDraft ---
+      let maxDeliveryDateFormatted = 'No asignada';
+      const rawDate = draft?.maximumDeliveryDate;
+
+      if (rawDate) {
+        const dateObj = new Date(rawDate);
+        if (!isNaN(dateObj.getTime())) {
+          maxDeliveryDateFormatted = dateObj.toLocaleDateString('es-ES');
+        }
+      }
+
       const isDirector = proposal?.director?.id != null && String(proposal.director.id) === currentUserId;
       const isCodirector = proposal?.codirector?.id != null && String(proposal.codirector.id) === currentUserId;
       const isAdvisor = proposal?.advisor?.id != null && String(proposal.advisor.id) === currentUserId;
@@ -74,15 +88,18 @@ export class ThesisWorkPageComponent {
       const isJuror = work.sustentations?.[0]?.assignedJurors?.some(juror => String(juror.id) === currentUserId) ?? false;
       const hasViewPermission = hasFullAccessRole || isDirector || isCodirector || isAdvisor || isStudentAuthor || isJuror;
       const isOwnerOrAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]) || isDirector;
+
       let allowed: string[] = ['ver descripción'];
       if (hasViewPermission) allowed.push('ver');
       if (isOwnerOrAdmin) allowed.push('editar');
+
       return {
         id: work.thesisWorkId,
         title: proposal?.title || 'Sin título',
         description: proposal?.description || 'Sin descripción disponible.',
         modality: proposal?.modality || 'No definida',
         state: work.state,
+        maxDeliveryDate: maxDeliveryDateFormatted, // 👈 Vinculado correctamente
         allowedActions: allowed
       };
     });

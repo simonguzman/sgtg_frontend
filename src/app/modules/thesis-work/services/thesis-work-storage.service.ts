@@ -23,15 +23,22 @@ export class ThesisWorkStorageService {
     const allWorks = this._thesisWorksList();
     if (!currentUser) return [];
 
+    let filteredWorks: ThesisWork[] = [];
+
     if (this.authService.hasAnyRole([
       UserRoleType.ADMINISTRADOR,
       UserRoleType.DECANATURA,
       UserRoleType.CONSEJO
     ])) {
-      return allWorks;
+      filteredWorks = allWorks;
+    } else {
+      filteredWorks = allWorks.filter(work => this.canUserAccessThesisWork(work, currentUser.id));
     }
 
-    return allWorks.filter(work => this.canUserAccessThesisWork(work, currentUser.id));
+    // 👇 COMPORTAMIENTO DE PILA: Ordenamos de más reciente a más antiguo
+    return [...filteredWorks].sort((a, b) =>
+      new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
+    );
   });
 
   constructor() {
@@ -40,7 +47,7 @@ export class ThesisWorkStorageService {
       localStorage.setItem('thesisWorks', JSON.stringify(this._thesisWorksList()));
     });
 
-    // Segundo efecto: Escucha anteproyectos aprobados y crea los Trabajos de Grado
+    // Segundo efecto: Escucha anteproyectos aprobados y crea/actualiza los Trabajos de Grado
     effect(() => {
       const approvedDrafts = this.preliminaryDraftService.preliminaryDrafts()
         .filter(draft => draft.state === stateList.APROBADO);
@@ -50,10 +57,12 @@ export class ThesisWorkStorageService {
         const updatedWorks = [...currentWorks];
 
         approvedDrafts.forEach(draft => {
-          const exists = updatedWorks.some(w => w.preliminaryDraftId === draft.preliminaryDraftId);
+          const existingIndex = updatedWorks.findIndex(w => w.preliminaryDraftId === draft.preliminaryDraftId);
 
-          if (!exists) {
-            updatedWorks.push({
+          // Dentro del segundo effect, en la sección de inserción:
+          if (existingIndex === -1) {
+            // 👇 Cambiamos .push() por .unshift() para insertarlo al inicio de la lista
+            updatedWorks.unshift({
               thesisWorkId: crypto.randomUUID(),
               preliminaryDraftId: draft.preliminaryDraftId!,
               preliminaryDraftData: draft,
@@ -63,9 +72,21 @@ export class ThesisWorkStorageService {
               sustentations: [],
               specialRequests: [],
               state: stateList.EN_DESARROLLO,
-              createdDate: new Date()
+              createdDate: new Date() // Este campo es el que usará el computed para ordenar
             });
             hasChanges = true;
+          } else {
+            // --- Lógica de Sincronización Añadida ---
+            // Si ya existe, validamos si la fecha máxima de entrega cambió en el anteproyecto
+            const currentDraftData = updatedWorks[existingIndex].preliminaryDraftData;
+
+            if (currentDraftData.maximumDeliveryDate !== draft.maximumDeliveryDate) {
+              updatedWorks[existingIndex] = {
+                ...updatedWorks[existingIndex],
+                preliminaryDraftData: draft // Reemplazamos con la versión actualizada que contiene la fecha
+              };
+              hasChanges = true;
+            }
           }
         });
 
