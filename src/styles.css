@@ -48,6 +48,8 @@
   --color-state-evaluated:             #8CBB22; /* Evaluado             */
   --color-state-in-development:        #0051C6; /* En desarrollo        */
   --color-state-postponed:             #4C19AF; /* Aplazado             */
+  --color-state-cancelled:             #6B7280; /* Gris oscuro institucional para cancelado */
+  --color-state-suspended:             #EAB308; /* Amarillo ámbar para suspendido */
 
   /* ── Pill / Badge ─────────────────────────────────────────────────────────
      Dimensiones estándar para los componentes de tipo pill (botones y
@@ -227,7 +229,8 @@ html, body {
 .state-evaluado              { background-color: var(--color-state-evaluated); }
 .state-desarrollo            { background-color: var(--color-state-in-development); }
 .state-aplazado              { background-color: var(--color-state-postponed); }
-
+.state-cancelado             { background-color: var(--color-state-cancelled); }
+.state-suspendido            { background-color: var(--color-state-suspended); }
 /* ==========================================================================
    CONTENEDORES ESPECIALES (Glassmorphism)
    Propósito: Estilo de tarjeta translúcida con desenfoque de fondo para

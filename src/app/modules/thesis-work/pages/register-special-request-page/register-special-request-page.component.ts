@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ThesisWorkService } from '../../services/thesis-work.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { ThesisWork } from '../../interfaces/thesis-work.interface';
+import { SpecialRequestType, ThesisWork } from '../../interfaces/thesis-work.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { RegisterSpecialRequestFormComponent } from "../../components/register-special-request-form/register-special-request-form.component";
 
@@ -61,10 +61,14 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
   handleSaveRequest(event: { requestType: string, comments: string }): void {
     const currentWork = this.thesisWorkData();
     if (!currentWork) return;
+
     this.isSubmitting.set(true);
     const thesisId = currentWork.thesisWorkId;
+
+    // Aquí hacemos el cast explícito usando 'as SpecialRequestType'
     const payload = {
       ...event,
+      requestType: event.requestType as SpecialRequestType,
       thesisId: thesisId
     };
 

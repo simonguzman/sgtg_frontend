@@ -22,7 +22,9 @@ export class StateComponent {
     [stateList.EN_REVISION]: 'state-revision',
     [stateList.EVALUADO]: 'state-evaluado',
     [stateList.EN_DESARROLLO]: 'state-desarrollo',
-    [stateList.APLAZADO]: 'state-aplazado'
+    [stateList.APLAZADO]: 'state-aplazado',
+    [stateList.CANCELADO]: 'state-cancelado',
+    [stateList.SUSPENDIDO]: 'state-suspendido'
   }
 
   getState(): string {

@@ -51,6 +51,7 @@ export interface CorrectedDelivery {
 
 export interface SustentationRegistry {
   id: string;
+  status?: SustentationStatus; // 👈 NUEVO: Para saber si la cancelamos por la solicitud especial
   sustentationDate?: Date;
   sustentationTime?: string;
   location?: string;
@@ -59,13 +60,32 @@ export interface SustentationRegistry {
   verdicts: JurorVerdict[];
 }
 
+
+// 👈 NUEVO: Para identificar exactamente qué regla de negocio disparar
+export enum SpecialRequestType {
+  PRORROGA = 'Prórroga',
+  SUSPENSION = 'Suspensión',
+  CANCELACION = 'Cancelación del trabajo de grado',
+  NUEVA_SUSTENTACION = 'Nueva fecha de sustentación',
+  CAMBIO_TITULO = 'Cambios de títulos y objetivos'
+}
+
+// 👈 NUEVO: Para poder cancelar una sustentación sin borrar el registro
+export enum SustentationStatus {
+  PROGRAMADA = 'Programada',
+  REALIZADA = 'Realizada',
+  CANCELADA = 'Cancelada'
+}
+
 export interface SpecialRequest {
   id: string;
   directorId: string;
+  requestType: SpecialRequestType; // 👈 NUEVO: Obligatorio para saber qué pidió el director
   requestDate: Date;
   description: string;
   status: stateList.EN_REVISION | stateList.APROBADO | stateList.NO_APROBADO;
   resolutionDetails?: string;
+  grantedDeadline?: Date | string; // 👈 NUEVO: Opcional, para guardar en el historial la fecha extra que dio el consejo (útil en prórrogas/suspensiones)
 }
 
 export interface ThesisWork {

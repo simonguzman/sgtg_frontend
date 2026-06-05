@@ -1,9 +1,10 @@
 import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+
+import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { UserService } from '../../../users/services/user.service';
-import { ThesisWork } from '../../interfaces/thesis-work.interface';
+import { ThesisWork, SpecialRequestType } from '../../interfaces/thesis-work.interface';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 
 @Component({
@@ -21,14 +22,9 @@ export class RegisterSpecialRequestFormComponent {
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
 
-  @Output() onSaveRequest = new EventEmitter<{ requestType: string, comments: string }>();
+  @Output() onSaveRequest = new EventEmitter<{ requestType: SpecialRequestType, comments: string }>();
 
-  readonly requestOptions = [
-    'Cambio de títulos y objetivos',
-    'Prorroga',
-    'Cancelación del trabajo de grado',
-    'Nueva fecha de sustentación'
-  ];
+  readonly requestOptions = Object.values(SpecialRequestType);
 
   readonly requestForm = this.fb.group({
     requestType: ['', Validators.required],
@@ -69,6 +65,6 @@ export class RegisterSpecialRequestFormComponent {
       return;
     }
 
-    this.onSaveRequest.emit(this.requestForm.value as { requestType: string, comments: string });
+    this.onSaveRequest.emit(this.requestForm.value as { requestType: SpecialRequestType, comments: string });
   }
 }

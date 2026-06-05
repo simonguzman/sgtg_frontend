@@ -7,7 +7,7 @@ import { stateList } from '../../../../../core/enums/state.enum';
 export const SpecialRequestTabConfig: TabConfiguration = {
   tabValue: 'SOLICITUDES',
 
-  headerActionRoute: 'register-special-request',
+  headerActionRoute: 'register_special_request',
 
   columns: [
     { field: 'description', header: 'Descripción de la Solicitud', type: 'text', width: '40%' },
@@ -72,7 +72,7 @@ export const SpecialRequestTabConfig: TabConfiguration = {
 
     if (isDirector || isAdmin) {
       buttons.push({
-        action: 'register-special-request',
+        action: 'register_special_request',
         label: isSustentationFinalized ? 'Sustentación Finalizada' : 'Registrar Solicitud Especial',
         variant: 'primary',
         disabled: isSustentationFinalized

@@ -99,6 +99,24 @@
         <p class="text-xs text-red-500 mb-4 text-center">Debe seleccionar un resultado para proceder</p>
       }
 
+      @if (requiresNewDeadline()) {
+        <div class="flex flex-col gap-1 max-w-md mx-auto w-full bg-blue-50/50 p-6 rounded-xl border border-blue-100 transition-all shadow-sm mb-6">
+          <span class="font-display font-semibold text-size-section text-primary mb-2 flex items-center gap-1">
+            Asignar nueva fecha límite de entrega <span class="text-[#ED7D31]">*</span>
+          </span>
+          <p-datepicker
+            [(ngModel)]="grantedDeadline"
+            [showIcon]="true"
+            placeholder="Seleccione la nueva fecha límite"
+            styleClass="w-full"
+            [inputStyleClass]="'font-sans font-normal text-size-body p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary ' + ((isSubmitAttempted() && !grantedDeadline()) ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white')">
+          </p-datepicker>
+          @if (isSubmitAttempted() && !grantedDeadline()) {
+            <span class="text-textbox-alert text-xs mt-1">La asignación de la nueva fecha es obligatoria</span>
+          }
+        </div>
+      }
+
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Comentarios</span>
         <textarea rows="4" class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm font-sans resize-none"

@@ -15,6 +15,7 @@ import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { CreateAdvanceRequest } from '../interfaces/advance-playload.interface';
 import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
+import { SpecialRequestType } from '../interfaces/thesis-work.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -69,11 +70,19 @@ export class ThesisWorkService {
     return this.sustentationService.evaluateCorrectedDocumentsMock(thesisWorkId, evaluationData, formatGFile);
   }
 
-  createSpecialRequestMock(payload: { requestType: string; comments: string; thesisId: string }) {
+  createSpecialRequestMock(payload: { requestType: SpecialRequestType; comments: string; thesisId: string }) {
     return this.specialRequestService.createSpecialRequestMock(payload);
   }
 
-  evaluateSpecialRequestMock(thesisWorkId: string, requestId: string, payload: { status: stateList.APROBADO | stateList.NO_APROBADO; resolutionDetails: string }) {
+  evaluateSpecialRequestMock(
+    thesisWorkId: string,
+    requestId: string,
+    payload: {
+      status: stateList.APROBADO | stateList.NO_APROBADO;
+      resolutionDetails: string;
+      grantedDeadline?: Date // 👈 Agregado para que sea consistente
+    }
+  ) {
     return this.specialRequestService.evaluateSpecialRequestMock(thesisWorkId, requestId, payload);
   }
 }

@@ -1,7 +1,10 @@
-import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output, signal, computed } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { DatePicker } from 'primeng/datepicker';
+
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { UserService } from '../../../users/services/user.service';
-import { SpecialRequest, ThesisWork } from '../../interfaces/thesis-work.interface';
+import { SpecialRequest, ThesisWork, SpecialRequestType } from '../../interfaces/thesis-work.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
@@ -10,7 +13,7 @@ import { ButtonComponent } from "../../../../shared/components/button-component/
   selector: 'app-evaluate-special-request-form',
   templateUrl: './evaluate-special-request-form.component.html',
   styleUrls: ['./evaluate-special-request-form.component.css'],
-  imports: [ButtonComponent]
+  imports: [ButtonComponent, DatePicker, FormsModule]
 })
 export class EvaluateSpecialRequestFormComponent {
   private readonly notificationService = inject(NotificationService);
@@ -20,16 +23,23 @@ export class EvaluateSpecialRequestFormComponent {
   @Input({ required: true }) specialRequest!: SpecialRequest;
   @Input() isSubmitting = false;
 
-  @Output() onSave = new EventEmitter<{ status: stateList; resolutionDetails: string }>();
+  @Output() onSave = new EventEmitter<{ status: stateList; resolutionDetails: string; grantedDeadline?: Date }>();
   @Output() onBack = new EventEmitter<void>();
 
   verdictSelected = signal<stateList | null>(null);
   observations = signal<string>('');
+  grantedDeadline = signal<Date | null>(null);
   isSubmitAttempted = signal(false);
 
   public get states(): typeof stateList {
     return stateList;
   }
+
+  requiresNewDeadline = computed(() => {
+    const isApproved = this.verdictSelected() === stateList.APROBADO;
+    const type = this.getRequestType() as SpecialRequestType;
+    return isApproved && (type === SpecialRequestType.PRORROGA || type === SpecialRequestType.SUSPENSION);
+  });
 
   getStudentNames(): string {
     const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
@@ -52,7 +62,7 @@ export class EvaluateSpecialRequestFormComponent {
   }
 
   getRequestType(): string {
-    return (this.specialRequest as any).requestType || 'Prórroga';
+    return (this.specialRequest as any).requestType || SpecialRequestType.PRORROGA;
   }
 
   submit(): void {
@@ -69,9 +79,19 @@ export class EvaluateSpecialRequestFormComponent {
       return;
     }
 
+    if (this.requiresNewDeadline() && !this.grantedDeadline()) {
+      this.notificationService.show({
+        title: 'Fecha requerida',
+        message: 'Debe asignar la nueva fecha límite de entrega para autorizar la solicitud.',
+        type: NotificationType.ERROR
+      });
+      return;
+    }
+
     this.onSave.emit({
       status: currentVerdict,
-      resolutionDetails: this.observations()
+      resolutionDetails: this.observations(),
+      grantedDeadline: this.grantedDeadline() || undefined
     });
   }
 }
