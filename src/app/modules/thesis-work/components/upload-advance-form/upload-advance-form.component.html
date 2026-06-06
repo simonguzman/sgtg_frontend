@@ -1,92 +1,132 @@
 <div class="pt-2 max-w-4xl mx-auto pb-10">
 
   <div class="mb-4">
-    <button
-      type="button"
-      (click)="onGoBack.emit()"
-      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
-    >
-      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
-        arrow_back
-      </span>
+    <button type="button" (click)="onGoBack.emit()" class="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity font-bold group">
+      <span class="material-symbols-outlined text-primary text-size-section group-hover:-translate-x-1 transition-transform">arrow_back</span>
       <span class="return-arrow-option">Regresar</span>
     </button>
   </div>
 
-  <section>
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información de los avances</h3>
+  <form [formGroup]="advanceForm" (ngSubmit)="submit()" class="flex flex-col gap-8">
 
-    <form [formGroup]="advanceForm" (ngSubmit)="submit()" class="flex flex-col gap-6">
+    <app-info-banner title="Carga de avance de trabajo de grado">
+      En este espacio podrá registrar los avances de su trabajo de grado. Recuerde cargar sus documentos de desarrollo y redactar los comentarios relevantes para que sus directores y/o asesores puedan realizar la evaluación correspondiente.
+    </app-info-banner>
 
-      <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Título <span class="text-orange-500">*</span></span>
-        <input type="text" formControlName="title"
-               class="p-3 border rounded-md text-[#777680] w-full focus:outline-none font-sans"
-               placeholder="Ej: Avance(3)_Simon_Guzman_Anaya"
-               [class.border-red-500]="isFieldInvalid('title')">
-        @if (isFieldInvalid('title')) {
-          <span class="text-textbox-alert">El título es obligatorio</span>
-        }
-      </div>
+    <section>
+      <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">
+        Información del trabajo de grado
+      </h3>
 
-      <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Comentarios <span class="text-orange-500">*</span></span>
-        <textarea formControlName="comments" rows="5"
-                  class="p-3 border rounded-md w-full focus:outline-none font-sans text-[#777680]"
-                  placeholder="Escriba aquí sus comentarios u observaciones sobre este avance..."
-                  [class.border-red-500]="isFieldInvalid('comments')"></textarea>
-        @if (isFieldInvalid('comments')) {
-          <span class="text-textbox-alert">Los comentarios son obligatorios</span>
-        }
-      </div>
+      <div class="flex flex-col gap-4 pl-2">
+        <ng-template #readOnlyField let-label="label" let-value="value" let-isState="isState">
+          <div class="flex flex-col gap-1">
+            <span class="font-display font-semibold text-primary text-size-section">{{ label }}</span>
+            <input type="text" [value]="value" disabled
+                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 w-full cursor-not-allowed font-sans text-size-body"
+                   [class.font-medium]="isState"
+                   [class.capitalize]="isState">
+          </div>
+        </ng-template>
 
-      <div class="flex flex-col gap-4">
-        <span class="font-display font-semibold text-primary text-size-section">Archivos adjuntos</span>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Título', value: thesisWork.preliminaryDraftData.proposalData.title }"></ng-container>
 
-        <div class="flex flex-col gap-3">
-          @for (item of uploadedFiles(); track $index) {
-            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-blue-500 rounded-xl shadow-sm transition-all">
-              <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-blue-600 text-4xl">attach_file</span>
-                <div class="flex flex-col">
-                  <span class="text-sm font-bold text-primary">{{ item.fileName }}</span>
-                  <span class="text-xs text-[#777680]">Documento de avance adjunto</span>
-                </div>
-              </div>
-              <button type="button" (click)="removeFile($index)" class="text-gray-400 hover:text-red-500 transition-colors flex items-center justify-center">
-                <span class="material-symbols-outlined">close</span>
-              </button>
-            </div>
-          } @empty {
-            <div class="p-6 border border-dashed border-gray-300 rounded-xl text-center bg-gray-50/50">
-              <span class="text-sm text-gray-500 italic">No hay archivos adjuntos. Haz clic en "Cargar archivos" para añadir evidencias.</span>
-            </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Modalidad', value: thesisWork.preliminaryDraftData.proposalData.modality }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estudiante', value: getStudentNames() }"></ng-container>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Director', value: getDirectorName() }"></ng-container>
+          @if (getCodirectorName()) {
+            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Codirector', value: getCodirectorName() }"></ng-container>
           }
+        </div>
+
+        @if (getAdvisorName()) {
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Asesor', value: getAdvisorName() }"></ng-container>
+        }
+
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estado', value: thesisWork.state, isState: true }"></ng-container>
+
+      </div>
+    </section>
+
+    <section>
+      <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">
+        Detalles del avance
+      </h3>
+
+      <div class="flex flex-col gap-6 pl-2">
+
+        <div class="flex flex-col gap-1">
+          <span class="font-display font-semibold text-primary text-size-section">Título del avance <span class="text-[#ED7D31]">*</span></span>
+          <input type="text" formControlName="title"
+                 class="font-sans font-normal text-size-body p-3 border rounded-md bg-white w-full focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                 placeholder="Ej: Avance(3)_Capitulo_1_y_2"
+                 [class.border-[#ED7D31]]="isFieldInvalid('title')">
+          @if (isFieldInvalid('title')) {
+            <span class="text-textbox-alert">El título del avance es obligatorio</span>
+          }
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <span class="font-display font-semibold text-primary text-size-section">Comentarios o descripción <span class="text-[#ED7D31]">*</span></span>
+          <textarea formControlName="comments" rows="5"
+                    class="font-sans font-normal text-size-body p-3 border rounded-md bg-white w-full focus:outline-none focus:ring-1 focus:ring-primary transition-all resize-none"
+                    placeholder="Describa brevemente los puntos a evaluar en este avance..."
+                    [class.border-[#ED7D31]]="isFieldInvalid('comments')"></textarea>
+          @if (isFieldInvalid('comments')) {
+            <span class="text-textbox-alert">La descripción del avance es obligatoria</span>
+          }
+        </div>
+
+        <div class="flex flex-col gap-4 mt-2">
+          <div class="flex items-center justify-between">
+            <span class="font-display font-semibold text-primary text-size-section">Archivos adjuntos <span class="text-[#ED7D31]">*</span></span>
+            <app-button-component label="Cargar archivo" variant="secondary" type="button" (onClick)="isUploadModalOpen.set(true)"></app-button-component>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            @for (item of uploadedFiles(); track $index) {
+              <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-state-in-development rounded-xl shadow-sm transition-all hover:shadow-md">
+                <div class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-state-in-development text-file">description</span>
+                  <div class="flex flex-col">
+                    <span class="text-size-body font-bold text-primary">{{ item.fileName }}</span>
+                    <span class="text-size-role-footer text-[#777680]">Documento listo para enviar</span>
+                  </div>
+                </div>
+                <button type="button" (click)="removeFile($index)" class="text-[#777680] hover:text-[#DB141C] transition-colors p-2 rounded-full hover:bg-red-50">
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
+              </div>
+            } @empty {
+              <div class="p-8 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center bg-gray-50/50">
+                <span class="material-symbols-outlined text-gray-400 text-4xl mb-2">upload_file</span>
+                <span class="text-size-body text-[#777680] font-sans">No hay archivos adjuntos. Haga clic en "Cargar archivo" para agregar sus evidencias.</span>
+              </div>
+            }
+          </div>
         </div>
       </div>
 
-      <div class="flex gap-4 justify-end mt-10">
+      <div class="flex justify-end gap-4 mt-10">
         <app-button-component
-          label="Cargar archivos"
-          variant="secondary"
-          type="button"
-          (onClick)="isUploadModalOpen.set(true)">
-        </app-button-component>
-
-        <app-button-component
-          label="Guardar avance"
+          label="Guardar y enviar avance"
           variant="primary"
           type="submit"
           [disabled]="isSubmitting">
         </app-button-component>
       </div>
-    </form>
-  </section>
+
+    </section>
+  </form>
 </div>
 
 <app-file-upload-modal
   [isOpen]="isUploadModalOpen()"
-  description="Subir archivo de avance (Puede repetir este paso para agregar más archivos)"
+  description="Subir archivo del avance (Documentos, presentaciones, etc.)"
   (onFileUploaded)="handleFileUploaded($event)"
   (onClose)="isUploadModalOpen.set(false)">
 </app-file-upload-modal>

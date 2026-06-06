@@ -7,12 +7,13 @@ import { Document, DocumentType } from '../../../../core/interfaces/Document.int
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { DatePipe } from '@angular/common';
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 
 @Component({
   selector: 'app-register-correspondence-form',
   templateUrl: './register-correspondence-form.component.html',
   styleUrls: ['./register-correspondence-form.component.css'],
-  imports: [ButtonComponent, DatePipe]
+  imports: [ButtonComponent, DatePipe, InfoBannerComponent]
 })
 export class RegisterCorrespondenceFormComponent {
   private readonly userService = inject(UserService);

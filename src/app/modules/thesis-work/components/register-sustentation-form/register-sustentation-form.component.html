@@ -1,16 +1,26 @@
 <div class="pt-2 max-w-4xl mx-auto pb-10">
 
-  <div class="mb-6">
-    <button type="button" (click)="onBack.emit()" class="flex items-center gap-2 text-primary hover:text-opacity-80 transition-all font-display font-semibold text-size-section">
-      <span class="material-symbols-outlined">arrow_back</span>
-      Regresar
+  <div class="mb-4">
+    <button
+      type="button"
+      (click)="onBack.emit()"
+      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
+    >
+      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
+        arrow_back
+      </span>
+      <span class="return-arrow-option">Regresar</span>
     </button>
   </div>
+
+  <app-info-banner title="Programación de Sustentación" class="mb-6 block">
+    Diligencie la fecha, lugar y asigne los jurados para la sustentación del trabajo de grado. Recuerde que cargar el <strong>Formato_E actualizado</strong> con estas firmas es un requisito <strong>obligatorio</strong> para confirmar la programación.
+  </app-info-banner>
 
   <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-8">
 
     <section>
-      <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">
+      <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">
         Información del trabajo de grado
       </h3>
 
@@ -21,7 +31,7 @@
               {{ label }}
             </span>
             <input type="text" [value]="value || ''" disabled
-                   class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 w-full cursor-not-allowed font-sans text-size-body">
+                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
           </div>
         </ng-template>
 
@@ -42,12 +52,14 @@
       </div>
     </section>
 
+    <hr class="border-gray-200 mb-2">
+
     <section>
-      <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">
+      <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">
         Programación de Sustentación
       </h3>
 
-      <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-6">
+      <div class="information-block bg-blue-50/50 p-6 rounded-xl border border-blue-100 shadow-sm flex flex-col gap-6">
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
@@ -62,11 +74,11 @@
               hourFormat="12"
               placeholder="Seleccione fecha y hora"
               styleClass="w-full"
-              [inputStyleClass]="'font-sans font-normal text-size-body p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary ' + (isFieldInvalid('sustentationDate') ? 'border-orange-500' : 'border-gray-200')">
+              [inputStyleClass]="'text-size-body p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary ' + (isFieldInvalid('sustentationDate') ? 'border-[#ED7D31] bg-orange-50' : 'border-gray-200 bg-white')">
             </p-datepicker>
 
             @if (isFieldInvalid('sustentationDate')) {
-              <span class="text-textbox-alert text-xs mt-1">La fecha y hora son obligatorias</span>
+              <span class="text-size-role-footer text-textbox-alert mt-1">La fecha y hora son obligatorias</span>
             }
           </div>
 
@@ -75,10 +87,12 @@
               Lugar / Aula / Enlace <span class="text-[#ED7D31]">*</span>
             </span>
             <input type="text" formControlName="location" placeholder="Ej. Auditorio Principal o Enlace de Teams"
-                   class="font-sans font-normal text-size-body p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-orange-500]="isFieldInvalid('location')">
+                   class="text-size-body p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary bg-white"
+                   [class.border-[#ED7D31]]="isFieldInvalid('location')"
+                   [class.bg-orange-50]="isFieldInvalid('location')"
+                   [class.border-gray-200]="!isFieldInvalid('location')">
             @if (isFieldInvalid('location')) {
-              <span class="text-textbox-alert text-xs mt-1">El lugar o aula es obligatorio</span>
+              <span class="text-size-role-footer text-textbox-alert mt-1">El lugar o aula es obligatorio</span>
             }
           </div>
         </div>
@@ -91,19 +105,20 @@
             </span>
             <div class="relative flex items-center">
               <select formControlName="juror1"
-                      class="font-sans font-normal text-size-body custom-select p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10 appearance-none"
-                      [class.border-orange-500]="isFieldInvalid('juror1')"
-                      [class.text-gray-400]="!form.get('juror1')?.value"
-                      [class.text-textbox]="form.get('juror1')?.value">
+                      class="text-size-body custom-select p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10 appearance-none"
+                      [class.border-[#ED7D31]]="isFieldInvalid('juror1')"
+                      [class.border-gray-200]="!isFieldInvalid('juror1')"
+                      [class.text-[#777680]]="!form.get('juror1')?.value"
+                      [class.text-primary]="form.get('juror1')?.value">
                 <option value="" disabled selected>Buscar docente apto</option>
                 @for (user of availableJurors(); track user.id) {
                   <option [value]="user.id">{{ getMemberFullName(user) }}</option>
                 }
               </select>
-              <span class="material-symbols-outlined absolute right-3 pointer-events-none text-gray-400">expand_more</span>
+              <span class="material-symbols-outlined absolute right-3 pointer-events-none text-[#777680]">expand_more</span>
             </div>
             @if (isFieldInvalid('juror1')) {
-              <span class="text-textbox-alert text-xs mt-1">Debe asignar el primer jurado</span>
+              <span class="text-size-role-footer text-textbox-alert mt-1">Debe asignar el primer jurado</span>
             }
           </div>
 
@@ -113,19 +128,20 @@
             </span>
             <div class="relative flex items-center">
               <select formControlName="juror2"
-                      class="font-sans font-normal text-size-body custom-select p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10 appearance-none"
-                      [class.border-orange-500]="isFieldInvalid('juror2')"
-                      [class.text-gray-400]="!form.get('juror2')?.value"
-                      [class.text-textbox]="form.get('juror2')?.value">
+                      class="text-size-body custom-select p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10 appearance-none"
+                      [class.border-[#ED7D31]]="isFieldInvalid('juror2')"
+                      [class.border-gray-200]="!isFieldInvalid('juror2')"
+                      [class.text-[#777680]]="!form.get('juror2')?.value"
+                      [class.text-primary]="form.get('juror2')?.value">
                 <option value="" disabled selected>Buscar docente apto</option>
                 @for (user of filteredJurorsForJ2(); track user.id) {
                   <option [value]="user.id">{{ getMemberFullName(user) }}</option>
                 }
               </select>
-              <span class="material-symbols-outlined absolute right-3 pointer-events-none text-gray-400">expand_more</span>
+              <span class="material-symbols-outlined absolute right-3 pointer-events-none text-[#777680]">expand_more</span>
             </div>
             @if (isFieldInvalid('juror2')) {
-              <span class="text-textbox-alert text-xs mt-1">Debe asignar el segundo jurado de forma obligatoria</span>
+              <span class="text-size-role-footer text-textbox-alert mt-1">Debe asignar el segundo jurado de forma obligatoria</span>
             }
           </div>
         </div>
@@ -133,47 +149,137 @@
       </div>
     </section>
 
+    <hr class="border-gray-200 mb-2">
+
     <section>
-      <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">
-        Carga del Formato_E Actualizado
+      <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">
+        Archivos adjuntos
       </h3>
 
-      <div class="flex items-center justify-between p-6 bg-white border border-gray-200 rounded-xl shadow-sm"
-           [class.border-red-500]="isSubmitAttempted() && !uploadedFormatE()">
+      <div class="flex flex-col gap-4 mb-6">
 
-        <div class="flex items-center gap-4">
+        <!-- Monografía -->
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
+            <div class="flex flex-col">
+              <span class="text-size-body font-bold text-primary">
+                {{ getExistingDocument('MONOGRAFIA')?.name || 'Monografía no encontrada' }}
+              </span>
+              <span class="text-size-role-footer text-[#777680]">Monografía • Cargado en entrega final</span>
+            </div>
+          </div>
+          <app-button-component
+            label="Descargar"
+            variant="primary"
+            (onClick)="downloadDocument(getExistingDocument('MONOGRAFIA'))"
+            [disabled]="!getExistingDocument('MONOGRAFIA')">
+          </app-button-component>
+        </div>
+
+        <!-- Formato de presentación -->
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
+            <div class="flex flex-col">
+              <span class="text-size-body font-bold text-primary">
+                {{ getExistingDocument('FORMATO')?.name || 'Formato de presentación no encontrado' }}
+              </span>
+              <span class="text-size-role-footer text-[#777680]">Formato de presentación • Cargado en entrega final</span>
+            </div>
+          </div>
+          <app-button-component
+            label="Descargar"
+            variant="primary"
+            (onClick)="downloadDocument(getExistingDocument('FORMATO'))"
+            [disabled]="!getExistingDocument('FORMATO')">
+          </app-button-component>
+        </div>
+
+        <!-- Anexos -->
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-[#DB141C] text-4xl">folder_open</span>
+            <div class="flex flex-col">
+              <span class="text-size-body font-bold text-primary">
+                {{ getExistingDocument('ANEXOS')?.name || 'Sin anexos registrados' }}
+              </span>
+              <span class="text-size-role-footer text-[#777680]">Anexos • Cargado en entrega final</span>
+            </div>
+          </div>
+          <app-button-component
+            label="Descargar"
+            variant="primary"
+            (onClick)="downloadDocument(getExistingDocument('ANEXOS'))"
+            [disabled]="!getExistingDocument('ANEXOS')">
+          </app-button-component>
+        </div>
+
+        <!-- Formato G / Paz y Salvo -->
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
+            <div class="flex flex-col">
+              <span class="text-size-body font-bold text-primary">
+                {{ getExistingDocument('FORMATO_G')?.name || 'Paz y Salvo no encontrado' }}
+              </span>
+              <span class="text-size-role-footer text-[#777680]">Formato de Paz y Salvo • Cargado en evaluación de Paz y Salvo</span>
+            </div>
+          </div>
+          <app-button-component
+            label="Descargar"
+            variant="primary"
+            (onClick)="downloadDocument(getExistingDocument('FORMATO_G'))"
+            [disabled]="!getExistingDocument('FORMATO_G')">
+          </app-button-component>
+        </div>
+
+      </div>
+    </section>
+
+    <hr class="border-gray-200 mb-2">
+
+    <section>
+      <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">
+        Carga del Formato E Actualizado
+      </h3>
+
+      <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
+           [class.border]="!uploadedFormatE() || isSubmitAttempted()"
+           [class.border-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatE()"
+           [class.border-l-4]="uploadedFormatE()"
+           [class.border-l-state-approved]="uploadedFormatE()"
+           [class.border-gray-200]="!uploadedFormatE() && !isSubmitAttempted()">
+        <div class="flex items-center gap-3">
           <span class="material-symbols-outlined text-4xl"
-                [class.text-red-500]="isSubmitAttempted() && !uploadedFormatE()"
-                [class.text-green-600]="uploadedFormatE()"
-                [class.text-gray-400]="!uploadedFormatE() && !isSubmitAttempted()">
+                [class.text-state-approved]="uploadedFormatE()"
+                [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatE()"
+                [class.text-[#777680]]="!uploadedFormatE() && !isSubmitAttempted()">
             {{ uploadedFormatE() ? 'task' : 'picture_as_pdf' }}
           </span>
           <div class="flex flex-col">
-              <span class="text-sm font-bold"
-                    [class.text-primary]="uploadedFormatE() || !isSubmitAttempted()"
-                    [class.text-red-500]="isSubmitAttempted() && !uploadedFormatE()">
-                {{ uploadedFileName() }}
-              </span>
-              <span class="text-xs text-[#777680] max-w-md mt-1">
-                {{ uploadedFormatE() ? 'Documento cargado con éxito' : 'Suba el Formato_E con los espacios de programación de sustentación totalmente diligenciados.' }}
-              </span>
-              @if (isSubmitAttempted() && !uploadedFormatE()) {
-                <span class="text-xs text-[#ED7D31] mt-1 font-semibold">Este archivo es requerido para completar el proceso</span>
-              }
+            <span class="text-size-body font-bold"
+                  [class.text-primary]="uploadedFormatE()"
+                  [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatE()">
+              {{ uploadedFileName() }}
+            </span>
+            <span class="text-size-role-footer text-[#777680]">
+              {{ uploadedFormatE() ? 'Documento cargado con éxito' : 'Suba el Formato E con los espacios de programación de sustentación totalmente diligenciados (Obligatorio).' }}
+            </span>
+            @if (isSubmitAttempted() && !uploadedFormatE()) {
+              <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido para completar el proceso</span>
+            }
           </div>
         </div>
-
         @if (uploadedFormatE()) {
-          <button type="button" (click)="uploadedFormatE.set(null)" class="text-gray-400 hover:text-red-500 transition-colors">
-            <span class="material-symbols-outlined">delete</span>
-          </button>
+          <button type="button" (click)="uploadedFormatE.set(null)" class="text-[#777680] hover:text-[#DB141C] transition-colors"><span class="material-symbols-outlined">delete</span></button>
         } @else {
-          <app-button-component label="Cargar Formato_E" variant="secondary" (onClick)="isModalOpen.set(true)"></app-button-component>
+          <app-button-component label="Cargar Formato E" variant="secondary" (onClick)="isModalOpen.set(true)"></app-button-component>
         }
       </div>
     </section>
 
-    <div class="flex gap-4 justify-end mt-4">
+    <div class="flex gap-4 justify-end mt-10">
       <app-button-component label="Confirmar y Agendar" variant="primary" type="submit"></app-button-component>
     </div>
 
@@ -182,7 +288,7 @@
 
 <app-file-upload-modal
   [isOpen]="isModalOpen()"
-  description="Subir Formato_E - Sustentación (PDF)"
+  description="Subir Formato E - Sustentación (PDF)"
   (onFileUploaded)="handleFileUploaded($event)"
   (onClose)="isModalOpen.set(false)">
 </app-file-upload-modal>

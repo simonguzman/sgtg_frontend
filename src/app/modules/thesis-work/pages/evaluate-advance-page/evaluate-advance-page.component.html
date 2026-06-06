@@ -1,16 +1,24 @@
-@if (thesisWorkState() && currentAdvance()) {
-  <app-evaluate-advance-form
-    [advanceData]="currentAdvance()!"
-    [thesisWorkTitle]="thesisWorkState()!.preliminaryDraftData.proposalData.title"
-    (onBack)="navigateBack()"
-    (onSaveEvaluation)="handleRequestConfirmation($event)"
-    (onDownloadAdvance)="downloadCurrentAdvance()">
-  </app-evaluate-advance-form>
-}
+<div class="w-full max-w-5xl mx-auto p-4 md:p-8 bg-[#F8F9FA] min-h-screen">
+
+  @if (thesisWorkState() === null || currentAdvance() === null) {
+    <div class="flex justify-center items-center h-60">
+      <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+    </div>
+  } @else {
+    <app-evaluate-advance-form
+      [advanceData]="currentAdvance()!"
+      [thesisWork]="thesisWorkState()!"
+      (onBack)="navigateBack()"
+      (onSaveEvaluation)="handleRequestConfirmation($event)"
+      (onDownloadAdvance)="downloadCurrentAdvance()">
+    </app-evaluate-advance-form>
+  }
+
+</div>
 
 <app-confirmation-action-modal
   [isOpen]="isConfirmModalOpen()"
-  description="¿Desea guardar la evaluación del avance? La retroalimentación se notificará de inmediato."
+  description="¿Desea guardar la evaluación de este avance? La retroalimentación y el estado se notificarán de inmediato al estudiante."
   (onClose)="isConfirmModalOpen.set(false)"
   (confirm)="processAdvanceEvaluation()">
 </app-confirmation-action-modal>

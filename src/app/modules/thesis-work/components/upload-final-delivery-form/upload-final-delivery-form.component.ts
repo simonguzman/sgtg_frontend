@@ -4,13 +4,14 @@ import { UserService } from '../../../users/services/user.service';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 
 @Component({
   selector: 'app-upload-final-delivery-form',
   templateUrl: './upload-final-delivery-form.component.html',
   styleUrls: ['./upload-final-delivery-form.component.css'],
-  imports: [FileUploadModalComponent, ButtonComponent]
+  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent]
 })
 export class UploadFinalDeliveryFormComponent {
   private readonly notificationService = inject(NotificationService);
@@ -19,7 +20,8 @@ export class UploadFinalDeliveryFormComponent {
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
 
-  @Output() onSaveDelivery = new EventEmitter<{ monograph: File, formatE: File, annexes?: File }>();
+  // Se actualiza el tipo a File (ya no opcional en la lógica de envío)
+  @Output() onSaveDelivery = new EventEmitter<{ monograph: File, formatE: File, annexes: File }>();
   @Output() onGoBack = new EventEmitter<void>();
 
   uploadedMonograph = signal<{ fileName: string; file: File } | null>(null);
@@ -29,6 +31,7 @@ export class UploadFinalDeliveryFormComponent {
   activeModal = signal<'MONOGRAPH' | 'FORMAT_E' | 'ANNEXES' | null>(null);
   isSubmitAttempted = signal(false);
 
+  // --- Helpers ---
   getStudentNames(): string {
     const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
     return this.userService.getAuthorsNames(authors);
@@ -84,10 +87,10 @@ export class UploadFinalDeliveryFormComponent {
     const formatE = this.uploadedFormatE();
     const annexes = this.uploadedAnnexes();
 
-    if (!monograph || !formatE) {
+    if (!monograph || !formatE || !annexes) {
       this.notificationService.show({
         title: 'Documentos faltantes',
-        message: 'Debe adjuntar obligatoriamente la Monografía y el Formato_E para continuar.',
+        message: 'Debe adjuntar obligatoriamente la Monografía, el Formato_E y los Anexos para poder continuar.',
         type: NotificationType.ERROR
       });
       return;
@@ -96,9 +99,7 @@ export class UploadFinalDeliveryFormComponent {
     this.onSaveDelivery.emit({
       monograph: monograph.file,
       formatE: formatE.file,
-      annexes: annexes?.file
+      annexes: annexes.file
     });
   }
 }
-
-

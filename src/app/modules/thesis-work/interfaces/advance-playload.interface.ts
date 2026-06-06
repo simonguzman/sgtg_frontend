@@ -27,7 +27,7 @@ export interface EvaluateAdvanceFormValues {
 
 export interface SubmitAdvanceEvaluationPayload {
   formValues: EvaluateAdvanceFormValues;
-  file?: File;
+  files?: File[];
 }
 
 

@@ -15,8 +15,8 @@
       <app-button-component
         label="Documentos corregidos"
         variant="primary"
-        (onClick)="navigateToCorrectedDocuments()"
-      ></app-button-component>
+        (onClick)="navigateToCorrectedDocuments()">
+      </app-button-component>
     }
   </div>
 
@@ -28,6 +28,7 @@
 
   @if (thesisWorkDetails(); as work) {
 
+    <!-- ── Información general ────────────────────────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mb-4">
       Información general
     </h3>
@@ -35,20 +36,27 @@
     <div class="space-y-3">
       <div class="p-3 information-block rounded">
         <span class="font-semibold font-display text-size-section text-primary">Título</span>
-        <p class="font-normal font-sans text-size-section text-[#777680]">{{ work.preliminaryDraftData.proposalData.title }}</p>
+        <p class="font-normal font-sans text-size-section text-[#777680]">
+          {{ work.preliminaryDraftData.proposalData.title }}
+        </p>
       </div>
 
       <div class="p-3 information-block rounded">
         <span class="font-semibold font-display text-size-section text-primary">Modalidad</span>
-        <p class="font-normal font-sans text-size-section text-[#777680]">{{ work.preliminaryDraftData.proposalData.modality }}</p>
+        <p class="font-normal font-sans text-size-section text-[#777680]">
+          {{ work.preliminaryDraftData.proposalData.modality }}
+        </p>
       </div>
 
       <div class="p-3 information-block rounded">
         <span class="font-semibold font-display text-size-section text-primary">Estudiante(s)</span>
-        <p class="font-normal font-sans text-size-section text-[#777680]">{{ getAuthors(work.preliminaryDraftData.proposalData.authors) }}</p>
+        <p class="font-normal font-sans text-size-section text-[#777680]">
+          {{ getAuthors(work.preliminaryDraftData.proposalData.authors) }}
+        </p>
       </div>
     </div>
 
+    <!-- ── Participantes académicos ───────────────────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
       Participantes académicos
     </h3>
@@ -87,11 +95,12 @@
       </div>
     </div>
 
+    <!-- ── Programación de la sustentación ───────────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
       Programación de la sustentación
     </h3>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
       <div class="p-3 information-block rounded">
         <span class="font-semibold font-display text-size-section text-primary">Fecha</span>
         <p class="font-normal font-sans text-size-section text-[#777680]">
@@ -114,25 +123,74 @@
       </div>
     </div>
 
-    @if (selectedSustentation()?.formatEDocument) {
-      <div class="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-xl mb-8">
+    <!-- ── Archivos adjuntos ──────────────────────────────────────────────── -->
+    <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
+      Archivos adjuntos
+    </h3>
+
+    <div class="flex flex-col gap-3 mb-8">
+
+      <!-- Monografía -->
+      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
         <div class="flex items-center gap-3 overflow-hidden">
           <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
           <div class="flex flex-col overflow-hidden">
-            <span class="text-sm font-bold text-primary truncate">
-              {{ selectedSustentation()?.formatEDocument?.name || 'Formato_E_Programacion.pdf' }}
+            <span class="text-size-body font-bold text-primary truncate">
+              {{ getExistingDocument('MONOGRAFIA')?.name || 'Monografía no encontrada' }}
             </span>
-            <span class="text-xs text-[#777680] font-sans">Documento de programación avalado por el consejo</span>
+            <span class="text-size-role-footer text-[#777680]">Monografía • Cargado en entrega final</span>
           </div>
         </div>
         <app-button-component
-          label="Descargar Formato_E"
-          variant="secondary"
-          (onClick)="downloadDocument(selectedSustentation()?.formatEDocument)"
-        ></app-button-component>
+          label="Descargar"
+          variant="primary"
+          (onClick)="downloadDocument(getExistingDocument('MONOGRAFIA'))"
+          [disabled]="!getExistingDocument('MONOGRAFIA')">
+        </app-button-component>
       </div>
-    }
 
+      <!-- Anexos -->
+      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">folder_open</span>
+          <div class="flex flex-col overflow-hidden">
+            <span class="text-size-body font-bold text-primary truncate">
+              {{ getExistingDocument('ANEXOS')?.name || 'Sin anexos registrados' }}
+            </span>
+            <span class="text-size-role-footer text-[#777680]">Anexos • Cargado en entrega final</span>
+          </div>
+        </div>
+        <app-button-component
+          label="Descargar"
+          variant="primary"
+          (onClick)="downloadDocument(getExistingDocument('ANEXOS'))"
+          [disabled]="!getExistingDocument('ANEXOS')">
+        </app-button-component>
+      </div>
+
+      <!-- Formato E de programación (solo si existe) -->
+      @if (selectedSustentation()?.formatEDocument) {
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+          <div class="flex items-center gap-3 overflow-hidden">
+            <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+            <div class="flex flex-col overflow-hidden">
+              <span class="text-size-body font-bold text-primary truncate">
+                {{ selectedSustentation()?.formatEDocument?.name || 'Formato_E_Programacion.pdf' }}
+              </span>
+              <span class="text-size-role-footer text-[#777680]">Formato E • Documento de programación avalado por el consejo</span>
+            </div>
+          </div>
+          <app-button-component
+            label="Descargar"
+            variant="primary"
+            (onClick)="downloadDocument(selectedSustentation()?.formatEDocument)">
+          </app-button-component>
+        </div>
+      }
+
+    </div>
+
+    <!-- ── Evaluaciones de los jurados ────────────────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
       Evaluaciones de los jurados
     </h3>
@@ -144,16 +202,15 @@
           <div class="space-y-3 p-5 border border-gray-100 rounded-xl shadow-sm bg-white">
 
             <div class="flex justify-between items-center border-b border-gray-100 pb-2 mb-2">
-               <span class="font-display font-bold text-primary text-size-section">
-                 Jurado: {{ getMemberName(veredict.jurorId) }}
-               </span>
-               <span class="text-sm font-sans text-gray-500">
-                 Evaluado el {{ veredict.evaluationDate | date:'dd/MM/yyyy' }}
-               </span>
+              <span class="font-display font-bold text-primary text-size-section">
+                Jurado: {{ getMemberName(veredict.jurorId) }}
+              </span>
+              <span class="text-sm font-sans text-gray-500">
+                Evaluado el {{ veredict.evaluationDate | date:'dd/MM/yyyy' }}
+              </span>
             </div>
 
-            <div class="p-3 information-block rounded"
-                 [class.border-l-4]="true"
+            <div class="p-3 information-block rounded border-l-4"
                  [class.border-l-green-500]="veredict.veredict === 'Aprobado'"
                  [class.border-l-amber-500]="veredict.veredict === 'Aprobado con observaciones'"
                  [class.border-l-orange-500]="veredict.veredict === 'Aplazado'"
@@ -170,29 +227,30 @@
             </div>
 
             @if (veredict.attachedDocument) {
-              <div class="mt-4 flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-xl">
+              <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
                 <div class="flex items-center gap-3 overflow-hidden">
                   <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
                   <div class="flex flex-col overflow-hidden">
-                    <span class="text-sm font-bold text-primary truncate">
+                    <span class="text-size-body font-bold text-primary truncate">
                       {{ veredict.attachedDocument.name || 'Acta_Sustentacion.pdf' }}
                     </span>
-                    <span class="text-xs text-[#777680] font-sans">Acta firmada y cargada por este calificador</span>
+                    <span class="text-size-role-footer text-[#777680]">Acta firmada y cargada por este calificador</span>
                   </div>
                 </div>
                 <app-button-component
                   label="Descargar acta"
                   variant="secondary"
-                  (onClick)="downloadDocument(veredict.attachedDocument)"
-                ></app-button-component>
+                  (onClick)="downloadDocument(veredict.attachedDocument)">
+                </app-button-component>
               </div>
             }
+
           </div>
 
         }
       </div>
     } @else {
-      <div class="mt-8 p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680]">
+      <div class="information-block mt-8 p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680]">
         La sustentación ha sido programada, pero aún no se ha emitido ningún veredicto por parte de los jurados calificadores.
       </div>
     }

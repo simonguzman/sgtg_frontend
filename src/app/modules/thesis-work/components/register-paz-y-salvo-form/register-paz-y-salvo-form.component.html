@@ -13,6 +13,11 @@
     </button>
   </div>
 
+  <!-- Banner Informativo Superior -->
+  <app-info-banner title="Registro de Paz y Salvo" class="mb-6 block">
+    Para registrar el paz y salvo del estudiante, debe indicar si cumple con los requisitos <strong>académico y financiero</strong>. Seleccione la opción correspondiente y, de ser necesario, agregue observaciones o comentarios adicionales.
+  </app-info-banner>
+
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
 
@@ -68,30 +73,28 @@
   <hr class="border-gray-200 mb-8">
 
   <section class="mb-10">
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Paz_y_salvo académico</h3>
-    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm" [class.border-red-500]="isSubmitAttempted() && academicApproved() === null">
-
-      <div class="p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-4">
-        Para registrar el paz y salvo del estudiante, debe indicar si cumple con los requisitos académico y financiero. Seleccione la opción correspondiente y, de ser necesario, agregue observaciones o comentarios adicionales.
-      </div>
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Paz y salvo académico</h3>
+    <div class="information-block bg-blue-50/50 p-6 rounded-xl border shadow-sm transition-all"
+         [class.border-[#ED7D31]]="isSubmitAttempted() && academicApproved() === null"
+         [class.border-blue-100]="!(isSubmitAttempted() && academicApproved() === null)">
 
       <div class="flex gap-6 mb-4">
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="academic" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="academicApproved() === true" (change)="academicApproved.set(true)">
-          <span class="text-sm font-medium text-gray-700">Cumple con los requisitos</span>
+          <span class="text-size-body font-medium text-gray-700">Cumple con los requisitos</span>
         </label>
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="academic" class="w-4 h-4 text-[#DB141C] focus:ring-[#DB141C]"
                  [checked]="academicApproved() === false" (change)="academicApproved.set(false)">
-          <span class="text-sm font-medium text-gray-700">No cumple con los requisitos</span>
+          <span class="text-size-body font-medium text-gray-700">No cumple con los requisitos</span>
         </label>
       </div>
-      @if(isSubmitAttempted() && academicApproved() === null) { <p class="text-xs text-[#DB141C] mb-2">Seleccione una opción</p> }
+      @if(isSubmitAttempted() && academicApproved() === null) { <p class="text-size-role-footer text-textbox-alert mb-2">Seleccione una opción</p> }
 
       <div class="flex flex-col gap-1">
-        <span class="text-sm font-semibold text-primary">Comentarios</span>
-        <textarea rows="3" class="p-3 border rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm"
+        <span class="font-display font-semibold text-primary text-size-section">Comentarios</span>
+        <textarea rows="3" class="p-3 border border-gray-200 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
                   placeholder="Ingrese los comentarios y observaciones sobre la evaluación del paz y salvo si lo considera necesario"
                   (input)="academicComments.set($any($event.target).value)"></textarea>
       </div>
@@ -99,30 +102,28 @@
   </section>
 
   <section class="mb-10">
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Paz_y_salvo financiero</h3>
-    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm" [class.border-red-500]="isSubmitAttempted() && financialApproved() === null">
-
-      <div class="p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-4">
-        Para registrar el paz y salvo del estudiante, debe indicar si cumple con los requisitos académico y financiero. Seleccione la opción correspondiente y, de ser necesario, agregue observaciones o comentarios adicionales.
-      </div>
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Paz y salvo financiero</h3>
+    <div class="information-block bg-blue-50/50 p-6 rounded-xl border shadow-sm transition-all"
+         [class.border-[#ED7D31]]="isSubmitAttempted() && financialApproved() === null"
+         [class.border-blue-100]="!(isSubmitAttempted() && financialApproved() === null)">
 
       <div class="flex gap-6 mb-4">
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="financial" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="financialApproved() === true" (change)="financialApproved.set(true)">
-          <span class="text-sm font-medium text-[#777680]">Cumple con los requisitos</span>
+          <span class="text-size-body font-medium text-gray-700">Cumple con los requisitos</span>
         </label>
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="financial" class="w-4 h-4 text-[#DB141C] focus:ring-[#DB141C]"
                  [checked]="financialApproved() === false" (change)="financialApproved.set(false)">
-          <span class="text-sm font-medium text-[#777680]">No cumple con los requisitos</span>
+          <span class="text-size-body font-medium text-gray-700">No cumple con los requisitos</span>
         </label>
       </div>
-      @if(isSubmitAttempted() && financialApproved() === null) { <p class="text-xs text-[#DB141C] mb-2">Seleccione una opción</p> }
+      @if(isSubmitAttempted() && financialApproved() === null) { <p class="text-size-role-footer text-textbox-alert mb-2">Seleccione una opción</p> }
 
       <div class="flex flex-col gap-1">
-        <span class="text-sm font-semibold text-primary">Comentarios</span>
-        <textarea rows="3" class="p-3 border rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm"
+        <span class="font-display font-semibold text-primary text-size-section">Comentarios</span>
+        <textarea rows="3" class="p-3 border border-gray-200 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
                   placeholder="Ingrese los comentarios y observaciones sobre la evaluación del paz y salvo si lo considera necesario"
                   (input)="financialComments.set($any($event.target).value)"></textarea>
       </div>
@@ -136,77 +137,87 @@
 
     <div class="flex flex-col gap-4 mb-6">
 
-      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-colors">
         <div class="flex items-center gap-3">
           <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
           <div class="flex flex-col">
-            <span class="text-sm font-bold text-primary">
+            <span class="text-size-body font-bold text-primary">
               {{ getExistingDocument('MONOGRAFIA')?.name || 'Monografía no encontrada' }}
             </span>
-            <span class="text-xs text-[#777680]">Monografía • Cargado en entrega final</span>
+            <span class="text-size-role-footer text-[#777680]">Monografía • Cargado en entrega final</span>
           </div>
         </div>
         <app-button-component
           label="Descargar"
-          variant="secondary"
+          variant="primary"
           (onClick)="downloadDocument(getExistingDocument('MONOGRAFIA'))"
           [disabled]="!getExistingDocument('MONOGRAFIA')">
         </app-button-component>
       </div>
 
-      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-colors">
         <div class="flex items-center gap-3">
           <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
           <div class="flex flex-col">
-            <span class="text-sm font-bold text-primary">
+            <span class="text-size-body font-bold text-primary">
               {{ getExistingDocument('FORMATO')?.name || 'Formato de presentación no encontrado' }}
             </span>
-            <span class="text-xs text-[#777680]">Formato de presentación • Cargado en entrega final</span>
+            <span class="text-size-role-footer text-[#777680]">Formato de presentación • Cargado en entrega final</span>
           </div>
         </div>
         <app-button-component
           label="Descargar"
-          variant="secondary"
+          variant="primary"
           (onClick)="downloadDocument(getExistingDocument('FORMATO'))"
           [disabled]="!getExistingDocument('FORMATO')">
         </app-button-component>
       </div>
 
-      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-colors">
         <div class="flex items-center gap-3">
           <span class="material-symbols-outlined text-[#DB141C] text-4xl">folder_open</span>
           <div class="flex flex-col">
-            <span class="text-sm font-bold text-primary">
+            <span class="text-size-body font-bold text-primary">
               {{ getExistingDocument('ANEXOS')?.name || 'Sin anexos registrados' }}
             </span>
-            <span class="text-xs text-[#777680]">Anexos • Cargado en entrega final</span>
+            <span class="text-size-role-footer text-[#777680]">Anexos • Cargado en entrega final</span>
           </div>
         </div>
         <app-button-component
           label="Descargar"
-          variant="secondary"
+          variant="primary"
           (onClick)="downloadDocument(getExistingDocument('ANEXOS'))"
           [disabled]="!getExistingDocument('ANEXOS')">
         </app-button-component>
       </div>
 
-      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm"
-           [class.border-l-4]="uploadedFormat()" [class.border-l-green-500]="uploadedFormat()"
-           [class.border-red-500]="isSubmitAttempted() && !uploadedFormat()">
+      <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
+           [class.border]="!uploadedFormat() || isSubmitAttempted()"
+           [class.border-[#ED7D31]]="isSubmitAttempted() && !uploadedFormat()"
+           [class.border-l-4]="uploadedFormat()"
+           [class.border-l-state-approved]="uploadedFormat()"
+           [class.border-gray-200]="!uploadedFormat() && !isSubmitAttempted()">
         <div class="flex items-center gap-3">
-          <span class="material-symbols-outlined text-4xl" [class.text-green-600]="uploadedFormat()" [class.text-[#DB141C]]="isSubmitAttempted() && !uploadedFormat()" [class.text-gray-400]="!uploadedFormat() && !isSubmitAttempted()">
+          <span class="material-symbols-outlined text-4xl"
+                [class.text-state-approved]="uploadedFormat()"
+                [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedFormat()"
+                [class.text-[#777680]]="!uploadedFormat() && !isSubmitAttempted()">
             {{ uploadedFormat() ? 'task' : 'picture_as_pdf' }}
           </span>
           <div class="flex flex-col">
-            <span class="text-sm font-bold" [class.text-primary]="uploadedFormat()" [class.text-red-500]="isSubmitAttempted() && !uploadedFormat()">{{ uploadedFormat()?.fileName || 'Paz_y_salvo' }}</span>
-            <span class="text-xs text-[#777680]">
+            <span class="text-size-body font-bold"
+                  [class.text-primary]="uploadedFormat()"
+                  [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedFormat()">
+              {{ uploadedFormat()?.fileName || 'Paz_y_salvo' }}
+            </span>
+            <span class="text-size-role-footer text-[#777680]">
               {{ uploadedFormat() ? 'Documento cargado con éxito' : 'No ha sido cargado ningún archivo, para completar el proceso debe cargar el formato de paz y salvo con los datos diligenciados.' }}
             </span>
-            @if (isSubmitAttempted() && !uploadedFormat()) { <span class="text-xs text-textbox-alert mt-1">Este archivo es requerido</span> }
+            @if (isSubmitAttempted() && !uploadedFormat()) { <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span> }
           </div>
         </div>
         @if (uploadedFormat()) {
-          <button type="button" (click)="removeFile()" class="text-gray-400 hover:text-[#db141c]"><span class="material-symbols-outlined">delete</span></button>
+          <button type="button" (click)="removeFile()" class="text-gray-400 hover:text-[#DB141C] transition-colors"><span class="material-symbols-outlined">delete</span></button>
         } @else {
           <app-button-component label="Cargar formato de paz y salvo" variant="secondary" (onClick)="isModalOpen.set(true)"></app-button-component>
         }

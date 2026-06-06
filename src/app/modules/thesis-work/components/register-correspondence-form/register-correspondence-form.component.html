@@ -1,18 +1,12 @@
 <div class="pt-2 max-w-4xl mx-auto pb-10">
 
-  <div class="mb-4">
-    <button
-      type="button"
-      (click)="onGoBack.emit()"
-      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
-    >
-      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
-        arrow_back
-      </span>
-      <span class="return-arrow-option">Regresar</span>
-    </button>
-  </div>
+  <app-info-banner title="Registro de Correspondencia y Resolución" class="mb-6 block">
+    Para dar por terminado el proceso de trabajo de grado de manera formal, cargue el documento oficial
+    de correspondencia o resolución de consejo (<strong>Formato_H</strong>). Este es un requisito
+    <strong>obligatorio</strong> para cerrar el expediente académico.
+  </app-info-banner>
 
+  <!-- ── Información del trabajo de grado ──────────────────────────────────── -->
   <section class="mb-8">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
 
@@ -68,6 +62,7 @@
     </div>
   </section>
 
+  <!-- ── Detalles de Sustentación ───────────────────────────────────────────── -->
   <section class="mb-8">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Detalles de Sustentación</h3>
 
@@ -93,17 +88,19 @@
 
   <hr class="border-gray-200 mb-8">
 
+  <!-- ── Archivos adjuntos cargados ────────────────────────────────────────── -->
   <section class="mb-8">
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Archivos adjuntos cargados</h3>
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Archivos adjuntos cargados</h3>
 
     <div class="flex flex-col gap-4">
+
       @if (formatoEDoc(); as docE) {
-        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-[#000066] rounded-xl shadow-sm">
-          <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-4xl text-[#DB141C]">picture_as_pdf</span>
-            <div class="flex flex-col">
-              <span class="text-sm font-bold text-primary">Formato de presentación (Formato_E)</span>
-              <span class="text-xs text-[#777680]">{{ docE.name }} • Cargado en Entrega Final</span>
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+          <div class="flex items-center gap-3 overflow-hidden">
+            <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+            <div class="flex flex-col overflow-hidden">
+              <span class="text-size-body font-bold text-primary truncate">{{ docE.name }}</span>
+              <span class="text-size-role-footer text-[#777680]">Formato de presentación (Formato_E) • Cargado en Entrega Final</span>
             </div>
           </div>
           <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docE)"></app-button-component>
@@ -111,12 +108,12 @@
       }
 
       @if (formatoFDoc(); as docF) {
-        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-[#000066] rounded-xl shadow-sm">
-          <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-4xl text-[#DB141C]">picture_as_pdf</span>
-            <div class="flex flex-col">
-              <span class="text-sm font-bold text-primary">Paz y Salvo (Formato F)</span>
-              <span class="text-xs text-[#777680]">{{ docF.name }} • Cargado por Facultad</span>
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+          <div class="flex items-center gap-3 overflow-hidden">
+            <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+            <div class="flex flex-col overflow-hidden">
+              <span class="text-size-body font-bold text-primary truncate">{{ docF.name }}</span>
+              <span class="text-size-role-footer text-[#777680]">Paz y Salvo (Formato F) • Cargado por Facultad</span>
             </div>
           </div>
           <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docF)"></app-button-component>
@@ -124,62 +121,65 @@
       }
 
       @if (formatoGDoc(); as docG) {
-        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-[#000066] rounded-xl shadow-sm">
-          <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-4xl text-[#DB141C]">picture_as_pdf</span>
-            <div class="flex flex-col">
-              <span class="text-sm font-bold text-primary">Acta de Sustentación (Formato_G)</span>
-              <span class="text-xs text-[#777680]">{{ docG.name }} • Calificación del Jurado</span>
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+          <div class="flex items-center gap-3 overflow-hidden">
+            <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+            <div class="flex flex-col overflow-hidden">
+              <span class="text-size-body font-bold text-primary truncate">{{ docG.name }}</span>
+              <span class="text-size-role-footer text-[#777680]">Acta de Sustentación (Formato_G) • Calificación del Jurado</span>
             </div>
           </div>
           <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docG)"></app-button-component>
         </div>
       }
+
     </div>
   </section>
 
+  <hr class="border-gray-200 mb-8">
+
+  <!-- ── Carga del Formato H ────────────────────────────────────────────────── -->
   <section>
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Carga del Formato H</h3>
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Carga del Formato H</h3>
 
     <input type="file" id="correspondenceFileInput" class="hidden" accept=".pdf" (change)="onFileSelected($event)">
 
     <div class="flex flex-col gap-4">
 
+      <!-- Estado: sin archivo cargado -->
       @if (!selectedFile()) {
-        <div class="p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-2">
-          No ha sido cargado ningún archivo. Para dar por terminado el proceso de trabajo de grado de manera formal, debe cargar el documento oficial de correspondencia o resolución de consejo (Formato_H).
-        </div>
-
-        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-dashed">
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm transition-colors">
           <div class="flex items-center gap-3">
             <span class="material-symbols-outlined text-4xl text-[#777680]">picture_as_pdf</span>
             <div class="flex flex-col">
-              <span class="text-sm font-bold text-[#777680]">Documento de Correspondencia / Resolución</span>
-              <span class="text-xs text-[#777680]">Formato_H requerido (Obligatorio - PDF)</span>
+              <span class="text-size-body font-bold text-[#777680]">Documento de Correspondencia / Resolución</span>
+              <span class="text-size-role-footer text-[#777680]">
+                No ha sido cargado ningún archivo. Debe adjuntar el Formato_H para formalizar el cierre del proceso.
+              </span>
             </div>
           </div>
           <app-button-component
-            label="Cargar"
+            label="Cargar Formato H"
             variant="secondary"
             (onClick)="triggerFileInput()">
           </app-button-component>
         </div>
       }
 
+      <!-- Estado: archivo seleccionado -->
       @else {
-        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-state-approved rounded-xl shadow-sm">
+        <div class="flex items-center justify-between p-4 bg-white border-l-4 border-l-state-approved border border-gray-200 rounded-xl shadow-sm transition-colors">
           <div class="flex items-center gap-3">
             <span class="material-symbols-outlined text-4xl text-state-approved">task</span>
             <div class="flex flex-col">
-              <span class="text-sm font-bold text-primary">{{ selectedFile()?.fileName }}</span>
-              <span class="text-xs text-state-approved font-medium">Archivo seleccionado correctamente para la resolución</span>
+              <span class="text-size-body font-bold text-primary">{{ selectedFile()?.fileName }}</span>
+              <span class="text-size-role-footer text-[#777680]">Documento cargado con éxito</span>
             </div>
           </div>
           <button
             type="button"
             (click)="removeSelectedFile()"
-            class="text-gray-400 hover:text-red-500 transition-colors flex items-center p-1"
-            title="Cambiar archivo seleccionado">
+            class="text-[#777680] hover:text-[#DB141C] transition-colors">
             <span class="material-symbols-outlined">delete</span>
           </button>
         </div>

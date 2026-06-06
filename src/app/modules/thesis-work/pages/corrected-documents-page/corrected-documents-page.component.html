@@ -1,21 +1,18 @@
-<div>
-  <div class="bg-blue-50 border-l-4 border-blue-600 p-5 rounded-r-xl mb-6 shadow-sm">
-    <div class="flex items-start gap-3">
-      <span class="material-symbols-outlined text-blue-600 mt-0.5">info</span>
-      <div>
-        <h3 class="font-bold text-navy-900 text-base mb-1">Seguimiento de Correcciones de Sustentación</h3>
-        <p class="text-gray-700 text-sm leading-relaxed">
-          Espacio habilitado para la validación de modificaciones tras la deliberación de <strong>Aprobado con Observaciones</strong>.
-          El <strong>Director</strong> se encarga del cargue técnico de los archivos, mientras que los <strong>Jurados asignados</strong> emitirán el veredicto definitivo sobre dichas correcciones.
-        </p>
-      </div>
-    </div>
-  </div>
+<div class="">
 
+  <!-- ── Banner informativo ─────────────────────────────────────────────────── -->
+  <app-info-banner title="Seguimiento de Correcciones de Sustentación" class="mb-6 block">
+    Espacio habilitado para la validación de modificaciones tras la deliberación de
+    <strong>Aprobado con Observaciones</strong>. El <strong>Director</strong> se encarga del
+    cargue técnico de los archivos, mientras que los <strong>Jurados asignados</strong>
+    emitirán el veredicto definitivo sobre dichas correcciones.
+  </app-info-banner>
+
+  <!-- ── Navegación y acciones ─────────────────────────────────────────────── -->
   <div class="flex justify-between items-center mb-6">
     <button
       (click)="goBack()"
-      class="flex items-center gap-2 text-navy-900 hover:text-navy-700 transition-colors font-bold group"
+      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
     >
       <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
         arrow_back
@@ -23,40 +20,45 @@
       <span class="return-arrow-option">Regresar</span>
     </button>
 
+    <!-- Botón Director: cargar correcciones (solo si aún no hay entregas) -->
     @if (isDirector() && !hasUploadedCorrections()) {
       <app-button-component
         [label]="isAlreadyEvaluated() ? 'Correcciones ya Evaluadas' : 'Cargar documentos corregidos'"
         variant="primary"
         [disabled]="isAlreadyEvaluated()"
-        (onClick)="navigateToUploadCorrections()"
-      ></app-button-component>
+        (onClick)="navigateToUploadCorrections()">
+      </app-button-component>
     }
 
+    <!-- Botón Jurado: evaluar correcciones (solo si hay entregas y no están evaluadas) -->
     @if (isJuror() && !isAlreadyEvaluated()) {
       <app-button-component
         label="Evaluar documentos corregidos"
         variant="primary"
-        (onClick)="navigateToEvaluateCorrections()"
-      ></app-button-component>
+        (onClick)="navigateToEvaluateCorrections()">
+      </app-button-component>
     }
   </div>
 
+  <!-- ── Tabla de entregas ──────────────────────────────────────────────────── -->
   <div class="bg-white rounded-xl shadow-md border border-gray-100 p-4">
     <app-table-component
       [value]="tableData()"
       [columns]="columns"
       [paginator]="true"
       (actionClick)="handleTableAction($event)"
-      emptyMessage="No se han cargado documentos de corrección en este proyecto todavía."
-    ></app-table-component>
+      emptyMessage="No se han cargado documentos de corrección en este proyecto todavía.">
+    </app-table-component>
   </div>
+
 </div>
 
+<!-- ── Modal de detalles ──────────────────────────────────────────────────── -->
 <app-register-information-modal
   [isOpen]="isDetailsModalOpen()"
   [modalHeader]="'Detalles del Paquete de Correcciones'"
   [subTitle]="'Información de la Entrega'"
-  [title]="currentThesisWork()?.preliminaryDraftData?.proposalData?.title || 'Sin título registrado' "
+  [title]="currentThesisWork()?.preliminaryDraftData?.proposalData?.title || 'Sin título registrado'"
   [comments]="'Paquete de correcciones cargado tras la sustentación y sujeto a revisión por parte del jurado calificador.'"
   [modality]="modalityName()"
   [student]="studentName()"

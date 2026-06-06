@@ -16,13 +16,14 @@ import { User } from '../../../users/interfaces/user.interface';
 
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 
 @Component({
   selector: 'app-evaluate-corrections-form',
   templateUrl: './evaluate-corrections-form.component.html',
   styleUrls: ['./evaluate-corrections-form.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule, FileUploadModalComponent, ButtonComponent]
+  imports: [CommonModule, FormsModule, FileUploadModalComponent, ButtonComponent, InfoBannerComponent]
 })
 export class EvaluateCorrectionsFormComponent {
   private readonly notificationService = inject(NotificationService);
@@ -46,17 +47,12 @@ export class EvaluateCorrectionsFormComponent {
     return stateList;
   }
 
-  verdictOptions = [
-    { value: stateList.APROBADO, label: 'Aprobado' },
-    { value: stateList.APROBADO_CON_OBSERVACIONES, label: 'Aprobado con Observaciones' },
-    { value: stateList.NO_APROBADO, label: 'No Aprobado' },
-    { value: stateList.APLAZADO, label: 'Aplazado' }
-  ];
-
   correctedDeliveriesList = computed<CorrectedDelivery[]>(() => {
     if (!this.thesisWork || !this.thesisWork.correctedDeliveries) return [];
     return this.thesisWork.correctedDeliveries;
   });
+
+  // ─── Miembros ─────────────────────────────────────────────────────────────────
 
   getStudentNames(): string {
     const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
@@ -84,6 +80,8 @@ export class EvaluateCorrectionsFormComponent {
     return jurors.map((j: User) => this.userService.getUserFullName(j.id)).join(' y ');
   }
 
+  // ─── Documentos ───────────────────────────────────────────────────────────────
+
   downloadDocument(doc: Document): void {
     if (!doc?.url) {
       this.notificationService.show({
@@ -95,6 +93,8 @@ export class EvaluateCorrectionsFormComponent {
     }
     this.downloadService.download(doc.url, `${doc.name}.pdf`);
   }
+
+  // ─── Manejo de archivo y submit ───────────────────────────────────────────────
 
   handleFormatGUploaded(event: { fileName: string; file: File }): void {
     this.uploadedFormatG.set(event);
@@ -112,17 +112,29 @@ export class EvaluateCorrectionsFormComponent {
     const verdict = this.selectedVerdict();
 
     if (!verdict) {
-      this.notificationService.show({ title: 'Dictamen requerido', message: 'Debe seleccionar una decisión de evaluación.', type: NotificationType.ERROR });
+      this.notificationService.show({
+        title: 'Dictamen requerido',
+        message: 'Debe seleccionar una decisión de evaluación.',
+        type: NotificationType.ERROR
+      });
       return;
     }
 
     if (!this.observations().trim() || this.observations().length < 10) {
-      this.notificationService.show({ title: 'Observaciones vacías', message: 'Debe ingresar una justificación técnica detallada (mínimo 10 caracteres).', type: NotificationType.ERROR });
+      this.notificationService.show({
+        title: 'Observaciones vacías',
+        message: 'Debe ingresar una justificación técnica detallada (mínimo 10 caracteres).',
+        type: NotificationType.ERROR
+      });
       return;
     }
 
     if (!this.uploadedFormatG()) {
-      this.notificationService.show({ title: 'Formato_G Faltante', message: 'Es obligatorio cargar el Formato_G firmado para continuar.', type: NotificationType.ERROR });
+      this.notificationService.show({
+        title: 'Formato_G Faltante',
+        message: 'Es obligatorio cargar el Formato_G firmado para continuar.',
+        type: NotificationType.ERROR
+      });
       return;
     }
 

@@ -39,7 +39,9 @@ export class SustentationDetailsPageComponent implements OnInit {
   latestVeredict = computed<JurorVerdict | null>(() => {
     const sustentation = this.selectedSustentation();
     if (!sustentation || !sustentation.verdicts) return null;
-    return sustentation.verdicts.length > 0 ? sustentation.verdicts[sustentation.verdicts.length - 1] : null;
+    return sustentation.verdicts.length > 0
+      ? sustentation.verdicts[sustentation.verdicts.length - 1]
+      : null;
   });
 
   showCorrectedDocumentsButton = computed<boolean>(() => {
@@ -77,6 +79,8 @@ export class SustentationDetailsPageComponent implements OnInit {
     });
   }
 
+  // ─── Miembros y autores ───────────────────────────────────────────────────────
+
   getMemberName(userId: string | undefined): string {
     if (!userId) return 'No asignado';
     return this.userService.getUserFullName(userId);
@@ -90,8 +94,44 @@ export class SustentationDetailsPageComponent implements OnInit {
     const sustentation = this.selectedSustentation();
     const jurors = sustentation?.assignedJurors || [];
     if (jurors.length === 0) return 'No asignados';
-    return jurors.map((j: User) => this.userService.getUserFullName(j.id)).join(' y ');
+    return jurors
+      .map((j: User) => this.userService.getUserFullName(j.id))
+      .join(' y ');
   }
+
+  // ─── Documentos ───────────────────────────────────────────────────────────────
+
+  getExistingDocument(type: string): Document | null {
+    const targetType = type.toUpperCase().trim();
+    const thesis = this.thesisWorkDetails();
+
+    // ── Entrega final: MONOGRAFIA y ANEXOS ────────────────────────────────────
+    if (targetType === 'MONOGRAFIA' || targetType === 'ANEXOS') {
+      if (!thesis?.finalDeliveries?.length) return null;
+
+      const latestDelivery = [...thesis.finalDeliveries].sort((a, b) =>
+        new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+      )[0];
+
+      if (targetType === 'MONOGRAFIA') return latestDelivery?.monograph ?? null;
+      if (targetType === 'ANEXOS') return latestDelivery?.annexes ?? null;
+    }
+
+    // ── Paz y Salvo ───────────────────────────────────────────────────────────
+    if (targetType === 'FORMATO_G') {
+      if (!thesis?.pazYSalvos?.length) return null;
+
+      const latestPazYSalvo = [...thesis.pazYSalvos].sort((a, b) =>
+        new Date(b.registrationDate).getTime() - new Date(a.registrationDate).getTime()
+      )[0];
+
+      return latestPazYSalvo?.document ?? null;
+    }
+
+    return null;
+  }
+
+  // ─── Acciones ─────────────────────────────────────────────────────────────────
 
   navigateToCorrectedDocuments(): void {
     this.router.navigate(['../../corrected_documents'], { relativeTo: this.route });
@@ -109,20 +149,38 @@ export class SustentationDetailsPageComponent implements OnInit {
     this.router.navigate(['../../'], { relativeTo: this.route });
   }
 
+  // ─── Notificaciones ───────────────────────────────────────────────────────────
+
   private handleNavigationError(): void {
-    this.notificationService.show({ title: 'Error', message: 'ID inválido.', type: NotificationType.ERROR });
+    this.notificationService.show({
+      title: 'Error',
+      message: 'ID inválido.',
+      type: NotificationType.ERROR
+    });
     this.goBack();
   }
 
   private showNotFoundNotification(): void {
-    this.notificationService.show({ title: 'No encontrado', message: 'Trabajo no registrado.', type: NotificationType.ERROR });
+    this.notificationService.show({
+      title: 'No encontrado',
+      message: 'Trabajo no registrado.',
+      type: NotificationType.ERROR
+    });
   }
 
   private showErrorNotification(): void {
-    this.notificationService.show({ title: 'Error', message: 'Error de comunicación.', type: NotificationType.ERROR });
+    this.notificationService.show({
+      title: 'Error',
+      message: 'Error de comunicación.',
+      type: NotificationType.ERROR
+    });
   }
 
   private showDownloadError(): void {
-    this.notificationService.show({ title: 'Error', message: 'Acta no encontrada.', type: NotificationType.ERROR });
+    this.notificationService.show({
+      title: 'Error',
+      message: 'Acta no encontrada.',
+      type: NotificationType.ERROR
+    });
   }
 }

@@ -5,12 +5,13 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 
 @Component({
   selector: 'app-register-corrected-document-form',
   templateUrl: './register-corrected-document-form.component.html',
   styleUrls: ['./register-corrected-document-form.component.css'],
-  imports: [FileUploadModalComponent, ButtonComponent]
+  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent]
 })
 export class RegisterCorrectedDocumentFormComponent {
   private readonly notificationService = inject(NotificationService);
@@ -19,13 +20,16 @@ export class RegisterCorrectedDocumentFormComponent {
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
 
-  @Output() onSaveDocuments = new EventEmitter<{ monograph: File, annexes?: File }>();
+  // ✅ annexes ahora es obligatorio, se elimina el operador ?
+  @Output() onSaveDocuments = new EventEmitter<{ monograph: File; annexes: File }>();
   @Output() onGoBack = new EventEmitter<void>();
 
   uploadedMonograph = signal<{ fileName: string; file: File } | null>(null);
   uploadedAnnexes = signal<{ fileName: string; file: File } | null>(null);
   activeModal = signal<'MONOGRAPH' | 'ANNEXES' | null>(null);
   isSubmitAttempted = signal(false);
+
+  // ─── Miembros ─────────────────────────────────────────────────────────────────
 
   getStudentNames(): string {
     const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
@@ -46,6 +50,8 @@ export class RegisterCorrectedDocumentFormComponent {
     const advisorId = this.thesisWork?.preliminaryDraftData?.proposalData?.advisor?.id;
     return advisorId ? this.userService.getUserFullName(advisorId) : '';
   }
+
+  // ─── Manejo de modales y archivos ─────────────────────────────────────────────
 
   openModal(type: 'MONOGRAPH' | 'ANNEXES'): void {
     this.activeModal.set(type);
@@ -73,14 +79,19 @@ export class RegisterCorrectedDocumentFormComponent {
     if (type === 'ANNEXES') this.uploadedAnnexes.set(null);
   }
 
+  // ─── Submit ───────────────────────────────────────────────────────────────────
+
   submit(): void {
     this.isSubmitAttempted.set(true);
+
     const monograph = this.uploadedMonograph();
     const annexes = this.uploadedAnnexes();
-    if (!monograph) {
+
+    // ✅ Ambos documentos son ahora obligatorios
+    if (!monograph || !annexes) {
       this.notificationService.show({
-        title: 'Documento faltante',
-        message: 'Debe adjuntar obligatoriamente la Monografía corregida para continuar.',
+        title: 'Documentos faltantes',
+        message: 'Debe adjuntar obligatoriamente la Monografía corregida y los Anexos para continuar.',
         type: NotificationType.ERROR
       });
       return;
@@ -88,7 +99,7 @@ export class RegisterCorrectedDocumentFormComponent {
 
     this.onSaveDocuments.emit({
       monograph: monograph.file,
-      annexes: annexes?.file
+      annexes: annexes.file
     });
   }
 }

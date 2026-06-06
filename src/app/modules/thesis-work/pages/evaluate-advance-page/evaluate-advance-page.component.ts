@@ -98,8 +98,11 @@ export class EvaluateAdvancePageComponent implements OnInit {
 
     if (!data || !work || !advance || !user) return;
 
+    // CORRECCIÓN: Accedemos a data.files (el arreglo) en lugar de data.file
     const documentsNames: string[] = [];
-    if (data.file) documentsNames.push(data.file.name);
+    if (data.files && data.files.length > 0) {
+      data.files.forEach(file => documentsNames.push(file.name));
+    }
 
     const isApproved = data.formValues.result === AdvanceEvaluationResult.EVALUADO;
 
@@ -112,7 +115,7 @@ export class EvaluateAdvancePageComponent implements OnInit {
       evaluatorRole: 'Docente / Evaluador',
       veredict: stateList.EVALUADO,
       observations: `[${data.formValues.result.toUpperCase()}] ${data.formValues.comments}`,
-      signedDocuments: documentsNames,
+      signedDocuments: documentsNames, // Aquí guardamos los nombres de todos los archivos
       date: new Date()
     };
 

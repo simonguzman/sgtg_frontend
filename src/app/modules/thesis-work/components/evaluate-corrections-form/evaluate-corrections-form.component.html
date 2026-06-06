@@ -1,12 +1,24 @@
 <div class="pt-2 max-w-4xl mx-auto pb-10">
 
-  <div class="mb-6">
-    <button (click)="onGoBack.emit()" class="flex items-center gap-2 text-primary hover:text-opacity-80 transition-all font-display font-semibold text-size-section">
-      <span class="material-symbols-outlined">arrow_back</span>
-      Regresar
+  <div class="mb-4">
+    <button
+      type="button"
+      (click)="onGoBack.emit()"
+      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
+    >
+      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
+        arrow_back
+      </span>
+      <span class="return-arrow-option">Regresar</span>
     </button>
   </div>
 
+  <app-info-banner title="Evaluación de Documentos Corregidos" class="mb-6 block">
+    Revise los documentos corregidos radicados por el equipo del proyecto, emita el veredicto definitivo
+    y adjunte el <strong>Formato_G firmado</strong> para completar el proceso de evaluación de correcciones.
+  </app-info-banner>
+
+  <!-- ── Información del trabajo de grado ──────────────────────────────────── -->
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
 
@@ -63,129 +75,184 @@
 
   <hr class="border-gray-200 mb-8">
 
+  <!-- ── Documentos corregidos radicados ───────────────────────────────────── -->
   <section class="mb-10">
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Documentos Corregidos Radicados</h3>
-    <p class="text-sm text-gray-600 mb-4">Haga clic sobre cualquiera de los archivos cargados por el equipo del proyecto para revisarlo antes de emitir el dictamen.</p>
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Documentos Corregidos Radicados</h3>
 
     @if (correctedDeliveriesList().length > 0) {
       <div class="flex flex-col gap-3">
         @for (delivery of correctedDeliveriesList(); track delivery.id) {
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm gap-4">
-            <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-primary text-4xl">folder_zip</span>
-              <div class="flex flex-col">
-                <span class="text-sm font-bold text-primary">Paquete de Correcciones Radicado</span>
-                <span class="text-xs text-[#777680]">Cargado el: {{ delivery.uploadDate || 'Sin fecha' }}</span>
-                <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-gray-500">
-                  <span class="flex items-center gap-1">📄 {{ delivery.monograph.name }}</span>
-                  @if (delivery.annexes) {
-                    <span class="flex items-center gap-1">📎 Anexos incluidos</span>
-                  }
-                </div>
+
+          <!-- Monografía corregida -->
+          <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+            <div class="flex items-center gap-3 overflow-hidden">
+              <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+              <div class="flex flex-col overflow-hidden">
+                <span class="text-size-body font-bold text-primary truncate">
+                  {{ delivery.monograph.name }}
+                </span>
+                <span class="text-size-role-footer text-[#777680]">Monografía corregida • Cargado el {{ delivery.uploadDate || 'Sin fecha' }}</span>
               </div>
             </div>
-
-            <div class="flex items-center gap-2 self-end sm:self-auto">
-              <app-button-component label="Descargar Monografía" variant="primary" (onClick)="downloadDocument(delivery.monograph)"></app-button-component>
-              @if (delivery.annexes) {
-                <app-button-component label="Descargar Anexos" variant="secondary" (onClick)="downloadDocument(delivery.annexes)"></app-button-component>
-              }
-            </div>
+            <app-button-component
+              label="Descargar"
+              variant="primary"
+              (onClick)="downloadDocument(delivery.monograph)">
+            </app-button-component>
           </div>
+
+          <!-- Anexos (si existen) -->
+          @if (delivery.annexes) {
+            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+              <div class="flex items-center gap-3 overflow-hidden">
+                <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">folder_open</span>
+                <div class="flex flex-col overflow-hidden">
+                  <span class="text-size-body font-bold text-primary truncate">
+                    {{ delivery.annexes.name }}
+                  </span>
+                  <span class="text-size-role-footer text-[#777680]">Anexos corregidos • Cargado el {{ delivery.uploadDate || 'Sin fecha' }}</span>
+                </div>
+              </div>
+              <app-button-component
+                label="Descargar"
+                variant="primary"
+                (onClick)="downloadDocument(delivery.annexes)">
+              </app-button-component>
+            </div>
+          }
+
         }
       </div>
     } @else {
-      <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 flex items-center gap-2">
-        <span class="material-symbols-outlined">warning</span>
-        No se registran entregas completas de documentos corregidos en esta fase.
+      <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-size-body text-[#777680] flex items-center gap-2">
+        <span class="material-symbols-outlined text-xl shrink-0">info</span>
+        No se registran entregas de documentos corregidos en esta fase.
       </div>
     }
   </section>
 
   <hr class="border-gray-200 mb-8">
 
+  <!-- ── Evaluación del jurado ──────────────────────────────────────────────── -->
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Evaluación del jurado</h3>
 
-    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm" [class.border-red-500]="isSubmitAttempted() && selectedVerdict() === null">
+    <div class="bg-blue-50/50 p-6 rounded-xl border shadow-sm transition-all"
+         [class.border-[#ED7D31]]="isSubmitAttempted() && selectedVerdict() === null"
+         [class.border-blue-100]="!(isSubmitAttempted() && selectedVerdict() === null)">
 
-      <div class="p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-4">
-        Seleccione el resultado definitivo de la sustentación del trabajo de grado acordado por el cuerpo de jurados. Adicionalmente, registre los comentarios u observaciones obligatorias/recomendadas según corresponda.
+      <!-- Mensaje informativo -->
+      <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-size-body text-[#777680] mb-6">
+        Seleccione el resultado definitivo de la evaluación de las correcciones acordado por el cuerpo de jurados.
+        Adicionalmente, registre los comentarios u observaciones obligatorias/recomendadas según corresponda.
       </div>
 
-      <div class="flex flex-col sm:flex-row gap-6 mb-6">
-        @for (option of verdictOptions; track option.value) {
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
-                   [checked]="selectedVerdict() === option.value" (change)="selectedVerdict.set(option.value)">
-            <span class="text-sm font-medium text-gray-700">{{ option.label }}</span>
-          </label>
-        }
+      <!-- Opciones de veredicto centradas -->
+      <div class="flex flex-wrap justify-center gap-6 mb-4">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
+                 [checked]="selectedVerdict() === states.APROBADO" (change)="selectedVerdict.set(states.APROBADO)">
+          <span class="text-size-body font-medium text-gray-700">Aprobado</span>
+        </label>
+
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="verdict" class="w-4 h-4 text-amber-500 focus:ring-amber-500"
+                 [checked]="selectedVerdict() === states.APROBADO_CON_OBSERVACIONES" (change)="selectedVerdict.set(states.APROBADO_CON_OBSERVACIONES)">
+          <span class="text-size-body font-medium text-gray-700">Aprobado con Observaciones</span>
+        </label>
+
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="verdict" class="w-4 h-4 text-red-500 focus:ring-red-500"
+                 [checked]="selectedVerdict() === states.NO_APROBADO" (change)="selectedVerdict.set(states.NO_APROBADO)">
+          <span class="text-size-body font-medium text-gray-700">No Aprobado</span>
+        </label>
+
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="verdict" class="w-4 h-4 text-orange-500 focus:ring-orange-500"
+                 [checked]="selectedVerdict() === states.APLAZADO" (change)="selectedVerdict.set(states.APLAZADO)">
+          <span class="text-size-body font-medium text-gray-700">Aplazado</span>
+        </label>
       </div>
 
-      @if(isSubmitAttempted() && selectedVerdict() === null) {
-        <p class="text-xs text-red-500 mb-4">Debe seleccionar una calificación para proceder</p>
+      @if (isSubmitAttempted() && selectedVerdict() === null) {
+        <p class="text-size-role-footer text-textbox-alert text-center mb-4">Debe seleccionar una calificación para proceder</p>
       }
 
+      <!-- Observaciones -->
       <div class="flex flex-col gap-1">
-        <span class="text-sm font-semibold text-primary">Observaciones y comentarios descriptivos</span>
-        <textarea rows="4" class="p-3 border rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm font-sans"
-                  [class.border-red-500]="isSubmitAttempted() && observations().trim().length < 10"
+        <span class="font-display font-semibold text-primary text-size-section">Observaciones y comentarios descriptivos</span>
+        <textarea rows="4"
+                  class="p-3 border rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
+                  [class.border-[#ED7D31]]="isSubmitAttempted() && observations().trim().length < 10"
+                  [class.border-gray-200]="!(isSubmitAttempted() && observations().trim().length < 10)"
                   placeholder="Ingrese el desglose detallado de las razones del veredicto o los ajustes exigidos al estudiante..."
                   [value]="observations()"
                   (input)="observations.set($any($event.target).value)"></textarea>
+        @if (isSubmitAttempted() && observations().trim().length < 10) {
+          <span class="text-size-role-footer text-textbox-alert mt-1">Debe ingresar una justificación detallada (mínimo 10 caracteres)</span>
+        }
       </div>
     </div>
   </section>
 
   <hr class="border-gray-200 mb-8">
 
+  <!-- ── Carga del Formato G ────────────────────────────────────────────────── -->
   <section>
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Archivos adjuntos requeridos</h3>
 
     <div class="flex flex-col gap-4 mb-6">
-      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm"
-           [class.border-l-4]="uploadedFormatG()" [class.border-l-green-500]="uploadedFormatG()"
-           [class.border-red-500]="isSubmitAttempted() && !uploadedFormatG()">
+
+      <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
+           [class.border]="!uploadedFormatG() || isSubmitAttempted()"
+           [class.border-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatG()"
+           [class.border-l-4]="uploadedFormatG()"
+           [class.border-l-state-approved]="uploadedFormatG()"
+           [class.border-gray-200]="!uploadedFormatG() && !isSubmitAttempted()">
         <div class="flex items-center gap-3">
           <span class="material-symbols-outlined text-4xl"
-                [class.text-green-600]="uploadedFormatG()"
-                [class.text-red-500]="isSubmitAttempted() && !uploadedFormatG()"
-                [class.text-gray-400]="!uploadedFormatG() && !isSubmitAttempted()">
+                [class.text-state-approved]="uploadedFormatG()"
+                [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatG()"
+                [class.text-[#777680]]="!uploadedFormatG() && !isSubmitAttempted()">
             {{ uploadedFormatG() ? 'task' : 'picture_as_pdf' }}
           </span>
           <div class="flex flex-col">
-            <span class="text-sm font-bold" [class.text-primary]="uploadedFormatG()" [class.text-red-500]="isSubmitAttempted() && !uploadedFormatG()">
-              {{ uploadedFormatG()?.fileName || 'Formato de Sustentación Terminado' }}
+            <span class="text-size-body font-bold"
+                  [class.text-primary]="uploadedFormatG()"
+                  [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatG()"
+                  [class.text-[#777680]]="!uploadedFormatG() && !isSubmitAttempted()">
+              {{ uploadedFormatG()?.fileName || 'Formato_G - Acta de Evaluación' }}
             </span>
-            <span class="text-xs text-[#777680]">
-              {{ uploadedFormatG() ? 'Formato de acta cargado con éxito.' : 'No ha sido cargado ningún archivo. Debe adjuntar el acta con firmas de evaluación final.' }}
+            <span class="text-size-role-footer text-[#777680]">
+              {{ uploadedFormatG() ? 'Formato_G cargado con éxito.' : 'No ha sido cargado ningún archivo. Debe adjuntar el Formato_G firmado con el resultado de la evaluación.' }}
             </span>
             @if (isSubmitAttempted() && !uploadedFormatG()) {
-              <span class="text-xs text-textbox-alert mt-1 font-semibold">Este documento es estrictamente obligatorio</span>
+              <span class="text-size-role-footer text-textbox-alert mt-1">Este documento es estrictamente obligatorio</span>
             }
           </div>
         </div>
 
         @if (uploadedFormatG()) {
-          <button type="button" (click)="uploadedFormatG.set(null)" class="text-gray-400 hover:text-red-500 transition-colors">
+          <button type="button" (click)="uploadedFormatG.set(null)" class="text-[#777680] hover:text-[#DB141C] transition-colors">
             <span class="material-symbols-outlined">delete</span>
           </button>
         } @else {
-          <app-button-component label="Cargar formato de sustentación" variant="secondary" (onClick)="isModalOpen.set(true)"></app-button-component>
+          <app-button-component label="Cargar Formato_G" variant="secondary" (onClick)="isModalOpen.set(true)"></app-button-component>
         }
       </div>
+
     </div>
 
     <div class="flex gap-4 justify-end mt-10">
       <app-button-component label="Registrar Evaluación" variant="primary" (onClick)="submit()" [disabled]="isSubmitting"></app-button-component>
     </div>
   </section>
+
 </div>
 
 <app-file-upload-modal
   [isOpen]="isModalOpen()"
-  description="Subir Acta de Calificación de Sustentación diligenciada (PDF)"
+  description="Subir Formato_G de Evaluación de Correcciones firmado (PDF)"
   (onFileUploaded)="handleFormatGUploaded($event)"
   (onClose)="isModalOpen.set(false)">
 </app-file-upload-modal>

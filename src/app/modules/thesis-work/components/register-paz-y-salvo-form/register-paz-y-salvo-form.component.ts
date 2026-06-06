@@ -5,14 +5,15 @@ import { NotificationType } from '../../../../shared/components/notifications/mo
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { Document } from '../../../../core/interfaces/Document.interface';
-import { ThesisWork } from '../../interfaces/thesis-work.interface'; // 📌 Ajusta la ruta según tu árbol de carpetas
+import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { PazYSalvoPayload } from '../../interfaces/paz-y-salvo-playload.interface';
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 
 @Component({
   selector: 'app-register-paz-y-salvo-form',
   templateUrl: './register-paz-y-salvo-form.component.html',
   styleUrls: ['./register-paz-y-salvo-form.component.css'],
-  imports: [FileUploadModalComponent, ButtonComponent]
+  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent]
 })
 export class RegisterPazYSalvoFormComponent {
   private readonly notificationService = inject(NotificationService);

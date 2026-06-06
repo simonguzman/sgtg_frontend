@@ -1,15 +1,23 @@
-@if (thesisWorkState()) {
-  <app-upload-advance-form
-    [thesisWork]="thesisWorkState()!"
-    [isSubmitting]="isSaving()"
-    (onSaveAdvance)="handleSaveRequest($event)"
-    (onGoBack)="navigateBack()">
-  </app-upload-advance-form>
-}
+<div class="w-full max-w-5xl mx-auto p-4 md:p-8 bg-[#F8F9FA] min-h-screen">
+
+  @if (thesisWorkState() === null) {
+    <div class="flex justify-center items-center h-60">
+      <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+    </div>
+  } @else {
+    <app-upload-advance-form
+      [thesisWork]="thesisWorkState()!"
+      [isSubmitting]="isSaving()"
+      (onSaveAdvance)="handleSaveRequest($event)"
+      (onGoBack)="navigateBack()">
+    </app-upload-advance-form>
+  }
+
+</div>
 
 <app-confirmation-action-modal
   [isOpen]="isConfirmModalOpen()"
-  description="¿Está seguro que desea subir este avance? Quedará registrado en el historial del trabajo de grado."
+  description="¿Está seguro que desea subir este avance? Quedará registrado en el historial del trabajo de grado y se notificará a sus directores para la revisión."
   (onClose)="isConfirmModalOpen.set(false)"
   (confirm)="processAdvance()">
 </app-confirmation-action-modal>

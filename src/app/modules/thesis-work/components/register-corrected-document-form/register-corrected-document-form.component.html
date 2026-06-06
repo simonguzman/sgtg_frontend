@@ -1,9 +1,25 @@
 <div class="pt-2 max-w-4xl mx-auto pb-10">
 
-  <button type="button" (click)="onGoBack.emit()" class="flex items-center gap-2 text-primary font-bold hover:underline mb-6">
-    <span class="material-symbols-outlined font-bold">arrow_back</span> Regresar
-  </button>
+  <div class="mb-4">
+    <button
+      type="button"
+      (click)="onGoBack.emit()"
+      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
+    >
+      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
+        arrow_back
+      </span>
+      <span class="return-arrow-option">Regresar</span>
+    </button>
+  </div>
 
+  <app-info-banner title="Carga de Documentos Corregidos" class="mb-6 block">
+    Cargue la versión final de la monografía con las correcciones indicadas por los jurados durante la sustentación.
+    Recuerde que tanto la <strong>monografía corregida</strong> como los <strong>anexos</strong> son requisitos
+    <strong>obligatorios</strong> para registrar la entrega de correcciones.
+  </app-info-banner>
+
+  <!-- ── Información del trabajo de grado ──────────────────────────────────── -->
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
 
@@ -11,7 +27,7 @@
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Título</span>
         <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
-              class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
@@ -26,19 +42,21 @@
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
-      <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Director</span>
-        <input type="text" [value]="getDirectorName()" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
-
-      @if (getCodirectorName()) {
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
-          <input type="text" [value]="getCodirectorName()" disabled
+          <span class="font-display font-semibold text-primary text-size-section">Director</span>
+          <input type="text" [value]="getDirectorName()" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
-      }
+
+        @if (getCodirectorName()) {
+          <div class="flex flex-col gap-1">
+            <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
+            <input type="text" [value]="getCodirectorName()" disabled
+                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+          </div>
+        }
+      </div>
 
       @if (getAdvisorName()) {
         <div class="flex flex-col gap-1">
@@ -51,55 +69,86 @@
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Estado</span>
         <input type="text" [value]="thesisWork.state || 'En desarrollo'" disabled
-              class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
+               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
       </div>
     </div>
   </section>
 
   <hr class="border-gray-200 mb-8">
 
+  <!-- ── Documentos corregidos ──────────────────────────────────────────────── -->
   <section>
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Documentos Corregidos</h3>
 
-    <div class="p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-6">
-      Cargue la versión final de la monografía con las correcciones indicadas por los jurados durante la sustentación. Los anexos son opcionales.
-    </div>
-
     <div class="flex flex-col gap-4">
 
-      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm"
-           [class.border-l-4]="uploadedMonograph()" [class.border-l-green-500]="uploadedMonograph()"
-           [class.border-red-500]="isSubmitAttempted() && !uploadedMonograph()">
+      <!-- Monografía corregida -->
+      <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
+           [class.border]="!uploadedMonograph() || isSubmitAttempted()"
+           [class.border-[#ED7D31]]="isSubmitAttempted() && !uploadedMonograph()"
+           [class.border-l-4]="uploadedMonograph()"
+           [class.border-l-state-approved]="uploadedMonograph()"
+           [class.border-gray-200]="!uploadedMonograph() && !isSubmitAttempted()">
         <div class="flex items-center gap-3">
-          <span class="material-symbols-outlined text-4xl" [class.text-green-600]="uploadedMonograph()" [class.text-red-500]="isSubmitAttempted() && !uploadedMonograph()" [class.text-gray-400]="!uploadedMonograph() && !isSubmitAttempted()">
+          <span class="material-symbols-outlined text-4xl"
+                [class.text-state-approved]="uploadedMonograph()"
+                [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedMonograph()"
+                [class.text-[#777680]]="!uploadedMonograph() && !isSubmitAttempted()">
             {{ uploadedMonograph() ? 'task' : 'picture_as_pdf' }}
           </span>
           <div class="flex flex-col">
-            <span class="text-sm font-bold text-primary" [class.text-primary]="uploadedMonograph()" [class.text-red-500]="isSubmitAttempted() && !uploadedMonograph()">{{ uploadedMonograph()?.fileName || 'Monografía Corregida' }}</span>
-            <span class="text-xs text-[#777680]">Documento principal (Obligatorio)</span>
-            @if (isSubmitAttempted() && !uploadedMonograph()) { <span class="text-xs text-textbox-alert mt-1">Este archivo es requerido</span> }
+            <span class="text-size-body font-bold"
+                  [class.text-primary]="uploadedMonograph()"
+                  [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedMonograph()"
+                  [class.text-[#777680]]="!uploadedMonograph() && !isSubmitAttempted()">
+              {{ uploadedMonograph()?.fileName || 'Monografía Corregida' }}
+            </span>
+            <span class="text-size-role-footer text-[#777680]">Documento principal (Obligatorio)</span>
+            @if (isSubmitAttempted() && !uploadedMonograph()) {
+              <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span>
+            }
           </div>
         </div>
         @if (uploadedMonograph()) {
-          <button type="button" (click)="removeFile('MONOGRAPH')" class="text-gray-400 hover:text-red-500"><span class="material-symbols-outlined">delete</span></button>
+          <button type="button" (click)="removeFile('MONOGRAPH')" class="text-[#777680] hover:text-[#DB141C] transition-colors">
+            <span class="material-symbols-outlined">delete</span>
+          </button>
         } @else {
           <app-button-component label="Cargar" variant="secondary" (onClick)="openModal('MONOGRAPH')"></app-button-component>
         }
       </div>
 
-      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm"
-           [class.border-l-4]="uploadedAnnexes()" [class.border-l-blue-500]="uploadedAnnexes()">
+      <!-- Anexos — ahora obligatorios -->
+      <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
+           [class.border]="!uploadedAnnexes() || isSubmitAttempted()"
+           [class.border-[#ED7D31]]="isSubmitAttempted() && !uploadedAnnexes()"
+           [class.border-l-4]="uploadedAnnexes()"
+           [class.border-l-state-approved]="uploadedAnnexes()"
+           [class.border-gray-200]="!uploadedAnnexes() && !isSubmitAttempted()">
         <div class="flex items-center gap-3">
-          <span class="material-symbols-outlined text-4xl" [class.text-blue-600]="uploadedAnnexes()" [class.text-gray-400]="!uploadedAnnexes()">
+          <span class="material-symbols-outlined text-4xl"
+                [class.text-state-approved]="uploadedAnnexes()"
+                [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedAnnexes()"
+                [class.text-[#777680]]="!uploadedAnnexes() && !isSubmitAttempted()">
             {{ uploadedAnnexes() ? 'folder_zip' : 'folder_open' }}
           </span>
           <div class="flex flex-col">
-            <span class="text-sm font-bold text-primary">{{ uploadedAnnexes()?.fileName || 'Anexos respectivos' }}</span>
-            <span class="text-xs text-[#777680]">Archivos complementarios (Opcional - Formato ZIP/PDF)</span>
+            <span class="text-size-body font-bold"
+                  [class.text-primary]="uploadedAnnexes()"
+                  [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedAnnexes()"
+                  [class.text-[#777680]]="!uploadedAnnexes() && !isSubmitAttempted()">
+              {{ uploadedAnnexes()?.fileName || 'Anexos respectivos' }}
+            </span>
+            <span class="text-size-role-footer text-[#777680]">Archivos complementarios (Obligatorio - Formato ZIP/PDF)</span>
+            @if (isSubmitAttempted() && !uploadedAnnexes()) {
+              <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span>
+            }
           </div>
         </div>
         @if (uploadedAnnexes()) {
-          <button type="button" (click)="removeFile('ANNEXES')" class="text-gray-400 hover:text-red-500"><span class="material-symbols-outlined">delete</span></button>
+          <button type="button" (click)="removeFile('ANNEXES')" class="text-[#777680] hover:text-[#DB141C] transition-colors">
+            <span class="material-symbols-outlined">delete</span>
+          </button>
         } @else {
           <app-button-component label="Cargar" variant="secondary" (onClick)="openModal('ANNEXES')"></app-button-component>
         }
@@ -111,6 +160,7 @@
       <app-button-component label="Guardar Documentos" variant="primary" (onClick)="submit()" [disabled]="isSubmitting"></app-button-component>
     </div>
   </section>
+
 </div>
 
 <app-file-upload-modal

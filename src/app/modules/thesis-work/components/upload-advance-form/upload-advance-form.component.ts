@@ -1,21 +1,27 @@
 import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
+import { CommonModule } from '@angular/common';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
+import { UserService } from '../../../users/services/user.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 import { UploadAdvancePayload } from '../../interfaces/advance-playload.interface';
+// Se eliminó la importación de StateComponent
 
 @Component({
   selector: 'app-upload-advance-form',
-  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent],
+  // Se eliminó StateComponent del arreglo de imports
+  imports: [CommonModule, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent],
   templateUrl: './upload-advance-form.component.html',
   styleUrls: ['./upload-advance-form.component.css'],
 })
 export class UploadAdvanceFormComponent {
   private readonly fb = inject(FormBuilder);
   private readonly notificationService = inject(NotificationService);
+  public readonly userService = inject(UserService);
 
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
@@ -30,6 +36,26 @@ export class UploadAdvanceFormComponent {
     title: ['', Validators.required],
     comments: ['', Validators.required]
   });
+
+  getStudentNames(): string {
+    const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
+    return this.userService.getAuthorsNames(authors);
+  }
+
+  getDirectorName(): string {
+    const directorId = this.thesisWork?.preliminaryDraftData?.proposalData?.director?.id;
+    return directorId ? this.userService.getUserFullName(directorId) : 'No asignado';
+  }
+
+  getCodirectorName(): string {
+    const codirectorId = this.thesisWork?.preliminaryDraftData?.proposalData?.codirector?.id;
+    return codirectorId ? this.userService.getUserFullName(codirectorId) : '';
+  }
+
+  getAdvisorName(): string {
+    const advisorId = this.thesisWork?.preliminaryDraftData?.proposalData?.advisor?.id;
+    return advisorId ? this.userService.getUserFullName(advisorId) : '';
+  }
 
   handleFileUploaded(event: { fileName: string; file: File }): void {
     this.uploadedFiles.update(files => [...files, event]);
@@ -73,5 +99,4 @@ export class UploadAdvanceFormComponent {
     const control = this.advanceForm.controls[fieldName];
     return !!(control?.invalid && control?.touched);
   }
-
 }

@@ -36,14 +36,16 @@ export const AdvancesTabConfig: TabConfiguration = {
     }
   ],
 
-  enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
+ enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
+
     const proposal = thesis.preliminaryDraftData?.proposalData;
     let requiredEvaluatorsCount = 0;
     if (proposal?.director) requiredEvaluatorsCount++;
     if (proposal?.codirector) requiredEvaluatorsCount++;
     if (proposal?.advisor) requiredEvaluatorsCount++;
+
     const advances: AdvanceRegistry[] = thesis.advances || [];
     const latestAdvance = advances.length > 0 ? advances[0] : null;
     const isLatestAdvancePending = latestAdvance?.status === stateList.EN_REVISION;
@@ -51,12 +53,16 @@ export const AdvancesTabConfig: TabConfiguration = {
       (doc: Document) => doc.type === DocumentType['FORMATO_E']
     ) ?? false;
 
+    // Validación del estado del trabajo de grado
+    const isSuspendedOrCanceled = thesis.state === stateList.SUSPENDIDO || thesis.state === stateList.CANCELADO;
+
     return {
       ...baseContext,
       latestAdvanceId: latestAdvance?.id || null,
       isLatestAdvancePending,
       requiredEvaluatorsCount,
-      hasFinalDelivery
+      hasFinalDelivery,
+      isSuspendedOrCanceled // Añadido al contexto
     };
   },
 
@@ -109,6 +115,12 @@ export const AdvancesTabConfig: TabConfiguration = {
   getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
     const buttons: TableButton[] = [];
     const hasFinalDelivery = context['hasFinalDelivery'] as boolean ?? false;
+    const isSuspendedOrCanceled = context['isSuspendedOrCanceled'] as boolean ?? false;
+
+    // Si está suspendido o cancelado, desaparece el botón retornando el arreglo vacío
+    if (isSuspendedOrCanceled) {
+      return buttons;
+    }
 
     if (context.isStudent || context.isAdmin) {
       let buttonLabel = 'Cargar nuevo avance';

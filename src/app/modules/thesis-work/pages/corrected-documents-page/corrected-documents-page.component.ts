@@ -2,22 +2,20 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 
-// Servicios de Core y Shared
 import { ThesisWorkService } from '../../services/thesis-work.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 
-// Interfaces y Enums
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
+import { Document } from '../../../../core/interfaces/Document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 
-// Componentes Reutilizables
 import { Column, TableComponent } from "../../../../shared/components/table-component/table-component.component";
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 import { UserService } from '../../../users/services/user.service';
 
 @Component({
@@ -25,10 +23,9 @@ import { UserService } from '../../../users/services/user.service';
   templateUrl: './corrected-documents-page.component.html',
   styleUrls: ['./corrected-documents-page.component.css'],
   standalone: true,
-  imports: [TableComponent, ButtonComponent, RegisterInformationModalComponent]
+  imports: [TableComponent, ButtonComponent, RegisterInformationModalComponent, InfoBannerComponent]
 })
 export class CorrectedDocumentsPageComponent implements OnInit {
-  // --- Inyección de Dependencias ---
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly thesisWorkService = inject(ThesisWorkService);
@@ -39,14 +36,10 @@ export class CorrectedDocumentsPageComponent implements OnInit {
   private readonly notificationService = inject(NotificationService);
   private readonly userService = inject(UserService);
 
-  // --- Estado de la Página ---
   thesisWorkId = signal<string | null>(null);
-
-  // --- Estado del Modal de Detalles ---
   isDetailsModalOpen = signal<boolean>(false);
   selectedDelivery = signal<any | null>(null);
 
-  // --- Configuración de la Tabla ---
   protected columns: Column[] = [
     { field: 'name', header: 'Nombre de la Entrega', type: 'text', width: '40%' },
     { field: 'date', header: 'Fecha de Carga', type: 'text', width: '20%' },
@@ -87,7 +80,8 @@ export class CorrectedDocumentsPageComponent implements OnInit {
     }
   }
 
-  // --- Selectores Reactivos Principales ---
+  // ─── Selectores reactivos ─────────────────────────────────────────────────────
+
   protected readonly currentThesisWork = computed(() => {
     const id = this.thesisWorkId();
     return id ? this.thesisWorkService.thesisWorks().find(w => w.thesisWorkId === id) : null;
@@ -104,21 +98,19 @@ export class CorrectedDocumentsPageComponent implements OnInit {
     const thesis = this.currentThesisWork();
     const user = this.authService.currentUser();
     if (!thesis || !user || !thesis.sustentations?.[0]) return false;
-    return thesis.sustentations?.[0].assignedJurors?.some(juror => juror.id === user.id) ?? false;
+    return thesis.sustentations[0].assignedJurors?.some(juror => juror.id === user.id) ?? false;
   });
 
+  // ✅ FIX: solo es "ya evaluado" cuando las correctedDeliveries tienen
+  // un estado final (distinto de EN_REVISION). Los veredictos de sustentación
+  // en thesis.evaluations NO deben bloquear este flujo.
   isAlreadyEvaluated = computed(() => {
     const thesis = this.currentThesisWork();
     if (!thesis) return false;
 
-    const hasEvaluations = (thesis.evaluations?.length ?? 0) > 0;
-    const hasFormatoGEvaluated = thesis.documents?.some(doc =>
-      doc.type === DocumentType.CORRECCION &&
-      doc.name.includes('Formato_G') &&
-      doc.status !== stateList.EN_REVISION
-    ) ?? false;
-
-    return hasEvaluations || hasFormatoGEvaluated;
+    return (thesis.correctedDeliveries ?? []).some(
+      delivery => delivery.status !== stateList.EN_REVISION
+    );
   });
 
   tableData = computed(() => {
@@ -131,7 +123,7 @@ export class CorrectedDocumentsPageComponent implements OnInit {
       date: delivery.uploadDate || 'Sin fecha',
       status: delivery.monograph?.status || stateList.EN_REVISION,
       allowedActions: ['view-details'],
-      rawDelivery: delivery // Se guarda la referencia completa
+      rawDelivery: delivery
     }));
   });
 
@@ -139,9 +131,7 @@ export class CorrectedDocumentsPageComponent implements OnInit {
     return this.tableData().length > 0;
   });
 
-  // =========================================================================
-  // 🧠 PROCESADORES REACTIVOS PARA EL MODAL DE DETALLES
-  // =========================================================================
+  // ─── Procesadores para el modal de detalles ───────────────────────────────────
 
   selectedDeliveryDocuments = computed<string[]>(() => {
     const delivery = this.selectedDelivery();
@@ -153,11 +143,7 @@ export class CorrectedDocumentsPageComponent implements OnInit {
   });
 
   studentName = computed<string>(() => {
-    const authors = this.currentThesisWork()
-      ?.preliminaryDraftData
-      ?.proposalData
-      ?.authors;
-    // Utiliza el método especializado de tu servicio heredado del otro componente
+    const authors = this.currentThesisWork()?.preliminaryDraftData?.proposalData?.authors;
     return this.userService.getAuthorsNames(authors) || 'Sin estudiante';
   });
 
@@ -181,19 +167,15 @@ export class CorrectedDocumentsPageComponent implements OnInit {
   });
 
   ensureDate(date: Date | string | undefined | null): Date {
-    if (date instanceof Date && !isNaN(date.getTime())) {
-      return date;
-    }
+    if (date instanceof Date && !isNaN(date.getTime())) return date;
     if (typeof date === 'string' && date.trim() !== '') {
       const parsed = new Date(date);
-      if (!isNaN(parsed.getTime())) {
-        return parsed;
-      }
+      if (!isNaN(parsed.getTime())) return parsed;
     }
     return new Date();
   }
 
-  // --- Controladores de Interacción y Acciones ---
+  // ─── Acciones ─────────────────────────────────────────────────────────────────
 
   handleTableAction(event: { action: string; row: any }): void {
     if (event.action === 'view-details') {
@@ -207,16 +189,10 @@ export class CorrectedDocumentsPageComponent implements OnInit {
     if (!delivery) return;
 
     let targetDocument: Document | undefined;
+    if (delivery.monograph?.name === fileName) targetDocument = delivery.monograph;
+    else if (delivery.annexes?.name === fileName) targetDocument = delivery.annexes;
 
-    if (delivery.monograph?.name === fileName) {
-      targetDocument = delivery.monograph;
-    } else if (delivery.annexes?.name === fileName) {
-      targetDocument = delivery.annexes;
-    }
-
-    if (targetDocument) {
-      this.downloadDocument(targetDocument);
-    }
+    if (targetDocument) this.downloadDocument(targetDocument);
   }
 
   private downloadDocument(doc: Document): void {
@@ -231,7 +207,7 @@ export class CorrectedDocumentsPageComponent implements OnInit {
     this.downloadService.download(doc.url, `${doc.name}.pdf`);
   }
 
-  // --- Navegación ---
+  // ─── Navegación ───────────────────────────────────────────────────────────────
 
   navigateToUploadCorrections(): void {
     this.router.navigate(['upload_corrections'], { relativeTo: this.route });

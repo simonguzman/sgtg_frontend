@@ -6,6 +6,7 @@ import { Document } from '../../../../core/interfaces/Document.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 import { DatePipe } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { SustentationRegistry, ThesisWork } from '../../interfaces/thesis-work.interface';
@@ -21,7 +22,7 @@ export interface SustentationEvaluationPayload {
   selector: 'app-evaluate-sustentation-form',
   templateUrl: './evaluate-sustentation-form.component.html',
   styleUrls: ['./evaluate-sustentation-form.component.css'],
-  imports: [ReactiveFormsModule, FileUploadModalComponent, ButtonComponent, DatePipe]
+  imports: [ReactiveFormsModule, FileUploadModalComponent, ButtonComponent, DatePipe, InfoBannerComponent]
 })
 export class EvaluateSustentationFormComponent {
   private readonly notificationService = inject(NotificationService);
@@ -48,6 +49,8 @@ export class EvaluateSustentationFormComponent {
     return this.thesisWork?.sustentations?.[0] || null;
   }
 
+  // ─── Miembros ─────────────────────────────────────────────────────────────────
+
   getStudentNames(): string {
     const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
     return this.userService.getAuthorsNames(authors as User[]);
@@ -71,13 +74,32 @@ export class EvaluateSustentationFormComponent {
   getAssignedJurors(): string {
     const jurors = this.currentSustentation?.assignedJurors || [];
     if (jurors.length === 0) return 'No asignados';
-    // 👈 Reemplazado (j: any) por (j: User)
     return jurors.map((j: User) => this.userService.getUserFullName(j.id)).join(' y ');
   }
 
+  // ─── Documentos ───────────────────────────────────────────────────────────────
+
   getExistingDocument(type: string): Document | null {
-    return this.thesisWork?.documents?.find((doc: Document) => doc.type === type) || null;
+    const targetType = type.toUpperCase().trim();
+    const thesis = this.thesisWork;
+
+    if (!thesis?.finalDeliveries?.length) return null;
+
+    const latestDelivery = [...thesis.finalDeliveries].sort((a, b) =>
+      new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+    )[0];
+
+    if (targetType === 'MONOGRAFIA') return latestDelivery?.monograph ?? null;
+    if (targetType === 'ANEXOS') return latestDelivery?.annexes ?? null;
+
+    return null;
   }
+
+  downloadDocument(doc: Document | null | undefined): void {
+    if (doc) this.onDownloadFile.emit(doc);
+  }
+
+  // ─── Manejo de archivo y submit ───────────────────────────────────────────────
 
   handleFileUploaded(event: { fileName: string; file: File }): void {
     this.uploadedFormat.set(event);
@@ -91,10 +113,6 @@ export class EvaluateSustentationFormComponent {
 
   removeFile(): void {
     this.uploadedFormat.set(null);
-  }
-
-  downloadDocument(doc: Document | null): void {
-    if (doc) this.onDownloadFile.emit(doc);
   }
 
   submit(): void {

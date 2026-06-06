@@ -11,6 +11,8 @@ import { UserService } from '../../../users/services/user.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { UserRoleType } from '../../../../core/models/user-role';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
+import { Document } from '../../../../core/interfaces/Document.interface';
 
 export interface SustentationFormPayload {
   sustentationDate: string | Date;
@@ -29,7 +31,8 @@ export interface SustentationFormPayload {
     FormsModule,
     FileUploadModalComponent,
     ButtonComponent,
-    DatePicker
+    DatePicker,
+    InfoBannerComponent
   ]
 })
 export class RegisterSustentationFormComponent implements OnInit {
@@ -43,10 +46,11 @@ export class RegisterSustentationFormComponent implements OnInit {
 
   @Output() onSave = new EventEmitter<{ payload: SustentationFormPayload; file: File }>();
   @Output() onBack = new EventEmitter<void>();
+  @Output() onDownloadFile = new EventEmitter<Document>();
 
   private readonly firstJurorSelectedId = signal<string>('');
   isModalOpen = signal<boolean>(false);
-  uploadedFormatE = signal<{ fileName: string; file: File } | null>(null); // 👈 Tipado correcto de la carga de archivos
+  uploadedFormatE = signal<{ fileName: string; file: File } | null>(null);
   isSubmitAttempted = signal<boolean>(false);
 
   uploadedFileName = computed<string>(() => {
@@ -127,7 +131,48 @@ export class RegisterSustentationFormComponent implements OnInit {
     return !!(this.isSubmitAttempted() && control?.invalid) || !!(control?.invalid && control?.touched);
   }
 
-  handleFileUploaded(event: { fileName: string; file: File }): void { // 👈 Corregido la firma del evento
+  // ─── Documentos ──────────────────────────────────────────────────────────────
+
+  getExistingDocument(type: string): Document | null {
+    const targetType = type.toUpperCase().trim();
+    const thesis = this.thesisWork();
+
+    // ── Entrega final: MONOGRAFIA, FORMATO_E, ANEXOS ──────────────────────────
+    if (targetType !== 'FORMATO_G') {
+      if (!thesis?.finalDeliveries?.length) return null;
+
+      // ✅ FIX Bug 1: ordenar por uploadDate desc y tomar la entrega más reciente
+      const latestDelivery = [...thesis.finalDeliveries].sort((a, b) =>
+        new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+      )[0];
+
+      if (targetType === 'MONOGRAFIA') return latestDelivery?.monograph ?? null;
+      if (targetType === 'FORMATO' || targetType === 'FORMATO_E') return latestDelivery?.formatE ?? null;
+      if (targetType === 'ANEXOS') return latestDelivery?.annexes ?? null;
+    }
+
+    // ── ✅ FIX Bug 2: Paz y Salvo vive en pazYSalvos, campo document ──────────
+    if (targetType === 'FORMATO_G') {
+      if (!thesis?.pazYSalvos?.length) return null;
+
+      // Tomar el registro más reciente por registrationDate
+      const latestPazYSalvo = [...thesis.pazYSalvos].sort((a, b) =>
+        new Date(b.registrationDate).getTime() - new Date(a.registrationDate).getTime()
+      )[0];
+
+      return latestPazYSalvo?.document ?? null;
+    }
+
+    return null;
+  }
+
+  downloadDocument(doc: Document | null): void {
+    if (doc) this.onDownloadFile.emit(doc);
+  }
+
+  // ─── Manejo de archivo y submit ──────────────────────────────────────────────
+
+  handleFileUploaded(event: { fileName: string; file: File }): void {
     this.uploadedFormatE.set(event);
     this.isModalOpen.set(false);
   }
