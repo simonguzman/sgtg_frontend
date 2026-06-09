@@ -8,19 +8,25 @@
     </button>
   </div>
 
-  <h2 class="text-2xl font-bold text-primary mb-6 border-b-2 border-primary pb-2 font-display">
-    Registro de Correspondencia Final
-  </h2>
-
   @if (!thesisWorkDetails()) {
-    <div class="text-center text-gray-500 font-display my-10">
+    <div class="text-center text-[#777680] font-display my-10">
       Cargando historial de formatos y estructura general...
     </div>
   } @else {
+    <!-- ✅ (onSave) ahora llama a handleRequestConfirmation en lugar de handleCorrespondenceSave -->
     <app-register-correspondence-form
       [thesisWork]="thesisWorkDetails()!"
       [isSubmitting]="isSubmitting()"
-      (onSave)="handleCorrespondenceSave($event)">
+      (onSave)="handleRequestConfirmation($event)"
+      (onGoBack)="goBack()">
     </app-register-correspondence-form>
   }
 </div>
+
+<!-- ✅ Modal de confirmación -->
+<app-confirmation-action-modal
+  [isOpen]="isConfirmModalOpen()"
+  description="¿Está seguro de registrar la correspondencia y finalizar el proceso del trabajo de grado? Esta acción cerrará formalmente el expediente académico y no podrá deshacerse."
+  (onClose)="isConfirmModalOpen.set(false)"
+  (confirm)="processCorrespondence()">
+</app-confirmation-action-modal>

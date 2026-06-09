@@ -7,22 +7,26 @@ import { NotificationType } from '../../../../shared/components/notifications/mo
 import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { RegisterCorrespondenceFormComponent } from "../../components/register-correspondence-form/register-correspondence-form.component";
+import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 
 @Component({
   selector: 'app-register-correspondence-page',
   templateUrl: './register-correspondence-page.component.html',
   styleUrls: ['./register-correspondence-page.component.css'],
-  imports: [RegisterCorrespondenceFormComponent]
+  imports: [RegisterCorrespondenceFormComponent, ConfirmationActionModalComponent]
 })
 export class RegisterCorrespondencePageComponent implements OnInit {
   protected route = inject(ActivatedRoute);
   public router = inject(Router);
-
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
 
   thesisWorkDetails = signal<ThesisWork | null>(null);
   isSubmitting = signal<boolean>(false);
+
+  // ✅ Modal de confirmación
+  isConfirmModalOpen = signal<boolean>(false);
+  pendingFile = signal<File | null>(null);
 
   ngOnInit(): void {
     const thesisWorkId = this.route.snapshot.paramMap.get('id') || this.route.parent?.snapshot.paramMap.get('id');
@@ -47,13 +51,24 @@ export class RegisterCorrespondencePageComponent implements OnInit {
     });
   }
 
-  handleCorrespondenceSave(file: File): void {
+  // ✅ Recibe el archivo del form y abre el modal en lugar de guardar directamente
+  handleRequestConfirmation(file: File): void {
+    this.pendingFile.set(file);
+    this.isConfirmModalOpen.set(true);
+  }
+
+  // ✅ Se ejecuta solo cuando el usuario confirma en el modal
+  processCorrespondence(): void {
+    const file = this.pendingFile();
     const currentWork = this.thesisWorkDetails();
-    if (!currentWork) return;
+    if (!file || !currentWork) return;
 
     this.isSubmitting.set(true);
+    this.isConfirmModalOpen.set(false);
 
-    const dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
+    const dateStr = new Date()
+      .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      .replaceAll('/', ' - ');
 
     const finalCorrespondenceDoc: Document = {
       id: crypto.randomUUID(),
