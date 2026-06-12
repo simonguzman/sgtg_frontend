@@ -29,7 +29,19 @@ export class RegisterCorrespondenceFormComponent {
 
   formatoEDoc = computed(() => this.historicalDocuments().find(doc => doc.type === DocumentType['FORMATO_E'] || doc.type === 'Formato_E' as any));
   formatoFDoc = computed(() => this.historicalDocuments().find(doc => doc.type === DocumentType['PAZ_Y_SALVO'] || doc.type === 'Formato F' as any));
-  formatoGDoc = computed(() => this.historicalDocuments().find(doc => doc.type === DocumentType['FORMATO_G'] || doc.type === 'Formato_G' as any));
+
+  // Modificado: Prioriza el acta cargada en la evaluación de correcciones.
+  // Si no existe, toma el formato G de la sustentación inicial.
+  formatoGDoc = computed(() => {
+    const docs = this.historicalDocuments();
+    const correctionDoc = docs.find(doc => doc.type === DocumentType['CORRECCION'] || doc.type === 'CORRECCION' as any);
+
+    if (correctionDoc) {
+      return correctionDoc;
+    }
+
+    return docs.find(doc => doc.type === DocumentType['FORMATO_G'] || doc.type === 'Formato_G' as any);
+  });
 
   getStudentNames(): string {
     const authors = this.thesisWork().preliminaryDraftData?.proposalData?.authors;

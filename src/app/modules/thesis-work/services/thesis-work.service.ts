@@ -16,6 +16,7 @@ import { stateList } from '../../../core/enums/state.enum';
 import { CreateAdvanceRequest } from '../interfaces/advance-playload.interface';
 import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
 import { SpecialRequestType } from '../interfaces/thesis-work.interface';
+import { delay, of, tap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -29,6 +30,18 @@ export class ThesisWorkService {
   private readonly sustentationService = inject(ThesisWorkSustentationService);
 
   readonly thesisWorks = this.storage.thesisWorks;
+
+  reactivateThesisWorkMock(thesisWorkId: string) {
+    return of(undefined).pipe(
+      delay(500),
+      tap(() => {
+        this.storage.updateWork(thesisWorkId, (work) => ({
+          ...work,
+          state: stateList.EN_DESARROLLO // Cambia el estado a activo
+        }));
+      })
+    );
+  }
 
   getThesisWorkByIdMock(id: string) {
     return this.storage.getById(id);

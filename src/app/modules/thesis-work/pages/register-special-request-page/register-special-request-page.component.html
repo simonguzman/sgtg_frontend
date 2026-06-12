@@ -1,18 +1,36 @@
-<div class="page-container p-6">
-  <button (click)="goBack()" class="flex items-center gap-2 text-primary font-medium mb-4 hover:underline">
-    <span class="material-symbols-outlined text-sm">arrow_back</span>
-    Regresar
-  </button>
+<div class="pt-2 max-w-5xl mx-auto pb-10">
+
+  <div class="flex justify-between items-center mb-6">
+    <button
+      (click)="goBack()"
+      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
+    >
+      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
+        arrow_back
+      </span>
+      <span class="return-arrow-option">Regresar</span>
+    </button>
+  </div>
 
   @if (isLoading()) {
-    <div class="flex justify-center items-center h-40">
-      <span class="text-gray-500">Cargando información del trabajo de grado...</span>
+    <div class="text-center text-gray-500 font-display my-10">
+      Cargando información del trabajo de grado...
     </div>
   } @else if (thesisWorkData()) {
     <app-register-special-request-form
       [thesisWork]="thesisWorkData()!"
       [isSubmitting]="isSubmitting()"
-      (onSaveRequest)="handleSaveRequest($event)">
+      (onSaveRequest)="handleRequestConfirmation($event)"
+    >
     </app-register-special-request-form>
   }
+
 </div>
+
+<!-- ✅ Modal de confirmación -->
+<app-confirmation-action-modal
+  [isOpen]="isConfirmModalOpen()"
+  description="¿Está seguro de registrar esta solicitud especial? Una vez enviada, será revisada por el consejo de facultad y no podrá modificarse."
+  (onClose)="isConfirmModalOpen.set(false)"
+  (confirm)="processSaveRequest()">
+</app-confirmation-action-modal>

@@ -14,3 +14,10 @@
   [description]="descriptionModal().content"
   (onClose)="descriptionModal.set({isOpen: false, title: '', content: ''})"
 ></app-description-modal>
+
+<app-confirmation-action-modal
+  [isOpen]="isConfirmModalOpen()"
+  description="¿Está seguro de reactivar este trabajo de grado? Esta acción levantará la suspensión y permitirá que el proceso continúe."
+  (onClose)="isConfirmModalOpen.set(false)"
+  (confirm)="confirmReactivation()">
+</app-confirmation-action-modal>

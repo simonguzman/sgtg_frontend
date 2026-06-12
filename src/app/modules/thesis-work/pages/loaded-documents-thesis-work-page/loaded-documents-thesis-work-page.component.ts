@@ -23,7 +23,7 @@ import { CorrespondenceTabConfig } from './tabs-logic/correspondence.tab';
 import { SpecialRequestTabConfig } from './tabs-logic/special-request.tab';
 import { RegisterInformationModalComponent } from "../../../../shared/components/modals/register-information-modal/register-information-modal.component";
 import { UserService } from '../../../users/services/user.service';
-import { Advance } from '../../interfaces/thesis-work.interface';
+import { Advance, SpecialRequest } from '../../interfaces/thesis-work.interface';  // ← NUEVO: SpecialRequest
 import { User } from '../../../users/interfaces/user.interface';
 
 @Component({
@@ -174,6 +174,26 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     return this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.modality || 'Sin modalidad';
   });
 
+  // ← NUEVO: header del modal para SOLICITUDES
+  modalDetailsHeader = computed<string>(() => {
+    if (this.activeTab() === 'AVANCES') return 'Detalles del avance';
+    if (this.activeTab() === 'ENTREGA FINAL') return 'Detalles de la Entrega Final';
+    if (this.activeTab() === 'PAZ Y SALVO') return 'Detalles de Paz y Salvo';
+    if (this.activeTab() === 'CORRESPONDENCIA') return 'Detalles de Correspondencia';
+    if (this.activeTab() === 'SOLICITUDES') return 'Detalles de la Solicitud Especial';  // ← NUEVO
+    return 'Detalles del Registro';
+  });
+
+  // ← NUEVO: subtítulo del modal para SOLICITUDES
+  modalDetailsSubtitle = computed<string>(() => {
+    if (this.activeTab() === 'AVANCES') return 'Información del avance cargado';
+    if (this.activeTab() === 'ENTREGA FINAL') return 'Información de los documentos de entrega final';
+    if (this.activeTab() === 'PAZ Y SALVO') return 'Información de aprobaciones académicas y financieras';
+    if (this.activeTab() === 'CORRESPONDENCIA') return 'Información de la resolución o correspondencia oficial';
+    if (this.activeTab() === 'SOLICITUDES') return 'Información de la solicitud y su documento adjunto';  // ← NUEVO
+    return 'Información del documento cargado';
+  });
+
   private getUserFullName(user?: User): string | undefined {
     if (!user) return undefined;
     return `${user.firstName || ''} ${user.lastName || ''}`.trim();
@@ -274,22 +294,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     }
     return new Date();
   }
-
-  modalDetailsHeader = computed<string>(() => {
-    if (this.activeTab() === 'AVANCES') return 'Detalles del avance';
-    if (this.activeTab() === 'ENTREGA FINAL') return 'Detalles de la Entrega Final';
-    if (this.activeTab() === 'PAZ Y SALVO') return 'Detalles de Paz y Salvo';
-    if (this.activeTab() === 'CORRESPONDENCIA') return 'Detalles de Correspondencia'; // 🚀 Añadido
-    return 'Detalles del Registro';
-  });
-
-  modalDetailsSubtitle = computed<string>(() => {
-    if (this.activeTab() === 'AVANCES') return 'Información del avance cargado';
-    if (this.activeTab() === 'ENTREGA FINAL') return 'Información de los documentos de entrega final';
-    if (this.activeTab() === 'PAZ Y SALVO') return 'Información de aprobaciones académicas y financieras';
-    if (this.activeTab() === 'CORRESPONDENCIA') return 'Información de la resolución o correspondencia oficial'; // 🚀 Añadido
-    return 'Información del documento cargado';
-  });
 
   downloadDocumentByName(fileName: string): void {
     let targetDocument: Document | undefined;
@@ -395,6 +399,42 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       this.selectedAdvance.set(correspondenceMock);
       this.isDetailsModalOpen.set(true);
     }
+    // ← NUEVO: case SOLICITUDES ───────────────────────────────────────────
+    else if (this.activeTab() === 'SOLICITUDES') {
+      const specialRequest = thesis.specialRequests?.find(
+        (r: SpecialRequest) => r.id === rowId
+      );
+      if (!specialRequest) {
+        this.showNotFoundError();
+        return;
+      }
+
+      // Construye el texto de comentarios con todos los campos disponibles del modelo
+      const commentParts: string[] = [specialRequest.description];
+
+      if (specialRequest.resolutionDetails) {
+        commentParts.push(`Resolución del comité: ${specialRequest.resolutionDetails}`);
+      }
+      if (specialRequest.grantedDeadline) {
+        const deadline = new Date(specialRequest.grantedDeadline)
+          .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        commentParts.push(`Fecha concedida: ${deadline}`);
+      }
+
+      const specialRequestMock: Advance = {
+        id: specialRequest.id,
+        title: specialRequest.requestType,   // Usa el enum legible: "Prórroga", "Cancelación", etc.
+        comments: commentParts.join('\n\n'),
+        uploadDate: specialRequest.requestDate,
+        studentId: specialRequest.directorId,
+        status: specialRequest.status,
+        documents: []                         // SpecialRequest no tiene documentos en el modelo actual
+      };
+
+      this.selectedAdvance.set(specialRequestMock);
+      this.isDetailsModalOpen.set(true);
+    }
+    // ─────────────────────────────────────────────────────────────────────
   }
 
   private formatDate(date: Date): string {

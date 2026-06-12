@@ -1,4 +1,3 @@
-// features/thesis-work/services/thesis-work-sustentation.service.ts
 import { inject, Injectable } from '@angular/core';
 import { delay, Observable, of, tap } from 'rxjs';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
@@ -6,7 +5,7 @@ import { UserService } from '../../users/services/user.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { Document, DocumentType } from '../../../core/interfaces/Document.interface';
 import { SustentationRegistry, JurorVerdict } from '../interfaces/thesis-work.interface';
-import { Evaluation } from '../../../core/interfaces/evaluation.interface'; // 📌 Importación añadida
+import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { UserRoleType } from '../../../core/models/user-role';
 
@@ -18,9 +17,6 @@ export class ThesisWorkSustentationService {
   private readonly userService = inject(UserService);
   private readonly authService = inject(AuthService);
 
-  /**
-   * Registra una nueva sustentación programada (Formato_E) y asigna roles de Jurado
-   */
   saveSustentationRegistryMock(thesisWorkId: string, formData: any): Observable<void> {
     return of(undefined).pipe(
       delay(1000),
@@ -65,16 +61,13 @@ export class ThesisWorkSustentationService {
           return {
             ...work,
             sustentations: [sustentationRegistry, ...(work.sustentations || [])],
-            documents: [sustentationDoc, ...(work.documents || [])] // También lo mantenemos en el histórico global
+            documents: [sustentationDoc, ...(work.documents || [])]
           };
         });
       })
     );
   }
 
-  /**
-   * Registra el veredicto individual de un jurado (Formato_G) sobre la sustentación activa
-   */
   registerSustentationVerdictMock(
     thesisWorkId: string,
     payload: { veredict: stateList; observations: string; evaluationDate: Date },
@@ -145,9 +138,6 @@ export class ThesisWorkSustentationService {
     );
   }
 
-  /**
-   * 🛠️ MÉTODO RECUPERADO: Evalúa los documentos corregidos por parte del jurado
-   */
   evaluateCorrectedDocumentsMock(
     thesisWorkId: string,
     evaluationData: Omit<Evaluation, 'id' | 'date'>,
@@ -161,9 +151,10 @@ export class ThesisWorkSustentationService {
         const dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
 
         this.storage.updateWork(thesisWorkId, (work) => {
+
           const docFormatG: Document = {
             id: crypto.randomUUID(),
-            name: `Formato_G - Acta de Sustentación`,
+            name: formatGFile.name,
             url: 'uploads/evaluations/' + formatGFile.name,
             uploadDate: dateStr,
             type: DocumentType.CORRECCION,
@@ -182,34 +173,42 @@ export class ThesisWorkSustentationService {
             ? { ...currentSustentations[0] }
             : { id: crypto.randomUUID(), assignedJurors: [], verdicts: [] };
 
-          const updatedJurorVerdict = {
+          const updatedJurorVerdict: JurorVerdict = {
             jurorId: jurorId,
             evaluationDate: new Date(),
             veredict: evaluationData.veredict as any,
-            observations: evaluationData.observations
+            observations: evaluationData.observations,
+            attachedDocument: docFormatG
           };
 
-          const updatedVerdicts = [...(activeSustentation.verdicts || [])];
-          const existingVerdictIndex = updatedVerdicts.findIndex(v => v.jurorId === jurorId);
-
-          if (existingVerdictIndex !== -1) {
-            updatedVerdicts[existingVerdictIndex] = updatedJurorVerdict;
-          } else {
-            updatedVerdicts.push(updatedJurorVerdict);
-          }
-
+          const updatedVerdicts = [...(activeSustentation.verdicts || []), updatedJurorVerdict];
           activeSustentation.verdicts = updatedVerdicts;
 
           const updatedSustentations = currentSustentations.length > 0
             ? [activeSustentation, ...currentSustentations.slice(1)]
             : [activeSustentation];
 
+          // Actualizamos el estado del paquete de correcciones más reciente
+          const updatedCorrectedDeliveries = [...(work.correctedDeliveries || [])];
+          if (updatedCorrectedDeliveries.length > 0) {
+            const latestDelivery = updatedCorrectedDeliveries[0];
+            updatedCorrectedDeliveries[0] = {
+              ...latestDelivery,
+              status: evaluationData.veredict as stateList,
+              monograph: {
+                ...latestDelivery.monograph,
+                status: evaluationData.veredict as stateList
+              }
+            };
+          }
+
           return {
             ...work,
             state: evaluationData.veredict,
             sustentations: updatedSustentations,
             documents: [docFormatG, ...(work.documents || [])],
-            evaluations: [newEvaluation, ...(work.evaluations || [])]
+            evaluations: [newEvaluation, ...(work.evaluations || [])],
+            correctedDeliveries: updatedCorrectedDeliveries
           };
         });
       })

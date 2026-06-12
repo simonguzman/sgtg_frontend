@@ -10,12 +10,19 @@ export const SpecialRequestTabConfig: TabConfiguration = {
   headerActionRoute: 'register_special_request',
 
   columns: [
-    { field: 'description', header: 'Descripción de la Solicitud', type: 'text', width: '40%' },
+    { field: 'description', header: 'Descripción de la Solicitud', type: 'text', width: '35%' },
     { field: 'date', header: 'Fecha de Registro', type: 'text', width: '20%' },
     { field: 'status', header: 'Estado', type: 'state', width: '20%' },
     {
-      field: 'acciones', header: 'Acciones', type: 'actions', width: '20%',
+      field: 'acciones', header: 'Acciones', type: 'actions', width: '25%',
       actions: [
+        {
+          action: 'view-details',           // ← NUEVO
+          label: 'Ver detalles',            // ← NUEVO
+          icon: 'visibility',               // ← NUEVO
+          variant: 'primary',               // ← NUEVO
+          disabled: false                   // ← NUEVO
+        },
         {
           action: 'evaluate_special_request',
           label: 'Evaluar Solicitud',
@@ -48,7 +55,7 @@ export const SpecialRequestTabConfig: TabConfiguration = {
 
     return thesis.specialRequests.map((req: SpecialRequest) => {
       const dateStr = req.requestDate ? new Date(req.requestDate).toLocaleDateString('es-ES') : 'Sin fecha';
-      const allowedActions: string[] = [];
+      const allowedActions: string[] = ['view-details'];  // ← NUEVO: siempre disponible
 
       if (isConsejo && req.status === stateList.EN_REVISION) {
         allowedActions.push('evaluate_special_request');

@@ -5,12 +5,13 @@ import { NotificationService } from '../../../../shared/components/notifications
 import { SpecialRequestType, ThesisWork } from '../../interfaces/thesis-work.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { RegisterSpecialRequestFormComponent } from "../../components/register-special-request-form/register-special-request-form.component";
+import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 
 @Component({
   selector: 'app-register-special-request-page',
   templateUrl: './register-special-request-page.component.html',
   styleUrls: ['./register-special-request-page.component.css'],
-  imports: [RegisterSpecialRequestFormComponent]
+  imports: [RegisterSpecialRequestFormComponent, ConfirmationActionModalComponent]
 })
 export class RegisterSpecialRequestPageComponent implements OnInit {
   private readonly router = inject(Router);
@@ -21,6 +22,10 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
   isLoading = signal(true);
   isSubmitting = signal(false);
   thesisWorkData = signal<ThesisWork | undefined>(undefined);
+
+  // ✅ Modal de confirmación
+  isConfirmModalOpen = signal(false);
+  pendingData = signal<{ requestType: SpecialRequestType; comments: string } | null>(null);
 
   ngOnInit(): void {
     const thesisId = this.route.snapshot.paramMap.get('id') || this.route.parent?.snapshot.paramMap.get('id');
@@ -58,18 +63,25 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
     });
   }
 
-  handleSaveRequest(event: { requestType: string, comments: string }): void {
+  // ✅ Recibe los datos del form y abre el modal
+  handleRequestConfirmation(event: { requestType: SpecialRequestType; comments: string }): void {
+    this.pendingData.set(event);
+    this.isConfirmModalOpen.set(true);
+  }
+
+  // ✅ Se ejecuta solo cuando el usuario confirma en el modal
+  processSaveRequest(): void {
+    const data = this.pendingData();
     const currentWork = this.thesisWorkData();
-    if (!currentWork) return;
+    if (!data || !currentWork) return;
 
     this.isSubmitting.set(true);
-    const thesisId = currentWork.thesisWorkId;
+    this.isConfirmModalOpen.set(false);
 
-    // Aquí hacemos el cast explícito usando 'as SpecialRequestType'
     const payload = {
-      ...event,
-      requestType: event.requestType as SpecialRequestType,
-      thesisId: thesisId
+      ...data,
+      requestType: data.requestType as SpecialRequestType,
+      thesisId: currentWork.thesisWorkId
     };
 
     this.thesisWorkService.createSpecialRequestMock(payload).subscribe({
@@ -98,4 +110,3 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
     this.router.navigate(['../'], { relativeTo: this.route });
   }
 }
-

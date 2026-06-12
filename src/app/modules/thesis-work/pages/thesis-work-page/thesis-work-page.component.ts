@@ -7,7 +7,9 @@ import { AuthService } from '../../../../core/services/auth/auth.service';
 import { UserRoleType } from '../../../../core/models/user-role';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { DescriptionModalComponent } from "../../../../shared/components/modals/description-modal/description-modal.component";
+import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { User } from '../../../users/interfaces/user.interface';
+import { stateList } from '../../../../core/enums/state.enum';
 
 const THESIS_WORK_COLUMNS: Column[] = [
   { field: 'title', header: 'Título', type: 'text', width: '25%' },
@@ -20,13 +22,14 @@ const THESIS_WORK_COLUMNS: Column[] = [
     width: '15%'
   },
   { field: 'state', header: 'Estado', type: 'state', width: '15%' },
-  { field: 'maxDeliveryDate', header: 'Plazo Máximo', type: 'text', width: '15%' }, // 👈 Columna de la fecha límite
+  { field: 'maxDeliveryDate', header: 'Plazo Máximo', type: 'text', width: '15%' },
   {
     field: 'actions',
     header: 'Acciones',
     type: 'actions',
     actions: [
       { action: 'ver', icon: 'visibility', variant: 'primary', disabled: false },
+      { action: 'reactivar', icon: 'play_circle', variant: 'secondary', disabled: false }, // Acción añadida
     ],
     width: '15%'
   },
@@ -38,7 +41,7 @@ const HEADER_BUTTONS: TableButton[] = [
 
 @Component({
   selector: 'app-thesis-work-page',
-  imports: [TableComponent, DescriptionModalComponent],
+  imports: [TableComponent, DescriptionModalComponent, ConfirmationActionModalComponent],
   templateUrl: './thesis-work-page.component.html',
   styleUrl: './thesis-work-page.component.css',
 })
@@ -47,10 +50,15 @@ export class ThesisWorkPageComponent implements OnInit {
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly authService = inject(AuthService);
   private readonly notificationService = inject(NotificationService);
+
   protected columns: Column[] = THESIS_WORK_COLUMNS;
   protected headerButtons: TableButton[] = HEADER_BUTTONS;
 
   descriptionModal = signal({ isOpen: false, title: '', content: '' });
+
+  // Señales para el modal de reactivación
+  isConfirmModalOpen = signal(false);
+  thesisToReactivate = signal<string | null>(null);
 
   protected tableData = computed(() => {
     const currentUser = this.authService.currentUser();
@@ -66,10 +74,8 @@ export class ThesisWorkPageComponent implements OnInit {
       const draft = work.preliminaryDraftData;
       const proposal = draft?.proposalData;
 
-      // --- Extracción directa desde la raíz de PreliminaryDraft ---
       let maxDeliveryDateFormatted = 'No asignada';
       const rawDate = draft?.maximumDeliveryDate;
-
       if (rawDate) {
         const dateObj = new Date(rawDate);
         if (!isNaN(dateObj.getTime())) {
@@ -86,6 +92,7 @@ export class ThesisWorkPageComponent implements OnInit {
           )
         : false;
       const isJuror = work.sustentations?.[0]?.assignedJurors?.some(juror => String(juror.id) === currentUserId) ?? false;
+
       const hasViewPermission = hasFullAccessRole || isDirector || isCodirector || isAdvisor || isStudentAuthor || isJuror;
       const isOwnerOrAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]) || isDirector;
 
@@ -93,21 +100,24 @@ export class ThesisWorkPageComponent implements OnInit {
       if (hasViewPermission) allowed.push('ver');
       if (isOwnerOrAdmin) allowed.push('editar');
 
+      // Lógica de Reactivación: Solo si está suspendido y es Administrador
+      if (work.state === stateList.SUSPENDIDO && this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR])) {
+        allowed.push('reactivar');
+      }
+
       return {
         id: work.thesisWorkId,
         title: proposal?.title || 'Sin título',
         description: proposal?.description || 'Sin descripción disponible.',
         modality: proposal?.modality || 'No definida',
         state: work.state,
-        maxDeliveryDate: maxDeliveryDateFormatted, // 👈 Vinculado correctamente
+        maxDeliveryDate: maxDeliveryDateFormatted,
         allowedActions: allowed
       };
     });
   });
 
-  ngOnInit(): void {
-    // Listo para inicializaciones adicionales en caso de ser necesario
-  }
+  ngOnInit(): void {}
 
   handleTableAction(event: { action: string, row: any }): void {
     if (event.row.allowedActions && !event.row.allowedActions.includes(event.action)) {
@@ -117,16 +127,40 @@ export class ThesisWorkPageComponent implements OnInit {
 
     switch (event.action) {
       case 'ver descripción':
-        this.descriptionModal.set({
-          isOpen: true,
-          title: 'Descripción del trabajo de grado',
-          content: event.row.description
-        });
+        this.descriptionModal.set({ isOpen: true, title: 'Descripción del trabajo de grado', content: event.row.description });
         break;
       case 'ver':
         this.router.navigate(['/thesis-work/details', event.row.id]);
         break;
+      case 'reactivar':
+        this.thesisToReactivate.set(event.row.id);
+        this.isConfirmModalOpen.set(true);
+        break;
     }
+  }
+
+  confirmReactivation(): void {
+    const id = this.thesisToReactivate();
+    if (!id) return;
+
+    this.thesisWorkService.reactivateThesisWorkMock(id).subscribe({
+      next: () => {
+        this.notificationService.show({
+          title: 'Trabajo Reactivado',
+          message: 'El trabajo ha sido reactivado correctamente.',
+          type: NotificationType.CONFIRMATION
+        });
+        this.isConfirmModalOpen.set(false);
+      },
+      error: () => {
+        this.notificationService.show({
+          title: 'Error',
+          message: 'Hubo un error al reactivar el trabajo.',
+          type: NotificationType.ERROR
+        });
+        this.isConfirmModalOpen.set(false);
+      }
+    });
   }
 
   handleHeaderButton(button: TableButton): void {

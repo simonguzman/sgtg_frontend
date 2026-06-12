@@ -28,7 +28,36 @@
 
   @if (thesisWorkDetails(); as work) {
 
-    <!-- ── Información general ────────────────────────────────────────────── -->
+    <!-- ── Banner: estado administrativo ─────────────────────────────────── -->
+    @if (isAdministrativelyPostponed() || isAdministrativelyCanceled()) {
+      <div class="notification notification--security mb-6">
+        <span class="notification__icon">
+          <span class="material-symbols-outlined">event_busy</span>
+        </span>
+        <div class="notification__body">
+          <p class="notification__title notification__title--security">
+            Sustentación {{ administrativeStatus() }} Administrativamente
+          </p>
+          <p class="notification__message notification__message--security">
+            Esta programación fue interrumpida debido a una solicitud especial aprobada por el consejo.
+          </p>
+          @if (postponementReason(); as reason) {
+            <p class="notification__message notification__message--security mt-2">
+              <span class="notification__title notification__title--security">Motivo de la solicitud: </span>
+              {{ reason.description }}
+            </p>
+            @if (reason.resolutionDetails) {
+              <p class="notification__message notification__message--security">
+                <span class="notification__title notification__title--security">Resolución del consejo: </span>
+                {{ reason.resolutionDetails }}
+              </p>
+            }
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ── Sección: Información general ──────────────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mb-4">
       Información general
     </h3>
@@ -56,7 +85,7 @@
       </div>
     </div>
 
-    <!-- ── Participantes académicos ───────────────────────────────────────── -->
+    <!-- ── Sección: Participantes académicos ──────────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
       Participantes académicos
     </h3>
@@ -95,7 +124,7 @@
       </div>
     </div>
 
-    <!-- ── Programación de la sustentación ───────────────────────────────── -->
+    <!-- ── Sección: Programación ──────────────────────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
       Programación de la sustentación
     </h3>
@@ -123,14 +152,13 @@
       </div>
     </div>
 
-    <!-- ── Archivos adjuntos ──────────────────────────────────────────────── -->
+    <!-- ── Sección: Archivos adjuntos ─────────────────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
       Archivos adjuntos
     </h3>
 
     <div class="flex flex-col gap-3 mb-8">
 
-      <!-- Monografía -->
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
         <div class="flex items-center gap-3 overflow-hidden">
           <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
@@ -149,7 +177,6 @@
         </app-button-component>
       </div>
 
-      <!-- Anexos -->
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
         <div class="flex items-center gap-3 overflow-hidden">
           <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">folder_open</span>
@@ -168,7 +195,6 @@
         </app-button-component>
       </div>
 
-      <!-- Formato E de programación (solo si existe) -->
       @if (selectedSustentation()?.formatEDocument) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
           <div class="flex items-center gap-3 overflow-hidden">
@@ -190,14 +216,14 @@
 
     </div>
 
-    <!-- ── Evaluaciones de los jurados ────────────────────────────────────── -->
+    <!-- ── Sección: Evaluaciones de los jurados ───────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
       Evaluaciones de los jurados
     </h3>
 
     @if (selectedSustentation()?.verdicts?.length) {
       <div class="flex flex-col gap-6">
-        @for (veredict of selectedSustentation()?.verdicts; track veredict.jurorId) {
+        @for (veredict of selectedSustentation()?.verdicts; track $index) {
 
           <div class="space-y-3 p-5 border border-gray-100 rounded-xl shadow-sm bg-white">
 
@@ -249,10 +275,40 @@
 
         }
       </div>
+
     } @else {
-      <div class="information-block mt-8 p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680]">
-        La sustentación ha sido programada, pero aún no se ha emitido ningún veredicto por parte de los jurados calificadores.
-      </div>
+
+      <!-- ── Mensaje vacío: aplazado/cancelado administrativamente ─────────── -->
+      @if (isAdministrativelyPostponed() || isAdministrativelyCanceled()) {
+        <div class="notification notification--security mt-8">
+          <span class="notification__icon">
+            <span class="material-symbols-outlined">gavel</span>
+          </span>
+          <div class="notification__body">
+            <p class="notification__title notification__title--security">Sin veredictos de jurados</p>
+            <p class="notification__message notification__message--security">
+              Esta programación se encuentra {{ administrativeStatus() | lowercase }}
+              y no recibirá veredictos de los jurados.
+            </p>
+          </div>
+        </div>
+
+      <!-- ── Mensaje vacío: evaluación pendiente (estado normal) ───────────── -->
+      } @else {
+        <div class="notification notification--info mt-8">
+          <span class="notification__icon">
+            <span class="material-symbols-outlined">pending_actions</span>
+          </span>
+          <div class="notification__body">
+            <p class="notification__title notification__title--info">Evaluación pendiente</p>
+            <p class="notification__message notification__message--info">
+              La sustentación ha sido programada, pero aún no se ha emitido ningún
+              veredicto por parte de los jurados calificadores.
+            </p>
+          </div>
+        </div>
+      }
+
     }
 
   }

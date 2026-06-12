@@ -117,11 +117,6 @@ export const AdvancesTabConfig: TabConfiguration = {
     const hasFinalDelivery = context['hasFinalDelivery'] as boolean ?? false;
     const isSuspendedOrCanceled = context['isSuspendedOrCanceled'] as boolean ?? false;
 
-    // Si está suspendido o cancelado, desaparece el botón retornando el arreglo vacío
-    if (isSuspendedOrCanceled) {
-      return buttons;
-    }
-
     if (context.isStudent || context.isAdmin) {
       let buttonLabel = 'Cargar nuevo avance';
       let buttonDisabled = context.isLatestAdvancePending;
@@ -131,6 +126,11 @@ export const AdvancesTabConfig: TabConfiguration = {
         buttonDisabled = true;
       } else if (context.isLatestAdvancePending) {
         buttonLabel = 'Avance en revisión';
+      }
+
+      // 👇 AQUÍ APLICAMOS EL BLOQUEO VISUAL
+      if (isSuspendedOrCanceled) {
+        buttonDisabled = true;
       }
 
       buttons.push({

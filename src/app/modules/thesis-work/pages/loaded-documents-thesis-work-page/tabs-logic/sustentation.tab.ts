@@ -2,7 +2,7 @@ import { TableButton } from '../../../../../shared/components/table-component/ta
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
-import { SustentationRegistry, JurorVerdict } from '../../../interfaces/thesis-work.interface';
+import { SustentationRegistry, JurorVerdict, SustentationStatus } from '../../../interfaces/thesis-work.interface';
 
 export const SustentationTabConfig: TabConfiguration = {
   tabValue: 'SUSTENTACION',
@@ -25,6 +25,7 @@ export const SustentationTabConfig: TabConfiguration = {
   enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
+
     const hasApprovedPazYSalvo = thesis.documents?.some(
       (doc: Document) => doc.type === DocumentType['PAZ_Y_SALVO'] && doc.status === stateList.APROBADO
     ) ?? false;
@@ -53,18 +54,32 @@ export const SustentationTabConfig: TabConfiguration = {
     }
     const isJurorContext = !!context.isJuror;
     const totalSustentations = thesis.sustentations.length;
+
     return thesis.sustentations.map((sustentation: SustentationRegistry, index: number) => {
       const dateRaw = sustentation.sustentationDate;
       const dateStr = dateRaw ? new Date(dateRaw).toLocaleDateString('es-ES') : 'Fecha pendiente';
       const verdictsList: JurorVerdict[] = sustentation.verdicts || [];
       const isThisEvaluated = verdictsList.length > 0;
-      const currentStatus = isThisEvaluated
-        ? (verdictsList[verdictsList.length - 1].veredict ?? stateList.EN_REVISION)
-        : stateList.EN_REVISION;
+
+      let currentStatus: string | stateList = stateList.EN_REVISION;
+
+      // Mapeo explícito para que el pill reconozca el color correcto del Enum general
+      if (sustentation.status === SustentationStatus.APLAZADA) {
+        currentStatus = stateList.APLAZADO;
+      } else if (sustentation.status === SustentationStatus.CANCELADA) {
+        currentStatus = stateList.CANCELADO;
+      } else if (isThisEvaluated) {
+        currentStatus = verdictsList[verdictsList.length - 1].veredict ?? stateList.EN_REVISION;
+      }
+
       const allowedActions: string[] = ['view_sustentation_details'];
-      if ((isJurorContext || context.isAdmin) && !isThisEvaluated) {
+
+      const isPostponedOrCanceled = sustentation.status === SustentationStatus.APLAZADA || sustentation.status === SustentationStatus.CANCELADA;
+
+      if ((isJurorContext || context.isAdmin) && !isThisEvaluated && !isPostponedOrCanceled) {
         allowedActions.push('evaluate_sustentation');
       }
+
       const sustentationNumber = totalSustentations - index;
 
       return {
@@ -81,20 +96,26 @@ export const SustentationTabConfig: TabConfiguration = {
     const buttons: TableButton[] = [];
     const thesis = context.thesisWork;
     const { isConsejo, hasApprovedPazYSalvo, hasSustentationRegistered, isSustentationEvaluated } = context;
+
     if (isConsejo) {
       const activeSustentation = thesis?.sustentations?.[0];
       const verdictsList: JurorVerdict[] = activeSustentation?.verdicts || [];
       const lastVerdict = verdictsList.length > 0 ? verdictsList[verdictsList.length - 1].veredict : null;
+
+      const isAdministrativelyPostponed = activeSustentation?.status === SustentationStatus.APLAZADA;
+
       let buttonLabel = 'Registrar Sustentación';
       let buttonDisabled = false;
+
       if (!hasApprovedPazYSalvo) {
         buttonLabel = 'Requiere Paz y Salvo Aprobado';
         buttonDisabled = true;
       } else if (!hasSustentationRegistered) {
         buttonLabel = 'Registrar Sustentación';
       } else {
-        if (lastVerdict === stateList.APLAZADO) {
+        if (lastVerdict === stateList.APLAZADO || isAdministrativelyPostponed) {
           buttonLabel = 'Registrar Nueva Sustentación';
+          buttonDisabled = false;
         } else if (isSustentationEvaluated) {
           buttonLabel = 'Sustentación Evaluada';
           buttonDisabled = true;

@@ -4,11 +4,11 @@ import { ThesisWorkService } from '../../services/thesis-work.service';
 import { UserService } from '../../../users/services/user.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
-import { JurorVerdict, ThesisWork, SustentationRegistry } from '../../interfaces/thesis-work.interface';
+import { JurorVerdict, ThesisWork, SustentationRegistry, SustentationStatus, SpecialRequest, SpecialRequestType } from '../../interfaces/thesis-work.interface';
 import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
-import { DatePipe } from '@angular/common';
+import { DatePipe, LowerCasePipe } from '@angular/common';
 import { stateList } from '../../../../core/enums/state.enum';
 import { User } from '../../../users/interfaces/user.interface';
 
@@ -16,7 +16,7 @@ import { User } from '../../../users/interfaces/user.interface';
   selector: 'app-sustentation-details-page',
   templateUrl: './sustentation-details-page.component.html',
   styleUrls: ['./sustentation-details-page.component.css'],
-  imports: [ButtonComponent, DatePipe]
+  imports: [ButtonComponent, DatePipe, LowerCasePipe]
 })
 export class SustentationDetailsPageComponent implements OnInit {
   protected route = inject(ActivatedRoute);
@@ -45,14 +45,50 @@ export class SustentationDetailsPageComponent implements OnInit {
   });
 
   showCorrectedDocumentsButton = computed<boolean>(() => {
-    const verdict = this.latestVeredict();
-    return verdict?.veredict === stateList.APROBADO_CON_OBSERVACIONES;
+    const work = this.thesisWorkDetails();
+    const sustentation = this.selectedSustentation();
+
+    if (!work || !sustentation) return false;
+
+    const hadObservaciones = sustentation.verdicts?.some(
+      v => v.veredict === stateList.APROBADO_CON_OBSERVACIONES
+    );
+    const hasDeliveries = (work.correctedDeliveries?.length ?? 0) > 0;
+
+    return !!hadObservaciones || hasDeliveries;
   });
 
   actaDocument = computed<Document | null>(() => {
     const work = this.thesisWorkDetails();
     if (!work || !work.documents) return null;
     return work.documents.find(doc => doc.type === DocumentType.FORMATO_G) || null;
+  });
+
+  // ─── Lógica de Estado Administrativo ──────────────────────────────────────────
+
+  administrativeStatus = computed<SustentationStatus | undefined>(() => {
+    return this.selectedSustentation()?.status;
+  });
+
+  isAdministrativelyPostponed = computed<boolean>(() => {
+    return this.administrativeStatus() === SustentationStatus.APLAZADA;
+  });
+
+  isAdministrativelyCanceled = computed<boolean>(() => {
+    return this.administrativeStatus() === SustentationStatus.CANCELADA;
+  });
+
+  postponementReason = computed<SpecialRequest | null>(() => {
+    const work = this.thesisWorkDetails();
+    if (!work || !this.isAdministrativelyPostponed()) return null;
+
+    const specialRequests = work.specialRequests || [];
+
+    const reprogrammingRequests = specialRequests
+      .filter(req => req.requestType === SpecialRequestType.NUEVA_SUSTENTACION && req.status === stateList.APROBADO)
+      .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
+
+    return reprogrammingRequests.length > 0 ? reprogrammingRequests[0] : null;
   });
 
   ngOnInit(): void {
@@ -105,7 +141,6 @@ export class SustentationDetailsPageComponent implements OnInit {
     const targetType = type.toUpperCase().trim();
     const thesis = this.thesisWorkDetails();
 
-    // ── Entrega final: MONOGRAFIA y ANEXOS ────────────────────────────────────
     if (targetType === 'MONOGRAFIA' || targetType === 'ANEXOS') {
       if (!thesis?.finalDeliveries?.length) return null;
 
@@ -117,7 +152,6 @@ export class SustentationDetailsPageComponent implements OnInit {
       if (targetType === 'ANEXOS') return latestDelivery?.annexes ?? null;
     }
 
-    // ── Paz y Salvo ───────────────────────────────────────────────────────────
     if (targetType === 'FORMATO_G') {
       if (!thesis?.pazYSalvos?.length) return null;
 

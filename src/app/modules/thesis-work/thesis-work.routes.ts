@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { ThesisWorkPageComponent } from './pages/thesis-work-page/thesis-work-page.component';
 import { ThesisWorkDetailsPageComponent } from './pages/thesis-work-details-page/thesis-work-details-page.component';
 import { roleGuard } from '../../core/guards/role.guard';
+import { thesisRestrictedStatusGuard } from '../../core/guards/thesis-status.guard';
 import { UserRoleType } from '../../core/models/user-role';
 import { EvaluationsPerformedPageComponent } from '../../shared/pages/evaluations-performed-page/evaluations-performed-page.component';
 import { LoadedDocumentsThesisWorkPageComponent } from './pages/loaded-documents-thesis-work-page/loaded-documents-thesis-work-page.component';
@@ -86,7 +87,7 @@ export const thesisWorkRoutes: Routes = [
               {
                 path: '',
                 component: LoadedDocumentsThesisWorkPageComponent,
-                canActivate: [roleGuard],
+                canActivate: [roleGuard], // 👈 La vista general sigue igual, es de solo lectura
                 title: 'Documentos cargados',
                 data: {
                   breadcrumb: null,
@@ -105,7 +106,7 @@ export const thesisWorkRoutes: Routes = [
               {
                 path: 'upload_advance',
                 component: UploadAdvancePageComponent,
-                canActivate: [roleGuard],
+                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
                 title: 'Cargar avances',
                 data: {
                   breadcrumb: 'Cargar avances',
@@ -118,7 +119,7 @@ export const thesisWorkRoutes: Routes = [
               {
                 path: 'evaluate_advance/:advanceId',
                 component: EvaluateAdvancePageComponent,
-                canActivate: [roleGuard],
+                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
                 title: 'Evaluar avances',
                 data: {
                   breadcrumb: 'Evaluar avances',
@@ -128,7 +129,7 @@ export const thesisWorkRoutes: Routes = [
               {
                 path: 'register_final_delivery',
                 component: UploadFinalDeliveryPageComponent,
-                canActivate: [roleGuard],
+                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
                 title: 'Registrar entrega final',
                 data: {
                   breadcrumb: 'Registrar entrega final',
@@ -138,7 +139,7 @@ export const thesisWorkRoutes: Routes = [
               {
                 path: 'register_paz_y_salvo',
                 component: RegisterPazYSalvoPageComponent,
-                canActivate: [roleGuard],
+                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
                 title: 'Registrar paz y salvo',
                 data: {
                   breadcrumb: 'Registrar paz y salvo',
@@ -148,7 +149,7 @@ export const thesisWorkRoutes: Routes = [
               {
                 path: 'register_sustentation',
                 component: RegisterSustentationPageComponent,
-                canActivate: [roleGuard],
+                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
                 title: 'Registrar sustentacion',
                 data: {
                   breadcrumb: 'Registrar sustentacion',
@@ -158,7 +159,7 @@ export const thesisWorkRoutes: Routes = [
               {
                 path: 'evaluate_sustentation/:sustentationId',
                 component: EvaluateSustentationPageComponent,
-                canActivate: [roleGuard],
+                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
                 title: 'Evaluar sustentación',
                 data: {
                   breadcrumb: 'Evaluar sustentación',
@@ -168,7 +169,7 @@ export const thesisWorkRoutes: Routes = [
               {
                 path: 'register_correspondence',
                 component: RegisterCorrespondencePageComponent,
-                canActivate: [roleGuard],
+                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
                 title: 'Registrar Correspondencia Final',
                 data: {
                   breadcrumb: 'Registrar correspondencia',
@@ -178,7 +179,7 @@ export const thesisWorkRoutes: Routes = [
               {
                 path: 'register_special_request',
                 component: RegisterSpecialRequestPageComponent,
-                canActivate: [roleGuard],
+                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
                 title: 'Registrar solicitud especial',
                 data: {
                   breadcrumb: 'Registrar solicitud especial',
@@ -188,18 +189,17 @@ export const thesisWorkRoutes: Routes = [
               {
                 path: 'evaluate_special_request/:requestId',
                 component: EvaluateSpecialRequestPageComponent,
-                canActivate: [roleGuard],
+                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
                 title: 'Evaluar solicitud especial',
                 data: {
                   breadcrumb: 'Evaluar solicitud especial',
                   roles: [UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
                 }
               },
-              // 🚀 Agrupación de Sustentación limpia como hermanos directos bajo loaded_documents
               {
                 path: 'view_sustentation_details/:id',
                 component: SustentationDetailsPageComponent,
-                canActivate: [roleGuard],
+                canActivate: [roleGuard], // 👈 Solo lectura, no requiere el guard de bloqueo
                 title: 'Detalles de la sustentación',
                 data: {
                   breadcrumb: 'Detalles de la sustentación',
@@ -222,7 +222,7 @@ export const thesisWorkRoutes: Routes = [
                   {
                     path: '',
                     component: CorrectedDocumentsPageComponent,
-                    canActivate: [roleGuard],
+                    canActivate: [roleGuard], // 👈 Vista general de lista, no requiere bloqueo
                     title: 'Documentos corregidos',
                     data: {
                       breadcrumb: null,
@@ -240,9 +240,8 @@ export const thesisWorkRoutes: Routes = [
                   },
                   {
                     path: 'upload_corrections',
-                    // Aquí apuntas al nuevo componente de carga que creamos en el paso anterior
                     component: RegisterCorrectedDocumentsPageComponent,
-                    canActivate: [roleGuard],
+                    canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
                     title: 'Cargar documentos corregidos',
                     data: {
                       breadcrumb: 'Cargar correcciones',
@@ -254,15 +253,14 @@ export const thesisWorkRoutes: Routes = [
                   },
                   {
                     path: 'evaluate_corrections',
-                    // Aquí apuntas al nuevo componente de carga que creamos en el paso anterior
                     component: EvaluateCorrectionsPageComponent,
-                    canActivate: [roleGuard],
+                    canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
                     title: 'Evaluar documentos corregidos',
                     data: {
                       breadcrumb: 'Evaluar correcciones',
                       roles: [
                         UserRoleType.ADMINISTRADOR,
-                        UserRoleType.JURADO // Roles autorizados para subir la corrección
+                        UserRoleType.JURADO
                       ]
                     }
                   },

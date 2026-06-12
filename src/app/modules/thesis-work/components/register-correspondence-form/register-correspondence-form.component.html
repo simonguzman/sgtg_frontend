@@ -6,7 +6,6 @@
     <strong>obligatorio</strong> para cerrar el expediente académico.
   </app-info-banner>
 
-  <!-- ── Información del trabajo de grado ──────────────────────────────────── -->
   <section class="mb-8">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
 
@@ -62,7 +61,6 @@
     </div>
   </section>
 
-  <!-- ── Detalles de Sustentación ───────────────────────────────────────────── -->
   <section class="mb-8">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Detalles de Sustentación</h3>
 
@@ -88,7 +86,6 @@
 
   <hr class="border-gray-200 mb-8">
 
-  <!-- ── Archivos adjuntos cargados ────────────────────────────────────────── -->
   <section class="mb-8">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Archivos adjuntos cargados</h3>
 
@@ -126,7 +123,7 @@
             <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
             <div class="flex flex-col overflow-hidden">
               <span class="text-size-body font-bold text-primary truncate">{{ docG.name }}</span>
-              <span class="text-size-role-footer text-[#777680]">Acta de Sustentación (Formato_G) • Calificación del Jurado</span>
+              <span class="text-size-role-footer text-[#777680]">Acta Final de Sustentación / Correcciones • Calificación del Jurado</span>
             </div>
           </div>
           <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docG)"></app-button-component>
@@ -138,7 +135,6 @@
 
   <hr class="border-gray-200 mb-8">
 
-  <!-- ── Carga del Formato H ────────────────────────────────────────────────── -->
   <section>
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Carga del Formato H</h3>
 
@@ -146,7 +142,6 @@
 
     <div class="flex flex-col gap-4">
 
-      <!-- Estado: sin archivo cargado -->
       @if (!selectedFile()) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm transition-colors">
           <div class="flex items-center gap-3">
@@ -166,7 +161,6 @@
         </div>
       }
 
-      <!-- Estado: archivo seleccionado -->
       @else {
         <div class="flex items-center justify-between p-4 bg-white border-l-4 border-l-state-approved border border-gray-200 rounded-xl shadow-sm transition-colors">
           <div class="flex items-center gap-3">

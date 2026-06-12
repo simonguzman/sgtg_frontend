@@ -74,7 +74,8 @@ export enum SpecialRequestType {
 export enum SustentationStatus {
   PROGRAMADA = 'Programada',
   REALIZADA = 'Realizada',
-  CANCELADA = 'Cancelada'
+  CANCELADA = 'Cancelada',
+  APLAZADA = 'Aplazada'
 }
 
 export interface SpecialRequest {

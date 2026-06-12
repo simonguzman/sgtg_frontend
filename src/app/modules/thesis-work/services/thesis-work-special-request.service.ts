@@ -45,6 +45,7 @@ export class ThesisWorkSpecialRequestService {
           let updatedState = work.state;
           let updatedDraft = { ...work.preliminaryDraftData };
           let updatedSustentations = [...(work.sustentations || [])];
+          let updatedDocuments = [...(work.documents || [])]; // Añadimos el clon de documentos generales
 
           const updatedRequests = (work.specialRequests || []).map(req => {
             if (req.id !== requestId) return req;
@@ -70,13 +71,35 @@ export class ThesisWorkSpecialRequestService {
                   break;
 
                 case SpecialRequestType.NUEVA_SUSTENTACION:
-                  updatedSustentations = updatedSustentations.map(s => ({
-                    ...s,
-                    status: SustentationStatus.CANCELADA
-                  }));
+                  // Solo afectamos la sustentación actual (la última programada, índice 0)
+                  if (updatedSustentations.length > 0) {
+                    const pendingSustentation = { ...updatedSustentations[0] };
+
+                    // Asumimos que agregaste APLAZADA al SustentationStatus, o puedes castear stateList.APLAZADO
+                    pendingSustentation.status = SustentationStatus.APLAZADA || stateList.APLAZADO as any;
+
+                    // Si existe el documento de programación (Formato E), lo marcamos como aplazado
+                    if (pendingSustentation.formatEDocument) {
+                      const targetDocId = pendingSustentation.formatEDocument.id;
+
+                      pendingSustentation.formatEDocument = {
+                        ...pendingSustentation.formatEDocument,
+                        status: stateList.APLAZADO
+                      };
+
+                      // Sincronizamos el arreglo global de documentos para no romper vistas del historial
+                      updatedDocuments = updatedDocuments.map(doc =>
+                        doc.id === targetDocId ? { ...doc, status: stateList.APLAZADO } : doc
+                      );
+                    }
+
+                    // Reemplazamos la vieja con la nueva en la primera posición
+                    updatedSustentations[0] = pendingSustentation;
+                  }
                   break;
 
                 case SpecialRequestType.CAMBIO_TITULO:
+                  // La lógica actual de título simple
                   break;
               }
             }
@@ -94,6 +117,7 @@ export class ThesisWorkSpecialRequestService {
             state: updatedState,
             preliminaryDraftData: updatedDraft,
             sustentations: updatedSustentations,
+            documents: updatedDocuments, // Retornamos los documentos sincronizados
             specialRequests: updatedRequests
           };
         });

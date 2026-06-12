@@ -24,7 +24,6 @@ export class RegisterCorrespondencePageComponent implements OnInit {
   thesisWorkDetails = signal<ThesisWork | null>(null);
   isSubmitting = signal<boolean>(false);
 
-  // ✅ Modal de confirmación
   isConfirmModalOpen = signal<boolean>(false);
   pendingFile = signal<File | null>(null);
 
@@ -51,13 +50,11 @@ export class RegisterCorrespondencePageComponent implements OnInit {
     });
   }
 
-  // ✅ Recibe el archivo del form y abre el modal en lugar de guardar directamente
   handleRequestConfirmation(file: File): void {
     this.pendingFile.set(file);
     this.isConfirmModalOpen.set(true);
   }
 
-  // ✅ Se ejecuta solo cuando el usuario confirma en el modal
   processCorrespondence(): void {
     const file = this.pendingFile();
     const currentWork = this.thesisWorkDetails();

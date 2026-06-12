@@ -24,13 +24,18 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
   enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
+
     const hasFinalDelivery = thesis.finalDeliveries?.some(
       (delivery: FinalDelivery) => delivery.status !== stateList.NO_APROBADO
     ) ?? false;
 
+    // 👇 Calculamos el estado de bloqueo
+    const isSuspendedOrCanceled = thesis.state === stateList.SUSPENDIDO || thesis.state === stateList.CANCELADO;
+
     return {
       ...baseContext,
-      hasFinalDelivery
+      hasFinalDelivery,
+      isSuspendedOrCanceled // Lo inyectamos al contexto
     };
   },
 
@@ -63,11 +68,19 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
   getHeaderButtons: (context: ThesisEvaluationContext) => {
     const buttons: TableButton[] = [];
     const hasFinalDelivery = !!context['hasFinalDelivery'];
+    const isSuspendedOrCanceled = context['isSuspendedOrCanceled'] as boolean ?? false; // Lo recuperamos
+
     if (context.isDirector || context.isAdmin) {
       let buttonLabel = 'Cargar entrega final';
       let buttonDisabled = false;
+
       if (hasFinalDelivery) {
         buttonLabel = 'Entrega final registrada';
+        buttonDisabled = true;
+      }
+
+      // 👇 AQUÍ APLICAMOS EL BLOQUEO VISUAL
+      if (isSuspendedOrCanceled) {
         buttonDisabled = true;
       }
 

@@ -101,16 +101,28 @@ export class CorrectedDocumentsPageComponent implements OnInit {
     return thesis.sustentations[0].assignedJurors?.some(juror => juror.id === user.id) ?? false;
   });
 
-  // ✅ FIX: solo es "ya evaluado" cuando las correctedDeliveries tienen
-  // un estado final (distinto de EN_REVISION). Los veredictos de sustentación
-  // en thesis.evaluations NO deben bloquear este flujo.
-  isAlreadyEvaluated = computed(() => {
-    const thesis = this.currentThesisWork();
-    if (!thesis) return false;
+  hasUploadedCorrections = computed(() => {
+    return (this.currentThesisWork()?.correctedDeliveries?.length ?? 0) > 0;
+  });
 
-    return (thesis.correctedDeliveries ?? []).some(
-      delivery => delivery.status !== stateList.EN_REVISION
-    );
+  canDirectorUpload = computed(() => {
+    if (!this.isDirector()) return false;
+
+    const deliveries = this.currentThesisWork()?.correctedDeliveries || [];
+    if (deliveries.length === 0) return true;
+
+    const latestStatus = deliveries[0].status || deliveries[0].monograph?.status;
+    return latestStatus === stateList.NO_APROBADO || latestStatus === stateList.APLAZADO;
+  });
+
+  canJurorEvaluate = computed(() => {
+    if (!this.isJuror()) return false;
+
+    const deliveries = this.currentThesisWork()?.correctedDeliveries || [];
+    if (deliveries.length === 0) return false;
+
+    const latestStatus = deliveries[0].status || deliveries[0].monograph?.status;
+    return latestStatus === stateList.EN_REVISION;
   });
 
   tableData = computed(() => {
@@ -125,10 +137,6 @@ export class CorrectedDocumentsPageComponent implements OnInit {
       allowedActions: ['view-details'],
       rawDelivery: delivery
     }));
-  });
-
-  hasUploadedCorrections = computed(() => {
-    return this.tableData().length > 0;
   });
 
   // ─── Procesadores para el modal de detalles ───────────────────────────────────

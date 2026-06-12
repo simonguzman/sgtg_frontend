@@ -13,7 +13,6 @@
       Cargando historial de formatos y estructura general...
     </div>
   } @else {
-    <!-- ✅ (onSave) ahora llama a handleRequestConfirmation en lugar de handleCorrespondenceSave -->
     <app-register-correspondence-form
       [thesisWork]="thesisWorkDetails()!"
       [isSubmitting]="isSubmitting()"
@@ -23,7 +22,6 @@
   }
 </div>
 
-<!-- ✅ Modal de confirmación -->
 <app-confirmation-action-modal
   [isOpen]="isConfirmModalOpen()"
   description="¿Está seguro de registrar la correspondencia y finalizar el proceso del trabajo de grado? Esta acción cerrará formalmente el expediente académico y no podrá deshacerse."
