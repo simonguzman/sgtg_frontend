@@ -3,13 +3,14 @@ import { delay, Observable, of, tap } from 'rxjs';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { SpecialRequest, SpecialRequestType, SustentationStatus } from '../interfaces/thesis-work.interface';
 import { stateList } from '../../../core/enums/state.enum';
+import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ThesisWorkSpecialRequestService {
   private readonly storage = inject(ThesisWorkStorageService);
-
+  private readonly eventBus = inject(EventBusService);
   createSpecialRequestMock(payload: { requestType: SpecialRequestType, comments: string, thesisId: string }): Observable<void> {
     return of(undefined).pipe(
       delay(800),
@@ -27,6 +28,10 @@ export class ThesisWorkSpecialRequestService {
             ...work,
             specialRequests: [newRequest, ...(work.specialRequests || [])]
           };
+        });
+        this.eventBus.emit({
+          type: AppEventType.SPECIAL_REQUEST_CREATED,
+          payload: { thesisWorkId: payload.thesisId, type: payload.requestType }
         });
       })
     );
@@ -120,6 +125,10 @@ export class ThesisWorkSpecialRequestService {
             documents: updatedDocuments, // Retornamos los documentos sincronizados
             specialRequests: updatedRequests
           };
+        });
+        this.eventBus.emit({
+          type: AppEventType.SPECIAL_REQUEST_RESOLVED,
+          payload: { thesisWorkId: thesisWorkId, status: payload.status}
         });
       })
     );

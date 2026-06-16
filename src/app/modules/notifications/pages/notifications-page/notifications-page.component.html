@@ -1,1 +1,25 @@
-<p style="color: black;">notifications-page works!</p>
+<div class="flex flex-col gap-6 p-6">
+
+  <app-table-component
+    [value]="inboxMessagesTransformed()"
+    [columns]="columns"
+    [paginator]="true"
+    [rows]="10"
+    (actionClick)="handleTableAction($event)"
+    emptyMessage="No tienes notificaciones en tu bandeja de entrada en este momento."
+  ></app-table-component>
+
+  <app-register-information-modal
+    [isOpen]="modalState().isOpen"
+    modalHeader="Detalle de la Notificación"
+    subTitle="Información de la alerta"
+    [title]="modalState().title"
+    [comments]="modalState().comments"
+    [chargeDate]="modalState().chargeDate"
+    modality="Sistema"
+    student="-"
+    director="-"
+    (onClose)="closeModal()"
+  ></app-register-information-modal>
+
+</div>

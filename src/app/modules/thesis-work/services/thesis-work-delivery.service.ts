@@ -2,28 +2,21 @@ import { inject, Injectable } from '@angular/core';
 import { delay, Observable, of, tap } from 'rxjs';
 
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
-
 import { stateList } from '../../../core/enums/state.enum';
-
-import {
-  Document,
-  DocumentType
-} from '../../../core/interfaces/Document.interface';
+import { Document, DocumentType } from '../../../core/interfaces/Document.interface';
 import { CorrectedDelivery, FinalDelivery } from '../interfaces/thesis-work.interface';
 import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
+import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ThesisWorkDeliveryService {
-
   private readonly storage = inject(ThesisWorkStorageService);
+  private readonly eventBus = inject(EventBusService);
 
   /**
-   * Entrega final del trabajo de grado:
-   * - Monografía
-   * - Formato_E
-   * - Anexos
+   * Entrega final del trabajo de grado
    */
   uploadFinalDeliveryMock(thesisWorkId: string, monograph: File, formatE: File, annexes?: File ): Observable<void> {
     return of(undefined).pipe(
@@ -82,6 +75,11 @@ export class ThesisWorkDeliveryService {
             state: stateList.EN_REVISION
           };
         });
+
+        this.eventBus.emit({
+          type: AppEventType.THESIS_FINAL_DELIVERY_UPLOADED,
+          payload: { thesisId: thesisWorkId }
+        });
       })
     );
   }
@@ -93,8 +91,10 @@ export class ThesisWorkDeliveryService {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
+        let isFullyApproved = false;
+
         this.storage.updateWork(thesisWorkId, (work) => {
-          const isFullyApproved = payload.academicApproved && payload.financialApproved;
+          isFullyApproved = payload.academicApproved && payload.financialApproved;
           const dateStr = new Date()
             .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
             .replaceAll('/', ' - ');
@@ -146,6 +146,11 @@ export class ThesisWorkDeliveryService {
             finalDeliveries: updatedDeliveries,
             state: isFullyApproved ? work.state : stateList.NO_APROBADO
           };
+        });
+
+        this.eventBus.emit({
+          type: AppEventType.THESIS_PAZ_Y_SALVO_REGISTERED,
+          payload: { thesisId: thesisWorkId, isApproved: isFullyApproved }
         });
       })
     );
@@ -208,6 +213,11 @@ export class ThesisWorkDeliveryService {
             state: stateList.EN_REVISION
           };
         });
+
+        this.eventBus.emit({
+          type: AppEventType.THESIS_CORRECTED_DOCUMENTS_UPLOADED,
+          payload: { thesisId: thesisWorkId }
+        });
       })
     );
   }
@@ -220,7 +230,6 @@ export class ThesisWorkDeliveryService {
       delay(800),
       tap(() => {
         this.storage.updateWork(thesisWorkId, (work) => {
-
           let updatedDeliveries = work.finalDeliveries || [];
           if (updatedDeliveries.length > 0) {
             updatedDeliveries = updatedDeliveries.map((delivery, index) => {
@@ -246,6 +255,11 @@ export class ThesisWorkDeliveryService {
             finalDeliveries: updatedDeliveries,
             state: stateList.APROBADO
           };
+        });
+
+        this.eventBus.emit({
+          type: AppEventType.THESIS_CORRESPONDENCE_REGISTERED,
+          payload: { thesisId: thesisWorkId }
         });
       })
     );

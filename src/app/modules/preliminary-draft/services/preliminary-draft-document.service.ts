@@ -7,12 +7,14 @@ import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { addBusinessDays } from '../../../core/utils/date-utils';
+import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PreliminaryDraftDocumentService {
   private readonly storage = inject(PreliminaryDraftStorageService);
+  private readonly eventBus = inject(EventBusService);
 
   /**
    * Registra una evaluación de un jurado.
@@ -32,6 +34,10 @@ export class PreliminaryDraftDocumentService {
             state: draft.state
           };
         });
+        this.eventBus.emit({
+          type: AppEventType.EVALUATION_ASSIGNED,
+          payload: { preliminaryDraftId: preliminaryDraftId, veredict: evaluation.veredict }
+        })
       })
     );
   }
@@ -50,6 +56,10 @@ export class PreliminaryDraftDocumentService {
           state: stateList.EN_REVISION,
           evaluationDeadline: renewedDeadLine,
         }));
+        this.eventBus.emit({
+          type: AppEventType.DOCUMENT_CORRECTION_UPLOADED,
+          payload: { preliminaryDraftId: preliminaryDraftId }
+        });
       })
     );
   }
@@ -78,6 +88,10 @@ export class PreliminaryDraftDocumentService {
             maximumDeliveryDate: state === stateList.APROBADO ? maximumDeliveryDate : draft.maximumDeliveryDate
           };
           this.storage.updateDraft(id, () => updatedDraft);
+          this.eventBus.emit({
+            type: AppEventType.COUNCIL_RESOLUTION_UPLOADED,
+            payload: { preliminaryDraftId: id, finalState: state}
+          });
           return updatedDraft;
         }
         return undefined;

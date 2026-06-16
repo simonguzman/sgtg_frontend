@@ -8,6 +8,7 @@ import { UserRoleType } from '../../../core/models/user-role';
 import { User } from '../../users/interfaces/user.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { addBusinessDays } from '../../../core/utils/date-utils';
+import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
 
 @Injectable({
   providedIn: 'root'
@@ -15,6 +16,7 @@ import { addBusinessDays } from '../../../core/utils/date-utils';
 export class PreliminaryDraftAssignmentService {
   private readonly storage = inject(PreliminaryDraftStorageService);
   private readonly userService = inject(UserService);
+  private readonly eventBus = inject(EventBusService);
 
   /**
    * Valida que los evaluadores propuestos cumplan con las restricciones normativas de la institución.
@@ -69,6 +71,10 @@ export class PreliminaryDraftAssignmentService {
           state: stateList.EN_REVISION,
           evaluationDeadline: deadline
         }));
+        this.eventBus.emit({
+          type: AppEventType.REVIEWERS_ASSIGNED,
+          payload: { premilinaryDraftId: preliminaryDraftId, evaluators: evaluatorsIds}
+        });
       })
     );
   }

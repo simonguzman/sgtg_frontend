@@ -8,6 +8,7 @@ import { SustentationRegistry, JurorVerdict } from '../interfaces/thesis-work.in
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { UserRoleType } from '../../../core/models/user-role';
+import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
 
 @Injectable({
   providedIn: 'root'
@@ -16,6 +17,7 @@ export class ThesisWorkSustentationService {
   private readonly storage = inject(ThesisWorkStorageService);
   private readonly userService = inject(UserService);
   private readonly authService = inject(AuthService);
+  private readonly eventBus = inject(EventBusService);
 
   saveSustentationRegistryMock(thesisWorkId: string, formData: any): Observable<void> {
     return of(undefined).pipe(
@@ -63,6 +65,11 @@ export class ThesisWorkSustentationService {
             sustentations: [sustentationRegistry, ...(work.sustentations || [])],
             documents: [sustentationDoc, ...(work.documents || [])]
           };
+        });
+
+        this.eventBus.emit({
+          type: AppEventType.THESIS_SUSTENTATION_PROGRAMMED,
+          payload: { thesisId: thesisWorkId }
         });
       })
     );
@@ -134,6 +141,11 @@ export class ThesisWorkSustentationService {
             state: payload.veredict
           };
         });
+
+        this.eventBus.emit({
+          type: AppEventType.THESIS_VERDICT_REGISTERED,
+          payload: { thesisId: thesisWorkId, veredict: payload.veredict }
+        });
       })
     );
   }
@@ -151,7 +163,6 @@ export class ThesisWorkSustentationService {
         const dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
 
         this.storage.updateWork(thesisWorkId, (work) => {
-
           const docFormatG: Document = {
             id: crypto.randomUUID(),
             name: formatGFile.name,
@@ -210,6 +221,11 @@ export class ThesisWorkSustentationService {
             evaluations: [newEvaluation, ...(work.evaluations || [])],
             correctedDeliveries: updatedCorrectedDeliveries
           };
+        });
+
+        this.eventBus.emit({
+          type: AppEventType.THESIS_CORRECTED_DOCUMENTS_EVALUATED,
+          payload: { thesisId: thesisWorkId, veredict: evaluationData.veredict }
         });
       })
     );

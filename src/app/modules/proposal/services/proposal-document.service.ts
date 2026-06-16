@@ -5,6 +5,7 @@ import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { Document } from '../../../core/interfaces/Document.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { addBusinessDays } from '../../../core/utils/date-utils';
+import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,6 +13,7 @@ import { addBusinessDays } from '../../../core/utils/date-utils';
 export class ProposalDocumentService {
   private readonly storage = inject(ProposalStorageService);
 
+  private readonly eventBus = inject(EventBusService);
   /**
    * Añade una evaluación realizada por el comité y refresca el estado general del documento/propuesta
    */
@@ -19,16 +21,16 @@ export class ProposalDocumentService {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
-        this.storage.updateProposals(list => list.map(p => {
-          if (p.id !== proposalId) return p;
+        this.storage.updateProposals(list => list.map(proposal => {
+          if (proposal.id !== proposalId) return proposal;
 
           // Si la fecha actual supera el deadline, se marca como retrasada
-          const evaluatedLate = p.evaluationDeadline
-            ? new Date() > new Date(p.evaluationDeadline)
+          const evaluatedLate = proposal.evaluationDeadline
+            ? new Date() > new Date(proposal.evaluationDeadline)
             : false;
 
           const updatedProposal = {
-            ...p,
+            ...proposal,
             state: evaluation.veredict,
             evaluations: [
               {
@@ -37,7 +39,7 @@ export class ProposalDocumentService {
                 date: new Date(),
                 isDelayed: evaluatedLate // <--- Registrado para tus estadísticas futuras
               },
-              ...(p.evaluations || [])
+              ...(proposal.evaluations || [])
             ]
           };
 
@@ -48,6 +50,10 @@ export class ProposalDocumentService {
           }
           return updatedProposal;
         }));
+        this.eventBus.emit({
+          type: AppEventType.EVALUATION_ASSIGNED,
+          payload: { proposalId, veredict: evaluation.veredict }
+        });
       })
     );
   }
@@ -63,14 +69,14 @@ export class ProposalDocumentService {
         const newDeadline = addBusinessDays(now, 10); // <--- Reiniciamos el reloj (10 días hábiles)
 
         this.storage.updateProposals(list =>
-          list.map(p => p.id === proposalId
+          list.map(proposal => proposal.id === proposalId
             ? {
-                ...p,
-                documents: [newDoc, ...(p.documents || [])],
+                ...proposal,
+                documents: [newDoc, ...(proposal.documents || [])],
                 state: stateList.EN_REVISION,
                 evaluationDeadline: newDeadline // <--- Asignamos el nuevo plazo
               }
-            : p
+            : proposal
           )
         );
       })

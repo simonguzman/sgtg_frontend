@@ -4,13 +4,14 @@ import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { Document, DocumentType } from '../../../core/interfaces/Document.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { CreateAdvanceRequest } from '../interfaces/advance-playload.interface';
+import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ThesisWorkAdvanceService {
   private readonly storage = inject(ThesisWorkStorageService);
-
+  private readonly eventBus = inject(EventBusService);
   /**
    * Carga múltiples archivos y los asocia a un avance (nuevo o existente)
    */
@@ -18,26 +19,26 @@ export class ThesisWorkAdvanceService {
     return of(undefined).pipe(
       delay(800),
       tap(() => {
-        this.storage.updateWork(thesisWorkId, (work) => {
+        this.storage.updateWork(thesisWorkId, (thesisWork) => {
           if ((document.type as string) !== DocumentType.AVANCE) {
-            const nextState = document.type === 'Formato' ? stateList.EN_REVISION : work.state;
+            const nextState = document.type === 'Formato' ? stateList.EN_REVISION : thesisWork.state;
             return {
-              ...work,
-              documents: [document, ...work.documents],
+              ...thesisWork,
+              documents: [document, ...thesisWork.documents],
               state: nextState
             };
           }
 
           const targetAdvanceId = advanceMeta?.advanceId || document.id;
-          const existingAdvances = work.advances || [];
-          const advanceExists = existingAdvances.some(adv => adv.id === targetAdvanceId);
+          const existingAdvances = thesisWork.advances || [];
+          const advanceExists = existingAdvances.some(advance => advance.id === targetAdvanceId);
           let updatedAdvances;
           if (advanceExists) {
-            updatedAdvances = existingAdvances.map(adv => {
-              if (adv.id !== targetAdvanceId) return adv;
+            updatedAdvances = existingAdvances.map(advance => {
+              if (advance.id !== targetAdvanceId) return advance;
               return {
-                ...adv,
-                documents: [...adv.documents, document]
+                ...advance,
+                documents: [...advance.documents, document]
               };
             });
           } else {
@@ -54,10 +55,16 @@ export class ThesisWorkAdvanceService {
           }
 
           return {
-            ...work,
+            ...thesisWork,
             advances: updatedAdvances
           };
         });
+        if((document.type as string) === DocumentType.AVANCE){
+          this.eventBus.emit({
+            type: AppEventType.THESIS_ADVANCE_UPLOADED,
+            payload: { thesisWorkId: thesisWorkId, title: advanceMeta?.title || document.name}
+          });
+        }
       })
     );
   }

@@ -3,13 +3,14 @@ import { delay, Observable, of, tap } from 'rxjs';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
+import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ThesisWorkEvaluationService {
   private readonly storage = inject(ThesisWorkStorageService);
-
+  private readonly eventBus = inject(EventBusService);
   /**
    * Guarda la evaluación de un avance y actualiza el estado del avance afectado
    */
@@ -54,6 +55,10 @@ export class ThesisWorkEvaluationService {
             advances: updatedAdvances,
             evaluations: updatedEvaluations
           };
+        });
+        this.eventBus.emit({
+          type: AppEventType.THESIS_ADVANCE_EVALUATED,
+          payload: { thesisWorkId: thesisWorkId, veredict: evaluation.veredict }
         });
       })
     );

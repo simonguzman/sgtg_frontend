@@ -13,6 +13,7 @@ import { Document } from '../../../core/interfaces/Document.interface';
 import { UserRoleType } from '../../../core/models/user-role';
 import { stateList } from '../../../core/enums/state.enum';
 import { addBusinessDays } from '../../../core/utils/date-utils';
+import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
 
 @Injectable({
   providedIn: 'root'
@@ -22,6 +23,7 @@ export class ProposalService {
   private readonly rulesService = inject(ProposalRulesService);
   private readonly documentService = inject(ProposalDocumentService);
   private readonly userService = inject(UserService);
+  private readonly eventBus = inject(EventBusService);
 
   readonly proposals = this.storage.proposals;
 
@@ -53,6 +55,11 @@ export class ProposalService {
         if (onSaved.director) this.userService.addRoleToUser(onSaved.director.id, UserRoleType.DIRECTOR);
         if (onSaved.codirector) this.userService.addRoleToUser(onSaved.codirector.id, UserRoleType.CODIRECTOR);
         if (onSaved.advisor) this.userService.addRoleToUser(onSaved.advisor.id, UserRoleType.ASESOR);
+
+        this.eventBus.emit({
+          type: AppEventType.PROPOSAL_CREATED,
+          payload: {id: onSaved.id, title: onSaved.title}
+        });
       })
     );
   }

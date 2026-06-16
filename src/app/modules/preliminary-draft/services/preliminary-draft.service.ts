@@ -12,6 +12,7 @@ import { Document } from '../../../core/interfaces/Document.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
 import { stateList } from '../../../core/enums/state.enum';
+import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
 
 @Injectable({
   providedIn: 'root'
@@ -20,6 +21,7 @@ export class PreliminaryDraftService {
   private readonly storage = inject(PreliminaryDraftStorageService);
   private readonly assignmentService = inject(PreliminaryDraftAssignmentService);
   private readonly documentService = inject(PreliminaryDraftDocumentService);
+  private readonly eventBus = inject(EventBusService);
 
   readonly preliminaryDrafts = this.storage.preliminaryDrafts;
 
@@ -31,7 +33,7 @@ export class PreliminaryDraftService {
     return of(preliminaryDraft).pipe(
       delay(1000),
       tap(newDraft => {
-        const draftToSave: PreliminaryDraft = {
+        const preliminaryDraftToSave: PreliminaryDraft = {
           ...newDraft,
           preliminaryDraftId: crypto.randomUUID(),
           evaluations: newDraft.evaluations || [],
@@ -39,7 +41,11 @@ export class PreliminaryDraftService {
           createdData: new Date(),
           state: newDraft.state || stateList.EN_REVISION
         };
-        this.storage.addDraft(draftToSave);
+        this.storage.addDraft(preliminaryDraftToSave);
+        this.eventBus.emit({
+          type: AppEventType.PRELIMINARY_DRAFT_CREATED,
+          payload: { id: preliminaryDraftToSave.preliminaryDraftId }
+        })
       })
     );
   }
