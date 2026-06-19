@@ -27,8 +27,8 @@ export class PreliminaryDraftStorageService {
       return allPreliminaryDrafts;
     }
 
-    return allPreliminaryDrafts.filter(draft =>
-      this.canUserAccessPreliminaryDraft(draft, currentUser.id)
+    return allPreliminaryDrafts.filter(preliminaryDraft =>
+      this.canUserAccessPreliminaryDraft(preliminaryDraft, currentUser.id)
     );
   });
 
@@ -41,17 +41,17 @@ export class PreliminaryDraftStorageService {
   /**
    * Muta el estado de un Anteproyecto específico de forma segura e inmutable.
    */
-  public updateDraft(id: string, mutator: (draft: PreliminaryDraft) => PreliminaryDraft): void {
+  public updateDraft(id: string, mutator: (preliminaryDraft: PreliminaryDraft) => PreliminaryDraft): void {
     this._preliminaryDraftsList.update(list =>
-      list.map(draft => draft.preliminaryDraftId === id ? mutator(draft) : draft)
+      list.map(preliminaryDraft => preliminaryDraft.preliminaryDraftId === id ? mutator(preliminaryDraft) : preliminaryDraft)
     );
   }
 
   /**
    * Agrega un nuevo anteproyecto a la lista global.
    */
-  public addDraft(draft: PreliminaryDraft): void {
-    this._preliminaryDraftsList.update(list => [draft, ...list]);
+  public addDraft(preliminaryDraft: PreliminaryDraft): void {
+    this._preliminaryDraftsList.update(list => [preliminaryDraft, ...list]);
   }
 
   /**
@@ -59,7 +59,7 @@ export class PreliminaryDraftStorageService {
    */
   public removeDraft(id: string): void {
     this._preliminaryDraftsList.update(list =>
-      list.filter(draft => draft.preliminaryDraftId !== id)
+      list.filter(preliminaryDraft => preliminaryDraft.preliminaryDraftId !== id)
     );
   }
 
@@ -67,8 +67,8 @@ export class PreliminaryDraftStorageService {
    * Busca un anteproyecto por ID y lo retorna como Observable.
    */
   public getById(id: string): Observable<PreliminaryDraft | undefined> {
-    const draft = this._preliminaryDraftsList().find(d => d.preliminaryDraftId === id);
-    return of(draft).pipe(delay(500));
+    const preliminaryDraft = this._preliminaryDraftsList().find(preliminaryDraft => preliminaryDraft.preliminaryDraftId === id);
+    return of(preliminaryDraft).pipe(delay(500));
   }
 
   private getStoredPreliminaryDrafts(): PreliminaryDraft[] {

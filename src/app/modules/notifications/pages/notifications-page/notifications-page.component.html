@@ -1,25 +1,21 @@
-<div class="flex flex-col gap-6 p-6">
+<div class="flex flex-col gap-6 p-6 min-h-screen">
 
   <app-table-component
     [value]="inboxMessagesTransformed()"
+    [headerButtons]="headerButtons()"
     [columns]="columns"
     [paginator]="true"
     [rows]="10"
     (actionClick)="handleTableAction($event)"
+    (headerButtonClick)="handleHeaderButton($event)"
     emptyMessage="No tienes notificaciones en tu bandeja de entrada en este momento."
   ></app-table-component>
 
-  <app-register-information-modal
-    [isOpen]="modalState().isOpen"
-    modalHeader="Detalle de la Notificación"
-    subTitle="Información de la alerta"
-    [title]="modalState().title"
-    [comments]="modalState().comments"
-    [chargeDate]="modalState().chargeDate"
-    modality="Sistema"
-    student="-"
-    director="-"
+  <app-confirmation-action-modal
+    [isOpen]="isConfirmModalOpen()"
+    [description]="modalDescription()"
     (onClose)="closeModal()"
-  ></app-register-information-modal>
+    (confirm)="executePendingAction()">
+  </app-confirmation-action-modal>
 
 </div>

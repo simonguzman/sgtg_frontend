@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 
@@ -25,7 +25,7 @@ import { UserService } from '../../../users/services/user.service';
   standalone: true,
   imports: [TableComponent, ButtonComponent, RegisterInformationModalComponent, InfoBannerComponent]
 })
-export class CorrectedDocumentsPageComponent implements OnInit {
+export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly thesisWorkService = inject(ThesisWorkService);
@@ -55,14 +55,6 @@ export class CorrectedDocumentsPageComponent implements OnInit {
     }
   ];
 
-  constructor() {
-    setTimeout(() => {
-      this.breadcrumbService.setDynamicBreadcrumb('Documentos corregidos');
-      this.breadcrumbService.setDynamicTitle('Trabajo de Grado - Documentos Corregidos');
-      this.titleService.setTitle('Trabajo de Grado - Documentos Corregidos');
-    });
-  }
-
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id') ||
                this.route.parent?.snapshot.paramMap.get('id') ||
@@ -78,6 +70,11 @@ export class CorrectedDocumentsPageComponent implements OnInit {
       });
       this.goBack();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.breadcrumbService.clearDynamicBreadcrumb();
+    this.breadcrumbService.setDynamicTitle(null);
   }
 
   // ─── Selectores reactivos ─────────────────────────────────────────────────────
@@ -226,6 +223,18 @@ export class CorrectedDocumentsPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['../../'], { relativeTo: this.route });
+    const id = this.thesisWorkId();
+    const thesis = this.currentThesisWork();
+    const sustentationId = thesis?.sustentations?.[0]?.id;
+
+    if (id) {
+      if (sustentationId) {
+        this.router.navigate(['/thesis-work', 'details', id, 'view_sustentation_details', sustentationId]);
+      } else {
+        this.router.navigate(['/thesis-work', 'details', id, 'loaded_documents']);
+      }
+    } else {
+      this.router.navigate(['/thesis-work']);
+    }
   }
 }

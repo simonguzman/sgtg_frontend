@@ -9,6 +9,7 @@ import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { UserRoleType } from '../../../core/models/user-role';
 import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { User } from '../../users/interfaces/user.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -23,10 +24,29 @@ export class ThesisWorkSustentationService {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
+        let notifyUserIds: string[] = [];
+        let currentThesisTitle = ''; // 💡 Variable puente para el título
+
         if (formData.juror1) this.userService.addRoleToUser(formData.juror1, UserRoleType.JURADO);
         if (formData.juror2) this.userService.addRoleToUser(formData.juror2, UserRoleType.JURADO);
 
-        this.storage.updateWork(thesisWorkId, (work) => {
+        this.storage.updateWork(thesisWorkId, (thesisWork) => {
+          // 1. Extraer autores y director
+          const proposal = thesisWork.preliminaryDraftData?.proposalData;
+          const authors = proposal?.authors || [];
+
+          // 💡 Captura del título real desde el estado actual del trabajo de grado
+          currentThesisTitle = proposal?.title || '';
+
+          if (proposal?.director?.id) notifyUserIds.push(proposal.director.id);
+          if (proposal?.codirector?.id) notifyUserIds.push(proposal.codirector.id);
+          if (proposal?.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+
+          // 2. Extraer a los nuevos jurados para avisarles que fueron asignados
+          if (formData.juror1) notifyUserIds.push(formData.juror1);
+          if (formData.juror2) notifyUserIds.push(formData.juror2);
+          notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
+
           const allUsers = this.userService.users();
           const juror1User = allUsers.find(user => user.id === formData.juror1);
           const juror2User = allUsers.find(user => user.id === formData.juror2);
@@ -61,15 +81,20 @@ export class ThesisWorkSustentationService {
           };
 
           return {
-            ...work,
-            sustentations: [sustentationRegistry, ...(work.sustentations || [])],
-            documents: [sustentationDoc, ...(work.documents || [])]
+            ...thesisWork,
+            sustentations: [sustentationRegistry, ...(thesisWork.sustentations || [])],
+            documents: [sustentationDoc, ...(thesisWork.documents || [])]
           };
         });
 
+        // 💡 Emisión corregida: payload ahora incluye el título
         this.eventBus.emit({
           type: AppEventType.THESIS_SUSTENTATION_PROGRAMMED,
-          payload: { thesisId: thesisWorkId }
+          targetUserIds: [...new Set(notifyUserIds)],
+          payload: {
+            thesisId: thesisWorkId,
+            thesisTitle: currentThesisTitle
+          }
         });
       })
     );
@@ -83,10 +108,29 @@ export class ThesisWorkSustentationService {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
+        let notifyUserIds: string[] = [];
+        let currentThesisTitle = ''; // 💡 Variable puente para el título
+
         const activeUser = this.authService.currentUser();
         const jurorId = activeUser ? activeUser.id : 'jurado-desconocido';
 
-        this.storage.updateWork(thesisWorkId, (work) => {
+        this.storage.updateWork(thesisWorkId, (thesisWork) => {
+          const proposal = thesisWork.preliminaryDraftData?.proposalData;
+          const authors = proposal?.authors || [];
+
+          // 💡 Captura del título real antes de mutar o retornar el estado
+          currentThesisTitle = proposal?.title || '';
+
+          if(proposal?.director?.id) notifyUserIds.push(proposal.director.id);
+          if(proposal?.codirector?.id) notifyUserIds.push(proposal.codirector.id);
+          if(proposal?.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+
+          const consejoUsers = this.userService.users().filter(user =>
+            user.roles?.includes(UserRoleType.CONSEJO)
+          );
+          notifyUserIds.push(...consejoUsers.map(user => user.id));
+          notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
+
           const dateStr = new Date().toLocaleDateString('es-ES', {
             day: '2-digit', month: '2-digit', year: 'numeric'
           }).replaceAll('/', ' - ');
@@ -100,7 +144,7 @@ export class ThesisWorkSustentationService {
             status: payload.veredict
           };
 
-          const updatedExistingDocuments = (work.documents || []).map(doc => {
+          const updatedExistingDocuments = (thesisWork.documents || []).map(doc => {
             const isFormatoE = doc.type === (DocumentType.FORMATO_E);
             const isEnRevision = doc.status === stateList.EN_REVISION;
             return isFormatoE && isEnRevision ? { ...doc, status: stateList.EVALUADO } : doc;
@@ -114,7 +158,7 @@ export class ThesisWorkSustentationService {
             attachedDocument: sustentationFileDoc
           };
 
-          const currentSustentations = work.sustentations || [];
+          const currentSustentations = thesisWork.sustentations || [];
           const activeSustentation = currentSustentations.length > 0
             ? { ...currentSustentations[0] }
             : { id: crypto.randomUUID(), assignedJurors: [], verdicts: [] };
@@ -135,16 +179,22 @@ export class ThesisWorkSustentationService {
             : [activeSustentation];
 
           return {
-            ...work,
+            ...thesisWork,
             sustentations: updatedSustentations,
             documents: [sustentationFileDoc, ...updatedExistingDocuments],
             state: payload.veredict
           };
         });
 
+        // 💡 Emisión corregida: payload ahora incluye el título y el veredicto
         this.eventBus.emit({
           type: AppEventType.THESIS_VERDICT_REGISTERED,
-          payload: { thesisId: thesisWorkId, veredict: payload.veredict }
+          targetUserIds: [...new Set(notifyUserIds)],
+          payload: {
+            thesisId: thesisWorkId,
+            thesisTitle: currentThesisTitle,
+            veredict: payload.veredict
+          }
         });
       })
     );
@@ -158,11 +208,30 @@ export class ThesisWorkSustentationService {
     return of(undefined).pipe(
       delay(1200),
       tap(() => {
+        let notifyUserIds: string[] = [];
+        let currentThesisTitle = ''; // 💡 Variable puente para el título
+
         const activeUser = this.authService.currentUser();
         const jurorId = activeUser ? activeUser.id : 'jurado-desconocido';
         const dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
 
-        this.storage.updateWork(thesisWorkId, (work) => {
+        this.storage.updateWork(thesisWorkId, (thesisWork) => {
+          const proposal = thesisWork.preliminaryDraftData?.proposalData;
+          const authors = proposal?.authors || [];
+
+          // 💡 Captura del título real antes del procesamiento interno
+          currentThesisTitle = proposal?.title || '';
+
+          if(proposal?.director?.id) notifyUserIds.push(proposal.director.id);
+          if(proposal?.codirector?.id) notifyUserIds.push(proposal.codirector.id);
+          if(proposal?.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+
+          const consejoUsers = this.userService.users().filter(user =>
+            user.roles?.includes(UserRoleType.CONSEJO)
+          );
+          notifyUserIds.push(...consejoUsers.map(user => user.id));
+          notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
+
           const docFormatG: Document = {
             id: crypto.randomUUID(),
             name: formatGFile.name,
@@ -179,7 +248,7 @@ export class ThesisWorkSustentationService {
             signedDocuments: [docFormatG.url]
           };
 
-          const currentSustentations = work.sustentations || [];
+          const currentSustentations = thesisWork.sustentations || [];
           const activeSustentation = currentSustentations.length > 0
             ? { ...currentSustentations[0] }
             : { id: crypto.randomUUID(), assignedJurors: [], verdicts: [] };
@@ -199,8 +268,7 @@ export class ThesisWorkSustentationService {
             ? [activeSustentation, ...currentSustentations.slice(1)]
             : [activeSustentation];
 
-          // Actualizamos el estado del paquete de correcciones más reciente
-          const updatedCorrectedDeliveries = [...(work.correctedDeliveries || [])];
+          const updatedCorrectedDeliveries = [...(thesisWork.correctedDeliveries || [])];
           if (updatedCorrectedDeliveries.length > 0) {
             const latestDelivery = updatedCorrectedDeliveries[0];
             updatedCorrectedDeliveries[0] = {
@@ -214,18 +282,24 @@ export class ThesisWorkSustentationService {
           }
 
           return {
-            ...work,
+            ...thesisWork,
             state: evaluationData.veredict,
             sustentations: updatedSustentations,
-            documents: [docFormatG, ...(work.documents || [])],
-            evaluations: [newEvaluation, ...(work.evaluations || [])],
+            documents: [docFormatG, ...(thesisWork.documents || [])],
+            evaluations: [newEvaluation, ...(thesisWork.evaluations || [])],
             correctedDeliveries: updatedCorrectedDeliveries
           };
         });
 
+        // 💡 Emisión corregida: payload ahora incluye el título y el veredicto
         this.eventBus.emit({
           type: AppEventType.THESIS_CORRECTED_DOCUMENTS_EVALUATED,
-          payload: { thesisId: thesisWorkId, veredict: evaluationData.veredict }
+          targetUserIds: [...new Set(notifyUserIds)],
+          payload: {
+            thesisId: thesisWorkId,
+            thesisTitle: currentThesisTitle,
+            veredict: evaluationData.veredict
+          }
         });
       })
     );

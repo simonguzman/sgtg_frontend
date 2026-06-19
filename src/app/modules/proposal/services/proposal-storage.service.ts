@@ -17,16 +17,22 @@ export class ProposalStorageService {
 
   private readonly _proposalsList = signal<Proposal[]>(this.getStoredProposals());
 
+  /**
+   * Señal computada reactiva que expone las propuestas activas filtradas por el rol
+   * y los privilegios de participación del usuario autenticado.
+   */
   public proposals = computed(() => {
     const currentUser = this.authService.currentUser();
     const activeProposals = this._proposalsList().filter(p => p.isActive !== false);
 
     if (!currentUser) return [];
 
+    // Los administradores y miembros del comité poseen visibilidad global de propuestas activas
     if (this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR, UserRoleType.COMITE])) {
       return activeProposals;
     }
 
+    // Filtrado estricto por vinculación directa al equipo del proyecto
     return activeProposals.filter(proposal => {
       const isAuthor = proposal.authors?.some(author => author.id === currentUser.id);
       const isDirector = proposal.director?.id === currentUser.id;
@@ -38,19 +44,29 @@ export class ProposalStorageService {
   });
 
   constructor() {
+    // Sincronización automática con el almacenamiento local ante cambios de estado
     effect(() => {
       localStorage.setItem('proposals', JSON.stringify(this._proposalsList()));
     });
   }
 
+  /**
+   * Retorna una instantánea síncrona del estado actual de las propuestas.
+   */
   public getProposalsListSnapshot(): Proposal[] {
     return this._proposalsList();
   }
 
+  /**
+   * Expone de forma segura el actualizador de la señal interna para mutaciones inmutables.
+   */
   public updateProposals(mutator: (list: Proposal[]) => Proposal[]): void {
     this._proposalsList.update(mutator);
   }
 
+  /**
+   * Recupera una propuesta por su ID en formato asíncrono simulado.
+   */
   public getById(id: string): Observable<Proposal | undefined> {
     const proposal = this._proposalsList().find(p => p.id === id);
     return of(proposal).pipe(delay(1000));
@@ -64,7 +80,7 @@ export class ProposalStorageService {
   private getMockUser(id: string): User {
     const user = this.userService.getAllUsers().find(u => u.id === id);
     if (!user) {
-      throw new Error(`Usuario con ID ${id} no encontrado en los mocks.`);
+      throw new Error(`Usuario con ID ${id} no encontrado en la base de datos de mocks.`);
     }
     return user;
   }

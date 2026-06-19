@@ -82,7 +82,7 @@ export class EvaluateAdvancePageComponent implements OnInit {
   }
 
   navigateBack() {
-    this.router.navigate(['../../'], { relativeTo: this.route });
+    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
   }
 
   handleRequestConfirmation(data: SubmitAdvanceEvaluationPayload) {

@@ -11,11 +11,11 @@ import { NotificationType } from '../../../../shared/components/notifications/mo
 
 @Component({
   selector: 'app-assing-evaluators-page',
-  templateUrl: './assing-evaluators-page.component.html',
-  styleUrls: ['./assing-evaluators-page.component.css'],
+  templateUrl: './assign-evaluators-page.component.html',
+  styleUrls: ['./assign-evaluators-page.component.css'],
   imports: [AssignEvaluatorsFormComponent, ConfirmationActionModalComponent]
 })
-export class AssingEvaluatorsPageComponent implements OnInit {
+export class AssignEvaluatorsPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);

@@ -1,5 +1,5 @@
-// features/thesis-work/services/thesis-work.service.ts
 import { inject, Injectable } from '@angular/core';
+import { delay, of, tap } from 'rxjs';
 
 // --- Importación de Sub-servicios ---
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
@@ -16,7 +16,8 @@ import { stateList } from '../../../core/enums/state.enum';
 import { CreateAdvanceRequest } from '../interfaces/advance-playload.interface';
 import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
 import { SpecialRequestType } from '../interfaces/thesis-work.interface';
-import { delay, of, tap } from 'rxjs';
+import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { User } from '../../users/interfaces/user.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -28,6 +29,7 @@ export class ThesisWorkService {
   private readonly evaluationService = inject(ThesisWorkEvaluationService);
   private readonly specialRequestService = inject(ThesisWorkSpecialRequestService);
   private readonly sustentationService = inject(ThesisWorkSustentationService);
+  private readonly eventBus = inject(EventBusService); // 💡 Inyectado para control local de reactivación
 
   readonly thesisWorks = this.storage.thesisWorks;
 
@@ -35,10 +37,37 @@ export class ThesisWorkService {
     return of(undefined).pipe(
       delay(500),
       tap(() => {
-        this.storage.updateWork(thesisWorkId, (work) => ({
-          ...work,
-          state: stateList.EN_DESARROLLO // Cambia el estado a activo
-        }));
+        let currentThesisTitle = '';
+        let notifyUserIds: string[] = [];
+
+        this.storage.updateWork(thesisWorkId, (work) => {
+          const proposal = work.preliminaryDraftData?.proposalData;
+          currentThesisTitle = proposal?.title || '';
+
+          if (proposal) {
+            proposal.authors?.forEach((author: User | string) => {
+              notifyUserIds.push(typeof author === 'string' ? author : author.id);
+            });
+            if (proposal.director?.id) notifyUserIds.push(proposal.director.id);
+            if (proposal.codirector?.id) notifyUserIds.push(proposal.codirector.id);
+            if (proposal.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+          }
+
+          return {
+            ...work,
+            state: stateList.EN_DESARROLLO
+          };
+        });
+
+        // 💡 Emisión del evento de reactivación que faltaba en el flujo original
+        this.eventBus.emit({
+          type: AppEventType.THESIS_REACTIVATED,
+          targetUserIds: [...new Set(notifyUserIds)],
+          payload: {
+            thesisId: thesisWorkId,
+            thesisTitle: currentThesisTitle
+          }
+        });
       })
     );
   }
@@ -93,10 +122,9 @@ export class ThesisWorkService {
     payload: {
       status: stateList.APROBADO | stateList.NO_APROBADO;
       resolutionDetails: string;
-      grantedDeadline?: Date // 👈 Agregado para que sea consistente
+      grantedDeadline?: Date
     }
   ) {
     return this.specialRequestService.evaluateSpecialRequestMock(thesisWorkId, requestId, payload);
   }
 }
-

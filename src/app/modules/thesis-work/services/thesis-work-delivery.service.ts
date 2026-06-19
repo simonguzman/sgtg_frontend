@@ -7,6 +7,9 @@ import { Document, DocumentType } from '../../../core/interfaces/Document.interf
 import { CorrectedDelivery, FinalDelivery } from '../interfaces/thesis-work.interface';
 import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
 import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { User } from '../../users/interfaces/user.interface';
+import { UserService } from '../../users/services/user.service';
+import { UserRoleType } from '../../../core/models/user-role';
 
 @Injectable({
   providedIn: 'root'
@@ -14,6 +17,7 @@ import { AppEventType, EventBusService } from '../../../core/services/eventbus/e
 export class ThesisWorkDeliveryService {
   private readonly storage = inject(ThesisWorkStorageService);
   private readonly eventBus = inject(EventBusService);
+  private readonly userService = inject(UserService);
 
   /**
    * Entrega final del trabajo de grado
@@ -22,7 +26,26 @@ export class ThesisWorkDeliveryService {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
-        this.storage.updateWork(thesisWorkId, (work) => {
+        let notifyUserIds: string[] = [];
+        let currentThesisTitle = ''; // 💡 Variable puente para el título
+
+        this.storage.updateWork(thesisWorkId, (thesisWork) => {
+          const authors = thesisWork.preliminaryDraftData?.proposalData?.authors || [];
+          const proposal = thesisWork.preliminaryDraftData?.proposalData;
+
+          // 💡 Capturamos el título del trabajo
+          currentThesisTitle = proposal?.title || '';
+
+          if(proposal?.director?.id) notifyUserIds.push(proposal.director.id);
+          if(proposal?.codirector?.id) notifyUserIds.push(proposal.codirector.id);
+          if(proposal?.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+          notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
+
+          const decanaturaUsers = this.userService.users().filter(user =>
+            user.roles?.includes(UserRoleType.DECANATURA)
+          );
+          notifyUserIds.push(...decanaturaUsers.map(user => user.id));
+
           const dateStr = new Date()
             .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
             .replaceAll('/', ' - ');
@@ -67,10 +90,10 @@ export class ThesisWorkDeliveryService {
           };
 
           return {
-            ...work,
+            ...thesisWork,
             finalDeliveries: [
               newDelivery,
-              ...(work.finalDeliveries || [])
+              ...(thesisWork.finalDeliveries || [])
             ],
             state: stateList.EN_REVISION
           };
@@ -78,7 +101,11 @@ export class ThesisWorkDeliveryService {
 
         this.eventBus.emit({
           type: AppEventType.THESIS_FINAL_DELIVERY_UPLOADED,
-          payload: { thesisId: thesisWorkId }
+          targetUserIds: [...new Set(notifyUserIds)],
+          payload: {
+            thesisId: thesisWorkId,
+            thesisTitle: currentThesisTitle // 💡 Inyección del título
+          }
         });
       })
     );
@@ -91,9 +118,28 @@ export class ThesisWorkDeliveryService {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
+        let notifyUserIds: string[] = [];
         let isFullyApproved = false;
+        let currentThesisTitle = ''; // 💡 Variable puente para el título
 
-        this.storage.updateWork(thesisWorkId, (work) => {
+        this.storage.updateWork(thesisWorkId, (thesisWork) => {
+          const authors = thesisWork.preliminaryDraftData?.proposalData?.authors || [];
+          const proposal = thesisWork.preliminaryDraftData?.proposalData;
+
+          // 💡 Capturamos el título del trabajo
+          currentThesisTitle = proposal?.title || '';
+
+          if(proposal?.director?.id) notifyUserIds.push(proposal.director.id);
+          if(proposal?.codirector?.id) notifyUserIds.push(proposal.codirector.id);
+          if(proposal?.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+
+          notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
+
+          const consejoUsers = this.userService.users().filter(user =>
+            user.roles?.includes(UserRoleType.CONSEJO)
+          );
+          notifyUserIds.push(...consejoUsers.map(user => user.id));
+
           isFullyApproved = payload.academicApproved && payload.financialApproved;
           const dateStr = new Date()
             .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -110,10 +156,10 @@ export class ThesisWorkDeliveryService {
 
           let updatedDocuments = [
             pazYSalvoDoc,
-            ...(work.documents || [])
+            ...(thesisWork.documents || [])
           ];
 
-          let updatedDeliveries = work.finalDeliveries || [];
+          let updatedDeliveries = thesisWork.finalDeliveries || [];
           if (!isFullyApproved && updatedDeliveries.length > 0) {
             updatedDeliveries = updatedDeliveries.map((delivery, index) => {
               if (index === 0) {
@@ -129,7 +175,7 @@ export class ThesisWorkDeliveryService {
           }
 
           return {
-            ...work,
+            ...thesisWork,
             pazYSalvos: [
               {
                 id: crypto.randomUUID(),
@@ -140,30 +186,54 @@ export class ThesisWorkDeliveryService {
                 document: pazYSalvoDoc,
                 registrationDate: new Date()
               },
-              ...(work.pazYSalvos || [])
+              ...(thesisWork.pazYSalvos || [])
             ],
             documents: updatedDocuments,
             finalDeliveries: updatedDeliveries,
-            state: isFullyApproved ? work.state : stateList.NO_APROBADO
+            state: isFullyApproved ? thesisWork.state : stateList.NO_APROBADO
           };
         });
 
         this.eventBus.emit({
           type: AppEventType.THESIS_PAZ_Y_SALVO_REGISTERED,
-          payload: { thesisId: thesisWorkId, isApproved: isFullyApproved }
+          targetUserIds: [...new Set(notifyUserIds)],
+          payload: {
+            thesisId: thesisWorkId,
+            isApproved: isFullyApproved,
+            thesisTitle: currentThesisTitle // 💡 Inyección del título
+          }
         });
       })
     );
   }
 
   /**
-   * Subida de documentos corregidos después de observaciones
+   * Subida de documentos corregidos post-sustentación (Notifica a Jurados)
    */
   uploadCorrectedDocumentsMock( thesisWorkId: string, monograph: File, annexes?: File ): Observable<void> {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
-        this.storage.updateWork(thesisWorkId, (work) => {
+        let notifyUserIds: string[] = [];
+        let currentThesisTitle = ''; // 💡 Variable puente para el título
+
+        this.storage.updateWork(thesisWorkId, (thesisWork) => {
+          const proposal = thesisWork.preliminaryDraftData?.proposalData;
+
+          // 💡 Capturamos el título del trabajo
+          currentThesisTitle = proposal?.title || '';
+
+          // 1. Extracción tipada y segura de los jurados de la sustentación
+          if (thesisWork.sustentations && thesisWork.sustentations.length > 0) {
+            const currentSustentation = thesisWork.sustentations[0];
+
+            // Mapeamos directamente el arreglo de objetos User para extraer sus IDs
+            if (currentSustentation.assignedJurors && currentSustentation.assignedJurors.length > 0) {
+              const jurorIds = currentSustentation.assignedJurors.map(juror => juror.id);
+              notifyUserIds.push(...jurorIds);
+            }
+          }
+
           const dateStr = new Date()
             .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
             .replaceAll('/', ' - ');
@@ -201,14 +271,14 @@ export class ThesisWorkDeliveryService {
           };
 
           return {
-            ...work,
+            ...thesisWork,
             documents: [
               ...newDocuments,
-              ...(work.documents || [])
+              ...(thesisWork.documents || [])
             ],
             correctedDeliveries: [
               newCorrectedDelivery,
-              ...(work.correctedDeliveries || [])
+              ...(thesisWork.correctedDeliveries || [])
             ],
             state: stateList.EN_REVISION
           };
@@ -216,7 +286,11 @@ export class ThesisWorkDeliveryService {
 
         this.eventBus.emit({
           type: AppEventType.THESIS_CORRECTED_DOCUMENTS_UPLOADED,
-          payload: { thesisId: thesisWorkId }
+          targetUserIds: [...new Set(notifyUserIds)], // Limpia posibles duplicados
+          payload: {
+            thesisId: thesisWorkId,
+            thesisTitle: currentThesisTitle // 💡 Inyección del título
+          }
         });
       })
     );
@@ -229,8 +303,22 @@ export class ThesisWorkDeliveryService {
     return of(undefined).pipe(
       delay(800),
       tap(() => {
-        this.storage.updateWork(thesisWorkId, (work) => {
-          let updatedDeliveries = work.finalDeliveries || [];
+        let notifyUserIds: string[] = [];
+        let currentThesisTitle = ''; // 💡 Variable puente para el título
+
+        this.storage.updateWork(thesisWorkId, (thesisWork) => {
+          const authors = thesisWork.preliminaryDraftData?.proposalData?.authors || [];
+          const proposal = thesisWork.preliminaryDraftData?.proposalData;
+
+          // 💡 Capturamos el título del trabajo
+          currentThesisTitle = proposal?.title || '';
+
+          if(proposal?.director?.id) notifyUserIds.push(proposal.director.id);
+          if(proposal?.codirector?.id) notifyUserIds.push(proposal.codirector.id);
+          if(proposal?.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+          notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
+
+          let updatedDeliveries = thesisWork.finalDeliveries || [];
           if (updatedDeliveries.length > 0) {
             updatedDeliveries = updatedDeliveries.map((delivery, index) => {
               if (index === 0) {
@@ -247,10 +335,10 @@ export class ThesisWorkDeliveryService {
           }
 
           return {
-            ...work,
+            ...thesisWork,
             documents: [
               document,
-              ...(work.documents || [])
+              ...(thesisWork.documents || [])
             ],
             finalDeliveries: updatedDeliveries,
             state: stateList.APROBADO
@@ -259,7 +347,11 @@ export class ThesisWorkDeliveryService {
 
         this.eventBus.emit({
           type: AppEventType.THESIS_CORRESPONDENCE_REGISTERED,
-          payload: { thesisId: thesisWorkId }
+          targetUserIds: [...new Set(notifyUserIds)],
+          payload: {
+            thesisId: thesisWorkId,
+            thesisTitle: currentThesisTitle // 💡 Inyección del título
+          }
         });
       })
     );

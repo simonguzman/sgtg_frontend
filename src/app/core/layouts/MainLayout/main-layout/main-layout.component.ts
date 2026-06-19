@@ -6,6 +6,7 @@ import { SidebarComponent } from "../sidebar/sidebar.component";
 import { filter, map } from 'rxjs/operators';
 import { BreadcrumbComponent } from '../../../components/breadcrumb/breadcrumb.component';
 import { BreadcrumbService } from '../../../services/breadcrumb/breadcrumb.service';
+import { DeadlineMonitorService } from '../../../../modules/notifications/services/deadline-monitor.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -18,10 +19,12 @@ export class MainLayoutComponent implements OnInit {
   currentPageTitle: string = '';
   currentPageBreadcrumb: string = '';
   private readonly breadcrumbService = inject(BreadcrumbService);
+  private readonly deadlineMonitor = inject(DeadlineMonitorService);
 
   constructor(private readonly router: Router, private readonly activatedRoute: ActivatedRoute) {}
 
   ngOnInit() {
+    this.deadlineMonitor.checkDeadlines();
     this.router.events
       .pipe(
         filter(event => event instanceof NavigationEnd),

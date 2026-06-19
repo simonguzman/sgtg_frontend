@@ -23,7 +23,7 @@ import { CorrespondenceTabConfig } from './tabs-logic/correspondence.tab';
 import { SpecialRequestTabConfig } from './tabs-logic/special-request.tab';
 import { RegisterInformationModalComponent } from "../../../../shared/components/modals/register-information-modal/register-information-modal.component";
 import { UserService } from '../../../users/services/user.service';
-import { Advance, SpecialRequest } from '../../interfaces/thesis-work.interface';  // ← NUEVO: SpecialRequest
+import { Advance, SpecialRequest } from '../../interfaces/thesis-work.interface';
 import { User } from '../../../users/interfaces/user.interface';
 
 @Component({
@@ -85,7 +85,14 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   }
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id') || this.route.parent?.snapshot.paramMap.get('id');
+    let currentRoute = this.route;
+    while (currentRoute.firstChild) {
+      currentRoute = currentRoute.firstChild;
+    }
+    const id = currentRoute.snapshot.paramMap.get('id') ||
+               this.route.snapshot.paramMap.get('id') ||
+               this.route.parent?.snapshot.paramMap.get('id');
+
     if (id) this.thesisWorkId.set(id);
   }
 
@@ -117,13 +124,13 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       isDecanatura,
       isConsejo,
       isStudent: thesis?.preliminaryDraftData?.proposalData?.authors?.some(
-        (a: { id?: string } | string) => (typeof a === 'string' ? a : a.id) === user?.id
+        (author: { id?: string } | string) => (typeof author === 'string' ? author : author.id) === user?.id
       ) ?? false,
       isDirector: thesis?.preliminaryDraftData?.proposalData?.director?.id === user?.id,
       isCodirector: thesis?.preliminaryDraftData?.proposalData?.codirector?.id === user?.id,
       isAdvisor: thesis?.preliminaryDraftData?.proposalData?.advisor?.id === user?.id,
       isJuror: thesis?.sustentations?.[0]?.assignedJurors?.some(
-        (j: User) => j.id === user?.id
+        (juror: User) => juror.id === user?.id
       ) ?? false,
       latestAdvanceId: null,
       isLatestAdvancePending: false
@@ -174,23 +181,21 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     return this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.modality || 'Sin modalidad';
   });
 
-  // ← NUEVO: header del modal para SOLICITUDES
   modalDetailsHeader = computed<string>(() => {
     if (this.activeTab() === 'AVANCES') return 'Detalles del avance';
     if (this.activeTab() === 'ENTREGA FINAL') return 'Detalles de la Entrega Final';
     if (this.activeTab() === 'PAZ Y SALVO') return 'Detalles de Paz y Salvo';
     if (this.activeTab() === 'CORRESPONDENCIA') return 'Detalles de Correspondencia';
-    if (this.activeTab() === 'SOLICITUDES') return 'Detalles de la Solicitud Especial';  // ← NUEVO
+    if (this.activeTab() === 'SOLICITUDES') return 'Detalles de la Solicitud Especial';
     return 'Detalles del Registro';
   });
 
-  // ← NUEVO: subtítulo del modal para SOLICITUDES
   modalDetailsSubtitle = computed<string>(() => {
     if (this.activeTab() === 'AVANCES') return 'Información del avance cargado';
     if (this.activeTab() === 'ENTREGA FINAL') return 'Información de los documentos de entrega final';
     if (this.activeTab() === 'PAZ Y SALVO') return 'Información de aprobaciones académicas y financieras';
     if (this.activeTab() === 'CORRESPONDENCIA') return 'Información de la resolución o correspondencia oficial';
-    if (this.activeTab() === 'SOLICITUDES') return 'Información de la solicitud y su documento adjunto';  // ← NUEVO
+    if (this.activeTab() === 'SOLICITUDES') return 'Información de la solicitud y su documento adjunto';
     return 'Información del documento cargado';
   });
 
@@ -202,7 +207,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   handleHeaderButton(button: TableButton): void {
     const routePath = this.currentStrategy().headerActionRoute;
     if (routePath) {
-      this.router.navigate([routePath], { relativeTo: this.route });
+      this.router.navigate([routePath], { relativeTo: this.route.parent });
     } else {
       this.isUploadModalOpen.set(true);
     }
@@ -224,20 +229,20 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
         break;
       }
       case 'evaluate-advance':
-        this.router.navigate(['evaluate_advance', rowId], { relativeTo: this.route });
+        this.router.navigate(['evaluate_advance', rowId], { relativeTo: this.route.parent });
         break;
       case 'evaluate_special_request':
-        this.router.navigate([`./evaluate_special_request`, rowId], { relativeTo: this.route });
+        this.router.navigate(['evaluate_special_request', rowId], { relativeTo: this.route.parent });
         break;
       case 'view_sustentation_details':
       case 'evaluate_sustentation':
-        this.router.navigate([event.action, rowId], { relativeTo: this.route });
+        this.router.navigate([event.action, rowId], { relativeTo: this.route.parent });
         break;
       case 'view-details':
         this.openDetailsModal(rowId);
         break;
       default:
-        this.router.navigate([event.action], { relativeTo: this.route });
+        this.router.navigate([event.action], { relativeTo: this.route.parent });
         break;
     }
   }
@@ -380,26 +385,25 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       this.isDetailsModalOpen.set(true);
     }
     else if (this.activeTab() === 'CORRESPONDENCIA') {
-      const doc = thesis.documents?.find(d => d.id === rowId);
-      if (!doc) {
+      const document = thesis.documents?.find(document => document.id === rowId);
+      if (!document) {
         this.showNotFoundError();
         return;
       }
 
       const correspondenceMock: Advance = {
-        id: doc.id,
+        id: document.id,
         title: 'Resolución / Correspondencia Final Oficial',
         comments: 'Documento oficial cargado por el Jurado Evaluador (Formato_H) que ratifica y da por terminado formalmente el proceso del trabajo de grado.',
-        uploadDate: doc.uploadDate,
+        uploadDate: document.uploadDate,
         studentId: '',
-        status: doc.status || stateList.APROBADO,
-        documents: [doc]
+        status: document.status || stateList.APROBADO,
+        documents: [document]
       };
 
       this.selectedAdvance.set(correspondenceMock);
       this.isDetailsModalOpen.set(true);
     }
-    // ← NUEVO: case SOLICITUDES ───────────────────────────────────────────
     else if (this.activeTab() === 'SOLICITUDES') {
       const specialRequest = thesis.specialRequests?.find(
         (r: SpecialRequest) => r.id === rowId
@@ -409,7 +413,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
         return;
       }
 
-      // Construye el texto de comentarios con todos los campos disponibles del modelo
       const commentParts: string[] = [specialRequest.description];
 
       if (specialRequest.resolutionDetails) {
@@ -423,30 +426,29 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
 
       const specialRequestMock: Advance = {
         id: specialRequest.id,
-        title: specialRequest.requestType,   // Usa el enum legible: "Prórroga", "Cancelación", etc.
+        title: specialRequest.requestType,
         comments: commentParts.join('\n\n'),
         uploadDate: specialRequest.requestDate,
         studentId: specialRequest.directorId,
         status: specialRequest.status,
-        documents: []                         // SpecialRequest no tiene documentos en el modelo actual
+        documents: []
       };
 
       this.selectedAdvance.set(specialRequestMock);
       this.isDetailsModalOpen.set(true);
     }
-    // ─────────────────────────────────────────────────────────────────────
   }
 
   private formatDate(date: Date): string {
     return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
   }
 
-  private handleDownload(doc: Document): void {
-    if (!doc.url) {
+  private handleDownload(document: Document): void {
+    if (!document.url) {
       this.notificationService.show({ title: 'Error de descarga', message: 'No existe una URL válida vinculada a este archivo.', type: NotificationType.ERROR });
       return;
     }
-    this.downloadService.download(doc.url, `${doc.name}.pdf`);
+    this.downloadService.download(document.url, `${document.name}.pdf`);
   }
 
   private showNotFoundError(): void {

@@ -12,6 +12,7 @@ import { AppEventType, EventBusService } from '../../../core/services/eventbus/e
 export class ThesisWorkAdvanceService {
   private readonly storage = inject(ThesisWorkStorageService);
   private readonly eventBus = inject(EventBusService);
+
   /**
    * Carga múltiples archivos y los asocia a un avance (nuevo o existente)
    */
@@ -19,7 +20,19 @@ export class ThesisWorkAdvanceService {
     return of(undefined).pipe(
       delay(800),
       tap(() => {
+        let notifyUserIds: string[] = [];
+        let currentThesisTitle = ''; // 💡 Variable puente para capturar el título del trabajo de grado
+
         this.storage.updateWork(thesisWorkId, (thesisWork) => {
+          const proposal = thesisWork.preliminaryDraftData?.proposalData;
+
+          // 💡 Capturamos de forma segura el título desde el modelo relacional anidado
+          currentThesisTitle = proposal?.title || '';
+
+          if(proposal?.director?.id) notifyUserIds.push(proposal.director.id);
+          if(proposal?.codirector?.id) notifyUserIds.push(proposal.codirector.id);
+          if(proposal?.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+
           if ((document.type as string) !== DocumentType.AVANCE) {
             const nextState = document.type === 'Formato' ? stateList.EN_REVISION : thesisWork.state;
             return {
@@ -33,6 +46,7 @@ export class ThesisWorkAdvanceService {
           const existingAdvances = thesisWork.advances || [];
           const advanceExists = existingAdvances.some(advance => advance.id === targetAdvanceId);
           let updatedAdvances;
+
           if (advanceExists) {
             updatedAdvances = existingAdvances.map(advance => {
               if (advance.id !== targetAdvanceId) return advance;
@@ -59,10 +73,17 @@ export class ThesisWorkAdvanceService {
             advances: updatedAdvances
           };
         });
+
         if((document.type as string) === DocumentType.AVANCE){
           this.eventBus.emit({
             type: AppEventType.THESIS_ADVANCE_UPLOADED,
-            payload: { thesisWorkId: thesisWorkId, title: advanceMeta?.title || document.name}
+            targetUserIds: [...new Set(notifyUserIds)],
+            payload: {
+              thesisId: thesisWorkId, // 💡 Agregamos thesisId para que coincida exactamente con la actionUrl del EventProcessor
+              thesisWorkId: thesisWorkId,
+              title: advanceMeta?.title || document.name,
+              thesisTitle: currentThesisTitle // 💡 Inyectamos el título mapeado
+            }
           });
         }
       })

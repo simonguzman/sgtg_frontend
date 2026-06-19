@@ -55,6 +55,7 @@ export class PreliminaryDraftAssignmentService {
     return of(undefined).pipe(
       delay(800),
       tap(() => {
+        // Asignación de roles en el sistema
         evaluatorsIds.forEach(id => {
           this.userService.addRoleToUser(id, UserRoleType.EVALUADOR);
         });
@@ -65,15 +66,49 @@ export class PreliminaryDraftAssignmentService {
 
         const deadline = addBusinessDays(new Date(), 10);
 
-        this.storage.updateDraft(preliminaryDraftId, (draft) => ({
-          ...draft,
-          evaluators: evaluatorUsers,
-          state: stateList.EN_REVISION,
-          evaluationDeadline: deadline
-        }));
+        // Variables puente para capturar la información de forma segura en la mutación
+        let currentDraftTitle = '';
+        let notifyUserIds: string[] = [...evaluatorsIds];
+
+        this.storage.updateDraft(preliminaryDraftId, (preliminaryDraft) => {
+          const proposal = preliminaryDraft.proposalData;
+
+          if (proposal) {
+            // 💡 Captura segura del título real
+            currentDraftTitle = proposal.title || '';
+
+            // 💡 Extracción de autores vinculados dentro del mutador
+            proposal.authors?.forEach(author => {
+              if (typeof author === 'string') {
+                notifyUserIds.push(author);
+              } else if (author?.id) {
+                notifyUserIds.push(author.id);
+              }
+            });
+
+            // 💡 Extracción del equipo de dirección técnica
+            if (proposal.director?.id) notifyUserIds.push(proposal.director.id);
+            if (proposal.codirector?.id) notifyUserIds.push(proposal.codirector.id);
+            if (proposal.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+          }
+
+          return {
+            ...preliminaryDraft,
+            evaluators: evaluatorUsers,
+            state: stateList.EN_REVISION,
+            evaluationDeadline: deadline
+          };
+        });
+
+        // Emisión del evento enriquecido y corregido
         this.eventBus.emit({
           type: AppEventType.REVIEWERS_ASSIGNED,
-          payload: { premilinaryDraftId: preliminaryDraftId, evaluators: evaluatorsIds}
+          targetUserIds: [...new Set(notifyUserIds)],
+          payload: {
+            preliminaryDraftId: preliminaryDraftId, // 💡 Corregido typo 'premilinaryDraftId'
+            evaluators: evaluatorsIds,
+            preliminaryDraftTitle: currentDraftTitle // 💡 Título inyectado con éxito para la notificación
+          }
         });
       })
     );

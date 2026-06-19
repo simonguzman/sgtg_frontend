@@ -8,9 +8,9 @@ import { PreliminaryDraftDetailsPageComponent } from './pages/preliminary-draft-
 import { PreliminaryDraftEditPageComponent } from './pages/preliminary-draft-edit-page/preliminary-draft-edit-page.component';
 import { EvaluationsPerformedPageComponent } from '../../shared/pages/evaluations-performed-page/evaluations-performed-page.component';
 import { LoadedDocumentsPreliminaryDraftPageComponent } from './pages/loaded-documets-preliminary-draft-page/loaded-documents-preliminary-draft-page.component';
-import { AssingEvaluatorsPageComponent } from './pages/assing-evaluators-page/assing-evaluators-page.component';
 import { ReviewPreliminaryDraftPageComponent } from './pages/review-preliminary-draft-page/review-preliminary-draft-page.component';
 import { ReviewPresentationsFacultyCouncilPageComponent } from './pages/review-presentations-faculty-council-page/review-presentations-faculty-council-page.component';
+import { AssignEvaluatorsPageComponent } from './pages/assign-evaluators-page/assign-evaluators-page.component';
 
 
 export const preliminaryDraftRoutes: Routes = [
@@ -130,7 +130,7 @@ export const preliminaryDraftRoutes: Routes = [
               },
               {
                 path: 'assign_evaluators',
-                component: AssingEvaluatorsPageComponent,
+                component: AssignEvaluatorsPageComponent,
                 canActivate: [roleGuard],
                 title: 'Asignar evaluadores',
                 data: {

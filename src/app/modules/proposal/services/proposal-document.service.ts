@@ -6,14 +6,17 @@ import { Document } from '../../../core/interfaces/Document.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { addBusinessDays } from '../../../core/utils/date-utils';
 import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { UserService } from '../../users/services/user.service';
+import { UserRoleType } from '../../../core/models/user-role';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProposalDocumentService {
   private readonly storage = inject(ProposalStorageService);
-
   private readonly eventBus = inject(EventBusService);
+  private readonly userService = inject(UserService);
+
   /**
    * Añade una evaluación realizada por el comité y refresca el estado general del documento/propuesta
    */
@@ -21,10 +24,26 @@ export class ProposalDocumentService {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
+        let proposalTitle = '';
+        const notifyUserIds: string[] = [];
+
+        // 💡 Transacción síncrona y atómica sobre la lista de señales
         this.storage.updateProposals(list => list.map(proposal => {
           if (proposal.id !== proposalId) return proposal;
 
-          // Si la fecha actual supera el deadline, se marca como retrasada
+          // 🔒 Captura segura de datos dentro del ciclo inmutable
+          proposalTitle = proposal.title || '';
+
+          // Extracción de autores (estudiantes) vinculados de forma directa
+          proposal.authors?.forEach(author => {
+            if (author?.id) notifyUserIds.push(author.id);
+          });
+
+          // Extracción del equipo de docentes asignados
+          if (proposal.director?.id) notifyUserIds.push(proposal.director.id);
+          if (proposal.codirector?.id) notifyUserIds.push(proposal.codirector.id);
+          if (proposal.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+
           const evaluatedLate = proposal.evaluationDeadline
             ? new Date() > new Date(proposal.evaluationDeadline)
             : false;
@@ -37,22 +56,29 @@ export class ProposalDocumentService {
                 ...evaluation,
                 id: Math.random().toString(36).substring(2, 7),
                 date: new Date(),
-                isDelayed: evaluatedLate // <--- Registrado para tus estadísticas futuras
+                isDelayed: evaluatedLate
               },
               ...(proposal.evaluations || [])
             ]
           };
 
-          if (updatedProposal.documents?.length > 0) {
+          if (updatedProposal.documents && updatedProposal.documents.length > 0) {
             updatedProposal.documents = updatedProposal.documents.map((doc, index) =>
               index === 0 ? { ...doc, status: evaluation.veredict } : doc
             );
           }
           return updatedProposal;
         }));
+
+        // Emisión con payload enriquecido y estandarizado
         this.eventBus.emit({
           type: AppEventType.EVALUATION_ASSIGNED,
-          payload: { proposalId, veredict: evaluation.veredict }
+          targetUserIds: [...new Set(notifyUserIds)],
+          payload: {
+            proposalId,
+            veredict: evaluation.veredict,
+            proposalTitle: proposalTitle // 💡 Título contextualizado listo para la notificación
+          }
         });
       })
     );
@@ -66,19 +92,48 @@ export class ProposalDocumentService {
       delay(1200),
       tap(() => {
         const now = new Date();
-        const newDeadline = addBusinessDays(now, 10); // <--- Reiniciamos el reloj (10 días hábiles)
+        const newDeadline = addBusinessDays(now, 10);
+
+        let proposalTitle = '';
+        const notifyUserIds: string[] = [];
 
         this.storage.updateProposals(list =>
-          list.map(proposal => proposal.id === proposalId
-            ? {
-                ...proposal,
-                documents: [newDoc, ...(proposal.documents || [])],
-                state: stateList.EN_REVISION,
-                evaluationDeadline: newDeadline // <--- Asignamos el nuevo plazo
-              }
-            : proposal
-          )
+          list.map(proposal => {
+            if (proposal.id !== proposalId) return proposal;
+
+            // 🔒 Captura de propiedades de la propuesta real en la mutación
+            proposalTitle = proposal.title || '';
+
+            proposal.authors?.forEach(author => {
+              if (author?.id) notifyUserIds.push(author.id);
+            });
+            if (proposal.director?.id) notifyUserIds.push(proposal.director.id);
+            if (proposal.codirector?.id) notifyUserIds.push(proposal.codirector.id);
+            if (proposal.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+
+            return {
+              ...proposal,
+              documents: [newDoc, ...(proposal.documents || [])],
+              state: stateList.EN_REVISION,
+              evaluationDeadline: newDeadline
+            };
+          })
         );
+
+        // 💡 Los roles globales e institucionales se leen y filtran fuera de la lógica interna de la propuesta
+        const comiteUsers = this.userService.users()
+          .filter(user => user.roles.includes(UserRoleType.COMITE))
+          .map(user => user.id);
+        notifyUserIds.push(...comiteUsers);
+
+        this.eventBus.emit({
+          type: AppEventType.DOCUMENT_CORRECTION_UPLOADED,
+          targetUserIds: [...new Set(notifyUserIds)],
+          payload: {
+            proposalId: proposalId,
+            proposalTitle: proposalTitle // 💡 Estandarizado a 'proposalTitle'
+          }
+        });
       })
     );
   }

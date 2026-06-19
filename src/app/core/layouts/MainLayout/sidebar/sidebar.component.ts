@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MenuModule } from 'primeng/menu';
-import { UserRoleType } from '../../../models/user-role';
+import { UserRoleType, UserRole } from '../../../models/user-role';
 import { AuthService } from '../../../services/auth/auth.service';
 
 interface MenuItem {
@@ -25,7 +25,7 @@ export class SidebarComponent {
       label: 'Bandeja de entrada',
       routerLink: '/notifications',
       icon: 'pi pi-check-circle',
-      roles: [UserRoleType.ESTUDIANTE, UserRoleType.DOCENTE, UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
+      roles: [UserRoleType.ESTUDIANTE, UserRoleType.DOCENTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR, UserRoleType.ADMINISTRADOR, UserRoleType.COMITE, UserRoleType.JEFE_DEP, UserRoleType.CONSEJO, UserRoleType.DECANATURA, UserRoleType.JURADO, UserRoleType.EVALUADOR]
     },
     {
       label: 'Usuarios',

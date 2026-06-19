@@ -4,6 +4,7 @@ export type InboxStatus = 'leido' | 'no leido';
 
 export interface InboxMessage {
   id: string;
+  userId: string;
   type: NotificationType;
   title: string;
   message: string;

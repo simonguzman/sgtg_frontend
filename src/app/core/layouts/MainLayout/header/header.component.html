@@ -6,37 +6,53 @@
       </h1>
     </div>
 
-    <div>
-      <div
-        class="relative flex items-center gap-3 cursor-pointer"
-        (click)="onMenuToggle($event)"
-      >
-        <p-avatar
-          [image]="userAvatar"
-          shape="circle"
-          size="large"
-          styleClass="border border-gray-300"
-        ></p-avatar>
+    <div class="flex items-center gap-6">
 
-        <div class="flex flex-col items-start leading-tight">
-          <p class="text-size-body font-display font-semibold text-primary">
-            {{ authService.currentUser()?.firstName }}
-          </p>
-          <p class="text-size-role-footer font-display font-regular text-primary opacity-70">
-            {{ authService.currentUser()?.roles }}
-          </p>
+      <button
+        (click)="goToInbox()"
+        class="relative p-2 text-primary hover:bg-gray-100 transition-colors rounded-full flex items-center justify-center">
+
+        <span class="material-symbols-outlined text-2xl">notifications</span>
+
+        @if (inboxService.unreadCount() > 0) {
+          <span class="absolute top-0 right-0 bg-[#DB141C] text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm">
+            {{ inboxService.unreadCount() > 9 ? '9+' : inboxService.unreadCount() }}
+          </span>
+        }
+      </button>
+
+      <div>
+        <div
+          class="relative flex items-center gap-3 cursor-pointer"
+          (click)="onMenuToggle($event)"
+        >
+          <p-avatar
+            [image]="userAvatar"
+            shape="circle"
+            size="large"
+            styleClass="border border-gray-300"
+          ></p-avatar>
+
+          <div class="flex flex-col items-start leading-tight">
+            <p class="text-size-body font-display font-semibold text-primary">
+              {{ authService.currentUser()?.firstName }}
+            </p>
+            <p class="text-size-role-footer font-display font-regular text-primary opacity-70">
+              {{ authService.currentUser()?.roles }}
+            </p>
+          </div>
+
+          <img
+            [src]="isMenuOpen
+              ? 'assets/icons/arrow_drop_down_24dp_000066_FILL0_wght400_GRAD0_opsz24.png'
+              : 'assets/icons/arrow_right_24dp_000066_FILL0_wght400_GRAD0_opsz24.png'"
+            alt="Abrir menú"
+            class="w-4 h-4 ml-2 transition-transform duration-200"
+          />
         </div>
 
-        <img
-          [src]="isMenuOpen
-            ? 'assets/icons/arrow_drop_down_24dp_000066_FILL0_wght400_GRAD0_opsz24.png'
-            : 'assets/icons/arrow_right_24dp_000066_FILL0_wght400_GRAD0_opsz24.png'"
-          alt="Abrir menú"
-          class="w-4 h-4 ml-2 transition-transform duration-200"
-        />
+        <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body" (onHide)="isMenuOpen = false"></p-menu>
       </div>
-
-      <p-menu #menu [model]="menuItems" [popup]="true" appendTo="body" (onHide)="isMenuOpen = false"></p-menu>
     </div>
   </div>
 

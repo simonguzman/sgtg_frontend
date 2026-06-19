@@ -95,7 +95,7 @@ export class RegisterCorrespondencePageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['../'], { relativeTo: this.route });
+    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
   }
 
   private handleNavigationError(): void {

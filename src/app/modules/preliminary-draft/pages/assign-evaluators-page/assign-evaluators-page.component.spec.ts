@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { AssingEvaluatorsPageComponent } from './assing-evaluators-page.component';
+import { AssingEvaluatorsPageComponent } from './assign-evaluators-page.component';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { signal, Component, Input, Output, EventEmitter } from '@angular/core';

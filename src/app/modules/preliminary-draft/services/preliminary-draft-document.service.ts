@@ -2,12 +2,14 @@ import { inject, Injectable } from '@angular/core';
 import { delay, map, Observable, of, tap } from 'rxjs';
 
 import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
-import { Document } from '../../../core/interfaces/Document.interface';
+import { Document, DocumentType } from '../../../core/interfaces/Document.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { addBusinessDays } from '../../../core/utils/date-utils';
 import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { UserService } from '../../users/services/user.service';
+import { UserRoleType } from '../../../core/models/user-role';
 
 @Injectable({
   providedIn: 'root'
@@ -15,6 +17,7 @@ import { AppEventType, EventBusService } from '../../../core/services/eventbus/e
 export class PreliminaryDraftDocumentService {
   private readonly storage = inject(PreliminaryDraftStorageService);
   private readonly eventBus = inject(EventBusService);
+  private readonly userService = inject(UserService);
 
   /**
    * Registra una evaluación de un jurado.
@@ -25,40 +28,130 @@ export class PreliminaryDraftDocumentService {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
-        this.storage.updateDraft(preliminaryDraftId, (draft) => {
-          const newEvaluations = [evaluation, ...(draft.evaluations || [])];
+        let currentDraftTitle = '';
+        const notifyUserIds: string[] = [];
+
+        this.storage.updateDraft(preliminaryDraftId, (preliminaryDraft) => {
+          const proposal = preliminaryDraft.proposalData;
+
+          if (proposal) {
+            // 💡 Captura segura del título real dentro del mutador
+            currentDraftTitle = proposal.title || '';
+
+            // 1. Autores
+            proposal.authors?.forEach(author => {
+              if (typeof author === 'string') notifyUserIds.push(author);
+              else if (author?.id) notifyUserIds.push(author.id);
+            });
+
+            // 2. Equipo de apoyo
+            if (proposal.director?.id) notifyUserIds.push(proposal.director.id);
+            if (proposal.codirector?.id) notifyUserIds.push(proposal.codirector.id);
+            if (proposal.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+          }
+
+          const newEvaluations = [evaluation, ...(preliminaryDraft.evaluations || [])];
           return {
-            ...draft,
+            ...preliminaryDraft,
             evaluations: newEvaluations,
             // 🔒 Preservamos el estado actual del anteproyecto sin alterarlo automáticamente
-            state: draft.state
+            state: preliminaryDraft.state
           };
         });
+
+        // 3. Jefe de Departamento (Lectura externa limpia de servicios globales)
+        const jefesDepto = this.userService.users()
+          .filter(user => user.roles.includes(UserRoleType.JEFE_DEP))
+          .map(user => user.id);
+        notifyUserIds.push(...jefesDepto);
+
         this.eventBus.emit({
           type: AppEventType.EVALUATION_ASSIGNED,
-          payload: { preliminaryDraftId: preliminaryDraftId, veredict: evaluation.veredict }
-        })
+          targetUserIds: [...new Set(notifyUserIds)],
+          payload: {
+            preliminaryDraftId: preliminaryDraftId,
+            veredict: evaluation.veredict,
+            preliminaryDraftTitle: currentDraftTitle // 💡 Título inyectado con éxito
+          }
+        });
       })
     );
   }
 
   /**
    * Añade un nuevo documento (Versión inicial o Corrección) al historial.
+   * Dependiendo del tipo de documento, enruta las notificaciones a los actores correspondientes.
    */
   uploadDocumentMock(preliminaryDraftId: string, document: Document): Observable<void> {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
         const renewedDeadLine = addBusinessDays(new Date(), 10);
-        this.storage.updateDraft(preliminaryDraftId, (draft) => ({
-          ...draft,
-          documents: [document, ...(draft.documents || [])],
-          state: stateList.EN_REVISION,
-          evaluationDeadline: renewedDeadLine,
-        }));
+        let currentDraftTitle = '';
+        const notifyUserIds: string[] = [];
+
+        this.storage.updateDraft(preliminaryDraftId, (preliminaryDraft) => {
+          const proposal = preliminaryDraft.proposalData;
+
+          if (proposal) {
+            currentDraftTitle = proposal.title || '';
+          }
+
+          // 💡 ENRUTAMIENTO ATÓMICO SEGURO: Evaluamos las condiciones basándonos en el estado inmutable real
+          if (document.type === 'Correccion') {
+            if (preliminaryDraft.evaluators) {
+              notifyUserIds.push(...preliminaryDraft.evaluators.map(evaluator => evaluator.id));
+            }
+            if (proposal?.director?.id) {
+              notifyUserIds.push(proposal.director.id);
+            }
+
+          } else if (document.type === DocumentType.FORMATO_C) {
+            if (proposal) {
+              proposal.authors?.forEach(author => {
+                if (typeof author === 'string') notifyUserIds.push(author);
+                else if (author?.id) notifyUserIds.push(author.id);
+              });
+
+              if (proposal.director?.id) notifyUserIds.push(proposal.director.id);
+              if (proposal.codirector?.id) notifyUserIds.push(proposal.codirector.id);
+              if (proposal.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+            }
+
+          } else {
+            if (proposal?.authors) {
+              proposal.authors.forEach(author => {
+                if (typeof author === 'string') notifyUserIds.push(author);
+                else if (author?.id) notifyUserIds.push(author.id);
+              });
+            }
+          }
+
+          return {
+            ...preliminaryDraft,
+            documents: [document, ...(preliminaryDraft.documents || [])],
+            state: stateList.EN_REVISION,
+            evaluationDeadline: renewedDeadLine,
+          };
+        });
+
+        // Roles institucionales agregados fuera de la mutación de datos del anteproyecto
+        if (document.type === DocumentType.FORMATO_C) {
+          const jefesYConsejo = this.userService.users()
+            .filter(user => user.roles.includes(UserRoleType.JEFE_DEP) || user.roles.includes(UserRoleType.CONSEJO))
+            .map(user => user.id);
+
+          notifyUserIds.push(...jefesYConsejo);
+        }
+
         this.eventBus.emit({
           type: AppEventType.DOCUMENT_CORRECTION_UPLOADED,
-          payload: { preliminaryDraftId: preliminaryDraftId }
+          targetUserIds: [...new Set(notifyUserIds)],
+          payload: {
+            preliminaryDraftId: preliminaryDraftId,
+            documentType: document.type,
+            preliminaryDraftTitle: currentDraftTitle // 💡 Título inyectado con éxito
+          }
         });
       })
     );
@@ -66,57 +159,82 @@ export class PreliminaryDraftDocumentService {
 
   /**
    * Sube el acta/formato final de resolución emitido por el consejo de facultad.
-   * Este método sigue siendo el único responsable de consolidar el cambio de estado definitivo
-   * y ahora también registra opcionalmente la fecha máxima de entrega del trabajo de grado.
+   * Modificado para garantizar la consistencia atómica mediante variables puente locales.
    */
   uploadCouncilResolutionMock(
     id: string,
     document: Document,
     state: stateList,
     evaluation: Evaluation,
-    maximumDeliveryDate?: Date | string // 👈 1. Añadimos el nuevo parámetro manual
+    maximumDeliveryDate?: Date | string
   ): Observable<PreliminaryDraft | undefined> {
-    return this.storage.getById(id).pipe(
-      map(draft => {
-        if (draft) {
-          const updatedDraft: PreliminaryDraft = {
-            ...draft,
-            documents: [...(draft.documents || []), document],
-            state: state, // Aquí es donde se asigna el APROBADO o NO_APROBADO final del Consejo
-            evaluations: [...(draft.evaluations || []), evaluation],
-            // 👈 2. Lógica condicional: Solo persistimos la fecha si el veredicto es APROBADO
-            maximumDeliveryDate: state === stateList.APROBADO ? maximumDeliveryDate : draft.maximumDeliveryDate
+    return of(undefined).pipe(
+      delay(1000),
+      map(() => {
+        let updatedDraftRef: PreliminaryDraft | undefined = undefined;
+        let currentDraftTitle = '';
+        const notifyUserIds: string[] = [];
+
+        this.storage.updateDraft(id, (preliminaryDraft) => {
+          currentDraftTitle = preliminaryDraft.proposalData?.title || '';
+
+          const updated: PreliminaryDraft = {
+            ...preliminaryDraft,
+            documents: [...(preliminaryDraft.documents || []), document],
+            state: state,
+            evaluations: [...(preliminaryDraft.evaluations || []), evaluation],
+            maximumDeliveryDate: state === stateList.APROBADO ? maximumDeliveryDate : preliminaryDraft.maximumDeliveryDate
           };
-          this.storage.updateDraft(id, () => updatedDraft);
+
+          // Guardamos referencia al nuevo objeto construido para retornarlo al flujo asíncrono
+          updatedDraftRef = updated;
+
+          // 💡 Extracción segura de los destinatarios dentro de la misma transacción de estado
+          if (updated.proposalData?.authors) {
+            updated.proposalData.authors.forEach(author => {
+              if (typeof author === 'string') notifyUserIds.push(author);
+              else if (author?.id) notifyUserIds.push(author.id);
+            });
+          }
+          if (updated.proposalData?.director?.id) notifyUserIds.push(updated.proposalData.director.id);
+          if (updated.proposalData?.codirector?.id) notifyUserIds.push(updated.proposalData.codirector.id);
+          if (updated.proposalData?.advisor?.id) notifyUserIds.push(updated.proposalData.advisor.id);
+          if (updated.evaluators) notifyUserIds.push(...updated.evaluators.map(evaluator => evaluator.id));
+
+          return updated;
+        });
+
+        if (updatedDraftRef) {
           this.eventBus.emit({
             type: AppEventType.COUNCIL_RESOLUTION_UPLOADED,
-            payload: { preliminaryDraftId: id, finalState: state}
+            targetUserIds: [...new Set(notifyUserIds)],
+            payload: {
+              preliminaryDraftId: id,
+              finalState: state,
+              preliminaryDraftTitle: currentDraftTitle // 💡 Título inyectado con éxito
+            }
           });
-          return updatedDraft;
         }
-        return undefined;
+
+        return updatedDraftRef;
       })
     );
   }
 
   /**
    * Calcula el estado visual detallado de un documento específico esperando a todos los jurados.
-   * Mantiene su vigencia para la tabla interna de control de archivos cargados.
    */
   calculateDocumentStatus(documentId: string, evaluations: Evaluation[], totalEvaluators: number): stateList {
-    const documentEvaluations = evaluations?.filter(ev => ev.documentId === documentId) || [];
+    const documentEvaluations = evaluations?.filter(evaluation => evaluation.documentId === documentId) || [];
 
-    // 1. Si aún faltan jurados por evaluar, el documento sigue en revisión obligatoriamente.
     if (documentEvaluations.length < totalEvaluators) {
       return stateList.EN_REVISION;
     }
 
-    // 2. Una vez que todos han evaluado, revisamos si hay algún rechazo.
-    if (documentEvaluations.some(ev => ev.veredict === stateList.NO_APROBADO)) {
+    if (documentEvaluations.some(evaluation => evaluation.veredict === stateList.NO_APROBADO)) {
       return stateList.NO_APROBADO;
     }
 
-    // 3. Si todos evaluaron y no hay rechazos, se aprueba.
     return stateList.APROBADO;
   }
 }

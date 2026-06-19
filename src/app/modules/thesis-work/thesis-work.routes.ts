@@ -50,14 +50,9 @@ export const thesisWorkRoutes: Routes = [
             data: {
               breadcrumb: null,
               roles: [
-                UserRoleType.ADMINISTRADOR,
-                UserRoleType.DIRECTOR,
-                UserRoleType.CODIRECTOR,
-                UserRoleType.ASESOR,
-                UserRoleType.ESTUDIANTE,
-                UserRoleType.DECANATURA,
-                UserRoleType.CONSEJO,
-                UserRoleType.JURADO
+                UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR,
+                UserRoleType.ASESOR, UserRoleType.ESTUDIANTE, UserRoleType.DECANATURA,
+                UserRoleType.CONSEJO, UserRoleType.JURADO
               ]
             }
           },
@@ -69,205 +64,165 @@ export const thesisWorkRoutes: Routes = [
             data: {
               breadcrumb: 'Evaluaciones realizadas',
               roles: [
-                UserRoleType.ADMINISTRADOR,
-                UserRoleType.DIRECTOR,
-                UserRoleType.CODIRECTOR,
-                UserRoleType.ASESOR,
-                UserRoleType.ESTUDIANTE,
-                UserRoleType.DECANATURA,
-                UserRoleType.CONSEJO,
-                UserRoleType.JURADO
+                UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR,
+                UserRoleType.ASESOR, UserRoleType.ESTUDIANTE, UserRoleType.DECANATURA,
+                UserRoleType.CONSEJO, UserRoleType.JURADO
               ]
             }
           },
           {
             path: 'loaded_documents',
-            data: { breadcrumb: 'Documentos cargados' },
-            children: [
-              {
-                path: '',
-                component: LoadedDocumentsThesisWorkPageComponent,
-                canActivate: [roleGuard], // 👈 La vista general sigue igual, es de solo lectura
-                title: 'Documentos cargados',
-                data: {
-                  breadcrumb: null,
-                  roles: [
-                    UserRoleType.ADMINISTRADOR,
-                    UserRoleType.DIRECTOR,
-                    UserRoleType.CODIRECTOR,
-                    UserRoleType.ASESOR,
-                    UserRoleType.ESTUDIANTE,
-                    UserRoleType.DECANATURA,
-                    UserRoleType.CONSEJO,
-                    UserRoleType.JURADO
-                  ]
-                }
-              },
-              {
-                path: 'upload_advance',
-                component: UploadAdvancePageComponent,
-                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
-                title: 'Cargar avances',
-                data: {
-                  breadcrumb: 'Cargar avances',
-                  roles: [
-                    UserRoleType.ADMINISTRADOR,
-                    UserRoleType.ESTUDIANTE,
-                  ]
-                }
-              },
-              {
-                path: 'evaluate_advance/:advanceId',
-                component: EvaluateAdvancePageComponent,
-                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
-                title: 'Evaluar avances',
-                data: {
-                  breadcrumb: 'Evaluar avances',
-                  roles: [UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR]
-                }
-              },
-              {
-                path: 'register_final_delivery',
-                component: UploadFinalDeliveryPageComponent,
-                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
-                title: 'Registrar entrega final',
-                data: {
-                  breadcrumb: 'Registrar entrega final',
-                  roles: [UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR]
-                }
-              },
-              {
-                path: 'register_paz_y_salvo',
-                component: RegisterPazYSalvoPageComponent,
-                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
-                title: 'Registrar paz y salvo',
-                data: {
-                  breadcrumb: 'Registrar paz y salvo',
-                  roles: [UserRoleType.ADMINISTRADOR, UserRoleType.DECANATURA]
-                }
-              },
-              {
-                path: 'register_sustentation',
-                component: RegisterSustentationPageComponent,
-                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
-                title: 'Registrar sustentacion',
-                data: {
-                  breadcrumb: 'Registrar sustentacion',
-                  roles: [UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
-                }
-              },
-              {
-                path: 'evaluate_sustentation/:sustentationId',
-                component: EvaluateSustentationPageComponent,
-                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
-                title: 'Evaluar sustentación',
-                data: {
-                  breadcrumb: 'Evaluar sustentación',
-                  roles: [UserRoleType.ADMINISTRADOR, UserRoleType.JURADO]
-                }
-              },
-              {
-                path: 'register_correspondence',
-                component: RegisterCorrespondencePageComponent,
-                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
-                title: 'Registrar Correspondencia Final',
-                data: {
-                  breadcrumb: 'Registrar correspondencia',
-                  roles: [UserRoleType.ADMINISTRADOR, UserRoleType.JURADO]
-                }
-              },
-              {
-                path: 'register_special_request',
-                component: RegisterSpecialRequestPageComponent,
-                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
-                title: 'Registrar solicitud especial',
-                data: {
-                  breadcrumb: 'Registrar solicitud especial',
-                  roles: [UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR]
-                }
-              },
-              {
-                path: 'evaluate_special_request/:requestId',
-                component: EvaluateSpecialRequestPageComponent,
-                canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
-                title: 'Evaluar solicitud especial',
-                data: {
-                  breadcrumb: 'Evaluar solicitud especial',
-                  roles: [UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
-                }
-              },
-              {
-                path: 'view_sustentation_details/:id',
-                component: SustentationDetailsPageComponent,
-                canActivate: [roleGuard], // 👈 Solo lectura, no requiere el guard de bloqueo
-                title: 'Detalles de la sustentación',
-                data: {
-                  breadcrumb: 'Detalles de la sustentación',
-                  roles: [
-                    UserRoleType.ADMINISTRADOR,
-                    UserRoleType.DIRECTOR,
-                    UserRoleType.CODIRECTOR,
-                    UserRoleType.ASESOR,
-                    UserRoleType.ESTUDIANTE,
-                    UserRoleType.DECANATURA,
-                    UserRoleType.CONSEJO,
-                    UserRoleType.JURADO
-                  ]
-                }
-              },
-              {
-                path: 'corrected_documents',
-                data: { breadcrumb: 'Documentos corregidos' },
-                children: [
-                  {
-                    path: '',
-                    component: CorrectedDocumentsPageComponent,
-                    canActivate: [roleGuard], // 👈 Vista general de lista, no requiere bloqueo
-                    title: 'Documentos corregidos',
-                    data: {
-                      breadcrumb: null,
-                      roles: [
-                        UserRoleType.ADMINISTRADOR,
-                        UserRoleType.DIRECTOR,
-                        UserRoleType.CODIRECTOR,
-                        UserRoleType.ASESOR,
-                        UserRoleType.ESTUDIANTE,
-                        UserRoleType.DECANATURA,
-                        UserRoleType.CONSEJO,
-                        UserRoleType.JURADO
-                      ]
-                    }
-                  },
-                  {
-                    path: 'upload_corrections',
-                    component: RegisterCorrectedDocumentsPageComponent,
-                    canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
-                    title: 'Cargar documentos corregidos',
-                    data: {
-                      breadcrumb: 'Cargar correcciones',
-                      roles: [
-                        UserRoleType.ADMINISTRADOR,
-                        UserRoleType.DIRECTOR,
-                      ]
-                    }
-                  },
-                  {
-                    path: 'evaluate_corrections',
-                    component: EvaluateCorrectionsPageComponent,
-                    canActivate: [roleGuard, thesisRestrictedStatusGuard], // 🔒 Protegido
-                    title: 'Evaluar documentos corregidos',
-                    data: {
-                      breadcrumb: 'Evaluar correcciones',
-                      roles: [
-                        UserRoleType.ADMINISTRADOR,
-                        UserRoleType.JURADO
-                      ]
-                    }
-                  },
-                ]
-              }
-            ]
+            component: LoadedDocumentsThesisWorkPageComponent,
+            canActivate: [roleGuard],
+            title: 'Documentos cargados',
+            data: {
+              breadcrumb: 'Documentos cargados',
+              roles: [
+                UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR,
+                UserRoleType.ASESOR, UserRoleType.ESTUDIANTE, UserRoleType.DECANATURA,
+                UserRoleType.CONSEJO, UserRoleType.JURADO
+              ]
+            }
           },
+          {
+            path: 'upload_advance',
+            component: UploadAdvancePageComponent,
+            canActivate: [roleGuard, thesisRestrictedStatusGuard],
+            title: 'Cargar avances',
+            data: {
+              breadcrumb: 'Cargar avances',
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.ESTUDIANTE]
+            }
+          },
+          {
+            path: 'evaluate_advance/:advanceId',
+            component: EvaluateAdvancePageComponent,
+            canActivate: [roleGuard, thesisRestrictedStatusGuard],
+            title: 'Evaluar avances',
+            data: {
+              breadcrumb: 'Evaluar avances',
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR]
+            }
+          },
+          {
+            path: 'register_final_delivery',
+            component: UploadFinalDeliveryPageComponent,
+            canActivate: [roleGuard, thesisRestrictedStatusGuard],
+            title: 'Registrar entrega final',
+            data: {
+              breadcrumb: 'Registrar entrega final',
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR]
+            }
+          },
+          {
+            path: 'register_paz_y_salvo',
+            component: RegisterPazYSalvoPageComponent,
+            canActivate: [roleGuard, thesisRestrictedStatusGuard],
+            title: 'Registrar paz salvo',
+            data: {
+              breadcrumb: 'Registrar paz y salvo',
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.DECANATURA]
+            }
+          },
+          {
+            path: 'register_sustentation',
+            component: RegisterSustentationPageComponent,
+            canActivate: [roleGuard, thesisRestrictedStatusGuard],
+            title: 'Registrar sustentacion',
+            data: {
+              breadcrumb: 'Registrar sustentacion',
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
+            }
+          },
+          {
+            path: 'evaluate_sustentation/:sustentationId',
+            component: EvaluateSustentationPageComponent,
+            canActivate: [roleGuard, thesisRestrictedStatusGuard],
+            title: 'Evaluar sustentación',
+            data: {
+              breadcrumb: 'Evaluar sustentación',
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.JURADO]
+            }
+          },
+          {
+            path: 'view_sustentation_details/:id',
+            component: SustentationDetailsPageComponent,
+            canActivate: [roleGuard],
+            title: 'Detalles de la sustentación',
+            data: {
+              breadcrumb: 'Detalles de la sustentación',
+              roles: [
+                UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR,
+                UserRoleType.ASESOR, UserRoleType.ESTUDIANTE, UserRoleType.DECANATURA,
+                UserRoleType.CONSEJO, UserRoleType.JURADO
+              ]
+            }
+          },
+          {
+            path: 'register_correspondence',
+            component: RegisterCorrespondencePageComponent,
+            canActivate: [roleGuard, thesisRestrictedStatusGuard],
+            title: 'Registrar Correspondencia Final',
+            data: {
+              breadcrumb: 'Registrar correspondencia',
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.JURADO]
+            }
+          },
+          {
+            path: 'register_special_request',
+            component: RegisterSpecialRequestPageComponent,
+            canActivate: [roleGuard, thesisRestrictedStatusGuard],
+            title: 'Registrar solicitud especial',
+            data: {
+              breadcrumb: 'Registrar solicitud especial',
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR]
+            }
+          },
+          {
+            path: 'evaluate_special_request/:requestId',
+            component: EvaluateSpecialRequestPageComponent,
+            canActivate: [roleGuard, thesisRestrictedStatusGuard],
+            title: 'Evaluar solicitud especial',
+            data: {
+              breadcrumb: 'Evaluar solicitud especial',
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
+            }
+          },
+          // SOLUCIÓN AL BREADCRUMB: Rutas aplanadas directamente para evitar herencias vacías
+          {
+            path: 'corrected_documents',
+            component: CorrectedDocumentsPageComponent,
+            canActivate: [roleGuard],
+            title: 'Documentos corregidos',
+            data: {
+              breadcrumb: 'Documentos corregidos',
+              roles: [
+                UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR,
+                UserRoleType.ASESOR, UserRoleType.ESTUDIANTE, UserRoleType.DECANATURA,
+                UserRoleType.CONSEJO, UserRoleType.JURADO
+              ]
+            }
+          },
+          {
+            path: 'corrected_documents/upload_corrections',
+            component: RegisterCorrectedDocumentsPageComponent,
+            canActivate: [roleGuard, thesisRestrictedStatusGuard],
+            title: 'Cargar documentos corregidos',
+            data: {
+              breadcrumb: 'Cargar correcciones',
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR]
+            }
+          },
+          {
+            path: 'corrected_documents/evaluate_corrections',
+            component: EvaluateCorrectionsPageComponent,
+            canActivate: [roleGuard, thesisRestrictedStatusGuard],
+            title: 'Evaluar documentos corregidos',
+            data: {
+              breadcrumb: 'Evaluar correcciones',
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.JURADO]
+            }
+          }
         ]
       }
     ]

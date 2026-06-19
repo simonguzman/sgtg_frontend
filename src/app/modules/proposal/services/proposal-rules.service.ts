@@ -12,7 +12,8 @@ export class ProposalRulesService {
   private readonly userService = inject(UserService);
 
   /**
-   * Valida restricciones del negocio: Coherencia de roles y máximos por estudiante.
+   * Valida restricciones de negocio críticas: Coherencia de roles docentes
+   * y un máximo estricto de 2 propuestas activas por estudiante.
    */
   validateProposalRules(proposal: Partial<Proposal>): string | null {
     if (proposal.director && proposal.codirector && proposal.director.id === proposal.codirector.id) {
@@ -27,7 +28,7 @@ export class ProposalRulesService {
 
         if (activeCount >= 2) {
           const studentName = this.userService.getUserFullName(author.id);
-          return `El estudiante ${studentName} ya tiene 2 propuestas (límite máximo).`;
+          return `El estudiante ${studentName} ya tiene 2 propuestas registradas (límite máximo institucional).`;
         }
       }
     }
@@ -35,7 +36,8 @@ export class ProposalRulesService {
   }
 
   /**
-   * Controla el ciclo de vida de los roles asignados a los docentes cuando se edita o reemplaza personal.
+   * Administra de forma automática el ciclo de vida de los roles institucionales de los docentes.
+   * Si un docente es desvinculado y no tiene otros proyectos con ese rol, se le remueve el privilegio.
    */
   handleRoleExchange(
     oldId: string | undefined,

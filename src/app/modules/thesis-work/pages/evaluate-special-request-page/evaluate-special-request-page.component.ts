@@ -107,6 +107,6 @@ export class EvaluateSpecialRequestPageComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['../'], { relativeTo: this.route });
+    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
   }
 }
