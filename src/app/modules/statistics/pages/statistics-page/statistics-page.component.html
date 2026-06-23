@@ -1,11 +1,164 @@
-<p style="color: black;">statistics-page works!</p>
-<app-file-upload-modal
-  [isOpen]="isModalOpen"
-  [description]="'Subir documento de usuario'"
-  [uploadedBy]="'Cargado por el estudiante'"
-  (onFileUploaded)="handleFileUploaded($event)"
-  (onClose)="isModalOpen = false"
-></app-file-upload-modal>
+<div class="pt-4 max-w-5xl mx-auto pb-10 flex flex-col gap-8">
 
-<!-- Botón para abrir el modal -->
-<button (click)="isModalOpen = true">Cargar archivo</button>
+  <!-- Encabezado y Acción Principal -->
+  <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div class="flex flex-col gap-1">
+      <h1 class="font-display font-semibold text-primary text-size-header-title">
+        Dashboard de Control Académico
+      </h1>
+      <p class="text-size-body text-[#777680]">
+        Monitoreo en tiempo real de propuestas, anteproyectos y trabajos de grado
+      </p>
+    </div>
+
+    <div>
+      <app-button-component
+        label="Generar Reporte PDF"
+        variant="primary"
+        (onClick)="handleDownloadReport()">
+      </app-button-component>
+    </div>
+  </div>
+
+  <!-- Sección de Filtros -->
+  <div class="bg-blue-50/50 p-6 rounded-xl border border-blue-100 shadow-sm flex flex-col gap-4">
+    <h3 class="font-display font-semibold text-primary text-size-section mb-2 flex items-center gap-2">
+      <span class="material-symbols-outlined text-lg">filter_alt</span> Filtros de Búsqueda
+    </h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+
+      <!-- Etapa del Proceso -->
+      <div class="flex flex-col gap-1">
+        <label for="stageFilter" class="font-display font-semibold text-size-role-footer text-primary">
+          Etapa del Proceso
+        </label>
+        <p-select
+          id="stageFilter"
+          [options]="state.stagesOptions()"
+          [ngModel]="state.currentFilters().stage"
+          (ngModelChange)="onStageChange($event)"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Todas las etapas"
+          [showClear]="true"
+          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
+        </p-select>
+      </div>
+
+      <!-- Periodo Académico -->
+      <div class="flex flex-col gap-1">
+        <label for="periodFilter" class="font-display font-semibold text-size-role-footer text-primary">
+          Periodo Académico
+        </label>
+        <p-select
+          id="periodFilter"
+          [options]="state.periodsOptions()"
+          [ngModel]="state.currentFilters().period"
+          (ngModelChange)="onPeriodChange($event)"
+          placeholder="Todos los periodos"
+          [showClear]="true"
+          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
+        </p-select>
+      </div>
+
+      <!-- Director Asignado -->
+      <div class="flex flex-col gap-1">
+        <label for="directorFilter" class="font-display font-semibold text-size-role-footer text-primary">
+          Director Asignado
+        </label>
+        <p-select
+          id="directorFilter"
+          [options]="state.directorsOptions()"
+          [ngModel]="state.currentFilters().directorId"
+          (ngModelChange)="onDirectorChange($event)"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Todos los directores"
+          [showClear]="true"
+          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
+        </p-select>
+      </div>
+
+      <!-- Botón Limpiar Filtros con Ícono Reincorporado -->
+      <div class="flex justify-start md:justify-end">
+        <app-button-component
+          label="Limpiar Filtros"
+          variant="secondary"
+          icon="filter_alt_off"
+          (onClick)="state.clearFilters()">
+        </app-button-component>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Tarjetas de Métricas (KPIs) -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+    <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm flex items-center justify-between">
+      <div class="flex flex-col gap-1">
+        <span class="text-size-role-footer text-[#777680] font-medium">Proyectos Cargados</span>
+        <span class="text-3xl font-display font-bold text-primary">{{ state.totalLoaded() }}</span>
+      </div>
+      <div class="p-3 bg-blue-50 text-primary rounded-lg flex items-center justify-center">
+        <span class="material-symbols-outlined text-2xl">folder_open</span>
+      </div>
+    </div>
+
+    <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-[#2e7d32] rounded-xl shadow-sm flex items-center justify-between">
+      <div class="flex flex-col gap-1">
+        <span class="text-size-role-footer text-[#777680] font-medium">Proyectos Aprobados</span>
+        <span class="text-3xl font-display font-bold text-[#2e7d32]">{{ state.totalApproved() }}</span>
+      </div>
+      <div class="p-3 bg-green-50 text-[#2e7d32] rounded-lg flex items-center justify-center">
+        <span class="material-symbols-outlined text-2xl">check_circle</span>
+      </div>
+    </div>
+
+    <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-[#ED7D31] rounded-xl shadow-sm flex items-center justify-between">
+      <div class="flex flex-col gap-1">
+        <span class="text-size-role-footer text-[#777680] font-medium">Aprobados con Obs.</span>
+        <span class="text-3xl font-display font-bold text-[#ED7D31]">{{ state.totalApprovedWithObservations() }}</span>
+      </div>
+      <div class="p-3 bg-orange-50 text-[#ED7D31] rounded-lg flex items-center justify-center">
+        <span class="material-symbols-outlined text-2xl">warning</span>
+      </div>
+    </div>
+
+    <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-[#DB141C] rounded-xl shadow-sm flex items-center justify-between">
+      <div class="flex flex-col gap-1">
+        <span class="text-size-role-footer text-[#777680] font-medium">No Aprobados</span>
+        <span class="text-3xl font-display font-bold text-[#DB141C]">{{ state.totalNotApproved() }}</span>
+      </div>
+      <div class="p-3 bg-red-50 text-[#DB141C] rounded-lg flex items-center justify-center">
+        <span class="material-symbols-outlined text-2xl">cancel</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Gráficos -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <div class="bg-white p-6 border border-gray-200 rounded-xl shadow-sm flex flex-col gap-4">
+      <h3 class="font-display font-semibold text-primary text-size-section">
+        Estado de Evaluaciones Generales
+      </h3>
+      <div class="h-80 w-full relative">
+        <p-chart type="doughnut" [data]="state.statusChartData()" [options]="doughnutOptions"></p-chart>
+      </div>
+    </div>
+
+    <div class="bg-white p-6 border border-gray-200 rounded-xl shadow-sm flex flex-col gap-4">
+      <h3 class="font-display font-semibold text-primary text-size-section">
+        Volumen de Proyectos por Fase
+      </h3>
+      <div class="h-80 w-full relative">
+        <p-chart type="bar" [data]="state.stageChartData()" [options]="barOptions"></p-chart>
+      </div>
+    </div>
+
+  </div>
+
+</div>

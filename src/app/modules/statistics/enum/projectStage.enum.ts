@@ -1,0 +1,5 @@
+export enum ProjectStage {
+  PROPUESTA = 'PROPUESTA',
+  ANTEPROYECTO = 'ANTEPROYECTO',
+  TRABAJO_GRADO = 'TRABAJO_GRADO'
+}
