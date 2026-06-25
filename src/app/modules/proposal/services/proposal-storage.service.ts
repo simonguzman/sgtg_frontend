@@ -17,13 +17,18 @@ export class ProposalStorageService {
 
   private readonly _proposalsList = signal<Proposal[]>(this.getStoredProposals());
 
+  // 👇 NUEVO: Exponemos la lista completa y cruda (Solo lectura) para el Historial
+  public allProposals = this._proposalsList.asReadonly();
+
   /**
    * Señal computada reactiva que expone las propuestas activas filtradas por el rol
    * y los privilegios de participación del usuario autenticado.
    */
   public proposals = computed(() => {
     const currentUser = this.authService.currentUser();
-    const activeProposals = this._proposalsList().filter(p => p.isActive !== false);
+
+    // 👇 CORRECCIÓN: Filtramos para que NO incluya las archivadas en la vista normal
+    const activeProposals = this._proposalsList().filter(p => p.isActive !== false && !p.isArchived);
 
     if (!currentUser) return [];
 
@@ -112,6 +117,20 @@ export class ProposalStorageService {
         documents: [],
         evaluations: [],
         createdAt: new Date()
+      },
+      {
+        id: 'prop-100',
+        title: 'Sistema de control de asistencia mediante reconocimiento facial',
+        modality: Modality.TI,
+        description: 'Implementación de un sistema biométrico para aulas de clase...',
+        state: stateList.APROBADO,
+        authors: [this.getMockUser('user-001')],
+        director: this.getMockUser('doc-001'),
+        documents: [],
+        evaluations: [],
+        createdAt: new Date('2025-05-10'),
+        isArchived: true,
+        archivedAt: new Date('2025-11-20')
       }
     ];
   }

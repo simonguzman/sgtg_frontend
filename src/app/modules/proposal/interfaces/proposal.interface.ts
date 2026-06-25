@@ -2,13 +2,14 @@ import { Evaluation } from "../../../core/interfaces/evaluation.interface";
 import { Document } from "../../../core/interfaces/Document.interface";
 import { stateList } from "../../../core/enums/state.enum";
 import { User } from "../../users/interfaces/user.interface";
+import { Archivable } from "../../../core/interfaces/archivable.interface";
 
 export enum Modality{
   TI = 'Trabajo de investigación',
   PP = 'Practica profesional'
 }
 
-export interface Proposal {
+export interface Proposal extends Archivable {
   id?: string;
   title: string;
   description: string;

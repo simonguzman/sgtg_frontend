@@ -1,0 +1,37 @@
+<div class="w-full">
+  <div class="bg-white rounded-lg shadow-sm p-6">
+
+    <div class="mb-6">
+      <button (click)="goBack()" class="flex items-center gap-2 text-navy-900 font-bold group w-fit">
+        <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
+          arrow_back
+        </span>
+        <span class="return-arrow-option">Regresar al Panel Principal</span>
+      </button>
+    </div>
+
+    <app-tabs
+      [tabs]="tabsConfig"
+      [activeTab]="activeTab()"
+      (tabChange)="activeTab.set($event)"
+    ></app-tabs>
+
+    <div class="mt-6">
+      <app-table-component
+        [value]="currentTableData()"
+        [columns]="currentColumns()"
+        [paginator]="true"
+        (actionClick)="handleTableAction($event)"
+        [emptyMessage]="'No tienes registros históricos o archivados en esta sección.'"
+      ></app-table-component>
+    </div>
+
+  </div>
+</div>
+
+<app-description-modal
+  [isOpen]="descriptionModal.show"
+  [titleDescription]="descriptionModal.title"
+  [description]="descriptionModal.content"
+  (onClose)="descriptionModal.show = false"
+></app-description-modal>

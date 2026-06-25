@@ -209,7 +209,7 @@ export class ThesisWorkSustentationService {
       delay(1200),
       tap(() => {
         let notifyUserIds: string[] = [];
-        let currentThesisTitle = ''; // 💡 Variable puente para el título
+        let currentThesisTitle = '';
 
         const activeUser = this.authService.currentUser();
         const jurorId = activeUser ? activeUser.id : 'jurado-desconocido';
@@ -219,7 +219,6 @@ export class ThesisWorkSustentationService {
           const proposal = thesisWork.preliminaryDraftData?.proposalData;
           const authors = proposal?.authors || [];
 
-          // 💡 Captura del título real antes del procesamiento interno
           currentThesisTitle = proposal?.title || '';
 
           if(proposal?.director?.id) notifyUserIds.push(proposal.director.id);
@@ -281,9 +280,16 @@ export class ThesisWorkSustentationService {
             };
           }
 
+          // 💡 LÓGICA DE ESTADO CORREGIDA
+          // Si el veredicto de la corrección es APROBADO, el proyecto mantiene APROBADO_CON_OBSERVACIONES.
+          // De lo contrario (ej. APLAZADO), toma el nuevo veredicto.
+          const finalThesisState = evaluationData.veredict === stateList.APROBADO
+            ? stateList.APROBADO_CON_OBSERVACIONES
+            : evaluationData.veredict;
+
           return {
             ...thesisWork,
-            state: evaluationData.veredict,
+            state: finalThesisState, // Asignamos el estado calculado
             sustentations: updatedSustentations,
             documents: [docFormatG, ...(thesisWork.documents || [])],
             evaluations: [newEvaluation, ...(thesisWork.evaluations || [])],
@@ -291,14 +297,13 @@ export class ThesisWorkSustentationService {
           };
         });
 
-        // 💡 Emisión corregida: payload ahora incluye el título y el veredicto
         this.eventBus.emit({
           type: AppEventType.THESIS_CORRECTED_DOCUMENTS_EVALUATED,
           targetUserIds: [...new Set(notifyUserIds)],
           payload: {
             thesisId: thesisWorkId,
             thesisTitle: currentThesisTitle,
-            veredict: evaluationData.veredict
+            veredict: evaluationData.veredict // Mantenemos el veredicto real para la notificación (ej. "Tus correcciones fueron aprobadas")
           }
         });
       })

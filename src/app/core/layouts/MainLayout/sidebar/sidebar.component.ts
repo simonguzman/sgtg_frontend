@@ -56,6 +56,12 @@ export class SidebarComponent {
       routerLink: '/statistics',
       icon: 'pi pi-check-circle',
       roles: [UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
+    },
+    {
+      label: 'Historial',
+      routerLink: '/history',
+      icon: 'pi pi-history',
+      roles: [UserRoleType.ESTUDIANTE, UserRoleType.DOCENTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR, UserRoleType.ADMINISTRADOR, UserRoleType.COMITE, UserRoleType.JEFE_DEP, UserRoleType.CONSEJO, UserRoleType.DECANATURA, UserRoleType.JURADO, UserRoleType.EVALUADOR]
     }
   ];
 

@@ -7,6 +7,7 @@ import { ButtonComponent } from '../../../../shared/components/button-component/
 import { StatisticsStateService } from '../../services/statistics-state.service';
 import { ChartOptionsConfiguration } from '../../interfaces/chartOptionsConfiguration.enum';
 import { ProjectStage } from '../../enum/projectStage.enum';
+import { StatisticsReportService } from '../../services/statistics-reports.service';
 
 @Component({
   selector: 'app-statistics-page',
@@ -24,6 +25,7 @@ import { ProjectStage } from '../../enum/projectStage.enum';
 export class StatisticsPageComponent implements OnInit {
 
   public readonly state = inject(StatisticsStateService);
+  private readonly pdfService = inject(StatisticsReportService); // Inyectamos el nuevo servicio
 
   public doughnutOptions!: ChartOptionsConfiguration;
   public barOptions!: ChartOptionsConfiguration;
@@ -76,6 +78,18 @@ export class StatisticsPageComponent implements OnInit {
   }
 
   public handleDownloadReport(): void {
-    console.log('Generando reporte con filtros actuales:', this.state.currentFilters());
+    // Recopilamos los datos en crudo desde los signals
+    const currentFilters = this.state.currentFilters();
+    const currentData = this.state.filteredData();
+
+    const kpis = {
+      loaded: this.state.totalLoaded(),
+      approved: this.state.totalApproved(),
+      obs: this.state.totalApprovedWithObservations(),
+      rejected: this.state.totalNotApproved()
+    };
+
+    // Llamamos al servicio para que arme y descargue el PDF
+    this.pdfService.downloadPdfReport(currentFilters, currentData, kpis);
   }
 }

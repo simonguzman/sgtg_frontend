@@ -1,4 +1,5 @@
 import { stateList } from "../../../core/enums/state.enum";
+import { Archivable } from "../../../core/interfaces/archivable.interface";
 import { Document } from "../../../core/interfaces/Document.interface";
 import { Evaluation } from "../../../core/interfaces/evaluation.interface";
 import { PreliminaryDraft } from "../../preliminary-draft/interfaces/preliminary-draft.interface";
@@ -89,7 +90,7 @@ export interface SpecialRequest {
   grantedDeadline?: Date | string; // 👈 NUEVO: Opcional, para guardar en el historial la fecha extra que dio el consejo (útil en prórrogas/suspensiones)
 }
 
-export interface ThesisWork {
+export interface ThesisWork extends Archivable {
   thesisWorkId: string;
   preliminaryDraftId: string;
   preliminaryDraftData: PreliminaryDraft;

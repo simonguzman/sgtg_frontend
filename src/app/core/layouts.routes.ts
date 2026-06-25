@@ -52,6 +52,11 @@ export const layoutsRoutes: Routes = [
         loadChildren: () => import('../modules/statistics/statistics.routes')
           .then(m => m.statisticsRoutes)
       },
+      {
+        path: 'history',
+        loadChildren: () => import('../modules/history/history.routes')
+          .then(m => m.historyRoutes)
+      },
     ],
   },
 

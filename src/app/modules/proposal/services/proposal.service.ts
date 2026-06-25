@@ -28,6 +28,9 @@ export class ProposalService {
   // Exposición limpia del canal de datos computado
   readonly proposals = this.storage.proposals;
 
+  // 👇 CORRECCIÓN: Exponemos la señal completa para que el historial pueda leerla
+  readonly allProposals = this.storage.allProposals;
+
   getProposalByIdMock(id: string): Observable<Proposal | undefined> {
     return this.storage.getById(id);
   }
