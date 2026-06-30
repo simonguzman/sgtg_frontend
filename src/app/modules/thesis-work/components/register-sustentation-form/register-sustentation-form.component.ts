@@ -71,17 +71,32 @@ export class RegisterSustentationFormComponent implements OnInit {
 
     if (!currentWork?.preliminaryDraftData?.proposalData) return [];
     const data = currentWork.preliminaryDraftData.proposalData;
+    const preliminaryDraftData = currentWork.preliminaryDraftData;
 
     const forbiddenIds = new Set<string>();
+
+    // 1. Excluir participantes directos (Director, Codirector, Asesor)
     if (data.director?.id) forbiddenIds.add(data.director.id);
     if (data.codirector?.id) forbiddenIds.add(data.codirector.id);
     if (data.advisor?.id) forbiddenIds.add(data.advisor.id);
 
+    // Excluir autores
     data.authors?.forEach(auth => {
       const id = typeof auth === 'string' ? auth : (auth as User)?.id;
       if (id) forbiddenIds.add(id);
     });
 
+   // 2. NUEVA REGLA: Excluir evaluadores del anteproyecto
+    if (preliminaryDraftData.evaluations) {
+      preliminaryDraftData.evaluations.forEach(evaluation => {
+        // Accedemos directamente a evaluatorId ya que es la propiedad definida en la interfaz
+        if (evaluation.evaluatorId) {
+          forbiddenIds.add(evaluation.evaluatorId);
+        }
+      });
+    }
+
+    // 3. Filtrar la lista completa de usuarios
     return allUsers.filter(user => {
       const isDocente = user.roles?.includes(UserRoleType.DOCENTE);
       const isNotParticipant = !forbiddenIds.has(user.id);

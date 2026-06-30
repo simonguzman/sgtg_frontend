@@ -32,7 +32,7 @@ export class HistoryPageComponent implements OnInit, OnDestroy {
   private readonly breadcrumbService = inject(BreadcrumbService);
   private readonly injector = inject(Injector);
 
-  // 1. Configuración de Pestañas (Las 3 sugeridas)
+  // 1. Configuración de Pestañas
   readonly tabsConfig: TabItem[] = [
     { label: 'Propuestas Archivadas', value: 'PROPUESTAS' },
     { label: 'Anteproyectos Archivados', value: 'ANTEPROYECTOS' },
@@ -52,7 +52,6 @@ export class HistoryPageComponent implements OnInit, OnDestroy {
   descriptionModal = { show: false, title: '', content: '' };
 
   constructor() {
-    // Sincronización de títulos y breadcrumbs idéntica a tu estándar
     effect(() => {
       const matchTab = this.tabsConfig.find(t => t.value === this.activeTab());
       const tabLabel = matchTab ? matchTab.label : 'Historial';
@@ -64,9 +63,7 @@ export class HistoryPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit(): void {
-    // Aquí podrías disparar las recargas de servicios si fuese necesario
-  }
+  ngOnInit(): void {}
 
   ngOnDestroy(): void{
     this.breadcrumbService.clearDynamicBreadcrumb();
@@ -102,7 +99,6 @@ export class HistoryPageComponent implements OnInit, OnDestroy {
 
     switch (event.action) {
       case 'ver descripcion':
-        // Abrimos el modal con la descripción de la fila actual
         this.descriptionModal = {
           show: true,
           title: 'Descripción del registro archivado',
@@ -112,13 +108,15 @@ export class HistoryPageComponent implements OnInit, OnDestroy {
 
       case 'view-details':
       case 'ver':
-        // 🚀 ESTRATEGIA 2: Navegación directa al módulo correspondiente
         if (this.activeTab() === 'PROPUESTAS') {
-          // Redirigimos directamente a la ruta que ya tienes en proposal.routes.ts
           this.router.navigate(['proposal-details', rowId], { relativeTo: this.route });
-        } else {
-          // Para anteproyectos y trabajos
-          this.router.navigate(['view-archive', this.activeTab().toLowerCase(), rowId], { relativeTo: this.route });
+        }
+        else if (this.activeTab() === 'ANTEPROYECTOS') {
+          this.router.navigate(['preliminary-draft-details', rowId], { relativeTo: this.route });
+        }
+        // 🚀 NUEVO: Ruta específica para redirigir a los detalles de los Trabajos de Grado
+        else if (this.activeTab() === 'TRABAJOS') {
+          this.router.navigate(['thesis-work-details', rowId], { relativeTo: this.route });
         }
         break;
 

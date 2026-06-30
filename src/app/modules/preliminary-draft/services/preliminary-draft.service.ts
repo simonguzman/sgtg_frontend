@@ -29,6 +29,8 @@ export class PreliminaryDraftService {
   // Exposición limpia de la señal computada del almacenamiento
   readonly preliminaryDrafts = this.storage.preliminaryDrafts;
 
+  readonly allPreliminaryDrafts = this.storage.allPreliminaryDrafts;
+
   getPreliminaryDraftByIdMock(id: string): Observable<PreliminaryDraft | undefined> {
     return this.storage.getById(id);
   }

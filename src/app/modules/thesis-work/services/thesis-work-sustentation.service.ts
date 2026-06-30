@@ -117,6 +117,7 @@ export class ThesisWorkSustentationService {
         this.storage.updateWork(thesisWorkId, (thesisWork) => {
           const proposal = thesisWork.preliminaryDraftData?.proposalData;
           const authors = proposal?.authors || [];
+          const isFailed = payload.veredict === stateList.NO_APROBADO;
 
           // 💡 Captura del título real antes de mutar o retornar el estado
           currentThesisTitle = proposal?.title || '';
@@ -182,7 +183,8 @@ export class ThesisWorkSustentationService {
             ...thesisWork,
             sustentations: updatedSustentations,
             documents: [sustentationFileDoc, ...updatedExistingDocuments],
-            state: payload.veredict
+            state: payload.veredict,
+            isArchived: isFailed
           };
         });
 
@@ -193,7 +195,7 @@ export class ThesisWorkSustentationService {
           payload: {
             thesisId: thesisWorkId,
             thesisTitle: currentThesisTitle,
-            veredict: payload.veredict
+            veredict: payload.veredict,
           }
         });
       })

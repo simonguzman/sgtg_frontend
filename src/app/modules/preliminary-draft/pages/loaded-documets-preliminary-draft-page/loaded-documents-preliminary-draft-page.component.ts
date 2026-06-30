@@ -50,6 +50,7 @@ export class LoadedDocumentsPreliminaryDraftPageComponent implements OnInit, OnD
 
   activeTab = signal<string>('ANTEPROYECTOS');
   preliminaryDraftId = signal<string | null>(null);
+  isArchived = signal<boolean>(false);
 
   uploadContext = signal<{ fileName: string, file: File } | null>(null);
   isUploadModalOpen = signal(false);
@@ -80,7 +81,7 @@ export class LoadedDocumentsPreliminaryDraftPageComponent implements OnInit, OnD
   private readonly currentPreliminaryDraft = computed(() => {
     const id = this.preliminaryDraftId();
     if (!id) return null;
-    return this.preliminaryDraftService.preliminaryDrafts().find(draft => draft.preliminaryDraftId === id);
+    return this.preliminaryDraftService.allPreliminaryDrafts().find(preliminaryDraft => preliminaryDraft.preliminaryDraftId === id);
   });
 
   currentStrategy = computed<PreliminaryDraftTabConfiguration>(() => {

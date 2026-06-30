@@ -1,44 +1,49 @@
-import { ThesisWork } from '../../../../thesis-work/interfaces/thesis-work.interface';
-import { ThesisWorkService } from '../../../../thesis-work/services/thesis-work.service';
+import { inject, runInInjectionContext } from '@angular/core';
 import { UserService } from '../../../../users/services/user.service';
-import { inject, runInInjectionContext } from '@angular/core'; // <-- Importación añadida
 import { HistoryEvaluationContext, HistoryTabConfiguration } from '../../../interfaces/history-tab-config.interface';
+import { ThesisWorkService } from '../../../../thesis-work/services/thesis-work.service';
+import { ThesisWork } from '../../../../thesis-work/interfaces/thesis-work.interface';
 
 export const ArchivedThesisWorksTabConfig: HistoryTabConfiguration = {
   tabValue: 'TRABAJOS',
 
+  // 1. Estandarizamos las columnas para que sean idénticas a las de Anteproyectos y vista principal
   columns: [
-    { field: 'title', header: 'Título del Trabajo', type: 'text', width: '35%' },
-    { field: 'authors', header: 'Estudiantes', type: 'text', width: '25%' },
-    { field: 'archivedDate', header: 'Fecha de Cierre', type: 'text', width: '15%' },
-    { field: 'status', header: 'Estado Final', type: 'state', width: '15%' },
+    { field: 'title', header: 'Titulo', type: 'text', width: '25%' },
+    { field: 'modality', header: 'Modalidad', type: 'text', width: '15%' },
+    { field: 'authors', header: 'Estudiantes', type: 'text', width: '20%' },
     {
-      field: 'acciones', header: 'Acciones', type: 'actions', width: '10%',
+      field: 'description',
+      header: 'Descripción',
+      type: 'actions',
+      actions: [{ action: 'ver descripcion', label: 'Ver descripcion', variant: 'primary', disabled: false }],
+      width: '10%'
+    },
+    { field: 'state', header: 'Estado', type: 'state', width: '10%' },
+    { field: 'maxDeliveryDate', header: 'Plazo Máximo', type: 'text', width: '10%' },
+    {
+      field: 'acciones',
+      header: 'Acciones',
+      type: 'actions', width: '10%',
       actions: [
-        {
-          action: 'view-details',
-          label: 'Ver Historial Completo',
-          icon: 'visibility',
-          variant: 'primary',
-          disabled: false
-        }
+        // Usamos la acción 'ver' con el icono de ojo para mantener la consistencia
+        { action: 'ver', icon: 'visibility', variant: 'primary', disabled: false }
       ]
     }
   ],
 
   getTableData: (context: HistoryEvaluationContext): Record<string, unknown>[] => {
-    // 👇 Envolvemos la lógica 👇
     return runInInjectionContext(context.injector, () => {
-
       const thesisWorkService = inject(ThesisWorkService);
       const userService = inject(UserService);
-
       const userId = context.currentUser?.id;
 
-      // 1. Filtrar solo los registros que tengan la bandera `isArchived` en true
-      const allArchived = thesisWorkService.thesisWorks().filter(work => work.isArchived === true);
+      if (!thesisWorkService || !userService) return [];
 
-      // 2. Aplicar Regla de Visibilidad
+      // 1. Filtrar archivados
+      const allArchived = thesisWorkService.allThesisWorks().filter(thesisWork => thesisWork.isArchived === true);
+
+      // 2. Visibilidad: Autores, Director, Codirector, Asesor y Jurados
       const allowedWorks = allArchived.filter((work: ThesisWork) => {
         if (context.isAdmin) return true;
 
@@ -53,23 +58,24 @@ export const ArchivedThesisWorksTabConfig: HistoryTabConfiguration = {
         return isAuthor || isDirector || isCodirector || isAdvisor || isJuror;
       });
 
-      // 3. Mapear al formato plano
+      // 3. Mapear a formato plano alimentando exactamente las columnas definidas
       return allowedWorks.map((work: ThesisWork) => {
         const proposal = work.preliminaryDraftData?.proposalData;
-        const dateStr = work.archivedAt
-          ? new Date(work.archivedAt).toLocaleDateString('es-ES')
-          : new Date(work.createdDate).toLocaleDateString('es-ES');
 
         return {
           id: work.thesisWorkId,
           title: proposal?.title || 'Sin título',
+          modality: proposal?.modality || 'No definida',
           authors: userService.getAuthorsNames(proposal?.authors) || 'Sin asignar',
-          archivedDate: dateStr,
-          status: work.state,
-          allowedActions: ['view-details']
+
+          description: proposal?.description || 'Sin descripción',
+          state: work.state,
+          maxDeliveryDate: 'Finalizado', // Texto estático para historial
+
+          // Permisos para los botones mapeados en la tabla
+          allowedActions: ['ver descripcion', 'ver']
         };
       });
-
-    }); // 👆 Cierre de runInInjectionContext 👆
+    });
   }
 };

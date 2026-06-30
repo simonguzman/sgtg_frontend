@@ -73,10 +73,9 @@ export const SustentationTabConfig: TabConfiguration = {
       }
 
       const allowedActions: string[] = ['view_sustentation_details'];
-
       const isPostponedOrCanceled = sustentation.status === SustentationStatus.APLAZADA || sustentation.status === SustentationStatus.CANCELADA;
 
-      if ((isJurorContext || context.isAdmin) && !isThisEvaluated && !isPostponedOrCanceled) {
+      if (!context.isArchived && (isJurorContext || context.isAdmin) && !isThisEvaluated && !isPostponedOrCanceled) {
         allowedActions.push('evaluate_sustentation');
       }
 

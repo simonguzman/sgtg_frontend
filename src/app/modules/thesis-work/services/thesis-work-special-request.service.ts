@@ -112,6 +112,7 @@ export class ThesisWorkSpecialRequestService {
           let updatedDraft = { ...thesisWork.preliminaryDraftData };
           let updatedSustentations = [...(thesisWork.sustentations || [])];
           let updatedDocuments = [...(thesisWork.documents || [])];
+          let isArchived = thesisWork.isArchived;
 
           const updatedRequests = (thesisWork.specialRequests || []).map(req => {
             if (req.id !== requestId) return req;
@@ -120,6 +121,7 @@ export class ThesisWorkSpecialRequestService {
               switch (req.requestType) {
                 case SpecialRequestType.CANCELACION:
                   updatedState = stateList.CANCELADO;
+                  isArchived = true;
                   break;
 
                 case SpecialRequestType.SUSPENSION:

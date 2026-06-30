@@ -224,7 +224,15 @@ export class PreliminaryDraftDocumentService {
   /**
    * Calcula el estado visual detallado de un documento específico esperando a todos los jurados.
    */
+  /**
+   * Calcula el estado visual detallado de un documento específico esperando a todos los jurados.
+   */
   calculateDocumentStatus(documentId: string, evaluations: Evaluation[], totalEvaluators: number): stateList {
+    // 👇 NUEVA VALIDACIÓN: Si aún no hay evaluadores asignados, el documento sigue en revisión.
+    if (totalEvaluators === 0) {
+      return stateList.EN_REVISION;
+    }
+
     const documentEvaluations = evaluations?.filter(evaluation => evaluation.documentId === documentId) || [];
 
     if (documentEvaluations.length < totalEvaluators) {

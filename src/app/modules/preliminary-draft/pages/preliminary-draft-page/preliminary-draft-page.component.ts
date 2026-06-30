@@ -70,20 +70,29 @@ export class PreliminaryDraftPageComponent implements OnInit {
   protected tableData = computed(() => {
     const preliminaryDraftList = this.preliminaryDraftService.preliminaryDrafts();
 
-    // Invertimos el orden de la lista de forma segura sin mutar el estado original
-    const reversedList = [...preliminaryDraftList].reverse();
+    const activePreliminaryDrafts = preliminaryDraftList.filter(preliminaryDraft => !preliminaryDraft.isArchived)
+
+    // 👇 COMPORTAMIENTO DE PILA (LIFO): Ordenamos explícitamente del más reciente al más antiguo
+    const sortedList = [...activePreliminaryDrafts].sort((a, b) => {
+      // Ajusta 'createdAt' o 'createdDate' según el nombre exacto de la fecha en tu interfaz.
+      // Usamos proposalData?.createdAt como respaldo lógico.
+      const dateA = a.createdData || a.proposalData?.createdAt || new Date(0);
+      const dateB = b.createdData || b.proposalData?.createdAt || new Date(0);
+
+      return new Date(dateB).getTime() - new Date(dateA).getTime();
+    });
     // Nota: Si manejas ES2023+, también puedes usar: preliminaryDraftList.toReversed();
 
-    return reversedList.map(draft => {
-      const allowedActions = this.calculateAllowedActions(draft);
-      const remainingTimeLabel = this.calculateRemainingTimeLabel(draft);
+    return sortedList.map(preliminaryDraft => {
+      const allowedActions = this.calculateAllowedActions(preliminaryDraft);
+      const remainingTimeLabel = this.calculateRemainingTimeLabel(preliminaryDraft);
 
       return {
-        id: draft.preliminaryDraftId,
-        title: draft.proposalData?.title || 'Sin título',
-        description: draft.proposalData?.description,
-        modality: draft.proposalData?.modality || 'No definida',
-        state: draft.state,
+        id: preliminaryDraft.preliminaryDraftId,
+        title: preliminaryDraft.proposalData?.title || 'Sin título',
+        description: preliminaryDraft.proposalData?.description,
+        modality: preliminaryDraft.proposalData?.modality || 'No definida',
+        state: preliminaryDraft.state,
         remainingTime: remainingTimeLabel,
         allowedActions: allowedActions
       };
@@ -96,7 +105,7 @@ export class PreliminaryDraftPageComponent implements OnInit {
 
   // --- MÉTODOS PRIVADOS DE LÓGICA DE NEGOCIO ---
 
-  private calculateAllowedActions(draft: PreliminaryDraft): string[] {
+  private calculateAllowedActions(preliminaryDraft: PreliminaryDraft): string[] {
     const currentUser = this.authService.currentUser();
     const currentUserId = currentUser?.id ? String(currentUser.id) : null;
 
@@ -109,7 +118,7 @@ export class PreliminaryDraftPageComponent implements OnInit {
     const isMatchingUser = (entity: any) => entity?.id != null && String(entity.id) === currentUserId;
     const isUserInList = (list?: any[]) => Array.isArray(list) && list.some(isMatchingUser);
 
-    const proposal = draft.proposalData;
+    const proposal = preliminaryDraft.proposalData;
     const isDirector = isMatchingUser(proposal?.director);
     const isCodirector = isMatchingUser(proposal?.codirector);
     const isAdvisor = isMatchingUser(proposal?.advisor);
@@ -118,11 +127,11 @@ export class PreliminaryDraftPageComponent implements OnInit {
       ? proposal.authors.some((author: User) => author.id === currentUserId)
       : false;
 
-    const isAssignedEvaluator = isUserInList(draft.evaluators);
+    const isAssignedEvaluator = isUserInList(preliminaryDraft.evaluators);
 
     const hasViewPermission = hasFullAccessRole || isDirector || isCodirector || isAdvisor || isStudentAuthor || isAssignedEvaluator;
     const isOwnerOrAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]) || isDirector;
-    const isAproved = draft.state === stateList.APROBADO;
+    const isApproved = preliminaryDraft.state === stateList.APROBADO;
 
     let allowed: string[] = ['ver descripción'];
 
@@ -130,7 +139,7 @@ export class PreliminaryDraftPageComponent implements OnInit {
       allowed.push('ver');
     }
 
-    if (isOwnerOrAdmin && !isAproved) {
+    if (isOwnerOrAdmin && !isApproved) {
       allowed.push('editar', 'eliminar');
     }
 

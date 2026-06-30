@@ -16,6 +16,7 @@ export interface ThesisEvaluationContext {
   isConsejo: boolean;
   latestAdvanceId: string | null;
   isLatestAdvancePending: boolean;
+  isArchived?: boolean;
   [key: string]: unknown;
 }
 

@@ -69,6 +69,7 @@ export const AdvancesTabConfig: TabConfiguration = {
   getTableData: (documents: Document[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
     const activeAdvances: AdvanceRegistry[] = context.thesisWork?.advances || [];
     const hasFinalDelivery = context['hasFinalDelivery'] as boolean ?? false
+    const isArchived = context.isArchived ?? false;
     return activeAdvances.map((adv: AdvanceRegistry) => {
       const allowedActions = ['view-details'];
       const evaluationsForThisAdvance: EvaluationRegistry[] = context.thesisWork?.evaluations?.filter(
@@ -78,6 +79,9 @@ export const AdvancesTabConfig: TabConfiguration = {
         (ev: EvaluationRegistry) => ev.evaluatorId === context.currentUser?.id
       );
       const isAssignedEvaluator = context.isDirector || context.isCodirector || context.isAdvisor || context.isAdmin;
+      if (!isArchived && isAssignedEvaluator && !alreadyEvaluated && !hasFinalDelivery && adv.status !== stateList.EVALUADO) {
+        allowedActions.push('evaluate-advance');
+      }
       if (isAssignedEvaluator && !alreadyEvaluated && !hasFinalDelivery && adv.status !== stateList.EVALUADO) {
         allowedActions.push('evaluate-advance');
       }
@@ -113,6 +117,7 @@ export const AdvancesTabConfig: TabConfiguration = {
   },
 
   getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
+    if (context.isArchived) return [];
     const buttons: TableButton[] = [];
     const hasFinalDelivery = context['hasFinalDelivery'] as boolean ?? false;
     const isSuspendedOrCanceled = context['isSuspendedOrCanceled'] as boolean ?? false;

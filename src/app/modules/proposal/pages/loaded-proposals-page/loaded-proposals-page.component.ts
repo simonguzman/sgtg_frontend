@@ -50,7 +50,7 @@ export class LoadedProposalsPageComponent implements OnInit {
 
   private readonly currentProposal = computed(() => {
     const id = this.proposalId();
-    return this.proposalService.proposals().find(p => p.id === id);
+    return this.proposalService.allProposals().find(p => p.id === id);
   });
 
   documentsTableData = computed(() => {
@@ -62,7 +62,7 @@ export class LoadedProposalsPageComponent implements OnInit {
 
     return proposal.documents.map(doc => {
       const allowed = ['download'];
-      if (canEvaluateRole && doc.status === stateList.EN_REVISION) {
+      if (canEvaluateRole && doc.status === stateList.EN_REVISION && !proposal.isArchived) {
         allowed.push('evaluate');
       }
 
@@ -76,7 +76,7 @@ export class LoadedProposalsPageComponent implements OnInit {
   headerButtons = computed<TableButton[]>(() => {
     const proposal = this.currentProposal();
     const user = this.authService.currentUser();
-    if (!proposal || !user) return [];
+    if (!proposal || !user || proposal.isArchived) return [];
 
     const isDirector = proposal.director.id === user.id;
     const isAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);

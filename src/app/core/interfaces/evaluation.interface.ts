@@ -1,3 +1,4 @@
+import { EvaluationDeadlineStatus } from "../enums/evaluation-deadline-status.enum";
 import { stateList } from "../enums/state.enum";
 
 export interface Evaluation {
@@ -12,5 +13,5 @@ export interface Evaluation {
   observations: string;
   signedDocuments?: string[];
   date: Date;
-  isDelayed?: boolean;
+  deadlineStatus?: EvaluationDeadlineStatus;
 }

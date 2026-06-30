@@ -39,6 +39,7 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
   thesisWorkId = signal<string | null>(null);
   isDetailsModalOpen = signal<boolean>(false);
   selectedDelivery = signal<any | null>(null);
+  isArchived = signal<boolean>(false);
 
   protected columns: Column[] = [
     { field: 'name', header: 'Nombre de la Entrega', type: 'text', width: '40%' },
@@ -56,6 +57,7 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
   ];
 
   ngOnInit(): void {
+    this.isArchived.set(this.router.url.includes('/history') || this.router.url.includes('/historial') || !!this.route.snapshot.data['isArchived']);
     const id = this.route.snapshot.paramMap.get('id') ||
                this.route.parent?.snapshot.paramMap.get('id') ||
                this.route.parent?.parent?.snapshot.paramMap.get('id');
@@ -103,6 +105,7 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
   });
 
   canDirectorUpload = computed(() => {
+    if (this.isArchived()) return false;
     if (!this.isDirector()) return false;
 
     const deliveries = this.currentThesisWork()?.correctedDeliveries || [];
@@ -113,6 +116,7 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
   });
 
   canJurorEvaluate = computed(() => {
+    if (this.isArchived()) return false;
     if (!this.isJuror()) return false;
 
     const deliveries = this.currentThesisWork()?.correctedDeliveries || [];
@@ -227,14 +231,20 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
     const thesis = this.currentThesisWork();
     const sustentationId = thesis?.sustentations?.[0]?.id;
 
+    // 👇 Obtenemos la ruta base dinámicamente cortando todo lo que esté antes de '/details'
+    // Si estamos en /history/details/..., nos dejará '/history'
+    // Si estamos en /thesis-work/details/..., nos dejará '/thesis-work'
+    const currentUrl = this.router.url;
+    const baseUrlSegment = currentUrl.split('/details')[0] || '/thesis-work';
+
     if (id) {
       if (sustentationId) {
-        this.router.navigate(['/thesis-work', 'details', id, 'view_sustentation_details', sustentationId]);
+        this.router.navigate([baseUrlSegment, 'details', id, 'view_sustentation_details', sustentationId]);
       } else {
-        this.router.navigate(['/thesis-work', 'details', id, 'loaded_documents']);
+        this.router.navigate([baseUrlSegment, 'details', id, 'loaded_documents']);
       }
     } else {
-      this.router.navigate(['/thesis-work']);
+      this.router.navigate([baseUrlSegment]);
     }
   }
 }

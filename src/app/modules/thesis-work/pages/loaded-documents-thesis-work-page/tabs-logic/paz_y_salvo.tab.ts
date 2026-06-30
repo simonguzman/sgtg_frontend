@@ -33,10 +33,13 @@ export const PazYSalvoTabConfig: TabConfiguration = {
       (pys) => pys.document.status === stateList.APROBADO
     ) ?? false;
 
+    const isSuspendedOrCanceled = thesis.state === stateList.SUSPENDIDO || thesis.state === stateList.CANCELADO;
+
     return {
       ...baseContext,
       hasActiveFinalDelivery,
-      hasApprovedPazYSalvo
+      hasApprovedPazYSalvo,
+      isSuspendedOrCanceled
     };
   },
 
@@ -66,7 +69,9 @@ export const PazYSalvoTabConfig: TabConfiguration = {
   },
 
   getHeaderButtons: (context: ThesisEvaluationContext) => {
+    if (context.isArchived) return [];
     const buttons: TableButton[] = [];
+    const isSuspendedOrCanceled = context['isSuspendedOrCanceled'] as boolean ?? false;
     if (context.isDecanatura || context.isAdmin) {
       const { hasActiveFinalDelivery, hasApprovedPazYSalvo } = context;
       let buttonLabel = 'Registrar Paz y Salvo';
@@ -76,6 +81,9 @@ export const PazYSalvoTabConfig: TabConfiguration = {
         buttonDisabled = true;
       } else if (!hasActiveFinalDelivery) {
         buttonLabel = 'Requiere Entrega Final';
+        buttonDisabled = true;
+      }
+      if (isSuspendedOrCanceled) {
         buttonDisabled = true;
       }
       buttons.push({

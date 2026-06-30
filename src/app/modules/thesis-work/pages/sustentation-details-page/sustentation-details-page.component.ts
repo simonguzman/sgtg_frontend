@@ -28,6 +28,7 @@ export class SustentationDetailsPageComponent implements OnInit {
 
   thesisWorkDetails = signal<ThesisWork | null>(null);
   sustentationId = signal<string | null>(null);
+  isArchived = signal<boolean>(false);
 
   selectedSustentation = computed<SustentationRegistry | null>(() => {
     const work = this.thesisWorkDetails();
@@ -92,6 +93,7 @@ export class SustentationDetailsPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.isArchived.set(this.router.url.includes('/history') || this.router.url.includes('/historial') || !!this.route.snapshot.data['isArchived']);
     const sId = this.route.snapshot.paramMap.get('id');
     this.sustentationId.set(sId);
     const thesisWorkId = this.route.parent?.snapshot.paramMap.get('id');

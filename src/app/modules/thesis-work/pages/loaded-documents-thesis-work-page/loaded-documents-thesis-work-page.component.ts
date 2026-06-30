@@ -63,6 +63,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
 
   activeTab = signal<string>('AVANCES');
   thesisWorkId = signal<string | null>(null);
+  isArchived = signal<boolean>(false);
 
   isUploadModalOpen = signal(false);
   isConfirmModalOpen = signal(false);
@@ -85,6 +86,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   }
 
   ngOnInit(): void {
+    this.isArchived.set(this.router.url.includes('/history') || this.router.url.includes('/historial'));
     let currentRoute = this.route;
     while (currentRoute.firstChild) {
       currentRoute = currentRoute.firstChild;
@@ -103,7 +105,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
 
   private readonly currentThesisWork = computed(() => {
     const id = this.thesisWorkId();
-    return id ? this.thesisWorkService.thesisWorks().find(w => w.thesisWorkId === id) : null;
+    return id ? this.thesisWorkService.allThesisWorks().find(w => w.thesisWorkId === id) : null;
   });
 
   currentStrategy = computed<TabConfiguration>(() => {
@@ -133,7 +135,8 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
         (juror: User) => juror.id === user?.id
       ) ?? false,
       latestAdvanceId: null,
-      isLatestAdvancePending: false
+      isLatestAdvancePending: false,
+      isArchived: thesis?.isArchived ?? false
     };
 
     return this.currentStrategy().enrichEvaluationContext(baseContext);
@@ -284,7 +287,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   }
 
   goBack(): void {
-    this.router.navigate(['../'], { relativeTo: this.route });
+    this.router.navigate(['../'], { relativeTo: this.route.parent });
   }
 
   ensureDate(date: Date | string | undefined | null): Date {

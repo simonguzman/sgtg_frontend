@@ -66,6 +66,7 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
   },
 
   getHeaderButtons: (context: ThesisEvaluationContext) => {
+    if (context.isArchived) return [];
     const buttons: TableButton[] = [];
     const hasFinalDelivery = !!context['hasFinalDelivery'];
     const isSuspendedOrCanceled = context['isSuspendedOrCanceled'] as boolean ?? false; // Lo recuperamos

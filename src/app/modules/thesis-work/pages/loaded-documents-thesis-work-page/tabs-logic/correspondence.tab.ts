@@ -51,7 +51,10 @@ export const CorrespondenceTabConfig: TabConfiguration = {
 
   getHeaderButtons: (context: ThesisEvaluationContext) => {
     const buttons: TableButton[] = [];
-    const { isJuror, hasCorrespondence } = context;
+    const { isJuror, hasCorrespondence, isArchived } = context;
+    if (isArchived) {
+      return buttons;
+    }
     if (isJuror) {
       buttons.push({
         action: 'register_correspondence',

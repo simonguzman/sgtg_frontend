@@ -8,7 +8,6 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
-import { UserRoleType } from '../../../../core/models/user-role';
 import { User } from '../../../users/interfaces/user.interface';
 
 @Component({
@@ -86,7 +85,7 @@ export class ThesisWorkDetailsPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    const thesisWorkId = this.route.snapshot.paramMap.get('id');
+    const thesisWorkId = this.route.snapshot.paramMap.get('id') || this.route.parent?.snapshot.paramMap.get('id');
     if (!thesisWorkId) {
       this.handleNavigationError();
       return;
@@ -98,12 +97,12 @@ export class ThesisWorkDetailsPageComponent implements OnInit {
           this.thesisWorkDetails.set(foundData);
         } else {
           this.showNotFoundNotification();
-          this.router.navigate(['/thesis-work']);
+          this.goBack();
         }
       },
       error: (error) => {
         this.showErrorNotification();
-        this.router.navigate(['/thesis-work']);
+        this.goBack();
         console.error('Error al recuperar detalles del trabajo de grado:', error);
       }
     });
@@ -128,6 +127,15 @@ export class ThesisWorkDetailsPageComponent implements OnInit {
     this.showDownloadFileInfoNotification();
     this.downloadService.download(targetDocument.url, targetDocument.name);
     this.showDownloadFileSuccessNotification();
+  }
+
+  public goBack(): void {
+    const currentUrl = this.router.url;
+    if (currentUrl.includes('/history')){
+      this.router.navigate(['/history']);
+    } else {
+      this.router.navigate(['/thesis-work']);
+    }
   }
 
   private showDownloadFileSuccessNotification(): void {
@@ -160,7 +168,7 @@ export class ThesisWorkDetailsPageComponent implements OnInit {
       message: 'No se pudo procesar la solicitud debido a un ID de trabajo de grado inválido.',
       type: NotificationType.ERROR
     });
-    this.router.navigate(['/thesis-work']);
+    this.goBack();
   }
 
   private showNotFoundNotification(): void {

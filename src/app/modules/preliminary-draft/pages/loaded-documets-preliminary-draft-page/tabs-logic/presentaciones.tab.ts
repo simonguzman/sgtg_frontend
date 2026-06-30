@@ -45,7 +45,7 @@ export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
       }
 
       const allowedActions = ['download'];
-      if (isLatestDoc && (context.isConsejoMember || context.isAdmin) && status === stateList.EN_REVISION) {
+      if (isLatestDoc && (context.isConsejoMember || context.isAdmin) && status === stateList.EN_REVISION && !preliminaryDraft.isArchived) {
         allowedActions.push('evaluate-presentation');
       }
 
@@ -54,17 +54,36 @@ export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
   },
 
   getHeaderButtons: (context: PreliminaryDraftEvaluationContext, preliminaryDraftService: any) => {
+    if (context.preliminaryDraft.isArchived) return [];
     if (!context.isJefe && !context.isAdmin) return [];
 
-    const latestDoc = context.preliminaryDraft.documents?.find((d: any) => d.type !== DocumentType.FORMATO_C);
-    const status = latestDoc
-      ? preliminaryDraftService.calculateDocumentStatus(latestDoc.id, context.preliminaryDraft.evaluations || [], context.totalEvaluatorsCount)
+    // 1. Estado del anteproyecto más reciente
+    const latestAnteproyecto = context.preliminaryDraft.documents?.find((d: any) => d.type !== DocumentType.FORMATO_C);
+    const anteproyectoStatus = latestAnteproyecto
+      ? preliminaryDraftService.calculateDocumentStatus(latestAnteproyecto.id, context.preliminaryDraft.evaluations || [], context.totalEvaluatorsCount)
       : null;
+
+    // 2. Verificar si la presentación más reciente sigue en revisión (sin evaluación del consejo)
+    const latestPresentacion = context.preliminaryDraft.documents?.find((d: any) => d.id === context.latestPresentacionId);
+    const presentacionTieneEvaluacion = latestPresentacion
+      ? (context.preliminaryDraft.evaluations || []).some((ev: any) => ev.documentId === latestPresentacion.id)
+      : false;
+
+    const isPresentacionEnRevision = latestPresentacion && !presentacionTieneEvaluacion;
+
+    // 3. Verificar si el anteproyecto ya tiene un veredicto final del consejo (Fin del ciclo actual)
+    const isDraftFinalized = [stateList.APROBADO, stateList.NO_APROBADO].includes(context.preliminaryDraft.state as stateList);
+
+    // 4. Lógica estricta de inhabilitación:
+    // - El anteproyecto aún no ha sido aprobado por los jurados
+    // - O ya hay una presentación cargada esperando evaluación
+    // - O el proceso ya finalizó (aprobado/rechazado por el consejo)
+    const isUploadDisabled = anteproyectoStatus !== stateList.APROBADO || isPresentacionEnRevision || isDraftFinalized;
 
     return [{
       label: 'Cargar formato de presentación',
       variant: 'primary',
-      disabled: status !== stateList.APROBADO,
+      disabled: isUploadDisabled, // Se aplica la nueva lógica combinada
       action: 'upload_document'
     }];
   },

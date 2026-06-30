@@ -9,6 +9,8 @@ import { DescriptionModalComponent } from '../../../../shared/components/modals/
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { UserRoleType } from '../../../../core/models/user-role';
 import { getRemainingBusinessDays } from '../../../../core/utils/date-utils';
+import { Proposal } from '../../interfaces/proposal.interface';
+import { stateList } from '../../../../core/enums/state.enum';
 
 const PROPOSAL_COLUMNS: Column[] = [
   { field: 'title', header: 'Titulo', type: 'text', width: '30%' },
@@ -64,13 +66,10 @@ export class ProposalPageComponent implements OnInit {
     return this.rawProposals().map(proposal => {
       const isOwner = proposal.director?.id === currentUser?.id;
 
-      // Calculamos la etiqueta del plazo límite en días hábiles para esta propuesta
-      const badgeInfo = this.getDeadlineBadge(proposal.evaluationDeadline);
-
       return {
         ...proposal,
-        // Asignamos el texto formateado al campo de la columna 'deadlineStatus'
-        deadlineStatus: badgeInfo.label,
+        // 👇 Ahora pasamos la propuesta completa al método
+        deadlineStatus: this.getDeadlineBadge(proposal),
         allowedActions: (isAdmin || isOwner)
           ? ['ver descripcion', 'ver', 'editar', 'eliminar']
           : ['ver descripcion', 'ver']
@@ -143,31 +142,36 @@ export class ProposalPageComponent implements OnInit {
     }
   }
 
-  getDeadlineBadge(deadline?: Date) {
-    if (!deadline) return { label: 'Sin límite', css: 'bg-gray-100 text-gray-700' };
+ getDeadlineBadge(proposal: Proposal): string {
+    // 1. Verificamos si la propuesta YA FUE EVALUADA
+    const isEvaluated =
+      proposal.state === stateList.APROBADO ||
+      proposal.state === stateList.APROBADO_CON_OBSERVACIONES ||
+      proposal.state === stateList.NO_APROBADO;
 
-    const remainingDays = getRemainingBusinessDays(deadline);
+    if (isEvaluated) {
+      // Como las evaluaciones se insertan al inicio del array [nueva, ...viejas], la [0] es la actual
+      if (proposal.evaluations && proposal.evaluations.length > 0) {
+        const latestEvaluation = proposal.evaluations[0];
+        // Retornamos el valor del Enum (Ej: "Evaluado en plazo" o "Evaluado con retraso")
+        if (latestEvaluation.deadlineStatus) {
+          return latestEvaluation.deadlineStatus as string;
+        }
+      }
+      return 'Evaluación completada';
+    }
+
+    // 2. Si sigue en revisión, calculamos los días normales
+    if (!proposal.evaluationDeadline) return 'Sin límite';
+
+    const remainingDays = getRemainingBusinessDays(proposal.evaluationDeadline);
 
     if (remainingDays < 0) {
-      return {
-        label: `Plazo vencido (${Math.abs(remainingDays)} días hábiles de retraso)`,
-        css: 'bg-red-100 text-red-700 font-bold border border-red-300'
-      };
+      return `Plazo vencido (${Math.abs(remainingDays)} días hábiles de retraso)`;
     } else if (remainingDays === 0) {
-      return {
-        label: '¡Vence hoy!',
-        css: 'bg-orange-100 text-orange-700 font-bold'
-      };
-    } else if (remainingDays <= 3) {
-      return {
-        label: `Quedan ${remainingDays} días hábiles`,
-        css: 'bg-yellow-100 text-yellow-700'
-      };
+      return '¡Vence hoy!';
     } else {
-      return {
-        label: `Quedan ${remainingDays} días hábiles`,
-        css: 'bg-green-100 text-green-700'
-      };
+      return `Quedan ${remainingDays} días hábiles`;
     }
   }
 

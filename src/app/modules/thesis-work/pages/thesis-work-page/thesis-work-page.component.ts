@@ -69,13 +69,13 @@ export class ThesisWorkPageComponent implements OnInit {
       UserRoleType.CONSEJO
     ]);
 
-    const thesisWorkList = this.thesisWorkService.thesisWorks();
-    return thesisWorkList.map(work => {
-      const draft = work.preliminaryDraftData;
-      const proposal = draft?.proposalData;
+    const activeThesisWorkList = this.thesisWorkService.thesisWorks().filter(thesisWork => !thesisWork.isArchived);
+    return activeThesisWorkList.map(thesisWork => {
+      const preliminaryDraft = thesisWork.preliminaryDraftData;
+      const proposal = preliminaryDraft?.proposalData;
 
       let maxDeliveryDateFormatted = 'No asignada';
-      const rawDate = draft?.maximumDeliveryDate;
+      const rawDate = preliminaryDraft?.maximumDeliveryDate;
       if (rawDate) {
         const dateObj = new Date(rawDate);
         if (!isNaN(dateObj.getTime())) {
@@ -91,7 +91,7 @@ export class ThesisWorkPageComponent implements OnInit {
             typeof author === 'string' ? author === currentUserId : String(author?.id) === currentUserId
           )
         : false;
-      const isJuror = work.sustentations?.[0]?.assignedJurors?.some(juror => String(juror.id) === currentUserId) ?? false;
+      const isJuror = thesisWork.sustentations?.[0]?.assignedJurors?.some(juror => String(juror.id) === currentUserId) ?? false;
 
       const hasViewPermission = hasFullAccessRole || isDirector || isCodirector || isAdvisor || isStudentAuthor || isJuror;
       const isOwnerOrAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]) || isDirector;
@@ -101,16 +101,16 @@ export class ThesisWorkPageComponent implements OnInit {
       if (isOwnerOrAdmin) allowed.push('editar');
 
       // Lógica de Reactivación: Solo si está suspendido y es Administrador
-      if (work.state === stateList.SUSPENDIDO && this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR])) {
+      if (thesisWork.state === stateList.SUSPENDIDO && this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR])) {
         allowed.push('reactivar');
       }
 
       return {
-        id: work.thesisWorkId,
+        id: thesisWork.thesisWorkId,
         title: proposal?.title || 'Sin título',
         description: proposal?.description || 'Sin descripción disponible.',
         modality: proposal?.modality || 'No definida',
-        state: work.state,
+        state: thesisWork.state,
         maxDeliveryDate: maxDeliveryDateFormatted,
         allowedActions: allowed
       };

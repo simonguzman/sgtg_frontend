@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { delay, Observable, of, tap } from 'rxjs';
+import { delay, Observable, of, tap, shareReplay } from 'rxjs';
 
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { stateList } from '../../../core/enums/state.enum';
@@ -107,7 +107,8 @@ export class ThesisWorkDeliveryService {
             thesisTitle: currentThesisTitle // 💡 Inyección del título
           }
         });
-      })
+      }),
+      shareReplay(1)
     );
   }
 
@@ -203,7 +204,8 @@ export class ThesisWorkDeliveryService {
             thesisTitle: currentThesisTitle // 💡 Inyección del título
           }
         });
-      })
+      }),
+      shareReplay(1)
     );
   }
 
@@ -341,7 +343,7 @@ export class ThesisWorkDeliveryService {
               ...(thesisWork.documents || [])
             ],
             finalDeliveries: updatedDeliveries,
-            state: stateList.APROBADO
+            isArchived: true
           };
         });
 

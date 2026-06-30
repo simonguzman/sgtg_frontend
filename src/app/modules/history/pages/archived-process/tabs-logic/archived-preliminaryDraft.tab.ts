@@ -1,43 +1,47 @@
-import { inject, runInInjectionContext } from '@angular/core'; // <-- Importación añadida
+import { inject, runInInjectionContext } from '@angular/core';
 import { UserService } from '../../../../users/services/user.service';
 import { HistoryEvaluationContext, HistoryTabConfiguration } from '../../../interfaces/history-tab-config.interface';
 import { PreliminaryDraftService } from '../../../../preliminary-draft/services/preliminary-draft.service';
 import { PreliminaryDraft } from '../../../../preliminary-draft/interfaces/preliminary-draft.interface';
-// 💡 Ajusta estos imports a la ruta real
-
 
 export const ArchivedPreliminaryDraftsTabConfig: HistoryTabConfiguration = {
   tabValue: 'ANTEPROYECTOS',
 
+  // 1. Estandarizamos las columnas para que sean idénticas a las de Propuestas
   columns: [
-    { field: 'title', header: 'Título del Anteproyecto', type: 'text', width: '35%' },
-    { field: 'authors', header: 'Estudiantes', type: 'text', width: '25%' },
-    { field: 'evaluators', header: 'Evaluadores', type: 'text', width: '20%' },
-    { field: 'status', header: 'Estado Final', type: 'state', width: '10%' },
+    { field: 'title', header: 'Titulo', type: 'text', width: '25%' },
+    { field: 'modality', header: 'Modalidad', type: 'text', width: '15%' },
+    { field: 'authors', header: 'Estudiantes', type: 'text', width: '20%' },
     {
-      field: 'acciones', header: 'Acciones', type: 'actions', width: '10%',
+      field: 'description',
+      header: 'Descripción',
+      type: 'actions',
+      actions: [{ action: 'ver descripcion', label: 'Ver descripcion', variant: 'primary', disabled: false }],
+      width: '10%'
+    },
+    { field: 'state', header: 'Estado', type: 'state', width: '10%' },
+    { field: 'deadlineStatus', header: 'Plazo Evaluación', type: 'text', width: '10%' },
+    {
+      field: 'acciones',
+      header: 'Acciones',
+      type: 'actions', width: '10%',
       actions: [
-        {
-          action: 'view-details',
-          label: 'Ver Evaluaciones y Documentos',
-          icon: 'visibility',
-          variant: 'primary',
-          disabled: false
-        }
+        // Usamos la acción 'ver' con el icono de ojo para mantener la consistencia
+        { action: 'ver', icon: 'visibility', variant: 'primary', disabled: false }
       ]
     }
   ],
 
   getTableData: (context: HistoryEvaluationContext): Record<string, unknown>[] => {
-    // 👇 Envolvemos la lógica 👇
     return runInInjectionContext(context.injector, () => {
-
       const draftService = inject(PreliminaryDraftService);
       const userService = inject(UserService);
       const userId = context.currentUser?.id;
 
+      if (!draftService || !userService) return [];
+
       // 1. Filtrar archivados
-      const allArchived = draftService.preliminaryDrafts().filter(d => d.isArchived === true);
+      const allArchived = draftService.allPreliminaryDrafts().filter(d => d.isArchived === true);
 
       // 2. Visibilidad: Autores, Director, Codirector, Asesor y Evaluadores
       const allowedDrafts = allArchived.filter((draft: PreliminaryDraft) => {
@@ -49,26 +53,29 @@ export const ArchivedPreliminaryDraftsTabConfig: HistoryTabConfiguration = {
         const isDirector = proposal?.director?.id === userId;
         const isCodirector = proposal?.codirector?.id === userId;
         const isAdvisor = proposal?.advisor?.id === userId;
-        // Nueva regla: Si fue evaluador, puede ver el registro
         const isEvaluator = draft.evaluators?.some(evaluator => evaluator.id === userId);
 
         return isAuthor || isDirector || isCodirector || isAdvisor || isEvaluator;
       });
 
-      // 3. Mapear a formato plano
-      return allowedDrafts.map((draft: PreliminaryDraft) => {
-        const proposal = draft.proposalData;
+      // 3. Mapear a formato plano alimentando exactamente las columnas definidas
+      return allowedDrafts.map((preliminaryDraft: PreliminaryDraft) => {
+        const proposal = preliminaryDraft.proposalData;
 
         return {
-          id: draft.preliminaryDraftId,
+          id: preliminaryDraft.preliminaryDraftId,
           title: proposal?.title || 'Sin título',
+          modality: proposal?.modality || 'No definida',
           authors: userService.getAuthorsNames(proposal?.authors) || 'Sin asignar',
-          evaluators: draft.evaluators ? draft.evaluators.map(e => `${e.firstName} ${e.lastName}`).join(', ') : 'Sin asignar',
-          status: draft.state,
-          allowedActions: ['view-details']
+
+          description: proposal?.description || 'Sin descripción',
+          state: preliminaryDraft.state, // Se empareja con la columna 'state'
+          deadlineStatus: 'Finalizado', // Texto estático para historial
+
+          // Permisos para los botones mapeados en la tabla
+          allowedActions: ['ver descripcion', 'ver']
         };
       });
-
-    }); // 👆 Cierre de runInInjectionContext 👆
+    });
   }
 };

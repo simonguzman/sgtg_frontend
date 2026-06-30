@@ -52,12 +52,13 @@ export const SpecialRequestTabConfig: TabConfiguration = {
     const thesis = context.thesisWork;
     if (!thesis || !thesis.specialRequests) return [];
     const isConsejo = !!context.isConsejo;
+    const isArchived = !!context.isArchived;
 
     return thesis.specialRequests.map((req: SpecialRequest) => {
       const dateStr = req.requestDate ? new Date(req.requestDate).toLocaleDateString('es-ES') : 'Sin fecha';
       const allowedActions: string[] = ['view-details'];  // ← NUEVO: siempre disponible
 
-      if (isConsejo && req.status === stateList.EN_REVISION) {
+      if (!isArchived && isConsejo && req.status === stateList.EN_REVISION) {
         allowedActions.push('evaluate_special_request');
       }
 
@@ -76,6 +77,10 @@ export const SpecialRequestTabConfig: TabConfiguration = {
     const isDirector = !!context.isDirector;
     const isAdmin = !!context.isAdmin;
     const isSustentationFinalized = !!context['isSustentationFinalized'];
+
+    if (context.isArchived) {
+      return buttons;
+    }
 
     if (isDirector || isAdmin) {
       buttons.push({

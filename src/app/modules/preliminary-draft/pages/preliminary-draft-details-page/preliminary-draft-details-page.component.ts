@@ -28,26 +28,26 @@ export class PreliminaryDraftDetailsPageComponent implements OnInit {
   preliminayDraftDetails = signal<PreliminaryDraft | null>(null);
 
   mainDocument = computed(() => {
-    const currentDraft = this.preliminayDraftDetails();
-    if (!currentDraft) return null;
-    return currentDraft.documents.find(doc => doc.type === 'Anteproyecto')
-           || currentDraft.documents[0]
+    const currentPreliminaryDraft = this.preliminayDraftDetails();
+    if (!currentPreliminaryDraft) return null;
+    return currentPreliminaryDraft.documents.find(document => document.type === 'Anteproyecto')
+           || currentPreliminaryDraft.documents[0]
            || null;
   });
 
   ngOnInit(): void {
-    const draftId = this.route.snapshot.paramMap.get('id');
-    if (!draftId) {
+    const preliminaryDraftId = this.route.snapshot.paramMap.get('id') || this.route.parent?.snapshot.paramMap.get('id');
+    if (!preliminaryDraftId) {
       this.handleNavigationError();
       return;
     }
-    this.preliminaryDraftService.getPreliminaryDraftByIdMock(draftId).subscribe({
+    this.preliminaryDraftService.getPreliminaryDraftByIdMock(preliminaryDraftId).subscribe({
       next: (foundData) => {
         if (foundData) {
           this.preliminayDraftDetails.set(foundData);
         } else {
           this.showNotFoundNotification();
-          this.router.navigate(['preliminary-draft']);
+          this.goBack();
         }
       },
       error: (error) => {
@@ -77,6 +77,15 @@ export class PreliminaryDraftDetailsPageComponent implements OnInit {
     this.showDownloadFileInfoNotification();
     this.downloadService.download(targetDocument.url, targetDocument.name);
     this.showDownloadFileSuccessNotification();
+  }
+
+  public goBack(): void {
+    const currentUrl = this.router.url;
+    if (currentUrl.includes('/history')){
+      this.router.navigate(['/history']);
+    } else {
+      this.router.navigate(['/preliminary-draft']);
+    }
   }
 
   private showDownloadFileSuccessNotification(): void {
@@ -109,7 +118,7 @@ export class PreliminaryDraftDetailsPageComponent implements OnInit {
       message: 'No se pudo cargar la información porque el ID del anteproyecto no es válido.',
       type: NotificationType.ERROR
     });
-    this.router.navigate(['/preliminary-draft']);
+    this.goBack();
   }
 
   private showNotFoundNotification(): void {

@@ -78,7 +78,7 @@
          [class.border-[#ED7D31]]="isSubmitAttempted() && academicApproved() === null"
          [class.border-blue-100]="!(isSubmitAttempted() && academicApproved() === null)">
 
-      <div class="flex gap-6 mb-4">
+      <div class="flex justify-center gap-6 mb-4">
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="academic" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="academicApproved() === true" (change)="academicApproved.set(true)">
@@ -107,7 +107,7 @@
          [class.border-[#ED7D31]]="isSubmitAttempted() && financialApproved() === null"
          [class.border-blue-100]="!(isSubmitAttempted() && financialApproved() === null)">
 
-      <div class="flex gap-6 mb-4">
+      <div class="flex justify-center gap-6 mb-4">
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="financial" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="financialApproved() === true" (change)="financialApproved.set(true)">

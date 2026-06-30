@@ -105,7 +105,7 @@ export class EvaluationsPerformedPageComponent implements OnInit {
   // ==========================================
 
   private processProposalEvaluations(id: string): any[] {
-    const proposal = this.proposalService.proposals().find(p => p.id === id);
+    const proposal = this.proposalService.allProposals().find(p => p.id === id);
     if (!proposal) return [];
 
     return this.formatEvaluationsForTable(
@@ -116,7 +116,7 @@ export class EvaluationsPerformedPageComponent implements OnInit {
   }
 
   private processDraftEvaluations(id: string): any[] {
-    const draft = this.preliminaryDraftService.preliminaryDrafts().find(d => d.preliminaryDraftId === id);
+    const draft = this.preliminaryDraftService.allPreliminaryDrafts().find(d => d.preliminaryDraftId === id);
     if (!draft) return [];
 
     return this.formatEvaluationsForTable(
@@ -127,7 +127,7 @@ export class EvaluationsPerformedPageComponent implements OnInit {
   }
 
   private processThesisEvaluations(id: string, sessionUser: User | null): any[] {
-    const thesis = this.thesisWorkService.thesisWorks().find((t: ThesisWork) => t.thesisWorkId === id);
+    const thesis = this.thesisWorkService.allThesisWorks().find((t: ThesisWork) => t.thesisWorkId === id);
     if (!thesis) return [];
 
     const defaultTitle = thesis.preliminaryDraftData?.proposalData?.title || 'Trabajo de Grado';

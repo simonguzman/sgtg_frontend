@@ -33,6 +33,8 @@ export class ThesisWorkService {
 
   readonly thesisWorks = this.storage.thesisWorks;
 
+  readonly allThesisWorks = this.storage.allThesisWorks;
+
   reactivateThesisWorkMock(thesisWorkId: string) {
     return of(undefined).pipe(
       delay(500),

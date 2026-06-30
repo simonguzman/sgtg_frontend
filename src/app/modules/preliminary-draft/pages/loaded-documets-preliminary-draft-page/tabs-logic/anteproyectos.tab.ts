@@ -2,6 +2,7 @@ import { TableButton } from '../../../../../shared/components/table-component/ta
 import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
 import { PreliminaryDraftTabConfiguration, PreliminaryDraftEvaluationContext } from './tab-config.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
+import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
 
 export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
   tabValue: 'ANTEPROYECTOS',
@@ -44,11 +45,11 @@ export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
       if (isLatestDoc) {
         const userFullName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
         const userAlreadyEvaluated = preliminaryDraft.evaluations?.some(
-          (ev: any) => ev.documentId === document.id && ev.evaluatorName.trim() === userFullName
+          (ev: Evaluation) => ev.documentId === document.id && ev.evaluatorName.trim() === userFullName
         );
         const draftHasFinalState = [stateList.APROBADO, stateList.NO_APROBADO].includes(preliminaryDraft.state as stateList);
 
-        if ((isAssignedEvaluator || isAdmin) && !userAlreadyEvaluated && !draftHasFinalState) {
+        if ((isAssignedEvaluator || isAdmin) && !userAlreadyEvaluated && !draftHasFinalState && !preliminaryDraft.isArchived) {
           allowedActions.push('evaluate');
         }
       }
@@ -58,6 +59,7 @@ export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
   },
 
   getHeaderButtons: (context: PreliminaryDraftEvaluationContext, preliminaryDraftService: any) => {
+    if (context.preliminaryDraft.isArchived) return [];
     const actions: TableButton[] = [];
     const reviewersReady = context.totalEvaluatorsCount > 0;
 
