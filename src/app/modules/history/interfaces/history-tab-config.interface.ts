@@ -7,7 +7,7 @@ import { UserService } from '../../users/services/user.service';
 
 export interface HistoryEvaluationContext {
   currentUser: User | null;
-  isAdmin: boolean;
+  hasGlobalAccess: boolean;
   injector: Injector;
   proposalService?: ProposalService;
   userService?: UserService;

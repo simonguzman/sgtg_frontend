@@ -1,4 +1,4 @@
-import { Component, inject, ViewChild } from '@angular/core';
+import { Component, computed, inject, ViewChild } from '@angular/core';
 import { AvatarModule } from 'primeng/avatar';
 import { MenuModule, Menu } from 'primeng/menu';
 import { MenuItem } from 'primeng/api';
@@ -30,6 +30,16 @@ export class HeaderComponent {
   userName = 'Admin';
   userRole = 'Administrador';
   userAvatar = 'assets/images/avatar-default.png';
+
+  protected userFullName = computed(() => {
+    const user = this.authService.currentUser();
+    if (!user) return 'Invitado';
+
+    // Reutilizamos la lógica estructural de tu UserFormatterService
+    return `${user.firstName} ${user.secondName || ''} ${user.lastName} ${user.secondLastName || ''}`
+      .replace(/\s+/g, ' ')
+      .trim();
+  });
 
   menuItems: MenuItem[] = [
     {

@@ -10,4 +10,5 @@ export interface RawProjectData {
   directorId: string;
   directorName: string;
   registrationDate: Date;
+  isArchived: boolean;
 }

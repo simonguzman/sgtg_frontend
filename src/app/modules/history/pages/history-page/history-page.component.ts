@@ -73,11 +73,18 @@ export class HistoryPageComponent implements OnInit, OnDestroy {
   // 3. Evaluación de Contexto de Usuario
   evaluationContext = computed<HistoryEvaluationContext>(() => {
     const user = this.authService.currentUser();
-    const isAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
+
+    // 👈 NUEVO: Agrupamos los roles institucionales (Asegúrate de que los nombres del enum coincidan con los tuyos)
+    const hasGlobalAccess = this.authService.hasAnyRole([
+      UserRoleType.ADMINISTRADOR,
+      UserRoleType.COMITE,
+      UserRoleType.CONSEJO,
+      UserRoleType.JEFE_DEP
+    ]);
 
     return {
       currentUser: user,
-      isAdmin,
+      hasGlobalAccess, // 👈 NUEVO
       injector: this.injector,
       proposalService: this.proposalService,
       userService: this.userService

@@ -14,7 +14,7 @@ import { Proposal } from '../../proposal/interfaces/proposal.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { UserService } from '../../users/services/user.service';
-import { UserRoleType } from '../../../core/models/user-role';
+import { UserRoleType, UserRole } from '../../../core/models/user-role';
 
 @Injectable({
   providedIn: 'root'
@@ -71,7 +71,7 @@ export class PreliminaryDraftService {
 
         // Obtener miembros del Comité de Programa
         const committeeIds = this.userService.users()
-          .filter(user => user.roles.includes(UserRoleType.COMITE))
+          .filter(user => user.roles.includes(UserRoleType.JEFE_DEP))
           .map(user => user.id);
         notifyUserIds.push(...committeeIds);
 

@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { delay, of, tap } from 'rxjs';
+import { delay, Observable, of, tap } from 'rxjs';
 
 // --- Importación de Sub-servicios ---
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
@@ -32,8 +32,84 @@ export class ThesisWorkService {
   private readonly eventBus = inject(EventBusService); // 💡 Inyectado para control local de reactivación
 
   readonly thesisWorks = this.storage.thesisWorks;
-
   readonly allThesisWorks = this.storage.allThesisWorks;
+
+  constructor() {
+    this.verifyDeliveryDeadlinesMock().subscribe();
+  }
+
+  /**
+   * Verifica los plazos máximos de entrega de manera automática.
+   * Si expira el plazo sin entrega final, reprueba el trabajo y ejecuta el archivado en cascada.
+   */
+  private verifyDeliveryDeadlinesMock(): Observable<void> {
+    return of(undefined).pipe(
+      delay(1000), // Pequeño delay para asegurar que el storage simulado esté inicializado con datos
+      tap(() => {
+        const now = new Date();
+        const allWorks = this.storage.allThesisWorks();
+
+        allWorks.forEach(work => {
+          // Solo evaluamos los que siguen en desarrollo activo
+          if (work.state !== stateList.EN_DESARROLLO) return;
+
+          const maxDateStr = work.preliminaryDraftData?.maximumDeliveryDate;
+          if (!maxDateStr) return;
+
+          const maxDate = new Date(maxDateStr);
+
+          // Si la fecha actual superó el plazo máximo establecido
+          if (now > maxDate) {
+            const hasFinalDelivery = work.finalDeliveries && work.finalDeliveries.length > 0;
+
+            if (!hasFinalDelivery) {
+              let notifyUserIds: string[] = [];
+              let currentThesisTitle = work.preliminaryDraftData?.proposalData?.title || 'Sin título';
+
+              this.storage.updateWork(work.thesisWorkId, (w) => {
+                const proposal = w.preliminaryDraftData?.proposalData;
+
+                if (proposal) {
+                  proposal.authors?.forEach((author: User | string) => {
+                    notifyUserIds.push(typeof author === 'string' ? author : author.id);
+                  });
+                  if (proposal.director?.id) notifyUserIds.push(proposal.director.id);
+                  if (proposal.codirector?.id) notifyUserIds.push(proposal.codirector.id);
+                  if (proposal.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+                }
+
+                // 🔄 CASCADA DE ARCHIVADO INMUTABLE
+                return {
+                  ...w,
+                  state: stateList.NO_APROBADO,
+                  isArchived: true, // 1. Archivamos Trabajo de Grado
+                  preliminaryDraftData: {
+                    ...w.preliminaryDraftData,
+                    isArchived: true, // 2. Archivamos Anteproyecto
+                    proposalData: {
+                      ...w.preliminaryDraftData.proposalData,
+                      isArchived: true // 3. Archivamos la Propuesta raíz
+                    }
+                  }
+                };
+              });
+
+              // Emisión del evento global para el sistema de alertas/notificaciones
+              this.eventBus.emit({
+                type: AppEventType.THESIS_DEADLINE_EXPIRED,
+                targetUserIds: [...new Set(notifyUserIds)],
+                payload: {
+                  thesisId: work.thesisWorkId,
+                  thesisTitle: currentThesisTitle,
+                  message: 'El plazo máximo de entrega final ha vencido. El trabajo de grado junto con su anteproyecto y propuesta han sido archivados como NO APROBADOS.'
+                }
+              });
+            }
+          }
+        });
+      })
+    );
+  }
 
   reactivateThesisWorkMock(thesisWorkId: string) {
     return of(undefined).pipe(

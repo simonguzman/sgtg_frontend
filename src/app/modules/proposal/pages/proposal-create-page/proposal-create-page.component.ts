@@ -36,6 +36,20 @@ export class ProposalCreatePageComponent implements OnInit {
   }
 
   handleCreateProposal(proposalData: Proposal): void {
+    // 👇 Aplicamos la misma validación de reglas de negocio que en la edición
+    const errorMessage = this.proposalService.validateProposalRules(proposalData);
+
+    if (errorMessage) {
+      // Si la regla se rompe (ej. el estudiante ya tiene 2 propuestas), bloqueamos el registro
+      this.notificationService.show({
+        title: 'Atención',
+        message: errorMessage,
+        type: NotificationType.ERROR
+      });
+      return;
+    }
+
+    // Si todo está correcto, abrimos el modal de confirmación
     this.confirmState = { show: true, pendingData: proposalData };
   }
 

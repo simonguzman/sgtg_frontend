@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { StatisticsFilters } from '../interfaces/statisticsFilters.enum';
-import { RawProjectData } from '../interfaces/rawProjectData.enum';
+import { StatisticsFilters } from '../interfaces/statisticsFilters.interface';
+import { RawProjectData } from '../interfaces/rawProjectData.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -41,9 +41,13 @@ export class StatisticsReportService {
     const filterStage = filters.stage ? filters.stage : 'Todas las etapas';
     const filterPeriod = filters.period ? filters.period : 'Todos los periodos';
     const filterDirector = filters.directorId ? 'Director Específico' : 'Todos los directores';
+    const filterArchive = filters.archiveStatus === 'ACTIVE' ? 'Proyectos Activos' :
+                          filters.archiveStatus === 'ARCHIVED' ? 'Historial (Archivados)' : 'Todos';
+
     doc.text(`• Etapa: ${filterStage}`, 14, 48);
     doc.text(`• Periodo: ${filterPeriod}`, 14, 54);
     doc.text(`• Director: ${filterDirector}`, 14, 60);
+    doc.text(`• Registros: ${filterArchive}`, 14, 66);
 
     // 5. Sección de Resumen (KPIs)
     doc.setFontSize(12);

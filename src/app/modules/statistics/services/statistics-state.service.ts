@@ -1,9 +1,9 @@
 import { Injectable, computed, signal, inject } from '@angular/core';
-import { RawProjectData } from '../interfaces/rawProjectData.enum';
-import { StatisticsFilters } from '../interfaces/statisticsFilters.enum';
+import { RawProjectData } from '../interfaces/rawProjectData.interface';
+import { StatisticsFilters } from '../interfaces/statisticsFilters.interface';
 import { ProjectStage } from '../enum/projectStage.enum';
 import { ProjectStatus } from '../enum/projectStatus.enum';
-import { ChartDataConfiguration } from '../interfaces/chartDataConfiguration.enum';
+import { ChartDataConfiguration } from '../interfaces/chartDataConfiguration.interface';
 
 // --- Importaciones del dominio real ---
 import { stateList } from '../../../core/enums/state.enum';
@@ -23,13 +23,15 @@ export class StatisticsStateService {
   public readonly currentFilters = signal<StatisticsFilters>({
     stage: null,
     period: null,
-    directorId: null
+    directorId: null,
+    archiveStatus: 'ACTIVE'
   });
 
   public readonly rawData = computed<RawProjectData[]>(() => {
-    const proposals = this.proposalService.proposals();
-    const drafts = this.preliminaryDraftService.preliminaryDrafts();
-    const thesisWorks = this.thesisWorkService.thesisWorks();
+    // 💡 AHORA LEEMOS EL HISTORIAL COMPLETO DE LOS SERVICIOS
+    const proposals = this.proposalService.allProposals();
+    const drafts = this.preliminaryDraftService.allPreliminaryDrafts();
+    const thesisWorks = this.thesisWorkService.allThesisWorks();
 
     const mappedProposals = proposals.map(p => {
       const creationDate = new Date(p.createdAt);
@@ -39,15 +41,16 @@ export class StatisticsStateService {
         : 'Sin Asignar';
 
       return {
-        id: p.id ?? '', // 💡 Proposal.id es opcional en el dominio; se garantiza string para RawProjectData
+        id: p.id ?? '',
         title: p.title,
         stage: ProjectStage.PROPUESTA,
         status: this.mapStateToStatus(p.state),
-        originalState: p.state, // 💡 Propiedad puente para control de exclusión
+        originalState: p.state,
         period: `${creationDate.getFullYear()}-${semester}`,
         directorId: p.director?.id || 'sin-director',
         directorName: fullDirectorName,
-        registrationDate: creationDate
+        registrationDate: creationDate,
+        isArchived: !!p.isArchived // 🔍 Presente
       };
     });
 
@@ -60,15 +63,16 @@ export class StatisticsStateService {
         : 'Sin Asignar';
 
       return {
-        id: d.preliminaryDraftId ?? '', // 💡 PreliminaryDraft.preliminaryDraftId es opcional en el dominio
+        id: d.preliminaryDraftId ?? '',
         title: d.proposalData?.title || 'Sin Título',
         stage: ProjectStage.ANTEPROYECTO,
         status: this.mapStateToStatus(d.state),
-        originalState: d.state, // 💡 Propiedad puente para control de exclusión
+        originalState: d.state,
         period: `${creationDate.getFullYear()}-${semester}`,
         directorId: director?.id || 'sin-director',
         directorName: fullDirectorName,
-        registrationDate: creationDate
+        registrationDate: creationDate,
+        isArchived: !!d.isArchived // 🔍 Presente
       };
     });
 
@@ -81,15 +85,16 @@ export class StatisticsStateService {
         : 'Sin Asignar';
 
       return {
-        id: t.thesisWorkId, // ThesisWork.thesisWorkId es requerido; no necesita fallback
+        id: t.thesisWorkId,
         title: t.preliminaryDraftData?.proposalData?.title || 'Sin Título',
         stage: ProjectStage.TRABAJO_GRADO,
         status: this.mapStateToStatus(t.state),
-        originalState: t.state, // 💡 Propiedad puente para control de exclusión
+        originalState: t.state,
         period: `${creationDate.getFullYear()}-${semester}`,
         directorId: director?.id || 'sin-director',
         directorName: fullDirectorName,
-        registrationDate: creationDate
+        registrationDate: creationDate,
+        isArchived: !!t.isArchived // 💡 ¡LISTO! Solución al error TS(2345)
       };
     });
 
@@ -129,7 +134,12 @@ export class StatisticsStateService {
       const matchPeriod = filters.period ? project.period === filters.period : true;
       const matchDirector = filters.directorId ? project.directorId === filters.directorId : true;
 
-      return matchStage && matchPeriod && matchDirector;
+      // 💡 LÓGICA DE FILTRADO PARA ARCHIVADOS (Faltaba añadirla aquí para que funcione en UI)
+      const matchArchive = filters.archiveStatus === 'ALL' ? true :
+                           filters.archiveStatus === 'ARCHIVED' ? project.isArchived :
+                           !project.isArchived;
+
+      return matchStage && matchPeriod && matchDirector && matchArchive;
     });
   });
 
@@ -213,7 +223,7 @@ export class StatisticsStateService {
   }
 
   public clearFilters(): void {
-    this.currentFilters.set({ stage: null, period: null, directorId: null });
+    this.currentFilters.set({ stage: null, period: null, directorId: null, archiveStatus: 'ACTIVE' });
   }
 
   private mapStateToStatus(state: string): ProjectStatus {

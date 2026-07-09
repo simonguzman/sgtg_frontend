@@ -1,6 +1,5 @@
 <div class="pt-4 max-w-5xl mx-auto pb-10 flex flex-col gap-8">
 
-  <!-- Encabezado y Acción Principal -->
   <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
     <div class="flex flex-col gap-1">
       <h1 class="font-display font-semibold text-primary text-size-header-title">
@@ -20,15 +19,13 @@
     </div>
   </div>
 
-  <!-- Sección de Filtros -->
   <div class="bg-blue-50/50 p-6 rounded-xl border border-blue-100 shadow-sm flex flex-col gap-4">
     <h3 class="font-display font-semibold text-primary text-size-section mb-2 flex items-center gap-2">
       <span class="material-symbols-outlined text-lg">filter_alt</span> Filtros de Búsqueda
     </h3>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
 
-      <!-- Etapa del Proceso -->
       <div class="flex flex-col gap-1">
         <label for="stageFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Etapa del Proceso
@@ -46,7 +43,6 @@
         </p-select>
       </div>
 
-      <!-- Periodo Académico -->
       <div class="flex flex-col gap-1">
         <label for="periodFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Periodo Académico
@@ -62,7 +58,6 @@
         </p-select>
       </div>
 
-      <!-- Director Asignado -->
       <div class="flex flex-col gap-1">
         <label for="directorFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Director Asignado
@@ -80,7 +75,22 @@
         </p-select>
       </div>
 
-      <!-- Botón Limpiar Filtros con Ícono Reincorporado -->
+      <div class="flex flex-col gap-1">
+        <label for="archiveFilter" class="font-display font-semibold text-size-role-footer text-primary">
+          Tipo de Registro
+        </label>
+        <p-select
+          id="archiveFilter"
+          [options]="archiveOptions"
+          [ngModel]="state.currentFilters().archiveStatus"
+          (ngModelChange)="onArchiveStatusChange($event)"
+          optionLabel="label"
+          optionValue="value"
+          [showClear]="false"
+          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
+        </p-select>
+      </div>
+
       <div class="flex justify-start md:justify-end">
         <app-button-component
           label="Limpiar Filtros"
@@ -93,7 +103,6 @@
     </div>
   </div>
 
-  <!-- Tarjetas de Métricas (KPIs) -->
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
     <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm flex items-center justify-between">
@@ -138,7 +147,6 @@
 
   </div>
 
-  <!-- Gráficos -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
     <div class="bg-white p-6 border border-gray-200 rounded-xl shadow-sm flex flex-col gap-4">

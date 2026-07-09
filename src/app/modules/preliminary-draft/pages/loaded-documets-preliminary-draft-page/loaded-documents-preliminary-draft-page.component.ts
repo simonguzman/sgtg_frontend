@@ -50,7 +50,6 @@ export class LoadedDocumentsPreliminaryDraftPageComponent implements OnInit, OnD
 
   activeTab = signal<string>('ANTEPROYECTOS');
   preliminaryDraftId = signal<string | null>(null);
-  isArchived = signal<boolean>(false);
 
   uploadContext = signal<{ fileName: string, file: File } | null>(null);
   isUploadModalOpen = signal(false);

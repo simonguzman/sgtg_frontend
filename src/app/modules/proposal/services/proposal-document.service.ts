@@ -132,7 +132,7 @@ export class ProposalDocumentService {
         notifyUserIds.push(...comiteUsers);
 
         this.eventBus.emit({
-          type: AppEventType.DOCUMENT_CORRECTION_UPLOADED,
+          type: AppEventType.PROPOSAL_CORRECTION_UPLOADED,
           targetUserIds: [...new Set(notifyUserIds)],
           payload: {
             proposalId: proposalId,

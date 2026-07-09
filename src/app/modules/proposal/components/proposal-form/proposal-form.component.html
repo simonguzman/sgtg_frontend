@@ -120,8 +120,11 @@
                     [class.text-[#777680]]="!proposalForm.get('codirector')?.value"
                     [class.text-textbox]="proposalForm.get('codirector')?.value">
               <option value="" disabled>Seleccionar codirector</option>
-              @for (teacher of teachers(); track teacher.id) {
-                <option [value]="teacher.id">{{ teacher.firstName }} {{ teacher.lastName }}</option>
+
+              @for (teacher of availableTeachers(); track teacher.id) {
+                <option [value]="teacher.id">
+                  {{ teacher.firstName }} {{ teacher.secondName || '' }} {{ teacher.lastName }} {{ teacher.secondLastName || '' }}
+                </option>
               }
             </select>
             <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
@@ -139,8 +142,11 @@
                       [class.text-textbox]="proposalForm.get('advisor')?.value"
                       [class.input-success]="proposalForm.get('advisor')?.valid && proposalForm.get('advisor')?.touched">
                 <option value="" disabled>Seleccionar asesor</option>
-                @for (advisor of advisors(); track advisor.id) {
-                  <option [value]="advisor.id">{{ advisor.firstName }} {{ advisor.lastName }}</option>
+
+                @for (advisor of availableAdvisors(); track advisor.id) {
+                  <option [value]="advisor.id">
+                    {{ advisor.firstName }} {{ advisor.secondName || '' }} {{ advisor.lastName }} {{ advisor.secondLastName || '' }}
+                  </option>
                 }
               </select>
               <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>

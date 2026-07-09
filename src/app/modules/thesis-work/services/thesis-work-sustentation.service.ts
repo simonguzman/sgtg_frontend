@@ -25,7 +25,8 @@ export class ThesisWorkSustentationService {
       delay(1000),
       tap(() => {
         let notifyUserIds: string[] = [];
-        let currentThesisTitle = ''; // 💡 Variable puente para el título
+        let currentThesisTitle = '';
+        const newSustentationId = crypto.randomUUID();
 
         if (formData.juror1) this.userService.addRoleToUser(formData.juror1, UserRoleType.JURADO);
         if (formData.juror2) this.userService.addRoleToUser(formData.juror2, UserRoleType.JURADO);
@@ -68,7 +69,7 @@ export class ThesisWorkSustentationService {
           };
 
           const sustentationRegistry: SustentationRegistry = {
-            id: crypto.randomUUID(),
+            id: newSustentationId,
             sustentationDate: formData.sustentationDate ? new Date(formData.sustentationDate) : undefined,
             sustentationTime: formData.sustentationTime || undefined,
             location: formData.location || undefined,
@@ -93,7 +94,8 @@ export class ThesisWorkSustentationService {
           targetUserIds: [...new Set(notifyUserIds)],
           payload: {
             thesisId: thesisWorkId,
-            thesisTitle: currentThesisTitle
+            thesisTitle: currentThesisTitle,
+            sustentationId: newSustentationId
           }
         });
       })
@@ -110,6 +112,7 @@ export class ThesisWorkSustentationService {
       tap(() => {
         let notifyUserIds: string[] = [];
         let currentThesisTitle = ''; // 💡 Variable puente para el título
+        let currentSustentationId= '';
 
         const activeUser = this.authService.currentUser();
         const jurorId = activeUser ? activeUser.id : 'jurado-desconocido';
@@ -167,6 +170,8 @@ export class ThesisWorkSustentationService {
           const updatedVerdicts = [...(activeSustentation.verdicts || [])];
           const existingVerdictIndex = updatedVerdicts.findIndex(v => v.jurorId === jurorId);
 
+          currentSustentationId = activeSustentation.id;
+
           if (existingVerdictIndex !== -1) {
             updatedVerdicts[existingVerdictIndex] = newVerdict;
           } else {
@@ -196,6 +201,7 @@ export class ThesisWorkSustentationService {
             thesisId: thesisWorkId,
             thesisTitle: currentThesisTitle,
             veredict: payload.veredict,
+            sustentationId: currentSustentationId
           }
         });
       })

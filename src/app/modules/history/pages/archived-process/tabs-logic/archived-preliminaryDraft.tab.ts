@@ -43,9 +43,8 @@ export const ArchivedPreliminaryDraftsTabConfig: HistoryTabConfiguration = {
       // 1. Filtrar archivados
       const allArchived = draftService.allPreliminaryDrafts().filter(d => d.isArchived === true);
 
-      // 2. Visibilidad: Autores, Director, Codirector, Asesor y Evaluadores
       const allowedDrafts = allArchived.filter((draft: PreliminaryDraft) => {
-        if (context.isAdmin) return true;
+        if (context.hasGlobalAccess) return true; // 👈 ACTUALIZADO
 
         const proposal = draft.proposalData;
 
@@ -53,9 +52,10 @@ export const ArchivedPreliminaryDraftsTabConfig: HistoryTabConfiguration = {
         const isDirector = proposal?.director?.id === userId;
         const isCodirector = proposal?.codirector?.id === userId;
         const isAdvisor = proposal?.advisor?.id === userId;
-        const isEvaluator = draft.evaluators?.some(evaluator => evaluator.id === userId);
 
-        return isAuthor || isDirector || isCodirector || isAdvisor || isEvaluator;
+        // ❌ ELIMINADO: const isEvaluator = ...
+
+        return isAuthor || isDirector || isCodirector || isAdvisor; // 👈 ACTUALIZADO
       });
 
       // 3. Mapear a formato plano alimentando exactamente las columnas definidas

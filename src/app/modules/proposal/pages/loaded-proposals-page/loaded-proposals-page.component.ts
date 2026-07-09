@@ -84,14 +84,17 @@ export class LoadedProposalsPageComponent implements OnInit {
     if (!isDirector && !isAdmin) return [];
 
     const documents = this.documentsTableData();
-    const latest = documents[documents.length - 1];
-    const isApproved = latest?.status === stateList.APROBADO ||
-                       latest?.status === stateList.APROBADO_CON_OBSERVACIONES;
+
+    const hasDocumentInReview = documents.some(document => document.status === stateList.EN_REVISION);
+
+    const isFullyApproved = proposal.state === stateList.APROBADO;
+
+    const isDisabled = hasDocumentInReview || isFullyApproved;
 
     return [{
       label: 'Cargar propuesta corregida',
       variant: 'primary',
-      disabled: isApproved
+      disabled: isDisabled
     }];
   });
 

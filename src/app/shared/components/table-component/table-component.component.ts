@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { StateComponent } from '../state/state.component';
 import { ButtonComponent } from '../button-component/button-component.component';
 import { EmptyStateComponent } from '../empty-state/empty-state.component';
+
 export interface TableButton{
   action?: string;
   label?: string;
@@ -12,6 +13,7 @@ export interface TableButton{
   variant: 'primary' | 'secondary';
   disabled?: boolean;
 }
+
 export interface ActionButton{
   action: string;
   label?: string;
@@ -19,12 +21,14 @@ export interface ActionButton{
   variant: 'primary' | 'secondary';
   disabled: true | false;
 }
+
 export interface Column{
   field: string;
   header: string;
   type?: 'text' | 'state' | 'actions';
   actions?: ActionButton[];
   width ?: string;
+  filterable?: boolean; // 🚀 NUEVO: Propiedad opcional para activar el filtro
 }
 
 @Component({

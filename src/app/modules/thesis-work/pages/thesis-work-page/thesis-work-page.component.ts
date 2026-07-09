@@ -12,8 +12,9 @@ import { User } from '../../../users/interfaces/user.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 
 const THESIS_WORK_COLUMNS: Column[] = [
-  { field: 'title', header: 'Título', type: 'text', width: '25%' },
-  { field: 'modality', header: 'Modalidad', type: 'text', width: '15%' },
+  // 👇 Agregamos filterable: true a los campos clave
+  { field: 'title', header: 'Título', type: 'text', width: '25%', filterable: true },
+  { field: 'modality', header: 'Modalidad', type: 'text', width: '15%', filterable: true },
   {
     field: 'description',
     header: 'Descripción',
@@ -21,15 +22,15 @@ const THESIS_WORK_COLUMNS: Column[] = [
     actions: [{ action: 'ver descripción', label: 'Ver descripción', variant: 'primary', disabled: false }],
     width: '15%'
   },
-  { field: 'state', header: 'Estado', type: 'state', width: '15%' },
-  { field: 'maxDeliveryDate', header: 'Plazo Máximo', type: 'text', width: '15%' },
+  { field: 'state', header: 'Estado', type: 'state', width: '15%', filterable: true },
+  { field: 'maxDeliveryDate', header: 'Plazo Máximo', type: 'text', width: '15%', filterable: true },
   {
     field: 'actions',
     header: 'Acciones',
     type: 'actions',
     actions: [
       { action: 'ver', icon: 'visibility', variant: 'primary', disabled: false },
-      { action: 'reactivar', icon: 'play_circle', variant: 'secondary', disabled: false }, // Acción añadida
+      { action: 'reactivar', icon: 'play_circle', variant: 'secondary', disabled: false },
     ],
     width: '15%'
   },
@@ -53,6 +54,8 @@ export class ThesisWorkPageComponent implements OnInit {
 
   protected columns: Column[] = THESIS_WORK_COLUMNS;
   protected headerButtons: TableButton[] = HEADER_BUTTONS;
+
+  protected filterFields = ['title', 'modality', 'state', 'maxDeliveryDate', 'hiddenParticipants'];
 
   descriptionModal = signal({ isOpen: false, title: '', content: '' });
 
@@ -86,6 +89,7 @@ export class ThesisWorkPageComponent implements OnInit {
       const isDirector = proposal?.director?.id != null && String(proposal.director.id) === currentUserId;
       const isCodirector = proposal?.codirector?.id != null && String(proposal.codirector.id) === currentUserId;
       const isAdvisor = proposal?.advisor?.id != null && String(proposal.advisor.id) === currentUserId;
+
       const isStudentAuthor = (currentUserId != null && Array.isArray(proposal?.authors))
         ? proposal.authors.some((author: User) =>
             typeof author === 'string' ? author === currentUserId : String(author?.id) === currentUserId
@@ -100,10 +104,24 @@ export class ThesisWorkPageComponent implements OnInit {
       if (hasViewPermission) allowed.push('ver');
       if (isOwnerOrAdmin) allowed.push('editar');
 
-      // Lógica de Reactivación: Solo si está suspendido y es Administrador
       if (thesisWork.state === stateList.SUSPENDIDO && this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR])) {
         allowed.push('reactivar');
       }
+
+      // 👇 2. Consolidamos a todos los participantes, incluyendo los jurados de la sustentación
+      const allParticipants = [
+        proposal?.director,
+        proposal?.codirector,
+        proposal?.advisor,
+        ...(Array.isArray(proposal?.authors) ? proposal.authors : []),
+        ...(thesisWork.sustentations?.[0]?.assignedJurors || [])
+      ];
+
+      // 👇 3. Extraemos nombres (validando que sean objetos y no strings de IDs)
+      const hiddenParticipants = allParticipants
+        .filter(user => user && typeof user === 'object')
+        .map((user: any) => `${user.firstName || ''} ${user.lastName || ''}`.trim())
+        .join(' ');
 
       return {
         id: thesisWork.thesisWorkId,
@@ -112,7 +130,9 @@ export class ThesisWorkPageComponent implements OnInit {
         modality: proposal?.modality || 'No definida',
         state: thesisWork.state,
         maxDeliveryDate: maxDeliveryDateFormatted,
-        allowedActions: allowed
+        allowedActions: allowed,
+        // 👇 4. Pasamos la cadena oculta a la fila
+        hiddenParticipants: hiddenParticipants
       };
     });
   });

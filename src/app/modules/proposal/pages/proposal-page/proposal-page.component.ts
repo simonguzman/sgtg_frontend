@@ -13,8 +13,12 @@ import { Proposal } from '../../interfaces/proposal.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 
 const PROPOSAL_COLUMNS: Column[] = [
-  { field: 'title', header: 'Titulo', type: 'text', width: '30%' },
-  { field: 'modality', header: 'Modalidad', type: 'text', width: 'auto'},
+  // 👇 1. Agregamos filterable al Título
+  { field: 'title', header: 'Titulo', type: 'text', width: '30%', filterable: true },
+
+  // 👇 2. Agregamos filterable a la Modalidad
+  { field: 'modality', header: 'Modalidad', type: 'text', width: 'auto', filterable: true },
+
   {
     field: 'description',
     header: 'Descripción',
@@ -22,9 +26,13 @@ const PROPOSAL_COLUMNS: Column[] = [
     actions: [{action:'ver descripcion', label: 'Ver descripcion', variant: 'primary', disabled: false}],
     width: 'auto'
   },
-  { field: 'state', header: 'Estado', type: 'state', width: 'auto' },
-  // Nueva columna para visualizar el estado de la fecha límite basada en días hábiles
-  { field: 'deadlineStatus', header: 'Plazo Evaluación', type: 'text', width: 'auto' },
+
+  // 👇 3. Agregamos filterable al Estado (muy útil para buscar solo los "Aprobados" o "En revisión")
+  { field: 'state', header: 'Estado', type: 'state', width: 'auto', filterable: true },
+
+  // 👇 4. También podemos agregarlo al plazo si quieren filtrar por "Sin límite" o "Vencido"
+  { field: 'deadlineStatus', header: 'Plazo Evaluación', type: 'text', width: 'auto', filterable: true },
+
   {
     field: 'acciones',
     header: 'Acciones',
@@ -59,6 +67,8 @@ export class ProposalPageComponent implements OnInit {
   protected columns: Column[] = PROPOSAL_COLUMNS;
   protected headerButtons: TableButton[] = [];
 
+  protected filterFields = ['title', 'modality', 'state', 'deadlineStatus', 'hiddenParticipants'];
+
   protected proposalsWithPermissions = computed(() => {
     const currentUser = this.authService.currentUser();
     const isAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
@@ -66,13 +76,29 @@ export class ProposalPageComponent implements OnInit {
     return this.rawProposals().map(proposal => {
       const isOwner = proposal.director?.id === currentUser?.id;
 
+      // 👇 2. Consolidamos TODOS los involucrados en un solo arreglo plano
+      // Agregamos codirector y advisor por si la interfaz de Proposal los soporta a futuro
+      const allParticipants = [
+        proposal.director,
+        proposal.codirector,
+        proposal.advisor,
+        ...(proposal.authors || [])
+      ];
+
+      // 👇 3. Filtramos los nulos/indefinidos y extraemos los nombres para hacer la cadena
+      const hiddenParticipants = allParticipants
+        .filter(user => user && typeof user === 'object')
+        .map((user: any) => `${user.firstName || ''} ${user.lastName || ''}`.trim())
+        .join(' ');
+
       return {
         ...proposal,
-        // 👇 Ahora pasamos la propuesta completa al método
         deadlineStatus: this.getDeadlineBadge(proposal),
         allowedActions: (isAdmin || isOwner)
           ? ['ver descripcion', 'ver', 'editar', 'eliminar']
-          : ['ver descripcion', 'ver']
+          : ['ver descripcion', 'ver'],
+        // 👇 4. Asignamos la cadena oculta y eliminamos hiddenDirectorName / hiddenAuthorsNames
+        hiddenParticipants: hiddenParticipants
       };
     });
   });
@@ -146,7 +172,6 @@ export class ProposalPageComponent implements OnInit {
     // 1. Verificamos si la propuesta YA FUE EVALUADA
     const isEvaluated =
       proposal.state === stateList.APROBADO ||
-      proposal.state === stateList.APROBADO_CON_OBSERVACIONES ||
       proposal.state === stateList.NO_APROBADO;
 
     if (isEvaluated) {

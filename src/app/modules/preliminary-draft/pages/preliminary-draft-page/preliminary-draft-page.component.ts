@@ -12,15 +12,18 @@ import { DescriptionModalComponent } from "../../../../shared/components/modals/
 import { UserRoleType } from '../../../../core/models/user-role';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { stateList } from '../../../../core/enums/state.enum';
+import { EvaluationDeadlineStatus } from '../../../../core/enums/evaluation-deadline-status.enum';
 
 // Importación de la utilidad adaptada
 import { getRemainingBusinessDays } from '../../../../core/utils/date-utils';
 import { User } from '../../../users/interfaces/user.interface';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
+import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
 
 const PRELIMINARY_DRAFT_COLUMNS: Column[] = [
-  { field: 'title', header: 'Titulo', type: 'text', width: '25%' },
-  { field: 'modality', header: 'Modalidad', type: 'text', width: '15%' },
+  // 👇 1. Agregamos filterable
+  { field: 'title', header: 'Titulo', type: 'text', width: '25%', filterable: true },
+  { field: 'modality', header: 'Modalidad', type: 'text', width: '15%', filterable: true },
   {
     field: 'description',
     header: 'Descripción',
@@ -28,8 +31,9 @@ const PRELIMINARY_DRAFT_COLUMNS: Column[] = [
     actions: [{ action: 'ver descripción', label: 'Ver descripción', variant: 'primary', disabled: false }],
     width: '15%'
   },
-  { field: 'state', header: 'Estado', type: 'state', width: '15%' },
-  { field: 'remainingTime', header: 'Plazo Evaluación', type: 'text', width: '15%' },
+  // 👇 2. Agregamos filterable a Estado y Plazo
+  { field: 'state', header: 'Estado', type: 'state', width: '15%', filterable: true },
+  { field: 'remainingTime', header: 'Plazo Evaluación', type: 'text', width: '15%', filterable: true },
   {
     field: 'actions',
     header: 'Acciones',
@@ -63,29 +67,41 @@ export class PreliminaryDraftPageComponent implements OnInit {
   protected columns: Column[] = PRELIMINARY_DRAFT_COLUMNS;
   protected headerButtons: TableButton[] = [];
 
+  protected filterFields = ['title', 'modality', 'state', 'remainingTime', 'hiddenParticipants'];
+
   descriptionModal = signal({ isOpen: false, title: '', content: '' });
   deleteState = signal({ isOpen: false, draftId: null as string | null, draftTitle: '', isProcessing: false });
 
   // --- ORQUESTADOR PRINCIPAL ---
   protected tableData = computed(() => {
     const preliminaryDraftList = this.preliminaryDraftService.preliminaryDrafts();
+    const activePreliminaryDrafts = preliminaryDraftList.filter(preliminaryDraft => !preliminaryDraft.isArchived);
 
-    const activePreliminaryDrafts = preliminaryDraftList.filter(preliminaryDraft => !preliminaryDraft.isArchived)
-
-    // 👇 COMPORTAMIENTO DE PILA (LIFO): Ordenamos explícitamente del más reciente al más antiguo
     const sortedList = [...activePreliminaryDrafts].sort((a, b) => {
-      // Ajusta 'createdAt' o 'createdDate' según el nombre exacto de la fecha en tu interfaz.
-      // Usamos proposalData?.createdAt como respaldo lógico.
       const dateA = a.createdData || a.proposalData?.createdAt || new Date(0);
       const dateB = b.createdData || b.proposalData?.createdAt || new Date(0);
-
       return new Date(dateB).getTime() - new Date(dateA).getTime();
     });
-    // Nota: Si manejas ES2023+, también puedes usar: preliminaryDraftList.toReversed();
 
     return sortedList.map(preliminaryDraft => {
       const allowedActions = this.calculateAllowedActions(preliminaryDraft);
-      const remainingTimeLabel = this.calculateRemainingTimeLabel(preliminaryDraft);
+      const remainingTimeLabel = this.getDeadlineBadge(preliminaryDraft);
+      const proposal = preliminaryDraft.proposalData;
+
+      // 👇 2. Consolidamos TODOS los involucrados en un solo arreglo plano
+      const allParticipants = [
+        proposal?.director,
+        proposal?.codirector,
+        proposal?.advisor,
+        ...(proposal?.authors || []),
+        ...(preliminaryDraft.evaluators || [])
+      ];
+
+      // 👇 3. Filtramos los nulos/indefinidos y extraemos los nombres para hacer una cadena gigante
+      const hiddenParticipants = allParticipants
+        .filter(user => !!user)
+        .map((user: any) => `${user.firstName || ''} ${user.lastName || ''}`.trim())
+        .join(' ');
 
       return {
         id: preliminaryDraft.preliminaryDraftId,
@@ -94,7 +110,9 @@ export class PreliminaryDraftPageComponent implements OnInit {
         modality: preliminaryDraft.proposalData?.modality || 'No definida',
         state: preliminaryDraft.state,
         remainingTime: remainingTimeLabel,
-        allowedActions: allowedActions
+        allowedActions: allowedActions,
+        // 👇 4. Pasamos la cadena oculta a la fila
+        hiddenParticipants: hiddenParticipants
       };
     });
   });
@@ -146,27 +164,62 @@ export class PreliminaryDraftPageComponent implements OnInit {
     return allowed;
   }
 
-  private calculateRemainingTimeLabel(draft: PreliminaryDraft): string {
-    // Si el flujo ya culminó (sea Aprobado o No Aprobado), limpiamos la etiqueta
-    if (
-      draft.state === stateList.APROBADO ||
-      draft.state === stateList.NO_APROBADO
-    ) {
-      return 'Evaluación completada';
+  /**
+   * Analiza las evaluaciones registradas para determinar si la etapa cumplió o no el plazo global.
+   */
+  private getEvaluationsStatusLabel(currentRoundEvaluations: Evaluation[]): string {
+    if (currentRoundEvaluations.length === 0) return '';
+
+    const hasDelayed = currentRoundEvaluations.some(
+      evaluation => (evaluation.deadlineStatus as string) === EvaluationDeadlineStatus.DELAYED || (evaluation.deadlineStatus as string) === 'Evaluado con retraso'
+    );
+
+    return hasDelayed ? EvaluationDeadlineStatus.DELAYED : EvaluationDeadlineStatus.ON_TIME;
+  }
+
+
+
+  private getDeadlineBadge(preliminaryDraft: PreliminaryDraft): string {
+    const totalEvaluators = preliminaryDraft.evaluators?.length || 0;
+
+    // 👇 LA SOLUCIÓN: Filtramos las evaluaciones para contar SOLO las que pertenecen al documento más reciente
+    const currentDocument = preliminaryDraft.documents?.[0];
+    const currentRoundEvaluations = preliminaryDraft.evaluations?.filter(e =>
+      currentDocument && e.documentId === currentDocument.id
+    ) || [];
+
+    const currentEvaluationsCount = currentRoundEvaluations.length;
+    const statusLabel = this.getEvaluationsStatusLabel(currentRoundEvaluations); // Le pasamos el arreglo filtrado
+
+    // 1. Si el consejo ya emitió un veredicto final, el proceso terminó.
+    const isFinalized =
+      preliminaryDraft.state === stateList.APROBADO ||
+      preliminaryDraft.state === stateList.APROBADO_CON_OBSERVACIONES ||
+      preliminaryDraft.state === stateList.NO_APROBADO;
+
+    if (isFinalized) {
+      return statusLabel ? `Resolución emitida (${statusLabel})` : 'Resolución emitida';
     }
 
-    if (!draft.evaluationDeadline) {
-      return 'No asignado';
+    // 2. Si no hay fecha límite configurada (ej: El documento pasó al Consejo sin evaluadores)
+    if (!preliminaryDraft.evaluationDeadline) {
+      return 'Sin límite (Consejo)';
     }
 
-    const days = getRemainingBusinessDays(draft.evaluationDeadline);
+    // 3. Verificamos si LOS EVALUADORES ya terminaron SU RONDA ACTUAL
+    if (totalEvaluators > 0 && currentEvaluationsCount >= totalEvaluators) {
+      return `Evaluación completada — ${statusLabel} (Esperando Consejo)`;
+    }
 
-    if (days > 0) {
-      return `${days} días hábiles`;
-    } else if (days === 0) {
-      return 'Vence hoy';
+    // 4. Si seguimos esperando a los evaluadores en esta nueva ronda...
+    const remainingDays = getRemainingBusinessDays(new Date(preliminaryDraft.evaluationDeadline));
+
+    if (remainingDays < 0) {
+      return `Plazo vencido (${Math.abs(remainingDays)} días hábiles de retraso)`;
+    } else if (remainingDays === 0) {
+      return '¡Vence hoy!';
     } else {
-      return `Vencido hace ${Math.abs(days)} días`;
+      return `Quedan ${remainingDays} días hábiles`;
     }
   }
 

@@ -43,9 +43,8 @@ export const ArchivedThesisWorksTabConfig: HistoryTabConfiguration = {
       // 1. Filtrar archivados
       const allArchived = thesisWorkService.allThesisWorks().filter(thesisWork => thesisWork.isArchived === true);
 
-      // 2. Visibilidad: Autores, Director, Codirector, Asesor y Jurados
       const allowedWorks = allArchived.filter((work: ThesisWork) => {
-        if (context.isAdmin) return true;
+        if (context.hasGlobalAccess) return true; // 👈 ACTUALIZADO
 
         const proposal = work.preliminaryDraftData?.proposalData;
 
@@ -53,9 +52,10 @@ export const ArchivedThesisWorksTabConfig: HistoryTabConfiguration = {
         const isDirector = proposal?.director?.id === userId;
         const isCodirector = proposal?.codirector?.id === userId;
         const isAdvisor = proposal?.advisor?.id === userId;
-        const isJuror = work.sustentations?.[0]?.assignedJurors?.some(juror => juror.id === userId);
 
-        return isAuthor || isDirector || isCodirector || isAdvisor || isJuror;
+        // ❌ ELIMINADO: const isJuror = ...
+
+        return isAuthor || isDirector || isCodirector || isAdvisor; // 👈 ACTUALIZADO
       });
 
       // 3. Mapear a formato plano alimentando exactamente las columnas definidas

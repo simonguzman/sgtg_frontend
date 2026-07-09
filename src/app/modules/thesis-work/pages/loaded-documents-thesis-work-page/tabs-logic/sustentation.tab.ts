@@ -92,6 +92,7 @@ export const SustentationTabConfig: TabConfiguration = {
   },
 
   getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
+    if (context.isArchived) return [];
     const buttons: TableButton[] = [];
     const thesis = context.thesisWork;
     const { isConsejo, hasApprovedPazYSalvo, hasSustentationRegistered, isSustentationEvaluated } = context;

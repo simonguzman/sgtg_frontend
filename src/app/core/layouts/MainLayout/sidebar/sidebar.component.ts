@@ -20,47 +20,48 @@ interface MenuItem {
 })
 export class SidebarComponent {
   private authService = inject(AuthService);
+
   private allMenuItems: MenuItem[] = [
     {
       label: 'Bandeja de entrada',
       routerLink: '/notifications',
-      icon: 'pi pi-check-circle',
+      icon: 'inbox', // Ícono actualizado a Material Symbols
       roles: [UserRoleType.ESTUDIANTE, UserRoleType.DOCENTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR, UserRoleType.ADMINISTRADOR, UserRoleType.COMITE, UserRoleType.JEFE_DEP, UserRoleType.CONSEJO, UserRoleType.DECANATURA, UserRoleType.JURADO, UserRoleType.EVALUADOR]
     },
     {
       label: 'Usuarios',
       routerLink: '/users',
-      icon: 'pi pi-check-circle',
+      icon: 'group', // Ícono actualizado
       roles: [UserRoleType.ADMINISTRADOR]
     },
     {
       label: 'Propuesta',
       routerLink: '/proposal',
-      icon: 'pi pi-check-circle',
+      icon: 'article', // Ícono actualizado
       roles: [UserRoleType.ESTUDIANTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR, UserRoleType.JEFE_DEP, UserRoleType.ADMINISTRADOR, UserRoleType.COMITE]
     },
     {
       label: 'Anteproyecto',
       routerLink: '/preliminary-draft',
-      icon: 'pi pi-check-circle',
+      icon: 'note_alt', // Ícono actualizado
       roles: [UserRoleType.ESTUDIANTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR, UserRoleType.JEFE_DEP, UserRoleType.EVALUADOR, UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
     },
     {
       label: 'Trabajo de grado',
       routerLink: '/thesis-work',
-      icon: 'pi pi-check-circle',
+      icon: 'school', // Ícono actualizado
       roles: [UserRoleType.ESTUDIANTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR, UserRoleType.DECANATURA, UserRoleType.JURADO, UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
     },
     {
       label: 'Estadísticas',
       routerLink: '/statistics',
-      icon: 'pi pi-check-circle',
+      icon: 'bar_chart', // Ícono actualizado
       roles: [UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
     },
     {
       label: 'Historial',
       routerLink: '/history',
-      icon: 'pi pi-history',
+      icon: 'history', // Ícono actualizado
       roles: [UserRoleType.ESTUDIANTE, UserRoleType.DOCENTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR, UserRoleType.ADMINISTRADOR, UserRoleType.COMITE, UserRoleType.JEFE_DEP, UserRoleType.CONSEJO, UserRoleType.DECANATURA, UserRoleType.JURADO, UserRoleType.EVALUADOR]
     }
   ];
@@ -70,4 +71,4 @@ export class SidebarComponent {
       this.authService.hasAnyRole(item.roles)
     );
   });
- }
+}

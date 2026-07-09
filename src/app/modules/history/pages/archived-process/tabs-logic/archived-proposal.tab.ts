@@ -43,7 +43,7 @@ export const ArchivedProposalsTabConfig: HistoryTabConfiguration = {
     const allArchived = proposalService.allProposals().filter((proposal: Proposal) => proposal.isArchived === true);
 
     const allowedProposals = allArchived.filter((proposal: Proposal) => {
-      if (context.isAdmin) return true;
+      if (context.hasGlobalAccess) return true; // 👈 ACTUALIZADO
 
       const isAuthor = proposal.authors?.some(auth => (typeof auth === 'string' ? auth : auth.id) === userId);
       const isDirector = proposal.director?.id === userId;

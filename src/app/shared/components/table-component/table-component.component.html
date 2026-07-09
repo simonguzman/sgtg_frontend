@@ -48,7 +48,25 @@
             [style.textAlign]="col.type === 'state' || col.type === 'actions' ? 'center' : 'left'"
             class="bg-gray-50 text-primary font-bold py-3 px-3 border-b text-sm"
           >
-            {{ col.header }}
+            <div class="flex items-center"
+                 [ngClass]="col.type === 'state' || col.type === 'actions' ? 'justify-center' : 'justify-between'">
+
+              <span class="truncate">{{ col.header }}</span>
+
+              @if (col.filterable) {
+                <p-columnFilter
+                  type="text"
+                  [field]="col.field"
+                  display="menu"
+                  class="ml-2"
+                  matchMode="contains"
+                  [showMatchModes]="false"
+                  [showOperator]="false"
+                  [showAddButton]="false"
+                  placeholder="Buscar {{ col.header.toLowerCase() }}...">
+                </p-columnFilter>
+              }
+            </div>
           </th>
         }
       </tr>

@@ -13,6 +13,7 @@ import { UserRoleType } from '../../../../core/models/user-role';
 import { ProposalService } from '../../services/proposal.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
+import { UserState } from '../../../users/interfaces/user.interface';
 
 @Component({
   selector: 'app-proposal-form',
@@ -46,23 +47,37 @@ export class ProposalFormComponent implements OnInit {
   attachedFile = { hasFile: false, name: null as string | null };
   uploadModalOpen = false;
 
-  protected teachers = this.userService.teachers;
-  protected advisors = this.userService.advisors;
+  protected availableTeachers = computed(() => {
+    const currentUserId = this.authService.currentUser()?.id;
+
+    return this.userService.teachers().filter(teacher =>
+      teacher.state === UserState.active && teacher.id != currentUserId
+    )
+  });
+
+  protected availableAdvisors = computed(() => {
+    const currentUserId = this.authService.currentUser()?.id;
+
+    return this.userService.advisors().filter(advisor =>
+      advisor.state === UserState.active && advisor.id !== currentUserId
+    );
+  });
 
   protected availableStudents = computed(() => {
-    const allStudents = this.userService.students();
+    // Primero filtramos solo los estudiantes activos
+    const activeStudents = this.userService.students().filter(student => student.state === UserState.active);
     const allProposals = this.proposalService.proposals();
     const current = this.proposal();
 
-    return allStudents.filter(student => {
-      const pWithStudent = allProposals.find(p => p.authors.some(author => author.id === student.id));
+    return activeStudents.filter(student => {
+      const pWithStudent = allProposals.find(proposal => proposal.authors.some(author => author.id === student.id));
       return !pWithStudent || (current ? pWithStudent.id === current.id : false);
     });
   });
 
   protected filteredStudentsForS2 = computed(() => {
     const available = this.availableStudents();
-    return available.filter(s => s.id !== this.selectedStudent1Id());
+    return available.filter(student => student.id !== this.selectedStudent1Id());
   });
 
   constructor() {
@@ -160,8 +175,8 @@ export class ProposalFormComponent implements OnInit {
       modality: raw.modality!,
       authors: authorsArray,
       director: director,
-      codirector: this.teachers().find(t => t.id === raw.codirector),
-      advisor: this.advisors().find(a => a.id === raw.advisor),
+      codirector: this.availableTeachers().find(teacher => teacher.id === raw.codirector),
+      advisor: this.availableAdvisors().find(advisor => advisor.id === raw.advisor),
       state: this.proposal()?.state ?? stateList.EN_REVISION,
       createdAt: this.proposal()?.createdAt ?? new Date(),
       documents: this.mapDocuments(),

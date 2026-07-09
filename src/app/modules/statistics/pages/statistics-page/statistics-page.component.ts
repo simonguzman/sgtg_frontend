@@ -5,7 +5,7 @@ import { ChartModule } from 'primeng/chart';
 import { SelectModule } from 'primeng/select';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { StatisticsStateService } from '../../services/statistics-state.service';
-import { ChartOptionsConfiguration } from '../../interfaces/chartOptionsConfiguration.enum';
+import { ChartOptionsConfiguration } from '../../interfaces/chartOptionsConfiguration.interface';
 import { ProjectStage } from '../../enum/projectStage.enum';
 import { StatisticsReportService } from '../../services/statistics-reports.service';
 
@@ -29,6 +29,12 @@ export class StatisticsPageComponent implements OnInit {
 
   public doughnutOptions!: ChartOptionsConfiguration;
   public barOptions!: ChartOptionsConfiguration;
+
+  public readonly archiveOptions = [
+    { label: 'Activos en proceso', value: 'ACTIVE' },
+    { label: 'Historial Archivados', value: 'ARCHIVED' },
+    { label: 'Todos', value: 'ALL' }
+  ];
 
   ngOnInit(): void {
     this.initializeChartOptions();
@@ -75,6 +81,10 @@ export class StatisticsPageComponent implements OnInit {
 
   public onDirectorChange(directorId: string | null): void {
     this.state.updateFilters({ directorId });
+  }
+
+  public onArchiveStatusChange(archiveStatus: 'ACTIVE' | 'ARCHIVED' | 'ALL'): void {
+    this.state.updateFilters({ archiveStatus });
   }
 
   public handleDownloadReport(): void {

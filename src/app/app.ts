@@ -9,4 +9,5 @@ import { NotificationContainerComponent } from "./shared/components/notification
 })
 export class App {
   protected readonly title = signal('sgtg-prueba');
+
 }

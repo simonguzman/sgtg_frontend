@@ -6,10 +6,11 @@ import { Document, DocumentType } from '../../../core/interfaces/Document.interf
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
-import { addBusinessDays } from '../../../core/utils/date-utils';
+import { addBusinessDays, getRemainingBusinessDays } from '../../../core/utils/date-utils';
 import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { UserService } from '../../users/services/user.service';
 import { UserRoleType } from '../../../core/models/user-role';
+import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
 
 @Injectable({
   providedIn: 'root'
@@ -50,7 +51,22 @@ export class PreliminaryDraftDocumentService {
             if (proposal.advisor?.id) notifyUserIds.push(proposal.advisor.id);
           }
 
-          const newEvaluations = [evaluation, ...(preliminaryDraft.evaluations || [])];
+          // 👇 1. Calculamos si el evaluador entregó en el plazo
+          const remainingDays = preliminaryDraft.evaluationDeadline
+            ? getRemainingBusinessDays(new Date(preliminaryDraft.evaluationDeadline))
+            : 0;
+
+          const timelinessStatus = remainingDays < 0
+            ? EvaluationDeadlineStatus.DELAYED
+            : EvaluationDeadlineStatus.ON_TIME;
+
+          // 👇 2. Inyectamos el estado histórico en esta evaluación específica
+          const evaluationWithStatus = {
+            ...evaluation,
+            deadlineStatus: timelinessStatus
+          };
+
+          const newEvaluations = [evaluationWithStatus, ...(preliminaryDraft.evaluations || [])];
           return {
             ...preliminaryDraft,
             evaluations: newEvaluations,
@@ -66,7 +82,7 @@ export class PreliminaryDraftDocumentService {
         notifyUserIds.push(...jefesDepto);
 
         this.eventBus.emit({
-          type: AppEventType.EVALUATION_ASSIGNED,
+          type: AppEventType.PRELIMINARY_DRAFT_EVALUATION_REGISTERED,
           targetUserIds: [...new Set(notifyUserIds)],
           payload: {
             preliminaryDraftId: preliminaryDraftId,
@@ -86,19 +102,23 @@ export class PreliminaryDraftDocumentService {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
-        const renewedDeadLine = addBusinessDays(new Date(), 10);
-        let currentDraftTitle = '';
+        let currentPreliminaryDraftTitle = '';
         const notifyUserIds: string[] = [];
 
         this.storage.updateDraft(preliminaryDraftId, (preliminaryDraft) => {
           const proposal = preliminaryDraft.proposalData;
 
           if (proposal) {
-            currentDraftTitle = proposal.title || '';
+            currentPreliminaryDraftTitle = proposal.title || '';
           }
+
+          let newDeadline = preliminaryDraft.evaluationDeadline;
 
           // 💡 ENRUTAMIENTO ATÓMICO SEGURO: Evaluamos las condiciones basándonos en el estado inmutable real
           if (document.type === 'Correccion') {
+            // Si es corrección, va para los evaluadores. SE ASIGNA PLAZO DE 10 DÍAS.
+            newDeadline = addBusinessDays(new Date(), 10);
+
             if (preliminaryDraft.evaluators) {
               notifyUserIds.push(...preliminaryDraft.evaluators.map(evaluator => evaluator.id));
             }
@@ -107,6 +127,9 @@ export class PreliminaryDraftDocumentService {
             }
 
           } else if (document.type === DocumentType.FORMATO_C) {
+            // Si es Formato C, va para el Consejo. NO HAY PLAZO.
+            newDeadline = undefined;
+
             if (proposal) {
               proposal.authors?.forEach(author => {
                 if (typeof author === 'string') notifyUserIds.push(author);
@@ -119,6 +142,9 @@ export class PreliminaryDraftDocumentService {
             }
 
           } else {
+            // Otros documentos genéricos que no activan plazo a jurados
+            newDeadline = undefined;
+
             if (proposal?.authors) {
               proposal.authors.forEach(author => {
                 if (typeof author === 'string') notifyUserIds.push(author);
@@ -131,7 +157,7 @@ export class PreliminaryDraftDocumentService {
             ...preliminaryDraft,
             documents: [document, ...(preliminaryDraft.documents || [])],
             state: stateList.EN_REVISION,
-            evaluationDeadline: renewedDeadLine,
+            evaluationDeadline: newDeadline, // 👈 Se asigna el plazo calculado o undefined
           };
         });
 
@@ -144,13 +170,18 @@ export class PreliminaryDraftDocumentService {
           notifyUserIds.push(...jefesYConsejo);
         }
 
+        // 👇 ÚNICA MODIFICACIÓN: Evaluamos dinámicamente qué evento disparar
+        const eventType = document.type === DocumentType.FORMATO_C
+          ? AppEventType.PRELIMINARY_DRAFT_COUNCIL_PRESENTATION_UPLOADED
+          : AppEventType.PRELIMINARY_DRAFT_CORRECTION_UPLOADED;
+
         this.eventBus.emit({
-          type: AppEventType.DOCUMENT_CORRECTION_UPLOADED,
+          type: eventType, // 👈 Usamos la variable dinámica aquí
           targetUserIds: [...new Set(notifyUserIds)],
           payload: {
             preliminaryDraftId: preliminaryDraftId,
             documentType: document.type,
-            preliminaryDraftTitle: currentDraftTitle // 💡 Título inyectado con éxito
+            preliminaryDraftTitle: currentPreliminaryDraftTitle
           }
         });
       })
@@ -221,9 +252,6 @@ export class PreliminaryDraftDocumentService {
     );
   }
 
-  /**
-   * Calcula el estado visual detallado de un documento específico esperando a todos los jurados.
-   */
   /**
    * Calcula el estado visual detallado de un documento específico esperando a todos los jurados.
    */

@@ -35,7 +35,7 @@
 
           <div class="flex flex-col items-start leading-tight">
             <p class="text-size-body font-display font-semibold text-primary">
-              {{ authService.currentUser()?.firstName }}
+              {{ userFullName() }}
             </p>
             <p class="text-size-role-footer font-display font-regular text-primary opacity-70">
               {{ authService.currentUser()?.roles }}
