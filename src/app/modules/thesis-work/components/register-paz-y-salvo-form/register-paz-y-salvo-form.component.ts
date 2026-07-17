@@ -57,7 +57,8 @@ export class RegisterPazYSalvoFormComponent {
   getExistingDocument(type: string): Document | null {
     const targetType = type.toUpperCase().trim();
     if (this.thesisWork?.finalDeliveries && this.thesisWork.finalDeliveries.length > 0) {
-      const lastDelivery = this.thesisWork.finalDeliveries[this.thesisWork.finalDeliveries.length - 1];
+      const lastDelivery = this.thesisWork.finalDeliveries.find(finalDelivery => finalDelivery.status === 'En revisión')
+                           || this.thesisWork.finalDeliveries[0];
       if (targetType === 'MONOGRAFIA' && lastDelivery.monograph) return lastDelivery.monograph;
       if ((targetType === 'FORMATO' || targetType === 'FORMATO_E') && lastDelivery.formatE) return lastDelivery.formatE;
       if (targetType === 'ANEXOS' && lastDelivery.annexes) return lastDelivery.annexes;

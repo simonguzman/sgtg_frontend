@@ -1,233 +1,222 @@
-<div class="pt-2 max-w-4xl mx-auto pb-10">
+<div class="p-6 bg-white rounded-lg w-full">
+  <div class="flex flex-col gap-8">
 
-  @if (!isReadOnly) {
-    <app-info-banner title="Evaluación de presentación al consejo de facultad" class="mb-6 block">
-      Revise los antecedentes del anteproyecto y los archivos adjuntos cargados para el proceso de validación. Es <strong>obligatorio</strong> que registre las observaciones de la resolución y adjunte el documento oficial de resolución debidamente firmado por el consejo.
-    </app-info-banner>
-  }
+    @if (!isReadOnly) {
+      <app-info-banner title="Evaluación de presentación al consejo de facultad" class="block">
+        Revise los antecedentes del anteproyecto y los archivos adjuntos cargados para el proceso de validación. Es <strong>obligatorio</strong> que registre las observaciones de la resolución y adjunte el documento oficial de resolución debidamente firmado por el consejo.
+      </app-info-banner>
+    }
 
-  <section class="mb-10">
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del anteproyecto</h3>
-
-    <div class="flex flex-col gap-4">
-      <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Título</span>
-        <input type="text" [value]="preliminaryDraft.proposalData.title || ''" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Fecha de carga</span>
-          <input type="text" [value]="documentUploadDate" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-        </div>
-        <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Modalidad</span>
-          <input type="text" [value]="preliminaryDraft.proposalData.modality" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-        </div>
-      </div>
-
-      <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Estado</span>
-        <input type="text" [value]="preliminaryDraft.state" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
-      </div>
-
-      <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Estudiante(s)</span>
-        <input type="text" [value]="getStudentNames()" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Director</span>
-          <input type="text" [value]="getDirectorName()" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-        </div>
-
-        @if (preliminaryDraft.proposalData.codirector) {
-          <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
-            <input type="text" [value]="getCodirectorName()" disabled
-                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-          </div>
-        }
-
-        @if (preliminaryDraft.proposalData.advisor) {
-          <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
-            <input type="text" [value]="getAdvisorName()" disabled
-                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-          </div>
-        }
-      </div>
-    </div>
-  </section>
-
-  <hr class="border-gray-200 mb-10">
-
-  <section [class.opacity-60]="isReadOnly">
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Resultado de la evaluación</h3>
-
-    <form [formGroup]="evaluationForm" (ngSubmit)="submit()" class="flex flex-col gap-6">
-
-      <div class="flex flex-col gap-2">
-        <div class="flex items-center justify-center gap-8">
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="radio" formControlName="result" value="Aprobado">
-            <span class="text-size-body font-sans text-[#777680]">Aprobado</span>
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="radio" formControlName="result" value="No aprobado">
-            <span class="text-size-body font-sans text-[#777680]">No aprobado</span>
-          </label>
-        </div>
-        @if (isFieldInvalid('result')) {
-          <span class="text-textbox-alert text-center">Seleccione el veredicto del consejo</span>
-        }
-      </div>
-
-      @if (evaluationForm.get('result')?.value === 'Aprobado') {
-        <div class="flex flex-col gap-1 max-w-md mx-auto w-full bg-blue-50/50 p-6 rounded-xl border border-blue-100 transition-all shadow-sm my-4">
-          <span class="font-display font-semibold text-size-section text-primary mb-2 flex items-center gap-1">
-            Fecha máxima de entrega del Trabajo de Grado <span class="text-[#ED7D31]">*</span>
-          </span>
-
-          <p-datepicker
-            formControlName="maximumDeliveryDate"
-            [showIcon]="true"
-            placeholder="Seleccione la fecha límite"
-            styleClass="w-full"
-            [inputStyleClass]="'font-sans font-normal text-size-body p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary ' + (isFieldInvalid('maximumDeliveryDate') ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white')">
-          </p-datepicker>
-
-          @if (isFieldInvalid('maximumDeliveryDate')) {
-            <span class="text-textbox-alert text-xs mt-1">La fecha límite de entrega es requerida para proyectos aprobados</span>
-          }
-        </div>
-      }
-
-      <div class="flex flex-col gap-1">
-        <label for="comments" class="font-display font-semibold text-primary text-size-section">Observaciones del consejo <span class="text-orange-500">*</span></label>
-        <textarea id="comments" formControlName="comments" rows="4"
-          class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans"
-          [class.border-[#ED7D31]]="isFieldInvalid('comments')"
-          [class.input-success]="evaluationForm.get('comments')?.valid && evaluationForm.get('comments')?.touched"
-          placeholder="Ingrese los detalles de la resolución..."></textarea>
-        @if (isFieldInvalid('comments')) {
-          <span class="text-textbox-alert">Las observaciones son requeridas</span>
-        }
-      </div>
+    <section>
+      <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">Información del anteproyecto</h3>
 
       <div class="flex flex-col gap-4">
-        <span class="font-display font-semibold text-primary text-size-section">Archivos para revisión <span class="text-orange-500">*</span></span>
 
-        <div class="flex flex-col gap-3">
-          <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
-            <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
-              <div class="flex flex-col">
-                <span class="text-size-body font-bold text-primary">{{ signedProposalDocument?.name || 'Formato A' }}</span>
-                <span class="text-size-role-footer text-[#777680]">Propuesta original aprobada por comité</span>
-              </div>
-            </div>
-            <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(signedProposalDocument!)"></app-button-component>
+        <ng-template #readOnlyField let-label="label" let-value="value" let-isTextArea="isTextArea">
+          <div class="flex flex-col gap-1">
+            <span class="font-display font-semibold text-primary text-size-section">
+              {{ label }}
+            </span>
+            @if (isTextArea) {
+              <textarea [value]="value || 'Sin descripción disponible'" disabled rows="4"
+                        class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body resize-none"></textarea>
+            } @else {
+              <input type="text" [value]="value" disabled
+                     class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body">
+            }
           </div>
+        </ng-template>
 
-          @for (evalFile of evaluationFiles; track evalFile.name) {
-            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Título', value: preliminaryDraft.proposalData.title }"></ng-container>
+
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Descripción', value: preliminaryDraft.proposalData.description, isTextArea: true }"></ng-container>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Fecha de carga', value: documentUploadDate }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Modalidad', value: preliminaryDraft.proposalData.modality }"></ng-container>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estado', value: preliminaryDraft.state }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estudiante(s)', value: getStudentNames() }"></ng-container>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Director', value: getDirectorName() }"></ng-container>
+          @if (preliminaryDraft.proposalData.codirector) {
+            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Codirector', value: getCodirectorName() }"></ng-container>
+          }
+        </div>
+
+        @if (preliminaryDraft.proposalData.advisor) {
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Asesor', value: getAdvisorName() }"></ng-container>
+        }
+
+      </div>
+    </section>
+
+    <section [class.opacity-60]="isReadOnly">
+      <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">Resultado de la evaluación</h3>
+
+      <form [formGroup]="evaluationForm" (ngSubmit)="submit()" class="flex flex-col gap-6">
+
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-center gap-8">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" formControlName="result" value="Aprobado">
+              <span class="text-size-body font-sans text-[#777680]">Aprobado</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" formControlName="result" value="No aprobado">
+              <span class="text-size-body font-sans text-[#777680]">No aprobado</span>
+            </label>
+          </div>
+          @if (isFieldInvalid('result')) {
+            <span class="text-textbox-alert text-center">Seleccione el veredicto del consejo</span>
+          }
+        </div>
+
+        @if (evaluationForm.get('result')?.value === 'Aprobado') {
+          <div class="flex flex-col gap-1 max-w-md mx-auto w-full bg-blue-50/50 p-6 rounded-xl border border-blue-100 transition-all shadow-sm my-4">
+            <span class="font-display font-semibold text-size-section text-primary mb-2 flex items-center gap-1">
+              Fecha máxima de entrega del Trabajo de Grado <span class="text-[#ED7D31]">*</span>
+            </span>
+
+            <p-datepicker
+              formControlName="maximumDeliveryDate"
+              [showIcon]="true"
+              placeholder="Seleccione la fecha límite"
+              styleClass="w-full"
+              [inputStyleClass]="'font-sans font-normal text-size-body p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary ' + (isFieldInvalid('maximumDeliveryDate') ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white')">
+            </p-datepicker>
+
+            @if (isFieldInvalid('maximumDeliveryDate')) {
+              <span class="text-textbox-alert text-xs mt-1">La fecha límite de entrega es requerida para proyectos aprobados</span>
+            }
+          </div>
+        }
+
+        <div class="flex flex-col gap-1">
+          <label for="comments" class="font-display font-semibold text-primary text-size-section">Observaciones del consejo <span class="text-orange-500">*</span></label>
+          <textarea id="comments" formControlName="comments" rows="4"
+            class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans"
+            [class.border-[#ED7D31]]="isFieldInvalid('comments')"
+            [class.input-success]="evaluationForm.get('comments')?.valid && evaluationForm.get('comments')?.touched"
+            placeholder="Ingrese los detalles de la resolución..."></textarea>
+          @if (isFieldInvalid('comments')) {
+            <span class="text-textbox-alert">Las observaciones son requeridas</span>
+          }
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <span class="font-display font-semibold text-primary text-size-section">Archivos para revisión <span class="text-orange-500">*</span></span>
+
+          <div class="flex flex-col gap-3">
+
+            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
               <div class="flex items-center gap-3">
                 <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
                 <div class="flex flex-col">
-                  <span class="text-size-body font-bold text-primary">{{ evalFile.name }}</span>
-                  <span class="text-size-role-footer text-[#777680]">Evaluación docente: {{ evalFile.evaluator }}</span>
+                  <span class="text-size-body font-bold text-primary">{{ signedProposalDocument?.name || 'Formato A' }}</span>
+                  <span class="text-size-role-footer text-[#777680]">Propuesta original aprobada por comité</span>
                 </div>
               </div>
-              <app-button-component label="Descargar" variant="primary"></app-button-component>
+              <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(signedProposalDocument!)"></app-button-component>
             </div>
-          }
 
-          <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
-            <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
-              <div class="flex flex-col">
-                <span class="text-size-body font-bold text-primary">{{ approvedPreliminaryDraftDocument?.name || 'Anteproyecto' }}</span>
-                <span class="text-size-role-footer text-[#777680]">Documento de anteproyecto aprobado</span>
+            @for (evalFile of evaluationFiles; track evalFile.name) {
+              <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
+                <div class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
+                  <div class="flex flex-col">
+                    <span class="text-size-body font-bold text-primary">{{ evalFile.name }}</span>
+                    <span class="text-size-role-footer text-[#777680]">Evaluación docente: {{ evalFile.evaluator }}</span>
+                  </div>
+                </div>
+                <app-button-component label="Descargar" variant="primary"></app-button-component>
               </div>
-            </div>
-            <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(approvedPreliminaryDraftDocument!)"></app-button-component>
-          </div>
-
-          <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
-            <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
-              <div class="flex flex-col">
-                <span class="text-size-body font-bold text-primary">{{ presentationDocument?.name || 'Presentación' }}</span>
-                <span class="text-size-role-footer text-[#777680]">Cargado por el jefe de departamento</span>
-              </div>
-            </div>
-            <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(presentationDocument!)"></app-button-component>
-          </div>
-
-          <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm"
-               [class.border-[#777680]]="evaluationForm.touched && uploadedSignedFile()"
-               [class.border-[#ED7D31]]="evaluationForm.touched && !uploadedSignedFile()"
-               [class.border-l-4]="uploadedSignedFile()"
-               [class.border-l-state-approved]="uploadedSignedFile()">
-
-            <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-4xl"
-                    [class.text-state-approved]="uploadedSignedFile()"
-                    [class.text-[#ED7D31]]="evaluationForm.touched && !uploadedSignedFile()"
-                    [class.text-[#777680]]="!uploadedSignedFile() && !(evaluationForm.touched && !uploadedSignedFile())">
-                {{ uploadedSignedFile() ? 'task' : 'picture_as_pdf' }}
-              </span>
-              <div class="flex flex-col">
-                <span class="text-size-body font-bold"
-                      [class.text-primary]="uploadedSignedFile()"
-                      [class.text-[#ED7D31]]="evaluationForm.touched && !uploadedSignedFile()">
-                  {{ uploadedSignedFile()?.fileName || 'Resolución del consejo de facultad' }}
-                </span>
-                <span class="text-size-role-footer text-[#777680]">Resolución oficial del consejo firmada (Obligatorio)</span>
-                @if (evaluationForm.touched && !uploadedSignedFile()) {
-                  <span class="text-size-role-footer text-textbox-alert mt-1">Debe adjuntar el documento de resolución firmado</span>
-                }
-              </div>
-            </div>
-
-            @if (uploadedSignedFile()) {
-              @if (!isReadOnly) {
-                <button type="button" (click)="uploadedSignedFile.set(null)" class="text-[#777680] hover:text-[#DB141C] transition-colors">
-                  <span class="material-symbols-outlined">delete</span>
-                </button>
-              }
-            } @else {
-              <app-button-component
-                label="Cargar resolución"
-                variant="secondary"
-                type="button"
-                (onClick)="isUploadModalOpen.set(true)"
-                [disabled]="isReadOnly">
-              </app-button-component>
             }
+
+            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
+                <div class="flex flex-col">
+                  <span class="text-size-body font-bold text-primary">{{ approvedPreliminaryDraftDocument?.name || 'Anteproyecto' }}</span>
+                  <span class="text-size-role-footer text-[#777680]">Documento de anteproyecto aprobado</span>
+                </div>
+              </div>
+              <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(approvedPreliminaryDraftDocument!)"></app-button-component>
+            </div>
+
+            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
+                <div class="flex flex-col">
+                  <span class="text-size-body font-bold text-primary">{{ presentationDocument?.name || 'Presentación' }}</span>
+                  <span class="text-size-role-footer text-[#777680]">Cargado por el jefe de departamento</span>
+                </div>
+              </div>
+              <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(presentationDocument!)"></app-button-component>
+            </div>
+
+            <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm mt-2"
+                 [class.border-[#777680]]="evaluationForm.touched && uploadedSignedFile()"
+                 [class.border-[#ED7D31]]="evaluationForm.touched && !uploadedSignedFile()"
+                 [class.border-l-4]="uploadedSignedFile()"
+                 [class.border-l-state-approved]="uploadedSignedFile()">
+
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-4xl"
+                      [class.text-state-approved]="uploadedSignedFile()"
+                      [class.text-[#ED7D31]]="evaluationForm.touched && !uploadedSignedFile()"
+                      [class.text-[#777680]]="!uploadedSignedFile() && !(evaluationForm.touched && !uploadedSignedFile())">
+                  {{ uploadedSignedFile() ? 'task' : 'picture_as_pdf' }}
+                </span>
+                <div class="flex flex-col">
+                  <span class="text-size-body font-bold"
+                        [class.text-primary]="uploadedSignedFile()"
+                        [class.text-[#ED7D31]]="evaluationForm.touched && !uploadedSignedFile()">
+                    {{ uploadedSignedFile()?.fileName || 'Resolución del consejo de facultad' }}
+                  </span>
+                  <span class="text-size-role-footer text-[#777680]">Resolución oficial del consejo firmada (Obligatorio)</span>
+                  @if (evaluationForm.touched && !uploadedSignedFile()) {
+                    <span class="text-size-role-footer text-textbox-alert mt-1">Debe adjuntar el documento de resolución firmado</span>
+                  }
+                </div>
+              </div>
+
+              @if (uploadedSignedFile()) {
+                @if (!isReadOnly) {
+                  <button type="button" (click)="uploadedSignedFile.set(null)" class="text-[#777680] hover:text-[#DB141C] transition-colors">
+                    <span class="material-symbols-outlined">delete</span>
+                  </button>
+                }
+              } @else {
+                <app-button-component
+                  label="Cargar resolución"
+                  variant="secondary"
+                  type="button"
+                  (onClick)="isUploadModalOpen.set(true)"
+                  [disabled]="isReadOnly">
+                </app-button-component>
+              }
+            </div>
+
           </div>
-
         </div>
-      </div>
 
-      <div class="flex gap-4 justify-end mt-10">
-        <app-button-component
-          label="Guardar decisión"
-          variant="primary"
-          type="submit"
-          [disabled]="isReadOnly">
-        </app-button-component>
-      </div>
-    </form>
-  </section>
+        <div class="flex gap-4 justify-end mt-10">
+          <app-button-component
+            label="Guardar decisión"
+            variant="primary"
+            type="submit"
+            [disabled]="isReadOnly">
+          </app-button-component>
+        </div>
+      </form>
+    </section>
+
+  </div>
 </div>
 
 <app-file-upload-modal

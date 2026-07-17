@@ -45,21 +45,16 @@
 
         <div class="flex flex-col gap-1">
           <label for="modality" class="font-display font-semibold text-size-section title-textbox">Modalidad del trabajo de grado <span class="text-[#ED7D31]">*</span></label>
-          <div class="relative flex items-center">
-            <select id="modality" formControlName="modality"
-                    class="font-sans font-normal text-size-body custom-select p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10"
-                    [class.border-[#ED7D31]]="isFieldInvalid('modality')"
-                    [class.text-[#777680]]="!proposalForm.get('modality')?.value"
-                    [class.text-textbox]="proposalForm.get('modality')?.value"
-                    [class.input-success]="proposalForm.get('modality')?.valid && proposalForm.get('modality')?.touched">
-              <option value="" disabled>Modalidad</option>
-              <option value="Practica profesional">Práctica profesional</option>
-              <option value="Trabajo de investigacion">Trabajo de investigación</option>
-            </select>
-            <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
-            @if (proposalForm.get('modality')?.valid && proposalForm.get('modality')?.touched) {
-              <span class="material-symbols-outlined success-icon mr-8">check_circle</span>
-            }
+          <div class="relative flex items-center w-full">
+            <app-searchable-select
+              id="modality"
+              formControlName="modality"
+              [options]="modalityOptions"
+              placeholder="Seleccione la modalidad"
+              [hasError]="isFieldInvalid('modality')"
+              [isValid]="isFieldValid('modality')"
+              class="w-full block">
+            </app-searchable-select>
           </div>
           @if (isFieldInvalid('modality')) {
             <span class="text-textbox-alert">Seleccione la modalidad del trabajo</span>
@@ -74,22 +69,16 @@
 
         <div class="flex flex-col gap-1">
           <label for="student1" class="font-display font-semibold text-size-section title-textbox">Estudiante 1 <span class="text-[#ED7D31]">*</span></label>
-          <div class="relative flex items-center">
-            <select id="student1" formControlName="student1"
-                    class="font-sans font-normal text-size-body custom-select p-2 border rounded-md w-full bg-gray-50 pr-10 focus:ring-1 focus:ring-primary"
-                    [class.border-[#ED7D31]]="isFieldInvalid('student1')"
-                    [class.text-[#777680]]="!proposalForm.get('student1')?.value"
-                    [class.text-textbox]="proposalForm.get('student1')?.value"
-                    [class.input-success]="proposalForm.get('student1')?.valid && proposalForm.get('student1')?.touched">
-              <option value="" disabled selected>Seleccione un estudiante</option>
-              @for (student of availableStudents(); track student.id) {
-                <option [value]="student.id">{{ student.firstName }} {{ student.secondName }} {{ student.lastName }} {{ student.secondLastName }}</option>
-              }
-            </select>
-            <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
-            @if (proposalForm.get('student1')?.valid && proposalForm.get('student1')?.touched) {
-              <span class="material-symbols-outlined success-icon mr-8">check_circle</span>
-            }
+          <div class="relative flex items-center w-full">
+            <app-searchable-select
+              id="student1"
+              formControlName="student1"
+              [options]="student1Options()"
+              placeholder="Seleccione un estudiante"
+              [hasError]="isFieldInvalid('student1')"
+              [isValid]="isFieldValid('student1')"
+              class="w-full block">
+            </app-searchable-select>
           </div>
           @if (isFieldInvalid('student1')) {
             <span class="text-textbox-alert">Debe seleccionar al menos un estudiante disponible</span>
@@ -98,61 +87,47 @@
 
         <div class="flex flex-col gap-1">
           <label for="student2" class="font-display font-semibold text-size-section title-textbox">Estudiante 2 (Opcional)</label>
-          <div class="relative flex items-center">
-            <select id="student2" formControlName="student2"
-                    class="font-sans font-normal text-size-body custom-select p-2 border rounded-md w-full bg-gray-50 pr-10 focus:ring-1 focus:ring-primary"
-                    [class.text-[#777680]]="!proposalForm.get('student2')?.value"
-                    [class.text-textbox]="proposalForm.get('student2')?.value">
-              <option value="">Ninguno / Seleccione estudiante</option>
-              @for (student of filteredStudentsForS2(); track student.id) {
-                <option [value]="student.id">{{ student.firstName }} {{ student.secondName }} {{ student.lastName }} {{ student.secondLastName }} </option>
-              }
-            </select>
-            <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
+          <div class="relative flex items-center w-full">
+            <app-searchable-select
+              id="student2"
+              formControlName="student2"
+              [options]="student2Options()"
+              placeholder="Ninguno / Seleccione estudiante"
+              [isValid]="hasValue('student2')"
+              [isClearable]="true"
+              class="w-full block">
+            </app-searchable-select>
           </div>
         </div>
 
         <div class="flex flex-col gap-1">
           <label for="codirector" class="font-display font-semibold text-size-section title-textbox">Codirector</label>
-          <div class="relative flex items-center">
-            <select id="codirector" formControlName="codirector"
-                    class="font-sans font-normal text-size-body custom-select p-2 border rounded-md w-full bg-gray-50 pr-10 focus:ring-1 focus:ring-primary"
-                    [class.text-[#777680]]="!proposalForm.get('codirector')?.value"
-                    [class.text-textbox]="proposalForm.get('codirector')?.value">
-              <option value="" disabled>Seleccionar codirector</option>
-
-              @for (teacher of availableTeachers(); track teacher.id) {
-                <option [value]="teacher.id">
-                  {{ teacher.firstName }} {{ teacher.secondName || '' }} {{ teacher.lastName }} {{ teacher.secondLastName || '' }}
-                </option>
-              }
-            </select>
-            <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
+          <div class="relative flex items-center w-full">
+            <app-searchable-select
+              id="codirector"
+              formControlName="codirector"
+              [options]="codirectorOptions()"
+              placeholder="Seleccionar codirector"
+              [isValid]="hasValue('codirector')"
+              [isClearable]="true"
+              class="w-full block">
+            </app-searchable-select>
           </div>
         </div>
 
         @if (showAdvisorField) {
           <div class="flex flex-col gap-1">
             <label for="advisor" class="font-display font-semibold text-size-section title-textbox">Asesor <span class="text-[#ED7D31]">*</span></label>
-            <div class="relative flex items-center">
-              <select id="advisor" formControlName="advisor"
-                      class="font-sans font-normal text-size-body custom-select p-2 border rounded-md w-full bg-gray-50 pr-10 focus:ring-1 focus:ring-primary"
-                      [class.border-[#ED7D31]]="isFieldInvalid('advisor')"
-                      [class.text-[#777680]]="!proposalForm.get('advisor')?.value"
-                      [class.text-textbox]="proposalForm.get('advisor')?.value"
-                      [class.input-success]="proposalForm.get('advisor')?.valid && proposalForm.get('advisor')?.touched">
-                <option value="" disabled>Seleccionar asesor</option>
-
-                @for (advisor of availableAdvisors(); track advisor.id) {
-                  <option [value]="advisor.id">
-                    {{ advisor.firstName }} {{ advisor.secondName || '' }} {{ advisor.lastName }} {{ advisor.secondLastName || '' }}
-                  </option>
-                }
-              </select>
-              <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
-              @if (proposalForm.get('advisor')?.valid && proposalForm.get('advisor')?.touched) {
-                <span class="material-symbols-outlined success-icon mr-8">check_circle</span>
-              }
+            <div class="relative flex items-center w-full">
+              <app-searchable-select
+                id="advisor"
+                formControlName="advisor"
+                [options]="advisorOptions()"
+                placeholder="Seleccionar asesor"
+                [hasError]="isFieldInvalid('advisor')"
+                [isValid]="isFieldValid('advisor')"
+                class="w-full block">
+              </app-searchable-select>
             </div>
             @if (isFieldInvalid('advisor')) {
               <span class="text-textbox-alert">Debe seleccionar un asesor para la práctica</span>

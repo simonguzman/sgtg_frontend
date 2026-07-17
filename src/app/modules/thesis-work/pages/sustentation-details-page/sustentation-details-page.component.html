@@ -1,4 +1,4 @@
-<div class="pt-2 max-w-5xl mx-auto pb-10">
+<div class="w-full min-h-screen bg-[#F8F9FA] p-4 md:p-8">
 
   <div class="flex justify-between items-center mb-6">
     <button
@@ -71,9 +71,23 @@
       </div>
 
       <div class="p-3 information-block rounded">
+        <span class="font-semibold font-display text-size-section text-primary">Descripción</span>
+        <p class="font-normal font-sans text-size-section text-[#777680]">
+          {{ work.preliminaryDraftData.proposalData.description }}
+        </p>
+      </div>
+
+      <div class="p-3 information-block rounded">
         <span class="font-semibold font-display text-size-section text-primary">Modalidad</span>
         <p class="font-normal font-sans text-size-section text-[#777680]">
           {{ work.preliminaryDraftData.proposalData.modality }}
+        </p>
+      </div>
+
+      <div class="p-3 information-block rounded">
+        <span class="font-semibold font-display text-size-section text-primary">Estado</span>
+        <p class="font-normal font-sans text-size-section text-[#777680]">
+          {{ work.state }}
         </p>
       </div>
 
@@ -151,6 +165,35 @@
         </p>
       </div>
     </div>
+
+    @if (approvedSpecialRequests().length > 0) {
+      <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
+        Solicitudes especiales aprobadas
+      </h3>
+
+      <div class="flex flex-col gap-4 mb-8">
+        @for (req of approvedSpecialRequests(); track $index) {
+          <div class="notification notification--info">
+            <span class="notification__icon">
+              <span class="material-symbols-outlined">assignment_turned_in</span>
+            </span>
+            <div class="notification__body">
+              <p class="notification__title notification__title--info">
+                Autorización de {{ req.requestType | lowercase }}
+              </p>
+              <p class="notification__message notification__message--info mt-1">
+                <span class="font-semibold">Motivo:</span> {{ req.description }}
+              </p>
+              @if (req.resolutionDetails) {
+                <p class="notification__message notification__message--info mt-1">
+                  <span class="font-semibold">Resolución:</span> {{ req.resolutionDetails }}
+                </p>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
 
     <!-- ── Sección: Archivos adjuntos ─────────────────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">

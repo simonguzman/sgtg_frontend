@@ -18,12 +18,13 @@ import { User } from '../../../users/interfaces/user.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
+import { SearchableSelectComponent, SelectOption } from '../../../../shared/components/searchable-select/searchable-select.component';
 
 @Component({
   selector: 'app-preliminary-draft-form',
   templateUrl: './preliminary-draft-form.component.html',
   styleUrls: ['./preliminary-draft-form.component.css'],
-  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, NgTemplateOutlet, InfoBannerComponent]
+  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, NgTemplateOutlet, InfoBannerComponent, SearchableSelectComponent]
 })
 export class PreliminaryDraftFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -72,14 +73,31 @@ export class PreliminaryDraftFormComponent implements OnInit {
   protected proposalEvaluationDocument = computed(() => {
     const proposal = this.selectedProposal();
     if (!proposal?.evaluations?.length) return null;
+
     const approvedEvaluation = [...proposal.evaluations]
       .reverse()
       .find(evaluation =>
         evaluation.veredict === stateList.APROBADO ||
         evaluation.veredict === stateList.APROBADO_CON_OBSERVACIONES
       );
-    return approvedEvaluation?.signedDocuments?.[0] || null;
+
+    const fileName = approvedEvaluation?.signedDocuments?.[0];
+
+    if (!fileName) return null;
+
+    // Retornamos un objeto estructurado para que el HTML pueda leer .name y .url sin errores
+    return {
+      name: typeof fileName === 'string' ? fileName : (fileName as any).name,
+      url: typeof fileName === 'string' ? '' : (fileName as any).url
+    };
   });
+
+  protected proposalOptions = computed<SelectOption[]>(() =>
+    this.availableProposals().map(p => ({
+      id: p.id!,
+      label: p.title
+    }))
+  );
 
   ngOnInit(): void {
     const currentPreliminaryDraft = this.preliminaryDraft();
@@ -121,6 +139,11 @@ export class PreliminaryDraftFormComponent implements OnInit {
   isFieldInvalid(fieldName: string): boolean {
     const control = this.form.get(fieldName);
     return !!(control?.invalid && control?.touched);
+  }
+
+  isFieldValid(fieldName: string): boolean {
+    const control = this.form.get(fieldName);
+    return !!(control?.valid && control?.touched);
   }
 
   getMemberName(user: User | undefined): string {

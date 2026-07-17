@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
 import { ButtonComponent } from '../../button-component/button-component.component';
 import { TooltipModule } from 'primeng/tooltip';
 import { stateList } from '../../../../core/enums/state.enum';
-
+import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
 @Component({
   selector: 'app-evaluation-modal',
   imports: [DialogModule, CommonModule, StateComponent, ButtonComponent, TooltipModule],
@@ -22,16 +22,16 @@ export class EvaluationModalComponent{
   @Input() evaluationDate: Date = new Date;
   @Input() state?:stateList;
   @Input() comments: string = '';
-  @Input() documents: string[] = [];
+  @Input() documents: FormattedDocument[] = [];
 
   @Output() onClose = new EventEmitter<void>()
-  @Output() onDownloadFile = new EventEmitter<string>()
+  @Output() onDownloadFile = new EventEmitter<FormattedDocument>()
 
   closeModal() {
     this.onClose.emit()
   }
-  downloadFile (fileName: string){
-    this.onDownloadFile.emit(fileName);
+  downloadFile (document: FormattedDocument){
+    this.onDownloadFile.emit(document);
   }
 
 }

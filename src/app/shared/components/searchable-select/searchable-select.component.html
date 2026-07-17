@@ -1,0 +1,59 @@
+<div class="relative flex items-center w-full">
+  <input
+    [id]="inputId()"
+    type="text"
+    [placeholder]="placeholder()"
+    [value]="searchTerm()"
+    [disabled]="isDisabled()"
+    (input)="onInput($event)"
+    (click)="toggleDropdown()"
+    class="font-sans font-normal text-size-body custom-select p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary cursor-text transition-colors"
+    [class.pr-20]="isClearable() && value()"
+    [class.pr-10]="!(isClearable() && value())"
+    [class.border-[#ED7D31]]="hasError()"
+    [class.input-success]="isValid()"
+    [class.text-[#777680]]="!value() && !isOpen()"
+    [class.text-textbox]="value() || isOpen()"
+    [class.opacity-50]="isDisabled()"
+    [class.cursor-not-allowed]="isDisabled()"
+  />
+
+  <span class="material-symbols-outlined select-arrow pointer-events-none">
+    arrow_forward_ios
+  </span>
+
+  @if (isValid()) {
+    <span class="material-symbols-outlined success-icon mr-8 pointer-events-none">
+      check_circle
+    </span>
+  }
+
+  @if (isClearable() && value() && !isDisabled()) {
+    <span
+      class="material-symbols-outlined absolute right-16 cursor-pointer text-[#777680] hover:text-[#DB141C] transition-colors bg-gray-50 z-10 rounded-full"
+      (click)="clearSelection($event)"
+      title="Limpiar selección">
+      close
+    </span>
+  }
+
+  @if (isOpen()) {
+    <ul class="absolute top-full left-0 z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+      @for (option of filteredOptions(); track option.id) {
+        <li
+          class="px-3 py-2 cursor-pointer font-sans text-size-body text-[#000000] transition-colors hover:bg-gray-400 hover:text-white"
+          [class.bg-gray-100]="option.id === value()"
+          (click)="selectOption(option)"
+          (keydown.enter)="selectOption(option)"
+          tabindex="0">
+          {{ option.label }}
+        </li>
+      }
+      @if (filteredOptions().length === 0) {
+        <li class="px-3 py-2 text-[#777680] font-sans text-size-body cursor-default pointer-events-none">
+          No se encontraron resultados...
+        </li>
+      }
+    </ul>
+  }
+</div>

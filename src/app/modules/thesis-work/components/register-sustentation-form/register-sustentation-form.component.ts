@@ -13,6 +13,7 @@ import { UserRoleType } from '../../../../core/models/user-role';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 import { Document } from '../../../../core/interfaces/Document.interface';
+import { SelectOption, SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select.component';
 
 export interface SustentationFormPayload {
   sustentationDate: string | Date;
@@ -32,8 +33,9 @@ export interface SustentationFormPayload {
     FileUploadModalComponent,
     ButtonComponent,
     DatePicker,
-    InfoBannerComponent
-  ]
+    InfoBannerComponent,
+    SearchableSelectComponent
+]
 })
 export class RegisterSustentationFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
@@ -113,6 +115,22 @@ export class RegisterSustentationFormComponent implements OnInit {
     return available.filter(user => user.id !== firstId);
   });
 
+  juror1Options = computed<SelectOption[]>(() => {
+    return this.availableJurors().map(user => ({
+      id: user.id,
+      value: user.id,
+      label: this.getMemberFullName(user)
+    }));
+  });
+
+  juror2Options = computed<SelectOption[]>(() => {
+    return this.filteredJurorsForJ2().map(user => ({
+      id: user.id,
+      value: user.id,
+      label: this.getMemberFullName(user)
+    }));
+  });
+
   ngOnInit(): void {
     this.setupFormSubscriptions();
   }
@@ -144,6 +162,11 @@ export class RegisterSustentationFormComponent implements OnInit {
   isFieldInvalid(fieldName: string): boolean {
     const control = this.form.get(fieldName);
     return !!(this.isSubmitAttempted() && control?.invalid) || !!(control?.invalid && control?.touched);
+  }
+
+  isFieldValid(fieldName: string): boolean {
+    const control = this.form.get(fieldName);
+    return !!(control?.valid && (control?.touched || this.isSubmitAttempted()));
   }
 
   // ─── Documentos ──────────────────────────────────────────────────────────────

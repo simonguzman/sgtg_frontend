@@ -177,11 +177,22 @@ export class InboxEventProcessorService {
         };
         break;
 
+      case AppEventType.PRELIMINARY_DRAFT_COUNCIL_PRESENTATION_UPLOADED:
+        baseMessage = {
+          type: NotificationType.INFO,
+          title: 'Presentación al Consejo',
+          message: `Se ha radicado el Formato C para presentación al Consejo del anteproyecto: "${draftTitle}"`,
+          date: new Date(),
+          status: 'no leido',
+          actionUrl: `/preliminary-draft/details/${draftId}/loaded_documents`
+        };
+        break;
+
       case AppEventType.COUNCIL_RESOLUTION_UPLOADED:
         baseMessage = {
           type: NotificationType.CONFIRMATION,
-          title: 'Resolución de consejo emitida',
-          message: `El Consejo de Facultad ha emitido el veredicto final para "${draftTitle}": ${payload?.finalState}`,
+          title: 'Resolución de Consejo registrada',
+          message: `El Consejo de Facultad ha registrado la resolución para el anteproyecto "${draftTitle}". Estado final: ${payload?.finalState}`,
           date: new Date(),
           status: 'no leido',
           actionUrl: `/preliminary-draft/details/${draftId}/evaluations_performed`

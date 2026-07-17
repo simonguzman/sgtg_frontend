@@ -288,16 +288,16 @@ export class ThesisWorkSustentationService {
             };
           }
 
-          // 💡 LÓGICA DE ESTADO CORREGIDA
-          // Si el veredicto de la corrección es APROBADO, el proyecto mantiene APROBADO_CON_OBSERVACIONES.
-          // De lo contrario (ej. APLAZADO), toma el nuevo veredicto.
+          // 💡 LÓGICA DE TRANSICIÓN AUTOMÁTICA DE ESTADOS
+          // Si es APROBADO, se conserva el estado del ciclo actual (Aprobado con Observaciones).
+          // Si el jurado dictamina NO_APROBADO, la sustentación pasa de inmediato a estado APLAZADO de forma interna.
           const finalThesisState = evaluationData.veredict === stateList.APROBADO
             ? stateList.APROBADO_CON_OBSERVACIONES
-            : evaluationData.veredict;
+            : stateList.APLAZADO;
 
           return {
             ...thesisWork,
-            state: finalThesisState, // Asignamos el estado calculado
+            state: finalThesisState,
             sustentations: updatedSustentations,
             documents: [docFormatG, ...(thesisWork.documents || [])],
             evaluations: [newEvaluation, ...(thesisWork.evaluations || [])],
@@ -311,7 +311,7 @@ export class ThesisWorkSustentationService {
           payload: {
             thesisId: thesisWorkId,
             thesisTitle: currentThesisTitle,
-            veredict: evaluationData.veredict // Mantenemos el veredicto real para la notificación (ej. "Tus correcciones fueron aprobadas")
+            veredict: evaluationData.veredict
           }
         });
       })

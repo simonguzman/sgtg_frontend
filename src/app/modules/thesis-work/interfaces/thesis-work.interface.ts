@@ -88,6 +88,7 @@ export interface SpecialRequest {
   status: stateList.EN_REVISION | stateList.APROBADO | stateList.NO_APROBADO;
   resolutionDetails?: string;
   grantedDeadline?: Date | string; // 👈 NUEVO: Opcional, para guardar en el historial la fecha extra que dio el consejo (útil en prórrogas/suspensiones)
+  evaluatorId?: string;
 }
 
 export interface ThesisWork extends Archivable {

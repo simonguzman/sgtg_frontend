@@ -14,43 +14,22 @@
         </h3>
 
         <div class="flex flex-col gap-1">
-          <label for="proposalId" class="font-display font-semibold text-size-section title-textbox">
+          <label for="proposalId" class="font-display font-semibold text-primary text-size-section">
             Propuestas aprobadas
             <span class="text-[#ED7D31]">*</span>
           </label>
 
-          <div class="relative flex items-center">
-            <select
+          <div class="relative flex items-center w-full">
+            <app-searchable-select
               id="proposalId"
               formControlName="proposalId"
-              class="font-sans font-normal text-size-body custom-select p-2 border rounded-md w-full bg-gray-50 pr-10 focus:ring-1 focus:ring-primary"
-              [class.border-[#ED7D31]]="isFieldInvalid('proposalId')"
-              [class.text-[#777680]]="!form.get('proposalId')?.value"
-              [class.text-textbox]="form.get('proposalId')?.value"
-              [class.input-success]="form.get('proposalId')?.valid && form.get('proposalId')?.touched"
-            >
-              <option value="" disabled selected>
-                Seleccione una de las propuestas aprobadas
-              </option>
-
-              @for (prop of availableProposals(); track prop.id) {
-                <option [value]="prop.id">
-                  {{ prop.title }}
-                </option>
-              }
-            </select>
-
-            <span class="material-symbols-outlined select-arrow">
-              arrow_forward_ios
-            </span>
-
-            @if (form.get('proposalId')?.valid && form.get('proposalId')?.touched) {
-              <span class="material-symbols-outlined success-icon mr-8">
-                check_circle
-              </span>
-            }
+              [options]="proposalOptions()"
+              placeholder="Seleccione una de las propuestas aprobadas"
+              [hasError]="isFieldInvalid('proposalId')"
+              [isValid]="isFieldValid('proposalId')"
+              class="w-full block">
+            </app-searchable-select>
           </div>
-
           @if (isFieldInvalid('proposalId')) {
             <span class="text-textbox-alert">
               Debe seleccionar una propuesta
@@ -69,7 +48,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
           <div class="flex flex-col gap-1 md:col-span-2">
-            <span class="font-display font-semibold text-size-section title-textbox">
+            <span class="font-display font-semibold text-primary text-size-section">
               Título
               <span class="text-[#ED7D31]">*</span>
             </span>
@@ -103,7 +82,7 @@
           </div>
 
           <div class="flex flex-col gap-1 md:col-span-2">
-            <span class="font-display font-semibold text-size-section title-textbox">
+            <span class="font-display font-semibold text-primary text-size-section">
               Descripción de la propuesta
               <span class="text-[#ED7D31]">*</span>
             </span>
@@ -138,7 +117,7 @@
 
           <ng-template #readOnlyField let-label="label" let-value="value" let-fullWidth="fullWidth">
             <div class="flex flex-col gap-1" [class.md:col-span-2]="fullWidth">
-              <span class="font-display font-semibold text-size-section title-textbox block">
+              <span class="font-display font-semibold text-primary text-size-section block">
                 {{ label }}
               </span>
               <div class="information-block w-full p-2 rounded-md font-normal font-sans text-size-section text-[#777680] min-h-10 flex items-center">
@@ -167,25 +146,33 @@
       <h3 class="font-display font-semibold text-primary text-size-header-title mb-6 border-b pb-2">Archivos adjuntos</h3>
 
       @if (proposalEvaluationDocument(); as evaluationDoc) {
-        <div class="mb-6">
-          <span class="font-display font-semibold text-size-section title-textbox mb-2 block">
+        <div class="information-block mb-6 p-6 rounded-xl border transition-all shadow-sm">
+          <span class="font-display font-semibold text-primary text-size-section mb-3 block">
             Formato de evaluación aprobado por comité
           </span>
 
-          <div class="flex items-center justify-between p-3 border rounded-lg bg-white shadow-sm border-gray-200">
+          <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
             <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-[#DB141C] text-3xl">
+              <span class="material-symbols-outlined text-[#DB141C] text-file">
                 picture_as_pdf
               </span>
               <div class="flex flex-col">
                 <span class="text-size-body font-bold text-primary">
-                  {{ evaluationDoc }}
+                  {{ evaluationDoc.name || evaluationDoc }}
                 </span>
                 <span class="text-size-role-footer text-[#777680] font-sans">
                   Documento firmado por el comité evaluador
                 </span>
               </div>
             </div>
+
+            @if (evaluationDoc.url) {
+              <a [href]="evaluationDoc.url" target="_blank" download class="inline-block">
+                <app-button-component label="Descargar" variant="primary" type="button"></app-button-component>
+              </a>
+            } @else {
+              <app-button-component label="Descargar" variant="primary" type="button"></app-button-component>
+            }
           </div>
         </div>
       }
@@ -224,7 +211,7 @@
           </div>
 
           @if (attachmentState().hasFile) {
-            <button type="button" (click)="removeFile()" class="text-[#777680] hover:text-[#DB141C]">
+            <button type="button" (click)="removeFile()" class="text-[#777680] hover:text-[#DB141C] transition-colors">
               <span class="material-symbols-outlined">delete</span>
             </button>
           } @else {

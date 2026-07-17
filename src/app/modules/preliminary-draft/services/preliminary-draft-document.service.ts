@@ -232,6 +232,11 @@ export class PreliminaryDraftDocumentService {
           if (updated.proposalData?.advisor?.id) notifyUserIds.push(updated.proposalData.advisor.id);
           if (updated.evaluators) notifyUserIds.push(...updated.evaluators.map(evaluator => evaluator.id));
 
+          const jefesYConsejo = this.userService.users()
+            .filter(user => user.roles.includes(UserRoleType.JEFE_DEP) || user.roles.includes(UserRoleType.CONSEJO))
+            .map(user => user.id);
+          notifyUserIds.push(...jefesYConsejo);
+
           return updated;
         });
 

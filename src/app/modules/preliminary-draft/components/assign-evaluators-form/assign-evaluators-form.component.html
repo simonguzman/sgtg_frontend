@@ -1,4 +1,4 @@
-<div class="p-4">
+<div class="p-6 bg-white rounded-lg w-full">
   <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-8">
 
     <app-info-banner title="Asignación de jurados evaluadores">
@@ -11,17 +11,27 @@
       </h3>
 
       <div class="flex flex-col gap-4">
-        <ng-template #readOnlyField let-label="label" let-value="value">
+
+        <!-- Template actualizado para soportar textarea -->
+        <ng-template #readOnlyField let-label="label" let-value="value" let-isTextArea="isTextArea">
           <div class="flex flex-col gap-1">
             <span class="font-display font-semibold text-primary text-size-section">
               {{ label }}
             </span>
-            <input type="text" [value]="value" disabled
-                   class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body">
+            @if (isTextArea) {
+              <textarea [value]="value || 'Sin descripción disponible'" disabled rows="4"
+                        class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body resize-none"></textarea>
+            } @else {
+              <input type="text" [value]="value" disabled
+                     class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body">
+            }
           </div>
         </ng-template>
 
         <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Título', value: preliminaryDraft().proposalData.title }"></ng-container>
+
+        <!-- Nuevo campo de Descripción -->
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Descripción', value: preliminaryDraft().proposalData.description, isTextArea: true }"></ng-container>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Fecha de carga', value: (preliminaryDraft().createdData | date:'dd - MM - yyyy') }"></ng-container>
@@ -53,27 +63,19 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-size-section title-textbox">
+          <label for="evaluator1" class="font-display font-semibold text-size-section title-textbox">
             Evaluador 1 <span class="text-[#ED7D31]">*</span>
-          </span>
-          <div class="relative flex items-center">
-            <select
+          </label>
+          <div class="relative flex items-center w-full">
+            <app-searchable-select
+              id="evaluator1"
               formControlName="evaluator1"
-              class="font-sans font-normal text-size-body custom-select p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10"
-              [class.border-[#ED7D31]]="isFieldInvalid('evaluator1')"
-              [class.text-[#777680]]="!form.get('evaluator1')?.value"
-              [class.text-textbox]="form.get('evaluator1')?.value"
-              [class.input-success]="form.get('evaluator1')?.valid && form.get('evaluator1')?.touched"
-            >
-              <option value="" disabled selected>Seleccione evaluador</option>
-              @for (user of availableEvaluators(); track user.id) {
-                <option [value]="user.id">{{ getMemberFullName(user) }}</option>
-              }
-            </select>
-            <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
-            @if (form.get('evaluator1')?.valid && form.get('evaluator1')?.touched) {
-              <span class="material-symbols-outlined success-icon mr-8">check_circle</span>
-            }
+              [options]="evaluator1Options()"
+              placeholder="Seleccione el primer evaluador"
+              [hasError]="isFieldInvalid('evaluator1')"
+              [isValid]="isFieldValid('evaluator1')"
+              class="w-full block">
+            </app-searchable-select>
           </div>
           @if (isFieldInvalid('evaluator1')) {
             <span class="text-textbox-alert">Debe seleccionar el primer evaluador</span>
@@ -81,27 +83,19 @@
         </div>
 
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-size-section title-textbox">
+          <label for="evaluator2" class="font-display font-semibold text-size-section title-textbox">
             Evaluador 2 <span class="text-[#ED7D31]">*</span>
-          </span>
-          <div class="relative flex items-center">
-            <select
+          </label>
+          <div class="relative flex items-center w-full">
+            <app-searchable-select
+              id="evaluator2"
               formControlName="evaluator2"
-              class="font-sans font-normal text-size-body custom-select p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10"
-              [class.border-[#ED7D31]]="isFieldInvalid('evaluator2')"
-              [class.text-[#777680]]="!form.get('evaluator2')?.value"
-              [class.text-textbox]="form.get('evaluator2')?.value"
-              [class.input-success]="form.get('evaluator2')?.valid && form.get('evaluator2')?.touched"
-            >
-              <option value="" disabled selected>Seleccione evaluador</option>
-              @for (user of filteredEvaluatorsForE2(); track user.id) {
-                <option [value]="user.id">{{ getMemberFullName(user) }}</option>
-              }
-            </select>
-            <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
-            @if (form.get('evaluator2')?.valid && form.get('evaluator2')?.touched) {
-              <span class="material-symbols-outlined success-icon mr-8">check_circle</span>
-            }
+              [options]="evaluator2Options()"
+              placeholder="Seleccione el segundo evaluador"
+              [hasError]="isFieldInvalid('evaluator2')"
+              [isValid]="isFieldValid('evaluator2')"
+              class="w-full block">
+            </app-searchable-select>
           </div>
           @if (isFieldInvalid('evaluator2')) {
             <span class="text-textbox-alert">Debe seleccionar el segundo evaluador</span>

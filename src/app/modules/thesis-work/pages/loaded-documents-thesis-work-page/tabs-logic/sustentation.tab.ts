@@ -69,7 +69,24 @@ export const SustentationTabConfig: TabConfiguration = {
       } else if (sustentation.status === SustentationStatus.CANCELADA) {
         currentStatus = stateList.CANCELADO;
       } else if (isThisEvaluated) {
-        currentStatus = verdictsList[verdictsList.length - 1].veredict ?? stateList.EN_REVISION;
+
+        // --- INICIO DEL CAMBIO ---
+        const lastVerdict = verdictsList[verdictsList.length - 1].veredict;
+
+        // Verificamos si en la historia de los veredictos hubo observaciones iniciales
+        const hadObservaciones = verdictsList.some(v => v.veredict === stateList.APROBADO_CON_OBSERVACIONES);
+
+        // Si la sustentación tuvo observaciones y las correcciones fueron aprobadas,
+        // forzamos a que el estado visual de la tabla siga siendo "Aprobado con observaciones".
+        if (hadObservaciones && lastVerdict === stateList.APROBADO) {
+          currentStatus = stateList.APROBADO_CON_OBSERVACIONES;
+        } else {
+          // Para cualquier otro caso (ej. Aplazado por no entregar correcciones,
+          // No Aprobado, o Aprobado directamente), tomamos el último veredicto real.
+          currentStatus = lastVerdict ?? stateList.EN_REVISION;
+        }
+        // --- FIN DEL CAMBIO ---
+
       }
 
       const allowedActions: string[] = ['view_sustentation_details'];

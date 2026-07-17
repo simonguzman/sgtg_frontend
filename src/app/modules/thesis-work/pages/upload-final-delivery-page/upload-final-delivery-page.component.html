@@ -1,15 +1,30 @@
-@if (thesisWorkState()) {
-  <app-upload-final-delivery-form
-    [thesisWork]="thesisWorkState()!"
-    [isSubmitting]="isSubmitting()"
-    (onSaveDelivery)="handleRequestConfirmation($event)"
-    (onGoBack)="goBack()">
-  </app-upload-final-delivery-form>
-}
+<div class="w-full min-h-screen bg-[#F8F9FA] p-4 md:p-8">
 
-<app-confirmation-action-modal
-  [isOpen]="isConfirmModalOpen()"
-  description="¿Está seguro de enviar los documentos? Esta acción registrará oficialmente la entrega final del trabajo de grado."
-  (onClose)="isConfirmModalOpen.set(false)"
-  (confirm)="processFinalDelivery()">
-</app-confirmation-action-modal>
+  <div class="max-w-7xl mx-auto flex flex-col gap-6">
+
+    <button (click)="goBack()" class="flex items-center gap-2 text-navy-900 font-bold group w-fit transition-opacity hover:opacity-80">
+      <span class="material-symbols-outlined text-[#000066] text-xl transition-transform duration-300 ease-in-out group-hover:-translate-x-1.5">
+        arrow_back
+      </span>
+      <span class="return-arrow-option">Regresar</span>
+    </button>
+
+    @if (thesisWorkState()) {
+      <app-upload-final-delivery-form
+        [thesisWork]="thesisWorkState()!"
+        [isSubmitting]="isSubmitting()"
+        (onSaveDelivery)="handleRequestConfirmation($event)"
+        (onGoBack)="goBack()">
+      </app-upload-final-delivery-form>
+    }
+
+    <app-confirmation-action-modal
+      [isOpen]="isConfirmModalOpen()"
+      description="¿Está seguro de enviar los documentos? Esta acción registrará oficialmente la entrega final del trabajo de grado."
+      (onClose)="isConfirmModalOpen.set(false)"
+      (confirm)="processFinalDelivery()">
+    </app-confirmation-action-modal>
+
+  </div>
+
+</div>

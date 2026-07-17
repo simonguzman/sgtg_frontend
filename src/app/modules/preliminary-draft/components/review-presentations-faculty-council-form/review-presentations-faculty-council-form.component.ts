@@ -13,10 +13,11 @@ import { Document, DocumentType } from '../../../../core/interfaces/Document.int
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
+import { NgTemplateOutlet } from '@angular/common';
 
 @Component({
   selector: 'app-review-presentations-faculty-council-form',
-  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, DatePicker],
+  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, DatePicker, NgTemplateOutlet],
   templateUrl: './review-presentations-faculty-council-form.component.html',
   styleUrls: ['./review-presentations-faculty-council-form.component.css']
 })

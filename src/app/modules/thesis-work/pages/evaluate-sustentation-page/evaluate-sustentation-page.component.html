@@ -1,15 +1,26 @@
-@if (thesisWorkState()) {
-  <app-evaluate-sustentation-form
-    [thesisWork]="thesisWorkState()!"
-    [isSubmitting]="isSubmitting()"
-    (onSave)="handleSaveTriggered($event)"
-    (onBack)="goBack()">
-  </app-evaluate-sustentation-form>
-}
+<div class="w-full min-h-screen bg-[#F8F9FA] p-4 md:p-8">
+  <div class="max-w-7xl mx-auto flex flex-col gap-6">
+    <button (click)="goBack()" class="flex items-center gap-2 text-navy-900 font-bold group w-fit transition-opacity hover:opacity-80">
+      <span class="material-symbols-outlined text-[#000066] text-xl transition-transform duration-300 ease-in-out group-hover:-translate-x-1.5">
+        arrow_back
+      </span>
+      <span class="return-arrow-option">Regresar</span>
+    </button>
+    @if (thesisWorkState()) {
+      <app-evaluate-sustentation-form
+        [thesisWork]="thesisWorkState()!"
+        [isSubmitting]="isSubmitting()"
+        (onSave)="handleSaveTriggered($event)"
+        (onBack)="goBack()">
+      </app-evaluate-sustentation-form>
+    }
 
-<app-confirmation-action-modal
-  [isOpen]="isConfirmModalOpen()"
-  description="¿Está completamente seguro de registrar esta evaluación de sustentación? Esta acción es irreversible, asentará el acta de calificación definitiva en la hoja de vida académica del proyecto."
-  (onClose)="isConfirmModalOpen.set(false)"
-  (confirm)="processSustentationEvaluation()">
-</app-confirmation-action-modal>
+    <app-confirmation-action-modal
+      [isOpen]="isConfirmModalOpen()"
+      description="¿Está completamente seguro de registrar esta evaluación de sustentación? Esta acción es irreversible, asentará el acta de calificación definitiva en la hoja de vida académica del proyecto."
+      (onClose)="isConfirmModalOpen.set(false)"
+      (confirm)="processSustentationEvaluation()">
+    </app-confirmation-action-modal>
+  </div>
+</div>
+

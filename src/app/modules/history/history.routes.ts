@@ -144,14 +144,13 @@ export const historyRoutes: Routes = [
       },
 
       // ==========================================
-      // 3. RAMA DE TRABAJOS DE GRADO ARCHIVADOS (NUEVA)
+      // 3. RAMA DE TRABAJOS DE GRADO ARCHIVADOS
       // ==========================================
       {
         path: 'thesis-work-details/:id',
         data: { breadcrumb: 'Trabajos de Grado Archivados' },
         children: [
           {
-            // Wrapper intermedio para el breadcrumb individual
             path: '',
             data: { breadcrumb: 'Detalle del trabajo de grado archivado' },
             children: [
@@ -169,22 +168,16 @@ export const historyRoutes: Routes = [
                 title: 'Evaluaciones realizadas',
                 data: { breadcrumb: 'Evaluaciones realizadas', roles: ALL_ROLES }
               },
+              // 👇 SOLUCIÓN: Ruta aplanada sin 'children'
               {
                 path: 'loaded_documents',
-                data: { breadcrumb: 'Documentos cargados' },
-                children: [
-                  {
-                    path: '',
-                    component: LoadedDocumentsThesisWorkPageComponent,
-                    canActivate: [roleGuard],
-                    title: 'Documentos cargados',
-                    data: { breadcrumb: null, roles: ALL_ROLES }
-                  }
-                ]
+                component: LoadedDocumentsThesisWorkPageComponent,
+                canActivate: [roleGuard],
+                title: 'Documentos cargados',
+                data: { breadcrumb: 'Documentos cargados', roles: ALL_ROLES }
               },
               {
-                // Mantiene el parámetro ':id' idéntico al módulo principal para evitar romper el componente
-                path: 'view_sustentation_details/:id',
+                path: 'view_sustentation_details/:sustentationId',
                 component: SustentationDetailsPageComponent,
                 canActivate: [roleGuard],
                 title: 'Detalles de la sustentación',

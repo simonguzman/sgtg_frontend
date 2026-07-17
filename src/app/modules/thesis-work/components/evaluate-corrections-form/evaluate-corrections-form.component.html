@@ -1,17 +1,4 @@
-<div class="pt-2 max-w-4xl mx-auto pb-10">
-
-  <div class="mb-4">
-    <button
-      type="button"
-      (click)="onGoBack.emit()"
-      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
-    >
-      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
-        arrow_back
-      </span>
-      <span class="return-arrow-option">Regresar</span>
-    </button>
-  </div>
+<div class="p-6 bg-white rounded-lg w-full">
 
   <app-info-banner title="Evaluación de Documentos Corregidos" class="mb-6 block">
     Revise los documentos corregidos radicados por el equipo del proyecto, emita el veredicto definitivo
@@ -26,6 +13,12 @@
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Título</span>
         <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
+               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <span class="font-display font-semibold text-primary text-size-section">Descripciòn</span>
+        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
@@ -147,30 +140,18 @@
         Adicionalmente, registre los comentarios u observaciones obligatorias/recomendadas según corresponda.
       </div>
 
-      <!-- Opciones de veredicto centradas -->
-      <div class="flex flex-wrap justify-center gap-6 mb-4">
-        <label class="flex items-center gap-2 cursor-pointer">
+      <!-- Opciones de veredicto simplificadas a 2 opciones -->
+      <div class="flex flex-wrap justify-center gap-8 mb-4">
+        <label class="flex items-center gap-2 cursor-pointer group">
           <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="selectedVerdict() === states.APROBADO" (change)="selectedVerdict.set(states.APROBADO)">
-          <span class="text-size-body font-medium text-gray-700">Aprobado</span>
+          <span class="text-size-body font-medium text-gray-700 group-hover:text-primary transition-colors">Aprobado</span>
         </label>
 
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input type="radio" name="verdict" class="w-4 h-4 text-amber-500 focus:ring-amber-500"
-                 [checked]="selectedVerdict() === states.APROBADO_CON_OBSERVACIONES" (change)="selectedVerdict.set(states.APROBADO_CON_OBSERVACIONES)">
-          <span class="text-size-body font-medium text-gray-700">Aprobado con Observaciones</span>
-        </label>
-
-        <label class="flex items-center gap-2 cursor-pointer">
+        <label class="flex items-center gap-2 cursor-pointer group">
           <input type="radio" name="verdict" class="w-4 h-4 text-red-500 focus:ring-red-500"
                  [checked]="selectedVerdict() === states.NO_APROBADO" (change)="selectedVerdict.set(states.NO_APROBADO)">
-          <span class="text-size-body font-medium text-gray-700">No Aprobado</span>
-        </label>
-
-        <label class="flex items-center gap-2 cursor-pointer">
-          <input type="radio" name="verdict" class="w-4 h-4 text-orange-500 focus:ring-orange-500"
-                 [checked]="selectedVerdict() === states.APLAZADO" (change)="selectedVerdict.set(states.APLAZADO)">
-          <span class="text-size-body font-medium text-gray-700">Aplazado</span>
+          <span class="text-size-body font-medium text-gray-700 group-hover:text-red-500 transition-colors">No Aprobado</span>
         </label>
       </div>
 
@@ -182,12 +163,12 @@
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Observaciones y comentarios descriptivos</span>
         <textarea rows="4"
-                  class="p-3 border rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
-                  [class.border-[#ED7D31]]="isSubmitAttempted() && observations().trim().length < 10"
-                  [class.border-gray-200]="!(isSubmitAttempted() && observations().trim().length < 10)"
-                  placeholder="Ingrese el desglose detallado de las razones del veredicto o los ajustes exigidos al estudiante..."
-                  [value]="observations()"
-                  (input)="observations.set($any($event.target).value)"></textarea>
+                 class="p-3 border rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
+                 [class.border-[#ED7D31]]="isSubmitAttempted() && observations().trim().length < 10"
+                 [class.border-gray-200]="!(isSubmitAttempted() && observations().trim().length < 10)"
+                 placeholder="Ingrese el desglose detallado de las razones del veredicto o los ajustes exigidos al estudiante..."
+                 [value]="observations()"
+                 (input)="observations.set($any($event.target).value)"></textarea>
         @if (isSubmitAttempted() && observations().trim().length < 10) {
           <span class="text-size-role-footer text-textbox-alert mt-1">Debe ingresar una justificación detallada (mínimo 10 caracteres)</span>
         }
@@ -202,7 +183,6 @@
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Archivos adjuntos requeridos</h3>
 
     <div class="flex flex-col gap-4 mb-6">
-
       <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
            [class.border]="!uploadedFormatG() || isSubmitAttempted()"
            [class.border-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatG()"
@@ -240,7 +220,6 @@
           <app-button-component label="Cargar Formato_G" variant="secondary" (onClick)="isModalOpen.set(true)"></app-button-component>
         }
       </div>
-
     </div>
 
     <div class="flex gap-4 justify-end mt-10">

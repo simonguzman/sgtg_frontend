@@ -1,17 +1,4 @@
-<div class="pt-2 max-w-4xl mx-auto pb-10">
-
-  <div class="mb-4">
-    <button
-      type="button"
-      (click)="onBack.emit()"
-      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
-    >
-      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
-        arrow_back
-      </span>
-      <span class="return-arrow-option">Regresar</span>
-    </button>
-  </div>
+<div class="p-6 bg-white rounded-lg w-full">
 
   <app-info-banner title="Programación de Sustentación" class="mb-6 block">
     Diligencie la fecha, lugar y asigne los jurados para la sustentación del trabajo de grado. Recuerde que cargar el <strong>Formato_E actualizado</strong> con estas firmas es un requisito <strong>obligatorio</strong> para confirmar la programación.
@@ -36,6 +23,7 @@
         </ng-template>
 
         <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Título', value: thesisWork().preliminaryDraftData.proposalData.title }"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Descripción', value: thesisWork().preliminaryDraftData.proposalData.description}"></ng-container>
         <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Modalidad del trabajo de grado', value: thesisWork().preliminaryDraftData.proposalData.modality }"></ng-container>
         <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estudiante', value: getAuthorsNames(thesisWork().preliminaryDraftData.proposalData.authors) }"></ng-container>
 
@@ -99,46 +87,42 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
+          <!-- AQUI INICIAN LOS CAMBIOS: Primer Jurado -->
           <div class="flex flex-col gap-1">
             <span class="font-display font-semibold text-size-section text-primary">
               Primer Jurado (Docente) <span class="text-[#ED7D31]">*</span>
             </span>
-            <div class="relative flex items-center">
-              <select formControlName="juror1"
-                      class="text-size-body custom-select p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10 appearance-none"
-                      [class.border-[#ED7D31]]="isFieldInvalid('juror1')"
-                      [class.border-gray-200]="!isFieldInvalid('juror1')"
-                      [class.text-[#777680]]="!form.get('juror1')?.value"
-                      [class.text-primary]="form.get('juror1')?.value">
-                <option value="" disabled selected>Buscar docente apto</option>
-                @for (user of availableJurors(); track user.id) {
-                  <option [value]="user.id">{{ getMemberFullName(user) }}</option>
-                }
-              </select>
-              <span class="material-symbols-outlined absolute right-3 pointer-events-none text-[#777680]">expand_more</span>
+            <div class="relative flex items-center w-full">
+              <app-searchable-select
+                id="juror1"
+                formControlName="juror1"
+                [options]="juror1Options()"
+                placeholder="Buscar docente apto"
+                [hasError]="isFieldInvalid('juror1')"
+                [isValid]="isFieldValid('juror1')"
+                class="w-full block">
+              </app-searchable-select>
             </div>
             @if (isFieldInvalid('juror1')) {
               <span class="text-size-role-footer text-textbox-alert mt-1">Debe asignar el primer jurado</span>
             }
           </div>
 
+          <!-- AQUI INICIAN LOS CAMBIOS: Segundo Jurado -->
           <div class="flex flex-col gap-1">
             <span class="font-display font-semibold text-size-section text-primary">
               Segundo Jurado (Docente) <span class="text-[#ED7D31]">*</span>
             </span>
-            <div class="relative flex items-center">
-              <select formControlName="juror2"
-                      class="text-size-body custom-select p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10 appearance-none"
-                      [class.border-[#ED7D31]]="isFieldInvalid('juror2')"
-                      [class.border-gray-200]="!isFieldInvalid('juror2')"
-                      [class.text-[#777680]]="!form.get('juror2')?.value"
-                      [class.text-primary]="form.get('juror2')?.value">
-                <option value="" disabled selected>Buscar docente apto</option>
-                @for (user of filteredJurorsForJ2(); track user.id) {
-                  <option [value]="user.id">{{ getMemberFullName(user) }}</option>
-                }
-              </select>
-              <span class="material-symbols-outlined absolute right-3 pointer-events-none text-[#777680]">expand_more</span>
+            <div class="relative flex items-center w-full">
+              <app-searchable-select
+                id="juror2"
+                formControlName="juror2"
+                [options]="juror2Options()"
+                placeholder="Buscar docente apto"
+                [hasError]="isFieldInvalid('juror2')"
+                [isValid]="isFieldValid('juror2')"
+                class="w-full block">
+              </app-searchable-select>
             </div>
             @if (isFieldInvalid('juror2')) {
               <span class="text-size-role-footer text-textbox-alert mt-1">Debe asignar el segundo jurado de forma obligatoria</span>

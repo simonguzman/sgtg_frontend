@@ -1,12 +1,4 @@
-<div class="pt-2 max-w-4xl mx-auto pb-10">
-
-  <div class="mb-4">
-    <button type="button" (click)="onGoBack.emit()" class="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity font-bold group">
-      <span class="material-symbols-outlined text-primary text-size-section group-hover:-translate-x-1 transition-transform">arrow_back</span>
-      <span class="return-arrow-option">Regresar</span>
-    </button>
-  </div>
-
+<div class="p-6 bg-white rounded-lg w-full">
   <form [formGroup]="advanceForm" (ngSubmit)="submit()" class="flex flex-col gap-8">
 
     <app-info-banner title="Carga de avance de trabajo de grado">
@@ -18,18 +10,25 @@
         Información del trabajo de grado
       </h3>
 
-      <div class="flex flex-col gap-4 pl-2">
-        <ng-template #readOnlyField let-label="label" let-value="value" let-isState="isState">
+      <div class="flex flex-col gap-4">
+
+        <ng-template #readOnlyField let-label="label" let-value="value" let-isState="isState" let-isTextArea="isTextArea">
           <div class="flex flex-col gap-1">
             <span class="font-display font-semibold text-primary text-size-section">{{ label }}</span>
-            <input type="text" [value]="value" disabled
-                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 w-full cursor-not-allowed font-sans text-size-body"
-                   [class.font-medium]="isState"
-                   [class.capitalize]="isState">
+            @if (isTextArea) {
+              <textarea [value]="value || 'Sin descripción disponible'" disabled rows="4"
+                        class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body resize-none"></textarea>
+            } @else {
+              <input type="text" [value]="value" disabled
+                     class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body"
+                     [class.font-medium]="isState" [class.capitalize]="isState">
+            }
           </div>
         </ng-template>
 
         <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Título', value: thesisWork.preliminaryDraftData.proposalData.title }"></ng-container>
+
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Descripción', value: thesisWork.preliminaryDraftData.proposalData.description, isTextArea: true }"></ng-container>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Modalidad', value: thesisWork.preliminaryDraftData.proposalData.modality }"></ng-container>
@@ -57,14 +56,17 @@
         Detalles del avance
       </h3>
 
-      <div class="flex flex-col gap-6 pl-2">
+      <div class="flex flex-col gap-6">
 
         <div class="flex flex-col gap-1">
           <span class="font-display font-semibold text-primary text-size-section">Título del avance <span class="text-[#ED7D31]">*</span></span>
           <input type="text" formControlName="title"
-                 class="font-sans font-normal text-size-body p-3 border rounded-md bg-white w-full focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                 class="font-sans font-normal text-size-body p-3 border rounded-md bg-white w-full focus:outline-none focus:ring-1 transition-all"
                  placeholder="Ej: Avance(3)_Capitulo_1_y_2"
-                 [class.border-[#ED7D31]]="isFieldInvalid('title')">
+                 [ngClass]="{
+                   'border-[#ED7D31] focus:ring-[#ED7D31] focus:border-[#ED7D31]': isFieldInvalid('title'),
+                   'border-gray-300 focus:ring-primary': !isFieldInvalid('title')
+                 }">
           @if (isFieldInvalid('title')) {
             <span class="text-textbox-alert">El título del avance es obligatorio</span>
           }
@@ -73,38 +75,42 @@
         <div class="flex flex-col gap-1">
           <span class="font-display font-semibold text-primary text-size-section">Comentarios o descripción <span class="text-[#ED7D31]">*</span></span>
           <textarea formControlName="comments" rows="5"
-                    class="font-sans font-normal text-size-body p-3 border rounded-md bg-white w-full focus:outline-none focus:ring-1 focus:ring-primary transition-all resize-none"
+                    class="font-sans font-normal text-size-body p-3 border rounded-md bg-white w-full focus:outline-none focus:ring-1 transition-all resize-none"
                     placeholder="Describa brevemente los puntos a evaluar en este avance..."
-                    [class.border-[#ED7D31]]="isFieldInvalid('comments')"></textarea>
+                    [ngClass]="{
+                      'border-[#ED7D31] focus:ring-[#ED7D31] focus:border-[#ED7D31]': isFieldInvalid('comments'),
+                      'border-gray-300 focus:ring-primary': !isFieldInvalid('comments')
+                    }"></textarea>
           @if (isFieldInvalid('comments')) {
             <span class="text-textbox-alert">La descripción del avance es obligatoria</span>
           }
         </div>
 
         <div class="flex flex-col gap-4 mt-2">
-          <div class="flex items-center justify-between">
+          <div class="flex flex-col gap-1">
             <span class="font-display font-semibold text-primary text-size-section">Archivos adjuntos <span class="text-[#ED7D31]">*</span></span>
-            <app-button-component label="Cargar archivo" variant="secondary" type="button" (onClick)="isUploadModalOpen.set(true)"></app-button-component>
           </div>
 
           <div class="flex flex-col gap-3">
             @for (item of uploadedFiles(); track $index) {
-              <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-state-in-development rounded-xl shadow-sm transition-all hover:shadow-md">
-                <div class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-state-in-development text-file">description</span>
-                  <div class="flex flex-col">
-                    <span class="text-size-body font-bold text-primary">{{ item.fileName }}</span>
+              <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-all hover:shadow-md">
+                <div class="flex items-center gap-3 overflow-hidden">
+                  <span class="material-symbols-outlined text-primary text-file shrink-0">description</span>
+                  <div class="flex flex-col overflow-hidden">
+                    <span class="text-size-body font-bold text-primary truncate">{{ item.fileName }}</span>
                     <span class="text-size-role-footer text-[#777680]">Documento listo para enviar</span>
                   </div>
                 </div>
-                <button type="button" (click)="removeFile($index)" class="text-[#777680] hover:text-[#DB141C] transition-colors p-2 rounded-full hover:bg-red-50">
+                <button type="button" (click)="removeFile($index)" class="text-[#777680] hover:text-[#DB141C] transition-colors shrink-0">
                   <span class="material-symbols-outlined">delete</span>
                 </button>
               </div>
             } @empty {
-              <div class="p-8 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center bg-gray-50/50">
-                <span class="material-symbols-outlined text-gray-400 text-4xl mb-2">upload_file</span>
-                <span class="text-size-body text-[#777680] font-sans">No hay archivos adjuntos. Haga clic en "Cargar archivo" para agregar sus evidencias.</span>
+              <div class="information-block flex items-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm transition-colors">
+                <div class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-gray-400 text-4xl shrink-0">upload_file</span>
+                  <span class="text-size-body text-[#777680] font-sans">No hay archivos adjuntos. Cargue sus evidencias utilizando el botón "Cargar archivo" al final del formulario.</span>
+                </div>
               </div>
             }
           </div>
@@ -112,6 +118,13 @@
       </div>
 
       <div class="flex justify-end gap-4 mt-10">
+        <app-button-component
+          label="Cargar archivo"
+          variant="secondary"
+          type="button"
+          (onClick)="isUploadModalOpen.set(true)">
+        </app-button-component>
+
         <app-button-component
           label="Guardar y enviar avance"
           variant="primary"

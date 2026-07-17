@@ -28,7 +28,9 @@
       <div class="space-y-4 text-sm">
         <div class="grid grid-cols-2 gap-2">
           <span class="font-semibold font-display text-primary text-size-body">Tipo de documento</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">{{ user()?.idType }}</span>
+          <span class="font-normal font-display text-[#000000] text-size-body">
+            {{ getDocumentTypeLabel(user()?.idType) }}
+          </span>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <span class="font-semibold font-display text-primary text-size-body">Documento de identidad</span>

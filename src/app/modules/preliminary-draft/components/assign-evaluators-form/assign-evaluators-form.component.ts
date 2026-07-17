@@ -14,10 +14,11 @@ import { NotificationService } from '../../../../shared/components/notifications
 
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { SelectOption, SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select.component';
 
 @Component({
   selector: 'app-assign-evaluators-form',
-  imports: [ReactiveFormsModule, ButtonComponent, NgTemplateOutlet, DatePipe, InfoBannerComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, NgTemplateOutlet, DatePipe, InfoBannerComponent, SearchableSelectComponent],
   providers: [DatePipe],
   templateUrl: './assign-evaluators-form.component.html',
   styleUrls: ['./assign-evaluators-form.component.css']
@@ -68,6 +69,20 @@ export class AssignEvaluatorsFormComponent implements OnInit {
     return available.filter(user => user.id !== firstId);
   });
 
+  protected evaluator1Options = computed<SelectOption[]>(() =>
+    this.availableEvaluators().map(user => ({
+      id: user.id!,
+      label: this.getMemberFullName(user)
+    }))
+  );
+
+  protected evaluator2Options = computed<SelectOption[]>(() =>
+    this.filteredEvaluatorsForE2().map(user => ({
+      id: user.id!,
+      label: this.getMemberFullName(user)
+    }))
+  );
+
   ngOnInit(): void {
     this.setupFormSubscriptions();
   }
@@ -98,6 +113,11 @@ export class AssignEvaluatorsFormComponent implements OnInit {
   isFieldInvalid(fieldName: string): boolean {
     const control = this.form.get(fieldName);
     return !!(control?.invalid && control?.touched);
+  }
+
+  isFieldValid(fieldName: string): boolean {
+    const control = this.form.get(fieldName);
+    return !!(control?.valid && control?.touched);
   }
 
   submit(): void {

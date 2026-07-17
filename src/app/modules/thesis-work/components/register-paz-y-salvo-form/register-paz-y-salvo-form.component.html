@@ -1,19 +1,5 @@
-<div class="pt-2 max-w-4xl mx-auto pb-10">
+<div class="p-6 bg-white rounded-lg w-full">
 
-  <div class="mb-4">
-    <button
-      type="button"
-      (click)="onGoBack.emit()"
-      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
-    >
-      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
-        arrow_back
-      </span>
-      <span class="return-arrow-option">Regresar</span>
-    </button>
-  </div>
-
-  <!-- Banner Informativo Superior -->
   <app-info-banner title="Registro de Paz y Salvo" class="mb-6 block">
     Para registrar el paz y salvo del estudiante, debe indicar si cumple con los requisitos <strong>académico y financiero</strong>. Seleccione la opción correspondiente y, de ser necesario, agregue observaciones o comentarios adicionales.
   </app-info-banner>
@@ -29,44 +15,53 @@
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</span>
-        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+        <span class="font-display font-semibold text-primary text-size-section">Descripción</span>
+        <textarea [value]="thesisWork.preliminaryDraftData.proposalData.description || 'Sin descripción disponible'" disabled rows="4"
+                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full resize-none font-sans"></textarea>
       </div>
 
-      <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Estudiante</span>
-        <input type="text" [value]="getStudentNames()" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
-
-      <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Director</span>
-        <input type="text" [value]="getDirectorName()" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
-
-      @if (getCodirectorName()) {
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
-          <input type="text" [value]="getCodirectorName()" disabled
+          <span class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</span>
+          <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
-      }
 
-      @if (getAdvisorName()) {
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
-          <input type="text" [value]="getAdvisorName()" disabled
+          <span class="font-display font-semibold text-primary text-size-section">Estudiante</span>
+          <input type="text" [value]="getStudentNames()" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
-      }
 
-      <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Estado</span>
-        <input type="text" [value]="thesisWork.state || 'En desarrollo'" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
+        <div class="flex flex-col gap-1">
+          <span class="font-display font-semibold text-primary text-size-section">Director</span>
+          <input type="text" [value]="getDirectorName()" disabled
+                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+        </div>
+
+        @if (getCodirectorName()) {
+          <div class="flex flex-col gap-1">
+            <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
+            <input type="text" [value]="getCodirectorName()" disabled
+                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+          </div>
+        }
+
+        @if (getAdvisorName()) {
+          <div class="flex flex-col gap-1">
+            <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
+            <input type="text" [value]="getAdvisorName()" disabled
+                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+          </div>
+        }
+
+        <div class="flex flex-col gap-1">
+          <span class="font-display font-semibold text-primary text-size-section">Estado</span>
+          <input type="text" [value]="thesisWork.state || 'En desarrollo'" disabled
+                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
+        </div>
       </div>
+
     </div>
   </section>
 

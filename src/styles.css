@@ -311,6 +311,62 @@ html, body {
 .p-paginator-page.p-paginator-page-selected:hover  { background: #828AE3 !important; }
 .p-paginator-page.p-paginator-page-selected:active { background: #5056AC !important; }
 
+/* ==========================================================================
+   SISTEMA DE FILTROS DE TABLA (PrimeNG p-columnFilter Overrides)
+   ========================================================================== */
+
+/* Regla base para ambos botones del overlay de filtros (Soporta estructuras nuevas y anteriores) */
+.p-columnfilter-overlay .p-columnfilter-buttonbar .p-button,
+.p-column-filter-overlay-menu .p-column-filter-buttons .p-button {
+  border-radius: var(--radius-pill) !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-size-body) !important;
+  height: var(--height-pill) !important;
+  padding: var(--padding-pill-y) var(--padding-pill-x) !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease !important;
+}
+
+/* Botón "Limpiar" (Variante Secundaria - Primer botón del contenedor) */
+.p-columnfilter-overlay .p-columnfilter-buttonbar .p-button:first-child,
+.p-column-filter-overlay-menu .p-column-filter-buttons .p-button:first-child {
+  background-color: var(--color-secondary) !important;
+  color: var(--color-text-blue) !important;
+  border: var(--secondary-border-width) solid var(--color-secondary-border-color) !important;
+}
+
+.p-columnfilter-overlay .p-columnfilter-buttonbar .p-button:first-child:hover,
+.p-column-filter-overlay-menu .p-column-filter-buttons .p-button:first-child:hover {
+  background-color: var(--color-secondary-hover) !important;
+  color: var(--color-text-blue) !important;
+  border-color: var(--color-secondary-border-color) !important;
+}
+
+.p-columnfilter-overlay .p-columnfilter-buttonbar .p-button:first-child:active,
+.p-column-filter-overlay-menu .p-column-filter-buttons .p-button:first-child:active {
+  background-color: var(--color-secondary-active) !important;
+  color: var(--color-text-blue) !important;
+}
+
+/* Botón "Aplicar" (Variante Primaria - Último botón del contenedor) */
+.p-columnfilter-overlay .p-columnfilter-buttonbar .p-button:last-child,
+.p-column-filter-overlay-menu .p-column-filter-buttons .p-button:last-child {
+  background-color: var(--color-primary) !important;
+  color: var(--color-text-white) !important;
+  border: none !important;
+}
+
+.p-columnfilter-overlay .p-columnfilter-buttonbar .p-button:last-child:hover,
+.p-column-filter-overlay-menu .p-column-filter-buttons .p-button:last-child:hover {
+  background-color: var(--color-primary-hover) !important;
+  color: var(--color-text-white) !important;
+}
+
+.p-columnfilter-overlay .p-columnfilter-buttonbar .p-button:last-child:active,
+.p-column-filter-overlay-menu .p-column-filter-buttons .p-button:last-child:active {
+  background-color: var(--color-primary-active) !important;
+  color: var(--color-text-white) !important;
+}
+
 /**
  * 5. Tooltips
  * Borde sutil verde institucional para mejorar el contraste del tooltip

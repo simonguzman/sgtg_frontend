@@ -1,23 +1,34 @@
 import { Component, computed, DestroyRef, effect, EventEmitter, inject, input, OnInit, Output, signal } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { Proposal } from '../../interfaces/proposal.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
+import { ProposalService } from '../../services/proposal.service';
+import { UserService } from '../../../users/services/user.service';
+import { AuthService } from '../../../../core/services/auth/auth.service';
+
+import { Proposal } from '../../interfaces/proposal.interface';
+import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
+import { UserState } from '../../../users/interfaces/user.interface';
+import { UserRoleType } from '../../../../core/models/user-role';
 import { stateList } from '../../../../core/enums/state.enum';
+
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
-import { UserService } from '../../../users/services/user.service';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { UserRoleType } from '../../../../core/models/user-role';
-import { ProposalService } from '../../services/proposal.service';
-import { AuthService } from '../../../../core/services/auth/auth.service';
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
-import { UserState } from '../../../users/interfaces/user.interface';
+import { SearchableSelectComponent, SelectOption } from '../../../../shared/components/searchable-select/searchable-select.component';
 
 @Component({
   selector: 'app-proposal-form',
-  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent],
+  standalone: true,
+  imports: [
+    ReactiveFormsModule,
+    ButtonComponent,
+    FileUploadModalComponent,
+    InfoBannerComponent,
+    SearchableSelectComponent
+  ],
   templateUrl: './proposal-form.component.html',
   styleUrls: ['./proposal-form.component.css']
 })
@@ -47,24 +58,26 @@ export class ProposalFormComponent implements OnInit {
   attachedFile = { hasFile: false, name: null as string | null };
   uploadModalOpen = false;
 
+  protected readonly modalityOptions: SelectOption[] = [
+    { id: 'Practica profesional', label: 'Práctica profesional' },
+    { id: 'Trabajo de investigacion', label: 'Trabajo de investigación' }
+  ];
+
   protected availableTeachers = computed(() => {
     const currentUserId = this.authService.currentUser()?.id;
-
     return this.userService.teachers().filter(teacher =>
-      teacher.state === UserState.active && teacher.id != currentUserId
-    )
+      teacher.state === UserState.active && teacher.id !== currentUserId
+    );
   });
 
   protected availableAdvisors = computed(() => {
     const currentUserId = this.authService.currentUser()?.id;
-
     return this.userService.advisors().filter(advisor =>
       advisor.state === UserState.active && advisor.id !== currentUserId
     );
   });
 
   protected availableStudents = computed(() => {
-    // Primero filtramos solo los estudiantes activos
     const activeStudents = this.userService.students().filter(student => student.state === UserState.active);
     const allProposals = this.proposalService.proposals();
     const current = this.proposal();
@@ -76,12 +89,41 @@ export class ProposalFormComponent implements OnInit {
   });
 
   protected filteredStudentsForS2 = computed(() => {
-    const available = this.availableStudents();
-    return available.filter(student => student.id !== this.selectedStudent1Id());
+    return this.availableStudents().filter(student => student.id !== this.selectedStudent1Id());
   });
 
+  // --- SEÑALES COMPUTADAS PARA EL SEARCHABLE SELECT ---
+  protected student1Options = computed<SelectOption[]>(() =>
+    this.availableStudents().map(s => ({
+      id: s.id,
+      label: `${s.firstName} ${s.secondName || ''} ${s.lastName} ${s.secondLastName || ''}`.replace(/\s+/g, ' ').trim()
+    }))
+  );
+
+  protected student2Options = computed<SelectOption[]>(() =>
+    this.filteredStudentsForS2().map(s => ({
+      id: s.id,
+      label: `${s.firstName} ${s.secondName || ''} ${s.lastName} ${s.secondLastName || ''}`.replace(/\s+/g, ' ').trim()
+    }))
+  );
+
+  protected codirectorOptions = computed<SelectOption[]>(() =>
+    this.availableTeachers().map(t => ({
+      id: t.id,
+      label: `${t.firstName} ${t.secondName || ''} ${t.lastName} ${t.secondLastName || ''}`.replace(/\s+/g, ' ').trim()
+    }))
+  );
+
+  protected advisorOptions = computed<SelectOption[]>(() =>
+    this.availableAdvisors().map(a => ({
+      id: a.id,
+      label: `${a.firstName} ${a.secondName || ''} ${a.lastName} ${a.secondLastName || ''}`.replace(/\s+/g, ' ').trim()
+    }))
+  );
+  // -----------------------------------------------------------
+
   constructor() {
-    effect(() => this.syncFormWithProposal());
+    effect(() => this.syncFormWithProposal(), { allowSignalWrites: true });
   }
 
   ngOnInit(): void {
@@ -101,6 +143,7 @@ export class ProposalFormComponent implements OnInit {
         }
         advisorControl?.updateValueAndValidity();
       });
+
     this.proposalForm.get('student1')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(id => {
@@ -121,6 +164,16 @@ export class ProposalFormComponent implements OnInit {
   isFieldInvalid(fieldName: string): boolean {
     const field = this.proposalForm.get(fieldName);
     return !!(field?.invalid && field?.touched);
+  }
+
+  isFieldValid(fieldName: string): boolean {
+    const field = this.proposalForm.get(fieldName);
+    return !!(field?.valid && field?.touched);
+  }
+
+  hasValue(fieldName: string): boolean {
+    const val = this.proposalForm.get(fieldName)?.value;
+    return val !== null && val !== undefined && val !== '';
   }
 
   handleFileUploaded(event: { fileName: string; file: File }): void {

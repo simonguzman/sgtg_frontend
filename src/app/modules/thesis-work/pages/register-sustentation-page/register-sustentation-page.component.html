@@ -1,15 +1,26 @@
-@if (thesisWorkState()) {
-  <app-register-sustentation-form
-    [thesisWork]="thesisWorkState()!"
-    [isSubmitting]="isSubmitting()"
-    (onSave)="handleRequestConfirmation($event)"
-    (onBack)="goBack()">
-  </app-register-sustentation-form>
-}
+<div class="w-full min-h-screen bg-[#F8F9FA] p-4 md:p-8">
+  <div class="max-w-7xl mx-auto flex flex-col gap-6">
+    <button (click)="goBack()" class="flex items-center gap-2 text-navy-900 font-bold group w-fit transition-opacity hover:opacity-80">
+      <span class="material-symbols-outlined text-[#000066] text-xl transition-transform duration-300 ease-in-out group-hover:-translate-x-1.5">
+        arrow_back
+      </span>
+      <span class="return-arrow-option">Regresar</span>
+    </button>
+    @if (thesisWorkState()) {
+      <app-register-sustentation-form
+        [thesisWork]="thesisWorkState()!"
+        [isSubmitting]="isSubmitting()"
+        (onSave)="handleRequestConfirmation($event)"
+        (onBack)="goBack()">
+      </app-register-sustentation-form>
+    }
 
-<app-confirmation-action-modal
-  [isOpen]="isConfirmModalOpen()"
-  description="¿Está seguro de registrar la programación de sustentación? Se notificará formalmente a los 2 jurados asignados."
-  (onClose)="isConfirmModalOpen.set(false)"
-  (confirm)="processSustentacion()">
-</app-confirmation-action-modal>
+    <app-confirmation-action-modal
+      [isOpen]="isConfirmModalOpen()"
+      description="¿Está seguro de registrar la programación de sustentación? Se notificará formalmente a los 2 jurados asignados."
+      (onClose)="isConfirmModalOpen.set(false)"
+      (confirm)="processSustentacion()">
+    </app-confirmation-action-modal>
+
+  </div>
+</div>

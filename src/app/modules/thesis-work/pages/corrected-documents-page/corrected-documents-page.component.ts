@@ -7,6 +7,7 @@ import { AuthService } from '../../../../core/services/auth/auth.service';
 import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
+import { UserFormatterService } from '../../../users/services/user-formatter.service'; // Asegura que la ruta coincida con tu estructura
 
 import { Document } from '../../../../core/interfaces/Document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
@@ -16,7 +17,6 @@ import { Column, TableComponent } from "../../../../shared/components/table-comp
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
-import { UserService } from '../../../users/services/user.service';
 
 @Component({
   selector: 'app-corrected-documents-page',
@@ -34,7 +34,7 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
   private readonly titleService = inject(Title);
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
-  private readonly userService = inject(UserService);
+  private readonly userFormatterService = inject(UserFormatterService);
 
   thesisWorkId = signal<string | null>(null);
   isDetailsModalOpen = signal<boolean>(false);
@@ -120,7 +120,7 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
     if (!this.isJuror()) return false;
 
     const deliveries = this.currentThesisWork()?.correctedDeliveries || [];
-    if (deliveries.length === 0) return false;
+    if (deliveries.length === 0) return true;
 
     const latestStatus = deliveries[0].status || deliveries[0].monograph?.status;
     return latestStatus === stateList.EN_REVISION;
@@ -140,7 +140,7 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
     }));
   });
 
-  // ─── Procesadores para el modal de detalles ───────────────────────────────────
+  // ─── Procesadores para el modal de detalles (Formateo Correcto) ───────────────
 
   selectedDeliveryDocuments = computed<string[]>(() => {
     const delivery = this.selectedDelivery();
@@ -153,22 +153,22 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
 
   studentName = computed<string>(() => {
     const authors = this.currentThesisWork()?.preliminaryDraftData?.proposalData?.authors;
-    return this.userService.getAuthorsNames(authors) || 'Sin estudiante';
+    return this.userFormatterService.getAuthorsNames(authors) || 'Sin estudiante';
   });
 
   directorName = computed<string>(() => {
     const director = this.currentThesisWork()?.preliminaryDraftData?.proposalData?.director;
-    return director ? `${director.firstName || ''} ${director.lastName || ''}`.trim() : 'Sin director';
+    return director ? this.userFormatterService.formatFullName(director) : 'Sin director';
   });
 
   codirectorName = computed<string | undefined>(() => {
     const codirector = this.currentThesisWork()?.preliminaryDraftData?.proposalData?.codirector;
-    return codirector ? `${codirector.firstName || ''} ${codirector.lastName || ''}`.trim() : undefined;
+    return codirector ? this.userFormatterService.formatFullName(codirector) : undefined;
   });
 
   advisorName = computed<string | undefined>(() => {
     const advisor = this.currentThesisWork()?.preliminaryDraftData?.proposalData?.advisor;
-    return advisor ? `${advisor.firstName || ''} ${advisor.lastName || ''}`.trim() : undefined;
+    return advisor ? this.userFormatterService.formatFullName(advisor) : undefined;
   });
 
   modalityName = computed<string>(() => {
@@ -231,9 +231,6 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
     const thesis = this.currentThesisWork();
     const sustentationId = thesis?.sustentations?.[0]?.id;
 
-    // 👇 Obtenemos la ruta base dinámicamente cortando todo lo que esté antes de '/details'
-    // Si estamos en /history/details/..., nos dejará '/history'
-    // Si estamos en /thesis-work/details/..., nos dejará '/thesis-work'
     const currentUrl = this.router.url;
     const baseUrlSegment = currentUrl.split('/details')[0] || '/thesis-work';
 

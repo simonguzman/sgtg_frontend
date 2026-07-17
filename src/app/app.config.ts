@@ -19,11 +19,11 @@ const InstitucionalPreset = definePreset(Aura, {
       50:  '{indigo.50}',
       100: '{indigo.100}',
       200: '{indigo.200}',
-      300: '#828AE3',   // --color-primary-hover
-      400: '#5056AC',   // --color-primary-active
-      500: '#000066',   // --color-primary (azul institucional)
-      600: '#00004d',
-      700: '#000040',
+      300: '{indigo.300}',
+      400: '{indigo.400}',
+      500: '#000066',   // Estado normal (--color-primary)
+      600: '#828AE3',   // HOVER nativo de PrimeNG (--color-primary-hover)
+      700: '#5056AC',   // ACTIVE nativo de PrimeNG (--color-primary-active)
       800: '#000033',
       900: '#000022',
       950: '#000011'

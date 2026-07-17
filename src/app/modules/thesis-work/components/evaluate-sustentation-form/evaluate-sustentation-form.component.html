@@ -1,17 +1,4 @@
-<div class="pt-2 max-w-4xl mx-auto pb-10">
-
-  <div class="mb-4">
-    <button
-      type="button"
-      (click)="onBack.emit()"
-      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
-    >
-      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
-        arrow_back
-      </span>
-      <span class="return-arrow-option">Regresar</span>
-    </button>
-  </div>
+<div class="p-6 bg-white rounded-lg w-full">
 
   <app-info-banner title="Evaluación de Sustentación" class="mb-6 block">
     Seleccione el resultado definitivo de la sustentación acordado por el cuerpo de jurados, ingrese las observaciones correspondientes y adjunte el <strong>acta firmada</strong> para completar el registro.
@@ -25,6 +12,12 @@
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Título</span>
         <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
+               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <span class="font-display font-semibold text-primary text-size-section">Descripción</span>
+        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 

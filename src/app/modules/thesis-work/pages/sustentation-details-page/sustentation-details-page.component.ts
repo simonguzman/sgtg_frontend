@@ -92,15 +92,42 @@ export class SustentationDetailsPageComponent implements OnInit {
     return reprogrammingRequests.length > 0 ? reprogrammingRequests[0] : null;
   });
 
+  approvedSpecialRequests = computed<SpecialRequest[]>(() => {
+    const work = this.thesisWorkDetails();
+    if (!work || !work.specialRequests) return [];
+
+    // Filtramos solo las aprobadas y las ordenamos por fecha (más recientes primero)
+    return work.specialRequests
+      .filter(req => req.status === stateList.APROBADO)
+      .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
+  });
+
   ngOnInit(): void {
     this.isArchived.set(this.router.url.includes('/history') || this.router.url.includes('/historial') || !!this.route.snapshot.data['isArchived']);
-    const sId = this.route.snapshot.paramMap.get('id');
+
+    const sId = this.route.snapshot.paramMap.get('sustentationId');
     this.sustentationId.set(sId);
-    const thesisWorkId = this.route.parent?.snapshot.paramMap.get('id');
+
+    // 1. Empezamos desde la ruta actual
+    let currentSnapshot: import('@angular/router').ActivatedRouteSnapshot | null = this.route.snapshot;
+    let thesisWorkId: string | null = null;
+
+    // 2. Escalamos hacia arriba en el árbol hasta encontrar el parámetro 'id'
+    while (currentSnapshot) {
+      if (currentSnapshot.paramMap.has('id')) {
+        thesisWorkId = currentSnapshot.paramMap.get('id');
+        break;
+      }
+      currentSnapshot = currentSnapshot.parent;
+    }
+
+    // 3. Validamos si, después de revisar todo el árbol, sigue sin existir
     if (!thesisWorkId) {
       this.handleNavigationError();
       return;
     }
+
+    // 4. Continuamos con el flujo normal
     this.thesisWorkService.getThesisWorkByIdMock(thesisWorkId).subscribe({
       next: (foundData: ThesisWork | undefined) => {
         if (foundData) {

@@ -191,7 +191,7 @@ export class ThesisWorkDeliveryService {
             ],
             documents: updatedDocuments,
             finalDeliveries: updatedDeliveries,
-            state: isFullyApproved ? thesisWork.state : stateList.NO_APROBADO
+            state: stateList.EN_REVISION
           };
         });
 

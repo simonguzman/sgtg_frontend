@@ -8,12 +8,13 @@ import { SpecialRequest, ThesisWork, SpecialRequestType } from '../../interfaces
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
+import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 
 @Component({
   selector: 'app-evaluate-special-request-form',
   templateUrl: './evaluate-special-request-form.component.html',
   styleUrls: ['./evaluate-special-request-form.component.css'],
-  imports: [ButtonComponent, DatePicker, FormsModule]
+  imports: [ButtonComponent, DatePicker, FormsModule, InfoBannerComponent]
 })
 export class EvaluateSpecialRequestFormComponent {
   private readonly notificationService = inject(NotificationService);

@@ -1,19 +1,5 @@
-<div class="pt-2 max-w-4xl mx-auto pb-10">
+<div class="p-6 bg-white rounded-lg w-full">
 
-  <div class="mb-4">
-    <button
-      type="button"
-      (click)="onGoBack.emit()"
-      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
-    >
-      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
-        arrow_back
-      </span>
-      <span class="return-arrow-option">Regresar</span>
-    </button>
-  </div>
-
-  <!-- Banner Informativo Superior -->
   <app-info-banner title="Entrega final de trabajo de grado">
     Cargue los documentos definitivos de su trabajo de grado. Recuerde que tanto <strong>la monografía, formato de entrega final (Formato_E) y los anexos</strong> son requisitos <strong>obligatorios</strong> para procesar y formalizar el registro de su entrega.
   </app-info-banner>
@@ -22,6 +8,7 @@
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
 
     <div class="flex flex-col gap-4">
+
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Título</span>
         <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
@@ -29,43 +16,53 @@
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</span>
-        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+        <span class="font-display font-semibold text-primary text-size-section">Descripción</span>
+        <textarea [value]="thesisWork.preliminaryDraftData.proposalData.description || 'Sin descripción disponible'" disabled rows="4"
+                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full resize-none font-sans"></textarea>
       </div>
 
-      <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Estudiante</span>
-        <input type="text" [value]="getStudentNames()" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Director</span>
-        <input type="text" [value]="getDirectorName()" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
-
-      @if (getCodirectorName()) {
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
-          <input type="text" [value]="getCodirectorName()" disabled
+          <span class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</span>
+          <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
-      }
 
-      @if (getAdvisorName()) {
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
-          <input type="text" [value]="getAdvisorName()" disabled
+          <span class="font-display font-semibold text-primary text-size-section">Estudiante</span>
+          <input type="text" [value]="getStudentNames()" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
-      }
 
-      <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Estado</span>
-        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.state" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
+        <div class="flex flex-col gap-1">
+          <span class="font-display font-semibold text-primary text-size-section">Director</span>
+          <input type="text" [value]="getDirectorName()" disabled
+                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+        </div>
+
+        @if (getCodirectorName()) {
+          <div class="flex flex-col gap-1">
+            <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
+            <input type="text" [value]="getCodirectorName()" disabled
+                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+          </div>
+        }
+
+        @if (getAdvisorName()) {
+          <div class="flex flex-col gap-1">
+            <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
+            <input type="text" [value]="getAdvisorName()" disabled
+                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+          </div>
+        }
+
+        <div class="flex flex-col gap-1">
+          <span class="font-display font-semibold text-primary text-size-section">Estado</span>
+          <input type="text" [value]="thesisWork.state || 'En desarrollo'" disabled
+                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
+        </div>
+
       </div>
     </div>
   </section>
@@ -77,13 +74,15 @@
 
     @if (!uploadedMonograph() || !uploadedFormatE() || !uploadedAnnexes()) {
       <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-6">
-        No ha sido cargado ningún archivo, para realizar la entrega final del trabajo de grado debe cargar la monografía, el formato de entrega final del trabajo de grado (Formato_E) y los anexos respectivos para poder continuar con el proceso.
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-gray-400 text-4xl shrink-0">upload_file</span>
+          <span class="text-size-body text-[#777680] font-sans">No ha sido cargado ningún archivo, para realizar la entrega final del trabajo de grado debe cargar la monografía, el formato de entrega final del trabajo de grado (Formato_E) y los anexos respectivos para poder continuar con el proceso.</span>
+        </div>
       </div>
     }
 
     <div class="flex flex-col gap-4">
 
-      <!-- Monografía -->
       <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
            [class.border]="!uploadedMonograph() || isSubmitAttempted()"
            [class.border-[#ED7D31]]="isSubmitAttempted() && !uploadedMonograph()"
@@ -112,7 +111,6 @@
         }
       </div>
 
-      <!-- Formato E -->
       <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
            [class.border]="!uploadedFormatE() || isSubmitAttempted()"
            [class.border-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatE()"
@@ -141,7 +139,6 @@
         }
       </div>
 
-      <!-- Anexos -->
       <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
            [class.border]="!uploadedAnnexes() || isSubmitAttempted()"
            [class.border-[#ED7D31]]="isSubmitAttempted() && !uploadedAnnexes()"

@@ -238,6 +238,15 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
         this.router.navigate(['evaluate_special_request', rowId], { relativeTo: this.route.parent });
         break;
       case 'view_sustentation_details':
+        console.log('ACTION:', event.action);
+        console.log('ROW ID:', rowId);
+        console.log('CURRENT URL:', this.router.url);
+
+        this.router.navigate([event.action, rowId], {
+          relativeTo: this.route.parent
+        });
+
+        break;
       case 'evaluate_sustentation':
         this.router.navigate([event.action, rowId], { relativeTo: this.route.parent });
         break;

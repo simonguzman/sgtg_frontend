@@ -145,7 +145,7 @@ export const thesisWorkRoutes: Routes = [
             }
           },
           {
-            path: 'view_sustentation_details/:id',
+            path: 'view_sustentation_details/:sustentationId',
             component: SustentationDetailsPageComponent,
             canActivate: [roleGuard],
             title: 'Detalles de la sustentación',

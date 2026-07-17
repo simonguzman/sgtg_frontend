@@ -41,6 +41,9 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
 
   getTableData: (documents: Document[], context: ThesisEvaluationContext) => {
     const deliveries = context.thesisWork?.finalDeliveries || [];
+    // 1. Detectamos si el estado general del proyecto ya fue marcado como No Aprobado
+    const isThesisNoAprobado = context.thesisWork?.state === stateList.NO_APROBADO;
+
     return deliveries.map((delivery: FinalDelivery) => {
       const date = delivery.uploadDate;
       let formattedDate = 'Sin fecha';
@@ -54,11 +57,16 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
         }
       }
 
+      // 2. Si el trabajo global está No Aprobado, la entrega final también debe mostrarlo
+      const currentStatus = isThesisNoAprobado
+        ? stateList.NO_APROBADO
+        : (delivery.status || stateList.EN_REVISION);
+
       return {
         id: delivery.id,
         name: `Entrega Final - ${delivery.monograph?.name || 'Documentación'}`,
         uploadDate: formattedDate,
-        status: delivery.status || stateList.EN_REVISION,
+        status: currentStatus, // Usamos el estado evaluado
         url: '',
         allowedActions: ['view-details']
       };
@@ -68,8 +76,12 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
   getHeaderButtons: (context: ThesisEvaluationContext) => {
     if (context.isArchived) return [];
     const buttons: TableButton[] = [];
+    const thesis = context.thesisWork;
     const hasFinalDelivery = !!context['hasFinalDelivery'];
-    const isSuspendedOrCanceled = context['isSuspendedOrCanceled'] as boolean ?? false; // Lo recuperamos
+    const isSuspendedOrCanceled = context['isSuspendedOrCanceled'] as boolean ?? false;
+
+    // Detectamos el estado de reprobación general
+    const isNotApproved = thesis?.state === stateList.NO_APROBADO;
 
     if (context.isDirector || context.isAdmin) {
       let buttonLabel = 'Cargar entrega final';
@@ -80,8 +92,8 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
         buttonDisabled = true;
       }
 
-      // 👇 AQUÍ APLICAMOS EL BLOQUEO VISUAL
-      if (isSuspendedOrCanceled) {
+      // Aplicamos el bloqueo visual si está suspendido, cancelado o NO APROBADO
+      if (isSuspendedOrCanceled || isNotApproved) {
         buttonDisabled = true;
       }
 
