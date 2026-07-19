@@ -7,7 +7,7 @@ import { signal, Component, Input, Output, EventEmitter } from '@angular/core';
 // Interfaces y Modelos
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { Document } from '../../../../core/interfaces/Document.interface';
+import { Document } from '../../../../core/interfaces/file-document.interface';
 
 // Componentes Reales para referencia en override
 import { ReviewPresentationsFacultyCouncilFormComponent } from "../../components/review-presentations-faculty-council-form/review-presentations-faculty-council-form.component";

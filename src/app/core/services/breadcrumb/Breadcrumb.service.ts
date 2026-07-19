@@ -1,11 +1,7 @@
 import { Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, NavigationEnd, Router } from '@angular/router';
 import { BehaviorSubject, filter } from 'rxjs';
-
-export interface BreadcrumbItem {
-  label: string;
-  url: string;
-}
+import { BreadcrumbItem } from '../../interfaces/breadcrumb-item.interface';
 
 @Injectable({
   providedIn: 'root'

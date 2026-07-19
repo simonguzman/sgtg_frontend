@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MenuModule } from 'primeng/menu';
-import { UserRoleType, UserRole } from '../../../models/user-role';
+import { UserRoleType } from '../../../enums/user-role-type.enum';
 import { AuthService } from '../../../services/auth/auth.service';
 
 interface MenuItem {

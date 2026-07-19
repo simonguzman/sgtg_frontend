@@ -4,8 +4,14 @@ import { ThesisWorkService } from '../../services/thesis-work.service';
 import { UserService } from '../../../users/services/user.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
-import { JurorVerdict, ThesisWork, SustentationRegistry, SustentationStatus, SpecialRequest, SpecialRequestType } from '../../interfaces/thesis-work.interface';
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
+import { ThesisWork } from '../../interfaces/thesis-work.interface';
+import { SpecialRequest } from '../../interfaces/special-request.interface';
+import { SustentationRegistry } from '../../interfaces/sustentation-registry.interface';
+import { JurorVerdict } from '../../interfaces/juror-verdict.interface';
+import { SustentationStatus } from '../../enums/sustentation-status.enum';
+import { SpecialRequestType } from '../../enums/special-request-type.enum';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { DatePipe, LowerCasePipe } from '@angular/common';
@@ -59,7 +65,7 @@ export class SustentationDetailsPageComponent implements OnInit {
     return !!hadObservaciones || hasDeliveries;
   });
 
-  actaDocument = computed<Document | null>(() => {
+  actaDocument = computed<FileDocument | null>(() => {
     const work = this.thesisWorkDetails();
     if (!work || !work.documents) return null;
     return work.documents.find(doc => doc.type === DocumentType.FORMATO_G) || null;
@@ -166,7 +172,7 @@ export class SustentationDetailsPageComponent implements OnInit {
 
   // ─── Documentos ───────────────────────────────────────────────────────────────
 
-  getExistingDocument(type: string): Document | null {
+  getExistingDocument(type: string): FileDocument | null {
     const targetType = type.toUpperCase().trim();
     const thesis = this.thesisWorkDetails();
 
@@ -200,7 +206,7 @@ export class SustentationDetailsPageComponent implements OnInit {
     this.router.navigate(['../../corrected_documents'], { relativeTo: this.route });
   }
 
-  downloadDocument(doc?: Document | null): void {
+  downloadDocument(doc?: FileDocument | null): void {
     if (!doc?.url) {
       this.showDownloadError();
       return;

@@ -6,8 +6,9 @@ import { FileDownloadService } from '../../../../core/services/filedownload/file
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { UserRoleType } from '../../../../core/models/user-role';
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { stateList } from '../../../../core/enums/state.enum';
@@ -144,7 +145,7 @@ export class LoadedProposalsPageComponent implements OnInit {
     if (!fileData || !proposal?.id) return;
     this.showProcessingUploadNotification();
 
-    const newDoc: Document = {
+    const newDoc: FileDocument = {
       id: crypto.randomUUID(),
       name: fileData.fileName.replace('.pdf', ''),
       url: '',
@@ -168,7 +169,7 @@ export class LoadedProposalsPageComponent implements OnInit {
     this.router.navigate(['../'], { relativeTo: this.route });
   }
 
-  private handleDownload(doc: Document): void {
+  private handleDownload(doc: FileDocument): void {
     if (!doc.url?.trim()) {
       this.showDownloadErrorNotification();
       return;

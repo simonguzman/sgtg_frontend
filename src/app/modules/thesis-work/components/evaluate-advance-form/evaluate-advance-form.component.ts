@@ -5,7 +5,8 @@ import { UserService } from '../../../users/services/user.service';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
-import { Advance, ThesisWork } from '../../interfaces/thesis-work.interface';
+import { ThesisWork } from '../../interfaces/thesis-work.interface';
+import { Advance } from '../../interfaces/advance.interface';
 import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playload.interface';
 
 @Component({

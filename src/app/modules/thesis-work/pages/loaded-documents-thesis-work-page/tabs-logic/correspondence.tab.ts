@@ -1,6 +1,7 @@
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { stateList } from '../../../../../core/enums/state.enum';
-import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
 
 export const CorrespondenceTabConfig: TabConfiguration = {
@@ -24,7 +25,7 @@ export const CorrespondenceTabConfig: TabConfiguration = {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
     const hasCorrespondence = thesis.documents?.some(
-      (doc: Document) => doc.type === DocumentType.FORMATO_H
+      (doc: FileDocument) => doc.type === DocumentType.FORMATO_H
     ) ?? false;
 
     return {
@@ -33,10 +34,10 @@ export const CorrespondenceTabConfig: TabConfiguration = {
     };
   },
 
-  getTableData: (documents: Document[], context: ThesisEvaluationContext) => {
+  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext) => {
     if (!documents) return [];
     const correspondenceDocs = documents.filter(
-      (doc: Document) => doc.type === DocumentType.FORMATO_H
+      (doc: FileDocument) => doc.type === DocumentType.FORMATO_H
     );
 
     return correspondenceDocs.map(doc => ({

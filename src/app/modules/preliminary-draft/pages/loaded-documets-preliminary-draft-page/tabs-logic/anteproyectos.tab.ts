@@ -1,5 +1,6 @@
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
-import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { PreliminaryDraftTabConfiguration, PreliminaryDraftEvaluationContext } from './tab-config.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
@@ -24,7 +25,7 @@ export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
     return { ...baseContext };
   },
 
-  getTableData: (documents: Document[], context: PreliminaryDraftEvaluationContext, preliminaryDraftService: any) => {
+  getTableData: (documents: FileDocument[], context: PreliminaryDraftEvaluationContext, preliminaryDraftService: any) => {
     const { preliminaryDraft, currentUser, isAdmin, isAssignedEvaluator, totalEvaluatorsCount, latestAnteproyectoId } = context;
 
     const filteredDocs = documents.filter(doc => doc.type === 'Anteproyecto' || doc.type === 'Correccion');

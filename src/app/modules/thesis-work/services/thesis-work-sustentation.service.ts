@@ -3,13 +3,18 @@ import { delay, Observable, of, tap } from 'rxjs';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
-import { Document, DocumentType } from '../../../core/interfaces/Document.interface';
-import { SustentationRegistry, JurorVerdict } from '../interfaces/thesis-work.interface';
+import { FileDocument } from '../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../core/enums/document-type.enum';
+import { SustentationRegistry } from '../interfaces/sustentation-registry.interface';
+import { JurorVerdict } from '../interfaces/juror-verdict.interface';
+
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
-import { UserRoleType } from '../../../core/models/user-role';
-import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
+import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { User } from '../../users/interfaces/user.interface';
+import { UserApiService } from '../../users/services/user-api.service';
 
 @Injectable({
   providedIn: 'root'
@@ -19,6 +24,7 @@ export class ThesisWorkSustentationService {
   private readonly userService = inject(UserService);
   private readonly authService = inject(AuthService);
   private readonly eventBus = inject(EventBusService);
+  private readonly api = inject(UserApiService);
 
   saveSustentationRegistryMock(thesisWorkId: string, formData: any): Observable<void> {
     return of(undefined).pipe(
@@ -28,22 +34,20 @@ export class ThesisWorkSustentationService {
         let currentThesisTitle = '';
         const newSustentationId = crypto.randomUUID();
 
+        // Asignación de rol de Jurado
         if (formData.juror1) this.userService.addRoleToUser(formData.juror1, UserRoleType.JURADO);
         if (formData.juror2) this.userService.addRoleToUser(formData.juror2, UserRoleType.JURADO);
 
         this.storage.updateWork(thesisWorkId, (thesisWork) => {
-          // 1. Extraer autores y director
           const proposal = thesisWork.preliminaryDraftData?.proposalData;
           const authors = proposal?.authors || [];
 
-          // 💡 Captura del título real desde el estado actual del trabajo de grado
           currentThesisTitle = proposal?.title || '';
 
           if (proposal?.director?.id) notifyUserIds.push(proposal.director.id);
           if (proposal?.codirector?.id) notifyUserIds.push(proposal.codirector.id);
           if (proposal?.advisor?.id) notifyUserIds.push(proposal.advisor.id);
 
-          // 2. Extraer a los nuevos jurados para avisarles que fueron asignados
           if (formData.juror1) notifyUserIds.push(formData.juror1);
           if (formData.juror2) notifyUserIds.push(formData.juror2);
           notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
@@ -59,7 +63,7 @@ export class ThesisWorkSustentationService {
           const uploadedFile = formData.formatEDocument;
           const fileName = uploadedFile?.name || uploadedFile?.fileName || 'Formato_E_Programacion.pdf';
 
-          const sustentationDoc: Document = {
+          const sustentationDoc: FileDocument = {
             id: uploadedFile?.id || crypto.randomUUID(),
             name: fileName,
             url: uploadedFile?.url || `uploads/sustentaciones/${fileName}`,
@@ -88,7 +92,6 @@ export class ThesisWorkSustentationService {
           };
         });
 
-        // 💡 Emisión corregida: payload ahora incluye el título
         this.eventBus.emit({
           type: AppEventType.THESIS_SUSTENTATION_PROGRAMMED,
           targetUserIds: [...new Set(notifyUserIds)],
@@ -111,8 +114,13 @@ export class ThesisWorkSustentationService {
       delay(1000),
       tap(() => {
         let notifyUserIds: string[] = [];
-        let currentThesisTitle = ''; // 💡 Variable puente para el título
+        let currentThesisTitle = '';
         let currentSustentationId= '';
+
+        // 👈 NUEVO: Arreglos para recolectar IDs a limpiar si el trabajo se archiva
+        let evaluatorIdsToClean: string[] = [];
+        let jurorIdsToClean: string[] = [];
+        let thesisArchived = false;
 
         const activeUser = this.authService.currentUser();
         const jurorId = activeUser ? activeUser.id : 'jurado-desconocido';
@@ -120,9 +128,11 @@ export class ThesisWorkSustentationService {
         this.storage.updateWork(thesisWorkId, (thesisWork) => {
           const proposal = thesisWork.preliminaryDraftData?.proposalData;
           const authors = proposal?.authors || [];
-          const isFailed = payload.veredict === stateList.NO_APROBADO;
 
-          // 💡 Captura del título real antes de mutar o retornar el estado
+          // AQUÍ SE DEFINE SI SE ARCHIVA
+          const isFailed = payload.veredict === stateList.NO_APROBADO;
+          thesisArchived = isFailed;
+
           currentThesisTitle = proposal?.title || '';
 
           if(proposal?.director?.id) notifyUserIds.push(proposal.director.id);
@@ -135,11 +145,32 @@ export class ThesisWorkSustentationService {
           notifyUserIds.push(...consejoUsers.map(user => user.id));
           notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
 
+          // 👈 NUEVO: Lógica de recolección de roles si el trabajo se archiva
+          if (isFailed) {
+            // 1. Recolectar Evaluadores del anteproyecto
+            if (thesisWork.preliminaryDraftData?.evaluators) {
+              thesisWork.preliminaryDraftData.evaluators.forEach((ev: User) => {
+                if (ev.id) evaluatorIdsToClean.push(ev.id);
+              });
+            }
+
+            // 2. Recolectar Jurados de la(s) sustentación(es)
+            if (thesisWork.sustentations) {
+              thesisWork.sustentations.forEach(sust => {
+                if (sust.assignedJurors) {
+                  sust.assignedJurors.forEach((juror: User) => {
+                    if (juror.id) jurorIdsToClean.push(juror.id);
+                  });
+                }
+              });
+            }
+          }
+
           const dateStr = new Date().toLocaleDateString('es-ES', {
             day: '2-digit', month: '2-digit', year: 'numeric'
           }).replaceAll('/', ' - ');
 
-          const sustentationFileDoc: Document = {
+          const sustentationFileDoc: FileDocument = {
             id: crypto.randomUUID(),
             name: file.name.replace('.pdf', ''),
             url: `uploads/sustentaciones/resultado_${file.name}`,
@@ -193,7 +224,19 @@ export class ThesisWorkSustentationService {
           };
         });
 
-        // 💡 Emisión corregida: payload ahora incluye el título y el veredicto
+        // 👈 NUEVO: Ejecutar limpieza de roles si la bandera de archivo se activó
+        if (thesisArchived) {
+          if (evaluatorIdsToClean.length > 0) {
+            const uniqueEvaluatorIds = [...new Set(evaluatorIdsToClean)];
+            this.api.removeRolesFromUsers(uniqueEvaluatorIds, [UserRoleType.EVALUADOR]).subscribe();
+          }
+
+          if (jurorIdsToClean.length > 0) {
+            const uniqueJurorIds = [...new Set(jurorIdsToClean)];
+            this.userService.removeRolesFromUsersMock(uniqueJurorIds, [UserRoleType.JURADO]).subscribe();
+          }
+        }
+
         this.eventBus.emit({
           type: AppEventType.THESIS_VERDICT_REGISTERED,
           targetUserIds: [...new Set(notifyUserIds)],
@@ -239,7 +282,7 @@ export class ThesisWorkSustentationService {
           notifyUserIds.push(...consejoUsers.map(user => user.id));
           notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
 
-          const docFormatG: Document = {
+          const docFormatG: FileDocument = {
             id: crypto.randomUUID(),
             name: formatGFile.name,
             url: 'uploads/evaluations/' + formatGFile.name,
@@ -288,9 +331,6 @@ export class ThesisWorkSustentationService {
             };
           }
 
-          // 💡 LÓGICA DE TRANSICIÓN AUTOMÁTICA DE ESTADOS
-          // Si es APROBADO, se conserva el estado del ciclo actual (Aprobado con Observaciones).
-          // Si el jurado dictamina NO_APROBADO, la sustentación pasa de inmediato a estado APLAZADO de forma interna.
           const finalThesisState = evaluationData.veredict === stateList.APROBADO
             ? stateList.APROBADO_CON_OBSERVACIONES
             : stateList.APLAZADO;

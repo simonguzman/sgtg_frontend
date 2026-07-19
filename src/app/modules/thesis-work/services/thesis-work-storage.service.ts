@@ -5,7 +5,7 @@ import { AuthService } from '../../../core/services/auth/auth.service';
 import { PreliminaryDraftService } from '../../preliminary-draft/services/preliminary-draft.service';
 
 import { stateList } from '../../../core/enums/state.enum';
-import { UserRoleType } from '../../../core/models/user-role';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { User } from '../../users/interfaces/user.interface';
 import { PreliminaryDraftStorageService } from '../../preliminary-draft/services/preliminary-draft-storage.service';

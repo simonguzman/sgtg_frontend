@@ -1,5 +1,6 @@
 import { Column, TableButton } from '../../../../../shared/components/table-component/table-component.component';
-import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 
@@ -27,7 +28,7 @@ export interface TabConfiguration {
 
   enrichEvaluationContext: (baseContext: ThesisEvaluationContext) => ThesisEvaluationContext;
 
-  getTableData: (documents: Document[], context: ThesisEvaluationContext) => Record<string, unknown>[];
+  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext) => Record<string, unknown>[];
 
   getHeaderButtons: (context: ThesisEvaluationContext) => TableButton[];
 

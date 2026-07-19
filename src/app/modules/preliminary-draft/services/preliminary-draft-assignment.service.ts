@@ -4,11 +4,12 @@ import { delay, Observable, of, tap } from 'rxjs';
 import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
-import { UserRoleType } from '../../../core/models/user-role';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { User } from '../../users/interfaces/user.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { addBusinessDays } from '../../../core/utils/date-utils';
-import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { AppEventType } from '../../../core/enums/app-event-type.enum';
 
 @Injectable({
   providedIn: 'root'

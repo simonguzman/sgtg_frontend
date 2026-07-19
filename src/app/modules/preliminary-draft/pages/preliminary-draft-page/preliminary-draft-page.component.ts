@@ -9,7 +9,7 @@ import { Column, TableButton, TableComponent } from '../../../../shared/componen
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { DescriptionModalComponent } from "../../../../shared/components/modals/description-modal/description-modal.component";
 
-import { UserRoleType } from '../../../../core/models/user-role';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { stateList } from '../../../../core/enums/state.enum';
 import { EvaluationDeadlineStatus } from '../../../../core/enums/evaluation-deadline-status.enum';

@@ -2,14 +2,15 @@ import { Component, EventEmitter, inject, Input, Output, signal } from '@angular
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { UserService } from '../../../users/services/user.service';
 import { stateList } from '../../../../core/enums/state.enum';
-import { Document } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 import { DatePipe } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
-import { SustentationRegistry, ThesisWork } from '../../interfaces/thesis-work.interface';
+import { ThesisWork } from '../../interfaces/thesis-work.interface';
+import { SustentationRegistry } from '../../interfaces/sustentation-registry.interface';
 import { User } from '../../../users/interfaces/user.interface';
 
 export interface SustentationEvaluationPayload {
@@ -33,7 +34,7 @@ export class EvaluateSustentationFormComponent {
 
   @Output() onSave = new EventEmitter<{ payload: SustentationEvaluationPayload; file: File }>();
   @Output() onBack = new EventEmitter<void>();
-  @Output() onDownloadFile = new EventEmitter<Document>();
+  @Output() onDownloadFile = new EventEmitter<FileDocument>();
 
   verdictSelected = signal<stateList | null>(null);
   observations = signal<string>('');
@@ -79,7 +80,7 @@ export class EvaluateSustentationFormComponent {
 
   // ─── Documentos ───────────────────────────────────────────────────────────────
 
-  getExistingDocument(type: string): Document | null {
+  getExistingDocument(type: string): FileDocument | null {
     const targetType = type.toUpperCase().trim();
     const thesis = this.thesisWork;
 
@@ -95,7 +96,7 @@ export class EvaluateSustentationFormComponent {
     return null;
   }
 
-  downloadDocument(doc: Document | null | undefined): void {
+  downloadDocument(doc: FileDocument | null | undefined): void {
     if (doc) this.onDownloadFile.emit(doc);
   }
 

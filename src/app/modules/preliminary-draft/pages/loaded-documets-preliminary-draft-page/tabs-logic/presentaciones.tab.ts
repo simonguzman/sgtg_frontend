@@ -1,4 +1,5 @@
-import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { PreliminaryDraftTabConfiguration, PreliminaryDraftEvaluationContext } from './tab-config.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 
@@ -20,7 +21,7 @@ export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
 
   enrichEvaluationContext: (baseContext: PreliminaryDraftEvaluationContext) => baseContext,
 
-  getTableData: (documents: Document[], context: PreliminaryDraftEvaluationContext, preliminaryDraftService: any) => {
+  getTableData: (documents: FileDocument[], context: PreliminaryDraftEvaluationContext, preliminaryDraftService: any) => {
     const { preliminaryDraft, latestPresentacionId } = context;
     const filteredDocs = documents.filter(doc => doc.type === DocumentType.FORMATO_C);
 

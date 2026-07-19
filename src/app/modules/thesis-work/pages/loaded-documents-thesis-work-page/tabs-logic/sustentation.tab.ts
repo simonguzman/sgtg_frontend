@@ -1,8 +1,11 @@
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { stateList } from '../../../../../core/enums/state.enum';
-import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
-import { SustentationRegistry, JurorVerdict, SustentationStatus } from '../../../interfaces/thesis-work.interface';
+import { SustentationRegistry } from '../../../interfaces/sustentation-registry.interface';
+import { JurorVerdict } from '../../../interfaces/juror-verdict.interface';
+import { SustentationStatus } from '../../../enums/sustentation-status.enum';
 
 export const SustentationTabConfig: TabConfiguration = {
   tabValue: 'SUSTENTACION',
@@ -27,7 +30,7 @@ export const SustentationTabConfig: TabConfiguration = {
     if (!thesis) return baseContext;
 
     const hasApprovedPazYSalvo = thesis.documents?.some(
-      (doc: Document) => doc.type === DocumentType['PAZ_Y_SALVO'] && doc.status === stateList.APROBADO
+      (doc: FileDocument) => doc.type === DocumentType['PAZ_Y_SALVO'] && doc.status === stateList.APROBADO
     ) ?? false;
 
     const currentSustentations: SustentationRegistry[] = thesis.sustentations ?? [];
@@ -47,7 +50,7 @@ export const SustentationTabConfig: TabConfiguration = {
     };
   },
 
-  getTableData: (documents: Document[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
+  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
     const thesis = context.thesisWork;
     if (!thesis || !thesis.sustentations || thesis.sustentations.length === 0) {
       return [];

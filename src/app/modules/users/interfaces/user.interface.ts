@@ -1,14 +1,7 @@
-import { UserRoleType } from "../../../core/models/user-role";
-export enum IdentificationType {
-  CC = 'Cédula de Ciudadanía (CC)',
-  CE = 'Cédula de Extranjería (CE)',
-  PASAPORTE = 'Pasaporte'
-}
 
-export enum UserState {
-  active = 'Activo',
-  inactive = 'Inactivo'
-}
+import { UserRoleType } from "../../../core/enums/user-role-type.enum";
+import { IdentificationType } from "../enum/identification-type.enum";
+import { UserState } from "../enum/user-state.enum";
 
 export interface User {
   id: string;

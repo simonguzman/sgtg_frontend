@@ -8,13 +8,14 @@ import { PreliminaryDraftDocumentService } from './preliminary-draft-document.se
 
 // --- Interfaces y Modelos ---
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
-import { Document } from '../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
 import { stateList } from '../../../core/enums/state.enum';
-import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { UserService } from '../../users/services/user.service';
-import { UserRoleType, UserRole } from '../../../core/models/user-role';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 
 @Injectable({
   providedIn: 'root'
@@ -121,13 +122,13 @@ export class PreliminaryDraftService {
     return this.documentService.addEvaluationMock(preliminaryDraftId, evaluation);
   }
 
-  uploadDocumentMock(preliminaryDraftId: string, document: Document): Observable<void> {
+  uploadDocumentMock(preliminaryDraftId: string, document: FileDocument): Observable<void> {
     return this.documentService.uploadDocumentMock(preliminaryDraftId, document);
   }
 
   uploadCouncilResolutionMock(
     id: string,
-    document: Document,
+    document: FileDocument,
     state: stateList,
     evaluation: Evaluation,
     maximumDeliveryDate?: Date | string

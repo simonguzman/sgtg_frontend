@@ -1,10 +1,10 @@
 /* tslint:disable:no-unused-variable */
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { UserFormComponent } from './user-form.component';
 import { ReactiveFormsModule } from '@angular/forms';
-import { IdentificationType, User } from '../../interfaces/user.interface';
-import { UserRoleType } from '../../../../core/models/user-role';
+import { User } from '../../interfaces/user.interface';
+import { IdentificationType } from '../../enum/identification-type.enum';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 
@@ -16,33 +16,35 @@ describe('UserFormComponent', () => {
     show: jest.fn()
   }
 
-  beforeEach(async() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
-    TestBed.configureTestingModule({
-      imports: [ UserFormComponent, ReactiveFormsModule ],
+    await TestBed.configureTestingModule({
+      imports: [UserFormComponent, ReactiveFormsModule],
       providers: [
         { provide: NotificationService, useValue: mockNotificationService }
       ]
-    })
-    .compileComponents();
+    }).compileComponents();
+
     fixture = TestBed.createComponent(UserFormComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
 
-  it('Deberia crearse correctamente', () => {
+  it('debería crearse correctamente', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('Inicialización  y validaciones del formulario', () => {
-    it('Deberia inicializar el formulario como inválido (vacio)', () => {
+  describe('Inicialización y validaciones del formulario', () => {
+    it('debería inicializar el formulario como inválido (vacío)', () => {
       expect(component.userForm.invalid).toBeTruthy();
-    })
-    it('Deberia requerir los campos obligatorios', () => {
+    });
+
+    it('debería requerir los campos obligatorios', () => {
       const emailControl = component.userForm.get('email');
       emailControl?.setValue('');
       expect(emailControl?.hasError('required')).toBeTruthy();
-    })
+    });
+
     it('debería validar la longitud mínima de la contraseña', () => {
       const passwordControl = component.userForm.get('password');
       passwordControl?.setValue('12345'); // 5 caracteres
@@ -52,8 +54,9 @@ describe('UserFormComponent', () => {
       expect(passwordControl?.hasError('minlength')).toBeFalsy();
     });
   });
-  describe('Interacción con Inputs (Signals)', () => {
-    it('debería popular el formulario si se pasa un usuario por input()', () => {
+
+  describe('Interacción con Inputs (Signals) y Modo Edición', () => {
+    it('debería popular el formulario y establecer isEditMode en true si se pasa un usuario', () => {
       const mockUser: Partial<User> = {
         firstName: 'Juan',
         lastName: 'Pérez',
@@ -61,12 +64,28 @@ describe('UserFormComponent', () => {
         roles: [UserRoleType.ADMINISTRADOR]
       };
 
-      // En Angular 17+, así se inyecta valor a un signal input() en pruebas
       fixture.componentRef.setInput('user', mockUser);
       fixture.detectChanges();
 
+      expect(component.isEditMode).toBeTruthy();
       expect(component.userForm.get('firstName')?.value).toBe('Juan');
       expect(component.userForm.get('email')?.value).toBe('juan@test.com');
+    });
+
+    it('debería cambiar la validación de contraseña según el modo (crear vs editar)', () => {
+      const passwordControl = component.userForm.get('password');
+
+      // Modo Crear
+      fixture.componentRef.setInput('user', null);
+      fixture.detectChanges();
+      passwordControl?.setValue('');
+      expect(passwordControl?.hasError('required')).toBeTruthy();
+
+      // Modo Editar
+      fixture.componentRef.setInput('user', { id: '123', firstName: 'Test' } as User);
+      fixture.detectChanges();
+      passwordControl?.setValue('');
+      expect(passwordControl?.hasError('required')).toBeFalsy(); // En edición no es obligatoria
     });
   });
 
@@ -81,16 +100,13 @@ describe('UserFormComponent', () => {
         title: 'Formulario incorrecto',
         type: NotificationType.ERROR
       }));
-      // Verifica que los controles se marcaron como tocados para mostrar errores visuales
       expect(component.userForm.get('firstName')?.touched).toBeTruthy();
       expect(component.userForm.get('idType')?.touched).toBeTruthy();
-      expect(component.userForm.get('roles')?.touched).toBeTruthy();
     });
 
     it('DEBERÍA emitir onSubmit si el formulario es válido', () => {
       const emitSpy = jest.spyOn(component.onSubmit, 'emit');
 
-      // Llenamos el formulario con datos válidos
       component.userForm.patchValue({
         idType: 'CC' as IdentificationType,
         idNumber: 123456,
@@ -111,7 +127,6 @@ describe('UserFormComponent', () => {
         email: 'ana@universidad.edu.co',
         roles: [UserRoleType.ESTUDIANTE]
       }));
-
       expect(mockNotificationService.show).not.toHaveBeenCalled();
     });
   });
@@ -122,18 +137,11 @@ describe('UserFormComponent', () => {
       expect(component.fullName).toBe('Carlos Ramírez');
     });
 
-    it('debería devolver un string vacío en selectedRolesDisplay si no hay roles', () => {
-      component.userForm.controls.roles.setValue([]);
-      expect(component.selectedRolesDisplay).toBe('');
-    });
-
     it('debería abrir el modal y preparar los roles actuales', () => {
       component.userForm.controls.roles.setValue([UserRoleType.DIRECTOR]);
-
       component.openRolesModal();
 
       expect(component.isRolesModalOpen).toBeTruthy();
-      // Verifica que el rol de profesor quedó marcado como asignado
       const teacherRole = component.currentRolesForModal.find(r => r.type === UserRoleType.DIRECTOR);
       expect(teacherRole?.assigned).toBeTruthy();
     });
@@ -142,28 +150,12 @@ describe('UserFormComponent', () => {
       const mockUpdatedRoles = [
         { type: UserRoleType.ADMINISTRADOR, assigned: true, label: 'Admin' },
         { type: UserRoleType.ESTUDIANTE, assigned: false, label: 'Estudiante' }
-      ];
+      ] as any; // Casteado para simular la interfaz del modal
 
       component.handleRolesSaved(mockUpdatedRoles);
 
       expect(component.isRolesModalOpen).toBeFalsy();
       expect(component.userForm.get('roles')?.value).toEqual([UserRoleType.ADMINISTRADOR]);
     });
-  });
-  it('debería cambiar la validación de contraseña según el modo (crear vs editar)', () => {
-    const passwordControl = component.userForm.get('password');
-
-    // Caso 1: Modo Crear (sin usuario)
-    fixture.componentRef.setInput('user', null);
-    fixture.detectChanges();
-    passwordControl?.setValue('');
-    expect(passwordControl?.hasError('required')).toBeTruthy();
-
-    // Caso 2: Modo Editar
-    fixture.componentRef.setInput('user', { id: '123', firstName: 'Test' });
-    fixture.detectChanges();
-    passwordControl?.setValue('');
-    // En edición no debería tener error 'required'
-    expect(passwordControl?.hasError('required')).toBeFalsy();
   });
 });

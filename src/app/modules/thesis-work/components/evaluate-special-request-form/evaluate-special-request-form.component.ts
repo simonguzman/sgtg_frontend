@@ -4,7 +4,9 @@ import { DatePicker } from 'primeng/datepicker';
 
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { UserService } from '../../../users/services/user.service';
-import { SpecialRequest, ThesisWork, SpecialRequestType } from '../../interfaces/thesis-work.interface';
+import { ThesisWork } from '../../interfaces/thesis-work.interface';
+import { SpecialRequest } from '../../interfaces/special-request.interface';
+import { SpecialRequestType } from '../../enums/special-request-type.enum';
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";

@@ -2,7 +2,8 @@ import { inject, Injectable } from '@angular/core';
 import { ProposalStorageService } from './proposal-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { Proposal } from '../interfaces/proposal.interface';
-import { UserRoleType } from '../../../core/models/user-role';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
+
 
 @Injectable({
   providedIn: 'root'

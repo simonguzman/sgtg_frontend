@@ -3,14 +3,11 @@
     @for (breadcrumb of breadcrumbs$ | async; track $index) {
       <li class="inline-flex items-center">
         @if (!$last) {
-          <!-- Enlaces previos en color gris claro -->
           <a [routerLink]="breadcrumb.url" class="text-[#A7A6B0] hover:text-primary transition-colors">
             {{ breadcrumb.label }}
           </a>
-          <!-- Separador rojo y negrita como en tu diseño -->
           <span class="mx-2 text-[#DB141C] font-bold font-sans">></span>
         } @else {
-          <!-- Página actual (última) en gris claro sin enlace -->
           <span class="text-[#A7A6B0]">{{ breadcrumb.label }}</span>
         }
       </li>

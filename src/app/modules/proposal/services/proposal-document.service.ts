@@ -2,12 +2,13 @@ import { inject, Injectable } from '@angular/core';
 import { delay, Observable, of, tap } from 'rxjs';
 import { ProposalStorageService } from './proposal-storage.service';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
-import { Document } from '../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { addBusinessDays, getRemainingBusinessDays } from '../../../core/utils/date-utils';
-import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { UserService } from '../../users/services/user.service';
-import { UserRoleType } from '../../../core/models/user-role';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
 
 @Injectable({
@@ -94,7 +95,7 @@ export class ProposalDocumentService {
   /**
    * Carga una nueva corrección (Documento) a la propuesta regresando el estado a REVISIÓN
    */
-  uploadCorrectionMock(proposalId: string, newDoc: Document): Observable<void> {
+  uploadCorrectionMock(proposalId: string, newDoc: FileDocument): Observable<void> {
     return of(undefined).pipe(
       delay(1200),
       tap(() => {

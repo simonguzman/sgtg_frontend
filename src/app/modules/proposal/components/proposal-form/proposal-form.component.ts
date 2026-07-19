@@ -9,11 +9,12 @@ import { UserService } from '../../../users/services/user.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 
 import { Proposal } from '../../interfaces/proposal.interface';
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
-import { UserState } from '../../../users/interfaces/user.interface';
-import { UserRoleType } from '../../../../core/models/user-role';
-import { stateList } from '../../../../core/enums/state.enum';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 
+import { UserState } from '../../../users/enum/user-state.enum';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
+import { stateList } from '../../../../core/enums/state.enum';
+import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
@@ -277,7 +278,7 @@ export class ProposalFormComponent implements OnInit {
     this.attachedFile = { hasFile: false, name: null };
   }
 
-  private mapDocuments(): Document[] {
+  private mapDocuments(): FileDocument[] {
     if (this.isEditMode) return this.proposal()?.documents ?? [];
     if (!this.attachedFile.hasFile) return [];
 

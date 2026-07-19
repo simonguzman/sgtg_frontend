@@ -1,8 +1,10 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
-import { UserRole, UserRoleType } from '../../../../../core/models/user-role';
+import { UserRole } from '../../../../../core/models/user-role';
+import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { DialogModule } from 'primeng/dialog';
 import { CommonModule } from '@angular/common';
 import { ButtonComponent } from '../../../button-component/button-component.component';
+
 
 @Component({
   selector: 'app-roles-selection-modal',

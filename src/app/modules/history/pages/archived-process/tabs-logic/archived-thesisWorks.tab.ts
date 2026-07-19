@@ -1,13 +1,12 @@
 import { inject, runInInjectionContext } from '@angular/core';
 import { UserService } from '../../../../users/services/user.service';
-import { HistoryEvaluationContext, HistoryTabConfiguration } from '../../../interfaces/history-tab-config.interface';
+import { HistoryTabConfiguration } from '../../../interfaces/history-tab-config.interface';
+import { HistoryEvaluationContext } from '../../../interfaces/history-evaluation-context.interface';
 import { ThesisWorkService } from '../../../../thesis-work/services/thesis-work.service';
 import { ThesisWork } from '../../../../thesis-work/interfaces/thesis-work.interface';
 
 export const ArchivedThesisWorksTabConfig: HistoryTabConfiguration = {
   tabValue: 'TRABAJOS',
-
-  // 1. Estandarizamos las columnas para que sean idénticas a las de Anteproyectos y vista principal
   columns: [
     { field: 'title', header: 'Titulo', type: 'text', width: '25%' },
     { field: 'modality', header: 'Modalidad', type: 'text', width: '15%' },

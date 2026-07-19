@@ -7,7 +7,7 @@ import { NotificationType } from '../../../../shared/components/notifications/mo
 import { Column, TableButton, TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { DescriptionModalComponent } from '../../../../shared/components/modals/description-modal/description-modal.component';
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
-import { UserRoleType } from '../../../../core/models/user-role';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { getRemainingBusinessDays } from '../../../../core/utils/date-utils';
 import { Proposal } from '../../interfaces/proposal.interface';
 import { stateList } from '../../../../core/enums/state.enum';

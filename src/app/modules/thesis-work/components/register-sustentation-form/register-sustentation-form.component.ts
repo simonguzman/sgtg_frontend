@@ -9,10 +9,10 @@ import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angu
 import { DatePicker } from 'primeng/datepicker';
 import { UserService } from '../../../users/services/user.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
-import { UserRoleType } from '../../../../core/models/user-role';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
-import { Document } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { SelectOption, SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select.component';
 
 export interface SustentationFormPayload {
@@ -48,7 +48,7 @@ export class RegisterSustentationFormComponent implements OnInit {
 
   @Output() onSave = new EventEmitter<{ payload: SustentationFormPayload; file: File }>();
   @Output() onBack = new EventEmitter<void>();
-  @Output() onDownloadFile = new EventEmitter<Document>();
+  @Output() onDownloadFile = new EventEmitter<FileDocument>();
 
   private readonly firstJurorSelectedId = signal<string>('');
   isModalOpen = signal<boolean>(false);
@@ -171,7 +171,7 @@ export class RegisterSustentationFormComponent implements OnInit {
 
   // ─── Documentos ──────────────────────────────────────────────────────────────
 
-  getExistingDocument(type: string): Document | null {
+  getExistingDocument(type: string): FileDocument | null {
     const targetType = type.toUpperCase().trim();
     const thesis = this.thesisWork();
 
@@ -204,7 +204,7 @@ export class RegisterSustentationFormComponent implements OnInit {
     return null;
   }
 
-  downloadDocument(doc: Document | null): void {
+  downloadDocument(doc: FileDocument | null): void {
     if (doc) this.onDownloadFile.emit(doc);
   }
 

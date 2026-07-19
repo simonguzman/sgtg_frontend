@@ -1,5 +1,6 @@
 import { Column, TableButton } from '../../../../../shared/components/table-component/table-component.component';
-import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 
 export interface PreliminaryDraftEvaluationContext {
@@ -21,7 +22,7 @@ export interface PreliminaryDraftTabConfiguration {
 
   enrichEvaluationContext: (baseContext: PreliminaryDraftEvaluationContext) => PreliminaryDraftEvaluationContext;
 
-  getTableData: (documents: Document[], context: PreliminaryDraftEvaluationContext, preliminaryDraftService: any) => Record<string, unknown>[];
+  getTableData: (documents: FileDocument[], context: PreliminaryDraftEvaluationContext, preliminaryDraftService: any) => Record<string, unknown>[];
 
   getHeaderButtons: (context: PreliminaryDraftEvaluationContext, preliminaryDraftService: any) => TableButton[];
 

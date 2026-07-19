@@ -2,14 +2,16 @@ import { inject, Injectable } from '@angular/core';
 import { delay, map, Observable, of, tap } from 'rxjs';
 
 import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
-import { Document, DocumentType } from '../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../core/enums/document-type.enum';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { addBusinessDays, getRemainingBusinessDays } from '../../../core/utils/date-utils';
-import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { UserService } from '../../users/services/user.service';
-import { UserRoleType } from '../../../core/models/user-role';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
 
 @Injectable({
@@ -98,7 +100,7 @@ export class PreliminaryDraftDocumentService {
    * Añade un nuevo documento (Versión inicial o Corrección) al historial.
    * Dependiendo del tipo de documento, enruta las notificaciones a los actores correspondientes.
    */
-  uploadDocumentMock(preliminaryDraftId: string, document: Document): Observable<void> {
+  uploadDocumentMock(preliminaryDraftId: string, document: FileDocument): Observable<void> {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
@@ -194,7 +196,7 @@ export class PreliminaryDraftDocumentService {
    */
   uploadCouncilResolutionMock(
     id: string,
-    document: Document,
+    document: FileDocument,
     state: stateList,
     evaluation: Evaluation,
     maximumDeliveryDate?: Date | string

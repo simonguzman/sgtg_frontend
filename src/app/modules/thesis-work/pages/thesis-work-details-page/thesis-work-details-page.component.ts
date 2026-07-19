@@ -7,7 +7,8 @@ import { FileDownloadService } from '../../../../core/services/filedownload/file
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { User } from '../../../users/interfaces/user.interface';
 
 @Component({
@@ -27,7 +28,7 @@ export class ThesisWorkDetailsPageComponent implements OnInit {
 
   thesisWorkDetails = signal<ThesisWork | null>(null);
 
-  mainDocument = computed<Document | null>(() => {
+  mainDocument = computed<FileDocument | null>(() => {
     const currentWork = this.thesisWorkDetails();
     if (!currentWork || !currentWork.preliminaryDraftData) return null;
     const preliminaryDraft = currentWork.preliminaryDraftData;

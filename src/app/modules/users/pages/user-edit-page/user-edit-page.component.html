@@ -1,26 +1,25 @@
-
-  <div class="mb-4">
-    <button
-      (click)="goBack()"
-      class="flex items-center gap-2 text-navy-900 hover:text-navy-700 transition-colors font-bold group"
-    >
-      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
-        arrow_back
-      </span>
-      <span class="return-arrow-option">Regresar</span>
-    </button>
+<div class="mb-4">
+  <button
+    (click)="goBack()"
+    class="flex items-center gap-2 text-navy-900 hover:text-navy-700 transition-colors font-bold group"
+  >
+    <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
+      arrow_back
+    </span>
+    <span class="return-arrow-option">Regresar</span>
+  </button>
+</div>
+@if (userToEdit()) {
+  <app-user-form
+    [user]="userToEdit()"
+    (onSubmit)="handleUpdate($event)">
+  </app-user-form>
+} @else {
+  <div class="flex flex-col items-center justify-center p-20 bg-white rounded-lg border border-dashed border-gray-300">
+    <span class="material-symbols-outlined text-file text-[#777680] animate-spin">sync</span>
+    <p class="mt-2 text-[#777680]">Cargando datos del usuario...</p>
   </div>
-  @if (userToEdit()) {
-    <app-user-form
-      [user]="userToEdit()"
-      (onSubmit)="handleUpdate($event)">
-    </app-user-form>
-  } @else {
-    <div class="flex flex-col items-center justify-center p-20 bg-white rounded-lg border border-dashed border-gray-300">
-      <span class="material-symbols-outlined text-4xl text-gray-400 animate-spin">sync</span>
-      <p class="mt-2 text-gray-500">Cargando datos del usuario...</p>
-    </div>
-  }
+}
 
 <app-confirmation-action-modal
   [isOpen]="isConfirmModalOpen"

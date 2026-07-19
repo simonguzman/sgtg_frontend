@@ -5,11 +5,12 @@ import { TabItem, TabsComponent } from '../../../../shared/components/tabs/tabs.
 import { TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
-import { UserRoleType } from '../../../../core/models/user-role';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { DescriptionModalComponent } from '../../../../shared/components/modals/description-modal/description-modal.component';
 
 // Interfaces de Estrategia
-import { HistoryEvaluationContext, HistoryTabConfiguration } from '../../interfaces/history-tab-config.interface';
+import { HistoryTabConfiguration } from '../../interfaces/history-tab-config.interface';
+import { HistoryEvaluationContext } from '../../interfaces/history-evaluation-context.interface';
 import { ArchivedProposalsTabConfig } from '../archived-process/tabs-logic/archived-proposal.tab';
 import { ArchivedPreliminaryDraftsTabConfig } from '../archived-process/tabs-logic/archived-preliminaryDraft.tab';
 import { ArchivedThesisWorksTabConfig } from '../archived-process/tabs-logic/archived-thesisWorks.tab';

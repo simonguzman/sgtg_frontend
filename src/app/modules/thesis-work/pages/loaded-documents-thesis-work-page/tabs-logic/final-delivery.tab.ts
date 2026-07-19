@@ -1,8 +1,9 @@
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { stateList } from '../../../../../core/enums/state.enum';
-import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
-import { FinalDelivery } from '../../../interfaces/thesis-work.interface';
+import { FinalDelivery } from '../../../interfaces/final-delivery.interface';
 
 export const FinalDeliveryTabConfig: TabConfiguration = {
   tabValue: 'FORMATO_E',
@@ -39,7 +40,7 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
     };
   },
 
-  getTableData: (documents: Document[], context: ThesisEvaluationContext) => {
+  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext) => {
     const deliveries = context.thesisWork?.finalDeliveries || [];
     // 1. Detectamos si el estado general del proyecto ya fue marcado como No Aprobado
     const isThesisNoAprobado = context.thesisWork?.state === stateList.NO_APROBADO;

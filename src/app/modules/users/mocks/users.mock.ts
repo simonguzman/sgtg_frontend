@@ -1,5 +1,7 @@
-import { User, IdentificationType, UserState } from '../interfaces/user.interface';
-import { UserRoleType } from '../../../core/models/user-role';
+import { User } from '../interfaces/user.interface';
+import { UserState } from '../enum/user-state.enum';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
+import { IdentificationType } from '../enum/identification-type.enum';
 
 export const USER_LIST: User[] = [
   {

@@ -1,33 +1,23 @@
+/* tslint:disable:no-unused-variable */
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
-import { UserCreatePageComponent } from './user-create-page.component';
-import { UserService } from '../../services/user.service';
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { Router } from '@angular/router';
-import { IdentificationType, User, UserState } from '../../interfaces/user.interface';
-import { UserRoleType } from '../../../../core/models/user-role';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { of, throwError } from 'rxjs';
 import { Location } from '@angular/common';
+import { UserCreatePageComponent } from './user-create-page.component';
+import { UserFormFacadeService } from '../services/user-form-facade.service';
+import { User } from '../../interfaces/user.interface';
+import { UserState } from '../../enum/user-state.enum';
+import { IdentificationType } from '../../enum/identification-type.enum';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 
 describe('UserCreatePageComponent', () => {
   let component: UserCreatePageComponent;
   let fixture: ComponentFixture<UserCreatePageComponent>;
 
-  const mockUserService = {
-    createUserMock: jest.fn()
+  let mockFacade: {
+    createUser: jest.Mock;
   };
 
-  const mockNotificationService = {
-    show: jest.fn()
-  };
-
-  const mockRouter = {
-    navigate: jest.fn()
-  };
-
-  const mockLocation = {
-    back: jest.fn()
+  let mockLocation: {
+    back: jest.Mock;
   };
 
   const mockUser: User = {
@@ -44,18 +34,25 @@ describe('UserCreatePageComponent', () => {
     state: UserState.active
   };
 
-  beforeEach(async() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
-    TestBed.configureTestingModule({
+
+    mockFacade = {
+      createUser: jest.fn()
+    };
+
+    mockLocation = {
+      back: jest.fn()
+    };
+
+    await TestBed.configureTestingModule({
       imports: [ UserCreatePageComponent ],
       providers: [
-        { provide: UserService, useValue: mockUserService },
-        { provide: NotificationService, useValue: mockNotificationService },
-        { provide: Router, useValue: mockRouter },
+        { provide: UserFormFacadeService, useValue: mockFacade },
         { provide: Location, useValue: mockLocation }
       ]
-    })
-    .compileComponents();
+    }).compileComponents();
+
     fixture = TestBed.createComponent(UserCreatePageComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -65,7 +62,7 @@ describe('UserCreatePageComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('Flujo de Creación de Usuario', () => {
+  describe('Flujo de Interacción con el Modal', () => {
     it('debería preparar los datos y abrir el modal al llamar a handleCreateUser', () => {
       component.handleCreateUser(mockUser);
 
@@ -82,50 +79,29 @@ describe('UserCreatePageComponent', () => {
       expect(component.isConfirmModalOpen).toBe(false);
       expect(component.pendingUserData).toBeNull();
     });
+  });
 
-    it('debería procesar la creación exitosa correctamente', () => {
-      // Configuramos el mock para que retorne un éxito
-      mockUserService.createUserMock.mockReturnValue(of({ success: true }));
-      component.pendingUserData = mockUser;
-
-      component.confirmCreation();
-
-      // 1. Debe cerrar el modal
-      expect(component.isConfirmModalOpen).toBe(false);
-
-      // 2. Debe mostrar notificación de "Procesando" y luego "Éxito"
-      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-        type: NotificationType.INFO
-      }));
-      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-        type: NotificationType.CONFIRMATION
-      }));
-
-      // 3. Debe navegar a /users
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/users']);
-    });
-
-    it('debería manejar errores del servidor al crear usuario', () => {
-      // Espiamos el log y le decimos que no haga nada (mockImplementation)
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-      // Configuramos el mock para que retorne un error
-      mockUserService.createUserMock.mockReturnValue(throwError(() => new Error('Server Error')));
-      component.pendingUserData = mockUser;
-
-      component.confirmCreation();
-
-      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-        type: NotificationType.ERROR
-      }));
-      // No debería navegar si hay error
-      expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
-    });
-
+  describe('Flujo de Confirmación de Creación', () => {
     it('no debería hacer nada en confirmCreation si no hay datos pendientes', () => {
       component.pendingUserData = null;
       component.confirmCreation();
-      expect(mockUserService.createUserMock).not.toHaveBeenCalled();
+
+      expect(mockFacade.createUser).not.toHaveBeenCalled();
+    });
+
+    it('debería cerrar el modal, delegar al facade y limpiar datos mediante el callback', () => {
+      component.pendingUserData = mockUser;
+      component.isConfirmModalOpen = true;
+
+      mockFacade.createUser.mockImplementation((user, onSuccess) => {
+        onSuccess();
+      });
+
+      component.confirmCreation();
+
+      expect(component.isConfirmModalOpen).toBe(false);
+      expect(mockFacade.createUser).toHaveBeenCalledWith(mockUser, expect.any(Function));
+      expect(component.pendingUserData).toBeNull();
     });
   });
 

@@ -4,7 +4,7 @@ import { UserService } from '../../../users/services/user.service';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
-import { Document } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { PazYSalvoPayload } from '../../interfaces/paz-y-salvo-playload.interface';
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
@@ -24,7 +24,7 @@ export class RegisterPazYSalvoFormComponent {
 
   @Output() onSave = new EventEmitter<{ payload: PazYSalvoPayload, file: File }>();
   @Output() onGoBack = new EventEmitter<void>();
-  @Output() onDownloadFile = new EventEmitter<Document>();
+  @Output() onDownloadFile = new EventEmitter<FileDocument>();
 
   academicApproved = signal<boolean | null>(null);
   academicComments = signal<string>('');
@@ -54,7 +54,7 @@ export class RegisterPazYSalvoFormComponent {
     return advisorId ? this.userService.getUserFullName(advisorId) : '';
   }
 
-  getExistingDocument(type: string): Document | null {
+  getExistingDocument(type: string): FileDocument | null {
     const targetType = type.toUpperCase().trim();
     if (this.thesisWork?.finalDeliveries && this.thesisWork.finalDeliveries.length > 0) {
       const lastDelivery = this.thesisWork.finalDeliveries.find(finalDelivery => finalDelivery.status === 'En revisión')
@@ -66,7 +66,7 @@ export class RegisterPazYSalvoFormComponent {
 
     if (!this.thesisWork?.documents) return null;
 
-    return this.thesisWork.documents.find((doc: Document) => {
+    return this.thesisWork.documents.find((doc: FileDocument) => {
       const currentDocType = (doc.type || '').toUpperCase().trim();
 
       if (targetType === 'MONOGRAFIA') return currentDocType === 'MONOGRAFIA';
@@ -93,7 +93,7 @@ export class RegisterPazYSalvoFormComponent {
     this.uploadedFormat.set(null);
   }
 
-  downloadDocument(doc: Document | null): void {
+  downloadDocument(doc: FileDocument | null): void {
     if (doc) this.onDownloadFile.emit(doc);
   }
 

@@ -1,5 +1,6 @@
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
-import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 
@@ -8,7 +9,7 @@ interface AdvanceRegistry {
   title: string;
   comments: string;
   uploadDate: Date | string;
-  documents?: Document[];
+  documents?: FileDocument[];
   status: stateList;
 }
 
@@ -50,7 +51,7 @@ export const AdvancesTabConfig: TabConfiguration = {
     const latestAdvance = advances.length > 0 ? advances[0] : null;
     const isLatestAdvancePending = latestAdvance?.status === stateList.EN_REVISION;
     const hasFinalDelivery = thesis.documents?.some(
-      (doc: Document) => doc.type === DocumentType['FORMATO_E']
+      (doc: FileDocument) => doc.type === DocumentType['FORMATO_E']
     ) ?? false;
 
     // Validación del estado del trabajo de grado
@@ -66,7 +67,7 @@ export const AdvancesTabConfig: TabConfiguration = {
     };
   },
 
-  getTableData: (documents: Document[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
+  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
     const activeAdvances: AdvanceRegistry[] = context.thesisWork?.advances || [];
     const hasFinalDelivery = context['hasFinalDelivery'] as boolean ?? false
     const isArchived = context.isArchived ?? false;

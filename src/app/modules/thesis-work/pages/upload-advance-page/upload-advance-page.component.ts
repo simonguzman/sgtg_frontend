@@ -5,7 +5,8 @@ import { NotificationService } from '../../../../shared/components/notifications
 import { ActivatedRoute, Router } from '@angular/router';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { forkJoin, Observable } from 'rxjs';
 import { UploadAdvanceFormComponent } from "../../components/upload-advance-form/upload-advance-form.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
@@ -91,7 +92,7 @@ export class UploadAdvancePageComponent implements OnInit {
       studentId: currentUser.id,
       advanceId: globalAdvanceBlockId
     };
-    const documentsToUpload: Document[] = data.files.map(file => ({
+    const documentsToUpload: FileDocument[] = data.files.map(file => ({
       id: crypto.randomUUID(),
       name: `${data.formValues.title} - ${file.name}`,
       url: 'url-pendiente-de-carga-s3',

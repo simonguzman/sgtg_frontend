@@ -1,8 +1,6 @@
-import { inject, runInInjectionContext } from '@angular/core';
-import { UserService } from '../../../../users/services/user.service';
-import { ProposalService } from '../../../../proposal/services/proposal.service';
 import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
-import { HistoryEvaluationContext, HistoryTabConfiguration } from '../../../interfaces/history-tab-config.interface';
+import { HistoryTabConfiguration } from '../../../interfaces/history-tab-config.interface';
+import { HistoryEvaluationContext } from '../../../interfaces/history-evaluation-context.interface';
 
 export const ArchivedProposalsTabConfig: HistoryTabConfiguration = {
   tabValue: 'PROPUESTAS',

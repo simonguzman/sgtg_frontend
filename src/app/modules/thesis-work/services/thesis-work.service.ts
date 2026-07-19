@@ -8,16 +8,19 @@ import { ThesisWorkDeliveryService } from './thesis-work-delivery.service';
 import { ThesisWorkEvaluationService } from './thesis-work-evaluation.service';
 import { ThesisWorkSpecialRequestService } from './thesis-work-special-request.service';
 import { ThesisWorkSustentationService } from './thesis-work-sustentation.service';
+import { UserApiService } from '../../users/services/user-api.service';
 
 // --- Interfaces y Enums ---
-import { Document } from '../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { CreateAdvanceRequest } from '../interfaces/advance-playload.interface';
 import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
-import { SpecialRequestType } from '../interfaces/thesis-work.interface';
-import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { SpecialRequestType } from '../enums/special-request-type.enum';
+import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { User } from '../../users/interfaces/user.interface';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 
 @Injectable({
   providedIn: 'root'
@@ -29,7 +32,8 @@ export class ThesisWorkService {
   private readonly evaluationService = inject(ThesisWorkEvaluationService);
   private readonly specialRequestService = inject(ThesisWorkSpecialRequestService);
   private readonly sustentationService = inject(ThesisWorkSustentationService);
-  private readonly eventBus = inject(EventBusService); // 💡 Inyectado para control local de reactivación
+  private readonly eventBus = inject(EventBusService);
+  private readonly api = inject(UserApiService);
 
   readonly thesisWorks = this.storage.thesisWorks;
   readonly allThesisWorks = this.storage.allThesisWorks;
@@ -65,9 +69,11 @@ export class ThesisWorkService {
             if (!hasFinalDelivery) {
               let notifyUserIds: string[] = [];
               let currentThesisTitle = work.preliminaryDraftData?.proposalData?.title || 'Sin título';
+              let evaluatorIdsToClean: string[] = [];
 
               this.storage.updateWork(work.thesisWorkId, (w) => {
-                const proposal = w.preliminaryDraftData?.proposalData;
+                const preliminaryDraft = w.preliminaryDraftData;
+                const proposal = preliminaryDraft?.proposalData;
 
                 if (proposal) {
                   proposal.authors?.forEach((author: User | string) => {
@@ -78,23 +84,32 @@ export class ThesisWorkService {
                   if (proposal.advisor?.id) notifyUserIds.push(proposal.advisor.id);
                 }
 
-                // 🔄 CASCADA DE ARCHIVADO INMUTABLE
+                if (preliminaryDraft?.evaluators) {
+                  preliminaryDraft.evaluators.forEach((evaluator: User) => {
+                    if (evaluator.id) evaluatorIdsToClean.push(evaluator.id);
+                  });
+                }
+
                 return {
                   ...w,
                   state: stateList.NO_APROBADO,
-                  isArchived: true, // 1. Archivamos Trabajo de Grado
+                  isArchived: true,
                   preliminaryDraftData: {
                     ...w.preliminaryDraftData,
-                    isArchived: true, // 2. Archivamos Anteproyecto
+                    isArchived: true,
                     proposalData: {
                       ...w.preliminaryDraftData.proposalData,
-                      isArchived: true // 3. Archivamos la Propuesta raíz
+                      isArchived: true
                     }
                   }
                 };
               });
 
-              // Emisión del evento global para el sistema de alertas/notificaciones
+              if (evaluatorIdsToClean.length > 0) {
+                const uniqueEvaluatorIds = [...new Set(evaluatorIdsToClean)];
+                this.api.removeRolesFromUsers(uniqueEvaluatorIds, [UserRoleType.EVALUADOR]).subscribe();
+              }
+
               this.eventBus.emit({
                 type: AppEventType.THESIS_DEADLINE_EXPIRED,
                 targetUserIds: [...new Set(notifyUserIds)],
@@ -137,7 +152,6 @@ export class ThesisWorkService {
           };
         });
 
-        // 💡 Emisión del evento de reactivación que faltaba en el flujo original
         this.eventBus.emit({
           type: AppEventType.THESIS_REACTIVATED,
           targetUserIds: [...new Set(notifyUserIds)],
@@ -154,7 +168,7 @@ export class ThesisWorkService {
     return this.storage.getById(id);
   }
 
-  uploadDocumentMock(thesisWorkId: string, document: Document, advanceMeta?: CreateAdvanceRequest ) {
+  uploadDocumentMock(thesisWorkId: string, document: FileDocument, advanceMeta?: CreateAdvanceRequest ) {
     return this.advanceService.uploadDocumentMock(thesisWorkId, document, advanceMeta);
   }
 
@@ -166,7 +180,7 @@ export class ThesisWorkService {
     return this.deliveryService.uploadCorrectedDocumentsMock(thesisWorkId, monograph, annexes);
   }
 
-  registerCorrespondenceDocumentMock(thesisWorkId: string, document: Document) {
+  registerCorrespondenceDocumentMock(thesisWorkId: string, document: FileDocument) {
     return this.deliveryService.registerCorrespondenceDocumentMock(thesisWorkId, document);
   }
 

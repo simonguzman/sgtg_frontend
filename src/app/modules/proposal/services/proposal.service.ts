@@ -9,11 +9,13 @@ import { ProposalDocumentService } from './proposal-document.service';
 import { UserService } from '../../users/services/user.service';
 import { Proposal } from '../interfaces/proposal.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
-import { Document } from '../../../core/interfaces/Document.interface';
-import { UserRoleType } from '../../../core/models/user-role';
+import { FileDocument } from '../../../core/interfaces/file-document.interface';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { addBusinessDays } from '../../../core/utils/date-utils';
-import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { AppEventType } from '../../../core/enums/app-event-type.enum';
+
 
 @Injectable({
   providedIn: 'root'
@@ -173,11 +175,11 @@ export class ProposalService {
     return this.documentService.addEvaluationMock(proposalId, evaluation);
   }
 
-  uploadCorrectionMock(proposalId: string, newDoc: Document): Observable<void> {
+  uploadCorrectionMock(proposalId: string, newDoc: FileDocument): Observable<void> {
     return this.documentService.uploadCorrectionMock(proposalId, newDoc);
   }
 
-  getDocumentsByProposalId(id: string): Document[] {
+  getDocumentsByProposalId(id: string): FileDocument[] {
     const proposal = this.storage.getProposalsListSnapshot().find(p => p.id === id);
     return proposal ? proposal.documents : [];
   }

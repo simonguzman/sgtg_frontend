@@ -1,6 +1,7 @@
 import { inject, runInInjectionContext } from '@angular/core';
 import { UserService } from '../../../../users/services/user.service';
-import { HistoryEvaluationContext, HistoryTabConfiguration } from '../../../interfaces/history-tab-config.interface';
+import { HistoryTabConfiguration } from '../../../interfaces/history-tab-config.interface';
+import { HistoryEvaluationContext } from '../../../interfaces/history-evaluation-context.interface';
 import { PreliminaryDraftService } from '../../../../preliminary-draft/services/preliminary-draft.service';
 import { PreliminaryDraft } from '../../../../preliminary-draft/interfaces/preliminary-draft.interface';
 

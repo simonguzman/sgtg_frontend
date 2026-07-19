@@ -3,7 +3,7 @@ import { ThesisWorkPageComponent } from './pages/thesis-work-page/thesis-work-pa
 import { ThesisWorkDetailsPageComponent } from './pages/thesis-work-details-page/thesis-work-details-page.component';
 import { roleGuard } from '../../core/guards/role.guard';
 import { thesisRestrictedStatusGuard } from '../../core/guards/thesis-status.guard';
-import { UserRoleType } from '../../core/models/user-role';
+import { UserRoleType } from '../../core/enums/user-role-type.enum';
 import { EvaluationsPerformedPageComponent } from '../../shared/pages/evaluations-performed-page/evaluations-performed-page.component';
 import { LoadedDocumentsThesisWorkPageComponent } from './pages/loaded-documents-thesis-work-page/loaded-documents-thesis-work-page.component';
 import { UploadAdvancePageComponent } from './pages/upload-advance-page/upload-advance-page.component';

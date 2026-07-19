@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { PreliminaryDraftPageComponent } from './pages/preliminary-draft-page/preliminary-draft-page.component';
 import { DownloadableFormatsPageComponent } from '../../shared/pages/downloadable-formats-page/downloadable-formats-page.component';
 import { roleGuard } from '../../core/guards/role.guard';
-import { UserRoleType } from '../../core/models/user-role';
+import { UserRoleType } from '../../core/enums/user-role-type.enum';
 import { PreliminaryDraftCreatePageComponent } from './pages/preliminary-draft-create-page/preliminary-draft-create-page.component';
 import { PreliminaryDraftDetailsPageComponent } from './pages/preliminary-draft-details-page/preliminary-draft-details-page.component';
 import { PreliminaryDraftEditPageComponent } from './pages/preliminary-draft-edit-page/preliminary-draft-edit-page.component';
@@ -11,7 +11,6 @@ import { LoadedDocumentsPreliminaryDraftPageComponent } from './pages/loaded-doc
 import { ReviewPreliminaryDraftPageComponent } from './pages/review-preliminary-draft-page/review-preliminary-draft-page.component';
 import { ReviewPresentationsFacultyCouncilPageComponent } from './pages/review-presentations-faculty-council-page/review-presentations-faculty-council-page.component';
 import { AssignEvaluatorsPageComponent } from './pages/assign-evaluators-page/assign-evaluators-page.component';
-
 
 export const preliminaryDraftRoutes: Routes = [
   {

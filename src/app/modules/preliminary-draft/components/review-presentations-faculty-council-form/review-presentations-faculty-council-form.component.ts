@@ -9,7 +9,8 @@ import { ButtonComponent } from "../../../../shared/components/button-component/
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
@@ -30,7 +31,7 @@ export class ReviewPresentationsFacultyCouncilFormComponent implements OnInit {
   @Input() isSubmitting = false;
 
   @Output() onSaveEvaluation = new EventEmitter<{ formValues: any, file: File }>();
-  @Output() onDownloadFile = new EventEmitter<Document>();
+  @Output() onDownloadFile = new EventEmitter<FileDocument>();
 
   uploadedSignedFile = signal<{ fileName: string; file: File } | null>(null);
   isUploadModalOpen = signal(false);
@@ -66,7 +67,7 @@ export class ReviewPresentationsFacultyCouncilFormComponent implements OnInit {
     return this.preliminaryDraft.state === stateList.APROBADO;
   }
 
-  get signedProposalDocument(): Document | undefined {
+  get signedProposalDocument(): FileDocument | undefined {
     const proposal = this.preliminaryDraft.proposalData;
     if (!proposal?.evaluations?.length) return undefined;
 
@@ -90,13 +91,13 @@ export class ReviewPresentationsFacultyCouncilFormComponent implements OnInit {
     };
   }
 
-  get approvedPreliminaryDraftDocument(): Document | undefined {
+  get approvedPreliminaryDraftDocument(): FileDocument | undefined {
     return this.preliminaryDraft.documents.find(document =>
       document.type === 'Anteproyecto' || document.type === 'Correccion'
     );
   }
 
-  get presentationDocument(): Document | undefined {
+  get presentationDocument(): FileDocument | undefined {
     return this.preliminaryDraft.documents.find(doc => doc.type === DocumentType.FORMATO_C);
   }
 

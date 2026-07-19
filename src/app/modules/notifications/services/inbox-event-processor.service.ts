@@ -1,5 +1,7 @@
 import { inject, Injectable } from '@angular/core';
-import { AppEvent, AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { AppEvent } from '../../../core/interfaces/app-event.interface';
+import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { InboxMessage } from '../interfaces/inbox-message.interface';
 import { NotificationType } from '../../../shared/components/notifications/models/notification.model';
 import { InboxStateService } from './inbox-state.service';

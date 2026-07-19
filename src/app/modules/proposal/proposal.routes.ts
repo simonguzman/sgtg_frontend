@@ -8,7 +8,7 @@ import { LoadedProposalsPageComponent } from './pages/loaded-proposals-page/load
 import { EvaluationsPerformedPageComponent } from '../../shared/pages/evaluations-performed-page/evaluations-performed-page.component';
 import { EvaluationProposalPageComponent } from './pages/evaluation-proposal-page/evaluation-proposal-page.component';
 import { roleGuard } from '../../core/guards/role.guard';
-import { UserRoleType } from '../../core/models/user-role';
+import { UserRoleType } from '../../core/enums/user-role-type.enum';
 
 export const proposalRoutes: Routes = [
   {

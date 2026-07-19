@@ -1,8 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { EvaluationTableRow, RawEvaluationData } from '../models/evaluations-page.model';
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
-import { ThesisWork, SustentationRegistry, JurorVerdict, SpecialRequest } from '../../../../modules/thesis-work/interfaces/thesis-work.interface';
+import { ThesisWork } from '../../../../modules/thesis-work/interfaces/thesis-work.interface';
+import { SpecialRequest } from '../../../../modules/thesis-work/interfaces/special-request.interface';
+import { SustentationRegistry } from '../../../../modules/thesis-work/interfaces/sustentation-registry.interface';
+import { JurorVerdict } from '../../../../modules/thesis-work/interfaces/juror-verdict.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { User } from '../../../../modules/users/interfaces/user.interface';
 import { Proposal } from '../../../../modules/proposal/interfaces/proposal.interface';
@@ -40,15 +44,13 @@ export class EvaluationsMapperService {
     const allEvaluations = thesisWork.evaluations || [];
 
     const parseSignedDocs = (
-      docs: (string | Document | FormattedDocument)[] | undefined,
+      docs: (string | FileDocument | FormattedDocument)[] | undefined,
       fallbackName: string
     ): FormattedDocument[] => {
       return (docs || []).map(item => {
         if (typeof item === 'string') {
           const doc = allDocuments.find(document => document.url === item);
 
-          // 👇 EL CAMBIO ESTÁ AQUÍ: Si no encuentra el documento, usamos 'item' como nombre
-          // porque sabemos que el componente guarda el nombre del archivo directamente en el string.
           return {
             name: doc?.name || item,
             url: item
@@ -105,20 +107,16 @@ export class EvaluationsMapperService {
       .map((request: SpecialRequest) => {
         const formattedType = request.requestType.replace(/_/g, ' ').toLowerCase();
         const capitalizedType = formattedType.charAt(0).toUpperCase() + formattedType.slice(1);
-
-        // --- CAMBIO: Usamos el historial inmutable ---
-        // Ya no buscamos un usuario aleatorio del consejo.
-        // Usamos el ID que el servicio de SpecialRequest guardó en el momento exacto de la evaluación.
         const historicalEvaluatorId = request.evaluatorId || 'consejo-facultad';
 
         return {
           id: request.id,
-          evaluatorId: historicalEvaluatorId, // Pasamos el ID real de quien resolvió
-          evaluatorName: 'Consejo de Facultad', // Se sobrescribirá más abajo usando el UserService
+          evaluatorId: historicalEvaluatorId,
+          evaluatorName: 'Consejo de Facultad',
           evaluatorRole: 'Consejo',
           veredict: request.status,
           observations: request.resolutionDetails || 'Sin detalles de resolución registrados.',
-          date: request.requestDate, // La fecha original en la que se evaluó/creó
+          date: request.requestDate,
           documentTargetName: `Solicitud Especial (${capitalizedType})`,
           signedDocuments: []
         };
@@ -133,7 +131,7 @@ export class EvaluationsMapperService {
 
   private formatEvaluationsForTable(
     evaluations: RawEvaluationData[],
-    globalDocuments: Document[],
+    globalDocuments: FileDocument[],
     defaultTitle: string
   ): EvaluationTableRow[] {
     return evaluations.map(evaluation => {
@@ -141,11 +139,9 @@ export class EvaluationsMapperService {
 
       const isCouncil = evaluation.evaluatorName?.toLowerCase().includes('consejo') || evaluation.evaluatorRole === 'Consejo';
 
-      // --- CAMBIO: Obtener el nombre real validando la respuesta del servicio ---
       let realName = evaluation.evaluatorName;
       if (evaluation.evaluatorId && evaluation.evaluatorId !== 'consejo-facultad') {
         const userFound = this.userService.getUserFullName(evaluation.evaluatorId);
-        // Validamos que el servicio no nos haya devuelto el mismo ID o 'No asignado'
         if (userFound && userFound.trim() !== '' && userFound !== 'No asignado' && userFound !== evaluation.evaluatorId) {
           realName = userFound;
         }
@@ -153,7 +149,6 @@ export class EvaluationsMapperService {
 
       const evaluatorName = realName || (isCouncil ? 'Representante del Consejo' : 'Evaluador');
 
-      // --- CAMBIO: Estandarización estricta de mayúsculas/minúsculas para el Rol ---
       let rawRole = evaluation.evaluatorRole || (isCouncil ? 'Consejo' : 'Evaluador');
       const evaluatorRole = rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase();
 
@@ -180,7 +175,7 @@ export class EvaluationsMapperService {
         id: evaluation.id || crypto.randomUUID(),
         evaluatorId: evaluation.evaluatorId || '',
         evaluatorName,
-        evaluatorRole, // Siempre será "Jurado", "Consejo", etc. (solo primera en mayúscula)
+        evaluatorRole,
         veredict: evaluation.veredict as stateList,
         observations: evaluation.observations || evaluation.comments || 'Sin observaciones registradas.',
         date: evaluation.date || new Date(),

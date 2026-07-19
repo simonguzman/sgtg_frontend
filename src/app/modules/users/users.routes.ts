@@ -4,7 +4,7 @@ import { UserCreatePageComponent } from './pages/user-create-page/user-create-pa
 import { UserEditPageComponent } from './pages/user-edit-page/user-edit-page.component';
 import { UserDetailsPageComponent } from './pages/user-details-page/user-details-page.component';
 import { roleGuard } from '../../core/guards/role.guard';
-import { UserRoleType } from '../../core/models/user-role';
+import { UserRoleType } from '../../core/enums/user-role-type.enum';
 
 export const usersRoutes: Routes = [
   {

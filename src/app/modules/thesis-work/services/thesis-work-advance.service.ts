@@ -1,10 +1,12 @@
 import { inject, Injectable } from '@angular/core';
 import { delay, Observable, of, tap } from 'rxjs';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
-import { Document, DocumentType } from '../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../core/enums/document-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { CreateAdvanceRequest } from '../interfaces/advance-playload.interface';
-import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { AppEventType } from '../../../core/enums/app-event-type.enum';
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +18,7 @@ export class ThesisWorkAdvanceService {
   /**
    * Carga múltiples archivos y los asocia a un avance (nuevo o existente)
    */
-  uploadDocumentMock(thesisWorkId: string, document: Document, advanceMeta?: CreateAdvanceRequest): Observable<void> {
+  uploadDocumentMock(thesisWorkId: string, document: FileDocument, advanceMeta?: CreateAdvanceRequest): Observable<void> {
     return of(undefined).pipe(
       delay(800),
       tap(() => {

@@ -8,7 +8,7 @@ import { AuthService } from '../../../../core/services/auth/auth.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ProposalPageComponent } from './proposal-page.component';
-import { UserRoleType } from '../../../../core/models/user-role';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 
 describe('ProposalPageComponent', () => {
   let component: ProposalPageComponent;

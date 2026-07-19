@@ -1,7 +1,9 @@
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
-import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { ThesisEvaluationContext, TabConfiguration } from './tab-config.interface';
-import { SpecialRequest, JurorVerdict } from '../../../interfaces/thesis-work.interface';
+import { SpecialRequest } from '../../../interfaces/special-request.interface';
+import { JurorVerdict } from '../../../interfaces/juror-verdict.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 
 export const SpecialRequestTabConfig: TabConfiguration = {
@@ -48,7 +50,7 @@ export const SpecialRequestTabConfig: TabConfiguration = {
     };
   },
 
-  getTableData: (documents: Document[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
+  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
     const thesis = context.thesisWork;
     if (!thesis || !thesis.specialRequests) return [];
     const isConsejo = !!context.isConsejo;

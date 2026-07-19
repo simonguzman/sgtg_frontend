@@ -3,7 +3,8 @@ import { UserService } from '../../../users/services/user.service';
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { DatePipe } from '@angular/common';
@@ -67,7 +68,7 @@ export class RegisterCorrespondenceFormComponent {
     return userId ? this.userService.getUserFullName(userId) : 'No asignado';
   }
 
-  downloadDocument(doc: Document | undefined | null): void {
+  downloadDocument(doc: FileDocument | undefined | null): void {
     if (!doc?.url) {
       this.notificationService.show({
         title: 'Archivo no disponible',

@@ -1,8 +1,9 @@
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { stateList } from '../../../../../core/enums/state.enum';
-import { Document, DocumentType } from '../../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
-import { FinalDelivery } from '../../../interfaces/thesis-work.interface';
+import { FinalDelivery } from '../../../interfaces/final-delivery.interface';
 
 export const PazYSalvoTabConfig: TabConfiguration = {
   tabValue: 'PAZ_Y_SALVO',
@@ -43,9 +44,9 @@ export const PazYSalvoTabConfig: TabConfiguration = {
     };
   },
 
-  getTableData: (documents: Document[], context: ThesisEvaluationContext) => {
+  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext) => {
     const pySDocs = documents.filter(doc => doc.type === DocumentType['PAZ_Y_SALVO']);
-    return pySDocs.map((doc: Document) => {
+    return pySDocs.map((doc: FileDocument) => {
       let formattedDate = 'Sin fecha';
       if (doc.uploadDate) {
         if (typeof doc.uploadDate === 'string') {

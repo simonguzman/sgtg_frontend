@@ -3,8 +3,9 @@ import { delay, Observable, of } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { UserService } from '../../users/services/user.service';
-import { Proposal, Modality } from '../interfaces/proposal.interface';
-import { UserRoleType } from '../../../core/models/user-role';
+import { Proposal } from '../interfaces/proposal.interface';
+import { Modality } from '../enums/modality.enum';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { User } from '../../users/interfaces/user.interface';
 

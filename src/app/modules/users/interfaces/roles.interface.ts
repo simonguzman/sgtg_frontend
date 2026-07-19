@@ -1,4 +1,4 @@
-import { UserRoleType } from "../../../core/models/user-role";
+import { UserRoleType } from "../../../core/enums/user-role-type.enum";
 
 export interface Role {
   id: number,

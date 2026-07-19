@@ -3,13 +3,17 @@ import { delay, Observable, of, tap, shareReplay } from 'rxjs';
 
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { stateList } from '../../../core/enums/state.enum';
-import { Document, DocumentType } from '../../../core/interfaces/Document.interface';
-import { CorrectedDelivery, FinalDelivery } from '../interfaces/thesis-work.interface';
+import { FileDocument } from '../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../core/enums/document-type.enum';
+import { CorrectedDelivery } from '../interfaces/corrected-delivery.interface';
+import { FinalDelivery } from '../interfaces/final-delivery.interface';
 import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
-import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { User } from '../../users/interfaces/user.interface';
 import { UserService } from '../../users/services/user.service';
-import { UserRoleType } from '../../../core/models/user-role';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
+import { UserApiService } from '../../users/services/user-api.service'; // 👈 NUEVO: Importación del servicio
 
 @Injectable({
   providedIn: 'root'
@@ -18,6 +22,7 @@ export class ThesisWorkDeliveryService {
   private readonly storage = inject(ThesisWorkStorageService);
   private readonly eventBus = inject(EventBusService);
   private readonly userService = inject(UserService);
+  private readonly api = inject(UserApiService); // 👈 NUEVO: Inyección del servicio
 
   /**
    * Entrega final del trabajo de grado
@@ -50,7 +55,7 @@ export class ThesisWorkDeliveryService {
             .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
             .replaceAll('/', ' - ');
 
-          const docMonograph: Document = {
+          const docMonograph: FileDocument = {
             id: crypto.randomUUID(),
             name: monograph.name.replace('.pdf', ''),
             url: 'uploads/final-delivery/monografia_' + monograph.name,
@@ -59,7 +64,7 @@ export class ThesisWorkDeliveryService {
             status: stateList.EN_REVISION
           };
 
-          const docFormatE: Document = {
+          const docFormatE: FileDocument = {
             id: crypto.randomUUID(),
             name: formatE.name.replace('.pdf', ''),
             url: 'uploads/final-delivery/formato_e_' + formatE.name,
@@ -68,7 +73,7 @@ export class ThesisWorkDeliveryService {
             status: stateList.EN_REVISION
           };
 
-          let docAnnexes: Document | undefined;
+          let docAnnexes: FileDocument | undefined;
           if (annexes) {
             docAnnexes = {
               id: crypto.randomUUID(),
@@ -146,7 +151,7 @@ export class ThesisWorkDeliveryService {
             .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
             .replaceAll('/', ' - ');
 
-          const pazYSalvoDoc: Document = {
+          const pazYSalvoDoc: FileDocument = {
             id: crypto.randomUUID(),
             name: file.name.replace('.pdf', ''),
             url: 'uploads/paz-y-salvo/' + file.name,
@@ -240,7 +245,7 @@ export class ThesisWorkDeliveryService {
             .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
             .replaceAll('/', ' - ');
 
-          const docMonograph: Document = {
+          const docMonograph: FileDocument = {
             id: crypto.randomUUID(),
             name: monograph.name.replace('.pdf', ''),
             url: 'uploads/corrected-documents/' + monograph.name,
@@ -249,8 +254,8 @@ export class ThesisWorkDeliveryService {
             status: stateList.EN_REVISION
           };
 
-          let docAnnexes: Document | undefined;
-          const newDocuments: Document[] = [docMonograph];
+          let docAnnexes: FileDocument | undefined;
+          const newDocuments: FileDocument[] = [docMonograph];
 
           if (annexes) {
             docAnnexes = {
@@ -301,12 +306,16 @@ export class ThesisWorkDeliveryService {
   /**
    * Registro de documento de correspondencia final
    */
-  registerCorrespondenceDocumentMock( thesisWorkId: string, document: Document ): Observable<void> {
+  registerCorrespondenceDocumentMock( thesisWorkId: string, document: FileDocument ): Observable<void> {
     return of(undefined).pipe(
       delay(800),
       tap(() => {
         let notifyUserIds: string[] = [];
         let currentThesisTitle = ''; // 💡 Variable puente para el título
+
+        // 👈 NUEVO: Arreglos para recolectar IDs a limpiar al finalizar el proceso
+        let evaluatorIdsToClean: string[] = [];
+        let jurorIdsToClean: string[] = [];
 
         this.storage.updateWork(thesisWorkId, (thesisWork) => {
           const authors = thesisWork.preliminaryDraftData?.proposalData?.authors || [];
@@ -336,6 +345,25 @@ export class ThesisWorkDeliveryService {
             });
           }
 
+          // 👈 NUEVO: Recolección de roles para remover ya que el trabajo finaliza (isArchived: true)
+          // 1. Recolectar Evaluadores del anteproyecto
+          if (thesisWork.preliminaryDraftData?.evaluators) {
+            thesisWork.preliminaryDraftData.evaluators.forEach((ev: User) => {
+              if (ev.id) evaluatorIdsToClean.push(ev.id);
+            });
+          }
+
+          // 2. Recolectar Jurados de la(s) sustentación(es)
+          if (thesisWork.sustentations) {
+            thesisWork.sustentations.forEach(sust => {
+              if (sust.assignedJurors) {
+                sust.assignedJurors.forEach((juror: User) => {
+                  if (juror.id) jurorIdsToClean.push(juror.id);
+                });
+              }
+            });
+          }
+
           return {
             ...thesisWork,
             documents: [
@@ -343,9 +371,20 @@ export class ThesisWorkDeliveryService {
               ...(thesisWork.documents || [])
             ],
             finalDeliveries: updatedDeliveries,
-            isArchived: true
+            isArchived: true // El trabajo queda finalizado/archivado definitivamente
           };
         });
+
+        // 👈 NUEVO: Ejecutar limpieza de roles
+        if (evaluatorIdsToClean.length > 0) {
+          const uniqueEvaluatorIds = [...new Set(evaluatorIdsToClean)];
+          this.userService.removeRolesFromUsersMock(uniqueEvaluatorIds, [UserRoleType.EVALUADOR]).subscribe();
+        }
+
+        if (jurorIdsToClean.length > 0) {
+          const uniqueJurorIds = [...new Set(jurorIdsToClean)];
+          this.userService.removeRolesFromUsersMock(uniqueJurorIds, [UserRoleType.JURADO]).subscribe();
+        }
 
         this.eventBus.emit({
           type: AppEventType.THESIS_CORRESPONDENCE_REGISTERED,

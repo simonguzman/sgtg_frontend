@@ -3,11 +3,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { stateList } from '../../../../core/enums/state.enum';
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+
 import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
 
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
-
+import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { ReviewPresentationsFacultyCouncilFormComponent } from "../../components/review-presentations-faculty-council-form/review-presentations-faculty-council-form.component";
@@ -107,7 +108,7 @@ export class ReviewPresentationsFacultyCouncilPageComponent implements OnInit {
 
     const presentationDoc = preliminaryDraftState.documents.find(document => document.type === DocumentType.FORMATO_C);
 
-    const resolutionDoc: Document = {
+    const resolutionDoc: FileDocument = {
       id: crypto.randomUUID(),
       name: data.file.name,
       url: '',
@@ -153,7 +154,7 @@ export class ReviewPresentationsFacultyCouncilPageComponent implements OnInit {
     });
   }
 
-  downloadFile(document: Document) {
+  downloadFile(document: FileDocument) {
     if (document?.url) {
       this.downloadService.download(document.url, document.name);
     } else {

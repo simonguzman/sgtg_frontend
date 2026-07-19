@@ -1,13 +1,9 @@
 import { Evaluation } from "../../../core/interfaces/evaluation.interface";
-import { Document } from "../../../core/interfaces/Document.interface";
+import { FileDocument } from "../../../core/interfaces/file-document.interface";
 import { stateList } from "../../../core/enums/state.enum";
 import { User } from "../../users/interfaces/user.interface";
 import { Archivable } from "../../../core/interfaces/archivable.interface";
-
-export enum Modality{
-  TI = 'Trabajo de investigación',
-  PP = 'Practica profesional'
-}
+import { Modality } from "../enums/modality.enum";
 
 export interface Proposal extends Archivable {
   id?: string;
@@ -22,7 +18,7 @@ export interface Proposal extends Archivable {
   state: stateList;
   createdAt: Date;
   evaluationDeadline?: Date;
-  documents: Document[];
+  documents: FileDocument[];
   evaluations: Evaluation[];
   isActive?: boolean;
 }

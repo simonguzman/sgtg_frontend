@@ -9,7 +9,7 @@ import { FileDownloadService } from '../../../../core/services/filedownload/file
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { UserFormatterService } from '../../../users/services/user-formatter.service'; // Asegura que la ruta coincida con tu estructura
 
-import { Document } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 
@@ -197,14 +197,14 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
     const delivery = this.selectedDelivery();
     if (!delivery) return;
 
-    let targetDocument: Document | undefined;
+    let targetDocument: FileDocument | undefined;
     if (delivery.monograph?.name === fileName) targetDocument = delivery.monograph;
     else if (delivery.annexes?.name === fileName) targetDocument = delivery.annexes;
 
     if (targetDocument) this.downloadDocument(targetDocument);
   }
 
-  private downloadDocument(doc: Document): void {
+  private downloadDocument(doc: FileDocument): void {
     if (!doc.url) {
       this.notificationService.show({
         title: 'Error de descarga',

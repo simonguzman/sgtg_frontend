@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { HistoryPageComponent } from './pages/history-page/history-page.component';
 import { roleGuard } from '../../core/guards/role.guard';
-import { UserRoleType } from '../../core/models/user-role';
+import { UserRoleType } from '../../core/enums/user-role-type.enum';
 
 // --- Imports de Propuestas ---
 import { ProposalDetailsPageComponent } from '../proposal/pages/proposal-details-page/proposal-details-page.component';

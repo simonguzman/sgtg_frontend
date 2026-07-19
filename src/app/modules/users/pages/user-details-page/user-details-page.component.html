@@ -1,7 +1,7 @@
 <div class="pt-2 p-8 max-w-5xl mx-auto">
   <div class="mb-2 flex justify-start">
     <button
-      (click)="goBack()"
+      (click)="facade.goBack()"
       class="flex items-center gap-2 text-navy-900 hover:text-navy-700 transition-colors font-bold group"
     >
       <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
@@ -11,11 +11,11 @@
     </button>
   </div>
 
-  <div *ngIf="isLoading()" class="text-center text-gray-500">
+  <div *ngIf="facade.isLoading()" class="text-center text-[#777680]">
     Cargando información...
   </div>
 
-  <div *ngIf="!isLoading() && user()" class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 items-start">
+  <div *ngIf="!facade.isLoading() && facade.user()" class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 items-start">
 
     <div class="flex flex-col">
       <div class="mb-6">
@@ -25,24 +25,24 @@
 
       <h3 class="font-semibold font-display text-primary text-size-sidebar-title mb-6 h-7">Datos personales</h3>
 
-      <div class="space-y-4 text-sm">
+      <div class="space-y-4 text-size-body">
         <div class="grid grid-cols-2 gap-2">
           <span class="font-semibold font-display text-primary text-size-body">Tipo de documento</span>
           <span class="font-normal font-display text-[#000000] text-size-body">
-            {{ getDocumentTypeLabel(user()?.idType) }}
+            {{ facade.user()?.idType | documentType }}
           </span>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <span class="font-semibold font-display text-primary text-size-body">Documento de identidad</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">{{ user()?.idNumber }}</span>
+          <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.idNumber }}</span>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <span class="font-semibold font-display text-primary text-size-body">Nombres</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">{{ user()?.firstName }} {{ user()?.secondName || '' }}</span>
+          <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.firstName }} {{ facade.user()?.secondName || '' }}</span>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <span class="font-semibold font-display text-primary text-size-body">Apellidos</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">{{ user()?.lastName }} {{ user()?.secondLastName }}</span>
+          <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.lastName }} {{ facade.user()?.secondLastName }}</span>
         </div>
       </div>
     </div>
@@ -55,20 +55,20 @@
       <div class="space-y-4 text-sm">
         <div class="grid grid-cols-2 gap-2">
           <span class="font-semibold font-display text-primary text-size-body">Código</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">{{ user()?.codeNumber }}</span>
+          <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.codeNumber }}</span>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <span class="font-semibold font-display text-primary text-size-body">Correo institucional</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">{{ user()?.email }}</span>
+          <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.email }}</span>
         </div>
 
         <div class="grid grid-cols-2 gap-2">
           <span class="font-semibold font-display text-primary text-size-body">Rol</span>
           <div class="flex flex-col gap-1">
-            <span *ngFor="let rol of user()?.roles" class="font-normal font-display text-[#000000] text-size-body">
+            <span *ngFor="let rol of facade.user()?.roles" class="font-normal font-display text-[#000000] text-size-body">
                 • {{ rol }}
             </span>
-            <span *ngIf="user()?.roles?.length === 0" class="font-normal font-display text-[#000000] text-size-body">
+            <span *ngIf="facade.user()?.roles?.length === 0" class="font-normal font-display text-[#000000] text-size-body">
               Sin roles asignados
             </span>
           </div>
@@ -80,7 +80,7 @@
           label="Salir"
           variant="secondary"
           type="button"
-          (onClick)="goBack()">
+          (onClick)="facade.goBack()">
         </app-button-component>
       </div>
     </div>

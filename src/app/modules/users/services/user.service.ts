@@ -1,25 +1,26 @@
 import { computed, inject, Injectable } from '@angular/core';
-import { delay, Observable, of } from 'rxjs';
+import { Observable } from 'rxjs';
 
-// --- Sub-servicios Inyectados ---
 import { UserStorageService } from './user-storage.service';
-import { UserMutationService } from './user-mutation.service';
+import { UserApiService } from './user-api.service';
 import { UserFormatterService } from './user-formatter.service';
 
 import { User } from '../interfaces/user.interface';
-import { UserRoleType } from '../../../core/models/user-role';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserService {
   private readonly storage = inject(UserStorageService);
-  private readonly mutationService = inject(UserMutationService);
-  private readonly formatterService = inject(UserFormatterService);
+  private readonly api = inject(UserApiService);
+  private readonly formatter = inject(UserFormatterService);
 
+  // ==========================================
+  // ESTADO REACTIVO
+  // ==========================================
   readonly users = this.storage.users;
   readonly currentUser = this.storage.currentUser;
-
   readonly students = this.storage.students;
   readonly teachers = this.storage.teachers;
   readonly advisors = this.storage.advisors;
@@ -27,15 +28,17 @@ export class UserService {
 
   readonly currentUserFullName = computed(() => {
     const user = this.storage.currentUser();
-    if (!user) return 'Invitado';
-    return this.formatterService.formatFullName(user);
+    return user ? this.formatter.formatFullName(user) : 'Invitado';
   });
 
   readonly currentDirectorName = computed(() => {
     const user = this.storage.currentUser();
-    return user ? this.formatterService.formatFullName(user) : 'No identificado';
+    return user ? this.formatter.formatFullName(user) : 'No identificado';
   });
 
+  // ==========================================
+  // SESIÓN
+  // ==========================================
   public login(user: User): void {
     this.storage.setCurrentUser(user);
   }
@@ -44,52 +47,77 @@ export class UserService {
     this.storage.setCurrentUser(null);
   }
 
-  public getUserByIdMock(id: string): Observable<User | undefined> {
-    return this.storage.getById(id);
-  }
+  // ==========================================
+  // QUERIES — nombres originales conservados
+  // ==========================================
 
+  /** Acceso síncrono a todos los usuarios. Alias de getUsersSnapshot para compatibilidad. */
   public getAllUsers(): User[] {
     return this.storage.getUsersSnapshot();
   }
 
-  public getUsersByRole(role: UserRoleType): Observable<User[]> {
-    const filteredUsers = this.storage.getUsersSnapshot().filter(user => user.roles.includes(role));
-    return of(filteredUsers).pipe(delay(400));
+  /** Alias síncrono de getUsersSnapshot para módulos que lo llaman directamente. */
+  public getUsersSnapshot(): User[] {
+    return this.storage.getUsersSnapshot();
   }
 
+  /** Alias con sufijo Mock para compatibilidad con callers existentes. */
+  public getUserByIdMock(id: string): Observable<User | undefined> {
+    return this.api.getUserById(id);
+  }
+
+  public getUsersByRole(role: UserRoleType): Observable<User[]> {
+    return this.api.getUsersByRole(role);
+  }
+
+  // ==========================================
+  // MUTATIONS — nombres originales conservados
+  // ==========================================
+
   public createUserMock(user: User): Observable<User> {
-    return this.mutationService.createUserMock(user);
+    return this.api.createUser(user);
   }
 
   public updateUserMock(id: string, changes: Partial<User>): Observable<User> {
-    return this.mutationService.updateUserMock(id, changes);
+    return this.api.updateUser(id, changes);
   }
 
-  public updateUserPasswordMock(userId: string, newPassword: string): void {
-    this.mutationService.updateUserPasswordMock(userId, newPassword);
+  public updateUserPasswordMock(userId: string, newPassword: string): Observable<void> {
+    return this.api.updateUserPassword(userId, newPassword);
   }
 
   public softDeleteUserMock(id: string): Observable<void> {
-    return this.mutationService.softDeleteUserMock(id);
+    return this.api.softDeleteUser(id);
   }
 
   public updateUserRolesMock(userId: string, newRoles: UserRoleType[]): Observable<void> {
-    return this.mutationService.updateUserRolesMock(userId, newRoles);
+    return this.api.updateUserRoles(userId, newRoles);
   }
 
-  public addRoleToUser(userId: string, role: UserRoleType): void {
-    this.mutationService.addRoleToUser(userId, role);
+  public addRoleToUser(userId: string, role: UserRoleType): Observable<void> {
+    return this.api.addRoleToUser(userId, role);
   }
 
-  public removeRoleFromUser(userId: string, role: UserRoleType): void {
-    this.mutationService.removeRoleFromUser(userId, role);
+  public removeRoleFromUser(userId: string, role: UserRoleType): Observable<void> {
+    return this.api.removeRoleFromUser(userId, role);
+  }
+
+  public removeRolesFromUsersMock(userIds: string[], rolesToRemove: UserRoleType[]): Observable<void> {
+    return this.api.removeRolesFromUsers(userIds, rolesToRemove);
+  }
+
+  // ==========================================
+  // FORMATO
+  // ==========================================
+  public formatFullName(user: User): string {
+    return this.formatter.formatFullName(user);
   }
 
   public getUserFullName(id: string | undefined): string {
-    return this.formatterService.getUserFullName(id);
+    return this.formatter.getUserFullName(id);
   }
 
   public getAuthorsNames(authors: (string | User)[] | undefined): string {
-    return this.formatterService.getAuthorsNames(authors);
+    return this.formatter.getAuthorsNames(authors);
   }
 }

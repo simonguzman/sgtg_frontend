@@ -7,8 +7,9 @@ import { UserService } from '../../../users/services/user.service';
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 
-import { ThesisWork, CorrectedDelivery } from '../../interfaces/thesis-work.interface';
-import { Document } from '../../../../core/interfaces/Document.interface';
+import { ThesisWork } from '../../interfaces/thesis-work.interface';
+import { CorrectedDelivery } from '../../interfaces/corrected-delivery.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
@@ -82,7 +83,7 @@ export class EvaluateCorrectionsFormComponent {
 
   // ─── Documentos ───────────────────────────────────────────────────────────────
 
-  downloadDocument(doc: Document): void {
+  downloadDocument(doc: FileDocument): void {
     if (!doc?.url) {
       this.notificationService.show({
         title: 'Error de archivo',

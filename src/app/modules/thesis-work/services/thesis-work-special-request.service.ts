@@ -1,13 +1,18 @@
 import { inject, Injectable } from '@angular/core';
 import { delay, Observable, of, tap } from 'rxjs';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
-import { SpecialRequest, SpecialRequestType, SustentationStatus, ThesisWork } from '../interfaces/thesis-work.interface';
+import { ThesisWork } from '../interfaces/thesis-work.interface';
+import { SpecialRequest } from '../interfaces/special-request.interface';
+import { SpecialRequestType } from '../enums/special-request-type.enum';
+import { SustentationStatus } from '../enums/sustentation-status.enum';
 import { stateList } from '../../../core/enums/state.enum';
-import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { UserService } from '../../users/services/user.service';
-import { UserRoleType } from '../../../core/models/user-role';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { User } from '../../users/interfaces/user.interface';
 import { AuthService } from '../../../core/services/auth/auth.service';
+import { UserApiService } from '../../users/services/user-api.service'; // 👈 NUEVO: Inyectado para mutar roles
 
 @Injectable({
   providedIn: 'root'
@@ -17,6 +22,7 @@ export class ThesisWorkSpecialRequestService {
   private readonly eventBus = inject(EventBusService);
   private readonly userService = inject(UserService);
   private readonly authService = inject(AuthService);
+  private readonly api = inject(UserApiService); // 👈 NUEVO: Instancia del servicio
 
   createSpecialRequestMock(payload: { requestType: SpecialRequestType, comments: string, thesisId: string }): Observable<void> {
     return of(undefined).pipe(
@@ -90,6 +96,7 @@ export class ThesisWorkSpecialRequestService {
       tap(() => {
         let currentThesisTitle = '';
         let notifyUserIds: string[] = [];
+        let evaluatorIdsToClean: string[] = []; // 👈 NUEVO: Arreglo para recolectar evaluadores
 
         // 👈 Capturamos el ID del usuario que está haciendo la evaluación (El miembro del consejo)
         const currentUser = this.authService.currentUser();
@@ -123,6 +130,13 @@ export class ThesisWorkSpecialRequestService {
                 case SpecialRequestType.CANCELACION:
                   updatedState = stateList.CANCELADO;
                   isArchived = true;
+
+                  // 👈 NUEVO: Recolectar evaluadores del anteproyecto solo si se cancela el trabajo
+                  if (updatedDraft.evaluators) {
+                    updatedDraft.evaluators.forEach((evaluator: User) => {
+                      if (evaluator.id) evaluatorIdsToClean.push(evaluator.id);
+                    });
+                  }
                   break;
                 case SpecialRequestType.SUSPENSION:
                   updatedState = stateList.SUSPENDIDO;
@@ -171,6 +185,12 @@ export class ThesisWorkSpecialRequestService {
             isArchived // Aseguramos que se actualice el estado de archivo si hubo cancelación
           };
         });
+
+        // 👈 NUEVO: Ejecutar limpieza de roles solo para evaluadores si hubo cancelación aprobada
+        if (evaluatorIdsToClean.length > 0) {
+          const uniqueEvaluatorIds = [...new Set(evaluatorIdsToClean)];
+          this.userService.removeRolesFromUsersMock(uniqueEvaluatorIds, [UserRoleType.EVALUADOR]).subscribe();
+        }
 
         this.eventBus.emit({
           type: AppEventType.SPECIAL_REQUEST_RESOLVED,

@@ -8,7 +8,7 @@ import { AuthService } from '../../../../core/services/auth/auth.service';
 
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { UserRoleType } from '../../../../core/models/user-role';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 
 import { PreliminaryDraftFormComponent } from "../../components/preliminary-draft-form/preliminary-draft-form.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";

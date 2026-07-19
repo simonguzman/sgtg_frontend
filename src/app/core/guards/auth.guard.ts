@@ -1,8 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth/auth.service';
-import { UserState } from '../../modules/users/interfaces/user.interface';
-
+import { UserState } from '../../modules/users/enum/user-state.enum';
 
 export const authGuard: CanActivateFn = ( route, state ) => {
   const authService = inject(AuthService);
@@ -15,7 +14,7 @@ export const authGuard: CanActivateFn = ( route, state ) => {
 
   if (user && user.state !== UserState.active) {
     console.warn('Sesión bloqueada: El usuario ha sido inhabilitado.');
-    authService.logout(); // Esto limpia el localStorage y redirige
+    authService.logout();
   } else {
     router.navigate(['/auth/login']);
   }

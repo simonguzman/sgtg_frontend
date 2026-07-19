@@ -5,7 +5,7 @@
       <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">Datos personales</h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
-        <!-- Tipo de documento (CORREGIDO) -->
+        <!-- Tipo de documento -->
         <div class="flex flex-col gap-1">
           <label for="idType" class="title-textbox">Tipo de documento de identidad <span class="text-[#ED7D31]">*</span></label>
           <div class="relative flex items-center">
@@ -13,7 +13,7 @@
               id="idType"
               formControlName="idType"
               class="font-sans font-normal text-size-body custom-select text-textbox p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10"
-              [class.border-orange-500]="isFieldInvalid('idType')"
+              [class.border-[#ED7D31]]="isFieldInvalid('idType')"
               [class.input-success]="userForm.get('idType')?.valid && userForm.get('idType')?.touched"
             >
               <option value="" disabled selected>Tipo de documento</option>
@@ -35,10 +35,10 @@
         <div class="flex flex-col gap-1">
           <label for="idNumber" class="title-textbox">Número de documento de identidad <span class="text-[#ED7D31]">*</span></label>
           <div class="relative flex items-center">
-            <input id="idNumber" type="number" formControlName="idNumber" [attr.readonly]="isEditMode ? true : null" [class.bg-gray-100]="isEditMode" placeholder="Número de documento"
-                   class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-orange-500]="isFieldInvalid('idNumber')"
-                   [class.input-success]="userForm.get('idNumber')?.valid && userForm.get('idNumber')?.touched">
+            <input id="idNumber" type="number" formControlName="idNumber" placeholder="Número de documento"
+              class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
+              [class.border-[#ED7D31]]="isFieldInvalid('idNumber')"
+              [class.input-success]="userForm.get('idNumber')?.valid && userForm.get('idNumber')?.touched">
             @if (userForm.get('idNumber')?.valid && userForm.get('idNumber')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
             }
@@ -54,7 +54,7 @@
           <div class="relative flex items-center">
             <input id="firstName" type="text" formControlName="firstName" placeholder="Primer nombre"
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-orange-500]="isFieldInvalid('firstName')"
+                   [class.border-[#ED7D31]]="isFieldInvalid('firstName')"
                    [class.input-success]="userForm.get('firstName')?.valid && userForm.get('firstName')?.touched">
             @if (userForm.get('firstName')?.valid && userForm.get('firstName')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -84,7 +84,7 @@
           <div class="relative flex items-center">
             <input id="lastName" type="text" formControlName="lastName" placeholder="Primer apellido"
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-orange-500]="isFieldInvalid('lastName')"
+                   [class.border-[#ED7D31]]="isFieldInvalid('lastName')"
                    [class.input-success]="userForm.get('lastName')?.valid && userForm.get('lastName')?.touched">
             @if (userForm.get('lastName')?.valid && userForm.get('lastName')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -101,7 +101,7 @@
           <div class="relative flex items-center">
             <input id="secondLastName" type="text" formControlName="secondLastName" placeholder="Segundo apellido"
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-orange-500]="isFieldInvalid('secondLastName')"
+                   [class.border-[#ED7D31]]="isFieldInvalid('secondLastName')"
                    [class.input-success]="userForm.get('secondLastName')?.valid && userForm.get('secondLastName')?.touched">
             @if (userForm.get('secondLastName')?.valid && userForm.get('secondLastName')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -122,10 +122,10 @@
         <div class="flex flex-col gap-1">
           <label for="codeNumber" class="title-textbox">Código<span class="text-[#ED7D31]">*</span></label>
           <div class="relative flex items-center">
-            <input id="codeNumber" type="number" formControlName="codeNumber" [attr.readonly]="isEditMode ? true : null" [class.bg-gray-100]="isEditMode" placeholder="Código"
-                   class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-orange-500]="isFieldInvalid('codeNumber')"
-                   [class.input-success]="userForm.get('codeNumber')?.valid && userForm.get('codeNumber')?.touched">
+            <input id="codeNumber" type="number" formControlName="codeNumber" placeholder="Código"
+              class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
+              [class.border-[#ED7D31]]="isFieldInvalid('codeNumber')"
+              [class.input-success]="userForm.get('codeNumber')?.valid && userForm.get('codeNumber')?.touched">
             @if (userForm.get('codeNumber')?.valid && userForm.get('codeNumber')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
             }
@@ -144,10 +144,10 @@
               type="button"
               (click)="openRolesModal()"
               class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md bg-gray-50 flex justify-between items-center cursor-pointer min-h-10.5 w-full focus:ring-1 focus:ring-primary focus:outline-none"
-              [class.border-orange-500]="isFieldInvalid('roles')"
+              [class.border-[#ED7D31]]="isFieldInvalid('roles')"
               [class.input-success]="userForm.get('roles')?.valid && userForm.get('roles')?.touched"
             >
-              <span [class.text-gray-400]="!selectedRolesDisplay">
+              <span [class.text-[#777680]]="!selectedRolesDisplay">
                 {{ selectedRolesDisplay || 'Seleccione los roles' }}
               </span>
               <span class="material-symbols-outlined add-circle">add_circle</span>
@@ -167,7 +167,7 @@
           <div class="relative flex items-center">
             <input id="email" type="email" formControlName="email" placeholder="Correo institucional"
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-orange-500]="isFieldInvalid('email')"
+                   [class.border-[#ED7D31]]="isFieldInvalid('email')"
                    [class.input-success]="userForm.get('email')?.valid && userForm.get('email')?.touched">
             @if (userForm.get('email')?.valid && userForm.get('email')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -184,7 +184,7 @@
           <div class="relative flex items-center">
             <input id="password" type="password" formControlName="password" placeholder="Contraseña"
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-orange-500]="isFieldInvalid('password')"
+                   [class.border-[#ED7D31]]="isFieldInvalid('password')"
                    [class.input-success]="userForm.get('password')?.valid && userForm.get('password')?.touched">
             @if (userForm.get('password')?.valid && userForm.get('password')?.touched) {
               <span class="material-symbols-outlined success-icon">check</span>

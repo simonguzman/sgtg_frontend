@@ -1,6 +1,6 @@
 <app-table-component
   [headerButtons]="headerButtons"
-  [value]="displayValue"
+  [value]="facade.usersTableData()"
   [columns]="columns"
   emptyMessage="No han sido registrados usuarios en el sistema"
   [paginator]="true"
@@ -8,7 +8,6 @@
   (headerButtonClick)="handleHeaderButton($event)"
 ></app-table-component>
 
-<!-- Los modales permanecen igual -->
 <app-roles-modal
   [(isOpen)]="showRolesModal"
   [username]="selectedUser"

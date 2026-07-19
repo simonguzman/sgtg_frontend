@@ -7,7 +7,7 @@ import { firstValueFrom } from 'rxjs';
 })
 export class FileDownloadService {
 
-  private http = inject(HttpClient);
+  private readonly http = inject(HttpClient);
 
   async download(url: string, fileName: string, useBlob: boolean = false): Promise<void> {
     if (!useBlob) {

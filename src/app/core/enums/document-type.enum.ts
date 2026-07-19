@@ -1,5 +1,3 @@
-import { stateList } from "../enums/state.enum";
-
 export enum DocumentType{
   'PROPUESTA' = 'Propuesta',
   'ANTEPROYECTO' = 'Anteproyecto',
@@ -15,13 +13,4 @@ export enum DocumentType{
   'FORMATO_H' = 'Formato_H',
   'PAZ_Y_SALVO' = 'Paz_y_salvo',
   'RESOLUCION' = 'Resolucion'
-}
-
-export interface Document {
-  id: string;
-  name: string;
-  url: string;
-  uploadDate: string | Date;
-  type: DocumentType
-  status?: stateList;
 }

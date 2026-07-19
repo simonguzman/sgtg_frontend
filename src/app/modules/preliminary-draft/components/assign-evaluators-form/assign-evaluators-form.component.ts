@@ -5,9 +5,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { User } from '../../../users/interfaces/user.interface';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
-import { UserRoleType } from '../../../../core/models/user-role';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 
+import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { UserService } from '../../../users/services/user.service';
 import { PreliminaryDraftService } from '../../services/preliminary-draft.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';

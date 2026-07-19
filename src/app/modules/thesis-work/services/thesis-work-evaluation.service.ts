@@ -3,7 +3,8 @@ import { delay, Observable, of, tap } from 'rxjs';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
-import { AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { User } from '../../users/interfaces/user.interface';
 
 @Injectable({
@@ -39,7 +40,7 @@ export class ThesisWorkEvaluationService {
           const updatedEvaluations = [evaluation, ...(thesisWork.evaluations || [])];
 
           const evaluationsForThisAdvance = updatedEvaluations.filter(
-            e => e.advanceId === evaluation.advanceId
+            advanceEvaluation => advanceEvaluation.advanceId === evaluation.advanceId
           );
 
           let requiredCount = 0;
@@ -50,17 +51,17 @@ export class ThesisWorkEvaluationService {
           const uniqueEvaluators = new Set(evaluationsForThisAdvance.map(e => e.evaluatorId));
           const isFullyEvaluated = uniqueEvaluators.size >= requiredCount;
           const someoneRequestedRevisions = evaluationsForThisAdvance.some(
-            e => e.veredict === stateList.EN_REVISION
+            evaluation => evaluation.veredict === stateList.EN_REVISION
           );
 
           const finalStatus = (isFullyEvaluated && !someoneRequestedRevisions)
             ? stateList.EVALUADO
             : stateList.EN_REVISION;
 
-          const updatedAdvances = (thesisWork.advances || []).map(adv => {
-            if (adv.id !== evaluation.advanceId) return adv;
+          const updatedAdvances = (thesisWork.advances || []).map(advance => {
+            if (advance.id !== evaluation.advanceId) return advance;
             return {
-              ...adv,
+              ...advance,
               status: finalStatus
             };
           });

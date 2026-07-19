@@ -9,7 +9,7 @@ import { UserService } from '../../../users/services/user.service';
 import { ProposalService } from '../../../proposal/services/proposal.service';
 import { PreliminaryDraftService } from '../../../preliminary-draft/services/preliminary-draft.service';
 import { ThesisWorkService } from '../../../thesis-work/services/thesis-work.service';
-import { Document } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { User } from '../../../users/interfaces/user.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 
@@ -136,11 +136,11 @@ export class ArchivedProcessComponent implements OnInit, OnDestroy {
   });
 
   // Extrae todos los documentos disponibles del registro para mostrarlos en una lista
-  historicalDocuments = computed<Document[]>(() => {
+  historicalDocuments = computed<FileDocument[]>(() => {
     const data = this.rawData();
     if (!data) return [];
 
-    let docs: Document[] = [];
+    let docs: FileDocument[] = [];
     if (data.documents && Array.isArray(data.documents)) {
       docs = [...data.documents];
     }
@@ -160,7 +160,7 @@ export class ArchivedProcessComponent implements OnInit, OnDestroy {
     return `${user.firstName || ''} ${user.lastName || ''}`.trim();
   }
 
-  downloadDocument(document: Document): void {
+  downloadDocument(document: FileDocument): void {
     if (!document.url) {
       this.notificationService.show({
         title: 'Error de descarga',

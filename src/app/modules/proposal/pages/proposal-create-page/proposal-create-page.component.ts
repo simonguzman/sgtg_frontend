@@ -5,7 +5,7 @@ import { ProposalService } from '../../services/proposal.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { UserRoleType } from '../../../../core/models/user-role';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { Proposal } from '../../interfaces/proposal.interface';
 import { ProposalFormComponent } from '../../components/proposal-form/proposal-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';

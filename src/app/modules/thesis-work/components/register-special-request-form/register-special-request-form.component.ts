@@ -4,7 +4,8 @@ import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { UserService } from '../../../users/services/user.service';
-import { ThesisWork, SpecialRequestType } from '../../interfaces/thesis-work.interface';
+import { ThesisWork } from '../../interfaces/thesis-work.interface';
+import { SpecialRequestType } from '../../enums/special-request-type.enum';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 

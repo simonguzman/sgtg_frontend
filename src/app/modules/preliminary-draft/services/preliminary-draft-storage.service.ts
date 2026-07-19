@@ -2,7 +2,7 @@ import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { delay, Observable, of } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth/auth.service';
-import { UserRoleType } from '../../../core/models/user-role';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { User } from '../../users/interfaces/user.interface';
 import { stateList } from '../../../core/enums/state.enum';

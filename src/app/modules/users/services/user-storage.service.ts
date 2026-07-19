@@ -1,7 +1,7 @@
 import { computed, effect, Injectable, signal } from '@angular/core';
 import { delay, Observable, of } from 'rxjs';
 import { User } from '../interfaces/user.interface';
-import { UserRoleType } from '../../../core/models/user-role';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { USER_LIST } from '../mocks/users.mock';
 
 @Injectable({
@@ -99,6 +99,4 @@ export class UserStorageService {
       return this.initialUsers;
     }
   }
-
-
 }

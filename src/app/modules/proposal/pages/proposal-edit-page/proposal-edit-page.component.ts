@@ -8,7 +8,7 @@ import { NotificationType } from '../../../../shared/components/notifications/mo
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { ProposalFormComponent } from "../../components/proposal-form/proposal-form.component";
 import { AuthService } from '../../../../core/services/auth/auth.service';
-import { UserRoleType } from '../../../../core/models/user-role';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 
 @Component({

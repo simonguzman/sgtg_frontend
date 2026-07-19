@@ -1,142 +1,207 @@
-import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
+/* tslint:disable:no-unused-variable */
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute } from '@angular/router';
+import { Location } from '@angular/common';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { By } from '@angular/platform-browser';
+import { of, throwError } from 'rxjs';
 
 import { UserEditPageComponent } from './user-edit-page.component';
-import { UserService } from '../../services/user.service';
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { ActivatedRoute, Router } from '@angular/router';
-import { IdentificationType, User, UserState } from '../../interfaces/user.interface';
-import { UserRoleType } from '../../../../core/models/user-role';
-import { of, throwError } from 'rxjs';
-import { Location } from '@angular/common';
+import { UserFormFacadeService } from '../services/user-form-facade.service';
+import { UserFormComponent } from '../../components/user-form/user-form.component';
+import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { User } from '../../interfaces/user.interface';
+import { IdentificationType } from '../../enum/identification-type.enum';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
+import { UserState } from '../../enum/user-state.enum';
 
-describe('UserEditPageComponent', () => {
+@Component({ selector: 'app-user-form', standalone: true, template: '<div>Mock Form</div>' })
+class MockUserFormComponent {
+  @Input() user!: User;
+  @Output() onSubmit = new EventEmitter<User>();
+}
+
+@Component({ selector: 'app-confirmation-action-modal', standalone: true, template: '<div>Mock Modal</div>' })
+class MockConfirmationActionModalComponent {
+  @Input() isOpen = false;
+  @Input() description = '';
+  @Output() onClose = new EventEmitter<void>();
+  @Output() confirm = new EventEmitter<void>();
+}
+
+describe('Component: UserEditPageComponent', () => {
   let component: UserEditPageComponent;
   let fixture: ComponentFixture<UserEditPageComponent>;
 
-  // Mocks de servicios
-  let userServiceMock: jest.Mocked<UserService>;
-  let notificationServiceMock: jest.Mocked<NotificationService>;
-  let routerMock: jest.Mocked<Router>;
-  let locationMock: jest.Mocked<Location>;
+  let mockFacade: {
+    getUserById: jest.Mock;
+    handleNotFound: jest.Mock;
+    updateUser: jest.Mock;
+  };
+  let mockLocation: {
+    back: jest.Mock;
+  };
+  let mockActivatedRoute: {
+    snapshot: {
+      paramMap: {
+        get: jest.Mock;
+      };
+    };
+  };
 
   const mockUser: User = {
     id: '123',
-    idType: 'CC' as IdentificationType,
-    idNumber: 12345,
-    firstName: 'Juan',
-    lastName: 'Perez',
-    email: 'juan@test.com',
+    idType: IdentificationType.CC,
+    idNumber: 987654,
+    firstName: 'Test',
+    lastName: 'User',
+    secondLastName: 'Perez',
+    email: 'test@edit.com',
     roles: [UserRoleType.ADMINISTRADOR],
-    password: '123',
-    secondLastName: 'Test',
+    password: 'password123',
     codeNumber: 101,
     state: UserState.active
   };
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(async () => {
+    mockFacade = {
+      getUserById: jest.fn().mockReturnValue(of(mockUser)),
+      handleNotFound: jest.fn(),
+      updateUser: jest.fn()
+    };
+    mockLocation = { back: jest.fn() };
+    mockActivatedRoute = {
+      snapshot: { paramMap: { get: jest.fn().mockReturnValue('123') } }
+    };
 
-    userServiceMock = {
-      getUserByIdMock: jest.fn(),
-      updateUserMock: jest.fn()
-    } as any;
-
-    notificationServiceMock = {
-      show: jest.fn()
-    } as any;
-
-    routerMock = {
-      navigate: jest.fn()
-    } as any;
-
-    locationMock = {
-      back: jest.fn()
-    }as any
-
-    TestBed.configureTestingModule({
-      imports: [ UserEditPageComponent ],
+    await TestBed.configureTestingModule({
+      imports: [UserEditPageComponent],
       providers: [
-        { provide: UserService, useValue: userServiceMock },
-        { provide: NotificationService, useValue: notificationServiceMock },
-        { provide: Router, useValue: routerMock },
-        { provide: Location, useValue: locationMock },
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: { paramMap: {get: () => '123'}}
-          }
-        },
-        { provide: UserService, useValue: userServiceMock },
+        { provide: ActivatedRoute, useValue: mockActivatedRoute },
+        { provide: Location, useValue: mockLocation }
       ]
     })
+    .overrideComponent(UserEditPageComponent, {
+      remove: {
+        imports: [UserFormComponent, ConfirmationActionModalComponent],
+        providers: [UserFormFacadeService]
+      },
+      add: {
+        imports: [MockUserFormComponent, MockConfirmationActionModalComponent],
+        providers: [{ provide: UserFormFacadeService, useValue: mockFacade }]
+      }
+    })
     .compileComponents();
-  }));
 
-  beforeEach(() => {
-    userServiceMock.getUserByIdMock.mockReturnValue(of(mockUser));
     fixture = TestBed.createComponent(UserEditPageComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
-  it('debería crearse el componente', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('debería crearse correctamente', () => {
     expect(component).toBeTruthy();
   });
 
-  it('debería cargar los datos del usuario al iniciar (ngOnInit)', () => {
-    expect(userServiceMock.getUserByIdMock).toHaveBeenCalledWith('123');
-    expect(component.userToEdit()).toEqual(mockUser);
+  describe('Inicialización y Carga de Datos (ngOnInit)', () => {
+    it('debería extraer el ID, consultar al facade y actualizar userToEdit', () => {
+      fixture.detectChanges();
+
+      expect(mockActivatedRoute.snapshot.paramMap.get).toHaveBeenCalledWith('id');
+      expect(mockFacade.getUserById).toHaveBeenCalledWith('123');
+      expect(component.userToEdit()).toEqual(mockUser);
+    });
+
+    it('debería invocar handleNotFound si no hay ID en la ruta', () => {
+      mockActivatedRoute.snapshot.paramMap.get.mockReturnValue(null);
+      fixture.detectChanges();
+
+      expect(mockFacade.handleNotFound).toHaveBeenCalledWith();
+      expect(mockFacade.getUserById).not.toHaveBeenCalled();
+    });
+
+    it('debería invocar handleNotFound si el servicio retorna undefined/null', () => {
+      mockFacade.getUserById.mockReturnValue(of(null));
+      fixture.detectChanges();
+
+      expect(mockFacade.handleNotFound).toHaveBeenCalledWith();
+    });
+
+    it('debería invocar handleNotFound si el servicio emite un error', () => {
+      mockFacade.getUserById.mockReturnValue(throwError(() => new Error('Network error')));
+      fixture.detectChanges();
+
+      expect(mockFacade.handleNotFound).toHaveBeenCalledWith('Error al conectar con el servidor');
+    });
   });
 
-  it('debería redirigir y mostrar error si el usuario no existe', () => {
-    userServiceMock.getUserByIdMock.mockReturnValue(of(undefined));
-    component.ngOnInit(); // Relanzamos para este caso específico
+  describe('Flujo de Edición y Modal', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+    });
 
-    expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Atención'
-    }));
-    expect(routerMock.navigate).toHaveBeenCalledWith(['/users']);
+    it('debería interceptar la actualización (handleUpdate) y abrir el modal', () => {
+      const updatedUser = { ...mockUser, firstName: 'Cambiado' };
+
+      component.handleUpdate(updatedUser);
+
+      expect(component.isConfirmModalOpen).toBe(true);
+    });
+
+    it('debería cancelar la actualización cerrando el modal', () => {
+      component.isConfirmModalOpen = true;
+
+      component.cancelUpdate();
+
+      expect(component.isConfirmModalOpen).toBe(false);
+      component.confirmUpdate();
+      expect(mockFacade.updateUser).not.toHaveBeenCalled();
+    });
+
+    it('no debería llamar al facade en confirmUpdate si no hay datos pendientes (bloqueo preventivo)', () => {
+      component.confirmUpdate();
+      expect(mockFacade.updateUser).not.toHaveBeenCalled();
+    });
+
+    it('debería llamar a facade.updateUser al confirmar y proveer los callbacks correctos', () => {
+      const updatedUser = { ...mockUser, firstName: 'Cambiado' };
+
+      component.handleUpdate(updatedUser);
+      component.confirmUpdate();
+
+      expect(component.isConfirmModalOpen).toBe(false);
+      expect(mockFacade.updateUser).toHaveBeenCalledWith('123', updatedUser, expect.any(Function), expect.any(Function));
+    });
   });
 
-  it('debería abrir el modal de confirmación al llamar a handleUpdate', () => {
-    component.handleUpdate(mockUser);
-    expect(component.isConfirmModalOpen).toBe(true);
-    // @ts-ignore - Accediendo a propiedad privada para el test
-    expect(component.pendingUpdateData).toEqual(mockUser);
+  describe('Renderizado de la Vista (HTML)', () => {
+    it('debería mostrar el spinner de carga si userToEdit es nulo', () => {
+      mockActivatedRoute.snapshot.paramMap.get.mockReturnValue(null);
+      fixture.detectChanges();
+
+      const loadingState = fixture.debugElement.query(By.css('.animate-spin'));
+      const mockForm = fixture.debugElement.query(By.directive(MockUserFormComponent));
+
+      expect(loadingState).toBeTruthy();
+      expect(mockForm).toBeFalsy();
+    });
+
+    it('debería renderizar el formulario al completar la carga de datos', () => {
+      fixture.detectChanges();
+      const loadingState = fixture.debugElement.query(By.css('.animate-spin'));
+      const mockForm = fixture.debugElement.query(By.directive(MockUserFormComponent));
+
+      expect(loadingState).toBeFalsy();
+      expect(mockForm).toBeTruthy();
+    });
   });
 
-  it('debería cerrar el modal al cancelar la actualización', () => {
-    component.handleUpdate(mockUser);
-    component.cancelUpdate();
-    expect(component.isConfirmModalOpen).toBe(false);
-  });
-
-  it('debería llamar al servicio y navegar al confirmar la actualización con éxito', () => {
-    userServiceMock.updateUserMock.mockReturnValue(of(mockUser));
-
-    component.handleUpdate(mockUser);
-    component.confirmUpdate();
-
-    expect(userServiceMock.updateUserMock).toHaveBeenCalled();
-    expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
-      title: '¡Actualización exitosa!'
-    }));
-    expect(routerMock.navigate).toHaveBeenCalledWith(['/users']);
-  });
-
-  it('debería mostrar notificación de error si falla la actualización', () => {
-    userServiceMock.updateUserMock.mockReturnValue(throwError(() => new Error('Error')));
-
-    component.handleUpdate(mockUser);
-    component.confirmUpdate();
-
-    expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Error de actualización'
-    }));
-    expect(component.isConfirmModalOpen).toBe(false);
-  });
-
-  it('debería llamar a location.back al ejecutar goBack', () => {
-    component.goBack();
-    expect(locationMock.back).toHaveBeenCalled();
+  describe('Navegación', () => {
+    it('debería llamar a location.back() al ejecutar goBack()', () => {
+      component.goBack();
+      expect(mockLocation.back).toHaveBeenCalled();
+    });
   });
 });

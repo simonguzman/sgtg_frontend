@@ -13,9 +13,10 @@ import { TableButton, TableComponent } from '../../../../shared/components/table
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../core/enums/state.enum';
-import { UserRoleType } from '../../../../core/models/user-role';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 
 import { PreliminaryDraftEvaluationContext, PreliminaryDraftTabConfiguration } from './tabs-logic/tab-config.interface';
@@ -170,7 +171,7 @@ export class LoadedDocumentsPreliminaryDraftPageComponent implements OnInit, OnD
 
     this.showProcessingNotification();
 
-    const newDocumentRecord: Document = {
+    const newDocumentRecord: FileDocument = {
       id: crypto.randomUUID(),
       name: selectedFileData.fileName.replace('.pdf', ''),
       url: '',
@@ -204,7 +205,7 @@ export class LoadedDocumentsPreliminaryDraftPageComponent implements OnInit, OnD
     return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
   }
 
-  private handleDownload(doc: Document): void {
+  private handleDownload(doc: FileDocument): void {
     if (!doc.url) {
       this.notificationService.show({
         title: 'Error de descarga',

@@ -1,6 +1,6 @@
 import { stateList } from '../../../../core/enums/state.enum';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
-import { Document } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
 import { Column } from '../../../components/table-component/table-component.component';
 
@@ -20,7 +20,7 @@ export interface EvaluationTableRow {
 export type RawEvaluationData = Omit<Partial<Evaluation>, 'signedDocuments'> & {
   documentTargetName?: string;
   comments?: string;
-  signedDocuments?: (string | FormattedDocument | Document)[];
+  signedDocuments?: (string | FormattedDocument | FileDocument)[];
 };
 
 export const EVALUATIONS_COLUMNS: Column[] = [

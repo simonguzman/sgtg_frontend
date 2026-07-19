@@ -4,8 +4,8 @@ import { UserService } from '../../../users/services/user.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { User } from '../../../users/interfaces/user.interface';
-import { ThesisWork } from '../../interfaces/thesis-work.interface'; // 👈 Importación obligatoria
-import { UserRoleType } from '../../../../core/models/user-role';
+import { ThesisWork } from '../../interfaces/thesis-work.interface';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { RegisterSustentationFormComponent, SustentationFormPayload } from "../../components/register-sustentation-form/register-sustentation-form.component";

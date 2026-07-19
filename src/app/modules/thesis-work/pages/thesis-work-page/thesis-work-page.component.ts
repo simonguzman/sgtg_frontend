@@ -4,7 +4,7 @@ import { NotificationService } from '../../../../shared/components/notifications
 import { Router } from '@angular/router';
 import { ThesisWorkService } from '../../services/thesis-work.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
-import { UserRoleType } from '../../../../core/models/user-role';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { DescriptionModalComponent } from "../../../../shared/components/modals/description-modal/description-modal.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";

@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { TabConfiguration, ThesisEvaluationContext } from './tabs-logic/tab-config.interface';
 import { AdvancesTabConfig } from './tabs-logic/advaces.tab';
-import { UserRoleType } from '../../../../core/models/user-role';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { TableButton, TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { ThesisWorkService } from '../../services/thesis-work.service';
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
@@ -12,7 +12,7 @@ import { AuthService } from '../../../../core/services/auth/auth.service';
 import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
 import { TabItem, TabsComponent } from '../../../../shared/components/tabs/tabs.component';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { Document } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { stateList } from '../../../../core/enums/state.enum';
@@ -23,7 +23,8 @@ import { CorrespondenceTabConfig } from './tabs-logic/correspondence.tab';
 import { SpecialRequestTabConfig } from './tabs-logic/special-request.tab';
 import { RegisterInformationModalComponent } from "../../../../shared/components/modals/register-information-modal/register-information-modal.component";
 import { UserService } from '../../../users/services/user.service';
-import { Advance, SpecialRequest } from '../../interfaces/thesis-work.interface';
+import { SpecialRequest } from '../../interfaces/special-request.interface';
+import { Advance } from '../../interfaces/advance.interface';
 import { User } from '../../../users/interfaces/user.interface';
 
 @Component({
@@ -157,7 +158,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
 
   selectedAdvanceDocuments = computed<string[]>(() => {
     const advance = this.selectedAdvance();
-    return advance?.documents?.map((d: Document) => d.name) || [];
+    return advance?.documents?.map((d: FileDocument) => d.name) || [];
   });
 
   studentName = computed<string>(() => {
@@ -228,7 +229,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       case 'download': {
         const urlObj = typeof event.row['url'] === 'string' ? event.row['url'] : '';
         const nameObj = typeof event.row['name'] === 'string' ? event.row['name'] : 'documento_sin_titulo';
-        this.handleDownload({ url: urlObj, name: nameObj } as Document);
+        this.handleDownload({ url: urlObj, name: nameObj } as FileDocument);
         break;
       }
       case 'evaluate-advance':
@@ -270,7 +271,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     const thesisId = this.thesisWorkId();
     if (!selectedFileData || !thesisId) return;
     this.showProcessingNotification();
-    const newDocumentRecord: Document = {
+    const newDocumentRecord: FileDocument = {
       id: crypto.randomUUID(),
       name: selectedFileData.fileName.replace('.pdf', ''),
       url: '',
@@ -313,22 +314,22 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   }
 
   downloadDocumentByName(fileName: string): void {
-    let targetDocument: Document | undefined;
+    let targetDocument: FileDocument | undefined;
 
     if (this.activeTab() === 'AVANCES') {
       targetDocument = this.selectedAdvance()?.documents?.find(
-        (doc: Document) => doc.name === fileName
+        (doc: FileDocument) => doc.name === fileName
       );
     } else {
       targetDocument = this.currentThesisWork()?.documents?.find(
-        (doc: Document) => doc.name === fileName
+        (doc: FileDocument) => doc.name === fileName
       );
     }
 
     if (targetDocument) {
       this.handleDownload(targetDocument);
     } else {
-      this.handleDownload({ name: fileName, url: '' } as Document);
+      this.handleDownload({ name: fileName, url: '' } as FileDocument);
     }
   }
 
@@ -352,7 +353,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
         return;
       }
 
-      const finalDeliveryDocs: Document[] = [delivery.monograph, delivery.formatE];
+      const finalDeliveryDocs: FileDocument[] = [delivery.monograph, delivery.formatE];
       if (delivery.annexes) {
         finalDeliveryDocs.push(delivery.annexes);
       }
@@ -455,7 +456,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
   }
 
-  private handleDownload(document: Document): void {
+  private handleDownload(document: FileDocument): void {
     if (!document.url) {
       this.notificationService.show({ title: 'Error de descarga', message: 'No existe una URL válida vinculada a este archivo.', type: NotificationType.ERROR });
       return;

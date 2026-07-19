@@ -3,12 +3,9 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { delay, map, Observable, of, throwError } from 'rxjs';
 import { UserService } from '../../../modules/users/services/user.service';
 import { Router } from '@angular/router';
-import { User, UserState } from '../../../modules/users/interfaces/user.interface';
-
-export interface ChangePasswordResponse {
-  success: boolean;
-  message: string;
-}
+import { User } from '../../../modules/users/interfaces/user.interface';
+import { UserState } from '../../../modules/users/enum/user-state.enum';
+import { ChangePasswordResponse } from '../../interfaces/change-password-response.interface';
 
 @Injectable({
   providedIn: 'root'

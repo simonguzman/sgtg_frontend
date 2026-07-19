@@ -4,7 +4,8 @@ import { ThesisWorkService } from '../../services/thesis-work.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { Document, DocumentType } from '../../../../core/interfaces/Document.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../core/enums/state.enum';
 import { RegisterCorrespondenceFormComponent } from "../../components/register-correspondence-form/register-correspondence-form.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
@@ -67,7 +68,7 @@ export class RegisterCorrespondencePageComponent implements OnInit {
       .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
       .replaceAll('/', ' - ');
 
-    const finalCorrespondenceDoc: Document = {
+    const finalCorrespondenceDoc: FileDocument = {
       id: crypto.randomUUID(),
       name: file.name.replace('.pdf', ''),
       url: `uploads/correspondencia/resolucion_${crypto.randomUUID().substring(0, 8)}.pdf`,
