@@ -4,6 +4,7 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { PreliminaryDraftTabConfiguration, PreliminaryDraftEvaluationContext } from './tab-config.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
+import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 
 export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
   tabValue: 'ANTEPROYECTOS',
@@ -25,10 +26,10 @@ export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
     return { ...baseContext };
   },
 
-  getTableData: (documents: FileDocument[], context: PreliminaryDraftEvaluationContext, preliminaryDraftService: any) => {
+  getTableData: (documents: FileDocument[], context: PreliminaryDraftEvaluationContext, preliminaryDraftService: PreliminaryDraftService) => {
     const { preliminaryDraft, currentUser, isAdmin, isAssignedEvaluator, totalEvaluatorsCount, latestAnteproyectoId } = context;
 
-    const filteredDocs = documents.filter(doc => doc.type === 'Anteproyecto' || doc.type === 'Correccion');
+    const filteredDocs = documents.filter(document => document.type === 'Anteproyecto' || document.type === 'Correccion');
 
     return filteredDocs.map(document => {
       const isLatestDoc = document.id === latestAnteproyectoId;
@@ -42,15 +43,15 @@ export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
         else if (status === stateList.APROBADO) status = stateList.EVALUADO;
       }
 
-      const allowedActions = ['download'];
-      if (isLatestDoc) {
+      const allowedActions: string[] = ['download'];
+      if (isLatestDoc && currentUser) {
         const userFullName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
         const userAlreadyEvaluated = preliminaryDraft.evaluations?.some(
-          (ev: Evaluation) => ev.documentId === document.id && ev.evaluatorName.trim() === userFullName
+          (evaluation: Evaluation) => evaluation.documentId === document.id && evaluation.evaluatorName.trim() === userFullName
         );
-        const draftHasFinalState = [stateList.APROBADO, stateList.NO_APROBADO].includes(preliminaryDraft.state as stateList);
+        const preliminaryDraftHasFinalState = [stateList.APROBADO, stateList.NO_APROBADO].includes(preliminaryDraft.state as stateList);
 
-        if ((isAssignedEvaluator || isAdmin) && !userAlreadyEvaluated && !draftHasFinalState && !preliminaryDraft.isArchived) {
+        if ((isAssignedEvaluator || isAdmin) && !userAlreadyEvaluated && !preliminaryDraftHasFinalState && !preliminaryDraft.isArchived) {
           allowedActions.push('evaluate');
         }
       }
@@ -59,7 +60,7 @@ export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
     });
   },
 
-  getHeaderButtons: (context: PreliminaryDraftEvaluationContext, preliminaryDraftService: any) => {
+  getHeaderButtons: (context: PreliminaryDraftEvaluationContext, preliminaryDraftService: PreliminaryDraftService) => {
     if (context.preliminaryDraft.isArchived) return [];
     const actions: TableButton[] = [];
     const reviewersReady = context.totalEvaluatorsCount > 0;

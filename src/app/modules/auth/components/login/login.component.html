@@ -5,7 +5,6 @@
 
   <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-6">
 
-    <!-- Campo: Correo Institucional -->
     <div class="flex flex-col gap-1">
       <label for="email" class="title-textbox">
         Correo institucional <span class="text-[#ED7D31]">*</span>
@@ -28,7 +27,6 @@
       }
     </div>
 
-    <!-- Campo: Contraseña -->
     <div class="flex flex-col gap-1">
       <label for="password" class="title-textbox">
         Contraseña <span class="text-[#ED7D31]">*</span>
@@ -51,13 +49,12 @@
       }
     </div>
 
-    <!-- Botón de Acción -->
     <div class="flex justify-end gap-2 mt-4">
       <app-button-component
-        [label]="isLoading ? 'Verificando...' : 'Iniciar sesión'"
+        [label]="isLoading() ? 'Verificando...' : 'Iniciar sesión'"
         variant="primary"
         type="submit"
-        [disabled]="loginForm.invalid || isLoading"
+        [disabled]="loginForm.invalid || isLoading()"
       ></app-button-component>
     </div>
 

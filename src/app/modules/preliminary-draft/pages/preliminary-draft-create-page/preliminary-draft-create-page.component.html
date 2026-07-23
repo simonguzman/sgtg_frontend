@@ -1,6 +1,6 @@
 <div class="mb-4">
   <button
-    (click)="goBack()"
+    (click)="pageService.goBack()"
     class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold group"
   >
     <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
@@ -10,13 +10,15 @@
   </button>
 </div>
 
+<!-- Formulario hijo. Enlazamos la salida onSave con el método openConfirmation del servicio -->
 <app-preliminary-draft-form
-  (onSave)="handleCreatePreliminaryDraft($event)">
+  (onSave)="pageService.openConfirmation($event)">
 </app-preliminary-draft-form>
 
+<!-- Modal de confirmación gestionado 100% por el servicio -->
 <app-confirmation-action-modal
-  [isOpen]="confirmState().isOpen"
+  [isOpen]="pageService.confirmState().isOpen"
   description="¿Está seguro de registrar este anteproyecto? Verifique que el documento adjunto corresponda a la propuesta seleccionada."
-  (onClose)="cancelCreation()"
-  (confirm)="confirmCreation()"
+  (onClose)="pageService.cancelCreation()"
+  (confirm)="pageService.confirmCreation()"
 ></app-confirmation-action-modal>

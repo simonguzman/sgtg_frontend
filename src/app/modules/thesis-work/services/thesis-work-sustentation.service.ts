@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { delay, Observable, of, tap } from 'rxjs';
+import { delay, first, Observable, of, tap } from 'rxjs';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
@@ -7,26 +7,37 @@ import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../core/enums/document-type.enum';
 import { SustentationRegistry } from '../interfaces/sustentation-registry.interface';
 import { JurorVerdict } from '../interfaces/juror-verdict.interface';
-
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { User } from '../../users/interfaces/user.interface';
-import { UserApiService } from '../../users/services/user-api.service';
+import { SustentationFormData } from '../interfaces/sustentation-form-data.interface';
+import { collectParticipantIds } from '../helpers/thesis-participants.helper';
+import { formatThesisDate } from '../helpers/thesis-date.helper';
+// ← UserApiService eliminado: reemplazado por userService.removeRolesFromUsersMock de forma consistente
 
-@Injectable({
-  providedIn: 'root'
-})
+// Tipo para los veredictos válidos en una sustentación — evita los casts `as any`
+// que antes forzaban el compilador a ignorar la incompatibilidad de tipos.
+export type SustentationVeredict =
+  | stateList.APROBADO
+  | stateList.APROBADO_CON_OBSERVACIONES
+  | stateList.NO_APROBADO
+  | stateList.APLAZADO;
+
+@Injectable({ providedIn: 'root' })
 export class ThesisWorkSustentationService {
-  private readonly storage = inject(ThesisWorkStorageService);
+  private readonly storage     = inject(ThesisWorkStorageService);
   private readonly userService = inject(UserService);
   private readonly authService = inject(AuthService);
-  private readonly eventBus = inject(EventBusService);
-  private readonly api = inject(UserApiService);
+  private readonly eventBus    = inject(EventBusService);
 
-  saveSustentationRegistryMock(thesisWorkId: string, formData: any): Observable<void> {
+  // ← formData: any → SustentationFormData (type-safety sin casts)
+  saveSustentationRegistryMock(
+    thesisWorkId: string,
+    formData: SustentationFormData
+  ): Observable<void> {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
@@ -34,70 +45,60 @@ export class ThesisWorkSustentationService {
         let currentThesisTitle = '';
         const newSustentationId = crypto.randomUUID();
 
-        // Asignación de rol de Jurado
         if (formData.juror1) this.userService.addRoleToUser(formData.juror1, UserRoleType.JURADO);
         if (formData.juror2) this.userService.addRoleToUser(formData.juror2, UserRoleType.JURADO);
 
         this.storage.updateWork(thesisWorkId, (thesisWork) => {
           const proposal = thesisWork.preliminaryDraftData?.proposalData;
-          const authors = proposal?.authors || [];
-
-          currentThesisTitle = proposal?.title || '';
-
-          if (proposal?.director?.id) notifyUserIds.push(proposal.director.id);
-          if (proposal?.codirector?.id) notifyUserIds.push(proposal.codirector.id);
-          if (proposal?.advisor?.id) notifyUserIds.push(proposal.advisor.id);
+          currentThesisTitle = proposal?.title ?? '';
+          notifyUserIds      = collectParticipantIds(proposal);
 
           if (formData.juror1) notifyUserIds.push(formData.juror1);
           if (formData.juror2) notifyUserIds.push(formData.juror2);
-          notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
 
-          const allUsers = this.userService.users();
-          const juror1User = allUsers.find(user => user.id === formData.juror1);
-          const juror2User = allUsers.find(user => user.id === formData.juror2);
+          const allUsers  = this.userService.users();
+          const juror1User = allUsers.find(u => u.id === formData.juror1);
+          const juror2User = allUsers.find(u => u.id === formData.juror2);
 
-          const dateStr = new Date().toLocaleDateString('es-ES', {
-            day: '2-digit', month: '2-digit', year: 'numeric'
-          }).replaceAll('/', ' - ');
-
-          const uploadedFile = formData.formatEDocument;
-          const fileName = uploadedFile?.name || uploadedFile?.fileName || 'Formato_E_Programacion.pdf';
+          const dateStr        = formatThesisDate();
+          const uploadedFile   = formData.formatEDocument;
+          const fileName       = uploadedFile?.name ?? uploadedFile?.fileName ?? 'Formato_E_Programacion.pdf';
 
           const sustentationDoc: FileDocument = {
-            id: uploadedFile?.id || crypto.randomUUID(),
-            name: fileName,
-            url: uploadedFile?.url || `uploads/sustentaciones/${fileName}`,
+            id:         uploadedFile?.id ?? crypto.randomUUID(),
+            name:       fileName,
+            url:        uploadedFile?.url ?? `uploads/sustentaciones/${fileName}`,
             uploadDate: dateStr,
-            type: DocumentType.FORMATO_E,
-            status: stateList.EN_REVISION
+            type:       DocumentType.FORMATO_E,
+            status:     stateList.EN_REVISION
           };
 
           const sustentationRegistry: SustentationRegistry = {
-            id: newSustentationId,
+            id:              newSustentationId,
             sustentationDate: formData.sustentationDate ? new Date(formData.sustentationDate) : undefined,
-            sustentationTime: formData.sustentationTime || undefined,
-            location: formData.location || undefined,
-            assignedJurors: [
+            sustentationTime: formData.sustentationTime,
+            location:         formData.location,
+            assignedJurors:   [
               ...(juror1User ? [juror1User] : []),
               ...(juror2User ? [juror2User] : [])
             ],
-            verdicts: [],
+            verdicts:        [],
             formatEDocument: sustentationDoc
           };
 
           return {
             ...thesisWork,
-            sustentations: [sustentationRegistry, ...(thesisWork.sustentations || [])],
-            documents: [sustentationDoc, ...(thesisWork.documents || [])]
+            sustentations: [sustentationRegistry, ...(thesisWork.sustentations ?? [])],
+            documents:     [sustentationDoc,       ...(thesisWork.documents     ?? [])]
           };
         });
 
         this.eventBus.emit({
-          type: AppEventType.THESIS_SUSTENTATION_PROGRAMMED,
+          type:          AppEventType.THESIS_SUSTENTATION_PROGRAMMED,
           targetUserIds: [...new Set(notifyUserIds)],
           payload: {
-            thesisId: thesisWorkId,
-            thesisTitle: currentThesisTitle,
+            thesisId:       thesisWorkId,
+            thesisTitle:    currentThesisTitle,
             sustentationId: newSustentationId
           }
         });
@@ -105,9 +106,10 @@ export class ThesisWorkSustentationService {
     );
   }
 
+  // ← payload.veredict: stateList → SustentationVeredict (elimina `as any` en JurorVerdict)
   registerSustentationVerdictMock(
     thesisWorkId: string,
-    payload: { veredict: stateList; observations: string; evaluationDate: Date },
+    payload: { veredict: SustentationVeredict; observations: string; evaluationDate: Date },
     file: File
   ): Observable<void> {
     return of(undefined).pipe(
@@ -115,96 +117,74 @@ export class ThesisWorkSustentationService {
       tap(() => {
         let notifyUserIds: string[] = [];
         let currentThesisTitle = '';
-        let currentSustentationId= '';
-
-        // 👈 NUEVO: Arreglos para recolectar IDs a limpiar si el trabajo se archiva
-        let evaluatorIdsToClean: string[] = [];
-        let jurorIdsToClean: string[] = [];
+        let currentSustentationId = '';
+        const evaluatorIdsToClean: string[] = [];
+        const jurorIdsToClean: string[]     = [];
         let thesisArchived = false;
 
-        const activeUser = this.authService.currentUser();
-        const jurorId = activeUser ? activeUser.id : 'jurado-desconocido';
+        const jurorId = this.authService.currentUser()?.id ?? 'jurado-desconocido';
 
         this.storage.updateWork(thesisWorkId, (thesisWork) => {
           const proposal = thesisWork.preliminaryDraftData?.proposalData;
-          const authors = proposal?.authors || [];
-
-          // AQUÍ SE DEFINE SI SE ARCHIVA
           const isFailed = payload.veredict === stateList.NO_APROBADO;
-          thesisArchived = isFailed;
+          thesisArchived     = isFailed;
+          currentThesisTitle = proposal?.title ?? '';
+          notifyUserIds      = collectParticipantIds(proposal);
 
-          currentThesisTitle = proposal?.title || '';
-
-          if(proposal?.director?.id) notifyUserIds.push(proposal.director.id);
-          if(proposal?.codirector?.id) notifyUserIds.push(proposal.codirector.id);
-          if(proposal?.advisor?.id) notifyUserIds.push(proposal.advisor.id);
-
-          const consejoUsers = this.userService.users().filter(user =>
-            user.roles?.includes(UserRoleType.CONSEJO)
+          notifyUserIds.push(
+            ...this.userService.users()
+              .filter(u => u.roles?.includes(UserRoleType.CONSEJO))
+              .map(u => u.id)
           );
-          notifyUserIds.push(...consejoUsers.map(user => user.id));
-          notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
 
-          // 👈 NUEVO: Lógica de recolección de roles si el trabajo se archiva
           if (isFailed) {
-            // 1. Recolectar Evaluadores del anteproyecto
-            if (thesisWork.preliminaryDraftData?.evaluators) {
-              thesisWork.preliminaryDraftData.evaluators.forEach((ev: User) => {
-                if (ev.id) evaluatorIdsToClean.push(ev.id);
+            thesisWork.preliminaryDraftData?.evaluators?.forEach((ev: User) => {
+              if (ev.id) evaluatorIdsToClean.push(ev.id);
+            });
+            thesisWork.sustentations?.forEach(sust => {
+              sust.assignedJurors?.forEach((juror: User) => {
+                if (juror.id) jurorIdsToClean.push(juror.id);
               });
-            }
-
-            // 2. Recolectar Jurados de la(s) sustentación(es)
-            if (thesisWork.sustentations) {
-              thesisWork.sustentations.forEach(sust => {
-                if (sust.assignedJurors) {
-                  sust.assignedJurors.forEach((juror: User) => {
-                    if (juror.id) jurorIdsToClean.push(juror.id);
-                  });
-                }
-              });
-            }
+            });
           }
 
-          const dateStr = new Date().toLocaleDateString('es-ES', {
-            day: '2-digit', month: '2-digit', year: 'numeric'
-          }).replaceAll('/', ' - ');
+          const dateStr = formatThesisDate();
 
           const sustentationFileDoc: FileDocument = {
-            id: crypto.randomUUID(),
-            name: file.name.replace('.pdf', ''),
-            url: `uploads/sustentaciones/resultado_${file.name}`,
+            id:         crypto.randomUUID(),
+            name:       file.name.replace('.pdf', ''),
+            url:        `uploads/sustentaciones/resultado_${file.name}`,
             uploadDate: dateStr,
-            type: DocumentType.FORMATO_G,
-            status: payload.veredict
+            type:       DocumentType.FORMATO_G,
+            status:     payload.veredict
           };
 
-          const updatedExistingDocuments = (thesisWork.documents || []).map(doc => {
-            const isFormatoE = doc.type === (DocumentType.FORMATO_E);
-            const isEnRevision = doc.status === stateList.EN_REVISION;
-            return isFormatoE && isEnRevision ? { ...doc, status: stateList.EVALUADO } : doc;
-          });
+          const updatedExistingDocuments = (thesisWork.documents ?? []).map(doc =>
+            doc.type === DocumentType.FORMATO_E && doc.status === stateList.EN_REVISION
+              ? { ...doc, status: stateList.EVALUADO }
+              : doc
+          );
 
+          // ← payload.veredict ya es SustentationVeredict, no se necesita cast
           const newVerdict: JurorVerdict = {
-            jurorId: jurorId,
-            evaluationDate: payload.evaluationDate,
-            veredict: payload.veredict as any,
-            observations: payload.observations,
+            jurorId,
+            evaluationDate:   payload.evaluationDate,
+            veredict:         payload.veredict,
+            observations:     payload.observations,
             attachedDocument: sustentationFileDoc
           };
 
-          const currentSustentations = thesisWork.sustentations || [];
-          const activeSustentation = currentSustentations.length > 0
+          const currentSustentations = thesisWork.sustentations ?? [];
+          const activeSustentation   = currentSustentations.length > 0
             ? { ...currentSustentations[0] }
             : { id: crypto.randomUUID(), assignedJurors: [], verdicts: [] };
 
-          const updatedVerdicts = [...(activeSustentation.verdicts || [])];
-          const existingVerdictIndex = updatedVerdicts.findIndex(v => v.jurorId === jurorId);
-
+          const updatedVerdicts = [...(activeSustentation.verdicts ?? [])];
+          const existingIndex   = updatedVerdicts.findIndex(v => v.jurorId === jurorId);
           currentSustentationId = activeSustentation.id;
 
-          if (existingVerdictIndex !== -1) {
-            updatedVerdicts[existingVerdictIndex] = newVerdict;
+          if (existingIndex !== -1) {
+            updatedVerdicts[existingIndex] = newVerdict;
           } else {
             updatedVerdicts.push(newVerdict);
           }
@@ -218,32 +198,34 @@ export class ThesisWorkSustentationService {
           return {
             ...thesisWork,
             sustentations: updatedSustentations,
-            documents: [sustentationFileDoc, ...updatedExistingDocuments],
-            state: payload.veredict,
-            isArchived: isFailed
+            documents:     [sustentationFileDoc, ...updatedExistingDocuments],
+            state:         payload.veredict,
+            isArchived:    isFailed
           };
         });
 
-        // 👈 NUEVO: Ejecutar limpieza de roles si la bandera de archivo se activó
+        // ← UserService.removeRolesFromUsersMock usado de forma consistente para ambos roles
+        // ← first() agregado para completar la suscripción tras la primera emisión
         if (thesisArchived) {
           if (evaluatorIdsToClean.length > 0) {
-            const uniqueEvaluatorIds = [...new Set(evaluatorIdsToClean)];
-            this.api.removeRolesFromUsers(uniqueEvaluatorIds, [UserRoleType.EVALUADOR]).subscribe();
+            this.userService.removeRolesFromUsersMock(
+              [...new Set(evaluatorIdsToClean)], [UserRoleType.EVALUADOR]
+            ).pipe(first()).subscribe();
           }
-
           if (jurorIdsToClean.length > 0) {
-            const uniqueJurorIds = [...new Set(jurorIdsToClean)];
-            this.userService.removeRolesFromUsersMock(uniqueJurorIds, [UserRoleType.JURADO]).subscribe();
+            this.userService.removeRolesFromUsersMock(
+              [...new Set(jurorIdsToClean)], [UserRoleType.JURADO]
+            ).pipe(first()).subscribe();
           }
         }
 
         this.eventBus.emit({
-          type: AppEventType.THESIS_VERDICT_REGISTERED,
+          type:          AppEventType.THESIS_VERDICT_REGISTERED,
           targetUserIds: [...new Set(notifyUserIds)],
           payload: {
-            thesisId: thesisWorkId,
-            thesisTitle: currentThesisTitle,
-            veredict: payload.veredict,
+            thesisId:       thesisWorkId,
+            thesisTitle:    currentThesisTitle,
+            veredict:       payload.veredict,
             sustentationId: currentSustentationId
           }
         });
@@ -261,73 +243,65 @@ export class ThesisWorkSustentationService {
       tap(() => {
         let notifyUserIds: string[] = [];
         let currentThesisTitle = '';
-
-        const activeUser = this.authService.currentUser();
-        const jurorId = activeUser ? activeUser.id : 'jurado-desconocido';
-        const dateStr = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
+        const jurorId  = this.authService.currentUser()?.id ?? 'jurado-desconocido';
+        const dateStr  = formatThesisDate();
 
         this.storage.updateWork(thesisWorkId, (thesisWork) => {
           const proposal = thesisWork.preliminaryDraftData?.proposalData;
-          const authors = proposal?.authors || [];
+          currentThesisTitle = proposal?.title ?? '';
+          notifyUserIds      = collectParticipantIds(proposal);
 
-          currentThesisTitle = proposal?.title || '';
-
-          if(proposal?.director?.id) notifyUserIds.push(proposal.director.id);
-          if(proposal?.codirector?.id) notifyUserIds.push(proposal.codirector.id);
-          if(proposal?.advisor?.id) notifyUserIds.push(proposal.advisor.id);
-
-          const consejoUsers = this.userService.users().filter(user =>
-            user.roles?.includes(UserRoleType.CONSEJO)
+          notifyUserIds.push(
+            ...this.userService.users()
+              .filter(u => u.roles?.includes(UserRoleType.CONSEJO))
+              .map(u => u.id)
           );
-          notifyUserIds.push(...consejoUsers.map(user => user.id));
-          notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
 
           const docFormatG: FileDocument = {
-            id: crypto.randomUUID(),
-            name: formatGFile.name,
-            url: 'uploads/evaluations/' + formatGFile.name,
+            id:         crypto.randomUUID(),
+            name:       formatGFile.name,
+            url:        `uploads/evaluations/${formatGFile.name}`,
             uploadDate: dateStr,
-            type: DocumentType.CORRECCION,
-            status: evaluationData.veredict
+            type:       DocumentType.CORRECCION,
+            // ← Cast `as stateList` eliminado: evaluationData.veredict ya es stateList
+            status:     evaluationData.veredict
           };
 
           const newEvaluation: Evaluation = {
             ...evaluationData,
-            id: crypto.randomUUID(),
-            date: new Date(),
+            id:              crypto.randomUUID(),
+            date:            new Date(),
             signedDocuments: [docFormatG.url]
           };
 
-          const currentSustentations = thesisWork.sustentations || [];
-          const activeSustentation = currentSustentations.length > 0
+          const currentSustentations = thesisWork.sustentations ?? [];
+          const activeSustentation   = currentSustentations.length > 0
             ? { ...currentSustentations[0] }
             : { id: crypto.randomUUID(), assignedJurors: [], verdicts: [] };
 
+          // ← Cast `as any` reemplazado por SustentationVeredict
           const updatedJurorVerdict: JurorVerdict = {
-            jurorId: jurorId,
-            evaluationDate: new Date(),
-            veredict: evaluationData.veredict as any,
-            observations: evaluationData.observations,
+            jurorId,
+            evaluationDate:   new Date(),
+            veredict:         evaluationData.veredict as SustentationVeredict,
+            observations:     evaluationData.observations,
             attachedDocument: docFormatG
           };
 
-          const updatedVerdicts = [...(activeSustentation.verdicts || []), updatedJurorVerdict];
-          activeSustentation.verdicts = updatedVerdicts;
+          activeSustentation.verdicts = [...(activeSustentation.verdicts ?? []), updatedJurorVerdict];
 
           const updatedSustentations = currentSustentations.length > 0
             ? [activeSustentation, ...currentSustentations.slice(1)]
             : [activeSustentation];
 
-          const updatedCorrectedDeliveries = [...(thesisWork.correctedDeliveries || [])];
+          let updatedCorrectedDeliveries = [...(thesisWork.correctedDeliveries ?? [])];
           if (updatedCorrectedDeliveries.length > 0) {
-            const latestDelivery = updatedCorrectedDeliveries[0];
+            const latest = updatedCorrectedDeliveries[0];
+            // ← Cast `as stateList` eliminado: evaluationData.veredict ya es stateList
             updatedCorrectedDeliveries[0] = {
-              ...latestDelivery,
-              status: evaluationData.veredict as stateList,
-              monograph: {
-                ...latestDelivery.monograph,
-                status: evaluationData.veredict as stateList
-              }
+              ...latest,
+              status:   evaluationData.veredict,
+              monograph: { ...latest.monograph, status: evaluationData.veredict }
             };
           }
 
@@ -337,21 +311,21 @@ export class ThesisWorkSustentationService {
 
           return {
             ...thesisWork,
-            state: finalThesisState,
-            sustentations: updatedSustentations,
-            documents: [docFormatG, ...(thesisWork.documents || [])],
-            evaluations: [newEvaluation, ...(thesisWork.evaluations || [])],
+            state:               finalThesisState,
+            sustentations:       updatedSustentations,
+            documents:           [docFormatG, ...(thesisWork.documents ?? [])],
+            evaluations:         [newEvaluation, ...(thesisWork.evaluations ?? [])],
             correctedDeliveries: updatedCorrectedDeliveries
           };
         });
 
         this.eventBus.emit({
-          type: AppEventType.THESIS_CORRECTED_DOCUMENTS_EVALUATED,
+          type:          AppEventType.THESIS_CORRECTED_DOCUMENTS_EVALUATED,
           targetUserIds: [...new Set(notifyUserIds)],
           payload: {
-            thesisId: thesisWorkId,
+            thesisId:    thesisWorkId,
             thesisTitle: currentThesisTitle,
-            veredict: evaluationData.veredict
+            veredict:    evaluationData.veredict
           }
         });
       })

@@ -29,28 +29,29 @@
 
       <div class="flex flex-col gap-4">
         @for (field of [
-          { label: 'Título',                         value: proposal.title                    },
-          { label: 'Fecha de carga',                 value: documentUploadDate         },
+          { label: 'Título', value: proposal.title                    },
+          { label: 'Descripción', value: proposal.description},
+          { label: 'Fecha de carga', value: documentUploadDate         },
           { label: 'Modalidad del trabajo de grado', value: proposal.modality                 },
-          { label: 'Estudiante(s)',                  value: getStudentNames(proposal.authors) }
+          { label: 'Estudiante(s)', value: getStudentNames(proposal.authors) }
         ]; track field.label) {
           <div class="flex flex-col gap-1">
             <span class="font-display font-semibold text-primary text-size-section">{{ field.label }}</span>
-            <input type="text" [value]="field.value" disabled
+            <input id="" type="text" [value]="field.value" disabled
                   class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed">
           </div>
         }
 
         <div class="flex flex-col gap-1">
           <span class="font-display font-semibold text-primary text-size-section">Director</span>
-          <input type="text" [value]="getDirectorName(proposal.director.id)" disabled
+          <input id="" type="text" [value]="getDirectorName(proposal.director.id)" disabled
                 class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed">
         </div>
 
         @if (proposal.codirector) {
           <div class="flex flex-col gap-1">
             <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
-            <input type="text" [value]="getCodirectorName(proposal.codirector.id)" disabled
+            <input id="" type="text" [value]="getCodirectorName(proposal.codirector.id)" disabled
                   class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed">
           </div>
         }
@@ -58,14 +59,14 @@
         @if (proposal.advisor) {
           <div class="flex flex-col gap-1">
             <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
-            <input type="text" [value]="getAdvisorName(proposal.advisor.id)" disabled
+            <input id="" type="text" [value]="getAdvisorName(proposal.advisor.id)" disabled
                   class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed">
           </div>
         }
 
         <div class="flex flex-col gap-1">
           <span class="font-display font-semibold text-primary text-size-section">Estado actual</span>
-          <input type="text" [value]="proposal.state" disabled
+          <input id="" type="text" [value]="proposal.state" disabled
                 class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed">
         </div>
       </div>
@@ -80,7 +81,7 @@
 
         <div class="flex items-center justify-center gap-8 py-2 bg-gray-50 rounded-md">
           @for (option of [
-            { value: 'Aprobado',    color: 'text-green-600' },
+            { value: 'Aprobado', color: 'text-green-600' },
             { value: 'No aprobado', color: 'text-red-600'   }
           ]; track option.value) {
             <label class="flex items-center gap-2 cursor-pointer">
@@ -99,7 +100,7 @@
 
         <div class="flex flex-col gap-1">
           <span class="font-display font-semibold text-primary text-size-section">Comentarios u Observaciones</span>
-          <textarea formControlName="comments" rows="4"
+          <textarea id="" formControlName="comments" rows="4"
             class="font-sans font-normal text-size-section text-[#777680] p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-[#000066]"
             [class.border-[#ED7D31]]="evaluationForm.get('comments')?.invalid && evaluationForm.get('comments')?.touched"
             placeholder="Ingrese los comentarios detallados de la revisión aquí...">

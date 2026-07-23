@@ -15,10 +15,8 @@ import { User } from '../../users/interfaces/user.interface';
 export class ProposalStorageService {
   private readonly authService = inject(AuthService);
   private readonly userService = inject(UserService);
-
   private readonly _proposalsList = signal<Proposal[]>(this.getStoredProposals());
 
-  // 👇 NUEVO: Exponemos la lista completa y cruda (Solo lectura) para el Historial
   public allProposals = this._proposalsList.asReadonly();
 
   /**
@@ -27,18 +25,14 @@ export class ProposalStorageService {
    */
   public proposals = computed(() => {
     const currentUser = this.authService.currentUser();
-
-    // 👇 CORRECCIÓN: Filtramos para que NO incluya las archivadas en la vista normal
-    const activeProposals = this._proposalsList().filter(p => p.isActive !== false && !p.isArchived);
+    const activeProposals = this._proposalsList().filter(proposal => proposal.isActive !== false && !proposal.isArchived);
 
     if (!currentUser) return [];
 
-    // Los administradores y miembros del comité poseen visibilidad global de propuestas activas
     if (this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR, UserRoleType.COMITE])) {
       return activeProposals;
     }
 
-    // Filtrado estricto por vinculación directa al equipo del proyecto
     return activeProposals.filter(proposal => {
       const isAuthor = proposal.authors?.some(author => author.id === currentUser.id);
       const isDirector = proposal.director?.id === currentUser.id;
@@ -50,7 +44,6 @@ export class ProposalStorageService {
   });
 
   constructor() {
-    // Sincronización automática con el almacenamiento local ante cambios de estado
     effect(() => {
       localStorage.setItem('proposals', JSON.stringify(this._proposalsList()));
     });
@@ -74,7 +67,7 @@ export class ProposalStorageService {
    * Recupera una propuesta por su ID en formato asíncrono simulado.
    */
   public getById(id: string): Observable<Proposal | undefined> {
-    const proposal = this._proposalsList().find(p => p.id === id);
+    const proposal = this._proposalsList().find(proposal => proposal.id === id);
     return of(proposal).pipe(delay(1000));
   }
 
@@ -84,7 +77,7 @@ export class ProposalStorageService {
   }
 
   private getMockUser(id: string): User {
-    const user = this.userService.getAllUsers().find(u => u.id === id);
+    const user = this.userService.getAllUsers().find(user => user.id === id);
     if (!user) {
       throw new Error(`Usuario con ID ${id} no encontrado en la base de datos de mocks.`);
     }

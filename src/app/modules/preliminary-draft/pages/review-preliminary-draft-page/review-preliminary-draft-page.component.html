@@ -3,18 +3,18 @@
   <div class="max-w-7xl mx-auto flex flex-col gap-6">
 
     <button
-      (click)="goBack()"
+      (click)="facade.goBack()"
       class="flex items-center gap-1 text-primary font-bold text-sm hover:opacity-80 transition-opacity w-fit"
     >
       <span class="material-symbols-outlined text-size-section font-bold">arrow_back</span>
       Regresar
     </button>
 
-    @if (preliminaryDraftState()) {
+    @if (facade.preliminaryDraftState()) {
       <app-review-preliminary-draft-form
-        [preliminaryDraft]="preliminaryDraftState()!"
-        (onSaveEvaluation)="handleRequestConfirmation($event)"
-        (onDownloadPreliminaryDraft)="downloadCurrentDocument()">
+        [preliminaryDraft]="facade.preliminaryDraftState()!"
+        (onSaveEvaluation)="facade.handleRequestConfirmation($event)"
+        (onDownloadPreliminaryDraft)="facade.downloadCurrentDocument()">
       </app-review-preliminary-draft-form>
     }
 
@@ -23,8 +23,8 @@
 </div>
 
 <app-confirmation-action-modal
-  [isOpen]="isConfirmModalOpen()"
+  [isOpen]="facade.isConfirmModalOpen()"
   description="¿Desea finalizar la evaluación? El resultado será enviado al sistema."
-  (onClose)="isConfirmModalOpen.set(false)"
-  (confirm)="processEvaluation()">
+  (onClose)="facade.isConfirmModalOpen.set(false)"
+  (confirm)="facade.processEvaluation()">
 </app-confirmation-action-modal>

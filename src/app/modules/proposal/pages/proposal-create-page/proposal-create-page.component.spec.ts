@@ -1,197 +1,136 @@
-/* tslint:disable:no-unused-variable */
-import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
-import { Location } from '@angular/common';
-import { of, throwError } from 'rxjs';
-
 import { ProposalCreatePageComponent } from './proposal-create-page.component';
-import { ProposalService } from '../../services/proposal.service';
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { AuthService } from '../../../../core/services/auth/auth.service';
-import { Modality, Proposal } from '../../interfaces/proposal.interface';
-import { stateList } from '../../../../core/enums/state.enum';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { UserRoleType } from '../../../../core/models/user-role';
+import { Location } from '@angular/common';
+import { ProposalCreateFacadeService } from './services/proposal-create-facade.service';
+import { Component } from '@angular/core';
+import { Proposal } from '../../interfaces/proposal.interface';
+import { ProposalFormComponent } from '../../components/proposal-form/proposal-form.component';
+import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 
-// --- Mocks de Componentes Hijos ---
-@Component({
-  selector: 'app-proposal-form',
-  template: '',
-  standalone: true
-})
-class MockProposalFormComponent {
-  @Input() proposal: Proposal | null = null;
-  @Output() onSubmit = new EventEmitter<Proposal>();
-}
+// 1. Mocks de Componentes Hijos (Shallow Testing)
+@Component({ selector: 'app-proposal-form', standalone: true, template: '' })
+class MockProposalFormComponent {}
 
-@Component({
-  selector: 'app-confirmation-action-modal',
-  template: '',
-  standalone: true
-})
-class MockConfirmationModalComponent {
-  @Input() show: boolean = false;
-  @Input() title: string = '';
-  @Input() message: string = '';
-  @Output() onConfirm = new EventEmitter<void>();
-  @Output() onCancel = new EventEmitter<void>();
-}
+@Component({ selector: 'app-confirmation-action-modal', standalone: true, template: '' })
+class MockConfirmationActionModalComponent {}
 
 describe('ProposalCreatePageComponent', () => {
   let component: ProposalCreatePageComponent;
   let fixture: ComponentFixture<ProposalCreatePageComponent>;
 
-  // Mocks de Servicios
-  let mockProposalService: any;
-  let mockNotificationService: any;
-  let mockAuthService: any;
-  let mockRouter: any;
-  let mockLocation: any;
+  // 2. Tipado estricto de Mocks de dependencias
+  let mockLocation: { back: jest.Mock };
+  let mockFacade: { validate: jest.Mock; save: jest.Mock };
 
-  // Datos de prueba corregidos (evitando error ts 2740)
-  const mockProposalData: Proposal = {
-    id: 'new-prop',
-    title: 'Nueva Propuesta Test',
-    description: 'Descripción detallada',
-    modality: Modality.TI,
-    state: stateList.EN_REVISION,
-    authors: ['student-1'],
-    director: {
-      id: 'director-123',
-      firstName: 'Juan',
-      lastName: 'Pérez'
-    } as any, // Casting para evitar errores de propiedades faltantes del User
-    createdAt: new Date(),
-    documents: [],
-    evaluations: []
-  };
+  const mockProposal = { title: 'Test Proposal' } as unknown as Proposal;
 
   beforeEach(async () => {
-    mockProposalService = {
-      createProposalMock: jest.fn().mockReturnValue(of({}))
-    };
-    mockNotificationService = {
-      show: jest.fn()
-    };
-    mockAuthService = {
-      hasAnyRole: jest.fn().mockReturnValue(true)
-    };
-    mockRouter = {
-      navigate: jest.fn()
-    };
     mockLocation = {
-      back: jest.fn()
+      back: jest.fn(),
+    };
+
+    mockFacade = {
+      validate: jest.fn(),
+      save: jest.fn(),
     };
 
     await TestBed.configureTestingModule({
       imports: [ProposalCreatePageComponent],
       providers: [
-        { provide: ProposalService, useValue: mockProposalService },
-        { provide: NotificationService, useValue: mockNotificationService },
-        { provide: AuthService, useValue: mockAuthService },
-        { provide: Router, useValue: mockRouter },
-        { provide: Location, useValue: mockLocation }
-      ]
+        { provide: Location, useValue: mockLocation as unknown as Location },
+        { provide: ProposalCreateFacadeService, useValue: mockFacade as unknown as ProposalCreateFacadeService },
+      ],
     })
-    .overrideComponent(ProposalCreatePageComponent, {
-      set: {
-        imports: [MockProposalFormComponent, MockConfirmationModalComponent]
-      }
-    })
-    .compileComponents();
+      .overrideComponent(ProposalCreatePageComponent, {
+        remove: {
+          imports: [ProposalFormComponent, ConfirmationActionModalComponent],
+        },
+        add: {
+          imports: [MockProposalFormComponent, MockConfirmationActionModalComponent],
+        },
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(ProposalCreatePageComponent);
     component = fixture.componentInstance;
+    fixture.detectChanges();
   });
 
-  // --- TESTS DE CICLO DE VIDA Y ACCESO ---
-
-  it('Debe crear el componente', () => {
-    fixture.detectChanges();
+  it('debe crearse correctamente', () => {
     expect(component).toBeTruthy();
   });
 
-  it('Debe denegar acceso y redirigir si el usuario no tiene los roles permitidos', () => {
-    mockAuthService.hasAnyRole.mockReturnValue(false);
-    component.ngOnInit();
+  describe('handleCreateProposal', () => {
+    it('NO debe abrir el modal ni setear proposal si la validación falla', () => {
+      mockFacade.validate.mockReturnValue(false); // Falla la validación
 
-    expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Acceso Denegado',
-      type: NotificationType.ERROR
-    }));
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/proposal']);
+      component.handleCreateProposal(mockProposal);
+
+      expect(component.pendingProposal()).toBeNull();
+      expect(component.isModalOpen()).toBeFalsy();
+    });
+
+    it('debe setear pendingProposal y abrir modal si la validación es exitosa', () => {
+      mockFacade.validate.mockReturnValue(true); // Pasa la validación
+
+      component.handleCreateProposal(mockProposal);
+
+      expect(component.pendingProposal()).toEqual(mockProposal);
+      expect(component.isModalOpen()).toBeTruthy();
+    });
   });
 
-  it('Debe permitir el acceso si el usuario es ADMINISTRADOR o DIRECTOR', () => {
-    mockAuthService.hasAnyRole.mockReturnValue(true);
-    component.ngOnInit();
+  describe('confirmCreation', () => {
+    it('NO debe llamar a save si no hay pendingProposal (null)', () => {
+      component.pendingProposal.set(null);
 
-    expect(mockRouter.navigate).not.toHaveBeenCalled();
-    expect(mockNotificationService.show).not.toHaveBeenCalled();
+      component.confirmCreation();
+
+      expect(mockFacade.save).not.toHaveBeenCalled();
+    });
+
+    it('debe cerrar modal, delegar a save y limpiar pendingProposal al éxito', () => {
+      component.pendingProposal.set(mockProposal);
+      component.isModalOpen.set(true);
+
+      component.confirmCreation();
+
+      expect(component.isModalOpen()).toBeFalsy();
+      expect(mockFacade.save).toHaveBeenCalledWith(
+        mockProposal,
+        expect.any(Function), // onSuccess callback
+        expect.any(Function)  // onError callback
+      );
+
+      // Extraemos el callback 'onSuccess' que se pasó como segundo argumento al mock de 'save'
+      const onSuccessCallback = mockFacade.save.mock.calls[0][1];
+
+      // Ejecutamos el callback y verificamos que el estado interno se limpió
+      onSuccessCallback();
+      expect(component.pendingProposal()).toBeNull();
+
+      // Ejecutamos el onError para cubrir el 100% de la rama (aunque esté vacío en el componente)
+      const onErrorCallback = mockFacade.save.mock.calls[0][2];
+      onErrorCallback();
+    });
   });
 
-  // --- TESTS DE FLUJO DE CREACIÓN ---
+  describe('cancelCreation', () => {
+    it('debe cerrar el modal y limpiar pendingProposal', () => {
+      component.isModalOpen.set(true);
+      component.pendingProposal.set(mockProposal);
 
-  it('Debe preparar el estado de confirmación cuando se emite handleCreateProposal', () => {
-    component.handleCreateProposal(mockProposalData);
+      component.cancelCreation();
 
-    expect(component.confirmState.show).toBe(true);
-    expect(component.confirmState.pendingData).toEqual(mockProposalData);
+      expect(component.isModalOpen()).toBeFalsy();
+      expect(component.pendingProposal()).toBeNull();
+    });
   });
 
-  it('Debe resetear el estado al cancelar la creación', () => {
-    component.confirmState = { show: true, pendingData: mockProposalData };
-
-    component.cancelCreation();
-
-    expect(component.confirmState.show).toBe(false);
-    expect(component.confirmState.pendingData).toBeNull();
-  });
-
-  it('Debe llamar al servicio de creación y navegar al éxito al confirmar', () => {
-    // Setup del estado previo
-    component.confirmState = { show: true, pendingData: mockProposalData };
-
-    component.confirmCreation();
-
-    // Verificación de notificaciones de proceso y éxito
-    expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Procesando registro'
-    }));
-    expect(mockProposalService.createProposalMock).toHaveBeenCalledWith(mockProposalData);
-    expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-      type: NotificationType.CONFIRMATION
-    }));
-
-    // Verificación de limpieza y navegación
-    expect(component.confirmState.show).toBe(false);
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/proposal']);
-  });
-
-  it('Debe manejar errores del servidor durante la creación', () => {
-    mockProposalService.createProposalMock.mockReturnValue(throwError(() => new Error('DB Error')));
-    component.confirmState = { show: true, pendingData: mockProposalData };
-
-    component.confirmCreation();
-
-    expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Error de servidor',
-      type: NotificationType.ERROR
-    }));
-  });
-
-  it('No debe hacer nada en confirmCreation si no hay datos pendientes', () => {
-    component.confirmState.pendingData = null;
-    component.confirmCreation();
-
-    expect(mockProposalService.createProposalMock).not.toHaveBeenCalled();
-  });
-
-  // --- TESTS DE NAVEGACIÓN ---
-
-  it('Debe llamar a Location.back() al ejecutar goBack', () => {
-    component.goBack();
-    expect(mockLocation.back).toHaveBeenCalled();
+  describe('goBack', () => {
+    it('debe llamar a location.back()', () => {
+      component.goBack();
+      expect(mockLocation.back).toHaveBeenCalled();
+    });
   });
 });

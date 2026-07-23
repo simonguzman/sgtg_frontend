@@ -1,137 +1,186 @@
 import { TestBed } from '@angular/core/testing';
-import { ProposalService } from './proposal.service';
 import { signal } from '@angular/core';
-import { UserRoleType } from '../../../core/models/user-role';
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { AuthService } from '../../../core/services/auth/auth.service';
-import { UserService } from '../../users/services/user.service';
-import { stateList } from '../../../core/enums/state.enum';
+import { of } from 'rxjs';
 
-describe('Service: Proposal', () => {
+import { ProposalService } from './proposal.service';
+import { ProposalStorageService } from './proposal-storage.service';
+import { ProposalRulesService } from './proposal-rules.service';
+import { ProposalDocumentService } from './proposal-document.service';
+import { ProposalApiService } from './proposal-api.service';
+
+import { Proposal } from '../interfaces/proposal.interface';
+import { Evaluation } from '../../../core/interfaces/evaluation.interface';
+import { FileDocument } from '../../../core/interfaces/file-document.interface';
+
+describe('ProposalService', () => {
   let service: ProposalService;
-  let mockAuthService: any;
-  let mockUserService: any;
 
-  // Mock de usuarios necesarios para que getMockUser no falle durante la inicialización
-  const mockUsers = [
-    { id: 'user-001', name: 'Estudiante 1' },
-    { id: 'user-456', name: 'Estudiante 2' },
-    { id: 'user-003', name: 'Estudiante 3' },
-    { id: 'doc-001', name: 'Docente 1' },
-    { id: 'doc-002', name: 'Docente 2' },
-    { id: 'doc-005', name: 'Docente 5' },
-    { id: 'doc-008', name: 'Docente 8' },
-  ];
+  let mockStorageService: jest.Mocked<ProposalStorageService>;
+  let mockRulesService: jest.Mocked<ProposalRulesService>;
+  let mockDocumentService: jest.Mocked<ProposalDocumentService>;
+  let mockApiService: jest.Mocked<ProposalApiService>;
 
   beforeEach(() => {
-    localStorage.clear();
+    // Mock del Storage
+    mockStorageService = {
+      proposals: signal([] as Proposal[]),
+      allProposals: signal([] as Proposal[]),
+      getProposalsListSnapshot: jest.fn()
+    } as unknown as jest.Mocked<ProposalStorageService>;
 
-    mockAuthService = {
-      currentUser: signal({ id: 'user-001', roles: [UserRoleType.ESTUDIANTE] }),
-      hasAnyRole: jest.fn().mockReturnValue(false)
-    };
+    // Mock de Rules
+    mockRulesService = {
+      validateProposalRules: jest.fn()
+    } as unknown as jest.Mocked<ProposalRulesService>;
 
-    // CORRECCIÓN: Definimos getAllUsers para que la inicialización del servicio funcione
-    mockUserService = {
-      getAllUsers: jest.fn().mockReturnValue(mockUsers),
-      addRoleToUser: jest.fn(),
-      removeRoleFromUser: jest.fn(),
-      getUserFullName: jest.fn().mockReturnValue('Simón Guzmán')
-    };
+    // Mock de Documents
+    mockDocumentService = {
+      addEvaluationMock: jest.fn(),
+      uploadCorrectionMock: jest.fn()
+    } as unknown as jest.Mocked<ProposalDocumentService>;
+
+    // Mock de API
+    mockApiService = {
+      getProposalByIdMock: jest.fn(),
+      createProposalMock: jest.fn(),
+      updateProposalMock: jest.fn(),
+      deleteProposalMock: jest.fn()
+    } as unknown as jest.Mocked<ProposalApiService>;
 
     TestBed.configureTestingModule({
       providers: [
         ProposalService,
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        { provide: AuthService, useValue: mockAuthService },
-        { provide: UserService, useValue: mockUserService }
+        { provide: ProposalStorageService, useValue: mockStorageService },
+        { provide: ProposalRulesService, useValue: mockRulesService },
+        { provide: ProposalDocumentService, useValue: mockDocumentService },
+        { provide: ProposalApiService, useValue: mockApiService }
       ]
     });
 
     service = TestBed.inject(ProposalService);
   });
 
-  it('Debe cargar los datos iniciales si el localStorage está vacío', () => {
-    const initialProposals = service.proposals();
-    // En initialData hay propuestas donde user-001 es autor
-    expect(initialProposals.length).toBeGreaterThan(0);
-    expect(initialProposals.some(p => p.authors?.includes('user-001'))).toBe(true);
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('Debe validar que un Director no sea el mismo Codirector', () => {
-    // Usamos objetos con ID para cumplir con la lógica del servicio
-    const invalidProposal = {
-      director: { id: 'doc-123' } as any,
-      codirector: { id: 'doc-123' } as any
-    };
-
-    const error = service.validateProposalRules(invalidProposal);
-    expect(error).toContain('no puede ser Director y Codirector');
+  it('debería crearse correctamente', () => {
+    expect(service).toBeTruthy();
   });
 
-  it('Debe validar el límite máximo de 2 propuestas por estudiante', () => {
-    const newProposal = {
-      id: 'new-prop',
-      authors: ['user-001']
-    };
+  describe('Delegación: API', () => {
+    it('debería delegar getProposalByIdMock al apiService', (done) => {
+      const mockProp = { id: '1', title: 'Test' } as Proposal;
+      mockApiService.getProposalByIdMock.mockReturnValue(of(mockProp));
 
-    const error = service.validateProposalRules(newProposal);
-    expect(error).toContain('límite máximo');
-  });
+      service.getProposalByIdMock('1').subscribe(result => {
+        expect(result).toEqual(mockProp);
+        expect(mockApiService.getProposalByIdMock).toHaveBeenCalledWith('1');
+        done();
+      });
+    });
 
-  it('Debe persistir en el signal cuando se crea una propuesta', (done) => {
-    const newProposalData: any = {
-      title: 'Nueva Propuesta Test',
-      authors: ['user-999'],
-      director: { id: 'doc-100' }
-    };
+    it('debería delegar createProposalMock al apiService', (done) => {
+      const payload = { title: 'Nueva' } as Proposal;
+      mockApiService.createProposalMock.mockReturnValue(of(payload));
 
-    service.createProposalMock(newProposalData).subscribe(() => {
-      const list = (service as any)._proposalsList();
-      const exists = list.some((p: any) => p.title === 'Nueva Propuesta Test');
-      expect(exists).toBe(true);
-      done();
+      service.createProposalMock(payload).subscribe(result => {
+        expect(result).toEqual(payload);
+        expect(mockApiService.createProposalMock).toHaveBeenCalledWith(payload);
+        done();
+      });
+    });
+
+    it('debería delegar updateProposalMock al apiService', (done) => {
+      const changes = { title: 'Modificada' } as Partial<Proposal>;
+      const updatedProp = { id: '1', ...changes } as Proposal;
+      mockApiService.updateProposalMock.mockReturnValue(of(updatedProp));
+
+      service.updateProposalMock('1', changes).subscribe(result => {
+        expect(result).toEqual(updatedProp);
+        expect(mockApiService.updateProposalMock).toHaveBeenCalledWith('1', changes);
+        done();
+      });
+    });
+
+    it('debería delegar deleteProposalMock al apiService', (done) => {
+      mockApiService.deleteProposalMock.mockReturnValue(of(true));
+
+      service.deleteProposalMock('1').subscribe(result => {
+        expect(result).toBe(true);
+        expect(mockApiService.deleteProposalMock).toHaveBeenCalledWith('1');
+        done();
+      });
     });
   });
 
-  it('Debe gestionar el cambio de roles al actualizar una propuesta', (done) => {
-    const proposalId = 'prop-001';
-    const changes = { codirector: { id: 'doc-new-specialist' } as any };
+  describe('Delegación: Reglas de Negocio', () => {
+    it('debería delegar validateProposalRules al rulesService', () => {
+      const payload = { id: '1' } as Partial<Proposal>;
+      mockRulesService.validateProposalRules.mockReturnValue('Error de validación');
 
-    service.updateProposalMock(proposalId, changes).subscribe(() => {
-      expect(mockUserService.addRoleToUser).toHaveBeenCalledWith('doc-new-specialist', UserRoleType.CODIRECTOR);
-      done();
+      const result = service.validateProposalRules(payload);
+
+      expect(result).toBe('Error de validación');
+      expect(mockRulesService.validateProposalRules).toHaveBeenCalledWith(payload);
     });
   });
 
-  it('Debe filtrar propuestas según el rol de COMITE (ver todas)', () => {
-    mockAuthService.hasAnyRole.mockReturnValue(true);
-    // Forzamos re-evaluación del computed si fuera necesario
-    const allProposals = service.proposals();
-    // En initialData hay 4 propuestas
-    expect(allProposals.length).toBe(4);
+  describe('Delegación: Documentos y Evaluaciones', () => {
+    it('debería delegar addEvaluationMock al documentService', (done) => {
+      const evalPayload = { id: 'ev-1' } as Evaluation;
+      const updatedProp = { id: '1' } as Proposal;
+      mockDocumentService.addEvaluationMock.mockReturnValue(of(updatedProp));
+
+      service.addEvaluationMock('1', evalPayload).subscribe(result => {
+        expect(result).toEqual(updatedProp);
+        expect(mockDocumentService.addEvaluationMock).toHaveBeenCalledWith('1', evalPayload);
+        done();
+      });
+    });
+
+    it('debería delegar uploadCorrectionMock al documentService', (done) => {
+      const docPayload = { id: 'doc-1' } as FileDocument;
+      const updatedProp = { id: '1' } as Proposal;
+      mockDocumentService.uploadCorrectionMock.mockReturnValue(of(updatedProp));
+
+      service.uploadCorrectionMock('1', docPayload).subscribe(result => {
+        expect(result).toEqual(updatedProp);
+        expect(mockDocumentService.uploadCorrectionMock).toHaveBeenCalledWith('1', docPayload);
+        done();
+      });
+    });
   });
 
-  it('Debe actualizar el estado de la propuesta y del documento al añadir una evaluación', (done) => {
-    const proposalId = 'prop-001';
-    const evaluation: any = {
-      veredict: stateList.APROBADO,
-      observations: 'Excelente'
-    };
+  describe('Métodos Propios: getDocumentsByProposalId', () => {
+    it('debería retornar los documentos si la propuesta existe', () => {
+      const mockDocs = [{ id: 'doc-1' }] as FileDocument[];
+      mockStorageService.getProposalsListSnapshot.mockReturnValue([
+        { id: '1', documents: mockDocs } as Proposal
+      ]);
 
-    // Agregamos un documento mock a la propuesta para la prueba
-    (service as any)._proposalsList.update((list: any[]) =>
-      list.map(p => p.id === proposalId ? { ...p, documents: [{ id: 'doc-1', status: stateList.EN_REVISION }] } : p)
-    );
+      const result = service.getDocumentsByProposalId('1');
 
-    service.addEvaluationMock(proposalId, evaluation).subscribe(() => {
-      // Accedemos a la lista interna para verificar
-      const updated = (service as any)._proposalsList().find((p: any) => p.id === proposalId);
-      expect(updated?.state).toBe(stateList.APROBADO);
-      expect(updated?.documents[0].status).toBe(stateList.APROBADO);
-      done();
+      expect(result).toEqual(mockDocs);
+      expect(mockStorageService.getProposalsListSnapshot).toHaveBeenCalled();
+    });
+
+    it('debería retornar un array vacío si la propuesta no existe', () => {
+      mockStorageService.getProposalsListSnapshot.mockReturnValue([]);
+
+      const result = service.getDocumentsByProposalId('99');
+
+      expect(result).toEqual([]);
+    });
+
+    it('debería retornar un array vacío si la propuesta existe pero no tiene documentos definidos', () => {
+      mockStorageService.getProposalsListSnapshot.mockReturnValue([
+        { id: '1' } as Proposal // Sin propiedad documents
+      ]);
+
+      const result = service.getDocumentsByProposalId('1');
+
+      expect(result).toEqual([]);
     });
   });
 });

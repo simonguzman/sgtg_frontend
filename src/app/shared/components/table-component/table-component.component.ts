@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { TableModule } from 'primeng/table';
+import { Table, TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { CommonModule } from '@angular/common';
 import { StateComponent } from '../state/state.component';
@@ -19,7 +19,7 @@ export interface ActionButton{
   label?: string;
   icon?: string;
   variant: 'primary' | 'secondary';
-  disabled: true | false;
+  disabled: boolean;
 }
 
 export interface Column{
@@ -30,6 +30,11 @@ export interface Column{
   width ?: string;
   filterable?: boolean; // 🚀 NUEVO: Propiedad opcional para activar el filtro
 }
+
+export type TableRow = {
+  [key: string]: any; // Permitir cualquier propiedad dinámica
+  allowedActions?: string[];
+};
 
 @Component({
   selector: 'app-table-component',
@@ -48,7 +53,7 @@ export class TableComponent {
 
   protected Array = Array;
 
-  @Input() value: any[] = [];
+  @Input() value: TableRow[] = [];
   @Input() columns: Column[] = [];
   @Input() rows: number = 5;
   @Input() paginator : boolean = false;
@@ -64,5 +69,10 @@ export class TableComponent {
     return this.filterFields.length > 0
       ? this.filterFields
       : this.columns.map(col => col.field);
+  }
+
+  onSearch(event: Event, table: Table): void {
+    const input = event.target as HTMLInputElement;
+    table.filterGlobal(input.value, 'contains');
   }
 }

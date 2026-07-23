@@ -4,7 +4,6 @@ import { UserService } from '../../users/services/user.service';
 import { Proposal } from '../interfaces/proposal.interface';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 
-
 @Injectable({
   providedIn: 'root'
 })
@@ -17,14 +16,14 @@ export class ProposalRulesService {
    * y un máximo estricto de 2 propuestas activas por estudiante.
    */
   validateProposalRules(proposal: Partial<Proposal>): string | null {
-    if (proposal.director && proposal.codirector && proposal.director.id === proposal.codirector.id) {
+    if (proposal.director?.id && proposal.director.id === proposal.codirector?.id) {
       return 'Un docente no puede ser Director y Codirector simultáneamente.';
     }
 
     if (proposal.authors && proposal.authors.length > 0) {
       for (const author of proposal.authors) {
-        const activeCount = this.storage.getProposalsListSnapshot().filter(p =>
-          p.authors?.some(a => a.id === author.id) && p.id !== proposal.id
+        const activeCount = this.storage.getProposalsListSnapshot().filter(activeProposal =>
+          activeProposal.authors?.some(authorProposal => authorProposal.id === author.id) && activeProposal.id !== proposal.id
         ).length;
 
         if (activeCount >= 2) {
@@ -51,10 +50,10 @@ export class ProposalRulesService {
     if (newId) this.userService.addRoleToUser(newId, role);
 
     if (oldId) {
-      const isStillLinked = this.storage.getProposalsListSnapshot().some(p =>
-        p.id !== currentProposalId && (
-          (role === UserRoleType.CODIRECTOR && p.codirector?.id === oldId) ||
-          (role === UserRoleType.ASESOR && p.advisor?.id === oldId)
+      const isStillLinked = this.storage.getProposalsListSnapshot().some(proposal =>
+        proposal.id !== currentProposalId && (
+          (role === UserRoleType.CODIRECTOR && proposal.codirector?.id === oldId) ||
+          (role === UserRoleType.ASESOR && proposal.advisor?.id === oldId)
         )
       );
 

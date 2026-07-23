@@ -1,144 +1,139 @@
-/* tslint:disable:no-unused-variable */
-import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { Location } from '@angular/common';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProposalEditPageComponent } from './proposal-edit-page.component';
-import { Modality, Proposal } from '../../interfaces/proposal.interface';
-import { stateList } from '../../../../core/enums/state.enum';
-import { ProposalService } from '../../services/proposal.service';
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { ActivatedRoute, Router } from '@angular/router';
-import { of, Subject, throwError } from 'rxjs';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { signal } from '@angular/core';
-import { AuthService } from '../../../../core/services/auth/auth.service';
-import { UserRoleType } from '../../../../core/models/user-role';
+import { Location } from '@angular/common';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { ProposalEditFacadeService } from './services/proposal-edit-facade.service';
+import { Proposal } from '../../interfaces/proposal.interface';
+
+// 1. Importar los componentes REALES para poder removerlos del componente standalone
+import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { ProposalFormComponent } from '../../components/proposal-form/proposal-form.component';
+import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+
+// 2. Mocks de componentes standalone hijos
+@Component({ selector: 'app-proposal-form', standalone: true, template: '' })
+class MockProposalFormComponent {
+  @Input() proposal!: Proposal;
+  @Output() onSubmit = new EventEmitter<Proposal>();
+}
+
+@Component({ selector: 'app-confirmation-action-modal', standalone: true, template: '' })
+class MockConfirmationModalComponent {
+  @Input() isOpen = false;
+  @Input() description = '';
+  @Output() onClose = new EventEmitter<void>();
+  @Output() confirm = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-info-banner', standalone: true, template: '' })
+class MockInfoBannerComponent {
+  @Input() title = '';
+}
 
 describe('ProposalEditPageComponent', () => {
   let component: ProposalEditPageComponent;
   let fixture: ComponentFixture<ProposalEditPageComponent>;
 
-  let mockProposalService: any;
-  let mockNotificationService: any;
-  let mockRouter: any;
-  let mockActivatedRoute: any;
-  let mockLocation: any;
-  let mockAuthService: any;
-
-  const mockProposal: any = {
-    id: '123',
-    title: 'Propuesta Original',
-    description: 'Descripción original',
-    modality: Modality.TI,
-    state: stateList.EN_REVISION,
-    authors: ['user-1'],
-    director: { id: 'doc-100' }, // Corregido: estructura de objeto
-    createdAt: new Date(),
-    documents: [],
-    evaluations: []
+  let mockRouter: { navigate: jest.Mock };
+  let mockRoute: { snapshot: { paramMap: { get: jest.Mock } } };
+  let mockLocation: { back: jest.Mock };
+  let mockFacade: {
+    loadAndAuthorize: jest.Mock;
+    validateRules: jest.Mock;
+    saveUpdate: jest.Mock;
+    showValidationError: jest.Mock;
   };
 
+  const mockProposal = { id: '1', title: 'Test' } as unknown as Proposal;
+
   beforeEach(async () => {
-    mockProposalService = {
-      getProposalByIdMock: jest.fn().mockReturnValue(of(mockProposal)),
-      updateProposalMock: jest.fn(),
-      // SOLUCIÓN AL ERROR: Agregar la función que faltaba
-      validateProposalRules: jest.fn().mockReturnValue(null),
-      proposals: signal([])
-    };
-
-    mockAuthService = {
-      currentUser: signal({ id: 'doc-100', roles: [UserRoleType.DIRECTOR] }),
-      hasAnyRole: jest.fn().mockReturnValue(true)
-    };
-
-    mockNotificationService = { show: jest.fn() };
     mockRouter = { navigate: jest.fn() };
+    mockRoute = { snapshot: { paramMap: { get: jest.fn() } } };
     mockLocation = { back: jest.fn() };
-    mockActivatedRoute = {
-      snapshot: {
-        paramMap: { get: jest.fn().mockReturnValue('123') }
-      }
+    mockFacade = {
+      loadAndAuthorize: jest.fn(),
+      validateRules: jest.fn(),
+      saveUpdate: jest.fn(),
+      showValidationError: jest.fn(),
     };
 
     await TestBed.configureTestingModule({
       imports: [ProposalEditPageComponent],
       providers: [
-        { provide: ProposalService, useValue: mockProposalService },
-        { provide: AuthService, useValue: mockAuthService },
-        { provide: NotificationService, useValue: mockNotificationService },
-        { provide: Router, useValue: mockRouter },
-        { provide: ActivatedRoute, useValue: mockActivatedRoute },
-        { provide: Location, useValue: mockLocation }
-      ]
-    }).compileComponents();
+        { provide: Router, useValue: mockRouter as unknown as Router },
+        { provide: ActivatedRoute, useValue: mockRoute as unknown as ActivatedRoute },
+        { provide: Location, useValue: mockLocation as unknown as Location },
+        { provide: ProposalEditFacadeService, useValue: mockFacade as unknown as ProposalEditFacadeService },
+      ],
+    })
+    .overrideComponent(ProposalEditPageComponent, {
+      // AQUÍ ESTABA EL ERROR: Ahora removemos los reales y agregamos los mocks
+      remove: { imports: [ConfirmationActionModalComponent, ProposalFormComponent, InfoBannerComponent] },
+      add: { imports: [MockConfirmationModalComponent, MockProposalFormComponent, MockInfoBannerComponent] },
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(ProposalEditPageComponent);
     component = fixture.componentInstance;
   });
 
-  it('Debe crear el componente', () => {
-    fixture.detectChanges();
-    expect(component).toBeTruthy();
+  describe('ngOnInit', () => {
+    it('debe navegar a /proposal si no hay ID en la ruta', () => {
+      mockRoute.snapshot.paramMap.get.mockReturnValue(null);
+      fixture.detectChanges();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/proposal']);
+      expect(mockFacade.loadAndAuthorize).not.toHaveBeenCalled();
+    });
+
+    it('debe llamar a facade.loadAndAuthorize y setear proposalToEdit en éxito', () => {
+      mockRoute.snapshot.paramMap.get.mockReturnValue('1');
+      fixture.detectChanges();
+
+      // Simulamos que la fachada resuelve con éxito (primer callback)
+      const onSuccess = mockFacade.loadAndAuthorize.mock.calls[0][1];
+      onSuccess(mockProposal);
+
+      expect(component.proposalToEdit()).toEqual(mockProposal);
+    });
   });
 
-  it('Debe cargar la propuesta al iniciar', () => {
-    fixture.detectChanges();
-    expect(mockProposalService.getProposalByIdMock).toHaveBeenCalledWith('123');
-    expect(component.proposalToEdit()).toEqual(mockProposal);
+  describe('handleUpdate', () => {
+    it('debe mostrar error de validación si la fachada retorna un mensaje', () => {
+      mockFacade.validateRules.mockReturnValue('Error de validación');
+      component.handleUpdate(mockProposal);
+
+      expect(mockFacade.showValidationError).toHaveBeenCalledWith('Error de validación');
+      expect(component.isModalOpen()).toBeFalsy();
+    });
+
+    it('debe abrir el modal y setear pendingData si no hay errores', () => {
+      mockFacade.validateRules.mockReturnValue(null);
+      component.handleUpdate(mockProposal);
+
+      expect(component.pendingData()).toEqual(mockProposal);
+      expect(component.isModalOpen()).toBeTruthy();
+    });
   });
 
-  it('Debe navegar hacia atrás al llamar a goBack()', () => {
-    component.goBack();
-    expect(mockLocation.back).toHaveBeenCalled();
-  });
+  describe('confirmUpdate', () => {
+    beforeEach(() => {
+      component.proposalToEdit.set(mockProposal);
+      component.pendingData.set({ ...mockProposal, title: 'Updated' } as unknown as Proposal);
+    });
 
-  it('Debe actualizar el estado de confirmación en handleUpdate()', () => {
-    fixture.detectChanges();
-    const updatedData = { ...mockProposal, title: 'Título Actualizado' };
-    component.handleUpdate(updatedData);
+    it('debe llamar a saveUpdate de la fachada y navegar en éxito', () => {
+      component.confirmUpdate();
 
-    expect(component.confirmState.show).toBe(true);
-    expect(component.confirmState.pendingData).toEqual(updatedData);
-  });
+      expect(component.isModalOpen()).toBeFalsy();
 
-  it('Debe completar el flujo de actualización exitosamente', fakeAsync(() => {
-    fixture.detectChanges();
-    const updatedData = { ...mockProposal, title: 'Título Actualizado' };
-    component.handleUpdate(updatedData);
+      // Simulamos callback de éxito de la fachada
+      const onSuccess = mockFacade.saveUpdate.mock.calls[0][2];
+      onSuccess();
 
-    mockProposalService.updateProposalMock.mockReturnValue(of(undefined));
-
-    component.confirmUpdate();
-    tick();
-
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/proposal']);
-    expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-      type: NotificationType.CONFIRMATION
-    }));
-    expect(component.confirmState.show).toBe(false);
-  }));
-
-  it('Debe manejar el error si la actualización falla', fakeAsync(() => {
-    fixture.detectChanges();
-    component.handleUpdate(mockProposal);
-
-    mockProposalService.updateProposalMock.mockReturnValue(throwError(() => new Error('Error')));
-
-    component.confirmUpdate();
-    tick();
-
-    expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-      type: NotificationType.ERROR
-    }));
-    expect(component.confirmState.show).toBe(false);
-  }));
-
-  it('Debe resetear el estado al cancelar la actualización', () => {
-    fixture.detectChanges();
-    component.handleUpdate(mockProposal);
-    component.cancelUpdate();
-
-    expect(component.confirmState.show).toBe(false);
-    expect(component.confirmState.pendingData).toBeNull();
+      expect(component.pendingData()).toBeNull();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/proposal']);
+    });
   });
 });

@@ -1,200 +1,208 @@
-/* tslint:disable:no-unused-variable */
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
-import { ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
-
-import { of, throwError } from 'rxjs';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { By } from '@angular/platform-browser';
 
 import { EvaluationProposalPageComponent } from './evaluation-proposal-page.component';
+import { EvaluationProposalFacadeService } from './services/evaluation-proposal-facade.service';
+import { Proposal } from '../../interfaces/proposal.interface';
 
-import { ProposalService } from '../../services/proposal.service';
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
-import { UserService } from '../../../users/services/user.service';
-import { AuthService } from '../../../../core/services/auth/auth.service';
+// Importamos el componente real para poder removerlo en la configuración del TestBed
+import { EvaluationProposalFormComponent } from '../../components/evaluation-proposal-form/evaluation-proposal-form.component';
 
-import { stateList } from '../../../../core/enums/state.enum';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-
-import { Modality } from '../../interfaces/proposal.interface';
-import { UserRoleType } from '../../../../core/models/user-role';
+// ============================================================================
+// MOCK DEL COMPONENTE HIJO
+// ============================================================================
+@Component({
+  selector: 'app-evaluation-proposal-form',
+  standalone: true,
+  template: '<div>Mock Form Component</div>'
+})
+class MockEvaluationProposalFormComponent {
+  @Input() proposal!: Proposal;
+  @Output() onDownloadOriginal = new EventEmitter<void>();
+  // Tipado estricto en lugar de EventEmitter<any>
+  @Output() onSaveEvaluation = new EventEmitter<{ result: string; comments: string; signedFileName: string }>();
+  @Output() onGoBack = new EventEmitter<void>();
+}
 
 describe('EvaluationProposalPageComponent', () => {
   let component: EvaluationProposalPageComponent;
   let fixture: ComponentFixture<EvaluationProposalPageComponent>;
 
-  let mockProposalService: any;
-  let mockNotificationService: any;
-  let mockDownloadService: any;
-  let mockUserService: any;
-  let mockAuthService: any;
-  let mockRouter: any;
-  let mockLocation: any;
-  let mockActivatedRoute: any;
+  let mockFacade: jest.Mocked<EvaluationProposalFacadeService>;
+  let mockLocation: jest.Mocked<Location>;
 
-  // CORRECCIÓN: El objeto debe tener director.id, codirector.id, etc.
-  const mockProposal: any = {
-    id: 'proposal-1',
-    title: 'Propuesta Test',
-    description: 'Descripción de prueba',
-    modality: Modality.PP,
-    state: stateList.EN_REVISION,
-    authors: ['student-1'],
-    director: { id: 'director-1' },    // Cambiado de directorId a objeto
-    codirector: { id: 'codirector-1' }, // Cambiado de string a objeto
-    advisor: { id: 'advisor-1' },       // Cambiado de string a objeto
-    documents: [
-      {
-        id: 'doc-1',
-        name: 'Documento.pdf',
-        url: 'http://test.com/file.pdf',
-        uploadDate: new Date('2025-01-01'), // Aseguramos que sea Date o string válido
-        type: 'Propuesta',
-        status: stateList.EN_REVISION
-      }
-    ],
-    evaluations: [],
-    createdAt: new Date()
-  };
+  // Tipado estricto para el mock de la ruta
+  let mockActivatedRoute: jest.Mocked<ActivatedRoute>;
+
+  const mockProposal: Proposal = { id: 'prop-1', title: 'Propuesta 1' } as Proposal;
 
   beforeEach(async () => {
-    mockProposalService = {
-      getProposalByIdMock: jest.fn().mockReturnValue(of(mockProposal)),
-      validateProposalRules: jest.fn().mockReturnValue(null),
-      addEvaluationMock: jest.fn().mockReturnValue(of(undefined))
-    };
+    mockFacade = {
+      load: jest.fn(),
+      downloadOriginalDocument: jest.fn(),
+      saveEvaluation: jest.fn()
+    } as unknown as jest.Mocked<EvaluationProposalFacadeService>;
 
-    mockNotificationService = { show: jest.fn() };
-    mockDownloadService = { download: jest.fn() };
-    mockUserService = {
-      getAuthorsNames: jest.fn().mockReturnValue('Juan Perez'),
-      getUserFullName: jest.fn().mockImplementation((id: string) => `Usuario ${id}`)
-    };
+    mockLocation = {
+      back: jest.fn()
+    } as unknown as jest.Mocked<Location>;
 
-    mockAuthService = {
-      currentUser: signal({
-        id: 'user-1',
-        firstName: 'Simon',
-        lastName: 'Guzman',
-        roles: [UserRoleType.COMITE]
-      })
-    };
-
-    mockRouter = { navigate: jest.fn() };
-    mockLocation = { back: jest.fn() };
+    // Configuración del mock de la ruta sin usar 'any'
     mockActivatedRoute = {
-      snapshot: {
-        paramMap: { get: jest.fn().mockReturnValue('proposal-1') }
-      },
-      parent: {
-        snapshot: {
-          paramMap: { get: jest.fn().mockReturnValue('proposal-1') }
-        }
-      }
-    };
+      snapshot: { paramMap: { get: jest.fn() } },
+      parent: { snapshot: { paramMap: { get: jest.fn() } } }
+    } as unknown as jest.Mocked<ActivatedRoute>;
 
     await TestBed.configureTestingModule({
-      imports: [EvaluationProposalPageComponent, ReactiveFormsModule],
+      imports: [EvaluationProposalPageComponent],
       providers: [
-        { provide: ProposalService, useValue: mockProposalService },
-        { provide: NotificationService, useValue: mockNotificationService },
-        { provide: FileDownloadService, useValue: mockDownloadService },
-        { provide: UserService, useValue: mockUserService },
-        { provide: AuthService, useValue: mockAuthService },
-        { provide: Router, useValue: mockRouter },
+        { provide: EvaluationProposalFacadeService, useValue: mockFacade },
         { provide: Location, useValue: mockLocation },
         { provide: ActivatedRoute, useValue: mockActivatedRoute }
-      ],
-      schemas: [NO_ERRORS_SCHEMA]
-    }).compileComponents();
+      ]
+    })
+    .overrideComponent(EvaluationProposalPageComponent, {
+      // AQUÍ ESTÁ LA SOLUCIÓN: Removemos explícitamente el componente real
+      remove: { imports: [EvaluationProposalFormComponent] },
+      add: { imports: [MockEvaluationProposalFormComponent] }
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(EvaluationProposalPageComponent);
     component = fixture.componentInstance;
-
-    // Ejecutamos la detección de cambios inicial para que ngOnInit se complete
-    fixture.detectChanges();
   });
 
-  it('Debe crear el componente', () => {
-    expect(component).toBeTruthy();
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('Debe cargar la propuesta correctamente', () => {
-    expect(component.proposal()).toEqual(mockProposal);
+  describe('ngOnInit (Resolución de ID y Carga)', () => {
+    it('debería crearse correctamente', () => {
+      expect(component).toBeTruthy();
+    });
+
+    it('debería regresar (goBack) si no encuentra ID en la ruta ni en el padre', () => {
+      (mockActivatedRoute.snapshot.paramMap.get as jest.Mock).mockReturnValue(null);
+      (mockActivatedRoute.parent!.snapshot.paramMap.get as jest.Mock).mockReturnValue(null);
+
+      fixture.detectChanges();
+
+      expect(mockLocation.back).toHaveBeenCalled();
+      expect(mockFacade.load).not.toHaveBeenCalled();
+    });
+
+    it('debería tomar el ID de la ruta principal y llamar a facade.load', () => {
+      (mockActivatedRoute.snapshot.paramMap.get as jest.Mock).mockReturnValue('123');
+
+      fixture.detectChanges();
+
+      expect(mockFacade.load).toHaveBeenCalledWith(
+        '123',
+        expect.any(Function),
+        expect.any(Function)
+      );
+    });
+
+    it('debería tomar el ID del parent si no está en la ruta principal', () => {
+      (mockActivatedRoute.snapshot.paramMap.get as jest.Mock).mockReturnValue(null);
+      (mockActivatedRoute.parent!.snapshot.paramMap.get as jest.Mock).mockReturnValue('456');
+
+      fixture.detectChanges();
+
+      expect(mockFacade.load).toHaveBeenCalledWith('456', expect.any(Function), expect.any(Function));
+    });
+
+    it('debería asignar la propuesta al Signal si la carga es exitosa', () => {
+      (mockActivatedRoute.snapshot.paramMap.get as jest.Mock).mockReturnValue('123');
+
+      mockFacade.load.mockImplementation((id, onSuccess, onNotFound) => {
+        onSuccess(mockProposal);
+      });
+
+      fixture.detectChanges();
+
+      expect(component.proposal()).toEqual(mockProposal);
+    });
+
+    it('debería regresar (goBack) si falla la carga (onNotFound)', () => {
+      (mockActivatedRoute.snapshot.paramMap.get as jest.Mock).mockReturnValue('123');
+
+      mockFacade.load.mockImplementation((id, onSuccess, onNotFound) => {
+        onNotFound();
+      });
+
+      fixture.detectChanges();
+
+      expect(mockLocation.back).toHaveBeenCalled();
+      expect(component.proposal()).toBeNull();
+    });
   });
 
-  it('Debe regresar si no encuentra id', () => {
-    // Simulamos que no hay ID en la ruta
-    mockActivatedRoute.snapshot.paramMap.get.mockReturnValue(null);
-    if (mockActivatedRoute.parent) {
-      mockActivatedRoute.parent.snapshot.paramMap.get.mockReturnValue(null);
-    }
+  describe('Interacciones y Llamadas al Facade', () => {
+    beforeEach(() => {
+      component.proposal.set(mockProposal);
+    });
 
-    component.ngOnInit();
-    expect(mockLocation.back).toHaveBeenCalled();
+    it('debería llamar a goBack correctamente', () => {
+      component.goBack();
+      expect(mockLocation.back).toHaveBeenCalled();
+    });
+
+    it('downloadOriginalDocument: debería delegar al facade si hay propuesta', () => {
+      component.downloadOriginalDocument();
+      expect(mockFacade.downloadOriginalDocument).toHaveBeenCalledWith(mockProposal);
+    });
+
+    it('downloadOriginalDocument: NO debería hacer nada si no hay propuesta (null)', () => {
+      component.proposal.set(null);
+      component.downloadOriginalDocument();
+      expect(mockFacade.downloadOriginalDocument).not.toHaveBeenCalled();
+    });
+
+    it('handleSaveEvaluation: debería delegar al facade si hay propuesta', () => {
+      const mockEvent = { result: 'Aprobado', comments: 'Ok', signedFileName: 'firma.pdf' };
+
+      component.handleSaveEvaluation(mockEvent);
+
+      expect(mockFacade.saveEvaluation).toHaveBeenCalledWith(
+        mockEvent,
+        mockProposal,
+        mockActivatedRoute,
+        expect.any(Function)
+      );
+    });
+
+    it('handleSaveEvaluation: NO debería hacer nada si no hay propuesta', () => {
+      component.proposal.set(null);
+      component.handleSaveEvaluation({ result: '', comments: '', signedFileName: '' });
+      expect(mockFacade.saveEvaluation).not.toHaveBeenCalled();
+    });
   });
 
-  it('Debe regresar si ocurre error cargando propuesta', () => {
-    mockProposalService.getProposalByIdMock.mockReturnValue(throwError(() => new Error('Error')));
-    component.ngOnInit();
-    expect(mockLocation.back).toHaveBeenCalled();
-  });
+  describe('Renderizado del Template', () => {
+    it('debería mostrar mensaje de carga mientras proposal sea nulo', () => {
+      component.proposal.set(null);
+      fixture.detectChanges();
 
-  it('Debe guardar archivo firmado correctamente', () => {
-    const file = new File(['contenido'], 'firma.pdf');
-    component.handleFileUploaded({ fileName: 'firma.pdf', file });
-    expect(component.signedFile()).toEqual({ name: 'firma.pdf' });
-    expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Formato A adjuntado'
-    }));
-  });
+      const loadingDiv = fixture.debugElement.query(By.css('.text-center.text-\\[\\#777680\\]'));
+      expect(loadingDiv).toBeTruthy();
+      expect(loadingDiv.nativeElement.textContent).toContain('Cargando información de la propuesta...');
+    });
 
-  it('Debe remover archivo firmado', () => {
-    component.signedFile.set({ name: 'firma.pdf' });
-    component.removeSignedFile();
-    expect(component.signedFile()).toBeNull();
-  });
+    it('debería mostrar el formulario hijo si la propuesta está cargada', () => {
+      component.proposal.set(mockProposal);
+      fixture.detectChanges();
 
-  it('Debe descargar documento original', () => {
-    component.downloadOriginalDocument();
-    expect(mockDownloadService.download).toHaveBeenCalled();
-  });
+      const formComponent = fixture.debugElement.query(By.directive(MockEvaluationProposalFormComponent));
+      const loadingDiv = fixture.debugElement.query(By.css('.text-center'));
 
-  it('Debe mostrar error si formulario está inválido al enviar', () => {
-    component.evaluationForm.patchValue({ result: '', comments: '' });
-    component.initiateEvaluationSubmit();
-    expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Formulario incompleto'
-    }));
-  });
+      expect(formComponent).toBeTruthy();
+      expect(loadingDiv).toBeNull();
 
-  it('Debe abrir modal de confirmación si el formulario y archivo son válidos', () => {
-    component.evaluationForm.patchValue({ result: 'Aprobado', comments: 'Excelente' });
-    component.signedFile.set({ name: 'firma.pdf' });
-    component.initiateEvaluationSubmit();
-    expect(component.modalState().confirm).toBe(true);
-  });
-
-  it('Debe registrar la evaluación y navegar al finalizar', () => {
-    component.evaluationForm.patchValue({ result: 'Aprobado', comments: 'Excelente' });
-    component.signedFile.set({ name: 'firma.pdf' });
-
-    component.confirmEvaluation();
-
-    expect(mockProposalService.addEvaluationMock).toHaveBeenCalled();
-    expect(mockRouter.navigate).toHaveBeenCalled();
-  });
-
-  it('Debe manejar errores del servidor al confirmar evaluación', () => {
-    mockProposalService.addEvaluationMock.mockReturnValue(throwError(() => new Error('API Error')));
-    component.evaluationForm.patchValue({ result: 'Aprobado', comments: 'Excelente' });
-    component.signedFile.set({ name: 'firma.pdf' });
-
-    component.confirmEvaluation();
-    expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'Error de servidor'
-    }));
+      expect(formComponent.componentInstance.proposal).toEqual(mockProposal);
+    });
   });
 });

@@ -2,7 +2,7 @@
   <div class="bg-white rounded-lg shadow-sm p-6">
 
     <div class="mb-6">
-      <button (click)="goBack()" class="flex items-center gap-2 text-navy-900 font-bold group w-fit">
+      <button (click)="facade.goBack()" class="flex items-center gap-2 text-navy-900 font-bold group w-fit">
         <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
           arrow_back
         </span>
@@ -11,22 +11,20 @@
     </div>
 
     <app-tabs
-      [tabs]="tabs"
-      [activeTab]="activeTab()"
-      (tabChange)="activeTab.set($event)"
+      [tabs]="facade.tabs"
+      [activeTab]="facade.activeTab()"
+      (tabChange)="facade.activeTab.set($event)"
     ></app-tabs>
 
     <div class="mt-6">
       <app-table-component
-        [value]="currentTableData()"
-        [columns]="currentColumns()"
+        [value]="facade.currentTableData()"
+        [columns]="facade.currentColumns()"
         [paginator]="true"
-        [headerButtons]="currentHeaderButtons()"
-        (headerButtonClick)="handleHeaderButton($event)"
-        (actionClick)="handleTableAction($event)"
-        [emptyMessage]="activeTab() === 'ANTEPROYECTOS'
-          ? 'No han sido registrados documentos de anteproyecto en el sistema'
-          : 'No hay presentaciones registradas para este anteproyecto'"
+        [headerButtons]="facade.currentHeaderButtons()"
+        (headerButtonClick)="facade.handleHeaderButton($event)"
+        (actionClick)="facade.handleTableAction($event)"
+        [emptyMessage]="facade.emptyMessage()"
       ></app-table-component>
     </div>
 
@@ -34,20 +32,16 @@
 </div>
 
 <app-file-upload-modal
-  [isOpen]="isUploadModalOpen()"
-  [description]="activeTab() === 'ANTEPROYECTOS'
-    ? 'Seleccione el archivo PDF del anteproyecto'
-    : 'Seleccione el archivo PDF de la presentación'"
-  [uploadedBy]="activeTab() === 'ANTEPROYECTOS' ? 'Estudiante' : 'Jefe de Departamento'"
-  (onFileUploaded)="onFileSelected($event)"
-  (onClose)="isUploadModalOpen.set(false)"
+  [isOpen]="facade.isUploadModalOpen()"
+  [description]="facade.uploadModalDescription()"
+  [uploadedBy]="facade.uploadModalUserRole()"
+  (onFileUploaded)="facade.onFileSelected($event)"
+  (onClose)="facade.isUploadModalOpen.set(false)"
 ></app-file-upload-modal>
 
 <app-confirmation-action-modal
-  [isOpen]="isConfirmModalOpen()"
-  [description]="activeTab() === 'ANTEPROYECTOS'
-    ? '¿Está seguro de cargar este anteproyecto? El estado cambiará a \'En revisión\'.'
-    : '¿Está seguro de cargar esta presentación al consejo?'"
-  (confirm)="confirmUpload()"
-  (onClose)="cancelUpload()"
+  [isOpen]="facade.isConfirmModalOpen()"
+  [description]="facade.confirmModalDescription()"
+  (confirm)="facade.confirmUpload()"
+  (onClose)="facade.cancelUpload()"
 ></app-confirmation-action-modal>

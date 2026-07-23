@@ -1,21 +1,21 @@
 <div class="mb-6">
-  <button (click)="goBack()" class="flex items-center gap-2 text-navy-900 font-bold group">
+  <button (click)="facade.goBack()" class="flex items-center gap-2 text-navy-900 font-bold group">
     <span class="material-symbols-outlined text-[#000066] group-hover:-translate-x-1 transition-transform">arrow_back</span>
     <span>Regresar</span>
   </button>
 </div>
 
-@if (preliminaryDraft()) {
+@if (facade.filteredPreliminaryDraft(); as draft) {
   <app-review-presentations-faculty-council-form
-    [preliminaryDraft]="filteredPreliminaryDraft()!"
-    (onSaveEvaluation)="handleRequestConfirmation($event)"
-    (onDownloadFile)="downloadFile($event)">
+    [preliminaryDraft]="draft"
+    (onSaveEvaluation)="facade.handleRequestConfirmation($event)"
+    (onDownloadFile)="facade.downloadFile($event)">
   </app-review-presentations-faculty-council-form>
 }
 
 <app-confirmation-action-modal
-  [isOpen]="isConfirmModalOpen()"
+  [isOpen]="facade.isConfirmModalOpen()"
   description="¿Está seguro de registrar la decisión del consejo de facultad? Esta acción actualizará el estado definitivo del trabajo de grado."
-  (onClose)="isConfirmModalOpen.set(false)"
-  (confirm)="processCouncilDecision()">
+  (onClose)="facade.isConfirmModalOpen.set(false)"
+  (confirm)="facade.processCouncilDecision()">
 </app-confirmation-action-modal>

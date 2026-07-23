@@ -1,9 +1,9 @@
 <div class="pt-2 max-w-5xl mx-auto">
 
-  <!-- Encabezado -->
   <div class="flex justify-between items-center mb-6">
     <button
-      (click)="goBack()" class="flex items-center gap-2 text-navy-900 hover:text-navy-700 transition-colors font-bold group"
+      (click)="facade.goBack()"
+      class="flex items-center gap-2 text-navy-900 hover:text-navy-700 transition-colors font-bold group"
     >
       <span class="material-symbols-outlined text-[#000066] font-semibold text-size-sidebar-title font-display group-hover:-translate-x-1 transition-transform">
         arrow_back
@@ -16,24 +16,22 @@
         <app-button-component
           label="Evaluaciones realizadas"
           variant="primary"
-          (onClick)="router.navigate(['evaluations_performed'], { relativeTo: route })"
+          (onClick)="navigateToEvaluations()"
         ></app-button-component>
         <app-button-component
           label="Propuestas cargadas"
           variant="primary"
-          (onClick)="router.navigate(['loaded_proposals'], { relativeTo: route })"
+          (onClick)="navigateToLoadedProposals()"
         ></app-button-component>
       </div>
     }
   </div>
 
-  <!-- Loading -->
   @if (!proposal()) {
     <div class="text-center text-gray-500">Cargando información...</div>
   }
 
-  <!-- Contenido -->
-  @if (proposal(); as proposal) {
+  @if (proposal(); as p) {
 
     <h3 class="font-semibold text-size-header-title font-display text-primary mb-4">
       Información de la propuesta
@@ -41,10 +39,10 @@
 
     <div class="space-y-3">
       @for (item of [
-        { label: 'Título',      value: proposal.title       },
-        { label: 'Descripción', value: proposal.description },
-        { label: 'Modalidad',   value: proposal.modality    },
-        { label: 'Estado',      value: proposal.state       }
+        { label: 'Título',      value: p.title       },
+        { label: 'Descripción', value: p.description },
+        { label: 'Modalidad',   value: p.modality    },
+        { label: 'Estado',      value: p.state       }
       ]; track item.label) {
         <div class="p-3 information-block rounded">
           <span class="font-semibold font-display text-size-section text-primary">{{ item.label }}</span>
@@ -60,24 +58,24 @@
     <div class="p-4 information-block rounded space-y-2">
       <div>
         <span class="font-semibold font-display text-size-section text-primary">Estudiante(s): </span>
-        <span class="font-normal font-sans text-size-section text-[#777680]">{{ getAuthors(proposal.authors || []) }}</span>
+        <span class="font-normal font-sans text-size-section text-[#777680]">{{ facade.getAuthors(p.authors) }}</span>
       </div>
       <div>
         <span class="font-semibold font-display text-size-section text-primary">Director: </span>
-        <span class="font-normal font-sans text-size-section text-[#777680]">{{ getMemberName(proposal.director) }}</span>
+        <span class="font-normal font-sans text-size-section text-[#777680]">{{ facade.getMemberName(p.director) }}</span>
       </div>
-      @if (proposal.codirector) {
+      @if (p.codirector) {
         <div>
           <span class="font-semibold font-display text-size-section text-primary">Codirector: </span>
-          <span class="font-normal font-sans text-size-section text-[#777680]">{{ getMemberName(proposal.codirector) }}</span>
+          <span class="font-normal font-sans text-size-section text-[#777680]">{{ facade.getMemberName(p.codirector) }}</span>
         </div>
       }
-      @if (proposal.advisor) {
-      <div>
-        <span class="font-semibold font-display text-size-section text-primary">Asesor: </span>
-        <span class="font-normal font-sans text-size-section text-[#777680]">{{ getMemberName(proposal.advisor) }}</span>
-      </div>
-    }
+      @if (p.advisor) {
+        <div>
+          <span class="font-semibold font-display text-size-section text-primary">Asesor: </span>
+          <span class="font-normal font-sans text-size-section text-[#777680]">{{ facade.getMemberName(p.advisor) }}</span>
+        </div>
+      }
     </div>
 
   }

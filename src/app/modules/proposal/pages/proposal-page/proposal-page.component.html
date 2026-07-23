@@ -1,6 +1,6 @@
 <app-table-component
-  [value]="proposalsWithPermissions()"
-  [headerButtons]="headerButtons"
+  [value]="facade.proposalsTableData()"
+  [headerButtons]="facade.headerButtons()"
   [columns]="columns"
   [paginator]="true"
   [filterFields]="filterFields"

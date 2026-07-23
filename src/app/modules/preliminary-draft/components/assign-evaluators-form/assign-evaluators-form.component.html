@@ -1,5 +1,5 @@
 <div class="p-6 bg-white rounded-lg w-full">
-  <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-8">
+  <form [formGroup]="facade.form" (ngSubmit)="submit()" class="flex flex-col gap-8">
 
     <app-info-banner title="Asignación de jurados evaluadores">
       Seleccione los docentes encargados de realizar la evaluación de este anteproyecto. Recuerde <strong>verificar los posibles conflictos de interés</strong> antes de proceder con la asignación. Una vez confirmada, los jurados serán notificados para iniciar su proceso de revisión.
@@ -11,7 +11,6 @@
       </h3>
 
       <div class="flex flex-col gap-4">
-
         <!-- Template actualizado para soportar textarea -->
         <ng-template #readOnlyField let-label="label" let-value="value" let-isTextArea="isTextArea">
           <div class="flex flex-col gap-1">
@@ -19,18 +18,16 @@
               {{ label }}
             </span>
             @if (isTextArea) {
-              <textarea [value]="value || 'Sin descripción disponible'" disabled rows="4"
+              <textarea id="" [value]="value || 'Sin descripción disponible'" disabled rows="4"
                         class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body resize-none"></textarea>
             } @else {
-              <input type="text" [value]="value" disabled
+              <input id="" type="text" [value]="value" disabled
                      class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body">
             }
           </div>
         </ng-template>
 
         <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Título', value: preliminaryDraft().proposalData.title }"></ng-container>
-
-        <!-- Nuevo campo de Descripción -->
         <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Descripción', value: preliminaryDraft().proposalData.description, isTextArea: true }"></ng-container>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -38,17 +35,17 @@
             <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Modalidad del trabajo de grado', value: preliminaryDraft().proposalData.modality }"></ng-container>
         </div>
 
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estudiante', value: getAuthorsNames(preliminaryDraft().proposalData.authors) }"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estudiante', value: facade.getAuthorsNames(preliminaryDraft().proposalData.authors) }"></ng-container>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Director', value: getMemberFullName(preliminaryDraft().proposalData.director) }"></ng-container>
+            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Director', value: facade.getMemberFullName(preliminaryDraft().proposalData.director) }"></ng-container>
             @if (preliminaryDraft().proposalData.codirector) {
-                <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Codirector', value: getMemberFullName(preliminaryDraft().proposalData.codirector) }"></ng-container>
+                <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Codirector', value: facade.getMemberFullName(preliminaryDraft().proposalData.codirector) }"></ng-container>
             }
         </div>
 
         @if (preliminaryDraft().proposalData.advisor) {
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Asesor', value: getMemberFullName(preliminaryDraft().proposalData.advisor) }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Asesor', value: facade.getMemberFullName(preliminaryDraft().proposalData.advisor) }"></ng-container>
         }
 
         <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estado', value: preliminaryDraft().state }"></ng-container>
@@ -61,7 +58,6 @@
       </h3>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-
         <div class="flex flex-col gap-1">
           <label for="evaluator1" class="font-display font-semibold text-size-section title-textbox">
             Evaluador 1 <span class="text-[#ED7D31]">*</span>
@@ -70,14 +66,14 @@
             <app-searchable-select
               id="evaluator1"
               formControlName="evaluator1"
-              [options]="evaluator1Options()"
+              [options]="facade.evaluator1Options()"
               placeholder="Seleccione el primer evaluador"
-              [hasError]="isFieldInvalid('evaluator1')"
-              [isValid]="isFieldValid('evaluator1')"
+              [hasError]="facade.isFieldInvalid('evaluator1')"
+              [isValid]="facade.isFieldValid('evaluator1')"
               class="w-full block">
             </app-searchable-select>
           </div>
-          @if (isFieldInvalid('evaluator1')) {
+          @if (facade.isFieldInvalid('evaluator1')) {
             <span class="text-textbox-alert">Debe seleccionar el primer evaluador</span>
           }
         </div>
@@ -90,18 +86,17 @@
             <app-searchable-select
               id="evaluator2"
               formControlName="evaluator2"
-              [options]="evaluator2Options()"
+              [options]="facade.evaluator2Options()"
               placeholder="Seleccione el segundo evaluador"
-              [hasError]="isFieldInvalid('evaluator2')"
-              [isValid]="isFieldValid('evaluator2')"
+              [hasError]="facade.isFieldInvalid('evaluator2')"
+              [isValid]="facade.isFieldValid('evaluator2')"
               class="w-full block">
             </app-searchable-select>
           </div>
-          @if (isFieldInvalid('evaluator2')) {
+          @if (facade.isFieldInvalid('evaluator2')) {
             <span class="text-textbox-alert">Debe seleccionar el segundo evaluador</span>
           }
         </div>
-
       </div>
 
       <div class="flex justify-end gap-4 mt-10">

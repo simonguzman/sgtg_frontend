@@ -1,10 +1,9 @@
 import { inject, Injectable } from '@angular/core';
-import { delay, Observable, of, tap, shareReplay } from 'rxjs';
-
+import { delay, first, Observable, of, tap } from 'rxjs';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
-import { stateList } from '../../../core/enums/state.enum';
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../core/enums/document-type.enum';
+import { stateList } from '../../../core/enums/state.enum';
 import { CorrectedDelivery } from '../interfaces/corrected-delivery.interface';
 import { FinalDelivery } from '../interfaces/final-delivery.interface';
 import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
@@ -13,386 +12,313 @@ import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { User } from '../../users/interfaces/user.interface';
 import { UserService } from '../../users/services/user.service';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-import { UserApiService } from '../../users/services/user-api.service'; // 👈 NUEVO: Importación del servicio
+import { collectParticipantIds } from '../helpers/thesis-participants.helper';
+import { formatThesisDate } from '../helpers/thesis-date.helper';
+// ← UserApiService eliminado: era dead code (this.api nunca se usaba en este servicio)
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class ThesisWorkDeliveryService {
-  private readonly storage = inject(ThesisWorkStorageService);
-  private readonly eventBus = inject(EventBusService);
+  private readonly storage     = inject(ThesisWorkStorageService);
+  private readonly eventBus    = inject(EventBusService);
   private readonly userService = inject(UserService);
-  private readonly api = inject(UserApiService); // 👈 NUEVO: Inyección del servicio
 
-  /**
-   * Entrega final del trabajo de grado
-   */
-  uploadFinalDeliveryMock(thesisWorkId: string, monograph: File, formatE: File, annexes?: File ): Observable<void> {
+  uploadFinalDeliveryMock(
+    thesisWorkId: string,
+    monograph: File,
+    formatE: File,
+    annexes?: File
+  ): Observable<void> {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
         let notifyUserIds: string[] = [];
-        let currentThesisTitle = ''; // 💡 Variable puente para el título
+        let currentThesisTitle = '';
 
         this.storage.updateWork(thesisWorkId, (thesisWork) => {
-          const authors = thesisWork.preliminaryDraftData?.proposalData?.authors || [];
           const proposal = thesisWork.preliminaryDraftData?.proposalData;
+          currentThesisTitle = proposal?.title ?? '';
+          notifyUserIds = collectParticipantIds(proposal);
 
-          // 💡 Capturamos el título del trabajo
-          currentThesisTitle = proposal?.title || '';
-
-          if(proposal?.director?.id) notifyUserIds.push(proposal.director.id);
-          if(proposal?.codirector?.id) notifyUserIds.push(proposal.codirector.id);
-          if(proposal?.advisor?.id) notifyUserIds.push(proposal.advisor.id);
-          notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
-
-          const decanaturaUsers = this.userService.users().filter(user =>
-            user.roles?.includes(UserRoleType.DECANATURA)
+          notifyUserIds.push(
+            ...this.userService.users()
+              .filter(u => u.roles?.includes(UserRoleType.DECANATURA))
+              .map(u => u.id)
           );
-          notifyUserIds.push(...decanaturaUsers.map(user => user.id));
 
-          const dateStr = new Date()
-            .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
-            .replaceAll('/', ' - ');
+          const dateStr = formatThesisDate();
 
           const docMonograph: FileDocument = {
-            id: crypto.randomUUID(),
-            name: monograph.name.replace('.pdf', ''),
-            url: 'uploads/final-delivery/monografia_' + monograph.name,
+            id:         crypto.randomUUID(),
+            name:       monograph.name.replace('.pdf', ''),
+            url:        `uploads/final-delivery/monografia_${monograph.name}`,
             uploadDate: dateStr,
-            type: DocumentType.MONOGRAFIA,
-            status: stateList.EN_REVISION
+            type:       DocumentType.MONOGRAFIA,
+            status:     stateList.EN_REVISION
           };
 
           const docFormatE: FileDocument = {
-            id: crypto.randomUUID(),
-            name: formatE.name.replace('.pdf', ''),
-            url: 'uploads/final-delivery/formato_e_' + formatE.name,
+            id:         crypto.randomUUID(),
+            name:       formatE.name.replace('.pdf', ''),
+            url:        `uploads/final-delivery/formato_e_${formatE.name}`,
             uploadDate: dateStr,
-            type: DocumentType.FORMATO_E,
-            status: stateList.EN_REVISION
+            type:       DocumentType.FORMATO_E,
+            status:     stateList.EN_REVISION
           };
 
-          let docAnnexes: FileDocument | undefined;
-          if (annexes) {
-            docAnnexes = {
-              id: crypto.randomUUID(),
-              name: annexes.name,
-              url: 'uploads/final-delivery/anexos_' + annexes.name,
-              uploadDate: dateStr,
-              type: DocumentType.ANEXOS,
-              status: stateList.EN_REVISION
-            };
-          }
+          const docAnnexes: FileDocument | undefined = annexes
+            ? {
+                id:         crypto.randomUUID(),
+                name:       annexes.name,
+                url:        `uploads/final-delivery/anexos_${annexes.name}`,
+                uploadDate: dateStr,
+                type:       DocumentType.ANEXOS,
+                status:     stateList.EN_REVISION
+              }
+            : undefined;
 
           const newDelivery: FinalDelivery = {
-            id: crypto.randomUUID(),
+            id:         crypto.randomUUID(),
             uploadDate: dateStr,
-            monograph: docMonograph,
-            formatE: docFormatE,
-            annexes: docAnnexes,
-            status: stateList.EN_REVISION
+            monograph:  docMonograph,
+            formatE:    docFormatE,
+            annexes:    docAnnexes,
+            status:     stateList.EN_REVISION
           };
 
           return {
             ...thesisWork,
-            finalDeliveries: [
-              newDelivery,
-              ...(thesisWork.finalDeliveries || [])
-            ],
-            state: stateList.EN_REVISION
+            finalDeliveries: [newDelivery, ...(thesisWork.finalDeliveries ?? [])],
+            state:           stateList.EN_REVISION
           };
         });
 
         this.eventBus.emit({
-          type: AppEventType.THESIS_FINAL_DELIVERY_UPLOADED,
+          type:          AppEventType.THESIS_FINAL_DELIVERY_UPLOADED,
           targetUserIds: [...new Set(notifyUserIds)],
-          payload: {
-            thesisId: thesisWorkId,
-            thesisTitle: currentThesisTitle // 💡 Inyección del título
-          }
+          payload:       { thesisId: thesisWorkId, thesisTitle: currentThesisTitle }
         });
-      }),
-      shareReplay(1)
+      })
+      // ← shareReplay(1) eliminado: innecesario en un cold observable de una sola emisión
     );
   }
 
-  /**
-   * Registro de Paz y Salvo académico/financiero
-   */
-  registerPazYSalvoMock( thesisWorkId: string, payload: PazYSalvoPayload, file: File ): Observable<void> {
+  registerPazYSalvoMock(
+    thesisWorkId: string,
+    payload: PazYSalvoPayload,
+    file: File
+  ): Observable<void> {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
         let notifyUserIds: string[] = [];
         let isFullyApproved = false;
-        let currentThesisTitle = ''; // 💡 Variable puente para el título
+        let currentThesisTitle = '';
 
         this.storage.updateWork(thesisWorkId, (thesisWork) => {
-          const authors = thesisWork.preliminaryDraftData?.proposalData?.authors || [];
           const proposal = thesisWork.preliminaryDraftData?.proposalData;
+          currentThesisTitle = proposal?.title ?? '';
+          notifyUserIds = collectParticipantIds(proposal);
 
-          // 💡 Capturamos el título del trabajo
-          currentThesisTitle = proposal?.title || '';
-
-          if(proposal?.director?.id) notifyUserIds.push(proposal.director.id);
-          if(proposal?.codirector?.id) notifyUserIds.push(proposal.codirector.id);
-          if(proposal?.advisor?.id) notifyUserIds.push(proposal.advisor.id);
-
-          notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
-
-          const consejoUsers = this.userService.users().filter(user =>
-            user.roles?.includes(UserRoleType.CONSEJO)
+          notifyUserIds.push(
+            ...this.userService.users()
+              .filter(u => u.roles?.includes(UserRoleType.CONSEJO))
+              .map(u => u.id)
           );
-          notifyUserIds.push(...consejoUsers.map(user => user.id));
 
           isFullyApproved = payload.academicApproved && payload.financialApproved;
-          const dateStr = new Date()
-            .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
-            .replaceAll('/', ' - ');
+          const dateStr   = formatThesisDate();
 
           const pazYSalvoDoc: FileDocument = {
-            id: crypto.randomUUID(),
-            name: file.name.replace('.pdf', ''),
-            url: 'uploads/paz-y-salvo/' + file.name,
+            id:         crypto.randomUUID(),
+            name:       file.name.replace('.pdf', ''),
+            url:        `uploads/paz-y-salvo/${file.name}`,
             uploadDate: dateStr,
-            type: DocumentType.PAZ_Y_SALVO,
-            status: isFullyApproved ? stateList.APROBADO : stateList.NO_APROBADO
+            type:       DocumentType.PAZ_Y_SALVO,
+            status:     isFullyApproved ? stateList.APROBADO : stateList.NO_APROBADO
           };
 
-          let updatedDocuments = [
-            pazYSalvoDoc,
-            ...(thesisWork.documents || [])
-          ];
-
-          let updatedDeliveries = thesisWork.finalDeliveries || [];
+          let updatedDeliveries = thesisWork.finalDeliveries ?? [];
           if (!isFullyApproved && updatedDeliveries.length > 0) {
-            updatedDeliveries = updatedDeliveries.map((delivery, index) => {
-              if (index === 0) {
-                return {
-                  ...delivery,
-                  status: stateList.NO_APROBADO,
-                  monograph: { ...delivery.monograph, status: stateList.NO_APROBADO },
-                  formatE: { ...delivery.formatE, status: stateList.NO_APROBADO }
-                };
-              }
-              return delivery;
-            });
+            updatedDeliveries = updatedDeliveries.map((delivery, index) =>
+              index === 0
+                ? {
+                    ...delivery,
+                    status:   stateList.NO_APROBADO,
+                    monograph: { ...delivery.monograph, status: stateList.NO_APROBADO },
+                    formatE:   { ...delivery.formatE,   status: stateList.NO_APROBADO }
+                  }
+                : delivery
+            );
           }
 
           return {
             ...thesisWork,
             pazYSalvos: [
               {
-                id: crypto.randomUUID(),
-                academicApproved: payload.academicApproved,
-                academicComments: payload.academicComments,
+                id:               crypto.randomUUID(),
+                academicApproved:  payload.academicApproved,
+                academicComments:  payload.academicComments,
                 financialApproved: payload.financialApproved,
                 financialComments: payload.financialComments,
-                document: pazYSalvoDoc,
-                registrationDate: new Date()
+                document:          pazYSalvoDoc,
+                registrationDate:  new Date()
               },
-              ...(thesisWork.pazYSalvos || [])
+              ...(thesisWork.pazYSalvos ?? [])
             ],
-            documents: updatedDocuments,
+            documents:       [pazYSalvoDoc, ...(thesisWork.documents ?? [])],
             finalDeliveries: updatedDeliveries,
-            state: stateList.EN_REVISION
+            state:           stateList.EN_REVISION
           };
         });
 
         this.eventBus.emit({
-          type: AppEventType.THESIS_PAZ_Y_SALVO_REGISTERED,
+          type:          AppEventType.THESIS_PAZ_Y_SALVO_REGISTERED,
           targetUserIds: [...new Set(notifyUserIds)],
-          payload: {
-            thesisId: thesisWorkId,
-            isApproved: isFullyApproved,
-            thesisTitle: currentThesisTitle // 💡 Inyección del título
-          }
+          payload:       { thesisId: thesisWorkId, isApproved: isFullyApproved, thesisTitle: currentThesisTitle }
         });
-      }),
-      shareReplay(1)
+      })
+      // ← shareReplay(1) eliminado
     );
   }
 
-  /**
-   * Subida de documentos corregidos post-sustentación (Notifica a Jurados)
-   */
-  uploadCorrectedDocumentsMock( thesisWorkId: string, monograph: File, annexes?: File ): Observable<void> {
+  uploadCorrectedDocumentsMock(
+    thesisWorkId: string,
+    monograph: File,
+    annexes?: File
+  ): Observable<void> {
     return of(undefined).pipe(
       delay(1000),
       tap(() => {
         let notifyUserIds: string[] = [];
-        let currentThesisTitle = ''; // 💡 Variable puente para el título
+        let currentThesisTitle = '';
 
         this.storage.updateWork(thesisWorkId, (thesisWork) => {
-          const proposal = thesisWork.preliminaryDraftData?.proposalData;
+          currentThesisTitle = thesisWork.preliminaryDraftData?.proposalData?.title ?? '';
 
-          // 💡 Capturamos el título del trabajo
-          currentThesisTitle = proposal?.title || '';
-
-          // 1. Extracción tipada y segura de los jurados de la sustentación
-          if (thesisWork.sustentations && thesisWork.sustentations.length > 0) {
-            const currentSustentation = thesisWork.sustentations[0];
-
-            // Mapeamos directamente el arreglo de objetos User para extraer sus IDs
-            if (currentSustentation.assignedJurors && currentSustentation.assignedJurors.length > 0) {
-              const jurorIds = currentSustentation.assignedJurors.map(juror => juror.id);
-              notifyUserIds.push(...jurorIds);
-            }
+          const currentSustentation = thesisWork.sustentations?.[0];
+          if (currentSustentation?.assignedJurors?.length) {
+            notifyUserIds.push(...currentSustentation.assignedJurors.map(j => j.id));
           }
 
-          const dateStr = new Date()
-            .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
-            .replaceAll('/', ' - ');
+          const dateStr = formatThesisDate();
 
           const docMonograph: FileDocument = {
-            id: crypto.randomUUID(),
-            name: monograph.name.replace('.pdf', ''),
-            url: 'uploads/corrected-documents/' + monograph.name,
+            id:         crypto.randomUUID(),
+            name:       monograph.name.replace('.pdf', ''),
+            url:        `uploads/corrected-documents/${monograph.name}`,
             uploadDate: dateStr,
-            type: DocumentType.CORRECCION,
-            status: stateList.EN_REVISION
+            type:       DocumentType.CORRECCION,
+            status:     stateList.EN_REVISION
           };
 
-          let docAnnexes: FileDocument | undefined;
           const newDocuments: FileDocument[] = [docMonograph];
+          let docAnnexes: FileDocument | undefined;
 
           if (annexes) {
             docAnnexes = {
-              id: crypto.randomUUID(),
-              name: annexes.name,
-              url: 'uploads/corrected-documents/' + annexes.name,
+              id:         crypto.randomUUID(),
+              name:       annexes.name,
+              url:        `uploads/corrected-documents/${annexes.name}`,
               uploadDate: dateStr,
-              type: DocumentType.CORRECCION,
-              status: stateList.EN_REVISION
+              type:       DocumentType.CORRECCION,
+              status:     stateList.EN_REVISION
             };
             newDocuments.push(docAnnexes);
           }
 
           const newCorrectedDelivery: CorrectedDelivery = {
-            id: crypto.randomUUID(),
+            id:         crypto.randomUUID(),
             uploadDate: dateStr,
-            monograph: docMonograph,
-            annexes: docAnnexes,
-            status: stateList.EN_REVISION
+            monograph:  docMonograph,
+            annexes:    docAnnexes,
+            status:     stateList.EN_REVISION
           };
 
           return {
             ...thesisWork,
-            documents: [
-              ...newDocuments,
-              ...(thesisWork.documents || [])
-            ],
-            correctedDeliveries: [
-              newCorrectedDelivery,
-              ...(thesisWork.correctedDeliveries || [])
-            ],
-            state: stateList.EN_REVISION
+            documents:           [...newDocuments, ...(thesisWork.documents ?? [])],
+            correctedDeliveries: [newCorrectedDelivery, ...(thesisWork.correctedDeliveries ?? [])],
+            state:               stateList.EN_REVISION
           };
         });
 
         this.eventBus.emit({
-          type: AppEventType.THESIS_CORRECTED_DOCUMENTS_UPLOADED,
-          targetUserIds: [...new Set(notifyUserIds)], // Limpia posibles duplicados
-          payload: {
-            thesisId: thesisWorkId,
-            thesisTitle: currentThesisTitle // 💡 Inyección del título
-          }
+          type:          AppEventType.THESIS_CORRECTED_DOCUMENTS_UPLOADED,
+          targetUserIds: [...new Set(notifyUserIds)],
+          payload:       { thesisId: thesisWorkId, thesisTitle: currentThesisTitle }
         });
       })
     );
   }
 
-  /**
-   * Registro de documento de correspondencia final
-   */
-  registerCorrespondenceDocumentMock( thesisWorkId: string, document: FileDocument ): Observable<void> {
+  registerCorrespondenceDocumentMock(
+    thesisWorkId: string,
+    document: FileDocument
+  ): Observable<void> {
     return of(undefined).pipe(
       delay(800),
       tap(() => {
         let notifyUserIds: string[] = [];
-        let currentThesisTitle = ''; // 💡 Variable puente para el título
-
-        // 👈 NUEVO: Arreglos para recolectar IDs a limpiar al finalizar el proceso
-        let evaluatorIdsToClean: string[] = [];
-        let jurorIdsToClean: string[] = [];
+        let currentThesisTitle = '';
+        const evaluatorIdsToClean: string[] = [];
+        const jurorIdsToClean: string[]     = [];
 
         this.storage.updateWork(thesisWorkId, (thesisWork) => {
-          const authors = thesisWork.preliminaryDraftData?.proposalData?.authors || [];
           const proposal = thesisWork.preliminaryDraftData?.proposalData;
+          currentThesisTitle = proposal?.title ?? '';
+          notifyUserIds      = collectParticipantIds(proposal);
 
-          // 💡 Capturamos el título del trabajo
-          currentThesisTitle = proposal?.title || '';
-
-          if(proposal?.director?.id) notifyUserIds.push(proposal.director.id);
-          if(proposal?.codirector?.id) notifyUserIds.push(proposal.codirector.id);
-          if(proposal?.advisor?.id) notifyUserIds.push(proposal.advisor.id);
-          notifyUserIds.push(...authors.map(author => typeof author === 'string' ? author : (author as User).id));
-
-          let updatedDeliveries = thesisWork.finalDeliveries || [];
+          let updatedDeliveries = thesisWork.finalDeliveries ?? [];
           if (updatedDeliveries.length > 0) {
-            updatedDeliveries = updatedDeliveries.map((delivery, index) => {
-              if (index === 0) {
-                return {
-                  ...delivery,
-                  status: stateList.APROBADO,
-                  monograph: { ...delivery.monograph, status: stateList.APROBADO },
-                  formatE: { ...delivery.formatE, status: stateList.APROBADO },
-                  annexes: delivery.annexes ? { ...delivery.annexes, status: stateList.APROBADO } : undefined
-                };
-              }
-              return delivery;
-            });
+            updatedDeliveries = updatedDeliveries.map((delivery, index) =>
+              index === 0
+                ? {
+                    ...delivery,
+                    status:   stateList.APROBADO,
+                    monograph: { ...delivery.monograph, status: stateList.APROBADO },
+                    formatE:   { ...delivery.formatE,   status: stateList.APROBADO },
+                    annexes:   delivery.annexes ? { ...delivery.annexes, status: stateList.APROBADO } : undefined
+                  }
+                : delivery
+            );
           }
 
-          // 👈 NUEVO: Recolección de roles para remover ya que el trabajo finaliza (isArchived: true)
-          // 1. Recolectar Evaluadores del anteproyecto
-          if (thesisWork.preliminaryDraftData?.evaluators) {
-            thesisWork.preliminaryDraftData.evaluators.forEach((ev: User) => {
-              if (ev.id) evaluatorIdsToClean.push(ev.id);
-            });
-          }
+          thesisWork.preliminaryDraftData?.evaluators?.forEach((ev: User) => {
+            if (ev.id) evaluatorIdsToClean.push(ev.id);
+          });
 
-          // 2. Recolectar Jurados de la(s) sustentación(es)
-          if (thesisWork.sustentations) {
-            thesisWork.sustentations.forEach(sust => {
-              if (sust.assignedJurors) {
-                sust.assignedJurors.forEach((juror: User) => {
-                  if (juror.id) jurorIdsToClean.push(juror.id);
-                });
-              }
+          thesisWork.sustentations?.forEach(sust => {
+            sust.assignedJurors?.forEach((juror: User) => {
+              if (juror.id) jurorIdsToClean.push(juror.id);
             });
-          }
+          });
 
           return {
             ...thesisWork,
-            documents: [
-              document,
-              ...(thesisWork.documents || [])
-            ],
+            documents:       [document, ...(thesisWork.documents ?? [])],
             finalDeliveries: updatedDeliveries,
-            isArchived: true // El trabajo queda finalizado/archivado definitivamente
+            isArchived:      true
           };
         });
 
-        // 👈 NUEVO: Ejecutar limpieza de roles
+        // ← UserService.removeRolesFromUsersMock usado consistentemente en vez de api.removeRolesFromUsers
+        // ← first() agregado para completar la suscripción tras la primera emisión
         if (evaluatorIdsToClean.length > 0) {
-          const uniqueEvaluatorIds = [...new Set(evaluatorIdsToClean)];
-          this.userService.removeRolesFromUsersMock(uniqueEvaluatorIds, [UserRoleType.EVALUADOR]).subscribe();
+          this.userService.removeRolesFromUsersMock(
+            [...new Set(evaluatorIdsToClean)], [UserRoleType.EVALUADOR]
+          ).pipe(first()).subscribe();
         }
 
         if (jurorIdsToClean.length > 0) {
-          const uniqueJurorIds = [...new Set(jurorIdsToClean)];
-          this.userService.removeRolesFromUsersMock(uniqueJurorIds, [UserRoleType.JURADO]).subscribe();
+          this.userService.removeRolesFromUsersMock(
+            [...new Set(jurorIdsToClean)], [UserRoleType.JURADO]
+          ).pipe(first()).subscribe();
         }
 
         this.eventBus.emit({
-          type: AppEventType.THESIS_CORRESPONDENCE_REGISTERED,
+          type:          AppEventType.THESIS_CORRESPONDENCE_REGISTERED,
           targetUserIds: [...new Set(notifyUserIds)],
-          payload: {
-            thesisId: thesisWorkId,
-            thesisTitle: currentThesisTitle // 💡 Inyección del título
-          }
+          payload:       { thesisId: thesisWorkId, thesisTitle: currentThesisTitle }
         });
       })
     );

@@ -1,191 +1,139 @@
-/* tslint:disable:no-unused-variable */
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal, WritableSignal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
+
 import { ReviewPreliminaryDraftPageComponent } from './review-preliminary-draft-page.component';
-import { ActivatedRoute, Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
-import { signal, Component, Input, Output, EventEmitter } from '@angular/core';
-
-// Interfaces y Modelos
-import { stateList } from '../../../../core/enums/state.enum';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
+import { ReviewPreliminaryDraftPageFacadeService, PendingReviewData } from './services/review-preliminary-draft-page-facade.service';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
+import { ReviewPreliminaryDraftFormComponent } from '../../components/review-preliminary-draft-form/review-preliminary-draft-form.component';
 
-// Componentes Reales (necesarios para la referencia en overrideComponent)
-import { ReviewPreliminaryDraftFormComponent } from "../../components/review-preliminary-draft-form/review-preliminary-draft-form.component";
-import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
+// Mock robusto para evitar errores de propiedades no definidas (ej. title) en la vista
+const mockDraft = {
+  preliminaryDraftId: '123',
+  proposalId: 'prop-1',
+  proposal: {
+    title: 'Título de prueba' // Previene el error Cannot read properties of undefined (reading 'title')
+  },
+  evaluators: [],
+  documents: []
+} as unknown as PreliminaryDraft;
 
-// Servicios
-import { PreliminaryDraftService } from '../../services/preliminary-draft.service';
-import { AuthService } from '../../../../core/services/auth/auth.service';
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
-
-// Mock del formulario hijo
 @Component({
   selector: 'app-review-preliminary-draft-form',
-  template: '',
-  standalone: true
+  standalone: true,
+  template: '<div></div>'
 })
-class MockReviewForm {
-  @Input() preliminaryDraft: any;
-  @Input() isSubmitting = false;
-  @Output() onSaveEvaluation = new EventEmitter<any>();
+class MockReviewFormComponent {
+  @Input() preliminaryDraft!: PreliminaryDraft;
+  // Any eliminado, tipado con la interfaz correcta
+  @Output() onSaveEvaluation = new EventEmitter<PendingReviewData>();
   @Output() onDownloadPreliminaryDraft = new EventEmitter<void>();
 }
 
-// Mock del modal de confirmación
 @Component({
   selector: 'app-confirmation-action-modal',
-  template: '',
-  standalone: true
+  standalone: true,
+  template: '<div></div>'
 })
-class MockConfirmationModal {
+class MockConfirmationModalComponent {
   @Input() isOpen = false;
-  @Input() title = '';
-  @Input() message = '';
+  @Input() description = '';
+  @Output() onClose = new EventEmitter<void>();
   @Output() confirm = new EventEmitter<void>();
-  @Output() cancel = new EventEmitter<void>();
 }
 
 describe('ReviewPreliminaryDraftPageComponent', () => {
   let component: ReviewPreliminaryDraftPageComponent;
   let fixture: ComponentFixture<ReviewPreliminaryDraftPageComponent>;
 
-  // Mocks de servicios
-  let preliminaryDraftServiceMock: any;
-  let authServiceMock: any;
-  let notificationServiceMock: any;
-  let downloadServiceMock: any;
-  let routerMock: any;
-
-  const mockUser = { id: 'user-123', firstName: 'Juan', lastName: 'Perez' };
-
-  const mockDraft: any = {
-    preliminaryDraftId: 'draft-999',
-    proposalId: 'prop-111',
-    state: stateList.EN_REVISION,
-    createdAt: new Date().toISOString(),
-    proposalData: { title: 'Sistema de Gestión Académica', description: 'Descripción de prueba' },
-    evaluators: [{ id: 'user-123' }],
-    evaluations: [],
-    documents: [
-      { id: 'doc-1', type: 'Anteproyecto', uploadDate: '2026-01-01', url: 'link1', name: 'v1.pdf' },
-      { id: 'doc-2', type: 'Correccion', uploadDate: '2026-02-01', url: 'link2', name: 'v2.pdf' }
-    ]
+  // Interfaz estricta para el mock del facade eliminando el 'any'
+  let facadeMock: {
+    preliminaryDraftState: WritableSignal<PreliminaryDraft | null>;
+    isConfirmModalOpen: WritableSignal<boolean>;
+    pendingReviewData: WritableSignal<PendingReviewData | null>;
+    init: jest.Mock;
+    goBack: jest.Mock;
+    handleRequestConfirmation: jest.Mock;
+    processEvaluation: jest.Mock;
+    downloadCurrentDocument: jest.Mock;
   };
 
   beforeEach(async () => {
-    preliminaryDraftServiceMock = {
-      getPreliminaryDraftByIdMock: jest.fn().mockReturnValue(of(mockDraft)),
-      addEvaluationMock: jest.fn().mockReturnValue(of({}))
+    // Inicialización del mock con tipado estricto
+    facadeMock = {
+      preliminaryDraftState: signal<PreliminaryDraft | null>(null),
+      isConfirmModalOpen: signal<boolean>(false),
+      pendingReviewData: signal<PendingReviewData | null>(null),
+      init: jest.fn(),
+      goBack: jest.fn(),
+      handleRequestConfirmation: jest.fn(),
+      processEvaluation: jest.fn(),
+      downloadCurrentDocument: jest.fn()
     };
-
-    authServiceMock = {
-      currentUser: signal(mockUser)
-    };
-
-    notificationServiceMock = { show: jest.fn() };
-    downloadServiceMock = { download: jest.fn() };
-    routerMock = { navigate: jest.fn() };
 
     await TestBed.configureTestingModule({
-      imports: [ReviewPreliminaryDraftPageComponent],
+      imports: [
+        ReviewPreliminaryDraftPageComponent,
+        MockReviewFormComponent,
+        MockConfirmationModalComponent
+      ],
       providers: [
-        { provide: PreliminaryDraftService, useValue: preliminaryDraftServiceMock },
-        { provide: AuthService, useValue: authServiceMock },
-        { provide: NotificationService, useValue: notificationServiceMock },
-        { provide: FileDownloadService, useValue: downloadServiceMock },
-        { provide: Router, useValue: routerMock },
         {
           provide: ActivatedRoute,
-          useValue: {
-            snapshot: { paramMap: { get: () => 'draft-999' } },
-            parent: { snapshot: { paramMap: { get: () => 'draft-999' } } }
-          }
+          useValue: { snapshot: { paramMap: { get: () => '123' } } }
         }
       ]
     })
     .overrideComponent(ReviewPreliminaryDraftPageComponent, {
       remove: {
-        imports: [
-          ReviewPreliminaryDraftFormComponent,
-          ConfirmationActionModalComponent
-        ]
+        imports: [ReviewPreliminaryDraftFormComponent] // <-- 1. Removemos el original
       },
       add: {
-        imports: [MockReviewForm, MockConfirmationModal]
+        imports: [MockReviewFormComponent], // <-- 2. Añadimos nuestro Mock
+        providers: [
+          { provide: ReviewPreliminaryDraftPageFacadeService, useValue: facadeMock }
+        ]
       }
     })
     .compileComponents();
 
     fixture = TestBed.createComponent(ReviewPreliminaryDraftPageComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
-  it('debería crear el componente y cargar datos si el usuario es evaluador', () => {
+  it('debería crearse correctamente', () => {
     expect(component).toBeTruthy();
-    expect(preliminaryDraftServiceMock.getPreliminaryDraftByIdMock).toHaveBeenCalledWith('draft-999');
-    expect(component.preliminaryDraftState()).toEqual(mockDraft);
   });
 
-  describe('Lógica de activeRevision (Computed)', () => {
-    it('debería seleccionar la revisión más reciente (Correccion sobre Anteproyecto)', () => {
-      const active = component.activeRevision();
-      expect(active?.id).toBe('doc-2');
-      expect(active?.type).toBe('Correccion');
-    });
+  it('debería llamar a facade.init() en ngOnInit', () => {
+    fixture.detectChanges();
+    expect(facadeMock.init).toHaveBeenCalled();
   });
 
-  describe('Control de Acceso', () => {
-    it('debería denegar acceso si el usuario no está en la lista de evaluadores', () => {
-      const draftSinPermiso = { ...mockDraft, evaluators: [{ id: 'otro-usuario' }] };
-      preliminaryDraftServiceMock.getPreliminaryDraftByIdMock.mockReturnValue(of(draftSinPermiso));
+  it('debería ocultar el formulario si preliminaryDraftState es null', () => {
+    facadeMock.preliminaryDraftState.set(null);
+    fixture.detectChanges();
 
-      component.ngOnInit();
-
-      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Acceso Denegado'
-      }));
-      expect(routerMock.navigate).toHaveBeenCalledWith(['/dashboard']);
-    });
+    const formEl = fixture.nativeElement.querySelector('app-review-preliminary-draft-form');
+    expect(formEl).toBeFalsy();
   });
 
-  describe('Procesamiento de Evaluación', () => {
-    it('debería ejecutar el proceso de evaluación exitosamente', () => {
-      const mockReview = {
-        formValues: { result: 'Aprobado', comments: 'Cumple requisitos' },
-        file: new File([], 'acta.pdf')
-      };
-      component.pendingReviewData.set(mockReview);
+  it('debería mostrar el formulario si preliminaryDraftState tiene datos', () => {
+    // Usamos el mockDraft completo para que la renderización HTML no falle leyendo propiedades
+    facadeMock.preliminaryDraftState.set(mockDraft);
+    fixture.detectChanges();
 
-      component.processEvaluation();
-
-      expect(preliminaryDraftServiceMock.addEvaluationMock).toHaveBeenCalled();
-      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
-        type: NotificationType.CONFIRMATION
-      }));
-    });
-
-    it('debería manejar errores cuando falla el guardado en el servidor', () => {
-      preliminaryDraftServiceMock.addEvaluationMock.mockReturnValue(throwError(() => new Error()));
-      component.pendingReviewData.set({
-        formValues: { result: 'Aprobado' },
-        file: new File([], 'f.pdf')
-      });
-
-      component.processEvaluation();
-
-      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Error al guardar'
-      }));
-    });
+    const formEl = fixture.nativeElement.querySelector('app-review-preliminary-draft-form');
+    expect(formEl).toBeTruthy();
   });
 
-  describe('Descargas', () => {
-    it('debería descargar el archivo de la revisión activa', () => {
-      component.downloadCurrentDocument();
-      expect(downloadServiceMock.download).toHaveBeenCalledWith('link2', 'v2.pdf');
-    });
+  it('debería llamar a facade.goBack() al hacer click en el botón regresar', () => {
+    fixture.detectChanges();
+    const backBtn = fixture.nativeElement.querySelector('button');
+
+    backBtn.click();
+
+    expect(facadeMock.goBack).toHaveBeenCalled();
   });
 });

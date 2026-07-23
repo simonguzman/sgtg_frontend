@@ -1,162 +1,87 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal, WritableSignal } from '@angular/core';
+
 import { PreliminaryDraftDetailsPageComponent } from './preliminary-draft-details-page.component';
-import { ActivatedRoute, Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
-import { signal, Component, Input } from '@angular/core';
-
-// Componentes Reales (Necesarios para el override)
-import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
-
-// Interfaces y Modelos
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-
-// Servicios
-import { PreliminaryDraftService } from '../../services/preliminary-draft.service';
-import { UserService } from '../../../users/services/user.service';
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
-
-// Mock del componente de botón
-@Component({
-  selector: 'app-button-component',
-  template: '',
-  standalone: true
-})
-class MockButton {
-  @Input() label: string = '';
-  @Input() variant: string = 'primary';
-  @Input() disabled: boolean = false;
-}
+import { PreliminaryDraftDetailsPageService } from './services/preliminary-draft-details-page.service';
+import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 
 describe('PreliminaryDraftDetailsPageComponent', () => {
   let component: PreliminaryDraftDetailsPageComponent;
   let fixture: ComponentFixture<PreliminaryDraftDetailsPageComponent>;
 
-  // Mocks de dependencias
-  let preliminaryDraftServiceMock: any;
-  let userServiceMock: any;
-  let notificationServiceMock: any;
-  let downloadServiceMock: any;
-  let routerMock: any;
-
-  const mockDraftData: any = {
-    preliminaryDraftId: '123',
-    proposalData: {
-      title: 'Sistema de Gestión de Anteproyectos',
-      director: { id: 'dir-1' },
-      authors: ['student-1', 'student-2']
-    },
-    documents: [
-      { id: 'doc-1', type: 'Anexos', name: 'anexo.pdf', url: 'url-anexo' },
-      { id: 'doc-2', type: 'Anteproyecto', name: 'principal.pdf', url: 'url-principal' }
-    ]
+  // Estructura estricta para mockear el servicio inyectado a nivel de componente
+  let mockPageService: {
+    init: jest.Mock;
+    goBack: jest.Mock;
+    navigateToEvaluations: jest.Mock;
+    navigateToDocuments: jest.Mock;
+    downloadDocument: jest.Mock;
+    getMemberName: jest.Mock;
+    getAuthors: jest.Mock;
+    preliminaryDraftDetails: WritableSignal<PreliminaryDraft | null>; // <-- Corregido aquí
+    mainDocument: WritableSignal<any>;
   };
 
   beforeEach(async () => {
-    preliminaryDraftServiceMock = {
-      getPreliminaryDraftByIdMock: jest.fn().mockReturnValue(of(mockDraftData))
+    mockPageService = {
+      init: jest.fn(),
+      goBack: jest.fn(),
+      navigateToEvaluations: jest.fn(),
+      navigateToDocuments: jest.fn(),
+      downloadDocument: jest.fn(),
+      getMemberName: jest.fn().mockReturnValue('Juan Perez'),
+      getAuthors: jest.fn().mockReturnValue('Maria Gomez'),
+      preliminaryDraftDetails: signal(null), // <-- Corregido aquí
+      mainDocument: signal(null)
     };
-
-    userServiceMock = {
-      getUserFullName: jest.fn().mockReturnValue('Nombre del Director'),
-      getAuthorsNames: jest.fn().mockReturnValue('Autor A, Autor B')
-    };
-
-    notificationServiceMock = { show: jest.fn() };
-    downloadServiceMock = { download: jest.fn() };
-    routerMock = { navigate: jest.fn() };
 
     await TestBed.configureTestingModule({
-      imports: [PreliminaryDraftDetailsPageComponent],
-      providers: [
-        { provide: PreliminaryDraftService, useValue: preliminaryDraftServiceMock },
-        { provide: UserService, useValue: userServiceMock },
-        { provide: NotificationService, useValue: notificationServiceMock },
-        { provide: FileDownloadService, useValue: downloadServiceMock },
-        { provide: Router, useValue: routerMock },
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            snapshot: { paramMap: { get: () => '123' } }
-          }
-        }
-      ]
+      imports: [PreliminaryDraftDetailsPageComponent]
     })
-    .overrideComponent(PreliminaryDraftDetailsPageComponent, {
-      // SOLUCIÓN: Usamos la clase real 'ButtonComponent', no 'any'
-      remove: { imports: [ButtonComponent] },
-      add: { imports: [MockButton] }
-    })
+    // Sobrescribimos el proveedor del componente porque está inyectado directamente en sus metadatos
+    .overrideProvider(PreliminaryDraftDetailsPageService, { useValue: mockPageService })
     .compileComponents();
 
     fixture = TestBed.createComponent(PreliminaryDraftDetailsPageComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
-  it('debería inicializar correctamente y cargar los detalles', () => {
+  it('debería crearse e inicializar el servicio en ngOnInit', () => {
+    fixture.detectChanges(); // Esto dispara ngOnInit
+
     expect(component).toBeTruthy();
-    expect(preliminaryDraftServiceMock.getPreliminaryDraftByIdMock).toHaveBeenCalledWith('123');
-    expect(component.preliminayDraftDetails()).toEqual(mockDraftData);
+    expect(mockPageService.init).toHaveBeenCalled();
   });
 
-  describe('Lógica del Computed (mainDocument)', () => {
-    it('debería identificar el documento de tipo "Anteproyecto" como el principal', () => {
-      const doc = component.mainDocument();
-      expect(doc?.name).toBe('principal.pdf');
-      expect(doc?.type).toBe('Anteproyecto');
-    });
-
-    it('debería seleccionar el primer documento si no existe uno de tipo "Anteproyecto"', () => {
-      component.preliminayDraftDetails.set({
-        ...mockDraftData,
-        documents: [{ id: '99', type: 'Otro', name: 'solo_uno.pdf', url: 'url' }]
-      });
-      const doc = component.mainDocument();
-      expect(doc?.id).toBe('99');
-    });
+  it('debería mostrar mensaje de carga cuando no hay detalles', () => {
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Cargando información del anteproyecto...');
   });
 
-  describe('Descarga de Archivos', () => {
-    it('debería ejecutar el flujo de descarga completo con éxito', () => {
-      component.downloadDocument();
+  it('debería renderizar la información cuando existen detalles del anteproyecto', () => {
+    const mockDraft = {
+      state: 'EN_REVISION',
+      proposalData: {
+        title: 'Titulo Test',
+        description: 'Desc Test',
+        modality: 'Trabajo',
+        director: { id: 'd1' },
+        authors: [{ id: 'a1' }]
+      }
+    } as unknown as PreliminaryDraft;
 
-      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
-        type: NotificationType.INFO
-      }));
-      expect(downloadServiceMock.download).toHaveBeenCalledWith('url-principal', 'principal.pdf');
-      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
-        type: NotificationType.CONFIRMATION
-      }));
-    });
+    mockPageService.preliminaryDraftDetails.set(mockDraft); // <-- Corregido aquí
+    mockPageService.mainDocument.set({ name: 'Documento_Final.pdf' });
 
-    it('debería mostrar error si el documento no tiene una URL válida', () => {
-      component.preliminayDraftDetails.set({
-        ...mockDraftData,
-        documents: [{ id: '1', type: 'Anteproyecto', name: 'error.pdf', url: '' }]
-      });
+    fixture.detectChanges();
 
-      component.downloadDocument();
-
-      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
-        type: NotificationType.ERROR,
-        title: 'Archivo no disponible'
-      }));
-      expect(downloadServiceMock.download).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Integración con UserService', () => {
-    it('debería retornar el nombre formateado del director', () => {
-      const name = component.getMemberName('dir-1');
-      expect(userServiceMock.getUserFullName).toHaveBeenCalledWith('dir-1');
-      expect(name).toBe('Nombre del Director');
-    });
-
-    it('debería retornar los nombres de los autores unidos por coma', () => {
-      const authors = component.getAuthors(['s1', 's2']);
-      expect(userServiceMock.getAuthorsNames).toHaveBeenCalledWith(['s1', 's2']);
-      expect(authors).toBe('Autor A, Autor B');
-    });
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).not.toContain('Cargando información del anteproyecto...');
+    expect(compiled.textContent).toContain('Titulo Test');
+    expect(compiled.textContent).toContain('Desc Test');
+    expect(compiled.textContent).toContain('Documento_Final.pdf');
+    expect(mockPageService.getAuthors).toHaveBeenCalled();
+    expect(mockPageService.getMemberName).toHaveBeenCalled();
   });
 });

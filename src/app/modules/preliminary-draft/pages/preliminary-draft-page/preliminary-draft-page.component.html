@@ -1,7 +1,7 @@
 <app-table-component
-  [value]="tableData()"
+  [value]="facade.tableData()"
+  [headerButtons]="facade.headerButtons()"
   [columns]="columns"
-  [headerButtons]="headerButtons"
   [paginator]="true"
   [filterFields]="filterFields"
   (actionClick)="handleTableAction($event)"
@@ -10,15 +10,15 @@
 ></app-table-component>
 
 <app-description-modal
-  [isOpen]="descriptionModal().isOpen"
-  [titleDescription]="descriptionModal().title"
-  [description]="descriptionModal().content"
-  (onClose)="descriptionModal.set({isOpen: false, title: '', content: ''})"
+  [isOpen]="descriptionModal.show"
+  [titleDescription]="descriptionModal.title"
+  [description]="descriptionModal.content"
+  (onClose)="descriptionModal.show = false"
 ></app-description-modal>
 
 <app-confirmation-action-modal
-  [isOpen]="deleteState().isOpen"
-  [description]="'¿Está seguro de eliminar el anteproyecto: ' + deleteState().draftTitle + '?'"
+  [isOpen]="deleteState.show"
+  [description]="'¿Está seguro de eliminar el anteproyecto: ' + deleteState.title + '?'"
   (onClose)="cancelDelete()"
   (confirm)="confirmDelete()"
 ></app-confirmation-action-modal>

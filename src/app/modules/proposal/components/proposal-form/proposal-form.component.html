@@ -1,5 +1,5 @@
 <div class="p-6 bg-white rounded-lg">
-  <form [formGroup]="proposalForm" (ngSubmit)="submit()" class="flex flex-col gap-8">
+  <form [formGroup]="form" (ngSubmit)="submit()" class="flex flex-col gap-8">
 
     @if (!isEditMode) {
       <app-info-banner title="Registro de nueva propuesta">
@@ -17,8 +17,8 @@
             <input id="title" type="text" formControlName="title" placeholder="Ej: Frontend de las funcionalidades..."
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
                    [class.border-[#ED7D31]]="isFieldInvalid('title')"
-                   [class.input-success]="proposalForm.get('title')?.valid && proposalForm.get('title')?.touched">
-            @if (proposalForm.get('title')?.valid && proposalForm.get('title')?.touched) {
+                   [class.input-success]="form.get('title')?.valid && form.get('title')?.touched">
+            @if (form.get('title')?.valid && form.get('title')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
             }
           </div>
@@ -33,8 +33,8 @@
             <input id="description" type="text" formControlName="description" placeholder="Ej: Optimizar los procesos..."
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
                    [class.border-[#ED7D31]]="isFieldInvalid('description')"
-                   [class.input-success]="proposalForm.get('description')?.valid && proposalForm.get('description')?.touched">
-            @if (proposalForm.get('description')?.valid && proposalForm.get('description')?.touched) {
+                   [class.input-success]="form.get('description')?.valid && form.get('description')?.touched">
+            @if (form.get('description')?.valid && form.get('description')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
             }
           </div>
@@ -182,8 +182,7 @@
               label="Cargar propuesta(Formato A)"
               variant="secondary"
               type="button"
-              (onClick)="uploadModalOpen = true"
-              (click)="uploadModalOpen = true">
+              (onClick)="uploadModalOpen = true">
             </app-button-component>
           }
         </div>

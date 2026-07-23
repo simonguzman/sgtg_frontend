@@ -1,141 +1,176 @@
 import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
+import { signal } from '@angular/core';
+
 import { PreliminaryDraftService } from './preliminary-draft.service';
-import { AuthService } from '../../../core/services/auth/auth.service';
-import { UserService } from '../../users/services/user.service';
-import { ProposalService } from '../../proposal/services/proposal.service';
+import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
+import { PreliminaryDraftApiService } from './preliminary-draft-api.service';
+import { PreliminaryDraftAssignmentService } from './preliminary-draft-assignment.service';
+import { PreliminaryDraftDocumentService } from './preliminary-draft-document.service';
+
+import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
+import { Proposal } from '../../proposal/interfaces/proposal.interface';
+import { Evaluation } from '../../../core/interfaces/evaluation.interface';
+import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { stateList } from '../../../core/enums/state.enum';
-import { UserRoleType } from '../../../core/models/user-role';
-import { signal, WritableSignal } from '@angular/core';
-import { IdentificationType, User, UserState } from '../../users/interfaces/user.interface';
 
 describe('PreliminaryDraftService', () => {
   let service: PreliminaryDraftService;
 
-  // Tipamos los mocks como 'any' para evitar conflictos con las interfaces privadas de Angular/RxJS
-  let authServiceMock: any;
-  let userServiceMock: any;
-  let proposalServiceMock: any;
-
-  // Creamos un usuario de prueba que cumpla con la interfaz User completa
-  const mockUser: User = {
-    id: 'user-1',
-    idType: IdentificationType.CC,
-    idNumber: 123456,
-    firstName: 'Test',
-    lastName: 'User',
-    secondLastName: 'Test', // Agregado
-    codeNumber: 123456,     // Agregado
-    email: 'test@test.com',
-    password: 'password123',
-    roles: [UserRoleType.ESTUDIANTE],
-    state: UserState.active,
-  };
+  let mockStorageService: jest.Mocked<PreliminaryDraftStorageService>;
+  let mockApiService: jest.Mocked<PreliminaryDraftApiService>;
+  let mockAssignmentService: jest.Mocked<PreliminaryDraftAssignmentService>;
+  let mockDocumentService: jest.Mocked<PreliminaryDraftDocumentService>;
 
   beforeEach(() => {
-    // Para poder usar .set() en los tests, definimos currentUser como un signal normal
-    // pero el servicio lo consumirá como Signal (gracias a la naturaleza de los signals)
-    const currentUserSignal = signal<User | null>(mockUser);
+    mockStorageService = {
+      preliminaryDrafts: signal([]),
+      allPreliminaryDrafts: signal([])
+    } as unknown as jest.Mocked<PreliminaryDraftStorageService>;
 
-    authServiceMock = {
-      currentUser: currentUserSignal, // Aquí el signal permite lectura
-      hasAnyRole: jest.fn()
-    };
+    mockApiService = {
+      getPreliminaryDraftById: jest.fn(),
+      createPreliminaryDraft: jest.fn(),
+      updatePreliminaryDraft: jest.fn(),
+      deleteDraft: jest.fn()
+    } as unknown as jest.Mocked<PreliminaryDraftApiService>;
 
-    userServiceMock = {
-      users: signal<User[]>([]),
-      addRoleToUser: jest.fn()
-    };
+    mockAssignmentService = {
+      validateReviewersRules: jest.fn(),
+      assignReviewersMock: jest.fn()
+    } as unknown as jest.Mocked<PreliminaryDraftAssignmentService>;
 
-    proposalServiceMock = {};
+    mockDocumentService = {
+      addEvaluationMock: jest.fn(),
+      uploadDocumentMock: jest.fn(),
+      uploadCouncilResolutionMock: jest.fn(),
+      calculateDocumentStatus: jest.fn()
+    } as unknown as jest.Mocked<PreliminaryDraftDocumentService>;
 
     TestBed.configureTestingModule({
       providers: [
         PreliminaryDraftService,
-        { provide: AuthService, useValue: authServiceMock },
-        { provide: UserService, useValue: userServiceMock },
-        { provide: ProposalService, useValue: proposalServiceMock }
+        { provide: PreliminaryDraftStorageService, useValue: mockStorageService },
+        { provide: PreliminaryDraftApiService, useValue: mockApiService },
+        { provide: PreliminaryDraftAssignmentService, useValue: mockAssignmentService },
+        { provide: PreliminaryDraftDocumentService, useValue: mockDocumentService }
       ]
     });
 
-    localStorage.clear();
     service = TestBed.inject(PreliminaryDraftService);
   });
 
-  it('should create', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('debería crearse correctamente', () => {
     expect(service).toBeTruthy();
   });
 
-  describe('validateReviewersRules', () => {
-    const proposal: any = {
-      director: { id: 'dir-1' },
-      codirector: { id: 'cod-1' },
-      authors: [{ id: 'auth-1' }]
-    };
-
-    it('should return error if evaluators are equal', () => {
-      const result = service.validateReviewersRules(proposal, 'eval-1', 'eval-1');
-      expect(result).toBe('Debe seleccionar dos evaluadores diferentes.');
-    });
-
-    it('should return error if first evaluator is director', () => {
-      const result = service.validateReviewersRules(proposal, 'dir-1', 'eval-2');
-      expect(result).toBe('El primer docente tiene vínculos con la propuesta.');
-    });
-
-    it('should return error if second evaluator is author', () => {
-      const result = service.validateReviewersRules(proposal, 'eval-1', 'auth-1');
-      expect(result).toBe('El segundo docente tiene vínculos con la propuesta.');
-    });
-
-    it('should return null when evaluators are valid', () => {
-      const result = service.validateReviewersRules(proposal, 'eval-1', 'eval-2');
-      expect(result).toBeNull();
+  describe('Estado Reactivo (Signals)', () => {
+    it('debería exponer las señales del StorageService', () => {
+      expect(service.preliminaryDrafts).toBe(mockStorageService.preliminaryDrafts);
+      expect(service.allPreliminaryDrafts).toBe(mockStorageService.allPreliminaryDrafts);
     });
   });
 
-  describe('calculateDocumentStatus', () => {
-    it('should return EN_REVISION when no evaluations exist', () => {
-      const status = service.calculateDocumentStatus('doc-1', [], 2);
-      expect(status).toBe(stateList.EN_REVISION);
+  describe('Delegación de operaciones CRUD a API Service', () => {
+    const mockDraft = { preliminaryDraftId: '1' } as unknown as PreliminaryDraft;
+
+    it('debería delegar getPreliminaryDraftById', () => {
+      mockApiService.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
+      service.getPreliminaryDraftById('1').subscribe(res => {
+        expect(res).toEqual(mockDraft);
+      });
+      expect(mockApiService.getPreliminaryDraftById).toHaveBeenCalledWith('1');
     });
 
-    it('should return NO_APROBADO when one evaluation is rejected', () => {
-      const evals: any[] = [{ documentId: 'doc-1', veredict: stateList.NO_APROBADO }];
-      const status = service.calculateDocumentStatus('doc-1', evals, 2);
-      expect(status).toBe(stateList.NO_APROBADO);
+    it('debería delegar createPreliminaryDraft', () => {
+      mockApiService.createPreliminaryDraft.mockReturnValue(of(mockDraft));
+      service.createPreliminaryDraft(mockDraft).subscribe(res => {
+        expect(res).toEqual(mockDraft);
+      });
+      expect(mockApiService.createPreliminaryDraft).toHaveBeenCalledWith(mockDraft);
+    });
+
+    it('debería delegar updatePreliminaryDraft', () => {
+      mockApiService.updatePreliminaryDraft.mockReturnValue(of(mockDraft));
+      service.updatePreliminaryDraft('1', mockDraft).subscribe(res => {
+        expect(res).toEqual(mockDraft);
+      });
+      expect(mockApiService.updatePreliminaryDraft).toHaveBeenCalledWith('1', mockDraft);
+    });
+
+    it('debería delegar deleteDraft', () => {
+      mockApiService.deleteDraft.mockReturnValue(of(undefined));
+      service.deleteDraft('1').subscribe();
+      expect(mockApiService.deleteDraft).toHaveBeenCalledWith('1');
     });
   });
 
-  describe('preliminaryDrafts computed', () => {
-    it('should return all drafts for admin', () => {
-      // Usamos el mock de Jest para forzar el retorno de true
-      authServiceMock.hasAnyRole.mockReturnValue(true);
+  describe('Delegación de operaciones de Asignación', () => {
+    it('debería delegar validateReviewersRules', () => {
+      const mockProposal = { id: 'prop-1' } as unknown as Proposal;
+      mockAssignmentService.validateReviewersRules.mockReturnValue('Error simulado');
 
-      (service as any)._preliminaryDraftsList.set([
-        { preliminaryDraftId: '1' },
-        { preliminaryDraftId: '2' }
-      ]);
+      const result = service.validateReviewersRules(mockProposal, 'eval-1', 'eval-2');
 
-      expect(service.preliminaryDrafts().length).toBe(2);
+      expect(result).toBe('Error simulado');
+      expect(mockAssignmentService.validateReviewersRules).toHaveBeenCalledWith(mockProposal, 'eval-1', 'eval-2');
     });
 
-    it('should filter drafts for normal user', () => {
-      authServiceMock.hasAnyRole.mockReturnValue(false);
+    it('debería delegar assignReviewers al método assignReviewersMock', () => {
+      mockAssignmentService.assignReviewersMock.mockReturnValue(of(undefined));
 
-      // Ahora .set() funcionará porque el signal en el mock es Writable
-      (authServiceMock.currentUser as WritableSignal<User | null>).set({
-        ...mockUser,
-        id: 'user-auth'
+      service.assignReviewers('draft-1', ['eval-1', 'eval-2']).subscribe();
+
+      expect(mockAssignmentService.assignReviewersMock).toHaveBeenCalledWith('draft-1', ['eval-1', 'eval-2']);
+    });
+  });
+
+  describe('Delegación de Documentos y Evaluaciones', () => {
+    it('debería delegar addEvaluation', () => {
+      const mockEval = { id: 'eval-1' } as unknown as Evaluation;
+      mockDocumentService.addEvaluationMock.mockReturnValue(of(undefined));
+
+      service.addEvaluation('draft-1', mockEval).subscribe();
+
+      expect(mockDocumentService.addEvaluationMock).toHaveBeenCalledWith('draft-1', mockEval);
+    });
+
+    it('debería delegar uploadDocument', () => {
+      const mockDoc = { id: 'doc-1' } as unknown as FileDocument;
+      mockDocumentService.uploadDocumentMock.mockReturnValue(of(undefined));
+
+      service.uploadDocument('draft-1', mockDoc).subscribe();
+
+      expect(mockDocumentService.uploadDocumentMock).toHaveBeenCalledWith('draft-1', mockDoc);
+    });
+
+    it('debería delegar uploadCouncilResolution', () => {
+      const mockDoc = { id: 'doc-resolucion' } as unknown as FileDocument;
+      const mockEval = { veredict: stateList.APROBADO } as unknown as Evaluation;
+      const mockDraft = { preliminaryDraftId: 'draft-1' } as unknown as PreliminaryDraft;
+      const maxDate = new Date();
+
+      mockDocumentService.uploadCouncilResolutionMock.mockReturnValue(of(mockDraft));
+
+      service.uploadCouncilResolution('draft-1', mockDoc, stateList.APROBADO, mockEval, maxDate).subscribe(res => {
+        expect(res).toEqual(mockDraft);
       });
 
-      const drafts: any[] = [{
-        preliminaryDraftId: '1',
-        proposalData: { authors: ['user-auth'] }
-      }];
+      expect(mockDocumentService.uploadCouncilResolutionMock).toHaveBeenCalledWith('draft-1', mockDoc, stateList.APROBADO, mockEval, maxDate);
+    });
 
-      (service as any)._preliminaryDraftsList.set(drafts);
+    it('debería delegar calculateDocumentStatus', () => {
+      const mockEvals = [] as Evaluation[];
+      mockDocumentService.calculateDocumentStatus.mockReturnValue(stateList.APROBADO);
 
-      expect(service.preliminaryDrafts().length).toBe(1);
+      const result = service.calculateDocumentStatus('doc-1', mockEvals, 2);
+
+      expect(result).toBe(stateList.APROBADO);
+      expect(mockDocumentService.calculateDocumentStatus).toHaveBeenCalledWith('doc-1', mockEvals, 2);
     });
   });
 });

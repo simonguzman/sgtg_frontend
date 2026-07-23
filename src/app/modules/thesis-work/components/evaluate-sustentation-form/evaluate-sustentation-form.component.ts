@@ -12,9 +12,10 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SustentationRegistry } from '../../interfaces/sustentation-registry.interface';
 import { User } from '../../../users/interfaces/user.interface';
+import { SustentationVeredict } from '../../services/thesis-work-sustentation.service';
 
 export interface SustentationEvaluationPayload {
-  veredict: stateList;
+  veredict: SustentationVeredict;
   observations: string;
   evaluationDate: Date;
 }
@@ -36,7 +37,7 @@ export class EvaluateSustentationFormComponent {
   @Output() onBack = new EventEmitter<void>();
   @Output() onDownloadFile = new EventEmitter<FileDocument>();
 
-  verdictSelected = signal<stateList | null>(null);
+  verdictSelected = signal<SustentationVeredict | null>(null);
   observations = signal<string>('');
   uploadedFormat = signal<{ fileName: string; file: File } | null>(null);
   isModalOpen = signal<boolean>(false);

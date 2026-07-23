@@ -27,7 +27,7 @@
 }
 
 <app-confirmation-action-modal
-  [isOpen]="confirmState.show"
+  [isOpen]="isModalOpen()"
   description="¿Está seguro de guardar los cambios realizados en la propuesta?"
   (onClose)="cancelUpdate()"
   (confirm)="confirmUpdate()"

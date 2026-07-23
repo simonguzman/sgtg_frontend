@@ -1,154 +1,143 @@
-/* tslint:disable:no-unused-variable */
-import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { signal } from '@angular/core';
-import { Router } from '@angular/router';
-import { throwError, Subject, of } from 'rxjs';
-import { ProposalService } from '../../services/proposal.service';
-import { AuthService } from '../../../../core/services/auth/auth.service';
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProposalPageComponent } from './proposal-page.component';
-import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
+import { Router } from '@angular/router';
+import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
+import { ProposalFacadeService } from './services/proposal-facade.service';
+import { ProposalTableRow } from './models/proposal-page.model';
+
+// Importar interfaces del table-component
+import { TableButton, Column, TableRow } from '../../../../shared/components/table-component/table-component.component';
+
+// 1. Importar componentes reales para removerlos
+import { TableComponent } from '../../../../shared/components/table-component/table-component.component';
+import { DescriptionModalComponent } from '../../../../shared/components/modals/description-modal/description-modal.component';
+import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+
+// 2. Mocks de componentes standalone (Ahora SIN anys)
+@Component({ selector: 'app-table-component', standalone: true, template: '' })
+class MockTableComponent {
+  @Input() value: TableRow[] = [];
+  @Input() headerButtons: TableButton[] = [];
+  @Input() columns: Column[] = [];
+  @Input() paginator = false;
+  @Input() filterFields: string[] = [];
+  @Input() emptyMessage = '';
+  @Output() actionClick = new EventEmitter<{ action: string; row: TableRow }>();
+  @Output() headerButtonClick = new EventEmitter<TableButton>();
+}
+
+@Component({ selector: 'app-description-modal', standalone: true, template: '' })
+class MockDescriptionModalComponent {
+  @Input() isOpen = false;
+  @Input() titleDescription = '';
+  @Input() description = '';
+  @Output() onClose = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-confirmation-action-modal', standalone: true, template: '' })
+class MockConfirmationActionModalComponent {
+  @Input() isOpen = false;
+  @Input() description = '';
+  @Output() onClose = new EventEmitter<void>();
+  @Output() confirm = new EventEmitter<void>();
+}
 
 describe('ProposalPageComponent', () => {
   let component: ProposalPageComponent;
   let fixture: ComponentFixture<ProposalPageComponent>;
+  let mockRouter: { navigate: jest.Mock };
 
-  let mockProposalService: any;
-  let mockAuthService: any;
-  let mockNotificationService: any;
-  let mockRouter: any;
+  // 🚀 ADIÓS ANY: Tipamos correctamente la fachada mockeada
+  let mockFacade: {
+    proposalsTableData: ReturnType<typeof signal<ProposalTableRow[]>>;
+    headerButtons: ReturnType<typeof signal<TableButton[]>>;
+    showRestrictedAccessNotification: jest.Mock;
+    deleteProposal: jest.Mock;
+  };
+
+  const mockRow: ProposalTableRow = {
+    id: 'prop-1',
+    title: 'Test',
+    description: 'Desc test',
+    allowedActions: ['ver', 'ver descripcion', 'editar', 'eliminar']
+  } as ProposalTableRow;
 
   beforeEach(async () => {
-    mockProposalService = {
-      // Usamos una estructura que coincida con lo que el componente espera
-      proposals: signal([
-        {
-          id: '1',
-          title: 'Propuesta Test',
-          description: 'Desc',
-          state: 'Aprobado',
-          director: { id: 'director-123' }
-        }
-      ]),
-      deleteProposalMock: jest.fn()
-    };
-
-    mockAuthService = {
-      hasAnyRole: jest.fn(),
-      // CORRECCIÓN: Agregamos el signal currentUser que faltaba
-      currentUser: signal({ id: 'user-456', roles: [UserRoleType.ESTUDIANTE] })
-    };
-
-    mockNotificationService = {
-      show: jest.fn()
-    };
-
-    mockRouter = {
-      navigate: jest.fn()
+    mockRouter = { navigate: jest.fn() };
+    mockFacade = {
+      proposalsTableData: signal([mockRow]),
+      headerButtons: signal([]),
+      showRestrictedAccessNotification: jest.fn(),
+      deleteProposal: jest.fn()
     };
 
     await TestBed.configureTestingModule({
       imports: [ProposalPageComponent],
       providers: [
-        { provide: ProposalService, useValue: mockProposalService },
-        { provide: AuthService, useValue: mockAuthService },
-        { provide: NotificationService, useValue: mockNotificationService },
-        { provide: Router, useValue: mockRouter }
+        { provide: Router, useValue: mockRouter },
+        { provide: ProposalFacadeService, useValue: mockFacade }
       ]
-    }).compileComponents();
+    })
+    .overrideComponent(ProposalPageComponent, {
+      remove: { imports: [TableComponent, DescriptionModalComponent, ConfirmationActionModalComponent] },
+      add: { imports: [MockTableComponent, MockDescriptionModalComponent, MockConfirmationActionModalComponent] }
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(ProposalPageComponent);
     component = fixture.componentInstance;
-  });
-
-  it('Debe crear el componente', () => {
-    expect(component).toBeTruthy();
-  });
-
-  it('Debe restringir allowedActions si el usuario no es dueño ni ADMIN', () => {
-    // Usuario normal que no es el director de la propuesta
-    mockAuthService.hasAnyRole.mockReturnValue(false);
-    mockAuthService.currentUser.set({ id: 'otro-id' });
-
-    fixture.detectChanges(); // Disparamos el computed
-
-    const proposals = component['proposalsWithPermissions']();
-    const actions = proposals[0].allowedActions;
-
-    // Según tu lógica: ['ver descripcion', 'ver']
-    expect(actions).not.toContain('editar');
-    expect(actions).not.toContain('eliminar');
-    expect(actions.length).toBe(2);
-  });
-
-  it('Debe permitir todas las acciones si el usuario es ADMINISTRADOR', () => {
-    mockAuthService.hasAnyRole.mockReturnValue(true); // Es Admin
-
     fixture.detectChanges();
-
-    const proposals = component['proposalsWithPermissions']();
-    const actions = proposals[0].allowedActions;
-
-    expect(actions).toContain('editar');
-    expect(actions).toContain('eliminar');
-    expect(actions.length).toBe(4);
   });
 
-  it('Debe navegar a la creación al pulsar "Registrar propuesta"', () => {
-    const btn = { label: 'Registrar propuesta', variant: 'primary' };
-    component.handleHeaderButton(btn as any);
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/proposal/create']);
+  describe('handleTableAction', () => {
+    it('debe notificar si la acción no está permitida', () => {
+      const restrictedRow = { ...mockRow, allowedActions: ['ver'] };
+
+      component.handleTableAction({ action: 'editar', row: restrictedRow });
+
+      expect(mockFacade.showRestrictedAccessNotification).toHaveBeenCalled();
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
+
+    it('debe abrir modal de descripción al accionar "ver descripcion"', () => {
+      component.handleTableAction({ action: 'ver descripcion', row: mockRow });
+
+      expect(component.descriptionModal.show).toBeTruthy();
+      expect(component.descriptionModal.content).toBe('Desc test');
+    });
+
+    it('debe navegar al detalle al accionar "ver"', () => {
+      component.handleTableAction({ action: 'ver', row: mockRow });
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/proposal/details', 'prop-1']);
+    });
+
+    it('debe setear estado de eliminación al accionar "eliminar"', () => {
+      component.handleTableAction({ action: 'eliminar', row: mockRow });
+      expect(component.deleteState.show).toBeTruthy();
+      expect(component.deleteState.id).toBe('prop-1');
+    });
   });
 
-  it('Debe abrir el modal de descripción con el contenido correcto', () => {
-    const mockRow: any = { description: 'Contenido de prueba', allowedActions: ['ver descripcion'] };
-    component.handleTableAction({ action: 'ver descripcion', row: mockRow });
-    expect(component.descriptionModal.show).toBe(true);
-    expect(component.descriptionModal.content).toBe('Contenido de prueba');
+  describe('handleHeaderButton', () => {
+    it('debe navegar a crear propuesta', () => {
+      // 🚀 SOLUCIÓN: Agregamos variant: 'primary'
+      component.handleHeaderButton({ label: 'Registrar propuesta', icon: '', action: '', variant: 'primary' });
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/proposal/create']);
+    });
   });
 
-  it('Debe completar el flujo de eliminación exitosamente', fakeAsync(() => {
-    const proposalId = '123';
-    // Usamos Subject para controlar exactamente cuándo responde el servicio
-    const deleteSubject = new Subject<void>();
-    mockProposalService.deleteProposalMock.mockReturnValue(deleteSubject.asObservable());
+  describe('confirmDelete', () => {
+    it('debe llamar a deleteProposal en fachada y resetear modal en éxito', () => {
+      component.deleteState = { show: true, id: 'prop-1', title: 'Test', loading: false };
 
-    component.deleteState = { show: true, id: proposalId, title: 'Test', loading: false };
+      component.confirmDelete();
+      expect(component.deleteState.loading).toBeTruthy();
 
-    // 1. Act: Iniciar eliminación
-    component.confirmDelete();
+      const onSuccess = mockFacade.deleteProposal.mock.calls[0][1];
+      onSuccess();
 
-    // 2. Assert: Verificar que entró en estado de carga
-    // Ahora sí será true porque el Subject no ha emitido nada aún
-    expect(component.deleteState.loading).toBe(true);
-
-    // 3. Act: Emitir éxito
-    deleteSubject.next();
-    deleteSubject.complete();
-
-    tick(); // Procesar el microtask del observable
-    fixture.detectChanges();
-
-    // 4. Assert final
-    expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-      type: NotificationType.CONFIRMATION
-    }));
-    expect(component.deleteState.show).toBe(false);
-    expect(component.deleteState.loading).toBe(false);
-  }));
-
-  it('Debe manejar errores en la eliminación', fakeAsync(() => {
-    mockProposalService.deleteProposalMock.mockReturnValue(throwError(() => new Error('Error')));
-    component.deleteState = { show: true, id: '1', title: 'Test', loading: false };
-
-    component.confirmDelete();
-    tick();
-
-    expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-      type: NotificationType.ERROR
-    }));
-    expect(component.deleteState.loading).toBe(false);
-    expect(component.deleteState.show).toBe(true); // El modal sigue abierto en error
-  }));
+      expect(component.deleteState.show).toBeFalsy();
+      expect(component.deleteState.id).toBeNull();
+    });
+  });
 });

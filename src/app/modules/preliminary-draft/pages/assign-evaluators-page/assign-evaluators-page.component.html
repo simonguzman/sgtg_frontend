@@ -3,21 +3,21 @@
   <div class="max-w-7xl mx-auto flex flex-col gap-6">
 
     <button
-      (click)="goBack()"
+      (click)="facade.goBack()"
       class="flex items-center gap-1 text-primary font-bold text-sm hover:opacity-80 transition-opacity w-fit"
     >
       <span class="material-symbols-outlined text-size-section font-bold">arrow_back</span>
       Regresar
     </button>
 
-    @if (isDataLoading()) {
+    @if (facade.isDataLoading()) {
       <div class="flex justify-center items-center h-60">
         <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
       </div>
-    } @else if (selectedPreliminaryDraft()) {
+    } @else if (facade.selectedPreliminaryDraft()) {
       <app-assign-evaluators-form
-        [preliminaryDraft]="selectedPreliminaryDraft()!"
-        (onSave)="handleAssign($event)"
+        [preliminaryDraft]="facade.selectedPreliminaryDraft()!"
+        (onSave)="facade.handleAssign($event)"
       ></app-assign-evaluators-form>
     }
   </div>
@@ -25,8 +25,8 @@
 </div>
 
 <app-confirmation-action-modal
-  [isOpen]="confirmState().isOpen"
+  [isOpen]="facade.confirmState().isOpen"
   description="¿Está seguro de asignar a estos docentes como jurados evaluadores? Una vez confirmada la asignación, el plazo de evaluación de 10 días hábiles comenzará a correr."
-  (onClose)="cancelAssignment()"
-  (confirm)="confirmAssignment()"
+  (onClose)="facade.cancelAssignment()"
+  (confirm)="facade.confirmAssignment()"
 ></app-confirmation-action-modal>

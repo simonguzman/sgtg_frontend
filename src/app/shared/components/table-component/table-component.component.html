@@ -16,8 +16,9 @@
             search
           </span>
           <input
+            id=""
             type="text"
-            (input)="dt.filterGlobal($any($event.target).value, 'contains')"
+            (input)="onSearch($event, dt)"
             placeholder="Buscar en la tabla..."
             class="table-search-input"
           />

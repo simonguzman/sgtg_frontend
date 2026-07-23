@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { delay, Observable, of, tap } from 'rxjs';
+import { delay, first, Observable, of, tap } from 'rxjs';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { SpecialRequest } from '../interfaces/special-request.interface';
@@ -12,19 +12,19 @@ import { UserService } from '../../users/services/user.service';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { User } from '../../users/interfaces/user.interface';
 import { AuthService } from '../../../core/services/auth/auth.service';
-import { UserApiService } from '../../users/services/user-api.service'; // 👈 NUEVO: Inyectado para mutar roles
+import { collectParticipantIds } from '../helpers/thesis-participants.helper';
+// ← UserApiService eliminado: era dead code (this.userService cubría todos los casos)
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class ThesisWorkSpecialRequestService {
-  private readonly storage = inject(ThesisWorkStorageService);
-  private readonly eventBus = inject(EventBusService);
+  private readonly storage     = inject(ThesisWorkStorageService);
+  private readonly eventBus    = inject(EventBusService);
   private readonly userService = inject(UserService);
   private readonly authService = inject(AuthService);
-  private readonly api = inject(UserApiService); // 👈 NUEVO: Instancia del servicio
 
-  createSpecialRequestMock(payload: { requestType: SpecialRequestType, comments: string, thesisId: string }): Observable<void> {
+  createSpecialRequestMock(
+    payload: { requestType: SpecialRequestType; comments: string; thesisId: string }
+  ): Observable<void> {
     return of(undefined).pipe(
       delay(800),
       tap(() => {
@@ -33,53 +33,38 @@ export class ThesisWorkSpecialRequestService {
 
         this.storage.updateWork(payload.thesisId, (thesisWork: ThesisWork): ThesisWork => {
           const proposal = thesisWork.preliminaryDraftData?.proposalData;
-
-          // 💡 Captura del título real
-          currentThesisTitle = proposal?.title || '';
-
-          // 💡 Mapeo seguro de usuarios a notificar dentro del mutador
-          if (proposal) {
-            proposal.authors?.forEach((author: User | string) => {
-              if (typeof author === 'string') {
-                notifyUserIds.push(author);
-              } else if (author?.id) {
-                notifyUserIds.push(author.id);
-              }
-            });
-            if (proposal.director?.id) notifyUserIds.push(proposal.director.id);
-            if (proposal.codirector?.id) notifyUserIds.push(proposal.codirector.id);
-            if (proposal.advisor?.id) notifyUserIds.push(proposal.advisor.id);
-          }
+          currentThesisTitle = proposal?.title ?? '';
+          notifyUserIds      = collectParticipantIds(proposal);
 
           const newRequest: SpecialRequest = {
-            id: crypto.randomUUID(),
-            directorId: proposal?.director?.id || '',
+            id:          crypto.randomUUID(),
+            directorId:  proposal?.director?.id ?? '',
             requestType: payload.requestType,
             requestDate: new Date(),
             description: payload.comments,
-            status: stateList.EN_REVISION
+            status:      stateList.EN_REVISION
           };
 
           return {
             ...thesisWork,
-            specialRequests: [newRequest, ...(thesisWork.specialRequests || [])]
+            specialRequests: [newRequest, ...(thesisWork.specialRequests ?? [])]
           };
         });
 
-        // Agregar al Consejo de Facultad
-        const consejoUsers = this.userService.users()
-          .filter(user => user.roles.includes(UserRoleType.CONSEJO))
-          .map(user => user.id);
-        notifyUserIds.push(...consejoUsers);
+        notifyUserIds.push(
+          ...this.userService.users()
+            .filter(u => u.roles.includes(UserRoleType.CONSEJO))
+            .map(u => u.id)
+        );
 
         this.eventBus.emit({
-          type: AppEventType.SPECIAL_REQUEST_CREATED,
+          type:          AppEventType.SPECIAL_REQUEST_CREATED,
           targetUserIds: [...new Set(notifyUserIds)],
           payload: {
-            thesisId: payload.thesisId, // 💡 Duplicado para consistencia de enrutamiento
+            thesisId:     payload.thesisId,
             thesisWorkId: payload.thesisId,
-            type: payload.requestType,
-            thesisTitle: currentThesisTitle // 💡 Título inyectado con éxito
+            type:         payload.requestType,
+            thesisTitle:  currentThesisTitle
           }
         });
       })
@@ -89,54 +74,42 @@ export class ThesisWorkSpecialRequestService {
   evaluateSpecialRequestMock(
     thesisWorkId: string,
     requestId: string,
-    payload: { status: stateList.APROBADO | stateList.NO_APROBADO; resolutionDetails: string; grantedDeadline?: Date }
+    payload: {
+      status: stateList.APROBADO | stateList.NO_APROBADO;
+      resolutionDetails: string;
+      grantedDeadline?: Date;
+    }
   ): Observable<void> {
     return of(undefined).pipe(
       delay(900),
       tap(() => {
         let currentThesisTitle = '';
         let notifyUserIds: string[] = [];
-        let evaluatorIdsToClean: string[] = []; // 👈 NUEVO: Arreglo para recolectar evaluadores
-
-        // 👈 Capturamos el ID del usuario que está haciendo la evaluación (El miembro del consejo)
-        const currentUser = this.authService.currentUser();
-        const currentEvaluatorId = currentUser ? currentUser.id : 'sistema';
+        const evaluatorIdsToClean: string[]    = [];
+        const currentEvaluatorId = this.authService.currentUser()?.id ?? 'sistema';
 
         this.storage.updateWork(thesisWorkId, (thesisWork: ThesisWork): ThesisWork => {
           const proposal = thesisWork.preliminaryDraftData?.proposalData;
-          currentThesisTitle = proposal?.title || '';
+          currentThesisTitle = proposal?.title ?? '';
+          notifyUserIds      = collectParticipantIds(proposal);
 
-          if (proposal) {
-            proposal.authors?.forEach((author: User | string) => {
-              if (typeof author === 'string') notifyUserIds.push(author);
-              else if (author?.id) notifyUserIds.push(author.id);
-            });
-            if (proposal.director?.id) notifyUserIds.push(proposal.director.id);
-            if (proposal.codirector?.id) notifyUserIds.push(proposal.codirector.id);
-            if (proposal.advisor?.id) notifyUserIds.push(proposal.advisor.id);
-          }
+          let updatedState        = thesisWork.state;
+          let updatedDraft        = { ...thesisWork.preliminaryDraftData };
+          let updatedSustentations = [...(thesisWork.sustentations ?? [])];
+          let updatedDocuments    = [...(thesisWork.documents ?? [])];
+          let isArchived          = thesisWork.isArchived;
 
-          let updatedState = thesisWork.state;
-          let updatedDraft = { ...thesisWork.preliminaryDraftData };
-          let updatedSustentations = [...(thesisWork.sustentations || [])];
-          let updatedDocuments = [...(thesisWork.documents || [])];
-          let isArchived = thesisWork.isArchived;
-
-          const updatedRequests = (thesisWork.specialRequests || []).map(req => {
+          const updatedRequests = (thesisWork.specialRequests ?? []).map(req => {
             if (req.id !== requestId) return req;
 
             if (payload.status === stateList.APROBADO) {
               switch (req.requestType) {
                 case SpecialRequestType.CANCELACION:
                   updatedState = stateList.CANCELADO;
-                  isArchived = true;
-
-                  // 👈 NUEVO: Recolectar evaluadores del anteproyecto solo si se cancela el trabajo
-                  if (updatedDraft.evaluators) {
-                    updatedDraft.evaluators.forEach((evaluator: User) => {
-                      if (evaluator.id) evaluatorIdsToClean.push(evaluator.id);
-                    });
-                  }
+                  isArchived   = true;
+                  updatedDraft.evaluators?.forEach((evaluator: User) => {
+                    if (evaluator.id) evaluatorIdsToClean.push(evaluator.id);
+                  });
                   break;
                 case SpecialRequestType.SUSPENSION:
                   updatedState = stateList.SUSPENDIDO;
@@ -147,17 +120,16 @@ export class ThesisWorkSpecialRequestService {
                   break;
                 case SpecialRequestType.NUEVA_SUSTENTACION:
                   if (updatedSustentations.length > 0) {
-                    const pendingSustentation = { ...updatedSustentations[0] };
-                    pendingSustentation.status = SustentationStatus.APLAZADA;
-
-                    if (pendingSustentation.formatEDocument) {
-                      const targetDocId = pendingSustentation.formatEDocument.id;
-                      pendingSustentation.formatEDocument = { ...pendingSustentation.formatEDocument, status: stateList.APLAZADO };
+                    const pending = { ...updatedSustentations[0] };
+                    pending.status = SustentationStatus.APLAZADA;
+                    if (pending.formatEDocument) {
+                      const targetDocId = pending.formatEDocument.id;
+                      pending.formatEDocument = { ...pending.formatEDocument, status: stateList.APLAZADO };
                       updatedDocuments = updatedDocuments.map(doc =>
                         doc.id === targetDocId ? { ...doc, status: stateList.APLAZADO } : doc
                       );
                     }
-                    updatedSustentations[0] = pendingSustentation;
+                    updatedSustentations[0] = pending;
                   }
                   break;
                 case SpecialRequestType.CAMBIO_TITULO:
@@ -165,40 +137,40 @@ export class ThesisWorkSpecialRequestService {
               }
             }
 
-            // 👈 Retornamos la solicitud actualizada inyectándole el ID del evaluador
             return {
               ...req,
-              status: payload.status,
+              status:            payload.status,
               resolutionDetails: payload.resolutionDetails,
-              grantedDeadline: payload.grantedDeadline,
-              evaluatorId: currentEvaluatorId // 👈 SE GUARDA EN EL HISTORIAL
+              grantedDeadline:   payload.grantedDeadline,
+              evaluatorId:       currentEvaluatorId
             };
           });
 
           return {
             ...thesisWork,
-            state: updatedState,
+            state:               updatedState,
             preliminaryDraftData: updatedDraft,
-            sustentations: updatedSustentations,
-            documents: updatedDocuments,
-            specialRequests: updatedRequests,
-            isArchived // Aseguramos que se actualice el estado de archivo si hubo cancelación
+            sustentations:       updatedSustentations,
+            documents:           updatedDocuments,
+            specialRequests:     updatedRequests,
+            isArchived
           };
         });
 
-        // 👈 NUEVO: Ejecutar limpieza de roles solo para evaluadores si hubo cancelación aprobada
         if (evaluatorIdsToClean.length > 0) {
-          const uniqueEvaluatorIds = [...new Set(evaluatorIdsToClean)];
-          this.userService.removeRolesFromUsersMock(uniqueEvaluatorIds, [UserRoleType.EVALUADOR]).subscribe();
+          // ← first() agregado + UserService en vez de UserApiService directamente
+          this.userService.removeRolesFromUsersMock(
+            [...new Set(evaluatorIdsToClean)], [UserRoleType.EVALUADOR]
+          ).pipe(first()).subscribe();
         }
 
         this.eventBus.emit({
-          type: AppEventType.SPECIAL_REQUEST_RESOLVED,
+          type:          AppEventType.SPECIAL_REQUEST_RESOLVED,
           targetUserIds: [...new Set(notifyUserIds)],
           payload: {
-            thesisId: thesisWorkId,
-            thesisWorkId: thesisWorkId,
-            status: payload.status,
+            thesisId:    thesisWorkId,
+            thesisWorkId,
+            status:      payload.status,
             thesisTitle: currentThesisTitle
           }
         });

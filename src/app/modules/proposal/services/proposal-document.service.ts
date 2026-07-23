@@ -10,6 +10,7 @@ import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { UserService } from '../../users/services/user.service';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
+import { Proposal } from '../interfaces/proposal.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -19,125 +20,86 @@ export class ProposalDocumentService {
   private readonly eventBus = inject(EventBusService);
   private readonly userService = inject(UserService);
 
-  /**
-   * Añade una evaluación realizada por el comité y refresca el estado general del documento/propuesta
-   */
-  addEvaluationMock(proposalId: string, evaluation: Evaluation): Observable<void> {
-    return of(undefined).pipe(
+  addEvaluationMock(proposalId: string, evaluation: Evaluation): Observable<Proposal> {
+    const proposal = this.storage.getProposalsListSnapshot().find(proposal => proposal.id === proposalId);
+    if (!proposal) throw new Error(`Propuesta con ID ${proposalId} no encontrada`);
+
+    const remainingDays = proposal.evaluationDeadline ? getRemainingBusinessDays(proposal.evaluationDeadline) : 0;
+    const timelinessStatus = remainingDays < 0 ? EvaluationDeadlineStatus.DELAYED : EvaluationDeadlineStatus.ON_TIME;
+
+    const updatedProposal: Proposal = {
+      ...proposal,
+      state: evaluation.veredict,
+      evaluations: [
+        {
+          ...evaluation,
+          id: crypto.randomUUID(),
+          date: new Date(),
+          deadlineStatus: timelinessStatus
+        },
+        ...(proposal.evaluations || [])
+      ],
+      documents: proposal.documents?.map((document, index) =>
+        index === 0 ? { ...document, status: evaluation.veredict } : document
+      ) || []
+    };
+
+    return of(updatedProposal).pipe(
       delay(1000),
-      tap(() => {
-        let proposalTitle = '';
-        const notifyUserIds: string[] = [];
+      tap(savedProposal => {
+        this.storage.updateProposals(list => list.map(proposal => proposal.id === proposalId ? savedProposal : proposal));
 
-        // 💡 Transacción síncrona y atómica sobre la lista de señales
-        this.storage.updateProposals(list => list.map(proposal => {
-          if (proposal.id !== proposalId) return proposal;
+        const notifyUserIds = new Set<string>();
+        savedProposal.authors?.forEach(author => { if (author?.id) notifyUserIds.add(author.id); });
+        if (savedProposal.director?.id) notifyUserIds.add(savedProposal.director.id);
+        if (savedProposal.codirector?.id) notifyUserIds.add(savedProposal.codirector.id);
+        if (savedProposal.advisor?.id) notifyUserIds.add(savedProposal.advisor.id);
 
-          // 🔒 Captura segura de datos dentro del ciclo inmutable
-          proposalTitle = proposal.title || '';
-
-          // Extracción de autores (estudiantes) vinculados de forma directa
-          proposal.authors?.forEach(author => {
-            if (author?.id) notifyUserIds.push(author.id);
-          });
-
-          // Extracción del equipo de docentes asignados
-          if (proposal.director?.id) notifyUserIds.push(proposal.director.id);
-          if (proposal.codirector?.id) notifyUserIds.push(proposal.codirector.id);
-          if (proposal.advisor?.id) notifyUserIds.push(proposal.advisor.id);
-
-          // 1. Calculamos los días hábiles restantes
-          const remainingDays = proposal.evaluationDeadline
-            ? getRemainingBusinessDays(proposal.evaluationDeadline)
-            : 0;
-
-          // 2. Determinamos el estado histórico de la evaluación
-          const timelinessStatus = remainingDays < 0
-            ? EvaluationDeadlineStatus.DELAYED
-            : EvaluationDeadlineStatus.ON_TIME;
-
-          const updatedProposal = {
-            ...proposal,
-            state: evaluation.veredict,
-            evaluations: [
-              {
-                ...evaluation,
-                id: Math.random().toString(36).substring(2, 7),
-                date: new Date(),
-                deadlineStatus: timelinessStatus // ✅ Guardamos el Enum como registro histórico
-              },
-              ...(proposal.evaluations || [])
-            ]
-          };
-
-          if (updatedProposal.documents && updatedProposal.documents.length > 0) {
-            updatedProposal.documents = updatedProposal.documents.map((doc, index) =>
-              index === 0 ? { ...doc, status: evaluation.veredict } : doc
-            );
-          }
-          return updatedProposal;
-        }));
-
-        // Emisión con payload enriquecido y estandarizado
         this.eventBus.emit({
           type: AppEventType.EVALUATION_ASSIGNED,
-          targetUserIds: [...new Set(notifyUserIds)],
+          targetUserIds: Array.from(notifyUserIds),
           payload: {
-            proposalId,
+            proposalId: savedProposal.id,
             veredict: evaluation.veredict,
-            proposalTitle: proposalTitle
+            proposalTitle: savedProposal.title || ''
           }
         });
       })
     );
   }
 
-  /**
-   * Carga una nueva corrección (Documento) a la propuesta regresando el estado a REVISIÓN
-   */
-  uploadCorrectionMock(proposalId: string, newDoc: FileDocument): Observable<void> {
-    return of(undefined).pipe(
+  uploadCorrectionMock(proposalId: string, newDocument: FileDocument): Observable<Proposal> {
+    const proposal = this.storage.getProposalsListSnapshot().find(proposal => proposal.id === proposalId);
+    if (!proposal) throw new Error(`Propuesta con ID ${proposalId} no encontrada`);
+
+    const updatedProposal: Proposal = {
+      ...proposal,
+      documents: [newDocument, ...(proposal.documents || [])],
+      state: stateList.EN_REVISION,
+      evaluationDeadline: addBusinessDays(new Date(), 10)
+    };
+
+    return of(updatedProposal).pipe(
       delay(1200),
-      tap(() => {
-        const now = new Date();
-        const newDeadline = addBusinessDays(now, 10);
+      tap(savedProposal => {
+        this.storage.updateProposals(list => list.map(proposal => proposal.id === proposalId ? savedProposal : proposal));
 
-        let proposalTitle = '';
-        const notifyUserIds: string[] = [];
+        const notifyUserIds = new Set<string>();
+        savedProposal.authors?.forEach(author => { if (author?.id) notifyUserIds.add(author.id); });
+        if (savedProposal.director?.id) notifyUserIds.add(savedProposal.director.id);
+        if (savedProposal.codirector?.id) notifyUserIds.add(savedProposal.codirector.id);
+        if (savedProposal.advisor?.id) notifyUserIds.add(savedProposal.advisor.id);
 
-        this.storage.updateProposals(list =>
-          list.map(proposal => {
-            if (proposal.id !== proposalId) return proposal;
-
-            proposalTitle = proposal.title || '';
-
-            proposal.authors?.forEach(author => {
-              if (author?.id) notifyUserIds.push(author.id);
-            });
-            if (proposal.director?.id) notifyUserIds.push(proposal.director.id);
-            if (proposal.codirector?.id) notifyUserIds.push(proposal.codirector.id);
-            if (proposal.advisor?.id) notifyUserIds.push(proposal.advisor.id);
-
-            return {
-              ...proposal,
-              documents: [newDoc, ...(proposal.documents || [])],
-              state: stateList.EN_REVISION,
-              evaluationDeadline: newDeadline
-            };
-          })
-        );
-
-        const comiteUsers = this.userService.users()
+        this.userService.users()
           .filter(user => user.roles.includes(UserRoleType.COMITE))
-          .map(user => user.id);
-        notifyUserIds.push(...comiteUsers);
+          .forEach(user => notifyUserIds.add(user.id));
 
         this.eventBus.emit({
           type: AppEventType.PROPOSAL_CORRECTION_UPLOADED,
-          targetUserIds: [...new Set(notifyUserIds)],
+          targetUserIds: Array.from(notifyUserIds),
           payload: {
-            proposalId: proposalId,
-            proposalTitle: proposalTitle
+            proposalId: savedProposal.id,
+            proposalTitle: savedProposal.title || ''
           }
         });
       })

@@ -1,7 +1,7 @@
 <div class="p-6 bg-white rounded-lg w-full">
   <div class="flex flex-col gap-8">
 
-    @if (!isReadOnly) {
+    @if (!facade.isReadOnly()) {
       <app-info-banner title="Evaluación de presentación al consejo de facultad" class="block">
         Revise los antecedentes del anteproyecto y los archivos adjuntos cargados para el proceso de validación. Es <strong>obligatorio</strong> que registre las observaciones de la resolución y adjunte el documento oficial de resolución debidamente firmado por el consejo.
       </app-info-banner>
@@ -18,47 +18,47 @@
               {{ label }}
             </span>
             @if (isTextArea) {
-              <textarea [value]="value || 'Sin descripción disponible'" disabled rows="4"
+              <textarea id="" [value]="value || 'Sin descripción disponible'" disabled rows="4"
                         class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body resize-none"></textarea>
             } @else {
-              <input type="text" [value]="value" disabled
+              <input id="" type="text" [value]="value" disabled
                      class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body">
             }
           </div>
         </ng-template>
 
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Título', value: preliminaryDraft.proposalData.title }"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Título', value: facade.preliminaryDraft()?.proposalData?.title }"></ng-container>
 
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Descripción', value: preliminaryDraft.proposalData.description, isTextArea: true }"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Descripción', value: facade.preliminaryDraft()?.proposalData?.description, isTextArea: true }"></ng-container>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Fecha de carga', value: documentUploadDate }"></ng-container>
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Modalidad', value: preliminaryDraft.proposalData.modality }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Fecha de carga', value: facade.documentUploadDate() }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Modalidad', value: facade.preliminaryDraft()?.proposalData?.modality }"></ng-container>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estado', value: preliminaryDraft.state }"></ng-container>
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estudiante(s)', value: getStudentNames() }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estado', value: facade.preliminaryDraft()?.state }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estudiante(s)', value: facade.getStudentNames() }"></ng-container>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Director', value: getDirectorName() }"></ng-container>
-          @if (preliminaryDraft.proposalData.codirector) {
-            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Codirector', value: getCodirectorName() }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Director', value: facade.getDirectorName() }"></ng-container>
+          @if (facade.preliminaryDraft()?.proposalData?.codirector) {
+            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Codirector', value: facade.getCodirectorName() }"></ng-container>
           }
         </div>
 
-        @if (preliminaryDraft.proposalData.advisor) {
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Asesor', value: getAdvisorName() }"></ng-container>
+        @if (facade.preliminaryDraft()?.proposalData?.advisor) {
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Asesor', value: facade.getAdvisorName() }"></ng-container>
         }
 
       </div>
     </section>
 
-    <section [class.opacity-60]="isReadOnly">
+    <section [class.opacity-60]="facade.isReadOnly()">
       <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">Resultado de la evaluación</h3>
 
-      <form [formGroup]="evaluationForm" (ngSubmit)="submit()" class="flex flex-col gap-6">
+      <form [formGroup]="facade.evaluationForm" (ngSubmit)="submit()" class="flex flex-col gap-6">
 
         <div class="flex flex-col gap-2">
           <div class="flex items-center justify-center gap-8">
@@ -71,12 +71,12 @@
               <span class="text-size-body font-sans text-[#777680]">No aprobado</span>
             </label>
           </div>
-          @if (isFieldInvalid('result')) {
+          @if (facade.isFieldInvalid('result')) {
             <span class="text-textbox-alert text-center">Seleccione el veredicto del consejo</span>
           }
         </div>
 
-        @if (evaluationForm.get('result')?.value === 'Aprobado') {
+        @if (facade.evaluationForm.get('result')?.value === 'Aprobado') {
           <div class="flex flex-col gap-1 max-w-md mx-auto w-full bg-blue-50/50 p-6 rounded-xl border border-blue-100 transition-all shadow-sm my-4">
             <span class="font-display font-semibold text-size-section text-primary mb-2 flex items-center gap-1">
               Fecha máxima de entrega del Trabajo de Grado <span class="text-[#ED7D31]">*</span>
@@ -87,10 +87,10 @@
               [showIcon]="true"
               placeholder="Seleccione la fecha límite"
               styleClass="w-full"
-              [inputStyleClass]="'font-sans font-normal text-size-body p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary ' + (isFieldInvalid('maximumDeliveryDate') ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white')">
+              [inputStyleClass]="'font-sans font-normal text-size-body p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary ' + (facade.isFieldInvalid('maximumDeliveryDate') ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white')">
             </p-datepicker>
 
-            @if (isFieldInvalid('maximumDeliveryDate')) {
+            @if (facade.isFieldInvalid('maximumDeliveryDate')) {
               <span class="text-textbox-alert text-xs mt-1">La fecha límite de entrega es requerida para proyectos aprobados</span>
             }
           </div>
@@ -100,10 +100,10 @@
           <label for="comments" class="font-display font-semibold text-primary text-size-section">Observaciones del consejo <span class="text-orange-500">*</span></label>
           <textarea id="comments" formControlName="comments" rows="4"
             class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans"
-            [class.border-[#ED7D31]]="isFieldInvalid('comments')"
-            [class.input-success]="evaluationForm.get('comments')?.valid && evaluationForm.get('comments')?.touched"
+            [class.border-[#ED7D31]]="facade.isFieldInvalid('comments')"
+            [class.input-success]="facade.evaluationForm.get('comments')?.valid && facade.evaluationForm.get('comments')?.touched"
             placeholder="Ingrese los detalles de la resolución..."></textarea>
-          @if (isFieldInvalid('comments')) {
+          @if (facade.isFieldInvalid('comments')) {
             <span class="text-textbox-alert">Las observaciones son requeridas</span>
           }
         </div>
@@ -113,18 +113,20 @@
 
           <div class="flex flex-col gap-3">
 
-            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
-              <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
-                <div class="flex flex-col">
-                  <span class="text-size-body font-bold text-primary">{{ signedProposalDocument?.name || 'Formato A' }}</span>
-                  <span class="text-size-role-footer text-[#777680]">Propuesta original aprobada por comité</span>
+            @if (facade.signedProposalDocument(); as signedDoc) {
+              <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
+                <div class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
+                  <div class="flex flex-col">
+                    <span class="text-size-body font-bold text-primary">{{ signedDoc.name }}</span>
+                    <span class="text-size-role-footer text-[#777680]">Propuesta original aprobada por comité</span>
+                  </div>
                 </div>
+                <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(signedDoc)"></app-button-component>
               </div>
-              <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(signedProposalDocument!)"></app-button-component>
-            </div>
+            }
 
-            @for (evalFile of evaluationFiles; track evalFile.name) {
+            @for (evalFile of facade.evaluationFiles(); track evalFile.name) {
               <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
                 <div class="flex items-center gap-3">
                   <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
@@ -137,57 +139,61 @@
               </div>
             }
 
-            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
-              <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
-                <div class="flex flex-col">
-                  <span class="text-size-body font-bold text-primary">{{ approvedPreliminaryDraftDocument?.name || 'Anteproyecto' }}</span>
-                  <span class="text-size-role-footer text-[#777680]">Documento de anteproyecto aprobado</span>
+            @if (facade.approvedPreliminaryDraftDocument(); as approvedDoc) {
+              <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
+                <div class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
+                  <div class="flex flex-col">
+                    <span class="text-size-body font-bold text-primary">{{ approvedDoc.name }}</span>
+                    <span class="text-size-role-footer text-[#777680]">Documento de anteproyecto aprobado</span>
+                  </div>
                 </div>
+                <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(approvedDoc)"></app-button-component>
               </div>
-              <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(approvedPreliminaryDraftDocument!)"></app-button-component>
-            </div>
+            }
 
-            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
-              <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
-                <div class="flex flex-col">
-                  <span class="text-size-body font-bold text-primary">{{ presentationDocument?.name || 'Presentación' }}</span>
-                  <span class="text-size-role-footer text-[#777680]">Cargado por el jefe de departamento</span>
+            @if (facade.presentationDocument(); as presentationDoc) {
+              <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
+                <div class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
+                  <div class="flex flex-col">
+                    <span class="text-size-body font-bold text-primary">{{ presentationDoc.name }}</span>
+                    <span class="text-size-role-footer text-[#777680]">Cargado por el jefe de departamento</span>
+                  </div>
                 </div>
+                <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(presentationDoc)"></app-button-component>
               </div>
-              <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(presentationDocument!)"></app-button-component>
-            </div>
+            }
 
             <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm mt-2"
-                 [class.border-[#777680]]="evaluationForm.touched && uploadedSignedFile()"
-                 [class.border-[#ED7D31]]="evaluationForm.touched && !uploadedSignedFile()"
-                 [class.border-l-4]="uploadedSignedFile()"
-                 [class.border-l-state-approved]="uploadedSignedFile()">
+                 [class.border-[#777680]]="facade.evaluationForm.touched && facade.uploadedSignedFile()"
+                 [class.border-[#ED7D31]]="facade.evaluationForm.touched && !facade.uploadedSignedFile()"
+                 [class.border-l-4]="facade.uploadedSignedFile()"
+                 [class.border-l-state-approved]="facade.uploadedSignedFile()">
 
               <div class="flex items-center gap-3">
                 <span class="material-symbols-outlined text-4xl"
-                      [class.text-state-approved]="uploadedSignedFile()"
-                      [class.text-[#ED7D31]]="evaluationForm.touched && !uploadedSignedFile()"
-                      [class.text-[#777680]]="!uploadedSignedFile() && !(evaluationForm.touched && !uploadedSignedFile())">
-                  {{ uploadedSignedFile() ? 'task' : 'picture_as_pdf' }}
+                      [class.text-state-approved]="facade.uploadedSignedFile()"
+                      [class.text-[#ED7D31]]="facade.evaluationForm.touched && !facade.uploadedSignedFile()"
+                      [class.text-[#777680]]="!facade.uploadedSignedFile() && !(facade.evaluationForm.touched && !facade.uploadedSignedFile())">
+                  {{ facade.uploadedSignedFile() ? 'task' : 'picture_as_pdf' }}
                 </span>
                 <div class="flex flex-col">
                   <span class="text-size-body font-bold"
-                        [class.text-primary]="uploadedSignedFile()"
-                        [class.text-[#ED7D31]]="evaluationForm.touched && !uploadedSignedFile()">
-                    {{ uploadedSignedFile()?.fileName || 'Resolución del consejo de facultad' }}
+                        [class.text-primary]="facade.uploadedSignedFile()"
+                        [class.text-[#ED7D31]]="facade.evaluationForm.touched && !facade.uploadedSignedFile()">
+                    {{ facade.uploadedSignedFile()?.fileName || 'Resolución del consejo de facultad' }}
                   </span>
                   <span class="text-size-role-footer text-[#777680]">Resolución oficial del consejo firmada (Obligatorio)</span>
-                  @if (evaluationForm.touched && !uploadedSignedFile()) {
+                  @if (facade.evaluationForm.touched && !facade.uploadedSignedFile()) {
                     <span class="text-size-role-footer text-textbox-alert mt-1">Debe adjuntar el documento de resolución firmado</span>
                   }
                 </div>
               </div>
 
-              @if (uploadedSignedFile()) {
-                @if (!isReadOnly) {
-                  <button type="button" (click)="uploadedSignedFile.set(null)" class="text-[#777680] hover:text-[#DB141C] transition-colors">
+              @if (facade.uploadedSignedFile()) {
+                @if (!facade.isReadOnly()) {
+                  <button type="button" (click)="facade.uploadedSignedFile.set(null)" class="text-[#777680] hover:text-[#DB141C] transition-colors">
                     <span class="material-symbols-outlined">delete</span>
                   </button>
                 }
@@ -196,8 +202,8 @@
                   label="Cargar resolución"
                   variant="secondary"
                   type="button"
-                  (onClick)="isUploadModalOpen.set(true)"
-                  [disabled]="isReadOnly">
+                  (onClick)="facade.isUploadModalOpen.set(true)"
+                  [disabled]="facade.isReadOnly()">
                 </app-button-component>
               }
             </div>
@@ -210,7 +216,7 @@
             label="Guardar decisión"
             variant="primary"
             type="submit"
-            [disabled]="isReadOnly">
+            [disabled]="facade.isReadOnly()">
           </app-button-component>
         </div>
       </form>
@@ -220,8 +226,8 @@
 </div>
 
 <app-file-upload-modal
-  [isOpen]="isUploadModalOpen()"
+  [isOpen]="facade.isUploadModalOpen()"
   description="Subir resolución del consejo de facultad firmada"
-  (onFileUploaded)="handleFileUploaded($event)"
-  (onClose)="isUploadModalOpen.set(false)">
+  (onFileUploaded)="facade.handleFileUploaded($event)"
+  (onClose)="facade.isUploadModalOpen.set(false)">
 </app-file-upload-modal>

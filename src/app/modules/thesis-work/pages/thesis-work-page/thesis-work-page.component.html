@@ -1,7 +1,7 @@
 <app-table-component
-  [value]="tableData()"
+  [value]="facade.tableData()"
   [columns]="columns"
-  [headerButtons]="headerButtons"
+  [headerButtons]="facade.headerButtons()"
   [paginator]="true"
   [filterFields]="filterFields"
   (actionClick)="handleTableAction($event)"
@@ -10,15 +10,15 @@
 ></app-table-component>
 
 <app-description-modal
-  [isOpen]="descriptionModal().isOpen"
-  [titleDescription]="descriptionModal().title"
-  [description]="descriptionModal().content"
-  (onClose)="descriptionModal.set({isOpen: false, title: '', content: ''})"
+  [isOpen]="descriptionModal.show"
+  [titleDescription]="descriptionModal.title"
+  [description]="descriptionModal.content"
+  (onClose)="descriptionModal.show = false"
 ></app-description-modal>
 
 <app-confirmation-action-modal
-  [isOpen]="isConfirmModalOpen()"
+  [isOpen]="reactivateState.show"
   description="¿Está seguro de reactivar este trabajo de grado? Esta acción levantará la suspensión y permitirá que el proceso continúe."
-  (onClose)="isConfirmModalOpen.set(false)"
+  (onClose)="cancelReactivation()"
   (confirm)="confirmReactivation()">
 </app-confirmation-action-modal>

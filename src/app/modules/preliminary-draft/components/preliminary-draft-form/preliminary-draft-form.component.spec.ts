@@ -1,156 +1,139 @@
-/* tslint:disable:no-unused-variable */
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { By } from '@angular/platform-browser';
-import { DebugElement, signal } from '@angular/core';
-
 import { PreliminaryDraftFormComponent } from './preliminary-draft-form.component';
-import { stateList } from '../../../../core/enums/state.enum';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { PreliminaryDraftFormService } from './services/preliminary-draft-form.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { ProposalService } from '../../../proposal/services/proposal.service';
-import { UserService } from '../../../users/services/user.service';
-import { AuthService } from '../../../../core/services/auth/auth.service';
-import { PreliminaryDraftService } from '../../services/preliminary-draft.service';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
+import { signal } from '@angular/core';
+import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
+import { FormBuilder } from '@angular/forms';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 
 describe('PreliminaryDraftFormComponent', () => {
   let component: PreliminaryDraftFormComponent;
   let fixture: ComponentFixture<PreliminaryDraftFormComponent>;
-
-  // Mocks de servicios
-  let notificationServiceMock: any;
-  let proposalServiceMock: any;
-  let userServiceMock: any;
-  let authServiceMock: any;
-  let preliminaryDraftServiceMock: any;
-
-  const mockUser = { id: 'user-1', firstName: 'Juan', lastName: 'Perez' };
-
-  const mockProposal = {
-    id: 'prop-1',
-    title: 'Propuesta de Prueba',
-    description: 'Descripción',
-    state: stateList.APROBADO,
-    director: { id: 'user-1' },
-    evaluations: []
-  };
+  let mockFormService: jest.Mocked<Partial<PreliminaryDraftFormService>>;
+  let mockNotificationService: jest.Mocked<Partial<NotificationService>>;
 
   beforeEach(async () => {
-    notificationServiceMock = { show: jest.fn() };
-    // Importante: proposalService.proposals debe ser un signal o función que devuelva un array
-    proposalServiceMock = { proposals: signal([mockProposal]) };
-    userServiceMock = { getAuthorsNames: jest.fn().mockReturnValue('Autor Test') };
-    authServiceMock = { currentUser: signal(mockUser) };
-    preliminaryDraftServiceMock = { preliminaryDrafts: signal([]) };
+    const fb = new FormBuilder();
+    const form = fb.group({
+      proposalId: [''],
+      title: [''],
+      description: [''],
+      document: fb.control<File | FileDocument | null>(null) // <-- Tipado explícito aquí
+    });
+
+    mockFormService = {
+      form: form,
+      proposalOptions: signal([]),
+      selectedProposal: signal(null),
+      proposalEvaluationDocument: signal(null),
+      initForCreate: jest.fn(),
+      initForEdit: jest.fn(),
+      buildPreliminaryDraftPayload: jest.fn(),
+      getAuthorsNames: jest.fn(),
+      getMemberName: jest.fn()
+    };
+
+    mockNotificationService = {
+      show: jest.fn()
+    };
 
     await TestBed.configureTestingModule({
-      imports: [PreliminaryDraftFormComponent, ReactiveFormsModule],
+      imports: [PreliminaryDraftFormComponent],
       providers: [
-        { provide: NotificationService, useValue: notificationServiceMock },
-        { provide: ProposalService, useValue: proposalServiceMock },
-        { provide: UserService, useValue: userServiceMock },
-        { provide: AuthService, useValue: authServiceMock },
-        { provide: PreliminaryDraftService, useValue: preliminaryDraftServiceMock },
-        FormBuilder
+        { provide: NotificationService, useValue: mockNotificationService }
       ]
-    }).compileComponents();
+    })
+    .overrideComponent(PreliminaryDraftFormComponent, {
+      set: {
+        providers: [{ provide: PreliminaryDraftFormService, useValue: mockFormService }]
+      }
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(PreliminaryDraftFormComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
 
-  it('debería crear el componente', () => {
-    expect(component).toBeTruthy();
+  it('debería inicializarse en modo creación si no recibe preliminaryDraft', () => {
+    fixture.componentRef.setInput('preliminaryDraft', null);
+    fixture.detectChanges();
+
+    expect(component.isEditMode).toBeFalsy();
+    expect(mockFormService.initForCreate).toHaveBeenCalled();
+    expect(component.attachedFile.hasFile).toBeFalsy();
   });
 
-  describe('Lógica de Inicialización y Filtros', () => {
-    it('debería filtrar las propuestas disponibles para el director actual', () => {
-      const proposals = component['availableProposals']();
-      expect(proposals.length).toBe(1);
-      expect(proposals[0].id).toBe('prop-1');
-    });
+  it('debería inicializarse en modo edición si recibe un preliminaryDraft', () => {
+    const mockDraft = {
+      documents: [{ type: 'Anteproyecto', name: 'doc1.pdf' }]
+    } as unknown as PreliminaryDraft;
 
-    it('debería deshabilitar título y descripción en modo creación', () => {
-      expect(component.form.get('title')?.disabled).toBe(true);
-      expect(component.form.get('description')?.disabled).toBe(true);
-    });
+    fixture.componentRef.setInput('preliminaryDraft', mockDraft);
+    fixture.detectChanges();
 
-    it('debería inicializar en modo edición si hay un anteproyecto previo', () => {
-      const mockDraft: any = {
-        proposalId: 'prop-1',
-        proposalData: { title: 'Editado', description: 'Desc Editada' },
-        documents: [{ name: 'file.pdf', type: 'Anteproyecto' }],
-        state: stateList.EN_REVISION
-      };
-
-      // Usamos setInput para señales de entrada
-      fixture.componentRef.setInput('preliminaryDraft', mockDraft);
-      component.ngOnInit(); // Forzamos reinicialización
-
-      expect(component.isEditMode).toBe(true);
-      expect(component.form.get('title')?.value).toBe('Editado');
-      expect(component.attachmentState().name).toBe('file.pdf');
-    });
+    expect(component.isEditMode).toBeTruthy();
+    expect(mockFormService.initForEdit).toHaveBeenCalledWith(mockDraft);
+    expect(component.attachedFile.hasFile).toBeTruthy();
+    expect(component.attachedFile.name).toBe('doc1.pdf');
   });
 
-  describe('Manejo de Archivos', () => {
-    it('debería actualizar el estado al cargar un archivo', () => {
-      const mockFile = new File([''], 'nuevo-ante.pdf');
-      component.handleFileUploaded({ fileName: 'nuevo-ante.pdf', file: mockFile });
+  describe('Interacciones con Archivos', () => {
+    it('debería adjuntar un archivo correctamente y mostrar notificación', () => {
+      const mockFile = new File([''], 'test.pdf');
 
-      expect(component.attachmentState().hasFile).toBe(true);
-      expect(component.attachmentState().name).toBe('nuevo-ante.pdf');
+      component.handleFileUploaded({ fileName: 'test.pdf', file: mockFile });
+
+      expect(component.attachedFile.hasFile).toBeTruthy();
+      expect(component.attachedFile.name).toBe('test.pdf');
       expect(component.form.get('document')?.value).toBe(mockFile);
+      expect(component.uploadModalOpen).toBeFalsy();
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({ type: NotificationType.CONFIRMATION })
+      );
     });
 
-    it('debería limpiar el estado al remover el archivo', () => {
+    it('debería remover el archivo correctamente y mostrar notificación', () => {
+      component.attachedFile = { hasFile: true, name: 'test.pdf', file: new File([''], 'test.pdf') };
+      component.form.get('document')?.setValue(new File([''], 'dummy.pdf'));
+
       component.removeFile();
-      expect(component.attachmentState().hasFile).toBe(false);
+
+      expect(component.attachedFile.hasFile).toBeFalsy();
       expect(component.form.get('document')?.value).toBeNull();
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({ type: NotificationType.INFO })
+      );
     });
   });
 
   describe('Submit', () => {
     it('debería mostrar notificación de error si el formulario es inválido', () => {
-      component.form.patchValue({ proposalId: '' });
-      component.submit();
-
-      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
-        type: NotificationType.ERROR,
-        title: 'Datos incompletos'
-      }));
-    });
-
-    it('debería emitir onSave con los datos correctos si el formulario es válido', () => {
-      const saveSpy = jest.spyOn(component.onSave, 'emit');
-      const mockFile = new File([''], 'ante.pdf');
-
-      // Seleccionamos la propuesta
-      component.form.patchValue({ proposalId: 'prop-1' });
-      component.selectedProposalId.set('prop-1');
-
-      // Cargamos archivo
-      component.handleFileUploaded({ fileName: 'ante.pdf', file: mockFile });
+      component.form.setErrors({ invalid: true });
 
       component.submit();
 
-      expect(saveSpy).toHaveBeenCalledWith(expect.objectContaining({
-        proposalId: 'prop-1',
-        state: stateList.EN_REVISION
-      }));
-    });
-  });
-
-  describe('Helpers de Visualización', () => {
-    it('debería resolver el nombre del miembro correctamente', () => {
-      const user: any = { firstName: 'Simón', lastName: 'Bolívar' };
-      const name = component.getMemberName(user);
-      expect(name).toBe('Simón Bolívar');
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({ type: NotificationType.ERROR })
+      );
     });
 
-    it('debería retornar "No asignado" si el usuario es undefined', () => {
-      expect(component.getMemberName(undefined)).toBe('No asignado');
+    it('debería emitir onSave si el formulario es válido y el payload se construye', () => {
+      const mockPayload = { id: 'payload' } as unknown as PreliminaryDraft;
+
+      // Corrección: Aserción a jest.Mock para evitar el error 'possibly undefined'
+      (mockFormService.buildPreliminaryDraftPayload as jest.Mock).mockReturnValue(mockPayload);
+
+      component.form.clearValidators();
+      component.form.updateValueAndValidity();
+
+      jest.spyOn(component.onSave, 'emit');
+
+      component.submit();
+
+      expect(component.onSave.emit).toHaveBeenCalledWith(mockPayload);
     });
   });
 });

@@ -1,120 +1,39 @@
-import { HttpClient } from '@angular/common/http';
-import { computed, inject, Injectable, signal } from '@angular/core';
-import { delay, map, Observable, of, throwError } from 'rxjs';
-import { UserService } from '../../../modules/users/services/user.service';
-import { Router } from '@angular/router';
-import { User } from '../../../modules/users/interfaces/user.interface';
-import { UserState } from '../../../modules/users/enum/user-state.enum';
+import { inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { AuthStorageService } from './auth-storage.service';
+import { AuthApiService } from './auth-api.service';
 import { ChangePasswordResponse } from '../../interfaces/change-password-response.interface';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly userService = inject(UserService);
-  private readonly router      = inject(Router);
-  private readonly http        = inject(HttpClient);
+  private readonly storage = inject(AuthStorageService);
+  private readonly api     = inject(AuthApiService);
 
-  private readonly AUTH_KEY = 'sgtg_session';
+  // ── Estado reactivo ────────────────────────────────────────────────────────
+  // La misma API pública que antes: cualquier componente o servicio que usaba
+  // authService.currentUser(), authService.isAuthenticated(), etc. sigue
+  // funcionando sin cambios.
+  readonly currentUser     = this.storage.currentUser;
+  readonly isAuthenticated = this.storage.isAuthenticated;
+  readonly userRoles       = this.storage.userRoles;
 
-  /**
-   * ESTADO DE AUTENTICACIÓN
-   * Usamos Signals para una reactividad eficiente en toda la app.
-   */
-  private readonly _currentUser = signal<User | null>(this.getStoredSession());
-
-  // Exponemos el usuario como readonly para proteger el estado
-  public currentUser = this._currentUser.asReadonly();
-
-  /**
-   * isAuthenticated:
-   * Se actualiza automáticamente cada vez que _currentUser cambia.
-   */
-  public isAuthenticated = computed(() => !!this._currentUser());
-
-  /**
-   * hasRole:
-   * Un helper computado que podrías usar en el futuro para chequeos rápidos.
-   */
-  public userRoles = computed(() => this._currentUser()?.roles || []);
-
-  constructor() {}
-
-  private getStoredSession(): User | null {
-    const stored = localStorage.getItem(this.AUTH_KEY);
-    if (!stored) return null;
-
-    try {
-      return JSON.parse(stored);
-    } catch (error) {
-      localStorage.removeItem(this.AUTH_KEY);
-      return null;
-    }
+  // ── Operaciones de autenticación ───────────────────────────────────────────
+  login(credentials: { email: string; password: string }): Observable<{ success: boolean; message?: string }> {
+    return this.api.login(credentials);
   }
 
-  login(credentials: { email: string, password: string }): Observable<{ success: boolean; message?: string }> {
-  // 1. Buscamos el usuario por credenciales
-  const user = this.userService.users().find(
-    u => u.email === credentials.email && u.password === credentials.password
-  );
-
-  return of(user).pipe(
-    delay(1000),
-    map(user => {
-      // Caso A: No existe el usuario
-      if (!user) {
-        return { success: false, message: 'Correo o contraseña incorrectos.' };
-      }
-
-      // Caso B: El usuario existe pero está inactivo
-      // Asegúrate de importar UserState de tu interfaz
-      if (user.state !== UserState.active) { // O UserState.active dependiendo de tu enum
-        return { success: false, message: 'Tu cuenta se encuentra inhabilitada. Contacta al administrador.' };
-      }
-
-      // Caso C: Todo OK
-      this._currentUser.set(user);
-      localStorage.setItem(this.AUTH_KEY, JSON.stringify(user));
-      return { success: true };
-    })
-  );
-}
-
   logout(): void {
-    this._currentUser.set(null);
-    localStorage.removeItem(this.AUTH_KEY);
-    this.router.navigate(['/auth/login']);
+    this.api.logout();
   }
 
   changePassword(currentPassword: string, newPassword: string): Observable<ChangePasswordResponse> {
-    const user = this.currentUser();
-
-    if (!user || user.password !== currentPassword) {
-      return throwError(() => new Error('La contraseña actual es incorrecta.'));
-    }
-
-    const updatedUser = { ...user, password: newPassword };
-
-    // Sincronización de señales y storage
-    this._currentUser.set(updatedUser);
-    localStorage.setItem(this.AUTH_KEY, JSON.stringify(updatedUser));
-
-    // Sincronización con la "BD" global
-    this.userService.updateUserPasswordMock(user.id, newPassword);
-
-    return of({
-      success: true,
-      message: 'Contraseña actualizada exitosamente.'
-    }).pipe(delay(1500));
+    return this.api.changePassword(currentPassword, newPassword);
   }
 
-  /**
-   * Método de utilidad para verificar roles específicos
-   */
+  // ── Utilidad de roles ──────────────────────────────────────────────────────
+  // Queda en el facade porque es una consulta derivada del estado de sesión
+  // que los guards y componentes llaman directamente sobre AuthService.
   hasAnyRole(requiredRoles: string[]): boolean {
-    const user = this._currentUser();
-    if (!user) return false;
-    return user.roles.some(role => requiredRoles.includes(role));
+    return this.storage.currentUser()?.roles.some(role => requiredRoles.includes(role)) ?? false;
   }
-
 }
