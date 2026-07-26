@@ -1,80 +1,59 @@
 import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
-import { UserService } from '../../../users/services/user.service';
-import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
-import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
-import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
+import { NgClass, NgTemplateOutlet } from '@angular/common';
+import { ReactiveFormsModule } from '@angular/forms';
+import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
+import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { EvaluateAdvanceFormService } from './services/evaluate-advance-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { Advance } from '../../interfaces/advance.interface';
 import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playload.interface';
 
 @Component({
   selector: 'app-evaluate-advance-form',
+  imports: [NgTemplateOutlet, NgClass, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent],
+  providers: [EvaluateAdvanceFormService],
   templateUrl: './evaluate-advance-form.component.html',
-  styleUrls: ['./evaluate-advance-form.component.css'],
-  imports: [CommonModule, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent]
+  styleUrls: ['./evaluate-advance-form.component.css']
 })
 export class EvaluateAdvanceFormComponent {
-  private readonly fb = inject(FormBuilder);
-  public readonly userService = inject(UserService);
+  protected readonly formService = inject(EvaluateAdvanceFormService);
 
   @Input({ required: true }) advanceData!: Advance;
   @Input({ required: true }) thesisWork!: ThesisWork;
-  @Input() isSubmitting = false;
-  @Input() alreadyEvaluated = false;
-  @Input() isFullyEvaluated = false;
-
-  @Output() onBack = new EventEmitter<void>();
-  @Output() onSaveEvaluation = new EventEmitter<SubmitAdvanceEvaluationPayload>();
+  @Input() isSubmitting    = false;
+  @Input() alreadyEvaluated  = false;
+  @Input() isFullyEvaluated  = false;
+  @Output() onBack            = new EventEmitter<void>();
+  @Output() onSaveEvaluation  = new EventEmitter<SubmitAdvanceEvaluationPayload>();
   @Output() onDownloadAdvance = new EventEmitter<void>();
 
-  // Cambiado a array para permitir múltiples archivos
-  uploadedFeedbackFiles = signal<{ fileName: string; file: File }[]>([]);
-  isFeedbackModalOpen = signal(false);
+  // ── Estado de UI ──────────────────────────────────────────────────────────
+  readonly uploadedFeedbackFiles = signal<{ fileName: string; file: File }[]>([]);
+  readonly isFeedbackModalOpen   = signal(false);
 
-  readonly evaluationForm = this.fb.nonNullable.group({
-    result: this.fb.control(AdvanceEvaluationResult.EN_REVISION, Validators.required),
-    comments: this.fb.control('', Validators.required)
-  });
+  // ── Getters que exponen el servicio al template ───────────────────────────
+  get evaluationForm() { return this.formService.evaluationForm; }
 
-  get isReadOnly(): boolean {
-    return this.alreadyEvaluated || this.isFullyEvaluated;
-  }
+  // isReadOnly: depende de signals/inputs del componente → queda en el componente
+  get isReadOnly(): boolean { return this.alreadyEvaluated || this.isFullyEvaluated; }
 
-  get advanceDocuments() {
-    return this.advanceData.documents || [];
-  }
+  get advanceDocuments() { return this.advanceData.documents ?? []; }
 
-  // --- Helpers ---
-  getStudentNames(): string {
-    const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
-    return this.userService.getAuthorsNames(authors);
-  }
-
+  getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }
   getDirectorName(): string {
-    const directorId = this.thesisWork?.preliminaryDraftData?.proposalData?.director?.id;
-    return directorId ? this.userService.getUserFullName(directorId) : 'No asignado';
+    const id = this.thesisWork?.preliminaryDraftData?.proposalData?.director?.id;
+    return this.formService.getMemberName(id) || 'No asignado';
   }
-
   getCodirectorName(): string {
-    const codirectorId = this.thesisWork?.preliminaryDraftData?.proposalData?.codirector?.id;
-    return codirectorId ? this.userService.getUserFullName(codirectorId) : '';
+    return this.formService.getMemberName(
+      this.thesisWork?.preliminaryDraftData?.proposalData?.codirector?.id
+    );
   }
-
   getAdvisorName(): string {
-    const advisorId = this.thesisWork?.preliminaryDraftData?.proposalData?.advisor?.id;
-    return advisorId ? this.userService.getUserFullName(advisorId) : '';
-  }
-
-  // --- Lógica de Archivos ---
-  handleFeedbackUploaded(event: { fileName: string; file: File }): void {
-    this.uploadedFeedbackFiles.update(files => [...files, event]); // Agrega al array
-    this.isFeedbackModalOpen.set(false);
-  }
-
-  removeFeedbackFile(index: number): void {
-    this.uploadedFeedbackFiles.update(files => files.filter((_, i) => i !== index)); // Elimina por índice
+    return this.formService.getMemberName(
+      this.thesisWork?.preliminaryDraftData?.proposalData?.advisor?.id
+    );
   }
 
   isFieldInvalid(fieldName: keyof typeof this.evaluationForm.controls): boolean {
@@ -82,19 +61,29 @@ export class EvaluateAdvanceFormComponent {
     return !!(control?.invalid && control?.touched);
   }
 
+  // ── Manejo de archivos de retroalimentación ───────────────────────────────
+  handleFeedbackUploaded(event: { fileName: string; file: File }): void {
+    this.uploadedFeedbackFiles.update(files => [...files, event]);
+    this.isFeedbackModalOpen.set(false);
+  }
+
+  removeFeedbackFile(index: number): void {
+    this.uploadedFeedbackFiles.update(files => files.filter((_, i) => i !== index));
+  }
+
+  // ── Envío ─────────────────────────────────────────────────────────────────
   submit(): void {
     if (this.evaluationForm.invalid) {
       this.evaluationForm.markAllAsTouched();
       return;
     }
-    const feedbackFiles = this.uploadedFeedbackFiles();
     const values = this.evaluationForm.getRawValue();
     this.onSaveEvaluation.emit({
       formValues: {
-        result: values.result as AdvanceEvaluationResult,
-        comments: values.comments as string
+        result:   values.result as AdvanceEvaluationResult,
+        comments: values.comments
       },
-      files: feedbackFiles.map(f => f.file) // Envía array de archivos
+      files: this.uploadedFeedbackFiles().map(f => f.file)
     });
   }
 }

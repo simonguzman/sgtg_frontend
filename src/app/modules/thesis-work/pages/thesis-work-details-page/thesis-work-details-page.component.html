@@ -2,7 +2,7 @@
 
   <div class="flex justify-between items-center mb-6">
     <button
-      (click)="router.navigate(['/thesis-work'])"
+      (click)="facade.goBack()"
       class="flex items-center gap-2 text-navy-900 hover:text-navy-700 transition-colors font-bold group"
     >
       <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
@@ -11,29 +11,29 @@
       <span class="return-arrow-option">Regresar</span>
     </button>
 
-    @if (thesisWorkDetails()) {
+    @if (facade.details()) {
       <div class="flex gap-4">
         <app-button-component
           label="Evaluaciones realizadas"
           variant="primary"
-          (onClick)="router.navigate(['evaluations_performed'], { relativeTo: route })"
+          (onClick)="navigateTo('evaluations_performed')"
         ></app-button-component>
         <app-button-component
           label="Documentos cargados"
           variant="primary"
-          (onClick)="router.navigate(['loaded_documents'], { relativeTo: route })"
+          (onClick)="navigateTo('loaded_documents')"
         ></app-button-component>
       </div>
     }
   </div>
 
-  @if (!thesisWorkDetails()) {
+  @if (facade.isLoading()) {
     <div class="text-center text-gray-500 font-display my-10">
       Cargando información estructural del trabajo de grado...
     </div>
   }
 
-  @if (thesisWorkDetails(); as work) {
+  @if (facade.details(); as work) {
 
     <h3 class="font-semibold text-size-header-title font-display text-primary mb-4">
       Información del trabajo de grado
@@ -41,9 +41,9 @@
 
     <div class="space-y-3">
       @for (item of [
-        { label: 'Título',     value: work.preliminaryDraftData.proposalData.title },
-        { label: 'Descripción', value: work.preliminaryDraftData.proposalData.description },
-        { label: 'Modalidad',   value: work.preliminaryDraftData.proposalData.modality },
+        { label: 'Título',        value: work.title },
+        { label: 'Descripción',   value: work.description },
+        { label: 'Modalidad',     value: work.modality },
         { label: 'Estado Actual', value: work.state }
       ]; track item.label) {
         <div class="p-3 information-block rounded">
@@ -60,32 +60,24 @@
     <div class="p-4 information-block rounded space-y-2">
       <div>
         <span class="font-semibold font-display text-size-section text-primary">Estudiante(s): </span>
-        <span class="font-normal font-sans text-size-section text-[#777680]">
-          {{ getAuthors(work.preliminaryDraftData.proposalData.authors) }}
-        </span>
+        <span class="font-normal font-sans text-size-section text-[#777680]">{{ work.participants.authors }}</span>
       </div>
       <div>
         <span class="font-semibold font-display text-size-section text-primary">Director: </span>
-        <span class="font-normal font-sans text-size-section text-[#777680]">
-          {{ getMemberName(work.preliminaryDraftData.proposalData.director.id) }}
-        </span>
+        <span class="font-normal font-sans text-size-section text-[#777680]">{{ work.participants.director }}</span>
       </div>
 
-      @if (work.preliminaryDraftData.proposalData.codirector) {
+      @if (work.participants.codirector) {
         <div>
           <span class="font-semibold font-display text-size-section text-primary">Codirector: </span>
-          <span class="font-normal font-sans text-size-section text-[#777680]">
-            {{ getMemberName(work.preliminaryDraftData.proposalData.codirector.id) }}
-          </span>
+          <span class="font-normal font-sans text-size-section text-[#777680]">{{ work.participants.codirector }}</span>
         </div>
       }
 
-      @if (work.preliminaryDraftData.proposalData.advisor) {
+      @if (work.participants.advisor) {
         <div>
           <span class="font-semibold font-display text-size-section text-primary">Asesor: </span>
-          <span class="font-normal font-sans text-size-section text-[#777680]">
-            {{ getMemberName(work.preliminaryDraftData.proposalData.advisor.id) }}
-          </span>
+          <span class="font-normal font-sans text-size-section text-[#777680]">{{ work.participants.advisor }}</span>
         </div>
       }
     </div>
@@ -100,16 +92,18 @@
           <span class="material-symbols-outlined text-[#DB141C] text-file shrink-0">picture_as_pdf</span>
           <div class="flex flex-col overflow-hidden">
             <span class="text-size-body font-bold text-primary truncate">
-              {{ mainDocument()?.name || 'Documento_Raiz_Trabajo_De_Grado.pdf' }}
+              {{ work.mainDocument?.name || 'Documento_Raiz_Trabajo_De_Grado.pdf' }}
             </span>
-            <span class="text-size-role-footer text-[#777680] font-sans">Resolución original del anteproyecto aprobado</span>
+            <span class="text-size-role-footer text-[#777680] font-sans">
+              {{ work.mainDocument?.description || 'Documento adjunto' }}
+            </span>
           </div>
         </div>
 
         <app-button-component
           label="Descargar"
           variant="primary"
-          (onClick)="downloadDocument()"
+          (onClick)="facade.downloadDocument()"
         ></app-button-component>
       </div>
     </div>

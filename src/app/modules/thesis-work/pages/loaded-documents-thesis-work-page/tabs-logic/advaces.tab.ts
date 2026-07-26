@@ -69,15 +69,18 @@ export const AdvancesTabConfig: TabConfiguration = {
 
   getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
     const activeAdvances: AdvanceRegistry[] = context.thesisWork?.advances || [];
-    const hasFinalDelivery = context['hasFinalDelivery'] as boolean ?? false
-    const isArchived = context.isArchived ?? false;
+    const hasFinalDelivery  = context['hasFinalDelivery'] as boolean ?? false;
+    const isArchived        = context.isArchived ?? false;
+
     return activeAdvances.map((adv: AdvanceRegistry) => {
       const allowedActions = ['view-details'];
+
       const evaluationsForThisAdvance: EvaluationRegistry[] = context.thesisWork?.evaluations?.filter(
         (ev: EvaluationRegistry) => ev.advanceId === adv.id
       ) || [];
-      const alreadyEvaluated = evaluationsForThisAdvance.some(
-        (ev: EvaluationRegistry) => ev.evaluatorId === context.currentUser?.id
+
+      const alreadyEvaluated  = evaluationsForThisAdvance.some(
+        ev => ev.evaluatorId === context.currentUser?.id
       );
       const isAssignedEvaluator = context.isDirector || context.isCodirector || context.isAdvisor || context.isAdmin;
       if (!isArchived && isAssignedEvaluator && !alreadyEvaluated && !hasFinalDelivery && adv.status !== stateList.EVALUADO) {

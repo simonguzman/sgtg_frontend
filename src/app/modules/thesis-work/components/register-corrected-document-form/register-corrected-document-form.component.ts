@@ -1,105 +1,62 @@
 import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { UserService } from '../../../users/services/user.service';
+import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
+import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { RegisterCorrectedDocumentFormService } from './services/register-corrected-document-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
-import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
-import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
+
+type FileSlot = 'MONOGRAPH' | 'ANNEXES';
 
 @Component({
   selector: 'app-register-corrected-document-form',
   templateUrl: './register-corrected-document-form.component.html',
   styleUrls: ['./register-corrected-document-form.component.css'],
-  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent]
+  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent],
+  providers: [RegisterCorrectedDocumentFormService]
 })
 export class RegisterCorrectedDocumentFormComponent {
-  private readonly notificationService = inject(NotificationService);
-  public readonly userService = inject(UserService);
+  protected readonly formService = inject(RegisterCorrectedDocumentFormService);
 
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
-
-  // ✅ annexes ahora es obligatorio, se elimina el operador ?
   @Output() onSaveDocuments = new EventEmitter<{ monograph: File; annexes: File }>();
-  @Output() onGoBack = new EventEmitter<void>();
+  @Output() onGoBack        = new EventEmitter<void>();
 
-  uploadedMonograph = signal<{ fileName: string; file: File } | null>(null);
-  uploadedAnnexes = signal<{ fileName: string; file: File } | null>(null);
-  activeModal = signal<'MONOGRAPH' | 'ANNEXES' | null>(null);
-  isSubmitAttempted = signal(false);
+  readonly uploadedMonograph = signal<{ fileName: string; file: File } | null>(null);
+  readonly uploadedAnnexes   = signal<{ fileName: string; file: File } | null>(null);
+  readonly activeModal       = signal<FileSlot | null>(null);
+  readonly isSubmitAttempted = signal(false);
 
-  // ─── Miembros ─────────────────────────────────────────────────────────────────
+  getStudentNames(): string   { return this.formService.getStudentNames(this.thesisWork); }
+  getDirectorName(): string   { return this.formService.getDirectorName(this.thesisWork); }
+  getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
+  getAdvisorName(): string    { return this.formService.getAdvisorName(this.thesisWork); }
 
-  getStudentNames(): string {
-    const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
-    return this.userService.getAuthorsNames(authors);
-  }
-
-  getDirectorName(): string {
-    const directorId = this.thesisWork?.preliminaryDraftData?.proposalData?.director?.id;
-    return directorId ? this.userService.getUserFullName(directorId) : 'No asignado';
-  }
-
-  getCodirectorName(): string {
-    const codirectorId = this.thesisWork?.preliminaryDraftData?.proposalData?.codirector?.id;
-    return codirectorId ? this.userService.getUserFullName(codirectorId) : '';
-  }
-
-  getAdvisorName(): string {
-    const advisorId = this.thesisWork?.preliminaryDraftData?.proposalData?.advisor?.id;
-    return advisorId ? this.userService.getUserFullName(advisorId) : '';
-  }
-
-  // ─── Manejo de modales y archivos ─────────────────────────────────────────────
-
-  openModal(type: 'MONOGRAPH' | 'ANNEXES'): void {
-    this.activeModal.set(type);
-  }
-
-  closeModal(): void {
-    this.activeModal.set(null);
-  }
+  openModal(type: FileSlot): void { this.activeModal.set(type); }
+  closeModal(): void              { this.activeModal.set(null); }
 
   handleFileUploaded(event: { fileName: string; file: File }): void {
     const type = this.activeModal();
     if (type === 'MONOGRAPH') this.uploadedMonograph.set(event);
-    if (type === 'ANNEXES') this.uploadedAnnexes.set(event);
-
+    if (type === 'ANNEXES')   this.uploadedAnnexes.set(event);
     this.closeModal();
-    this.notificationService.show({
-      title: 'Archivo adjunto',
-      message: `El documento ${event.fileName} se ha adjuntado correctamente.`,
-      type: NotificationType.INFO
-    });
+    this.formService.notifyFileAttached(event.fileName);
   }
 
-  removeFile(type: 'MONOGRAPH' | 'ANNEXES'): void {
+  removeFile(type: FileSlot): void {
     if (type === 'MONOGRAPH') this.uploadedMonograph.set(null);
-    if (type === 'ANNEXES') this.uploadedAnnexes.set(null);
+    if (type === 'ANNEXES')   this.uploadedAnnexes.set(null);
   }
-
-  // ─── Submit ───────────────────────────────────────────────────────────────────
 
   submit(): void {
     this.isSubmitAttempted.set(true);
-
     const monograph = this.uploadedMonograph();
-    const annexes = this.uploadedAnnexes();
+    const annexes   = this.uploadedAnnexes();
 
-    // ✅ Ambos documentos son ahora obligatorios
     if (!monograph || !annexes) {
-      this.notificationService.show({
-        title: 'Documentos faltantes',
-        message: 'Debe adjuntar obligatoriamente la Monografía corregida y los Anexos para continuar.',
-        type: NotificationType.ERROR
-      });
+      this.formService.notifyMissingDocuments();
       return;
     }
-
-    this.onSaveDocuments.emit({
-      monograph: monograph.file,
-      annexes: annexes.file
-    });
+    this.onSaveDocuments.emit({ monograph: monograph.file, annexes: annexes.file });
   }
 }

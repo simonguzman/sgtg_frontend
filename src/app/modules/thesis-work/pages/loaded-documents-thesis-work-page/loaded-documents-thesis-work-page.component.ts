@@ -3,81 +3,83 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { TabConfiguration, ThesisEvaluationContext } from './tabs-logic/tab-config.interface';
 import { AdvancesTabConfig } from './tabs-logic/advaces.tab';
-import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
-import { TableButton, TableComponent } from '../../../../shared/components/table-component/table-component.component';
-import { ThesisWorkService } from '../../services/thesis-work.service';
-import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { AuthService } from '../../../../core/services/auth/auth.service';
-import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
-import { TabItem, TabsComponent } from '../../../../shared/components/tabs/tabs.component';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { FileDocument } from '../../../../core/interfaces/file-document.interface';
-import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
-import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
-import { stateList } from '../../../../core/enums/state.enum';
 import { FinalDeliveryTabConfig } from './tabs-logic/final-delivery.tab';
 import { PazYSalvoTabConfig } from './tabs-logic/paz_y_salvo.tab';
 import { SustentationTabConfig } from './tabs-logic/sustentation.tab';
 import { CorrespondenceTabConfig } from './tabs-logic/correspondence.tab';
 import { SpecialRequestTabConfig } from './tabs-logic/special-request.tab';
-import { RegisterInformationModalComponent } from "../../../../shared/components/modals/register-information-modal/register-information-modal.component";
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
+import { TableButton, TableComponent } from '../../../../shared/components/table-component/table-component.component';
+import { ThesisWorkService } from '../../services/thesis-work.service';
+import { AuthService } from '../../../../core/services/auth/auth.service';
+import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
 import { UserService } from '../../../users/services/user.service';
-import { SpecialRequest } from '../../interfaces/special-request.interface';
+import { TabsComponent } from '../../../../shared/components/tabs/tabs.component';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
+import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
 import { Advance } from '../../interfaces/advance.interface';
 import { User } from '../../../users/interfaces/user.interface';
+import { LoadedDocumentsThesisWorkFacadeService } from './services/loaded-documents-thesis-work-facade.service';
+import { ThesisWorkDetailsModalResolverService } from './services/thesis-work-details-modal-resolver.service';
+import {
+  THESIS_TABS_CONFIG,
+  TAB_MODAL_HEADERS,
+  TAB_MODAL_SUBTITLES
+} from './models/loaded-documents-thesis-work.model';
 
 @Component({
   selector: 'app-loaded-documents-thesis-work-page',
   templateUrl: './loaded-documents-thesis-work-page.component.html',
   styleUrls: ['./loaded-documents-thesis-work-page.component.css'],
-  imports: [FileUploadModalComponent, ConfirmationActionModalComponent, TableComponent, TabsComponent, RegisterInformationModalComponent]
+  imports: [
+    FileUploadModalComponent,
+    ConfirmationActionModalComponent,
+    TableComponent,
+    TabsComponent,
+    RegisterInformationModalComponent
+  ]
 })
 export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy {
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-  private readonly thesisWorkService = inject(ThesisWorkService);
-  private readonly downloadService = inject(FileDownloadService);
-  private readonly notificationService = inject(NotificationService);
-  private readonly userService = inject(UserService);
-  private readonly authService = inject(AuthService);
-  private readonly breadcrumbService = inject(BreadcrumbService);
-  private readonly titleService = inject(Title);
+  private readonly route              = inject(ActivatedRoute);
+  private readonly router             = inject(Router);
+  private readonly thesisWorkService  = inject(ThesisWorkService);
+  private readonly authService        = inject(AuthService);
+  private readonly breadcrumbService  = inject(BreadcrumbService);
+  private readonly titleService       = inject(Title);
+  private readonly userService        = inject(UserService);
+  protected readonly facade           = inject(LoadedDocumentsThesisWorkFacadeService);
+  private readonly modalResolver      = inject(ThesisWorkDetailsModalResolverService);
 
-  readonly tabsConfig: TabItem[] = [
-    { label: 'Avances', value: 'AVANCES' },
-    { label: 'Entrega final', value: 'ENTREGA FINAL' },
-    { label: 'Paz y salvo', value: 'PAZ Y SALVO' },
-    { label: 'Sustentación', value: 'SUSTENTACION' },
-    { label: 'Correspondencia', value: 'CORRESPONDENCIA' },
-    { label: 'Solicitudes especiales', value: 'SOLICITUDES' },
-  ];
+  // ── Constantes del modelo ─────────────────────────────────────────────────
+  protected readonly tabsConfig = THESIS_TABS_CONFIG;
 
+  // ── Estrategias de tab (patrón Strategy) ──────────────────────────────────
   private readonly tabStrategies: Record<string, TabConfiguration> = {
-    'AVANCES': AdvancesTabConfig,
-    'ENTREGA FINAL': FinalDeliveryTabConfig,
-    'PAZ Y SALVO': PazYSalvoTabConfig,
-    'SUSTENTACION': SustentationTabConfig,
+    'AVANCES':         AdvancesTabConfig,
+    'ENTREGA FINAL':   FinalDeliveryTabConfig,
+    'PAZ Y SALVO':     PazYSalvoTabConfig,
+    'SUSTENTACION':    SustentationTabConfig,
     'CORRESPONDENCIA': CorrespondenceTabConfig,
-    'SOLICITUDES': SpecialRequestTabConfig
+    'SOLICITUDES':     SpecialRequestTabConfig
   };
 
-  activeTab = signal<string>('AVANCES');
-  thesisWorkId = signal<string | null>(null);
-  isArchived = signal<boolean>(false);
-
-  isUploadModalOpen = signal(false);
-  isConfirmModalOpen = signal(false);
-  uploadContext = signal<{ fileName: string, file: File } | null>(null);
-  isDetailsModalOpen = signal(false);
-  selectedAdvance = signal<Advance | null>(null);
-
-  readonly defaultFallbackDate = new Date();
+  // ── Estado de UI (exclusivo del componente) ───────────────────────────────
+  readonly activeTab          = signal<string>('AVANCES');
+  readonly thesisWorkId       = signal<string | null>(null);
+  readonly isUploadModalOpen  = signal(false);
+  readonly isConfirmModalOpen = signal(false);
+  readonly uploadContext      = signal<{ fileName: string; file: File } | null>(null);
+  readonly isDetailsModalOpen = signal(false);
+  readonly selectedAdvance    = signal<Advance | null>(null);
 
   constructor() {
+    // Effect: sincroniza el breadcrumb con la pestaña activa.
+    // setTimeout evita el error ExpressionChangedAfterItHasBeenChecked
+    // en el ciclo de detección de cambios de Angular.
     effect(() => {
-      const matchTab = this.tabsConfig.find(t => t.value === this.activeTab());
-      const tabLabel = matchTab ? matchTab.label : 'Documentos';
+      const tabLabel = this.tabsConfig.find(t => t.value === this.activeTab())?.label ?? 'Documentos';
       setTimeout(() => {
         this.breadcrumbService.setDynamicBreadcrumb(tabLabel);
         this.breadcrumbService.setDynamicTitle(`Trabajo de Grado - ${tabLabel}`);
@@ -87,14 +89,13 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   }
 
   ngOnInit(): void {
-    this.isArchived.set(this.router.url.includes('/history') || this.router.url.includes('/historial'));
+    // Resolución de ID: recorre el árbol de rutas para encontrar el parámetro :id
     let currentRoute = this.route;
-    while (currentRoute.firstChild) {
-      currentRoute = currentRoute.firstChild;
-    }
-    const id = currentRoute.snapshot.paramMap.get('id') ||
-               this.route.snapshot.paramMap.get('id') ||
-               this.route.parent?.snapshot.paramMap.get('id');
+    while (currentRoute.firstChild) currentRoute = currentRoute.firstChild;
+
+    const id = currentRoute.snapshot.paramMap.get('id')
+             ?? this.route.snapshot.paramMap.get('id')
+             ?? this.route.parent?.snapshot.paramMap.get('id');
 
     if (id) this.thesisWorkId.set(id);
   }
@@ -104,111 +105,96 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     this.breadcrumbService.setDynamicTitle(null);
   }
 
+  // ── Computed: datos del trabajo de grado activo ───────────────────────────
   private readonly currentThesisWork = computed(() => {
     const id = this.thesisWorkId();
     return id ? this.thesisWorkService.allThesisWorks().find(w => w.thesisWorkId === id) : null;
   });
 
-  currentStrategy = computed<TabConfiguration>(() => {
-    return this.tabStrategies[this.activeTab()] || AdvancesTabConfig;
-  });
+  readonly currentStrategy = computed<TabConfiguration>(() =>
+    this.tabStrategies[this.activeTab()] ?? AdvancesTabConfig
+  );
 
-  evaluationContext = computed<ThesisEvaluationContext>(() => {
-    const thesis = this.currentThesisWork();
-    const user = this.authService.currentUser();
-    const isAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
-    const isDecanatura = this.authService.hasAnyRole([UserRoleType.DECANATURA]);
-    const isConsejo = this.authService.hasAnyRole([UserRoleType.CONSEJO]);
+  readonly evaluationContext = computed<ThesisEvaluationContext>(() => {
+    const thesis    = this.currentThesisWork();
+    const user      = this.authService.currentUser();
+    const isAdmin   = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
 
     const baseContext: ThesisEvaluationContext = {
-      thesisWork: thesis ?? null,
-      currentUser: user,
+      thesisWork:             thesis ?? null,
+      currentUser:            user,
       isAdmin,
-      isDecanatura,
-      isConsejo,
-      isStudent: thesis?.preliminaryDraftData?.proposalData?.authors?.some(
-        (author: { id?: string } | string) => (typeof author === 'string' ? author : author.id) === user?.id
+      isDecanatura:           this.authService.hasAnyRole([UserRoleType.DECANATURA]),
+      isConsejo:              this.authService.hasAnyRole([UserRoleType.CONSEJO]),
+      isStudent:              thesis?.preliminaryDraftData?.proposalData?.authors?.some(
+        (author: { id?: string } | string) =>
+          (typeof author === 'string' ? author : author.id) === user?.id
       ) ?? false,
-      isDirector: thesis?.preliminaryDraftData?.proposalData?.director?.id === user?.id,
+      isDirector:   thesis?.preliminaryDraftData?.proposalData?.director?.id   === user?.id,
       isCodirector: thesis?.preliminaryDraftData?.proposalData?.codirector?.id === user?.id,
-      isAdvisor: thesis?.preliminaryDraftData?.proposalData?.advisor?.id === user?.id,
-      isJuror: thesis?.sustentations?.[0]?.assignedJurors?.some(
+      isAdvisor:    thesis?.preliminaryDraftData?.proposalData?.advisor?.id     === user?.id,
+      isJuror:      thesis?.sustentations?.[0]?.assignedJurors?.some(
         (juror: User) => juror.id === user?.id
       ) ?? false,
-      latestAdvanceId: null,
+      latestAdvanceId:        null,
       isLatestAdvancePending: false,
-      isArchived: thesis?.isArchived ?? false
+      isArchived:             thesis?.isArchived ?? false
     };
 
     return this.currentStrategy().enrichEvaluationContext(baseContext);
   });
 
-  currentColumns = computed(() => this.currentStrategy().columns);
+  readonly currentColumns      = computed(() => this.currentStrategy().columns);
+  readonly currentHeaderButtons = computed(() => this.currentStrategy().getHeaderButtons(this.evaluationContext()));
 
-  currentHeaderButtons = computed(() => this.currentStrategy().getHeaderButtons(this.evaluationContext()));
-
-  currentTableData = computed(() => {
+  readonly currentTableData = computed(() => {
     const context = this.evaluationContext();
-    const thesis = context.thesisWork;
+    const thesis  = context.thesisWork;
     if (!thesis) return [];
-
-    const docs = this.activeTab() === 'AVANCES' ? [] : (thesis.documents || []);
+    const docs = this.activeTab() === 'AVANCES' ? [] : (thesis.documents ?? []);
     return this.currentStrategy().getTableData(docs, context);
   });
 
-  selectedAdvanceDocuments = computed<string[]>(() => {
-    const advance = this.selectedAdvance();
-    return advance?.documents?.map((d: FileDocument) => d.name) || [];
-  });
+  readonly selectedAdvanceDocuments = computed<string[]>(() =>
+    this.selectedAdvance()?.documents?.map((d: FileDocument) => d.name) ?? []
+  );
 
-  studentName = computed<string>(() => {
+  // ── Computed: datos de participantes para el modal ────────────────────────
+  readonly studentName = computed<string>(() => {
     const authors = this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.authors;
     return this.userService.getAuthorsNames(authors) || 'Sin estudiante';
   });
 
-  directorName = computed<string>(() => {
+  readonly directorName = computed<string>(() => {
     const director = this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.director;
-    return this.getUserFullName(director) || 'Sin director';
+    return director ? this.userService.formatFullName(director) : 'Sin director';
   });
 
-  codirectorName = computed<string | undefined>(() => {
+  readonly codirectorName = computed<string | undefined>(() => {
     const codirector = this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.codirector;
-    return this.getUserFullName(codirector);
+    return codirector ? this.userService.formatFullName(codirector) : undefined;
   });
 
-  advisorName = computed<string | undefined>(() => {
+  readonly advisorName = computed<string | undefined>(() => {
     const advisor = this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.advisor;
-    return this.getUserFullName(advisor);
+    return advisor ? this.userService.formatFullName(advisor) : undefined;
   });
 
-  modalityName = computed<string>(() => {
-    return this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.modality || 'Sin modalidad';
-  });
+  readonly modalityName = computed<string>(() =>
+    this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.modality ?? 'Sin modalidad'
+  );
 
-  modalDetailsHeader = computed<string>(() => {
-    if (this.activeTab() === 'AVANCES') return 'Detalles del avance';
-    if (this.activeTab() === 'ENTREGA FINAL') return 'Detalles de la Entrega Final';
-    if (this.activeTab() === 'PAZ Y SALVO') return 'Detalles de Paz y Salvo';
-    if (this.activeTab() === 'CORRESPONDENCIA') return 'Detalles de Correspondencia';
-    if (this.activeTab() === 'SOLICITUDES') return 'Detalles de la Solicitud Especial';
-    return 'Detalles del Registro';
-  });
+  // ← Record lookup en vez de if-else largo — más conciso y declarativo
+  readonly modalDetailsHeader = computed<string>(() =>
+    TAB_MODAL_HEADERS[this.activeTab()] ?? 'Detalles del Registro'
+  );
 
-  modalDetailsSubtitle = computed<string>(() => {
-    if (this.activeTab() === 'AVANCES') return 'Información del avance cargado';
-    if (this.activeTab() === 'ENTREGA FINAL') return 'Información de los documentos de entrega final';
-    if (this.activeTab() === 'PAZ Y SALVO') return 'Información de aprobaciones académicas y financieras';
-    if (this.activeTab() === 'CORRESPONDENCIA') return 'Información de la resolución o correspondencia oficial';
-    if (this.activeTab() === 'SOLICITUDES') return 'Información de la solicitud y su documento adjunto';
-    return 'Información del documento cargado';
-  });
+  readonly modalDetailsSubtitle = computed<string>(() =>
+    TAB_MODAL_SUBTITLES[this.activeTab()] ?? 'Información del documento cargado'
+  );
 
-  private getUserFullName(user?: User): string | undefined {
-    if (!user) return undefined;
-    return `${user.firstName || ''} ${user.lastName || ''}`.trim();
-  }
-
-  handleHeaderButton(button: TableButton): void {
+  // ── Handlers de tabla ─────────────────────────────────────────────────────
+  handleHeaderButton(_button: TableButton): void {
     const routePath = this.currentStrategy().headerActionRoute;
     if (routePath) {
       this.router.navigate([routePath], { relativeTo: this.route.parent });
@@ -219,17 +205,18 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
 
   handleTableAction(event: { action: string; row: Record<string, unknown> }): void {
     const rowAllowedActions = event.row['allowedActions'] as string[] | undefined;
-    const rowId = event.row['id'] as string;
+    const rowId             = event.row['id'] as string;
+
     if (rowAllowedActions && !rowAllowedActions.includes(event.action)) {
-      this.showRestrictedActionNotification();
+      this.facade.showRestrictedActionNotification();
       return;
     }
 
     switch (event.action) {
       case 'download': {
-        const urlObj = typeof event.row['url'] === 'string' ? event.row['url'] : '';
-        const nameObj = typeof event.row['name'] === 'string' ? event.row['name'] : 'documento_sin_titulo';
-        this.handleDownload({ url: urlObj, name: nameObj } as FileDocument);
+        const url  = typeof event.row['url']  === 'string' ? event.row['url']  : '';
+        const name = typeof event.row['name'] === 'string' ? event.row['name'] : 'documento_sin_titulo';
+        this.facade.downloadDocument({ url, name } as FileDocument);
         break;
       }
       case 'evaluate-advance':
@@ -239,14 +226,8 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
         this.router.navigate(['evaluate_special_request', rowId], { relativeTo: this.route.parent });
         break;
       case 'view_sustentation_details':
-        console.log('ACTION:', event.action);
-        console.log('ROW ID:', rowId);
-        console.log('CURRENT URL:', this.router.url);
-
-        this.router.navigate([event.action, rowId], {
-          relativeTo: this.route.parent
-        });
-
+        // ← console.log eliminados (debug code en producción)
+        this.router.navigate([event.action, rowId], { relativeTo: this.route.parent });
         break;
       case 'evaluate_sustentation':
         this.router.navigate([event.action, rowId], { relativeTo: this.route.parent });
@@ -260,6 +241,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     }
   }
 
+  // ── Flujo de carga de archivos ────────────────────────────────────────────
   onFileSelected(event: { fileName: string; file: File }): void {
     this.uploadContext.set(event);
     this.isUploadModalOpen.set(false);
@@ -267,28 +249,19 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   }
 
   confirmUpload(): void {
-    const selectedFileData = this.uploadContext();
-    const thesisId = this.thesisWorkId();
-    if (!selectedFileData || !thesisId) return;
-    this.showProcessingNotification();
-    const newDocumentRecord: FileDocument = {
-      id: crypto.randomUUID(),
-      name: selectedFileData.fileName.replace('.pdf', ''),
-      url: '',
-      uploadDate: this.formatDate(new Date()),
-      type: this.currentStrategy().modalConfig.uploadDocumentType,
-      status: stateList.EN_REVISION
-    };
-    this.thesisWorkService.uploadDocumentMock(thesisId, newDocumentRecord).subscribe({
-      next: () => {
-        this.showSuccessNotification();
-        this.cancelUpload();
-      },
-      error: (err) => {
-        console.error('Error detectado en la carga de archivos:', err);
-        this.showErrorNotification();
-      }
-    });
+    const fileData    = this.uploadContext();
+    const thesisId    = this.thesisWorkId();
+    const docType     = this.currentStrategy().modalConfig.uploadDocumentType;
+    if (!fileData || !thesisId || !docType) return;
+
+    // ← Delegado a la fachada que ya incluye first() y notificaciones
+    this.facade.uploadDocument(
+      thesisId,
+      fileData,
+      docType,
+      () => this.cancelUpload(),
+      () => { /* fachada ya notificó el error */ }
+    );
   }
 
   cancelUpload(): void {
@@ -296,191 +269,45 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     this.uploadContext.set(null);
   }
 
-  goBack(): void {
-    this.router.navigate(['../'], { relativeTo: this.route.parent });
-  }
-
-  ensureDate(date: Date | string | undefined | null): Date {
-    if (date instanceof Date && !isNaN(date.getTime())) {
-      return date;
-    }
-    if (typeof date === 'string' && date.trim() !== '') {
-      const parsed = new Date(date);
-      if (!isNaN(parsed.getTime())) {
-        return parsed;
-      }
-    }
-    return new Date();
-  }
-
-  downloadDocumentByName(fileName: string): void {
-    let targetDocument: FileDocument | undefined;
-
-    if (this.activeTab() === 'AVANCES') {
-      targetDocument = this.selectedAdvance()?.documents?.find(
-        (doc: FileDocument) => doc.name === fileName
-      );
-    } else {
-      targetDocument = this.currentThesisWork()?.documents?.find(
-        (doc: FileDocument) => doc.name === fileName
-      );
-    }
-
-    if (targetDocument) {
-      this.handleDownload(targetDocument);
-    } else {
-      this.handleDownload({ name: fileName, url: '' } as FileDocument);
-    }
-  }
-
+  // ── Modal de detalles ─────────────────────────────────────────────────────
   private openDetailsModal(rowId: string): void {
     const thesis = this.currentThesisWork();
     if (!thesis) return;
 
-    if (this.activeTab() === 'AVANCES') {
-      const advance = thesis.advances?.find(a => a.id === rowId);
-      if (advance) {
-        this.selectedAdvance.set(advance);
-        this.isDetailsModalOpen.set(true);
-      } else {
-        this.showNotFoundError();
-      }
-    }
-    else if (this.activeTab() === 'ENTREGA FINAL') {
-      const delivery = thesis.finalDeliveries?.find(d => d.id === rowId);
-      if (!delivery) {
-        this.showNotFoundError();
-        return;
-      }
+    // ← 6 branches → 1 llamada al resolver (SRP)
+    const resolved = this.modalResolver.resolve(rowId, this.activeTab(), thesis);
 
-      const finalDeliveryDocs: FileDocument[] = [delivery.monograph, delivery.formatE];
-      if (delivery.annexes) {
-        finalDeliveryDocs.push(delivery.annexes);
-      }
-
-      const deliveryMock: Advance = {
-        id: delivery.id,
-        title: 'Entrega Final del Trabajo de Grado',
-        comments: 'Documentos oficiales cargados para el proceso de revisión y sustentación.',
-        uploadDate: delivery.uploadDate,
-        studentId: '',
-        status: delivery.status || stateList.EN_REVISION,
-        documents: finalDeliveryDocs
-      };
-
-      this.selectedAdvance.set(deliveryMock);
-      this.isDetailsModalOpen.set(true);
-    }
-    else if (this.activeTab() === 'PAZ Y SALVO') {
-      const pyS = thesis.pazYSalvos?.find(p => p.document.id === rowId);
-      if (!pyS) {
-        this.showNotFoundError();
-        return;
-      }
-
-      let formatComments = `Aprobación Académica: ${pyS.academicApproved ? '✅ Sí' : '❌ No'}`;
-      if (pyS.academicComments) formatComments += `\nObs: ${pyS.academicComments}`;
-
-      formatComments += `\n\nAprobación Financiera: ${pyS.financialApproved ? '✅ Sí' : '❌ No'}`;
-      if (pyS.financialComments) formatComments += `\nObs: ${pyS.financialComments}`;
-
-      const pazYSalvoMock: Advance = {
-        id: pyS.id,
-        title: 'Registro de Paz y Salvo Institucional',
-        comments: formatComments,
-        uploadDate: pyS.registrationDate,
-        studentId: '',
-        status: pyS.document.status || stateList.EN_REVISION,
-        documents: [pyS.document]
-      };
-
-      this.selectedAdvance.set(pazYSalvoMock);
-      this.isDetailsModalOpen.set(true);
-    }
-    else if (this.activeTab() === 'CORRESPONDENCIA') {
-      const document = thesis.documents?.find(document => document.id === rowId);
-      if (!document) {
-        this.showNotFoundError();
-        return;
-      }
-
-      const correspondenceMock: Advance = {
-        id: document.id,
-        title: 'Resolución / Correspondencia Final Oficial',
-        comments: 'Documento oficial cargado por el Jurado Evaluador (Formato_H) que ratifica y da por terminado formalmente el proceso del trabajo de grado.',
-        uploadDate: document.uploadDate,
-        studentId: '',
-        status: document.status || stateList.APROBADO,
-        documents: [document]
-      };
-
-      this.selectedAdvance.set(correspondenceMock);
-      this.isDetailsModalOpen.set(true);
-    }
-    else if (this.activeTab() === 'SOLICITUDES') {
-      const specialRequest = thesis.specialRequests?.find(
-        (r: SpecialRequest) => r.id === rowId
-      );
-      if (!specialRequest) {
-        this.showNotFoundError();
-        return;
-      }
-
-      const commentParts: string[] = [specialRequest.description];
-
-      if (specialRequest.resolutionDetails) {
-        commentParts.push(`Resolución del comité: ${specialRequest.resolutionDetails}`);
-      }
-      if (specialRequest.grantedDeadline) {
-        const deadline = new Date(specialRequest.grantedDeadline)
-          .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        commentParts.push(`Fecha concedida: ${deadline}`);
-      }
-
-      const specialRequestMock: Advance = {
-        id: specialRequest.id,
-        title: specialRequest.requestType,
-        comments: commentParts.join('\n\n'),
-        uploadDate: specialRequest.requestDate,
-        studentId: specialRequest.directorId,
-        status: specialRequest.status,
-        documents: []
-      };
-
-      this.selectedAdvance.set(specialRequestMock);
-      this.isDetailsModalOpen.set(true);
-    }
-  }
-
-  private formatDate(date: Date): string {
-    return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }).replaceAll('/', ' - ');
-  }
-
-  private handleDownload(document: FileDocument): void {
-    if (!document.url) {
-      this.notificationService.show({ title: 'Error de descarga', message: 'No existe una URL válida vinculada a este archivo.', type: NotificationType.ERROR });
+    if (!resolved) {
+      this.facade.showNotFoundError();
       return;
     }
-    this.downloadService.download(document.url, `${document.name}.pdf`);
+
+    this.selectedAdvance.set(resolved);
+    this.isDetailsModalOpen.set(true);
   }
 
-  private showNotFoundError(): void {
-    this.notificationService.show({ title: 'Registro no encontrado', message: 'No fue posible cargar los detalles de este registro.', type: NotificationType.ERROR });
+  // ── Descarga por nombre (llamada desde el modal de detalles) ──────────────
+  downloadDocumentByName(fileName: string): void {
+    this.facade.downloadDocumentByName(
+      fileName,
+      this.activeTab(),
+      this.selectedAdvance(),
+      this.currentThesisWork()
+    );
   }
 
-  private showProcessingNotification() {
-    this.notificationService.show({ title: 'Subiendo documento', message: 'Procesando el archivo PDF y actualizando los registros...', type: NotificationType.INFO });
+  // ── Utilidad de fecha para el modal ──────────────────────────────────────
+  ensureDate(date: Date | string | undefined | null): Date {
+    if (date instanceof Date && !isNaN(date.getTime())) return date;
+    if (typeof date === 'string' && date.trim()) {
+      const parsed = new Date(date);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
   }
 
-  private showSuccessNotification() {
-    this.notificationService.show({ title: '¡Carga exitosa!', message: 'El documento se cargó correctamente y el flujo de estados ha sido actualizado.', type: NotificationType.CONFIRMATION });
-  }
-
-  private showErrorNotification() {
-    this.notificationService.show({ title: 'Error de carga', message: 'Hubo un problema al subir el archivo. Inténtelo de nuevo.', type: NotificationType.ERROR });
-  }
-
-  private showRestrictedActionNotification() {
-    this.notificationService.show({ title: 'Acción no permitida', message: 'Su usuario no posee los privilegios necesarios para ejecutar esta evaluación.', type: NotificationType.ERROR });
+  // ── Navegación ────────────────────────────────────────────────────────────
+  goBack(): void {
+    this.router.navigate(['../'], { relativeTo: this.route.parent });
   }
 }

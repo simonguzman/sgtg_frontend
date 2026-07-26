@@ -1,105 +1,87 @@
 import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { UserService } from '../../../users/services/user.service';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
-import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
-import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
+import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
+import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { UploadFinalDeliveryFormService } from './services/upload-final-delivery-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
+
+type FileSlot = 'MONOGRAPH' | 'FORMAT_E' | 'ANNEXES';
+type UploadedFile = { fileName: string; file: File };
 
 @Component({
   selector: 'app-upload-final-delivery-form',
+  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent],
+  providers: [UploadFinalDeliveryFormService],
   templateUrl: './upload-final-delivery-form.component.html',
-  styleUrls: ['./upload-final-delivery-form.component.css'],
-  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent]
+  styleUrls: ['./upload-final-delivery-form.component.css']
 })
 export class UploadFinalDeliveryFormComponent {
-  private readonly notificationService = inject(NotificationService);
-  public readonly userService = inject(UserService);
+  protected readonly formService = inject(UploadFinalDeliveryFormService);
 
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
+  @Output() onSaveDelivery = new EventEmitter<{ monograph: File; formatE: File; annexes: File }>();
+  @Output() onGoBack       = new EventEmitter<void>();
 
-  // Se actualiza el tipo a File (ya no opcional en la lógica de envío)
-  @Output() onSaveDelivery = new EventEmitter<{ monograph: File, formatE: File, annexes: File }>();
-  @Output() onGoBack = new EventEmitter<void>();
+  // ── Estado de UI ──────────────────────────────────────────────────────────
+  readonly uploadedMonograph    = signal<UploadedFile | null>(null);
+  readonly uploadedFormatE      = signal<UploadedFile | null>(null);
+  readonly uploadedAnnexes      = signal<UploadedFile | null>(null);
+  readonly activeModal          = signal<FileSlot | null>(null);
+  readonly isSubmitAttempted    = signal(false);
 
-  uploadedMonograph = signal<{ fileName: string; file: File } | null>(null);
-  uploadedFormatE = signal<{ fileName: string; file: File } | null>(null);
-  uploadedAnnexes = signal<{ fileName: string; file: File } | null>(null);
-
-  activeModal = signal<'MONOGRAPH' | 'FORMAT_E' | 'ANNEXES' | null>(null);
-  isSubmitAttempted = signal(false);
-
-  // --- Helpers ---
-  getStudentNames(): string {
-    const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
-    return this.userService.getAuthorsNames(authors);
-  }
-
+  // ── Getters que exponen el servicio al template ───────────────────────────
+  getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }
   getDirectorName(): string {
-    const directorId = this.thesisWork?.preliminaryDraftData?.proposalData?.director?.id;
-    return directorId ? this.userService.getUserFullName(directorId) : 'No asignado';
+    const id = this.thesisWork?.preliminaryDraftData?.proposalData?.director?.id;
+    return this.formService.getMemberName(id) || 'No asignado';
   }
-
   getCodirectorName(): string {
-    const codirectorId = this.thesisWork?.preliminaryDraftData?.proposalData?.codirector?.id;
-    return codirectorId ? this.userService.getUserFullName(codirectorId) : '';
+    return this.formService.getMemberName(
+      this.thesisWork?.preliminaryDraftData?.proposalData?.codirector?.id
+    );
   }
-
   getAdvisorName(): string {
-    const advisorId = this.thesisWork?.preliminaryDraftData?.proposalData?.advisor?.id;
-    return advisorId ? this.userService.getUserFullName(advisorId) : '';
+    return this.formService.getMemberName(
+      this.thesisWork?.preliminaryDraftData?.proposalData?.advisor?.id
+    );
   }
 
-  openModal(type: 'MONOGRAPH' | 'FORMAT_E' | 'ANNEXES'): void {
-    this.activeModal.set(type);
-  }
+  // ── Manejo de archivos ────────────────────────────────────────────────────
+  openModal(type: FileSlot): void  { this.activeModal.set(type); }
+  closeModal(): void               { this.activeModal.set(null); }
 
-  closeModal(): void {
-    this.activeModal.set(null);
-  }
-
-  handleFileUploaded(event: { fileName: string; file: File }): void {
+  handleFileUploaded(event: UploadedFile): void {
     const type = this.activeModal();
     if (type === 'MONOGRAPH') this.uploadedMonograph.set(event);
-    if (type === 'FORMAT_E') this.uploadedFormatE.set(event);
-    if (type === 'ANNEXES') this.uploadedAnnexes.set(event);
-
+    if (type === 'FORMAT_E')  this.uploadedFormatE.set(event);
+    if (type === 'ANNEXES')   this.uploadedAnnexes.set(event);
     this.closeModal();
-    this.notificationService.show({
-      title: 'Archivo adjunto',
-      message: `El documento ${event.fileName} se ha adjuntado correctamente.`,
-      type: NotificationType.INFO
-    });
+    this.formService.notifyFileAttached(event.fileName);
   }
 
-  removeFile(type: 'MONOGRAPH' | 'FORMAT_E' | 'ANNEXES'): void {
+  removeFile(type: FileSlot): void {
     if (type === 'MONOGRAPH') this.uploadedMonograph.set(null);
-    if (type === 'FORMAT_E') this.uploadedFormatE.set(null);
-    if (type === 'ANNEXES') this.uploadedAnnexes.set(null);
+    if (type === 'FORMAT_E')  this.uploadedFormatE.set(null);
+    if (type === 'ANNEXES')   this.uploadedAnnexes.set(null);
   }
 
+  // ── Envío ─────────────────────────────────────────────────────────────────
   submit(): void {
     this.isSubmitAttempted.set(true);
-
     const monograph = this.uploadedMonograph();
-    const formatE = this.uploadedFormatE();
-    const annexes = this.uploadedAnnexes();
+    const formatE   = this.uploadedFormatE();
+    const annexes   = this.uploadedAnnexes();
 
     if (!monograph || !formatE || !annexes) {
-      this.notificationService.show({
-        title: 'Documentos faltantes',
-        message: 'Debe adjuntar obligatoriamente la Monografía, el Formato_E y los Anexos para poder continuar.',
-        type: NotificationType.ERROR
-      });
+      this.formService.notifyMissingDocuments();
       return;
     }
 
     this.onSaveDelivery.emit({
       monograph: monograph.file,
-      formatE: formatE.file,
-      annexes: annexes.file
+      formatE:   formatE.file,
+      annexes:   annexes.file
     });
   }
 }

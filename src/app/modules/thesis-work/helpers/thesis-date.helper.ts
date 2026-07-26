@@ -7,3 +7,12 @@ export function formatThesisDate(date: Date = new Date()): string {
     .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
     .replaceAll('/', ' - ');
 }
+
+export function ensureDate(date: Date | string | undefined | null): Date {
+  if (date instanceof Date && !isNaN(date.getTime())) return date;
+  if (typeof date === 'string' && date.trim()) {
+    const parsed = new Date(date);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+  return new Date();
+}

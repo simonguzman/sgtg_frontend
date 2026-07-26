@@ -1,100 +1,83 @@
-import { Component, EventEmitter, inject, Input, Output, signal, computed } from '@angular/core';
+import { Component, computed, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePicker } from 'primeng/datepicker';
-
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { UserService } from '../../../users/services/user.service';
+import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { EvaluateSpecialRequestFormService } from './services/evaluate-special-request-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SpecialRequest } from '../../interfaces/special-request.interface';
 import { SpecialRequestType } from '../../enums/special-request-type.enum';
 import { stateList } from '../../../../core/enums/state.enum';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
-import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
+
+// Solo estos dos veredictos son válidos para una solicitud especial —
+// coincide con lo que espera ThesisWorkService.evaluateSpecialRequestMock.
+type SpecialRequestVerdict = stateList.APROBADO | stateList.NO_APROBADO;
 
 @Component({
   selector: 'app-evaluate-special-request-form',
   templateUrl: './evaluate-special-request-form.component.html',
   styleUrls: ['./evaluate-special-request-form.component.css'],
-  imports: [ButtonComponent, DatePicker, FormsModule, InfoBannerComponent]
+  // FormsModule se conserva: [ngModel]/(ngModelChange) del datepicker lo requiere realmente.
+  imports: [ButtonComponent, DatePicker, FormsModule, InfoBannerComponent],
+  providers: [EvaluateSpecialRequestFormService]
 })
 export class EvaluateSpecialRequestFormComponent {
-  private readonly notificationService = inject(NotificationService);
-  public readonly userService = inject(UserService);
+  protected readonly formService = inject(EvaluateSpecialRequestFormService);
 
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input({ required: true }) specialRequest!: SpecialRequest;
   @Input() isSubmitting = false;
-
-  @Output() onSave = new EventEmitter<{ status: stateList; resolutionDetails: string; grantedDeadline?: Date }>();
+  @Output() onSave = new EventEmitter<{ status: SpecialRequestVerdict; resolutionDetails: string; grantedDeadline?: Date }>();
   @Output() onBack = new EventEmitter<void>();
 
-  verdictSelected = signal<stateList | null>(null);
-  observations = signal<string>('');
-  grantedDeadline = signal<Date | null>(null);
-  isSubmitAttempted = signal(false);
+  readonly verdictSelected  = signal<SpecialRequestVerdict | null>(null);
+  readonly observations     = signal<string>('');
+  readonly grantedDeadline  = signal<Date | null>(null);
+  readonly isSubmitAttempted = signal(false);
 
-  public get states(): typeof stateList {
-    return stateList;
-  }
+  get states(): typeof stateList { return stateList; }
 
-  requiresNewDeadline = computed(() => {
+  readonly requiresNewDeadline = computed(() => {
     const isApproved = this.verdictSelected() === stateList.APROBADO;
-    const type = this.getRequestType() as SpecialRequestType;
+    const type       = this.getRequestType();
     return isApproved && (type === SpecialRequestType.PRORROGA || type === SpecialRequestType.SUSPENSION);
   });
 
-  getStudentNames(): string {
-    const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
-    return this.userService.getAuthorsNames(authors);
+  getStudentNames(): string   { return this.formService.getStudentNames(this.thesisWork); }
+  getDirectorName(): string   { return this.formService.getDirectorName(this.thesisWork); }
+  getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
+  getAdvisorName(): string    { return this.formService.getAdvisorName(this.thesisWork); }
+
+  // ← Fix: eliminado el cast `(this.specialRequest as any).requestType` y el
+  // fallback `|| SpecialRequestType.PRORROGA`. SpecialRequest.requestType ya
+  // es un campo obligatorio de tipo SpecialRequestType — ambos eran código
+  // defensivo innecesario para un caso que la interfaz ya prohíbe.
+  getRequestType(): SpecialRequestType {
+    return this.specialRequest.requestType;
   }
 
-  getDirectorName(): string {
-    const directorId = this.thesisWork?.preliminaryDraftData?.proposalData?.director?.id;
-    return directorId ? this.userService.getUserFullName(directorId) : 'No asignado';
-  }
-
-  getCodirectorName(): string {
-    const codirectorId = this.thesisWork?.preliminaryDraftData?.proposalData?.codirector?.id;
-    return codirectorId ? this.userService.getUserFullName(codirectorId) : '';
-  }
-
-  getAdvisorName(): string {
-    const advisorId = this.thesisWork?.preliminaryDraftData?.proposalData?.advisor?.id;
-    return advisorId ? this.userService.getUserFullName(advisorId) : '';
-  }
-
-  getRequestType(): string {
-    return (this.specialRequest as any).requestType || SpecialRequestType.PRORROGA;
+  // ← Fix: reemplaza $any($event.target).value por un método con tipado correcto
+  onObservationsChange(event: Event): void {
+    this.observations.set((event.target as HTMLTextAreaElement).value);
   }
 
   submit(): void {
     this.isSubmitAttempted.set(true);
+    const verdict = this.verdictSelected();
 
-    const currentVerdict = this.verdictSelected();
-
-    if (!currentVerdict) {
-      this.notificationService.show({
-        title: 'Falta calificación',
-        message: 'Debe seleccionar si la solicitud cumple o no con los requisitos.',
-        type: NotificationType.ERROR
-      });
+    if (!verdict) {
+      this.formService.notifyMissingVerdict();
       return;
     }
-
     if (this.requiresNewDeadline() && !this.grantedDeadline()) {
-      this.notificationService.show({
-        title: 'Fecha requerida',
-        message: 'Debe asignar la nueva fecha límite de entrega para autorizar la solicitud.',
-        type: NotificationType.ERROR
-      });
+      this.formService.notifyMissingDeadline();
       return;
     }
 
     this.onSave.emit({
-      status: currentVerdict,
+      status: verdict,
       resolutionDetails: this.observations(),
-      grantedDeadline: this.grantedDeadline() || undefined
+      grantedDeadline: this.grantedDeadline() ?? undefined
     });
   }
 }

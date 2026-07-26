@@ -1,160 +1,81 @@
-import { Component, EventEmitter, inject, Input, computed, Output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { UserService } from '../../../users/services/user.service';
-import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
-import { AuthService } from '../../../../core/services/auth/auth.service';
-
+import { Component, computed, EventEmitter, inject, Input, Output, signal } from '@angular/core';
+import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
+import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { EvaluateCorrectionsFormService } from './services/evaluate-corrections-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { CorrectedDelivery } from '../../interfaces/corrected-delivery.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
-import { User } from '../../../users/interfaces/user.interface';
-
-import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
-import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
-import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 
 @Component({
   selector: 'app-evaluate-corrections-form',
   templateUrl: './evaluate-corrections-form.component.html',
   styleUrls: ['./evaluate-corrections-form.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule, FileUploadModalComponent, ButtonComponent, InfoBannerComponent]
+  // ← CommonModule y FormsModule eliminados: el template solo usa @if/@for
+  // nativos y bindings de clase nativos — ninguna directiva de esos módulos
+  // estaba realmente en uso.
+  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent],
+  providers: [EvaluateCorrectionsFormService]
 })
 export class EvaluateCorrectionsFormComponent {
-  private readonly notificationService = inject(NotificationService);
-  private readonly downloadService = inject(FileDownloadService);
-  public readonly userService = inject(UserService);
-  private readonly authService = inject(AuthService);
+  protected readonly formService = inject(EvaluateCorrectionsFormService);
 
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
-
-  @Output() onSubmitEvaluation = new EventEmitter<{ evaluation: Omit<Evaluation, 'id' | 'date'>, file: File }>();
+  @Output() onSubmitEvaluation = new EventEmitter<{ evaluation: Omit<Evaluation, 'id' | 'date'>; file: File }>();
   @Output() onGoBack = new EventEmitter<void>();
 
-  selectedVerdict = signal<stateList | null>(null);
-  observations = signal<string>('');
-  uploadedFormatG = signal<{ fileName: string; file: File } | null>(null);
-  isModalOpen = signal<boolean>(false);
-  isSubmitAttempted = signal<boolean>(false);
+  readonly selectedVerdict   = signal<stateList | null>(null);
+  readonly observations      = signal<string>('');
+  readonly uploadedFormatG   = signal<{ fileName: string; file: File } | null>(null);
+  readonly isModalOpen       = signal<boolean>(false);
+  readonly isSubmitAttempted = signal<boolean>(false);
 
-  public get states(): typeof stateList {
-    return stateList;
-  }
+  get states(): typeof stateList { return stateList; }
 
-  correctedDeliveriesList = computed<CorrectedDelivery[]>(() => {
-    if (!this.thesisWork || !this.thesisWork.correctedDeliveries) return [];
-    return this.thesisWork.correctedDeliveries;
-  });
+  readonly correctedDeliveriesList = computed<CorrectedDelivery[]>(() =>
+    this.thesisWork?.correctedDeliveries ?? []
+  );
 
-  // ─── Miembros ─────────────────────────────────────────────────────────────────
-
-  getStudentNames(): string {
-    const authors = this.thesisWork?.preliminaryDraftData?.proposalData?.authors || [];
-    return this.userService.getAuthorsNames(authors);
-  }
-
-  getDirectorName(): string {
-    const directorId = this.thesisWork?.preliminaryDraftData?.proposalData?.director?.id;
-    return directorId ? this.userService.getUserFullName(directorId) : 'No asignado';
-  }
-
-  getCodirectorName(): string {
-    const codirectorId = this.thesisWork?.preliminaryDraftData?.proposalData?.codirector?.id;
-    return codirectorId ? this.userService.getUserFullName(codirectorId) : '';
-  }
-
-  getAdvisorName(): string {
-    const advisorId = this.thesisWork?.preliminaryDraftData?.proposalData?.advisor?.id;
-    return advisorId ? this.userService.getUserFullName(advisorId) : '';
-  }
-
-  getAssignedJurors(): string {
-    const jurors = this.thesisWork?.sustentations?.[0]?.assignedJurors || [];
-    if (jurors.length === 0) return 'No asignados';
-    return jurors.map((j: User) => this.userService.getUserFullName(j.id)).join(' y ');
-  }
-
-  // ─── Documentos ───────────────────────────────────────────────────────────────
+  getStudentNames(): string   { return this.formService.getStudentNames(this.thesisWork); }
+  getDirectorName(): string   { return this.formService.getDirectorName(this.thesisWork); }
+  getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
+  getAdvisorName(): string    { return this.formService.getAdvisorName(this.thesisWork); }
+  getAssignedJurors(): string { return this.formService.getAssignedJurors(this.thesisWork); }
 
   downloadDocument(doc: FileDocument): void {
-    if (!doc?.url) {
-      this.notificationService.show({
-        title: 'Error de archivo',
-        message: 'Este documento no posee una ruta válida de descarga.',
-        type: NotificationType.ERROR
-      });
-      return;
-    }
-    this.downloadService.download(doc.url, `${doc.name}.pdf`);
+    this.formService.downloadDocument(doc);
   }
 
-  // ─── Manejo de archivo y submit ───────────────────────────────────────────────
+  // ← Fix: reemplaza $any($event.target).value por un método con tipado correcto
+  onObservationsChange(event: Event): void {
+    this.observations.set((event.target as HTMLTextAreaElement).value);
+  }
 
   handleFormatGUploaded(event: { fileName: string; file: File }): void {
     this.uploadedFormatG.set(event);
     this.isModalOpen.set(false);
-    this.notificationService.show({
-      title: 'Acta Adjunta',
-      message: 'El Formato_G se ha vinculado correctamente a la evaluación.',
-      type: NotificationType.INFO
-    });
+    this.formService.notifyFileAttached();
   }
 
   submit(): void {
     this.isSubmitAttempted.set(true);
-    const user = this.authService.currentUser();
     const verdict = this.selectedVerdict();
 
-    if (!verdict) {
-      this.notificationService.show({
-        title: 'Dictamen requerido',
-        message: 'Debe seleccionar una decisión de evaluación.',
-        type: NotificationType.ERROR
-      });
+    if (!verdict) { this.formService.notifyMissingVerdict(); return; }
+    if (!this.formService.isObservationsValid(this.observations())) {
+      this.formService.notifyInvalidObservations();
       return;
     }
+    const fileData = this.uploadedFormatG();
+    if (!fileData) { this.formService.notifyMissingFormatG(); return; }
 
-    if (!this.observations().trim() || this.observations().length < 10) {
-      this.notificationService.show({
-        title: 'Observaciones vacías',
-        message: 'Debe ingresar una justificación técnica detallada (mínimo 10 caracteres).',
-        type: NotificationType.ERROR
-      });
-      return;
-    }
-
-    if (!this.uploadedFormatG()) {
-      this.notificationService.show({
-        title: 'Formato_G Faltante',
-        message: 'Es obligatorio cargar el Formato_G firmado para continuar.',
-        type: NotificationType.ERROR
-      });
-      return;
-    }
-
-    const currentDelivery = this.correctedDeliveriesList()[0];
-    const targetDocumentId = currentDelivery?.monograph?.id || '';
-
-    const evaluationData: Omit<Evaluation, 'id' | 'date'> = {
-      documentId: targetDocumentId,
-      proposalId: this.thesisWork.preliminaryDraftData?.proposalData?.id || '',
-      evaluatorId: user?.id || '',
-      evaluatorName: user ? `${user.firstName} ${user.lastName}` : 'Jurado Asignado',
-      evaluatorRole: 'JURADO',
-      veredict: verdict,
-      observations: this.observations()
-    };
-
-    this.onSubmitEvaluation.emit({
-      evaluation: evaluationData,
-      file: this.uploadedFormatG()!.file
-    });
+    const evaluation = this.formService.buildEvaluationPayload(
+      this.thesisWork, verdict, this.observations(), this.correctedDeliveriesList()
+    );
+    this.onSubmitEvaluation.emit({ evaluation, file: fileData.file });
   }
 }

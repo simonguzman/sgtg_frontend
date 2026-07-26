@@ -1,6 +1,6 @@
 <div class="p-6 bg-white rounded-lg w-full">
-  <app-info-banner title="Evaluación de Sustentación" class="mb-6 block">
-    Seleccione el resultado definitivo de la sustentación acordado por el cuerpo de jurados, ingrese las observaciones correspondientes y adjunte el <strong>acta firmada</strong> para completar el registro.
+  <app-info-banner title="Evaluación de Solicitud Especial" class="mb-6 block">
+    Revise la solicitud especial radicada por el director, seleccione si cumple o no con los requisitos institucionales e ingrese las observaciones correspondientes para completar el registro.
   </app-info-banner>
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
@@ -8,38 +8,38 @@
     <div class="flex flex-col gap-4 pl-4">
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Título</span>
-        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
+        <input id="" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
                class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Descripciòn</span>
-        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
+        <input id="" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</span>
-        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
+        <input id="" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
                class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Estudiante</span>
-        <input type="text" [value]="getStudentNames()" disabled
+        <input id="" type="text" [value]="getStudentNames()" disabled
                class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Director</span>
-        <input type="text" [value]="getDirectorName()" disabled
+        <input id="" type="text" [value]="getDirectorName()" disabled
                class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       @if (getCodirectorName()) {
         <div class="flex flex-col gap-1">
           <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
-          <input type="text" [value]="getCodirectorName()" disabled
+          <input id="" type="text" [value]="getCodirectorName()" disabled
                  class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
       }
@@ -47,14 +47,14 @@
       @if (getAdvisorName()) {
         <div class="flex flex-col gap-1">
           <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
-          <input type="text" [value]="getAdvisorName()" disabled
+          <input id="" type="text" [value]="getAdvisorName()" disabled
                  class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
       }
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Estado</span>
-        <input type="text" [value]="thesisWork.state" disabled
+        <input id="" type="text" [value]="thesisWork.state" disabled
                class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
       </div>
     </div>
@@ -66,13 +66,13 @@
     <div class="flex flex-col gap-6 pl-4">
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Solicitud especial</span>
-        <input type="text" [value]="getRequestType()" disabled
+        <input id="" type="text" [value]="getRequestType()" disabled
                class="information-block p-3 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-sans text-sm">
       </div>
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Comentarios</span>
-        <textarea rows="4" disabled
+        <textarea id="" rows="4" disabled
           class="p-3 border border-gray-200 rounded-md w-full bg-gray-50 cursor-not-allowed font-sans text-sm text-[#777680] resize-none">{{ specialRequest.description }}</textarea>
       </div>
     </div>
@@ -106,7 +106,8 @@
             Asignar nueva fecha límite de entrega <span class="text-[#ED7D31]">*</span>
           </span>
           <p-datepicker
-            [(ngModel)]="grantedDeadline"
+            [ngModel]="grantedDeadline()"
+            (ngModelChange)="grantedDeadline.set($event)"
             [showIcon]="true"
             placeholder="Seleccione la nueva fecha límite"
             styleClass="w-full"
@@ -120,9 +121,9 @@
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Comentarios</span>
-        <textarea rows="4" class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm font-sans resize-none"
+        <textarea id="" rows="4" class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm font-sans resize-none"
                   placeholder="Ingrese los comentarios y observaciones sobre la evaluación si lo considera necesario"
-                  (input)="observations.set($any($event.target).value)"></textarea>
+                  (input)="onObservationsChange($event)"></textarea>
       </div>
 
       <div class="flex justify-end mt-6">

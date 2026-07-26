@@ -12,38 +12,38 @@
     <div class="flex flex-col gap-4 pl-4">
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Título</span>
-        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
+        <input id="" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Descripciòn</span>
-        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
+        <input id="" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</span>
-        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
+        <input id="" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Estudiante</span>
-        <input type="text" [value]="getStudentNames()" disabled
+        <input id="" type="text" [value]="getStudentNames()" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Director</span>
-        <input type="text" [value]="getDirectorName()" disabled
+        <input id="" type="text" [value]="getDirectorName()" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       @if (getCodirectorName()) {
         <div class="flex flex-col gap-1">
           <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
-          <input type="text" [value]="getCodirectorName()" disabled
+          <input id="" type="text" [value]="getCodirectorName()" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
       }
@@ -51,14 +51,14 @@
       @if (getAdvisorName()) {
         <div class="flex flex-col gap-1">
           <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
-          <input type="text" [value]="getAdvisorName()" disabled
+          <input id="" type="text" [value]="getAdvisorName()" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
       }
 
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Estado</span>
-        <input type="text" [value]="thesisWork.state" disabled
+        <input id="" type="text" [value]="thesisWork.state" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
       </div>
     </div>

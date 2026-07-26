@@ -99,6 +99,6 @@ export const SpecialRequestTabConfig: TabConfiguration = {
     uploadDescription: '',
     uploadedByText: '',
     confirmDescription: '',
-    uploadDocumentType: 'Solicitud' as unknown as DocumentType
+    uploadDocumentType: undefined
   }
 };

@@ -1,149 +1,90 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { ThesisWorkService } from '../../services/thesis-work.service';
-import { AuthService } from '../../../../core/services/auth/auth.service';
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
 import { ActivatedRoute, Router } from '@angular/router';
+import { AuthService } from '../../../../core/services/auth/auth.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { Advance } from '../../interfaces/advance.interface';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
-import { stateList } from '../../../../core/enums/state.enum';
-import { EvaluateAdvanceFormComponent } from "../../components/evaluate-advance-form/evaluate-advance-form.component";
-import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
-import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playload.interface';
+import { SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playload.interface';
+import { EvaluateAdvanceFacadeService } from './services/evaluate-advance-facade.service';
+import { EvaluateAdvanceFormComponent } from '../../components/evaluate-advance-form/evaluate-advance-form.component';
+import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 
 @Component({
   selector: 'app-evaluate-advance-page',
+  imports: [EvaluateAdvanceFormComponent, ConfirmationActionModalComponent],
   templateUrl: './evaluate-advance-page.component.html',
-  styleUrls: ['./evaluate-advance-page.component.css'],
-  imports: [EvaluateAdvanceFormComponent, ConfirmationActionModalComponent]
+  styleUrls: ['./evaluate-advance-page.component.css']
 })
 export class EvaluateAdvancePageComponent implements OnInit {
-  private readonly thesisWorkService = inject(ThesisWorkService);
+  private readonly route       = inject(ActivatedRoute);
+  private readonly router      = inject(Router);
   private readonly authService = inject(AuthService);
-  private readonly notification = inject(NotificationService);
-  private readonly downloadService = inject(FileDownloadService);
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
+  protected readonly facade    = inject(EvaluateAdvanceFacadeService);
 
-  thesisWorkState = signal<ThesisWork | null>(null);
-  advanceId = signal<string | null>(null);
-  isConfirmModalOpen = signal(false);
-  pendingReviewData = signal<SubmitAdvanceEvaluationPayload | null>(null);
+  // ── Estado de UI ──────────────────────────────────────────────────────────
+  readonly thesisWorkState    = signal<ThesisWork | null>(null);
+  readonly advanceId          = signal<string | null>(null);
+  readonly isConfirmModalOpen = signal(false);
+  readonly pendingReviewData  = signal<SubmitAdvanceEvaluationPayload | null>(null);
 
-  currentAdvance = computed<Advance | null>(() => {
-    const work = this.thesisWorkState();
+  // currentAdvance: computed que depende de signals del componente — queda aquí
+  readonly currentAdvance = computed<Advance | null>(() => {
+    const work  = this.thesisWorkState();
     const advId = this.advanceId();
     if (!work || !advId || !work.advances) return null;
-    return work.advances.find(a => a.id === advId) || null;
+    return work.advances.find(a => a.id === advId) ?? null;
   });
 
-  ngOnInit() {
+  ngOnInit(): void {
+    // Resolución de IDs: el thesis ID puede estar en un ancestro de la ruta
     let currentRoute: ActivatedRoute | null = this.route;
     let thesisId: string | null = null;
     while (currentRoute && !thesisId) {
       thesisId = currentRoute.snapshot.paramMap.get('id');
       currentRoute = currentRoute.parent;
     }
-
     const advId = this.route.snapshot.paramMap.get('advanceId');
 
-    if (thesisId && advId) {
-      this.advanceId.set(advId);
-      this.loadThesisWorkData(thesisId);
-    } else {
-      this.notification.show({
-        title: 'Error de navegación',
-        message: 'No se pudieron identificar los parámetros del avance en la ruta.',
-        type: NotificationType.ERROR
-      });
+    if (!thesisId || !advId) {
+      this.facade.showNavigationError();
+      return;
     }
+
+    this.advanceId.set(advId);
+    this.facade.loadThesisWork(
+      thesisId,
+      (work) => this.thesisWorkState.set(work),
+      ()     => { /* la fachada ya notificó */ }
+    );
   }
 
-  private loadThesisWorkData(id: string) {
-    this.thesisWorkService.getThesisWorkByIdMock(id).subscribe({
-      next: (data) => {
-        if (!data) {
-          this.notification.show({
-            title: 'No encontrado',
-            message: 'El trabajo de grado solicitado no existe.',
-            type: NotificationType.INFO
-          });
-          return;
-        }
-        this.thesisWorkState.set(data);
-      },
-      error: () => this.notification.show({
-        title: 'Error de conexión',
-        message: 'No se pudo recuperar la información del proyecto.',
-        type: NotificationType.ERROR
-      })
-    });
-  }
-
-  navigateBack() {
-    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
-  }
-
-  handleRequestConfirmation(data: SubmitAdvanceEvaluationPayload) {
+  handleRequestConfirmation(data: SubmitAdvanceEvaluationPayload): void {
     this.pendingReviewData.set(data);
     this.isConfirmModalOpen.set(true);
   }
 
-  processAdvanceEvaluation() {
-    const data = this.pendingReviewData();
-    const work = this.thesisWorkState();
+  processAdvanceEvaluation(): void {
+    const data    = this.pendingReviewData();
+    const work    = this.thesisWorkState();
     const advance = this.currentAdvance();
-    const user = this.authService.currentUser();
-
+    const user    = this.authService.currentUser();
     if (!data || !work || !advance || !user) return;
 
-    // CORRECCIÓN: Accedemos a data.files (el arreglo) en lugar de data.file
-    const documentsNames: string[] = [];
-    if (data.files && data.files.length > 0) {
-      data.files.forEach(file => documentsNames.push(file.name));
-    }
-
-    const isApproved = data.formValues.result === AdvanceEvaluationResult.EVALUADO;
-
-    const evaluation: Evaluation = {
-      id: crypto.randomUUID(),
-      proposalId: work.preliminaryDraftData.proposalId,
-      advanceId: advance.id,
-      evaluatorId: user.id,
-      evaluatorName: `${user.firstName} ${user.lastName}`,
-      evaluatorRole: 'Docente / Evaluador',
-      veredict: stateList.EVALUADO,
-      observations: `[${data.formValues.result.toUpperCase()}] ${data.formValues.comments}`,
-      signedDocuments: documentsNames, // Aquí guardamos los nombres de todos los archivos
-      date: new Date()
-    };
-
-    this.thesisWorkService.addEvaluationMock(work.thesisWorkId, evaluation).subscribe({
-      next: () => {
-        this.notification.show({
-          title: 'Evaluación Guardada',
-          message: 'Los comentarios y el estado del avance han sido actualizados exitosamente.',
-          type: NotificationType.CONFIRMATION
-        });
+    this.facade.saveEvaluation(
+      work, advance, user, data,
+      () => {
         this.isConfirmModalOpen.set(false);
         this.navigateBack();
       },
-      error: () => this.notification.show({
-        title: 'Error al guardar',
-        message: 'Ocurrió un error técnico al registrar la evaluación.',
-        type: NotificationType.ERROR
-      })
-    });
+      () => { /* la fachada ya notificó */ }
+    );
   }
 
-  downloadCurrentAdvance() {
+  downloadCurrentAdvance(): void {
     const advance = this.currentAdvance();
-    const doc = advance?.documents?.[0];
-    if (doc?.url) {
-      this.downloadService.download(doc.url, doc.name);
-    }
+    if (advance) this.facade.downloadAdvance(advance);
+  }
+
+  navigateBack(): void {
+    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
   }
 }
-

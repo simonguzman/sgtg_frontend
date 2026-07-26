@@ -1,16 +1,11 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { ThesisWorkService } from '../../services/thesis-work.service';
-import { AuthService } from '../../../../core/services/auth/auth.service';
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { ActivatedRoute, Router } from '@angular/router';
+import { AuthService } from '../../../../core/services/auth/auth.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { FileDocument } from '../../../../core/interfaces/file-document.interface';
-import { DocumentType } from '../../../../core/enums/document-type.enum';
-import { forkJoin, Observable } from 'rxjs';
-import { UploadAdvanceFormComponent } from "../../components/upload-advance-form/upload-advance-form.component";
-import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { UploadAdvancePayload } from '../../interfaces/advance-playload.interface';
+import { UploadAdvanceFacadeService } from './services/upload-advance-page-facade.service';
+import { UploadAdvanceFormComponent } from '../../components/upload-advance-form/upload-advance-form.component';
+import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 
 @Component({
   selector: 'app-upload-advance-page',
@@ -19,117 +14,69 @@ import { UploadAdvancePayload } from '../../interfaces/advance-playload.interfac
   styleUrls: ['./upload-advance-page.component.css']
 })
 export class UploadAdvancePageComponent implements OnInit {
-  private readonly thesisWorkService = inject(ThesisWorkService);
+  private readonly route       = inject(ActivatedRoute);
+  private readonly router      = inject(Router);
   private readonly authService = inject(AuthService);
-  private readonly notification = inject(NotificationService);
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
+  protected readonly facade    = inject(UploadAdvanceFacadeService);
 
-  thesisWorkState = signal<ThesisWork | null>(null);
-  isConfirmModalOpen = signal(false);
-  isSaving = signal(false);
+  // ── Estado de UI ──────────────────────────────────────────────────────────
+  readonly thesisWorkState    = signal<ThesisWork | null>(null);
+  readonly isConfirmModalOpen = signal(false);
+  readonly isSaving           = signal(false);
+  readonly pendingAdvanceData = signal<UploadAdvancePayload | null>(null);
 
-  pendingAdvanceData = signal<UploadAdvancePayload | null>(null);
-
-  ngOnInit() {
-    let currentRoute = this.route;
+  ngOnInit(): void {
+    // Resolución del ID recorriendo el árbol de rutas padre
+    let currentRoute: ActivatedRoute | null = this.route;
     let id: string | null = null;
     while (currentRoute && !id) {
       id = currentRoute.snapshot.paramMap.get('id');
-      currentRoute = currentRoute.parent!;
+      currentRoute = currentRoute.parent;
     }
-    if (id) {
-      this.loadThesisWork(id);
-    } else {
-      this.notification.show({
-        title: 'Error de navegación',
-        message: 'No se pudo identificar el identificador del trabajo de grado.',
-        type: NotificationType.ERROR
-      });
+
+    if (!id) {
+      this.facade.showNavigationError();
       this.navigateBack();
+      return;
     }
+
+    this.facade.loadThesisWork(
+      id,
+      (work) => this.thesisWorkState.set(work),
+      ()     => this.navigateBack()
+    );
   }
 
-  private loadThesisWork(id: string) {
-    this.thesisWorkService.getThesisWorkByIdMock(id).subscribe({
-      next: (data) => {
-        if (!data) {
-          this.notification.show({
-            title: 'No encontrado',
-            message: 'El trabajo de grado solicitado no existe.',
-            type: NotificationType.INFO
-          });
-          this.navigateBack();
-          return;
-        }
-        this.thesisWorkState.set(data);
-      },
-      error: () => {
-        this.notification.show({
-          title: 'Error de conexión',
-          message: 'No se pudo obtener la información del trabajo de grado.',
-          type: NotificationType.ERROR
-        });
-      }
-    });
-  }
-
-  handleSaveRequest(data: UploadAdvancePayload) {
+  handleSaveRequest(data: UploadAdvancePayload): void {
     this.pendingAdvanceData.set(data);
     this.isConfirmModalOpen.set(true);
   }
 
-  processAdvance() {
-    const data = this.pendingAdvanceData();
-    const thesisWork = this.thesisWorkState();
-    const currentUser = this.authService.currentUser();
-    if (!data || !thesisWork || !currentUser) return;
+  processAdvance(): void {
+    const data    = this.pendingAdvanceData();
+    const thesis  = this.thesisWorkState();
+    const user    = this.authService.currentUser();
+    if (!data || !thesis || !user) return;
+
     this.isSaving.set(true);
-    const globalAdvanceBlockId = crypto.randomUUID();
-    const advanceMeta = {
-      title: data.formValues.title,
-      comments: data.formValues.comments,
-      studentId: currentUser.id,
-      advanceId: globalAdvanceBlockId
-    };
-    const documentsToUpload: FileDocument[] = data.files.map(file => ({
-      id: crypto.randomUUID(),
-      name: `${data.formValues.title} - ${file.name}`,
-      url: 'url-pendiente-de-carga-s3',
-      type: DocumentType.AVANCE,
-      uploadDate: new Date().toISOString()
-    }));
-    const uploadRequests: Observable<void>[] = documentsToUpload.map(doc =>
-      this.thesisWorkService.uploadDocumentMock(
-        thesisWork.thesisWorkId,
-        doc,
-        advanceMeta
-      )
-    );
-    forkJoin(uploadRequests).subscribe({
-      next: () => {
-        this.notification.show({
-          title: 'Avance registrado',
-          message: 'Los archivos del avance han sido guardados y puestos en revisión exitosamente.',
-          type: NotificationType.CONFIRMATION
-        });
-        this.isConfirmModalOpen.set(false);
+
+    this.facade.processAdvance(
+      thesis.thesisWorkId,
+      user.id,
+      data,
+      () => {
         this.isSaving.set(false);
+        this.isConfirmModalOpen.set(false);
         this.navigateBack();
       },
-      error: () => {
-        this.notification.show({
-          title: 'Error al guardar',
-          message: 'Ocurrió un problema al subir los documentos del avance. Intente nuevamente.',
-          type: NotificationType.ERROR
-        });
+      () => {
         this.isSaving.set(false);
         this.isConfirmModalOpen.set(false);
       }
-    });
+    );
   }
 
-  navigateBack() {
+  navigateBack(): void {
     this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
   }
 }

@@ -1,78 +1,56 @@
 import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
-import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
-
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { UserService } from '../../../users/services/user.service';
+import { ReactiveFormsModule } from '@angular/forms';
+import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { RegisterSpecialRequestFormService } from './services/register-special-request-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SpecialRequestType } from '../../enums/special-request-type.enum';
-import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
-import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 
 @Component({
   selector: 'app-register-special-request-form',
   templateUrl: './register-special-request-form.component.html',
   styleUrls: ['./register-special-request-form.component.css'],
-  imports: [ReactiveFormsModule, ButtonComponent, InfoBannerComponent]
+  imports: [ReactiveFormsModule, ButtonComponent, InfoBannerComponent],
+  providers: [RegisterSpecialRequestFormService]
 })
 export class RegisterSpecialRequestFormComponent {
-  private readonly fb = inject(FormBuilder);
-  private readonly notificationService = inject(NotificationService);
-  public readonly userService = inject(UserService);
+  protected readonly formService = inject(RegisterSpecialRequestFormService);
 
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
-
   @Output() onSaveRequest = new EventEmitter<{ requestType: SpecialRequestType; comments: string }>();
 
-  readonly requestOptions = Object.values(SpecialRequestType);
-  isSubmitAttempted = signal(false);
+  readonly isSubmitAttempted = signal(false);
 
-  readonly requestForm = this.fb.group({
-    requestType: ['', Validators.required],
-    comments: ['', Validators.required]
-  });
+  // ← Getters que exponen el servicio al template sin cambiar los nombres
+  // que el HTML ya usa (requestForm, requestOptions).
+  get requestForm()    { return this.formService.form; }
+  get requestOptions() { return this.formService.requestOptions; }
 
-  // ─── Miembros ─────────────────────────────────────────────────────────────────
-
-  getStudentNames(): string {
-    return this.userService.getAuthorsNames(this.thesisWork.preliminaryDraftData?.proposalData?.authors);
-  }
-
-  getDirectorName(): string {
-    return this.userService.getUserFullName(this.thesisWork.preliminaryDraftData?.proposalData?.director?.id);
-  }
-
-  getCodirectorName(): string {
-    const codirector = this.thesisWork.preliminaryDraftData?.proposalData?.codirector;
-    return codirector?.id ? this.userService.getUserFullName(codirector.id) : '';
-  }
-
-  getAdvisorName(): string {
-    const advisor = this.thesisWork.preliminaryDraftData?.proposalData?.advisor;
-    return advisor?.id ? this.userService.getUserFullName(advisor.id) : '';
-  }
+  getStudentNames(): string   { return this.formService.getStudentNames(this.thesisWork); }
+  getDirectorName(): string   { return this.formService.getDirectorName(this.thesisWork); }
+  getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
+  getAdvisorName(): string    { return this.formService.getAdvisorName(this.thesisWork); }
 
   isFieldInvalid(fieldName: string): boolean {
     const control = this.requestForm.get(fieldName);
     return !!(this.isSubmitAttempted() && control?.invalid) || !!(control?.invalid && control?.touched);
   }
 
-  // ─── Submit ───────────────────────────────────────────────────────────────────
-
   submit(): void {
     this.isSubmitAttempted.set(true);
     this.requestForm.markAllAsTouched();
 
     if (this.requestForm.invalid) {
-      this.notificationService.show({
-        title: 'Formulario incompleto',
-        message: 'Por favor, seleccione un tipo de solicitud e incluya la justificación requerida.',
-        type: NotificationType.ERROR
-      });
+      this.formService.notifyIncompleteForm();
       return;
     }
 
-    this.onSaveRequest.emit(this.requestForm.value as { requestType: SpecialRequestType; comments: string });
+    // ← Fix: sin cast. TypeScript estrecha `requestType` de `SpecialRequestType | ''`
+    // a `SpecialRequestType` tras descartar la rama falsy ('').
+    const raw = this.requestForm.getRawValue();
+    if (!raw.requestType) return;
+
+    this.onSaveRequest.emit({ requestType: raw.requestType, comments: raw.comments });
   }
 }
