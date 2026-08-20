@@ -1,10 +1,8 @@
-/* tslint:disable:no-unused-variable */
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { DebugElement } from '@angular/core';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 
 import { RegisterInformationModalComponent } from './register-information-modal.component';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ButtonComponent } from '../../button-component/button-component.component';
 import { StateComponent } from '../../state/state.component';
 import { stateList } from '../../../../core/enums/state.enum';
@@ -12,17 +10,6 @@ import { stateList } from '../../../../core/enums/state.enum';
 describe('RegisterInformationModalComponent', () => {
   let component: RegisterInformationModalComponent;
   let fixture: ComponentFixture<RegisterInformationModalComponent>;
-
-  beforeEach(async() => {
-    TestBed.configureTestingModule({
-      imports: [ RegisterInformationModalComponent ],
-      providers: [provideNoopAnimations()]
-    })
-    .compileComponents();
-
-    fixture = TestBed.createComponent(RegisterInformationModalComponent);
-    component = fixture.componentInstance;
-  });
 
   const mockData = {
     modalHeader: 'Header Test',
@@ -34,93 +21,142 @@ describe('RegisterInformationModalComponent', () => {
     codirector: 'Dra. Ana',
     adviser: 'Ing. Pedro',
     state: stateList.APROBADO,
-    documents: ['doc1.pdf', 'doc2.pdf']
+    documents: ['doc1.pdf', 'doc2.pdf'],
+    comments: 'Comentarios de prueba'
   };
 
-  it('Debe renderizar la información correctamente', () => {
-    Object.assign(component, mockData);
-    component.isOpen = true;
-    fixture.detectChanges();
-    const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Header Test');
-    expect(text).toContain('Subtitulo Test');
-    expect(text).toContain('Proyecto X');
-    expect(text).toContain('Juan');
-    expect(text).toContain('Dr. Smith');
-  })
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [RegisterInformationModalComponent],
+      providers: [provideNoopAnimations()] // Fundamental para pruebas con modales de PrimeNG
+    }).compileComponents();
 
-  it('Debe mostrar el codirector si el trabajo de grado lo tiene', () => {
-    component.codirector = 'Joe Doe';
-    component.isOpen = true;
-    fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('Codirector');
-  })
-  it('NO debe mostrar el codirector si el trabajo de grado NO lo tiene', () => {
-    component.codirector = undefined;
-    component.isOpen = true;
-    fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).not.toContain('Codirector');
-  })
+    fixture = TestBed.createComponent(RegisterInformationModalComponent);
+    component = fixture.componentInstance;
+  });
 
-  it('Debe mostrar el asesor si el trabajo de grado lo tiene', () => {
-    component.adviser = 'Joe Doe';
-    component.isOpen = true;
-    fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).toContain('Asesor');
-  })
-  it('NO debe mostrar el asesor si el trabajo de grado NO lo tiene', () => {
-    component.adviser = undefined;
-    component.isOpen = true;
-    fixture.detectChanges()
-    expect(fixture.nativeElement.textContent).not.toContain('Asesor');
-  })
+  describe('Inicialización y Lógica de Eventos', () => {
+    it('debería crearse correctamente', () => {
+      expect(component).toBeTruthy();
+    });
 
-  it('Debe mostrar el estado solo si existe', () => {
-    component.state = stateList.APROBADO;
-    component.isOpen = true;
-    fixture.detectChanges();
-    const state = fixture.debugElement.query(By.directive(StateComponent));
-    expect(state).toBeTruthy();
-  })
+    it('debería emitir onClose al llamar a closeModal()', () => {
+      const spyClose = jest.spyOn(component.onClose, 'emit');
+      component.closeModal();
+      expect(spyClose).toHaveBeenCalledTimes(1);
+    });
 
-  it('NO debe mostrar el estado si no existe', () => {
-    component.state = undefined;
-    component.isOpen = true;
-    fixture.detectChanges();
-    const state = fixture.debugElement.query(By.directive(StateComponent));
-    expect(state).toBeNull();
-  })
+    it('debería emitir onDownloadFile con el nombre del archivo al llamar a downloadFile()', () => {
+      const spyDownload = jest.spyOn(component.onDownloadFile, 'emit');
+      const fileName = 'archivo-tesis.pdf';
 
-  it('Debe mostrar la lista de documentos', () => {
-    component.documents = ['archivo1.pdf', 'archivo2.pdf'];
-    component.isOpen = true;
-    fixture.detectChanges();
-    const button = fixture.debugElement.queryAll(By.directive(ButtonComponent));
-    expect(button.length).toBe(component.documents.length);
-  })
+      component.downloadFile(fileName);
 
-  it('Debe mostrar el mensaje si no tiene documentos', () => {
-    component.documents = [];
-    component.isOpen = true;
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('No han sido cargados archivos');
-  })
+      expect(spyDownload).toHaveBeenCalledWith(fileName);
+      expect(spyDownload).toHaveBeenCalledTimes(1);
+    });
+  });
 
-  it('Debe emitir un evento al descargar un archivo', () => {
-    const spy = jest.spyOn(component.onDownloadFile, 'emit');
-    component.isOpen = true;
-    component.documents = ['archivo1.pdf'];
-    fixture.detectChanges();
-    const buttons = fixture.debugElement.queryAll(By.directive(ButtonComponent));
-    const button = buttons.find(btn => btn.componentInstance.label === 'Descargar');
-    expect(button).toBeTruthy()
-    button!.triggerEventHandler('onClick', null);
-    expect(spy).toHaveBeenCalledWith('archivo1.pdf');
-  })
+  describe('Renderizado del DOM - Información Principal', () => {
+    beforeEach(() => {
+      Object.assign(component, mockData);
+      component.isOpen = true; // Forzamos la apertura del modal para renderizar el contenido
+    });
 
-  it('closeModal debe emitir onClose', () => {
-    const spy = jest.spyOn(component.onClose, 'emit');
-    component.closeModal();
-    expect(spy).toHaveBeenCalled();
+    it('debería renderizar la información básica correctamente', () => {
+      fixture.detectChanges();
+      const text = fixture.nativeElement.textContent;
+
+      expect(text).toContain(mockData.modalHeader);
+      expect(text).toContain(mockData.subTitle);
+      expect(text).toContain(mockData.title);
+      expect(text).toContain(mockData.student);
+      expect(text).toContain(mockData.director);
+      expect(text).toContain(mockData.comments);
+    });
+
+    it('debería mostrar el mensaje por defecto si no hay descripción (comments)', () => {
+      component.comments = '';
+      fixture.detectChanges();
+
+      const text = fixture.nativeElement.textContent;
+      expect(text).toContain('Sin descripción registrada');
+    });
+
+    it('debería mostrar el codirector solo si está definido', () => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Codirector');
+
+      component.codirector = undefined;
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('Codirector');
+    });
+
+    it('debería mostrar el asesor solo si está definido', () => {
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).toContain('Asesor');
+
+      component.adviser = undefined;
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('Asesor');
+    });
+
+    it('debería renderizar el componente StateComponent solo si el estado existe', () => {
+      fixture.detectChanges();
+      let stateDebugEl = fixture.debugElement.query(By.directive(StateComponent));
+      expect(stateDebugEl).toBeTruthy();
+
+      const stateInstance = stateDebugEl.componentInstance as StateComponent;
+      expect(stateInstance.state).toBe(stateList.APROBADO);
+
+      component.state = undefined;
+      fixture.detectChanges();
+      stateDebugEl = fixture.debugElement.query(By.directive(StateComponent));
+      expect(stateDebugEl).toBeNull();
+    });
+  });
+
+  describe('Renderizado del DOM - Sección de Archivos', () => {
+    beforeEach(() => {
+      component.isOpen = true;
+    });
+
+    it('debería mostrar el mensaje de vacío si el arreglo de documentos está vacío o es null', () => {
+      component.documents = [];
+      fixture.detectChanges();
+
+      let text = fixture.nativeElement.textContent;
+      expect(text).toContain('No han sido cargados archivos a la evaluación');
+
+      // Prueba adicional de seguridad (aunque TypeScript lo prevenga, en runtime podría llegar null)
+      (component.documents as unknown) = null;
+      fixture.detectChanges();
+
+      text = fixture.nativeElement.textContent;
+      expect(text).toContain('No han sido cargados archivos a la evaluación');
+    });
+
+    it('debería mostrar la lista de documentos mediante ButtonComponent', () => {
+      component.documents = ['archivo1.pdf', 'archivo2.pdf'];
+      fixture.detectChanges();
+
+      const buttons = fixture.debugElement.queryAll(By.directive(ButtonComponent));
+      expect(buttons.length).toBe(2);
+    });
+
+    it('debería invocar la descarga cuando el ButtonComponent emite su evento onClick', () => {
+      const spyDownload = jest.spyOn(component, 'downloadFile');
+      component.documents = ['documento-importante.pdf'];
+      fixture.detectChanges();
+
+      const buttonDebugEl = fixture.debugElement.query(By.directive(ButtonComponent));
+      const buttonInstance = buttonDebugEl.componentInstance as ButtonComponent;
+
+      // Simulamos que el componente hijo (botón) fue clickeado
+      buttonInstance.onClick.emit();
+      fixture.detectChanges();
+
+      expect(spyDownload).toHaveBeenCalledWith('documento-importante.pdf');
+    });
   });
 });

@@ -1,13 +1,15 @@
-import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
+import { APP_VERSION, getCurrentYear } from '../../../utils/app-metadata-utils';
 
 @Component({
   selector: 'app-auth-footer',
-  imports: [ CommonModule ],
+  // ← CommonModule eliminado: el template solo usa interpolación simple
+  // ({{ version }}, {{ currentYear }}), sin directivas ni pipes.
+  imports: [],
   templateUrl: './auth-footer.component.html',
   styleUrls: ['./auth-footer.component.css']
 })
 export class AuthFooterComponent {
-  currentYear = new Date().getFullYear();
-  version = '1.0.0';
+  protected readonly currentYear = getCurrentYear();
+  protected readonly version = APP_VERSION;
 }

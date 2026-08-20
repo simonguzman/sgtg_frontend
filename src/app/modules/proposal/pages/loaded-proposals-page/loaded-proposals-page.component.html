@@ -15,7 +15,7 @@
       [columns]="columns"
       [paginator]="true"
       [headerButtons]="headerButtons()"
-      (headerButtonClick)="handleHeaderButton()"
+      (headerButtonClick)="handleHeaderButton($event)"
       (actionClick)="handleTableAction($event)"
       emptyMessage="No han sido registrados documentos de propuesta en el sistema"
     ></app-table-component>

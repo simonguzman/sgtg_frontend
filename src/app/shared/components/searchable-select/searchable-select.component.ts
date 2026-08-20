@@ -40,14 +40,14 @@ export class SearchableSelectComponent implements ControlValueAccessor {
     const term = this.searchTerm().toLowerCase();
     const selectedOption = this.options().find(o => o.id === this.value());
 
-    if (selectedOption && term === selectedOption.label.toLowerCase()) {
+    if (term === selectedOption?.label.toLowerCase()) {
       return this.options();
     }
 
     return this.options().filter(option => option.label.toLowerCase().includes(term));
   });
 
-  constructor(private eRef: ElementRef) {
+  constructor(private readonly eRef: ElementRef) {
     effect(() => {
       this.options();
       this.restoreLabel();
@@ -109,7 +109,7 @@ export class SearchableSelectComponent implements ControlValueAccessor {
 
   private restoreLabel() {
     const selected = this.options().find(option => option.id === this.value());
-    this.searchTerm.set(selected ? selected.label : '');
+    this.searchTerm.set(selected?.label ?? '');
   }
 
   writeValue(value: string | null): void {
@@ -117,11 +117,11 @@ export class SearchableSelectComponent implements ControlValueAccessor {
     this.restoreLabel();
   }
 
-  registerOnChange(fn: any): void {
+  registerOnChange(fn: (value: string) => void): void {
     this.onChange = fn;
   }
 
-  registerOnTouched(fn: any): void {
+  registerOnTouched(fn: () => void): void {
     this.onTouched = fn;
   }
 

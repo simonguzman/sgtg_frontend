@@ -4,20 +4,12 @@ import { Advance } from '../../../interfaces/advance.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { SpecialRequest } from '../../../interfaces/special-request.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
+import { formatThesisDate } from '../../../helpers/thesis-date.helper';
 
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkDetailsModalResolverService {
 
-  /**
-   * Resuelve el modelo Advance que el modal de detalles necesita mostrar,
-   * según la pestaña activa y el ID de la fila seleccionada.
-   * Devuelve null si el registro no se encuentra — el componente decide cómo notificar.
-   */
-  public resolve(
-    rowId:     string,
-    activeTab: string,
-    thesis:    ThesisWork
-  ): Advance | null {
+  public resolve(rowId: string, activeTab: string, thesis: ThesisWork): Advance | null {
     switch (activeTab) {
       case 'AVANCES':         return this.resolveAdvance(rowId, thesis);
       case 'ENTREGA FINAL':   return this.resolveDelivery(rowId, thesis);
@@ -40,13 +32,13 @@ export class ThesisWorkDetailsModalResolverService {
     if (delivery.annexes) docs.push(delivery.annexes);
 
     return {
-      id:         delivery.id,
-      title:      'Entrega Final del Trabajo de Grado',
-      comments:   'Documentos oficiales cargados para el proceso de revisión y sustentación.',
+      id: delivery.id,
+      title: 'Entrega Final del Trabajo de Grado',
+      comments: 'Documentos oficiales cargados para el proceso de revisión y sustentación.',
       uploadDate: delivery.uploadDate,
-      studentId:  '',
-      status:     delivery.status ?? stateList.EN_REVISION,
-      documents:  docs
+      studentId: '',
+      status: delivery.status ?? stateList.EN_REVISION,
+      documents: docs
     };
   }
 
@@ -60,13 +52,13 @@ export class ThesisWorkDetailsModalResolverService {
     if (pyS.financialComments) comments += `\nObs: ${pyS.financialComments}`;
 
     return {
-      id:         pyS.id,
-      title:      'Registro de Paz y Salvo Institucional',
+      id: pyS.id,
+      title: 'Registro de Paz y Salvo Institucional',
       comments,
       uploadDate: pyS.registrationDate,
-      studentId:  '',
-      status:     pyS.document.status ?? stateList.EN_REVISION,
-      documents:  [pyS.document]
+      studentId: '',
+      status: pyS.document.status ?? stateList.EN_REVISION,
+      documents: [pyS.document]
     };
   }
 
@@ -75,13 +67,13 @@ export class ThesisWorkDetailsModalResolverService {
     if (!doc) return null;
 
     return {
-      id:         doc.id,
-      title:      'Resolución / Correspondencia Final Oficial',
-      comments:   'Documento oficial cargado por el Jurado Evaluador (Formato_H) que ratifica y da por terminado formalmente el proceso del trabajo de grado.',
+      id: doc.id,
+      title: 'Resolución / Correspondencia Final Oficial',
+      comments: 'Documento oficial cargado por el Jurado Evaluador (Formato_H) que ratifica y da por terminado formalmente el proceso del trabajo de grado.',
       uploadDate: doc.uploadDate,
-      studentId:  '',
-      status:     doc.status ?? stateList.APROBADO,
-      documents:  [doc]
+      studentId: '',
+      status: doc.status ?? stateList.APROBADO,
+      documents: [doc]
     };
   }
 
@@ -92,19 +84,19 @@ export class ThesisWorkDetailsModalResolverService {
     const parts: string[] = [req.description];
     if (req.resolutionDetails) parts.push(`Resolución del comité: ${req.resolutionDetails}`);
     if (req.grantedDeadline) {
-      const deadline = new Date(req.grantedDeadline)
-        .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      parts.push(`Fecha concedida: ${deadline}`);
+      // ← Delegado a formatThesisDate: unifica el formato con el resto del
+      // módulo (antes "27/07/2026", ahora "27 - 07 - 2026" como todo lo demás).
+      parts.push(`Fecha concedida: ${formatThesisDate(new Date(req.grantedDeadline))}`);
     }
 
     return {
-      id:         req.id,
-      title:      req.requestType,
-      comments:   parts.join('\n\n'),
+      id: req.id,
+      title: req.requestType,
+      comments: parts.join('\n\n'),
       uploadDate: req.requestDate,
-      studentId:  req.directorId,
-      status:     req.status,
-      documents:  []
+      studentId: req.directorId,
+      status: req.status,
+      documents: []
     };
   }
 }

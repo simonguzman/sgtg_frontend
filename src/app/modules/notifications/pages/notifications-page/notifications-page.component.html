@@ -1,8 +1,7 @@
 <div class="flex flex-col gap-6 p-6 min-h-screen">
-
   <app-table-component
-    [value]="inboxMessagesTransformed()"
-    [headerButtons]="headerButtons()"
+    [value]="facade.tableData()"
+    [headerButtons]="facade.headerButtons()"
     [columns]="columns"
     [paginator]="true"
     [rows]="10"
@@ -10,12 +9,10 @@
     (headerButtonClick)="handleHeaderButton($event)"
     emptyMessage="No tienes notificaciones en tu bandeja de entrada en este momento."
   ></app-table-component>
-
   <app-confirmation-action-modal
     [isOpen]="isConfirmModalOpen()"
     [description]="modalDescription()"
     (onClose)="closeModal()"
     (confirm)="executePendingAction()">
   </app-confirmation-action-modal>
-
 </div>

@@ -1,188 +1,145 @@
-/* tslint:disable:no-unused-variable */
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal, WritableSignal } from '@angular/core';
-import { Router } from '@angular/router';
-import { DatePipe } from '@angular/common';
-
 import { NotificationsPageComponent } from './notifications-page.component';
-import { InboxService } from '../../services/inbox.service';
-import { InboxMessage } from '../../interfaces/inbox-message.interface';
-
-import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
+import { Router } from '@angular/router';
+import { signal } from '@angular/core';
+import { NotificationsPageFacadeService } from './services/notifications-page-facade.service';
+import { InboxMessageTableRow } from './../../models/notifications-page.model';
 import { TableButton } from '../../../../shared/components/table-component/table-component.component';
-
-// Definición estricta de Mocks
-interface MockRouter {
-  navigateByUrl: jest.Mock;
-}
-
-interface MockDatePipe {
-  transform: jest.Mock;
-}
-
-interface MockInboxService {
-  messages: WritableSignal<InboxMessage[]>;
-  markAsRead: jest.Mock;
-  clearAllMessages: jest.Mock;
-  deleteMessage: jest.Mock;
-}
 
 describe('NotificationsPageComponent', () => {
   let component: NotificationsPageComponent;
   let fixture: ComponentFixture<NotificationsPageComponent>;
-
-  let mockRouter: MockRouter;
-  let mockDatePipe: MockDatePipe;
-  let mockInboxService: MockInboxService;
-
-  // Datos de prueba reutilizables
-  const mockMessages: InboxMessage[] = [
-    {
-      id: 'notif-1',
-      userId: 'user-1',
-      type: NotificationType.INFO,
-      title: 'Mensaje 1',
-      message: 'Detalle 1',
-      date: new Date('2026-06-19T10:00:00'),
-      status: 'no leido',
-      actionUrl: '/some/path'
-    },
-    {
-      id: 'notif-2',
-      userId: 'user-1',
-      type: NotificationType.CONFIRMATION,
-      title: 'Mensaje 2',
-      message: 'Detalle 2',
-      date: new Date('2026-06-18T15:30:00'),
-      status: 'leido'
-    }
-  ];
+  let mockRouter: jest.Mocked<Router>;
+  let mockFacade: Partial<NotificationsPageFacadeService>;
 
   beforeEach(async () => {
+    // 1. Mock de Router
     mockRouter = {
-      navigateByUrl: jest.fn()
-    };
+      navigateByUrl: jest.fn(),
+    } as unknown as jest.Mocked<Router>;
 
-    mockDatePipe = {
-      transform: jest.fn().mockReturnValue('19/06/2026 10:00')
-    };
-
-    mockInboxService = {
-      messages: signal([...mockMessages]),
+    // 2. Mock del Facade (usando signals reales para que la plantilla funcione)
+    mockFacade = {
+      tableData: signal([]),
+      headerButtons: signal([]),
       markAsRead: jest.fn(),
       clearAllMessages: jest.fn(),
-      deleteMessage: jest.fn()
+      deleteMessage: jest.fn(),
     };
 
     await TestBed.configureTestingModule({
-      imports: [NotificationsPageComponent],
+      imports: [NotificationsPageComponent], // Al ser standalone importa sus dependencias
       providers: [
         { provide: Router, useValue: mockRouter },
-        { provide: DatePipe, useValue: mockDatePipe },
-        { provide: InboxService, useValue: mockInboxService }
-      ]
+        { provide: NotificationsPageFacadeService, useValue: mockFacade },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(NotificationsPageComponent);
     component = fixture.componentInstance;
+    fixture.detectChanges();
   });
 
-  it('Debe crear el componente', () => {
+  it('debería crear el componente correctamente', () => {
     expect(component).toBeTruthy();
   });
 
-  it('Debe transformar los mensajes correctamente para la tabla', () => {
-    fixture.detectChanges(); // Dispara los computed signals
-
-    const transformed = component['inboxMessagesTransformed']();
-
-    expect(transformed.length).toBe(2);
-    expect(transformed[0].stateLabel).toBe('No Leído');
-    expect(transformed[1].stateLabel).toBe('Leído');
-    expect(transformed[0].dateFormatted).toBe('19/06/2026 10:00'); // Validando el mock del DatePipe
-    expect(transformed[0].allowedActions).toEqual(['ver_detalle', 'eliminar']);
+  describe('Estado Inicial', () => {
+    it('debería iniciar con el modal cerrado y sin acciones pendientes', () => {
+      expect(component.isConfirmModalOpen()).toBeFalsy();
+      expect(component.pendingAction()).toBeNull();
+      expect(component.pendingNotificationId()).toBeNull();
+      expect(component.modalDescription()).toBe('');
+    });
   });
 
-  it('Debe mostrar el botón de "Limpiar Bandeja" si hay mensajes', () => {
-    fixture.detectChanges();
+  describe('Propiedad Computada: modalDescription', () => {
+    it('debería retornar el mensaje correcto para "clear_all"', () => {
+      component.pendingAction.set('clear_all');
+      expect(component.modalDescription()).toContain('vaciar por completo su bandeja');
+    });
 
-    const buttons = component['headerButtons']();
-    expect(buttons.length).toBe(1);
-    expect(buttons[0].label).toBe('Limpiar Bandeja');
+    it('debería retornar el mensaje correcto para "delete_single"', () => {
+      component.pendingAction.set('delete_single');
+      expect(component.modalDescription()).toContain('eliminar esta notificación');
+    });
   });
 
-  it('NO debe mostrar el botón de "Limpiar Bandeja" si la bandeja está vacía', () => {
-    mockInboxService.messages.set([]); // Vaciamos los mensajes
-    fixture.detectChanges();
+  describe('Interacciones de la Tabla (handleTableAction)', () => {
+    const mockRow: InboxMessageTableRow = {
+      id: 'notif-123',
+      actionUrl: '/some/path',
+      // ... otros campos requeridos por tu interfaz
+    } as InboxMessageTableRow;
 
-    const buttons = component['headerButtons']();
-    expect(buttons.length).toBe(0);
+    it('debería marcar como leída y navegar si la acción es "ver_detalle"', () => {
+      component.handleTableAction({ action: 'ver_detalle', row: mockRow });
+
+      expect(mockFacade.markAsRead).toHaveBeenCalledWith('notif-123');
+      expect(mockRouter.navigateByUrl).toHaveBeenCalledWith('/some/path');
+    });
+
+    it('no debería navegar si la acción es "ver_detalle" pero no hay actionUrl', () => {
+      const rowWithoutUrl = { ...mockRow, actionUrl: undefined };
+      component.handleTableAction({ action: 'ver_detalle', row: rowWithoutUrl });
+
+      expect(mockFacade.markAsRead).toHaveBeenCalledWith('notif-123');
+      expect(mockRouter.navigateByUrl).not.toHaveBeenCalled();
+    });
+
+    it('debería abrir el modal y configurar acción al elegir "eliminar"', () => {
+      component.handleTableAction({ action: 'eliminar', row: mockRow });
+
+      expect(component.pendingAction()).toBe('delete_single');
+      expect(component.pendingNotificationId()).toBe('notif-123');
+      expect(component.isConfirmModalOpen()).toBeTruthy();
+    });
   });
 
-  it('Debe manejar la acción "ver_detalle" marcando como leído y navegando si tiene URL', () => {
-    const rowData = { id: 'notif-1', actionUrl: '/some/path' };
+  describe('Interacciones del Header (handleHeaderButton & requestClearAll)', () => {
+    it('debería solicitar limpiar bandeja al presionar el botón "Limpiar Bandeja"', () => {
+      const btn: TableButton = { label: 'Limpiar Bandeja', action: 'clear', variant: 'primary' };
 
-    component.handleTableAction({ action: 'ver_detalle', row: rowData });
+      component.handleHeaderButton(btn);
 
-    expect(mockInboxService.markAsRead).toHaveBeenCalledWith('notif-1');
-    expect(mockRouter.navigateByUrl).toHaveBeenCalledWith('/some/path');
+      expect(component.pendingAction()).toBe('clear_all');
+      expect(component.isConfirmModalOpen()).toBeTruthy();
+    });
   });
 
-  it('Debe manejar la acción "eliminar" preparando el estado del modal', () => {
-    const rowData = { id: 'notif-2' };
+  describe('Gestión del Modal (ejecución y cerrado)', () => {
+    it('debería resetear los signals al cerrar el modal (closeModal)', () => {
+      // Configuramos un estado sucio
+      component.isConfirmModalOpen.set(true);
+      component.pendingAction.set('clear_all');
+      component.pendingNotificationId.set('123');
 
-    component.handleTableAction({ action: 'eliminar', row: rowData });
+      component.closeModal();
 
-    expect(component.pendingAction()).toBe('delete_single');
-    expect(component.pendingNotificationId()).toBe('notif-2');
-    expect(component.isConfirmModalOpen()).toBe(true);
-  });
+      expect(component.isConfirmModalOpen()).toBeFalsy();
+      expect(component.pendingAction()).toBeNull();
+      expect(component.pendingNotificationId()).toBeNull();
+    });
 
-  it('Debe manejar el clic del botón de cabecera para "Limpiar Bandeja"', () => {
-    const btnMock: TableButton = { label: 'Limpiar Bandeja', variant: 'primary' };
+    it('debería ejecutar la limpieza total y cerrar el modal si la acción era "clear_all"', () => {
+      jest.spyOn(component, 'closeModal');
+      component.pendingAction.set('clear_all');
 
-    component.handleHeaderButton(btnMock);
+      component.executePendingAction();
 
-    expect(component.pendingAction()).toBe('clear_all');
-    expect(component.isConfirmModalOpen()).toBe(true);
-  });
+      expect(mockFacade.clearAllMessages).toHaveBeenCalled();
+      expect(component.closeModal).toHaveBeenCalled();
+    });
 
-  it('Debe ejecutar la limpieza de bandeja al confirmar en el modal', () => {
-    // 1. Act: Simulamos que el estado estaba preparado para limpiar todo
-    component.pendingAction.set('clear_all');
+    it('debería ejecutar borrado individual y cerrar el modal si la acción era "delete_single"', () => {
+      jest.spyOn(component, 'closeModal');
+      component.pendingAction.set('delete_single');
+      component.pendingNotificationId.set('notif-456');
 
-    // 2. Ejecutamos la acción
-    component.executePendingAction();
+      component.executePendingAction();
 
-    // 3. Assert
-    expect(mockInboxService.clearAllMessages).toHaveBeenCalled();
-    expect(component.isConfirmModalOpen()).toBe(false);
-    expect(component.pendingAction()).toBeNull();
-  });
-
-  it('Debe ejecutar la eliminación individual al confirmar en el modal', () => {
-    // 1. Act: Simulamos el estado preparado para eliminar uno
-    component.pendingAction.set('delete_single');
-    component.pendingNotificationId.set('notif-99');
-
-    // 2. Ejecutamos la acción
-    component.executePendingAction();
-
-    // 3. Assert
-    expect(mockInboxService.deleteMessage).toHaveBeenCalledWith('notif-99');
-    expect(component.isConfirmModalOpen()).toBe(false);
-    expect(component.pendingNotificationId()).toBeNull();
-  });
-
-  it('Debe resetear el estado al cerrar el modal manualmente', () => {
-    component.isConfirmModalOpen.set(true);
-    component.pendingAction.set('delete_single');
-    component.pendingNotificationId.set('123');
-
-    component.closeModal();
-
-    expect(component.isConfirmModalOpen()).toBe(false);
-    expect(component.pendingAction()).toBeNull();
-    expect(component.pendingNotificationId()).toBeNull();
+      expect(mockFacade.deleteMessage).toHaveBeenCalledWith('notif-456');
+      expect(component.closeModal).toHaveBeenCalled();
+    });
   });
 });

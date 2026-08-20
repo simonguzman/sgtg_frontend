@@ -1,104 +1,37 @@
 import { Injectable, computed, signal, inject } from '@angular/core';
 import { RawProjectData } from '../interfaces/rawProjectData.interface';
 import { StatisticsFilters } from '../interfaces/statisticsFilters.interface';
-import { ProjectStage } from '../enum/projectStage.enum';
-import { ProjectStatus } from '../enum/projectStatus.enum';
-import { ChartDataConfiguration } from '../interfaces/chartDataConfiguration.interface';
-
-// --- Importaciones del dominio real ---
 import { stateList } from '../../../core/enums/state.enum';
 import { ProposalService } from '../../proposal/services/proposal.service';
 import { PreliminaryDraftService } from '../../preliminary-draft/services/preliminary-draft.service';
 import { ThesisWorkService } from '../../thesis-work/services/thesis-work.service';
+import { ProjectDataMapperService } from './project-data-mapper.service';
+import { STAGE_OPTIONS } from '../models/statistics-options.model';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class StatisticsStateService {
-
   private readonly proposalService = inject(ProposalService);
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
   private readonly thesisWorkService = inject(ThesisWorkService);
+  private readonly mapper = inject(ProjectDataMapperService);
 
   public readonly currentFilters = signal<StatisticsFilters>({
     stage: null,
     period: null,
     directorId: null,
-    archiveStatus: 'ACTIVE'
+    archiveStatus: 'ACTIVE',
+    // ← NUEVO: 'ALL' es el valor neutro. No se usa null aquí porque null
+    // ya significa "sin restricción" en el resto de filtros, y este
+    // necesita distinguir 3 casos reales (en plazo / con retraso / sin
+    // evaluar) además del "sin filtro".
+    deadlineFilter: 'ALL'
   });
 
   public readonly rawData = computed<RawProjectData[]>(() => {
-    // 💡 AHORA LEEMOS EL HISTORIAL COMPLETO DE LOS SERVICIOS
-    const proposals = this.proposalService.allProposals();
-    const drafts = this.preliminaryDraftService.allPreliminaryDrafts();
-    const thesisWorks = this.thesisWorkService.allThesisWorks();
-
-    const mappedProposals = proposals.map(p => {
-      const creationDate = new Date(p.createdAt);
-      const semester = creationDate.getMonth() < 6 ? '1' : '2';
-      const fullDirectorName = p.director
-        ? [p.director.firstName, p.director.secondName, p.director.lastName, p.director.secondLastName].filter(Boolean).join(' ')
-        : 'Sin Asignar';
-
-      return {
-        id: p.id ?? '',
-        title: p.title,
-        stage: ProjectStage.PROPUESTA,
-        status: this.mapStateToStatus(p.state),
-        originalState: p.state,
-        period: `${creationDate.getFullYear()}-${semester}`,
-        directorId: p.director?.id || 'sin-director',
-        directorName: fullDirectorName,
-        registrationDate: creationDate,
-        isArchived: !!p.isArchived // 🔍 Presente
-      };
-    });
-
-    const mappedDrafts = drafts.map(d => {
-      const creationDate = new Date(d.createdData || d.proposalData?.createdAt || Date.now());
-      const semester = creationDate.getMonth() < 6 ? '1' : '2';
-      const director = d.proposalData?.director;
-      const fullDirectorName = director
-        ? [director.firstName, director.secondName, director.lastName, director.secondLastName].filter(Boolean).join(' ')
-        : 'Sin Asignar';
-
-      return {
-        id: d.preliminaryDraftId ?? '',
-        title: d.proposalData?.title || 'Sin Título',
-        stage: ProjectStage.ANTEPROYECTO,
-        status: this.mapStateToStatus(d.state),
-        originalState: d.state,
-        period: `${creationDate.getFullYear()}-${semester}`,
-        directorId: director?.id || 'sin-director',
-        directorName: fullDirectorName,
-        registrationDate: creationDate,
-        isArchived: !!d.isArchived // 🔍 Presente
-      };
-    });
-
-    const mappedThesisWorks = thesisWorks.map(t => {
-      const creationDate = new Date(t.createdDate || Date.now());
-      const semester = creationDate.getMonth() < 6 ? '1' : '2';
-      const director = t.preliminaryDraftData?.proposalData?.director;
-      const fullDirectorName = director
-        ? [director.firstName, director.secondName, director.lastName, director.secondLastName].filter(Boolean).join(' ')
-        : 'Sin Asignar';
-
-      return {
-        id: t.thesisWorkId,
-        title: t.preliminaryDraftData?.proposalData?.title || 'Sin Título',
-        stage: ProjectStage.TRABAJO_GRADO,
-        status: this.mapStateToStatus(t.state),
-        originalState: t.state,
-        period: `${creationDate.getFullYear()}-${semester}`,
-        directorId: director?.id || 'sin-director',
-        directorName: fullDirectorName,
-        registrationDate: creationDate,
-        isArchived: !!t.isArchived // 💡 ¡LISTO! Solución al error TS(2345)
-      };
-    });
-
-    return [...mappedProposals, ...mappedDrafts, ...mappedThesisWorks];
+    const proposals   = this.proposalService.allProposals().map(p => this.mapper.mapProposal(p));
+    const drafts       = this.preliminaryDraftService.allPreliminaryDrafts().map(d => this.mapper.mapPreliminaryDraft(d));
+    const thesisWorks  = this.thesisWorkService.allThesisWorks().map(t => this.mapper.mapThesisWork(t));
+    return [...proposals, ...drafts, ...thesisWorks];
   });
 
   public readonly periodsOptions = computed<string[]>(() => {
@@ -116,106 +49,27 @@ export class StatisticsStateService {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   });
 
-  public readonly stagesOptions = signal<{ label: string; value: ProjectStage }[]>([
-    { label: 'Propuesta', value: ProjectStage.PROPUESTA },
-    { label: 'Anteproyecto', value: ProjectStage.ANTEPROYECTO },
-    { label: 'Trabajo de Grado', value: ProjectStage.TRABAJO_GRADO }
-  ]);
+  public readonly stagesOptions = STAGE_OPTIONS;
 
   public readonly filteredData = computed<RawProjectData[]>(() => {
-    const data = this.rawData() as (RawProjectData & { originalState: string })[];
+    const data = this.rawData();
     const filters = this.currentFilters();
-
     return data.filter(project => {
-      // 💡 Exclusión explícita del estado transitorio EVALUADO
       if (project.originalState === stateList.EVALUADO) return false;
-
-      const matchStage = filters.stage ? project.stage === filters.stage : true;
-      const matchPeriod = filters.period ? project.period === filters.period : true;
+      const matchStage    = filters.stage ? project.stage === filters.stage : true;
+      const matchPeriod   = filters.period ? project.period === filters.period : true;
       const matchDirector = filters.directorId ? project.directorId === filters.directorId : true;
-
-      // 💡 LÓGICA DE FILTRADO PARA ARCHIVADOS (Faltaba añadirla aquí para que funcione en UI)
-      const matchArchive = filters.archiveStatus === 'ALL' ? true :
-                           filters.archiveStatus === 'ARCHIVED' ? project.isArchived :
-                           !project.isArchived;
-
-      return matchStage && matchPeriod && matchDirector && matchArchive;
+      const matchArchive  = filters.archiveStatus === 'ALL' ? true :
+                             filters.archiveStatus === 'ARCHIVED' ? project.isArchived :
+                             !project.isArchived;
+      // ← NUEVO: compone con matchArchive de forma independiente — por
+      // eso el filtro funciona igual para proyectos activos, archivados,
+      // o ambos a la vez (ALL + DELAYED, por ejemplo).
+      const matchDeadline = filters.deadlineFilter === 'ALL' ? true :
+                             filters.deadlineFilter === 'NOT_EVALUATED' ? project.deadlineStatus === null :
+                             project.deadlineStatus === filters.deadlineFilter;
+      return matchStage && matchPeriod && matchDirector && matchArchive && matchDeadline;
     });
-  });
-
-  // --- COMPUTED PARA CARD KPIS ---
-  public readonly totalLoaded = computed<number>(() => this.filteredData().length);
-  public readonly totalApproved = computed<number>(() => this.filteredData().filter(p => p.status === ProjectStatus.APROBADO).length);
-  public readonly totalApprovedWithObservations = computed<number>(() => this.filteredData().filter(p => p.status === ProjectStatus.APROBADO_OBSERVACIONES).length);
-
-  public readonly totalNotApproved = computed<number>(() =>
-    this.filteredData().filter(p => p.status === ProjectStatus.NO_APROBADO || p.status === ProjectStatus.CANCELADO).length
-  );
-
-  // --- COMPUTED PARA EL GRÁFICO DE DONA ---
-  public readonly statusChartData = computed<ChartDataConfiguration>(() => {
-    return {
-      labels: [
-        'Aprobados',
-        'Aprobados c/ Obs.',
-        'No Aprobados',
-        'En Revisión',
-        'En Desarrollo',
-        'Aplazados',
-        'Suspendidos',
-        'Cancelados'
-      ],
-      datasets: [{
-        data: [
-          this.filteredData().filter(p => p.status === ProjectStatus.APROBADO).length,
-          this.filteredData().filter(p => p.status === ProjectStatus.APROBADO_OBSERVACIONES).length,
-          this.filteredData().filter(p => p.status === ProjectStatus.NO_APROBADO).length,
-          this.filteredData().filter(p => p.status === ProjectStatus.EN_REVISION).length,
-          this.filteredData().filter(p => p.status === ProjectStatus.EN_DESARROLLO).length,
-          this.filteredData().filter(p => p.status === ProjectStatus.APLAZADO).length,
-          this.filteredData().filter(p => p.status === ProjectStatus.SUSPENDIDO).length,
-          this.filteredData().filter(p => p.status === ProjectStatus.CANCELADO).length,
-        ],
-        backgroundColor: [
-          '#4ade80', // Verde
-          '#fbbf24', // Amarillo
-          '#f87171', // Rojo
-          '#94a3b8', // Gris
-          '#38bdf8', // Azul (En Desarrollo)
-          '#fdba74', // Naranja (Aplazado)
-          '#c084fc', // Morado (Suspendido)
-          '#64748b'  // Gris Oscuro (Cancelado)
-        ],
-        borderColor: [
-          '#22c55e',
-          '#d97706',
-          '#dc2626',
-          '#64748b',
-          '#0ea5e9',
-          '#ea580c',
-          '#9333ea',
-          '#475569'
-        ],
-        borderWidth: 1
-      }]
-    };
-  });
-
-  // --- COMPUTED PARA EL GRÁFICO DE BARRAS ---
-  public readonly stageChartData = computed<ChartDataConfiguration>(() => {
-    return {
-      labels: ['Propuestas', 'Anteproyectos', 'Trabajos de Grado'],
-      datasets: [{
-        label: 'Proyectos Activos',
-        data: [
-          this.filteredData().filter(p => p.stage === ProjectStage.PROPUESTA).length,
-          this.filteredData().filter(p => p.stage === ProjectStage.ANTEPROYECTO).length,
-          this.filteredData().filter(p => p.stage === ProjectStage.TRABAJO_GRADO).length,
-        ],
-        backgroundColor: ['#3b82f6', '#8b5cf6', '#ec4899'],
-        borderWidth: 0
-      }]
-    };
   });
 
   public updateFilters(newFilters: Partial<StatisticsFilters>): void {
@@ -223,22 +77,6 @@ export class StatisticsStateService {
   }
 
   public clearFilters(): void {
-    this.currentFilters.set({ stage: null, period: null, directorId: null, archiveStatus: 'ACTIVE' });
-  }
-
-  private mapStateToStatus(state: string): ProjectStatus {
-    switch (state) {
-      case stateList.APROBADO: return ProjectStatus.APROBADO;
-      case stateList.APROBADO_CON_OBSERVACIONES: return ProjectStatus.APROBADO_OBSERVACIONES;
-      case stateList.NO_APROBADO: return ProjectStatus.NO_APROBADO;
-      case stateList.EN_REVISION: return ProjectStatus.EN_REVISION;
-      case stateList.EN_DESARROLLO: return ProjectStatus.EN_DESARROLLO;
-      case stateList.APLAZADO: return ProjectStatus.APLAZADO;
-      case stateList.SUSPENDIDO: return ProjectStatus.SUSPENDIDO;
-      case stateList.CANCELADO: return ProjectStatus.CANCELADO;
-      // Nota: Si un estado EVALUADO llegara aquí por alguna razón, se asigna a EN_REVISION,
-      // pero ya está blindado y excluido en la constante filteredData.
-      default: return ProjectStatus.EN_REVISION;
-    }
+    this.currentFilters.set({ stage: null, period: null, directorId: null, archiveStatus: 'ACTIVE', deadlineFilter: 'ALL' });
   }
 }

@@ -1,9 +1,11 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+
 import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
 import { PreliminaryDraftApiService } from './preliminary-draft-api.service';
 import { PreliminaryDraftAssignmentService } from './preliminary-draft-assignment.service';
 import { PreliminaryDraftDocumentService } from './preliminary-draft-document.service';
+
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
@@ -17,7 +19,7 @@ export class PreliminaryDraftService {
   private readonly assignment = inject(PreliminaryDraftAssignmentService);
   private readonly document = inject(PreliminaryDraftDocumentService);
 
-  // ── Estado reactivo ────────────────────────────────────────────────────────
+  // ── Estado reactivo (Signals) ──────────────────────────────────────────────
   readonly preliminaryDrafts = this.storage.preliminaryDrafts;
   readonly allPreliminaryDrafts = this.storage.allPreliminaryDrafts;
 
@@ -34,7 +36,6 @@ export class PreliminaryDraftService {
     return this.api.updatePreliminaryDraft(id, updatedData);
   }
 
-  // Corregido: Coincide exactamente con lo que el Facade intenta llamar
   deleteDraft(id: string): Observable<void> {
     return this.api.deleteDraft(id);
   }
@@ -52,7 +53,6 @@ export class PreliminaryDraftService {
     preliminaryDraftId: string,
     evaluatorsIds: string[]
   ): Observable<void> {
-    // Asegúrate de cambiar el nombre del método en PreliminaryDraftAssignmentService también si quitaste el "Mock" allí
     return this.assignment.assignReviewersMock(preliminaryDraftId, evaluatorsIds);
   }
 

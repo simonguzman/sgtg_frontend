@@ -6,7 +6,8 @@ import { RegisterPazYSalvoFormService } from './services/register-paz-y-salvo-fo
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { PazYSalvoPayload } from '../../interfaces/paz-y-salvo-playload.interface';
-import { stateList } from '../../../../core/enums/state.enum';
+// ← stateList eliminado: solo se usaba dentro de getExistingDocument,
+// que ahora vive en el servicio (y ya no lo necesita, delega al resolver).
 
 @Component({
   selector: 'app-register-paz-y-salvo-form',
@@ -24,7 +25,6 @@ export class RegisterPazYSalvoFormComponent {
   @Output() onGoBack       = new EventEmitter<void>();
   @Output() onDownloadFile = new EventEmitter<FileDocument>();
 
-  // ── Estado de UI ──────────────────────────────────────────────────────────
   readonly academicApproved  = signal<boolean | null>(null);
   readonly academicComments  = signal<string>('');
   readonly financialApproved = signal<boolean | null>(null);
@@ -33,70 +33,38 @@ export class RegisterPazYSalvoFormComponent {
   readonly isModalOpen       = signal(false);
   readonly isSubmitAttempted = signal(false);
 
-  // ── Getters que exponen el servicio al template ───────────────────────────
-  getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }
-  getDirectorName(): string {
-    const id = this.thesisWork?.preliminaryDraftData?.proposalData?.director?.id;
-    return this.formService.getMemberName(id) || 'No asignado';
-  }
-  getCodirectorName(): string {
-    return this.formService.getMemberName(
-      this.thesisWork?.preliminaryDraftData?.proposalData?.codirector?.id
-    );
-  }
-  getAdvisorName(): string {
-    return this.formService.getMemberName(
-      this.thesisWork?.preliminaryDraftData?.proposalData?.advisor?.id
-    );
-  }
+  // ← Simplificados: delegan directo al servicio, sin extracción manual de IDs
+  getStudentNames(): string   { return this.formService.getStudentNames(this.thesisWork); }
+  getDirectorName(): string   { return this.formService.getDirectorName(this.thesisWork); }
+  getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
+  getAdvisorName(): string    { return this.formService.getAdvisorName(this.thesisWork); }
 
-  // ── Fix: $any($event.target) reemplazado por métodos con tipado correcto ──
   onAcademicCommentsChange(event: Event): void {
     this.academicComments.set((event.target as HTMLTextAreaElement).value);
   }
-
   onFinancialCommentsChange(event: Event): void {
     this.financialComments.set((event.target as HTMLTextAreaElement).value);
   }
 
-  // ── Manejo de documentos existentes ──────────────────────────────────────
+  // ← Simplificado: de ~20 líneas de lógica de resolución a una sola
+  // delegación. La lógica real vive ahora en el servicio, reutilizando
+  // ThesisFinalDeliveryDocumentResolverService.
   getExistingDocument(type: string): FileDocument | null {
-    const targetType = type.toUpperCase().trim();
-
-    if (this.thesisWork?.finalDeliveries?.length) {
-      const lastDelivery = this.thesisWork.finalDeliveries.find(
-        d => d.status === stateList.EN_REVISION
-      ) ?? this.thesisWork.finalDeliveries[0];
-
-      if (targetType === 'MONOGRAFIA' && lastDelivery.monograph)             return lastDelivery.monograph;
-      if ((targetType === 'FORMATO' || targetType === 'FORMATO_E') && lastDelivery.formatE) return lastDelivery.formatE;
-      if (targetType === 'ANEXOS' && lastDelivery.annexes)                   return lastDelivery.annexes ?? null;
-    }
-
-    return this.thesisWork?.documents?.find((doc: FileDocument) => {
-      const currentDocType = (doc.type ?? '').toUpperCase().trim();
-      if (targetType === 'MONOGRAFIA') return currentDocType === 'MONOGRAFIA';
-      if (targetType === 'FORMATO' || targetType === 'FORMATO_E') {
-        return currentDocType === 'FORMATO_E' || currentDocType === 'FORMATO';
-      }
-      if (targetType === 'ANEXOS') return currentDocType === 'ANEXOS';
-      return currentDocType === targetType;
-    }) ?? null;
+    return this.formService.getExistingDocument(this.thesisWork, type);
   }
 
-  // ── Manejo de archivo de paz y salvo ─────────────────────────────────────
   handleFileUploaded(event: { fileName: string; file: File }): void {
     this.uploadedFormat.set(event);
     this.isModalOpen.set(false);
     this.formService.notifyFileAttached(event.fileName);
   }
 
-  removeFile(): void           { this.uploadedFormat.set(null); }
+  removeFile(): void { this.uploadedFormat.set(null); }
+
   downloadDocument(doc: FileDocument | null): void {
     if (doc) this.onDownloadFile.emit(doc);
   }
 
-  // ── Envío ─────────────────────────────────────────────────────────────────
   submit(): void {
     this.isSubmitAttempted.set(true);
     const acApp  = this.academicApproved();
@@ -106,7 +74,6 @@ export class RegisterPazYSalvoFormComponent {
       this.formService.notifyMissingEvaluations();
       return;
     }
-
     const fileData = this.uploadedFormat();
     if (!fileData) {
       this.formService.notifyMissingDocument();

@@ -1,11 +1,22 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
-
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
+import { PendingReviewData } from '../../../interfaces/review-preliminary-draft-payload.interface';
+
+// Mismo patrón que RESULT_TO_STATE en EvaluationProposalFacadeService: el
+// FormBuilder (sin .nonNullable, igual que EvaluationProposalFormService)
+// devuelve `result` como string | null, sin relación estática con
+// stateList. Este mapeo es lo que convierte ese string suelto en un
+// valor de enum real, en vez de forzarlo con un cast o dejarlo pasar
+// como any.
+const RESULT_TO_STATE: Record<string, stateList> = {
+  'Aprobado': stateList.APROBADO,
+  'No aprobado': stateList.NO_APROBADO
+};
 
 @Injectable()
 export class ReviewPreliminaryDraftFormFacadeService {
@@ -13,22 +24,20 @@ export class ReviewPreliminaryDraftFormFacadeService {
   private readonly notificationService = inject(NotificationService);
   readonly userService = inject(UserService);
 
-  // Estado del componente
   readonly preliminaryDraft = signal<PreliminaryDraft | null>(null);
   readonly uploadedSignedFile = signal<{ fileName: string; file: File } | null>(null);
   readonly uploadedAnnotatedFile = signal<{ fileName: string; file: File } | null>(null);
-
   readonly isUploadModalOpen = signal(false);
   readonly isAnnotatedUploadModalOpen = signal(false);
 
-  // Formulario reactivo
+  // ← `document: [null]` eliminado: control muerto — nunca se leía ni se
+  // asignaba en ningún punto de este facade ni del componente. El File
+  // real siempre viajó por los signals uploadedSignedFile/uploadedAnnotatedFile.
   readonly evaluationForm = this.fb.group({
     result: ['', Validators.required],
-    comments: ['', Validators.required],
-    document: [null]
+    comments: ['', Validators.required]
   });
 
-  // Estado calculado
   readonly isReadOnly = computed(() => this.preliminaryDraft()?.state === stateList.APROBADO);
 
   readonly currentDocument = computed(() => {
@@ -47,33 +56,27 @@ export class ReviewPreliminaryDraftFormFacadeService {
     return parsedDate ? parsedDate.toLocaleDateString('es-ES') : 'No disponible';
   });
 
-  // Métodos auxiliares de información de usuario
   getStudentNames(): string {
     const proposalData = this.preliminaryDraft()?.proposalData;
     return proposalData ? this.userService.getAuthorsNames(proposalData.authors) : '';
   }
-
   getDirectorName(): string {
     const director = this.preliminaryDraft()?.proposalData?.director;
     return director?.id ? this.userService.getUserFullName(director.id) : '';
   }
-
   getCodirectorName(): string {
     const codirector = this.preliminaryDraft()?.proposalData?.codirector;
     return codirector?.id ? this.userService.getUserFullName(codirector.id) : '';
   }
-
   getAdvisorName(): string {
     const advisor = this.preliminaryDraft()?.proposalData?.advisor;
     return advisor?.id ? this.userService.getUserFullName(advisor.id) : '';
   }
 
-  // Manejo de archivos subidos
   handleFileUploaded(event: { fileName: string; file: File }): void {
     this.uploadedSignedFile.set(event);
     this.isUploadModalOpen.set(false);
   }
-
   handleAnnotatedFileUploaded(event: { fileName: string; file: File }): void {
     this.uploadedAnnotatedFile.set(event);
     this.isAnnotatedUploadModalOpen.set(false);
@@ -89,8 +92,12 @@ export class ReviewPreliminaryDraftFormFacadeService {
     return !!(control?.invalid && control?.touched);
   }
 
-  // Validación y construcción de payload
-  validateAndGetPayload(): { formValues: any; file: File; annotatedFile?: File } | null {
+  // ← FIX CENTRAL: antes `{ formValues: any; ... }` — el `any` dejaba
+  // pasar `result` como string crudo hasta el facade de página, que lo
+  // asignaba directo a Evaluation.veredict sin ninguna verificación.
+  // Ahora devuelve PendingReviewData tal cual, con result ya mapeado a
+  // un valor real de stateList.
+  validateAndGetPayload(): PendingReviewData | null {
     const fileData = this.uploadedSignedFile();
     const annotatedData = this.uploadedAnnotatedFile();
 
@@ -100,8 +107,21 @@ export class ReviewPreliminaryDraftFormFacadeService {
       return null;
     }
 
+    const raw = this.evaluationForm.getRawValue();
+    const mappedResult = RESULT_TO_STATE[raw.result ?? ''];
+    if (!mappedResult) {
+      // Defensivo: no debería alcanzarse con los 2 radio buttons fijos
+      // del template, pero evita enviar un veredicto sin sentido si en
+      // el futuro se agrega una opción sin actualizar este mapeo.
+      this.showValidationErrorNotification(false);
+      return null;
+    }
+
     return {
-      formValues: this.evaluationForm.value,
+      formValues: {
+        result: mappedResult,
+        comments: raw.comments ?? ''
+      },
       file: fileData.file,
       annotatedFile: annotatedData?.file
     };
@@ -125,18 +145,14 @@ export class ReviewPreliminaryDraftFormFacadeService {
     if (typeof dateValue === 'string') {
       const cleanDateStr = dateValue.replace(/\s+/g, '');
       const standardDate = new Date(cleanDateStr);
-      if (!isNaN(standardDate.getTime())) {
-        return standardDate;
-      }
+      if (!isNaN(standardDate.getTime())) return standardDate;
       const parts = cleanDateStr.split('-');
       if (parts.length === 3) {
         const day = +parts[0];
         const month = +parts[1] - 1;
         const year = +parts[2];
         const manualDate = new Date(year, month, day);
-        if (!isNaN(manualDate.getTime())) {
-          return manualDate;
-        }
+        if (!isNaN(manualDate.getTime())) return manualDate;
       }
     }
     return null;

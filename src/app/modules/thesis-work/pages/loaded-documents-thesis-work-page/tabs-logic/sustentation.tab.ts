@@ -7,11 +7,33 @@ import { SustentationRegistry } from '../../../interfaces/sustentation-registry.
 import { JurorVerdict } from '../../../interfaces/juror-verdict.interface';
 import { SustentationStatus } from '../../../enums/sustentation-status.enum';
 
-export const SustentationTabConfig: TabConfiguration = {
+interface SustentationTableRow {
+  id: string;
+  name: string;
+  date: string;
+  status: stateList;
+  allowedActions: string[];
+}
+
+function resolveDisplayStatus(sustentation: SustentationRegistry): stateList {
+  if (sustentation.status === SustentationStatus.APLAZADA) return stateList.APLAZADO;
+  if (sustentation.status === SustentationStatus.CANCELADA) return stateList.CANCELADO;
+
+  const verdictsList: JurorVerdict[] = sustentation.verdicts || [];
+  if (verdictsList.length === 0) return stateList.EN_REVISION;
+
+  const lastVerdict = verdictsList[verdictsList.length - 1].veredict;
+  const hadObservaciones = verdictsList.some(v => v.veredict === stateList.APROBADO_CON_OBSERVACIONES);
+
+  if (hadObservaciones && lastVerdict === stateList.APROBADO) {
+    return stateList.APROBADO_CON_OBSERVACIONES;
+  }
+  return lastVerdict ?? stateList.EN_REVISION;
+}
+
+export const SustentationTabConfig: TabConfiguration<SustentationTableRow> = {
   tabValue: 'SUSTENTACION',
-
   headerActionRoute: 'register_sustentation',
-
   columns: [
     { field: 'name', header: 'Detalle', type: 'text', width: '40%' },
     { field: 'date', header: 'Fecha Programada', type: 'text', width: '20%' },
@@ -30,15 +52,17 @@ export const SustentationTabConfig: TabConfiguration = {
     if (!thesis) return baseContext;
 
     const hasApprovedPazYSalvo = thesis.documents?.some(
-      (doc: FileDocument) => doc.type === DocumentType['PAZ_Y_SALVO'] && doc.status === stateList.APROBADO
+      (doc: FileDocument) => doc.type === DocumentType.PAZ_Y_SALVO && doc.status === stateList.APROBADO
     ) ?? false;
 
     const currentSustentations: SustentationRegistry[] = thesis.sustentations ?? [];
     const hasSustentationRegistered = currentSustentations.length > 0;
     const activeSustentation = currentSustentations[0];
+
     const isJuror = activeSustentation?.assignedJurors?.some(
       (juror) => juror.id === baseContext.currentUser?.id
     ) ?? false;
+
     const isSustentationEvaluated = (activeSustentation?.verdicts?.length ?? 0) > 0;
 
     return {
@@ -50,49 +74,21 @@ export const SustentationTabConfig: TabConfiguration = {
     };
   },
 
-  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
+  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): SustentationTableRow[] => {
     const thesis = context.thesisWork;
-    if (!thesis || !thesis.sustentations || thesis.sustentations.length === 0) {
-      return [];
-    }
+    if (!thesis || !thesis.sustentations || thesis.sustentations.length === 0) return [];
+
     const isJurorContext = !!context.isJuror;
     const totalSustentations = thesis.sustentations.length;
 
-    return thesis.sustentations.map((sustentation: SustentationRegistry, index: number) => {
+    return thesis.sustentations.map((sustentation: SustentationRegistry, index: number): SustentationTableRow => {
       const dateRaw = sustentation.sustentationDate;
       const dateStr = dateRaw ? new Date(dateRaw).toLocaleDateString('es-ES') : 'Fecha pendiente';
-      const verdictsList: JurorVerdict[] = sustentation.verdicts || [];
-      const isThisEvaluated = verdictsList.length > 0;
 
-      let currentStatus: string | stateList = stateList.EN_REVISION;
-
-      // Mapeo explícito para que el pill reconozca el color correcto del Enum general
-      if (sustentation.status === SustentationStatus.APLAZADA) {
-        currentStatus = stateList.APLAZADO;
-      } else if (sustentation.status === SustentationStatus.CANCELADA) {
-        currentStatus = stateList.CANCELADO;
-      } else if (isThisEvaluated) {
-
-        // --- INICIO DEL CAMBIO ---
-        const lastVerdict = verdictsList[verdictsList.length - 1].veredict;
-
-        // Verificamos si en la historia de los veredictos hubo observaciones iniciales
-        const hadObservaciones = verdictsList.some(v => v.veredict === stateList.APROBADO_CON_OBSERVACIONES);
-
-        // Si la sustentación tuvo observaciones y las correcciones fueron aprobadas,
-        // forzamos a que el estado visual de la tabla siga siendo "Aprobado con observaciones".
-        if (hadObservaciones && lastVerdict === stateList.APROBADO) {
-          currentStatus = stateList.APROBADO_CON_OBSERVACIONES;
-        } else {
-          // Para cualquier otro caso (ej. Aplazado por no entregar correcciones,
-          // No Aprobado, o Aprobado directamente), tomamos el último veredicto real.
-          currentStatus = lastVerdict ?? stateList.EN_REVISION;
-        }
-        // --- FIN DEL CAMBIO ---
-
-      }
+      const currentStatus = resolveDisplayStatus(sustentation);
 
       const allowedActions: string[] = ['view_sustentation_details'];
+      const isThisEvaluated = (sustentation.verdicts?.length ?? 0) > 0;
       const isPostponedOrCanceled = sustentation.status === SustentationStatus.APLAZADA || sustentation.status === SustentationStatus.CANCELADA;
 
       if (!context.isArchived && (isJurorContext || context.isAdmin) && !isThisEvaluated && !isPostponedOrCanceled) {
@@ -121,7 +117,6 @@ export const SustentationTabConfig: TabConfiguration = {
       const activeSustentation = thesis?.sustentations?.[0];
       const verdictsList: JurorVerdict[] = activeSustentation?.verdicts || [];
       const lastVerdict = verdictsList.length > 0 ? verdictsList[verdictsList.length - 1].veredict : null;
-
       const isAdministrativelyPostponed = activeSustentation?.status === SustentationStatus.APLAZADA;
 
       let buttonLabel = 'Registrar Sustentación';
@@ -132,17 +127,15 @@ export const SustentationTabConfig: TabConfiguration = {
         buttonDisabled = true;
       } else if (!hasSustentationRegistered) {
         buttonLabel = 'Registrar Sustentación';
+      } else if (lastVerdict === stateList.APLAZADO || isAdministrativelyPostponed) {
+        buttonLabel = 'Registrar Nueva Sustentación';
+        buttonDisabled = false;
+      } else if (isSustentationEvaluated) {
+        buttonLabel = 'Sustentación Evaluada';
+        buttonDisabled = true;
       } else {
-        if (lastVerdict === stateList.APLAZADO || isAdministrativelyPostponed) {
-          buttonLabel = 'Registrar Nueva Sustentación';
-          buttonDisabled = false;
-        } else if (isSustentationEvaluated) {
-          buttonLabel = 'Sustentación Evaluada';
-          buttonDisabled = true;
-        } else {
-          buttonLabel = 'Sustentación Programada';
-          buttonDisabled = true;
-        }
+        buttonLabel = 'Sustentación Programada';
+        buttonDisabled = true;
       }
 
       buttons.push({
@@ -152,7 +145,6 @@ export const SustentationTabConfig: TabConfiguration = {
         disabled: buttonDisabled
       });
     }
-
     return buttons;
   },
 

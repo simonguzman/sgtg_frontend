@@ -1,6 +1,5 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { signal } from '@angular/core';
-import { of } from 'rxjs';
+import { signal, WritableSignal } from '@angular/core';
 
 import { PreliminaryDraftAssignmentService } from './preliminary-draft-assignment.service';
 import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
@@ -12,38 +11,57 @@ import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
+import { User } from '../../users/interfaces/user.interface';
 
 describe('PreliminaryDraftAssignmentService', () => {
   let service: PreliminaryDraftAssignmentService;
 
-  let mockStorageService: jest.Mocked<PreliminaryDraftStorageService>;
-  let mockUserService: jest.Mocked<UserService>;
-  let mockEventBusService: jest.Mocked<EventBusService>;
+  let storageSpy: { updateDraft: jest.Mock };
+  let userSpy: {
+    addRoleToUser: jest.Mock;
+    users: WritableSignal<Partial<User>[]>;
+  };
+  let eventBusSpy: { emit: jest.Mock };
+
+  const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
+    id: 'prop-1',
+    title: 'Propuesta Base',
+    authors: [],
+    ...overrides
+  } as Proposal);
+
+  const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
+    preliminaryDraftId: 'draft-1',
+    state: stateList.EN_REVISION,
+    evaluations: [],
+    documents: [],
+    createdData: new Date(),
+    ...overrides
+  } as PreliminaryDraft);
 
   beforeEach(() => {
-    mockStorageService = {
+    storageSpy = {
       updateDraft: jest.fn()
-    } as unknown as jest.Mocked<PreliminaryDraftStorageService>;
+    };
 
-    mockUserService = {
+    userSpy = {
       addRoleToUser: jest.fn(),
-      // Simulamos usuarios existentes para que la búsqueda (find) dentro del servicio funcione
       users: signal([
         { id: 'eval-1', roles: [] },
         { id: 'eval-2', roles: [] }
       ])
-    } as unknown as jest.Mocked<UserService>;
+    };
 
-    mockEventBusService = {
+    eventBusSpy = {
       emit: jest.fn()
-    } as unknown as jest.Mocked<EventBusService>;
+    };
 
     TestBed.configureTestingModule({
       providers: [
         PreliminaryDraftAssignmentService,
-        { provide: PreliminaryDraftStorageService, useValue: mockStorageService },
-        { provide: UserService, useValue: mockUserService },
-        { provide: EventBusService, useValue: mockEventBusService }
+        { provide: PreliminaryDraftStorageService, useValue: storageSpy as unknown as PreliminaryDraftStorageService },
+        { provide: UserService, useValue: userSpy as unknown as UserService },
+        { provide: EventBusService, useValue: eventBusSpy as unknown as EventBusService }
       ]
     });
 
@@ -60,7 +78,7 @@ describe('PreliminaryDraftAssignmentService', () => {
 
   describe('validateReviewersRules', () => {
     it('debería retornar error si se selecciona el mismo evaluador dos veces', () => {
-      const mockProposal = { id: '1' } as Proposal;
+      const mockProposal = createMockProposal();
       const result = service.validateReviewersRules(mockProposal, 'eval-1', 'eval-1');
       expect(result).toBe('Debe seleccionar dos evaluadores diferentes.');
     });
@@ -71,28 +89,32 @@ describe('PreliminaryDraftAssignmentService', () => {
     });
 
     it('debería retornar error si el evaluador 1 tiene vínculos (ej: es director)', () => {
-      const mockProposal = { director: { id: 'eval-1' } } as unknown as Proposal;
+      // 🔹 FIX: Convertido a `as User`
+      const mockProposal = createMockProposal({ director: { id: 'eval-1' } as User });
       const result = service.validateReviewersRules(mockProposal, 'eval-1', 'eval-2');
       expect(result).toBe('El primer docente tiene vínculos con la propuesta.');
     });
 
     it('debería retornar error si el evaluador 2 tiene vínculos (ej: es autor/estudiante)', () => {
-      const mockProposal = { authors: [{ id: 'eval-2' }] } as unknown as Proposal;
+      // 🔹 FIX: Arreglo de objetos `User` en lugar de strings sueltos
+      const mockProposal = createMockProposal({ authors: [{ id: 'eval-2' } as User] });
       const result = service.validateReviewersRules(mockProposal, 'eval-1', 'eval-2');
       expect(result).toBe('El segundo docente tiene vínculos con la propuesta.');
     });
 
     it('debería retornar error si el evaluador tiene vínculos y el autor es un string ID', () => {
-      const mockProposal = { authors: ['eval-1'] } as unknown as Proposal;
+      // 🔹 FIX: Forzamos el tipo 'string' a 'User[]' específicamente para probar la defensa del servicio
+      const mockProposal = createMockProposal({ authors: ['eval-1'] as unknown as User[] });
       const result = service.validateReviewersRules(mockProposal, 'eval-1', 'eval-2');
       expect(result).toBe('El primer docente tiene vínculos con la propuesta.');
     });
 
     it('debería retornar null si los evaluadores son válidos y distintos', () => {
-      const mockProposal = {
-        director: { id: 'dir-1' },
-        authors: ['student-1']
-      } as unknown as Proposal;
+      // 🔹 FIX: Objetos `User` en lugar de strings
+      const mockProposal = createMockProposal({
+        director: { id: 'dir-1' } as User,
+        authors: [{ id: 'student-1' } as User]
+      });
       const result = service.validateReviewersRules(mockProposal, 'eval-1', 'eval-2');
       expect(result).toBeNull();
     });
@@ -103,20 +125,21 @@ describe('PreliminaryDraftAssignmentService', () => {
       const preliminaryDraftId = 'draft-1';
       const evaluatorsIds = ['eval-1', 'eval-2'];
 
-      // Estado inicial simulado para que el callback lo lea
-      const mockDraftState = {
+      // 1. Preparamos el estado inicial del anteproyecto
+      const mockDraftState = createMockDraft({
         preliminaryDraftId,
-        proposalData: {
+        proposalData: createMockProposal({
           title: 'Sistema AI',
-          authors: ['author-1'],
-          director: { id: 'dir-1' }
-        }
-      } as unknown as PreliminaryDraft;
+          authors: [{ id: 'author-1' } as User],
+          director: { id: 'dir-1' } as User
+        })
+      });
 
       let finalDraftState: PreliminaryDraft | undefined;
 
-      // Mockeamos la implementación para que EJECUTE el callback sincronamente
-      mockStorageService.updateDraft.mockImplementation((id, callback) => {
+      // 2. 🔹 FIX CLAVE: Configuramos el espía para que ejecute el callback INMEDIATAMENTE
+      // Así las variables currentDraftTitle y notifyUserIds se llenan antes de emitir el evento.
+      storageSpy.updateDraft.mockImplementation((id: string, callback: (draft: PreliminaryDraft) => PreliminaryDraft) => {
         finalDraftState = callback(mockDraftState);
       });
 
@@ -126,37 +149,40 @@ describe('PreliminaryDraftAssignmentService', () => {
         complete: () => { isCompleted = true; }
       });
 
-      expect(mockUserService.addRoleToUser).not.toHaveBeenCalled();
+      expect(userSpy.addRoleToUser).not.toHaveBeenCalled();
 
-      // Avanzamos el tiempo virtual
+      // Avanzamos el tiempo de los 800ms del delay
       tick(800);
 
-      // 1. Verificamos asignación de roles
-      expect(mockUserService.addRoleToUser).toHaveBeenCalledWith('eval-1', UserRoleType.EVALUADOR);
-      expect(mockUserService.addRoleToUser).toHaveBeenCalledWith('eval-2', UserRoleType.EVALUADOR);
+      expect(userSpy.addRoleToUser).toHaveBeenCalledWith('eval-1', UserRoleType.EVALUADOR);
+      expect(userSpy.addRoleToUser).toHaveBeenCalledWith('eval-2', UserRoleType.EVALUADOR);
 
-      // 2. Verificamos que el estado modificado es el correcto
+      expect(storageSpy.updateDraft).toHaveBeenCalledWith(preliminaryDraftId, expect.any(Function));
+
+      // 3. Verificamos que el estado modificado es el correcto
       expect(finalDraftState).toBeDefined();
       expect(finalDraftState?.state).toBe(stateList.EN_REVISION);
       expect(finalDraftState?.evaluators?.length).toBe(2);
       expect(finalDraftState?.evaluationDeadline).toBeDefined();
 
-      // 3. Verificamos emisión de notificaciones (EventBus)
-      expect(mockEventBusService.emit).toHaveBeenCalledWith(
+      // 4. Verificamos emisión de notificaciones (EventBus)
+      // Ahora el título SÍ será 'Sistema AI' porque el callback se ejecutó a tiempo.
+      expect(eventBusSpy.emit).toHaveBeenCalledWith(
         expect.objectContaining({
           type: AppEventType.REVIEWERS_ASSIGNED,
           payload: {
             preliminaryDraftId,
             evaluators: evaluatorsIds,
-            preliminaryDraftTitle: 'Sistema AI' // Ahora sí tendrá el título correcto
+            preliminaryDraftTitle: 'Sistema AI'
           }
         })
       );
 
-      // 4. Verificamos la lista de notificados
-      const emitCallArgs = mockEventBusService.emit.mock.calls[0][0];
-      const targetUserIds = emitCallArgs.targetUserIds;
+      type EmitParams = Parameters<typeof service['eventBus']['emit']>[0];
+      const emitCallArgs = eventBusSpy.emit.mock.calls[0][0] as EmitParams;
+      const targetUserIds = emitCallArgs.targetUserIds || [];
 
+      // 5. Verificamos que los autores y el director se añadieron correctamente
       expect(targetUserIds).toContain('eval-1');
       expect(targetUserIds).toContain('eval-2');
       expect(targetUserIds).toContain('author-1');

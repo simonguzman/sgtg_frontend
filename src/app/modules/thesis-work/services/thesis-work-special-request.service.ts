@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { delay, first, Observable, of, tap } from 'rxjs';
+import { delay, first, Observable, of, switchMap, tap, map } from 'rxjs';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { SpecialRequest } from '../interfaces/special-request.interface';
@@ -13,7 +13,6 @@ import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { User } from '../../users/interfaces/user.interface';
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { collectParticipantIds } from '../helpers/thesis-participants.helper';
-// ← UserApiService eliminado: era dead code (this.userService cubría todos los casos)
 
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkSpecialRequestService {
@@ -82,10 +81,11 @@ export class ThesisWorkSpecialRequestService {
   ): Observable<void> {
     return of(undefined).pipe(
       delay(900),
-      tap(() => {
+      // ← REFACTOR: Se cambia tap() por switchMap() para encadenar observables correctamente
+      switchMap(() => {
         let currentThesisTitle = '';
         let notifyUserIds: string[] = [];
-        const evaluatorIdsToClean: string[]    = [];
+        const evaluatorIdsToClean: string[] = [];
         const currentEvaluatorId = this.authService.currentUser()?.id ?? 'sistema';
 
         this.storage.updateWork(thesisWorkId, (thesisWork: ThesisWork): ThesisWork => {
@@ -93,48 +93,28 @@ export class ThesisWorkSpecialRequestService {
           currentThesisTitle = proposal?.title ?? '';
           notifyUserIds      = collectParticipantIds(proposal);
 
-          let updatedState        = thesisWork.state;
-          let updatedDraft        = { ...thesisWork.preliminaryDraftData };
+          let updatedState         = thesisWork.state;
+          let updatedDraft         = { ...thesisWork.preliminaryDraftData };
           let updatedSustentations = [...(thesisWork.sustentations ?? [])];
-          let updatedDocuments    = [...(thesisWork.documents ?? [])];
-          let isArchived          = thesisWork.isArchived;
+          let updatedDocuments     = [...(thesisWork.documents ?? [])];
+          let isArchived           = thesisWork.isArchived;
 
           const updatedRequests = (thesisWork.specialRequests ?? []).map(req => {
             if (req.id !== requestId) return req;
 
             if (payload.status === stateList.APROBADO) {
-              switch (req.requestType) {
-                case SpecialRequestType.CANCELACION:
-                  updatedState = stateList.CANCELADO;
-                  isArchived   = true;
-                  updatedDraft.evaluators?.forEach((evaluator: User) => {
-                    if (evaluator.id) evaluatorIdsToClean.push(evaluator.id);
-                  });
-                  break;
-                case SpecialRequestType.SUSPENSION:
-                  updatedState = stateList.SUSPENDIDO;
-                  if (payload.grantedDeadline) updatedDraft.maximumDeliveryDate = payload.grantedDeadline;
-                  break;
-                case SpecialRequestType.PRORROGA:
-                  if (payload.grantedDeadline) updatedDraft.maximumDeliveryDate = payload.grantedDeadline;
-                  break;
-                case SpecialRequestType.NUEVA_SUSTENTACION:
-                  if (updatedSustentations.length > 0) {
-                    const pending = { ...updatedSustentations[0] };
-                    pending.status = SustentationStatus.APLAZADA;
-                    if (pending.formatEDocument) {
-                      const targetDocId = pending.formatEDocument.id;
-                      pending.formatEDocument = { ...pending.formatEDocument, status: stateList.APLAZADO };
-                      updatedDocuments = updatedDocuments.map(doc =>
-                        doc.id === targetDocId ? { ...doc, status: stateList.APLAZADO } : doc
-                      );
-                    }
-                    updatedSustentations[0] = pending;
-                  }
-                  break;
-                case SpecialRequestType.CAMBIO_TITULO:
-                  break;
-              }
+              // ← REFACTOR: Lógica del switch delegada a un método privado (SRP)
+              const result = this.applyApprovalUpdates(
+                req.requestType,
+                updatedDraft,
+                updatedSustentations,
+                updatedDocuments,
+                evaluatorIdsToClean,
+                payload.grantedDeadline
+              );
+
+              if (result.state) updatedState = result.state;
+              if (result.isArchived !== undefined) isArchived = result.isArchived;
             }
 
             return {
@@ -148,33 +128,96 @@ export class ThesisWorkSpecialRequestService {
 
           return {
             ...thesisWork,
-            state:               updatedState,
+            state:                updatedState,
             preliminaryDraftData: updatedDraft,
-            sustentations:       updatedSustentations,
-            documents:           updatedDocuments,
-            specialRequests:     updatedRequests,
+            sustentations:        updatedSustentations,
+            documents:            updatedDocuments,
+            specialRequests:      updatedRequests,
             isArchived
           };
         });
 
-        if (evaluatorIdsToClean.length > 0) {
-          // ← first() agregado + UserService en vez de UserApiService directamente
-          this.userService.removeRolesFromUsersMock(
-            [...new Set(evaluatorIdsToClean)], [UserRoleType.EVALUADOR]
-          ).pipe(first()).subscribe();
-        }
+        // ← REFACTOR: Cadena reactiva sin anidamiento de subscriptions
+        const updateRoles$ = evaluatorIdsToClean.length > 0
+          ? this.userService.removeRolesFromUsersMock(
+              [...new Set(evaluatorIdsToClean)],
+              [UserRoleType.EVALUADOR]
+            ).pipe(first())
+          : of(undefined);
 
-        this.eventBus.emit({
-          type:          AppEventType.SPECIAL_REQUEST_RESOLVED,
-          targetUserIds: [...new Set(notifyUserIds)],
-          payload: {
-            thesisId:    thesisWorkId,
-            thesisWorkId,
-            status:      payload.status,
-            thesisTitle: currentThesisTitle
-          }
-        });
+        return updateRoles$.pipe(
+          tap(() => {
+            this.eventBus.emit({
+              type:          AppEventType.SPECIAL_REQUEST_RESOLVED,
+              targetUserIds: [...new Set(notifyUserIds)],
+              payload: {
+                thesisId:    thesisWorkId,
+                thesisWorkId,
+                status:      payload.status,
+                thesisTitle: currentThesisTitle
+              }
+            });
+          }),
+          map(() => undefined)
+        );
       })
     );
+  }
+
+  /**
+   * Método privado para procesar las mutaciones del objeto Tesis según el tipo de solicitud aprobada.
+   * Modifica las referencias de draft, sustentations y documents pasadas por parámetro.
+   */
+  private applyApprovalUpdates(
+    requestType: SpecialRequestType,
+    draft: NonNullable<ThesisWork['preliminaryDraftData']>,
+    sustentations: NonNullable<ThesisWork['sustentations']>,
+    documents: NonNullable<ThesisWork['documents']>,
+    evaluatorIdsToClean: string[],
+    grantedDeadline?: Date
+  ): { state?: stateList; isArchived?: boolean } {
+    let stateUpdate;
+    let isArchivedUpdate;
+
+    switch (requestType) {
+      case SpecialRequestType.CANCELACION:
+        stateUpdate = stateList.CANCELADO;
+        isArchivedUpdate = true;
+        draft.evaluators?.forEach((evaluator: User) => {
+          if (evaluator.id) evaluatorIdsToClean.push(evaluator.id);
+        });
+        break;
+
+      case SpecialRequestType.SUSPENSION:
+        stateUpdate = stateList.SUSPENDIDO;
+        if (grantedDeadline) draft.maximumDeliveryDate = grantedDeadline;
+        break;
+
+      case SpecialRequestType.PRORROGA:
+        if (grantedDeadline) draft.maximumDeliveryDate = grantedDeadline;
+        break;
+
+      case SpecialRequestType.NUEVA_SUSTENTACION:
+        if (sustentations.length > 0) {
+          const pending = { ...sustentations[0], status: SustentationStatus.APLAZADA };
+          if (pending.formatEDocument) {
+            const targetDocId = pending.formatEDocument.id;
+            pending.formatEDocument = { ...pending.formatEDocument, status: stateList.APLAZADO };
+
+            const docIndex = documents.findIndex(d => d.id === targetDocId);
+            if (docIndex !== -1) {
+              documents[docIndex] = { ...documents[docIndex], status: stateList.APLAZADO };
+            }
+          }
+          sustentations[0] = pending;
+        }
+        break;
+
+      case SpecialRequestType.CAMBIO_TITULO:
+        // Lógica futura si aplica
+        break;
+    }
+
+    return { state: stateUpdate, isArchived: isArchivedUpdate };
   }
 }

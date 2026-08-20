@@ -1,16 +1,15 @@
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
 import { ProposalService } from '../../../../proposal/services/proposal.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { UserService } from '../../../../users/services/user.service';
-
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { SelectOption } from '../../../../../shared/components/searchable-select/searchable-select.component';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { FormattedDocument } from '../../../../../core/interfaces/formatted-document.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 
 @Injectable()
@@ -37,13 +36,11 @@ export class PreliminaryDraftFormService {
     const currentUser = this.authService.currentUser();
     const existingPreliminaryDrafts = this.preliminaryDraftService.preliminaryDrafts();
     const activeDraftId = this.currentPreliminaryDraftId();
-
     return allProposals.filter(proposal => {
       if (activeDraftId && proposal.id === this.form.get('proposalId')?.value) return true;
       const isApproved = proposal.state === stateList.APROBADO || proposal.state === stateList.APROBADO_CON_OBSERVACIONES;
       const isDirector = proposal.director?.id === currentUser?.id;
       const isAlreadyRegistered = existingPreliminaryDrafts.some(draft => draft.proposalId === proposal.id);
-
       return isApproved && isDirector && !isAlreadyRegistered;
     });
   });
@@ -53,32 +50,24 @@ export class PreliminaryDraftFormService {
     return this.availableProposals().find(proposal => proposal.id === id) || null;
   });
 
-  readonly proposalEvaluationDocument = computed(() => {
+  // ← FIX: antes leía signedDocuments?.[0] con un chequeo manual
+  // `typeof fileName === 'string'` para soportar TANTO el esquema viejo
+  // (string[]) COMO un hipotético objeto. Con Evaluation.signedDocuments
+  // ya tipado estrictamente como FormattedDocument[], el documento llega
+  // completo — solo hay que leerlo, sin gimnasia de tipos.
+  readonly proposalEvaluationDocument = computed<FormattedDocument | null>(() => {
     const proposal = this.selectedProposal();
     if (!proposal?.evaluations?.length) return null;
-
     const approvedEvaluation = [...proposal.evaluations]
       .reverse()
       .find(evaluation =>
-        evaluation.veredict === stateList.APROBADO ||
-        evaluation.veredict === stateList.APROBADO_CON_OBSERVACIONES
+        evaluation.veredict === stateList.APROBADO
       );
-
-    const fileName = approvedEvaluation?.signedDocuments?.[0];
-    if (!fileName) return null;
-
-    const isString = typeof fileName === 'string';
-    return {
-      name: isString ? fileName : (fileName as unknown as FileDocument).name,
-      url: isString ? '' : (fileName as unknown as FileDocument).url
-    };
+    return approvedEvaluation?.signedDocuments?.[0] ?? null;
   });
 
   readonly proposalOptions = computed<SelectOption[]>(() =>
-    this.availableProposals().map(proposal => ({
-      id: proposal.id!,
-      label: proposal.title
-    }))
+    this.availableProposals().map(proposal => ({ id: proposal.id!, label: proposal.title }))
   );
 
   constructor() {
@@ -101,16 +90,13 @@ export class PreliminaryDraftFormService {
   initForEdit(preliminaryDraft: PreliminaryDraft): void {
     this.currentPreliminaryDraftId.set(preliminaryDraft.preliminaryDraftId ?? null);
     this.selectedProposalId.set(preliminaryDraft.proposalId);
-
     this.form.get('title')?.enable();
     this.form.get('description')?.enable();
-
     this.form.patchValue({
       proposalId: preliminaryDraft.proposalId,
       title: preliminaryDraft.proposalData.title,
       description: preliminaryDraft.proposalData.description
     });
-
     this.form.get('document')?.clearValidators();
     this.form.updateValueAndValidity();
   }
@@ -118,9 +104,7 @@ export class PreliminaryDraftFormService {
   buildPreliminaryDraftPayload(originalPreliminaryDraft: PreliminaryDraft | null, documents: FileDocument[]): PreliminaryDraft | null {
     const proposal = this.selectedProposal();
     if (!proposal) return null;
-
     const isEdit = !!originalPreliminaryDraft;
-
     return {
       ...(originalPreliminaryDraft ?? undefined),
       proposalId: proposal.id!,

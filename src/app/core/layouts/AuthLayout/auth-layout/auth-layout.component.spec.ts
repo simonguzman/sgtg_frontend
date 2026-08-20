@@ -1,71 +1,92 @@
-/* tslint:disable:no-unused-variable */
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { AuthLayoutComponent } from './auth-layout.component';
+import { provideRouter } from '@angular/router';
+import { Component } from '@angular/core';
+import { By } from '@angular/platform-browser';
+
+// Importamos los componentes reales para poder removerlos del standalone
 import { AuthHeaderComponent } from '../auth-header/auth-header.component';
 import { AuthFooterComponent } from '../auth-footer/auth-footer.component';
-import { RouterTestingModule } from '@angular/router/testing';
-import { By } from '@angular/platform-browser';
-import { RouterOutlet } from '@angular/router';
+
+// 1. Creamos versiones "Mock" (falsas y ligeras) de los componentes hijos
+@Component({ selector: 'app-auth-header', template: '' })
+class MockAuthHeaderComponent {}
+
+@Component({ selector: 'app-auth-footer', template: '' })
+class MockAuthFooterComponent {}
 
 describe('AuthLayoutComponent', () => {
   let component: AuthLayoutComponent;
   let fixture: ComponentFixture<AuthLayoutComponent>;
 
-  beforeEach(async() => {
-    TestBed.configureTestingModule({
-      imports: [ AuthLayoutComponent, AuthHeaderComponent, AuthFooterComponent, RouterTestingModule ]
-    }).compileComponents();
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [AuthLayoutComponent],
+      providers: [
+        // Proveemos un router vacío para que <router-outlet> no falle
+        provideRouter([])
+      ]
+    })
+    // 2. Sobrescribimos el componente para usar los Mocks en lugar de los reales
+    .overrideComponent(AuthLayoutComponent, {
+      remove: { imports: [AuthHeaderComponent, AuthFooterComponent] },
+      add: { imports: [MockAuthHeaderComponent, MockAuthFooterComponent] }
+    })
+    .compileComponents();
+
     fixture = TestBed.createComponent(AuthLayoutComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    fixture.detectChanges(); // Ejecuta el renderizado inicial
   });
 
-  it('Debe crear el componente', () => {
-    expect(component).toBeTruthy();
+  describe('Inicialización', () => {
+    it('debería crearse correctamente', () => {
+      expect(component).toBeTruthy();
+    });
   });
 
-  it('Debe contener los componentes base del layout (Header y Footer)', () => {
-    const header = fixture.debugElement.query(By.directive(AuthHeaderComponent));
-    const footer = fixture.debugElement.query(By.directive(AuthFooterComponent));
+  describe('Renderizado Estructural (DOM)', () => {
+    it('debería incluir el Header, el RouterOutlet y el Footer', () => {
+      const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(header).toBeTruthy();
-    expect(footer).toBeTruthy();
-  });
+      // Verificamos la presencia de las etiquetas semánticas y de los componentes
+      const headerElement = compiled.querySelector('app-auth-header');
+      const footerElement = compiled.querySelector('app-auth-footer');
+      const routerOutletElement = compiled.querySelector('router-outlet');
+      const mainElement = compiled.querySelector('main');
 
-  it('Debe tener un router-outlet para cargar los componentes hijos (Login/Register)', () => {
-    const outlet = fixture.debugElement.query(By.directive(RouterOutlet));
-    expect(outlet).toBeTruthy();
-  });
+      expect(headerElement).toBeTruthy();
+      expect(footerElement).toBeTruthy();
+      expect(routerOutletElement).toBeTruthy();
+      expect(mainElement).toBeTruthy();
+    });
 
-  it('Debe renderizar la imagen de fondo de estudiantes con el alt correcto', () => {
-    const compiled = fixture.nativeElement as HTMLElement;
-    const img = compiled.querySelector('img');
+    it('debería renderizar la imagen de fondo de los estudiantes con los atributos correctos', () => {
+      const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(img).toBeTruthy();
-    expect(img?.getAttribute('src')).toBe('assets/images/estudiantes-unicauca.png');
-    expect(img?.getAttribute('alt')).toBe('Estudiantes Unicauca');
-  });
+      // Buscamos la imagen específicamente dentro del div con clase "absolute" que está en el fondo
+      const backgroundDiv = compiled.querySelector('div.absolute.right-0') as HTMLElement;
+      expect(backgroundDiv).toBeTruthy();
 
-  it('Debe tener la estructura de clases para el diseño responsivo', () => {
-    const compiled = fixture.nativeElement as HTMLElement;
+      const imageElement = backgroundDiv.querySelector('img') as HTMLImageElement;
 
-    // Verificamos que la sección de la imagen tenga la clase hidden md:block
-    const imageContainer = compiled.querySelector('.absolute.right-0.top-0');
-    expect(imageContainer?.classList.contains('hidden')).toBeTruthy();
-    expect(imageContainer?.classList.contains('md:block')).toBeTruthy();
+      expect(imageElement).toBeTruthy();
+      expect(imageElement.getAttribute('src')).toBe('assets/images/estudiantes-unicauca.png');
+      expect(imageElement.getAttribute('alt')).toBe('Estudiantes Unicauca');
+    });
 
-    // Verificamos que el contenedor del router-outlet ocupe la mitad en desktop
-    const mainSection = compiled.querySelector('section');
-    expect(mainSection?.classList.contains('md:w-1/2')).toBeTruthy();
-  });
+    it('debería colocar el router-outlet dentro de una sección para la mitad izquierda de la pantalla', () => {
+      // Usamos By.css para buscar elementos de Angular
+      const routerOutletDebug = fixture.debugElement.query(By.css('router-outlet'));
 
-  it('Debe asegurar que el z-index permita la interacción sobre la imagen', () => {
-    const headerElement = fixture.debugElement.query(By.css('app-auth-header')).nativeElement;
-    const mainElement = fixture.debugElement.query(By.css('main')).nativeElement;
+      // Navegamos hacia arriba en el DOM para verificar que el outlet está contenido
+      // en la sección que ocupa el espacio del formulario
+      const containerSection = routerOutletDebug.parent?.parent?.nativeElement as HTMLElement;
 
-    // Verificamos que los elementos críticos tengan z-10 para estar sobre el fondo
-    expect(headerElement.classList.contains('z-10')).toBeTruthy();
-    expect(mainElement.classList.contains('z-10')).toBeTruthy();
+      // Verificamos que contenga las clases que controlan su tamaño y posición en la pantalla
+      expect(containerSection.tagName.toLowerCase()).toBe('section');
+      expect(containerSection.className).toContain('w-full');
+      expect(containerSection.className).toContain('md:w-1/2');
+    });
   });
 });

@@ -15,27 +15,23 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
   styleUrls: ['./evaluate-advance-page.component.css']
 })
 export class EvaluateAdvancePageComponent implements OnInit {
-  private readonly route       = inject(ActivatedRoute);
-  private readonly router      = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
-  protected readonly facade    = inject(EvaluateAdvanceFacadeService);
+  protected readonly facade = inject(EvaluateAdvanceFacadeService);
 
-  // ── Estado de UI ──────────────────────────────────────────────────────────
-  readonly thesisWorkState    = signal<ThesisWork | null>(null);
-  readonly advanceId          = signal<string | null>(null);
+  readonly thesisWorkState = signal<ThesisWork | null>(null);
+  readonly advanceId = signal<string | null>(null);
   readonly isConfirmModalOpen = signal(false);
   readonly pendingReviewData  = signal<SubmitAdvanceEvaluationPayload | null>(null);
-
-  // currentAdvance: computed que depende de signals del componente — queda aquí
   readonly currentAdvance = computed<Advance | null>(() => {
-    const work  = this.thesisWorkState();
+    const thesisWork  = this.thesisWorkState();
     const advId = this.advanceId();
-    if (!work || !advId || !work.advances) return null;
-    return work.advances.find(a => a.id === advId) ?? null;
+    if (!thesisWork || !advId || !thesisWork.advances) return null;
+    return thesisWork.advances.find(advance => advance.id === advId) ?? null;
   });
 
   ngOnInit(): void {
-    // Resolución de IDs: el thesis ID puede estar en un ancestro de la ruta
     let currentRoute: ActivatedRoute | null = this.route;
     let thesisId: string | null = null;
     while (currentRoute && !thesisId) {
@@ -52,8 +48,8 @@ export class EvaluateAdvancePageComponent implements OnInit {
     this.advanceId.set(advId);
     this.facade.loadThesisWork(
       thesisId,
-      (work) => this.thesisWorkState.set(work),
-      ()     => { /* la fachada ya notificó */ }
+      (thesisWork) => this.thesisWorkState.set(thesisWork),
+      () => { }
     );
   }
 
@@ -63,25 +59,26 @@ export class EvaluateAdvancePageComponent implements OnInit {
   }
 
   processAdvanceEvaluation(): void {
-    const data    = this.pendingReviewData();
-    const work    = this.thesisWorkState();
+    const data = this.pendingReviewData();
+    const thesisWork = this.thesisWorkState();
     const advance = this.currentAdvance();
-    const user    = this.authService.currentUser();
-    if (!data || !work || !advance || !user) return;
-
-    this.facade.saveEvaluation(
-      work, advance, user, data,
+    const user = this.authService.currentUser();
+    if (!data || !thesisWork || !advance || !user) return;
+    // ← void: saveEvaluation() ahora es async.
+    void this.facade.saveEvaluation(
+      thesisWork, advance, user, data,
       () => {
         this.isConfirmModalOpen.set(false);
         this.navigateBack();
       },
-      () => { /* la fachada ya notificó */ }
+      () => { }
     );
   }
 
   downloadCurrentAdvance(): void {
     const advance = this.currentAdvance();
-    if (advance) this.facade.downloadAdvance(advance);
+    // ← void: downloadAdvance() ahora es async.
+    if (advance) void this.facade.downloadAdvance(advance);
   }
 
   navigateBack(): void {

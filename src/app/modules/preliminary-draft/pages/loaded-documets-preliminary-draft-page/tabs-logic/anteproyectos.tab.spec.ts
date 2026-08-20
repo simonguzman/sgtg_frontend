@@ -10,14 +10,15 @@ import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
 
 describe('AnteproyectosTabConfig', () => {
   let mockContext: PreliminaryDraftEvaluationContext;
-  let mockPreliminaryDraftService: PreliminaryDraftService; // Tipado estricto del servicio
+  let mockPreliminaryDraftService: jest.Mocked<Partial<PreliminaryDraftService>>;
 
   beforeEach(() => {
-    // 1. Construimos un objeto PreliminaryDraft válido con todas sus propiedades obligatorias
+    // 1. Construimos un objeto PreliminaryDraft válido, usando Partial
+    // para evitar el anti-patrón 'as unknown as' simulando la info mínima necesaria.
     const mockPreliminaryDraft: PreliminaryDraft = {
       preliminaryDraftId: '1',
       proposalId: 'prop-1',
-      proposalData: {} as unknown as Proposal, // Aserción segura sin usar 'any'
+      proposalData: { id: 'prop-1', title: 'Mock Proposal' } as Partial<Proposal> as Proposal,
       evaluators: [],
       evaluations: [],
       documents: [],
@@ -26,7 +27,7 @@ describe('AnteproyectosTabConfig', () => {
       isArchived: false
     };
 
-    // 2. Asignamos el objeto tipado al contexto
+    // 2. Asignamos el objeto al contexto
     mockContext = {
       preliminaryDraft: mockPreliminaryDraft,
       currentUser: { id: 'u1', firstName: 'Juan', lastName: 'Perez' },
@@ -39,29 +40,35 @@ describe('AnteproyectosTabConfig', () => {
       latestAnteproyectoId: 'doc-1'
     };
 
-    // 3. Mockeamos el servicio utilizando aserción cruzada para satisfacer a TypeScript
+    // 3. Mockeamos el servicio estrictamente tipado con Partial
     mockPreliminaryDraftService = {
       calculateDocumentStatus: jest.fn().mockReturnValue(stateList.EN_REVISION)
-    } as unknown as PreliminaryDraftService;
+    };
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('getTableData', () => {
     it('debería mapear documentos de anteproyecto y permitir evaluar a evaluadores asignados', () => {
       mockContext.isAssignedEvaluator = true;
 
-      // Construimos un FileDocument con todas sus propiedades requeridas
       const documents: FileDocument[] = [
         {
           id: 'doc-1',
-          name: 'v1.pdf',
+          name: 'v1',
           url: 'http://localhost/v1.pdf',
           uploadDate: new Date(),
-          // Forzamos el string al enum por si la lógica interna compara con la cadena 'Anteproyecto'
-          type: 'Anteproyecto' as unknown as DocumentType
+          type: DocumentType.ANTEPROYECTO // <- FIX: Uso del Enum nativo en vez de strings casteados
         }
       ];
 
-      const result = AnteproyectosTabConfig.getTableData(documents, mockContext, mockPreliminaryDraftService);
+      const result = AnteproyectosTabConfig.getTableData(
+        documents,
+        mockContext,
+        mockPreliminaryDraftService as PreliminaryDraftService
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0].status).toBe(stateList.EN_REVISION);
@@ -72,13 +79,12 @@ describe('AnteproyectosTabConfig', () => {
     it('no debería permitir evaluar si el usuario ya realizó la evaluación', () => {
       mockContext.isAssignedEvaluator = true;
 
-      // Construimos una Evaluation completa para el mock
       const mockEvaluation: Evaluation = {
         id: 'ev-1',
         proposalId: 'prop-1',
         documentId: 'doc-1',
         evaluatorId: 'u1',
-        evaluatorName: 'Juan Perez',
+        evaluatorName: 'Juan Perez', // Coincide con el firstName/lastName del currentUser
         evaluatorRole: 'Evaluador Asignado',
         veredict: stateList.EN_REVISION,
         observations: 'Observaciones de prueba',
@@ -90,16 +96,44 @@ describe('AnteproyectosTabConfig', () => {
       const documents: FileDocument[] = [
         {
           id: 'doc-1',
-          name: 'v1.pdf',
+          name: 'v1',
           url: 'http://localhost/v1.pdf',
           uploadDate: new Date(),
-          type: 'Anteproyecto' as unknown as DocumentType
+          type: DocumentType.ANTEPROYECTO
         }
       ];
 
-      const result = AnteproyectosTabConfig.getTableData(documents, mockContext, mockPreliminaryDraftService);
+      const result = AnteproyectosTabConfig.getTableData(
+        documents,
+        mockContext,
+        mockPreliminaryDraftService as PreliminaryDraftService
+      );
 
       expect(result[0].allowedActions).not.toContain('evaluate');
+    });
+
+    it('debería setear el estado a NO_APROBADO para documentos antiguos si antes estaban aprobados', () => {
+      const documents: FileDocument[] = [
+        {
+          id: 'doc-old', // Diferente al latestAnteproyectoId ('doc-1')
+          name: 'old_version',
+          url: 'url',
+          uploadDate: new Date(),
+          type: DocumentType.ANTEPROYECTO
+        }
+      ];
+
+      // Simulamos que el calculador inicial dice que estaba Aprobado
+      mockPreliminaryDraftService.calculateDocumentStatus = jest.fn().mockReturnValue(stateList.APROBADO);
+
+      const result = AnteproyectosTabConfig.getTableData(
+        documents,
+        mockContext,
+        mockPreliminaryDraftService as PreliminaryDraftService
+      );
+
+      // Como no es el documento más reciente, la regla de negocio lo debe invalidar
+      expect(result[0].status).toBe(stateList.NO_APROBADO);
     });
   });
 
@@ -108,19 +142,69 @@ describe('AnteproyectosTabConfig', () => {
       mockContext.isJefe = true;
       mockContext.totalEvaluatorsCount = 0;
 
-      const result = AnteproyectosTabConfig.getHeaderButtons(mockContext, mockPreliminaryDraftService);
+      const result = AnteproyectosTabConfig.getHeaderButtons(
+        mockContext,
+        mockPreliminaryDraftService as PreliminaryDraftService
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0].action).toBe('assign_evaluators');
       expect(result[0].disabled).toBeFalsy();
     });
 
-    it('debería retornar botones deshabilitados si el proyecto está archivado', () => {
-      // TypeScript ya reconoce 'isArchived' porque mockContext.preliminaryDraft cumple con 'Archivable'
+    it('debería retornar el botón de "Evaluadores ya asignados" deshabilitado para el Jefe si ya existen', () => {
+      mockContext.isJefe = true;
+      mockContext.totalEvaluatorsCount = 2;
+
+      const result = AnteproyectosTabConfig.getHeaderButtons(
+        mockContext,
+        mockPreliminaryDraftService as PreliminaryDraftService
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].action).toBe('assign_evaluators');
+      expect(result[0].label).toBe('Evaluadores ya asignados');
+      expect(result[0].disabled).toBeTruthy();
+    });
+
+    it('debería retornar botones deshabilitados (vacíos) si el proyecto está archivado', () => {
       mockContext.preliminaryDraft.isArchived = true;
-      const result = AnteproyectosTabConfig.getHeaderButtons(mockContext, mockPreliminaryDraftService);
+
+      const result = AnteproyectosTabConfig.getHeaderButtons(
+        mockContext,
+        mockPreliminaryDraftService as PreliminaryDraftService
+      );
 
       expect(result).toHaveLength(0);
+    });
+
+    it('debería retornar el botón de "Cargar anteproyecto" bloqueado para el Director si está En Revisión', () => {
+      mockContext.isDirector = true;
+      mockPreliminaryDraftService.calculateDocumentStatus = jest.fn().mockReturnValue(stateList.EN_REVISION);
+
+      const result = AnteproyectosTabConfig.getHeaderButtons(
+        mockContext,
+        mockPreliminaryDraftService as PreliminaryDraftService
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].action).toBe('upload_document');
+      expect(result[0].disabled).toBeTruthy(); // No puede subir archivo si ya está en revisión
+    });
+
+    it('debería retornar el botón de "Cargar anteproyecto" habilitado para el Director si el último fue Rechazado', () => {
+      mockContext.isDirector = true;
+      mockContext.preliminaryDraft.state = stateList.NO_APROBADO; // Rechazo general
+      mockPreliminaryDraftService.calculateDocumentStatus = jest.fn().mockReturnValue(stateList.NO_APROBADO);
+
+      const result = AnteproyectosTabConfig.getHeaderButtons(
+        mockContext,
+        mockPreliminaryDraftService as PreliminaryDraftService
+      );
+
+      expect(result).toHaveLength(1);
+      expect(result[0].action).toBe('upload_document');
+      expect(result[0].disabled).toBeFalsy(); // Se habilita para subir las correcciones
     });
   });
 });

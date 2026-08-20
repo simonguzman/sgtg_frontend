@@ -12,19 +12,19 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
   styleUrls: ['./upload-final-delivery-page.component.css']
 })
 export class UploadFinalDeliveryPageComponent implements OnInit {
-  private readonly route  = inject(ActivatedRoute);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly facade = inject(UploadFinalDeliveryFacadeService);
 
-  // ← Fix: any → ThesisWork
-  readonly thesisWorkState    = signal<ThesisWork | null>(null);
+  readonly thesisWorkState = signal<ThesisWork | null>(null);
   readonly isConfirmModalOpen = signal(false);
-  readonly isSubmitting       = signal(false);
-  readonly pendingFilesData   = signal<{ monograph: File; formatE: File; annexes?: File } | null>(null);
+  readonly isSubmitting = signal(false);
+  readonly pendingFilesData = signal<{ monograph: File; formatE: File; annexes?: File } | null>(null);
 
   ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
     let id: string | null = null;
+
     while (currentRoute && !id) {
       id = currentRoute.snapshot.paramMap.get('id');
       currentRoute = currentRoute.parent;
@@ -38,18 +38,18 @@ export class UploadFinalDeliveryPageComponent implements OnInit {
 
     this.facade.loadThesisWork(
       id,
-      (work) => this.thesisWorkState.set(work),
-      ()     => this.goBack()
+      (thesisWork) => this.thesisWorkState.set(thesisWork),
+      () => this.goBack()
     );
   }
 
-  handleRequestConfirmation(files: { monograph: File; formatE: File; annexes: File }): void {
+  handleRequestConfirmation(files: { monograph: File; formatE: File; annexes?: File }): void {
     this.pendingFilesData.set(files);
     this.isConfirmModalOpen.set(true);
   }
 
   processFinalDelivery(): void {
-    const files    = this.pendingFilesData();
+    const files = this.pendingFilesData();
     const thesisId = this.thesisWorkState()?.thesisWorkId;
     if (!files || !thesisId) return;
 
@@ -59,8 +59,13 @@ export class UploadFinalDeliveryPageComponent implements OnInit {
     this.facade.processFinalDelivery(
       thesisId,
       files,
-      () => { this.isSubmitting.set(false); this.goBack(); },
-      () => { this.isSubmitting.set(false); }
+      () => {
+        this.isSubmitting.set(false);
+        this.goBack();
+      },
+      () => {
+        this.isSubmitting.set(false);
+      }
     );
   }
 

@@ -1,176 +1,166 @@
 import { TestBed } from '@angular/core/testing';
 import { InboxStateService } from './inbox-state.service';
+import { InboxMessage } from '../interfaces/inbox-message.interface';
 import { NotificationType } from '../../../shared/components/notifications/models/notification.model';
 
-// --- INTERFAZ ESTRICTA ---
-// Usamos NotificationType directamente para asegurar compatibilidad total
-interface TestInboxMessage {
-  id: string;
-  userId: string;
-  type: NotificationType;
-  title: string;
-  message: string;
-  date: Date;
-  status: 'leido' | 'no leido';
-  actionUrl?: string;
-}
-
-// Estructura esperada al leer JSON del LocalStorage (la fecha llega como string)
-interface StoredInboxMessage extends Omit<TestInboxMessage, 'date'> {
-  date: string;
-}
-
-describe('Service: InboxState', () => {
+describe('InboxStateService', () => {
   let service: InboxStateService;
+
+  // Mock robusto de localStorage
+  let store: Record<string, string> = {};
+  const mockLocalStorage = {
+    getItem: jest.fn((key: string) => (key in store ? store[key] : null)),
+    setItem: jest.fn((key: string, value: string) => {
+      store[key] = value;
+    }),
+    removeItem: jest.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: jest.fn(() => {
+      store = {};
+    }),
+  };
+
   const STORAGE_KEY = 'academic_inbox_messages';
-  let mockStorage: Record<string, string> = {};
+
+  // Datos base simulados libres de 'any'
+  const mockMessageBase = {
+    type: NotificationType.INFO,
+    title: 'Test',
+    message: 'Message',
+    status: 'no leido',
+  } as unknown as InboxMessage;
 
   beforeEach(() => {
-    // 1. Limpiar el storage falso antes de cada prueba
-    mockStorage = {};
-
-    // 2. Interceptar las llamadas a localStorage de forma estricta
-    jest.spyOn(Storage.prototype, 'getItem').mockImplementation((key: string): string | null => {
-      return key in mockStorage ? mockStorage[key] : null;
+    // Reemplazamos el localStorage real por nuestro mock
+    Object.defineProperty(window, 'localStorage', {
+      value: mockLocalStorage,
+      writable: true
     });
 
-    jest.spyOn(Storage.prototype, 'setItem').mockImplementation((key: string, value: string): void => {
-      mockStorage[key] = value;
-    });
-
-    // 3. Configurar el módulo
-    TestBed.configureTestingModule({
-      providers: [InboxStateService]
-    });
-  });
-
-  afterEach(() => {
+    // Reiniciamos el estado del mock antes de cada prueba
+    store = {};
     jest.clearAllMocks();
   });
 
-  describe('Inicialización y LocalStorage', () => {
-    it('Debe inicializar con un arreglo vacío si el LocalStorage está vacío', () => {
+  describe('Inicialización y loadFromStorage', () => {
+    it('debe inicializar con un arreglo vacío si el storage está vacío', () => {
+      TestBed.configureTestingModule({ providers: [InboxStateService] });
       service = TestBed.inject(InboxStateService);
+
       expect(service.messagesSignal()).toEqual([]);
+      expect(mockLocalStorage.getItem).toHaveBeenCalledWith(STORAGE_KEY);
     });
 
-    it('Debe cargar mensajes del LocalStorage y reconstruir los objetos Date', () => {
-      const storedDate = new Date('2026-06-19T10:00:00Z');
-      const mockStoredData: StoredInboxMessage[] = [{
-        id: 'msg-1',
-        userId: 'user-1',
-        type: NotificationType.INFO,
-        title: 'Prueba',
-        message: 'Mensaje de prueba',
-        date: storedDate.toISOString(),
-        status: 'no leido'
-      }];
+    it('debe parsear los datos y convertir las fechas de string a objetos Date', () => {
+      const storedData = [
+        { id: '1', date: '2026-08-10T12:00:00.000Z', title: 'Título 1' },
+      ];
+      store[STORAGE_KEY] = JSON.stringify(storedData);
 
-      mockStorage[STORAGE_KEY] = JSON.stringify(mockStoredData);
-
-      // Instanciamos el servicio DESPUÉS de llenar el LocalStorage simulado
+      TestBed.configureTestingModule({ providers: [InboxStateService] });
       service = TestBed.inject(InboxStateService);
 
-      const messages = service.messagesSignal();
-      expect(messages.length).toBe(1);
-      expect(messages[0].id).toBe('msg-1');
-      // Verificamos que la reconstrucción del Date funcionó correctamente
-      expect(messages[0].date).toBeInstanceOf(Date);
-      expect(messages[0].date.getTime()).toEqual(storedDate.getTime());
+      const state = service.messagesSignal();
+      expect(state.length).toBe(1);
+      expect(state[0].title).toBe('Título 1');
+      // Verificamos que la reconstrucción del Date funcionó
+      expect(state[0].date).toBeInstanceOf(Date);
+      expect(state[0].date.toISOString()).toBe('2026-08-10T12:00:00.000Z');
     });
 
-    it('Debe capturar errores si el JSON del LocalStorage es inválido y devolver un arreglo vacío', () => {
-      mockStorage[STORAGE_KEY] = '{ invalid_json: "esto rompe el parseo" ';
+    it('debe manejar errores de parseo limpiando el storage corrupto y retornando un arreglo vacío', () => {
+      // Simulamos un JSON inválido/corrupto
+      store[STORAGE_KEY] = '{ corrupted_json: true ';
 
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
+      TestBed.configureTestingModule({ providers: [InboxStateService] });
       service = TestBed.inject(InboxStateService);
 
       expect(service.messagesSignal()).toEqual([]);
-      expect(consoleSpy).toHaveBeenCalledWith('Error parseando notificaciones de localStorage', expect.any(Error));
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEY);
+      expect(consoleSpy).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
     });
   });
 
-  describe('Operaciones de Estado (Signals)', () => {
+  describe('Mutaciones del Estado (Signals)', () => {
     beforeEach(() => {
+      TestBed.configureTestingModule({ providers: [InboxStateService] });
       service = TestBed.inject(InboxStateService);
     });
 
-    it('Debe agregar nuevos mensajes al inicio de la lista (prepend)', () => {
-      const msg1: TestInboxMessage = { id: '1', userId: 'u1', type: NotificationType.INFO, title: 'T1', message: 'M1', date: new Date(), status: 'no leido' };
-      const msg2: TestInboxMessage = { id: '2', userId: 'u1', type: NotificationType.INFO, title: 'T2', message: 'M2', date: new Date(), status: 'no leido' };
+    it('debe agregar nuevos mensajes al inicio de la lista (addMessages)', () => {
+      const initialMessage = { ...mockMessageBase, id: 'old-1' } as InboxMessage;
+      service.addMessages([initialMessage]);
 
-      service.addMessages([msg1]);
-      service.addMessages([msg2]);
+      const newMessage = { ...mockMessageBase, id: 'new-1' } as InboxMessage;
+      service.addMessages([newMessage]);
 
-      const messages = service.messagesSignal();
-      expect(messages.length).toBe(2);
-      expect(messages[0].id).toBe('2');
-      expect(messages[1].id).toBe('1');
+      const state = service.messagesSignal();
+      expect(state.length).toBe(2);
+      expect(state[0].id).toBe('new-1'); // El nuevo entra primero (prepend)
+      expect(state[1].id).toBe('old-1');
     });
 
-    it('Debe marcar un mensaje específico como leído', () => {
-      const msg1: TestInboxMessage = { id: '1', userId: 'u1', type: NotificationType.INFO, title: 'T1', message: 'M1', date: new Date(), status: 'no leido' };
-      service.addMessages([msg1]);
+    it('debe marcar un mensaje específico como leído (markAsRead)', () => {
+      service.addMessages([{ ...mockMessageBase, id: 'msg-1', status: 'no leido' } as InboxMessage]);
 
-      service.markAsRead('1');
+      service.markAsRead('msg-1');
 
-      const messages = service.messagesSignal();
-      expect(messages[0].status).toBe('leido');
+      const state = service.messagesSignal();
+      expect(state[0].status).toBe('leido');
     });
 
-    it('Debe eliminar un mensaje específico por su ID', () => {
-      const msg1: TestInboxMessage = { id: '1', userId: 'u1', type: NotificationType.INFO, title: 'T1', message: 'M1', date: new Date(), status: 'no leido' };
-      const msg2: TestInboxMessage = { id: '2', userId: 'u1', type: NotificationType.INFO, title: 'T2', message: 'M2', date: new Date(), status: 'no leido' };
-      service.addMessages([msg1, msg2]);
+    it('debe eliminar un mensaje específico (deleteMessage)', () => {
+      service.addMessages([
+        { ...mockMessageBase, id: 'msg-1' } as InboxMessage,
+        { ...mockMessageBase, id: 'msg-2' } as InboxMessage
+      ]);
 
-      service.deleteMessage('1');
+      service.deleteMessage('msg-1');
 
-      const messages = service.messagesSignal();
-      expect(messages.length).toBe(1);
-      expect(messages[0].id).toBe('2');
+      const state = service.messagesSignal();
+      expect(state.length).toBe(1);
+      expect(state[0].id).toBe('msg-2');
     });
 
-    it('Debe limpiar únicamente los mensajes correspondientes a un usuario específico', () => {
-      const msgUser1: TestInboxMessage = { id: '1', userId: 'user-1', type: NotificationType.INFO, title: 'T1', message: 'M1', date: new Date(), status: 'no leido' };
-      const msgUser2: TestInboxMessage = { id: '2', userId: 'user-2', type: NotificationType.INFO, title: 'T2', message: 'M2', date: new Date(), status: 'no leido' };
-      service.addMessages([msgUser1, msgUser2]);
+    it('debe vaciar todos los mensajes de un usuario específico (clearAllMessages)', () => {
+      service.addMessages([
+        { ...mockMessageBase, id: '1', userId: 'user-a' } as InboxMessage,
+        { ...mockMessageBase, id: '2', userId: 'user-a' } as InboxMessage,
+        { ...mockMessageBase, id: '3', userId: 'user-b' } as InboxMessage,
+      ]);
 
-      service.clearAllMessages('user-1');
+      service.clearAllMessages('user-a');
 
-      const messages = service.messagesSignal();
-      expect(messages.length).toBe(1);
-      expect(messages[0].userId).toBe('user-2');
+      const state = service.messagesSignal();
+      expect(state.length).toBe(1);
+      expect(state[0].userId).toBe('user-b'); // Solo queda el del usuario B
     });
   });
 
-  describe('Sincronización Reactiva (Effects)', () => {
-    it('Debe guardar automáticamente en LocalStorage cuando el Signal cambia', () => {
+  describe('Efectos secundarios (Effect / Persistencia)', () => {
+    it('debe guardar automáticamente en localStorage cuando el signal muta', () => {
+      TestBed.configureTestingModule({ providers: [InboxStateService] });
       service = TestBed.inject(InboxStateService);
 
-      const newMsg: TestInboxMessage = {
-        id: '99',
-        userId: 'u1',
-        type: NotificationType.INFO,
-        title: 'Efecto Reactivo',
-        message: 'Prueba de effect()',
-        date: new Date('2026-06-19T12:00:00Z'),
-        status: 'no leido'
-      };
+      // Limpiamos los llamados previos producto de la inicialización
+      mockLocalStorage.setItem.mockClear();
 
-      service.addMessages([newMsg]);
+      const newMessage = { ...mockMessageBase, id: 'effect-1' } as InboxMessage;
+      service.addMessages([newMessage]);
 
-      // Obligamos a Angular a ejecutar el ciclo de effects pendiente
+      // IMPORTANTE: En Angular, effect() corre asincrónicamente o durante el ciclo
+      // de Change Detection. Usamos flushEffects() para forzar su ejecución en pruebas.
       TestBed.flushEffects();
 
-      // Verificamos que el item fue escrito en el storage simulado
-      const savedData = mockStorage[STORAGE_KEY];
-      expect(savedData).toBeDefined();
-
-      const parsedData = JSON.parse(savedData) as StoredInboxMessage[];
-      expect(parsedData.length).toBe(1);
-      expect(parsedData[0].id).toBe('99');
-      expect(parsedData[0].title).toBe('Efecto Reactivo');
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        STORAGE_KEY,
+        JSON.stringify([newMessage])
+      );
     });
   });
 });

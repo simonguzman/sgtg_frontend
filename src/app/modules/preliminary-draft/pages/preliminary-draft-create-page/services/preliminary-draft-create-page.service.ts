@@ -9,6 +9,7 @@ import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
+import { first } from 'rxjs';
 
 @Injectable()
 export class PreliminaryDraftCreatePageService {
@@ -51,14 +52,16 @@ export class PreliminaryDraftCreatePageService {
     this.confirmState.update(state => ({ ...state, isProcessing: true }));
     this.showProcessingNotification();
 
-    this.preliminaryDraftService.createPreliminaryDraft(pendingData).subscribe({
-      next: () => this.handleCreationSuccess(),
-      error: (error) => {
-        console.error('Error al registrar anteproyecto:', error);
-        this.confirmState.update(state => ({ ...state, isProcessing: false, isOpen: false }));
-        this.showCreationErrorNotification();
-      }
-    });
+    this.preliminaryDraftService.createPreliminaryDraft(pendingData)
+      .pipe(first())
+      .subscribe({
+        next: () => this.handleCreationSuccess(),
+        error: (error) => {
+          console.error('Error al registrar anteproyecto:', error);
+          this.confirmState.update(state => ({ ...state, isProcessing: false, isOpen: false }));
+          this.showCreationErrorNotification();
+        }
+      });
   }
 
   cancelCreation(): void {

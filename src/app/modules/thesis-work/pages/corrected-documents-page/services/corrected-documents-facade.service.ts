@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
-import { UserService } from '../../../../users/services/user.service';
+import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
@@ -15,11 +15,7 @@ import { CorrectedDeliveryTableRow } from '../models/corrected-documents-page.mo
 export class CorrectedDocumentsFacadeService {
   private readonly thesisWorkService   = inject(ThesisWorkService);
   private readonly authService         = inject(AuthService);
-  // ← Cambiado de UserFormatterService (inyección directa a un sub-servicio)
-  // a UserService: la fachada del módulo Users ya expone formatFullName y
-  // getAuthorsNames precisamente para evitar que otros módulos rompan la
-  // encapsulación accediendo a sub-servicios internos.
-  private readonly userService         = inject(UserService);
+  private readonly participants        = inject(ThesisParticipantsFormatterService);
   private readonly downloadService     = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
@@ -76,40 +72,39 @@ export class CorrectedDocumentsFacadeService {
   }
 
   getStudentName(thesis: ThesisWork | null): string {
-    return this.userService.getAuthorsNames(
-      thesis?.preliminaryDraftData?.proposalData?.authors
-    ) || 'Sin estudiante';
+    return this.participants.getStudentNames(thesis);
   }
-
   getDirectorName(thesis: ThesisWork | null): string {
-    const director = thesis?.preliminaryDraftData?.proposalData?.director;
-    return director ? this.userService.formatFullName(director) : 'Sin director';
+    return this.participants.getDirectorName(thesis);
   }
-
   getCodirectorName(thesis: ThesisWork | null): string | undefined {
-    const codirector = thesis?.preliminaryDraftData?.proposalData?.codirector;
-    return codirector ? this.userService.formatFullName(codirector) : undefined;
+    return this.participants.getCodirectorName(thesis) || undefined;
   }
-
   getAdvisorName(thesis: ThesisWork | null): string | undefined {
-    const advisor = thesis?.preliminaryDraftData?.proposalData?.advisor;
-    return advisor ? this.userService.formatFullName(advisor) : undefined;
+    return this.participants.getAdvisorName(thesis) || undefined;
   }
 
-  downloadDocumentByName(delivery: CorrectedDelivery | null, fileName: string): void {
+  // ← FIX: async + try/catch, mismo patrón ya aplicado al resto de
+  // descargas del proyecto. Antes era "fire and forget" sin await.
+  async downloadDocumentByName(delivery: CorrectedDelivery | null, fileName: string): Promise<void> {
     if (!delivery) return;
     const target = delivery.monograph?.name === fileName ? delivery.monograph
       : delivery.annexes?.name === fileName ? delivery.annexes
       : undefined;
-    if (target) this.downloadDocument(target);
+    if (target) await this.downloadDocument(target);
   }
 
-  private downloadDocument(doc: FileDocument): void {
+  private async downloadDocument(doc: FileDocument): Promise<void> {
     if (!doc.url) {
       this.showNotification('Error de descarga', 'No existe un enlace de descarga válido para este archivo.', NotificationType.ERROR);
       return;
     }
-    this.downloadService.download(doc.url, `${doc.name}.pdf`);
+    try {
+      await this.downloadService.download(doc.url, `${doc.name}.pdf`);
+    } catch (err) {
+      console.error(`Error al descargar el documento ${doc.name}:`, err);
+      this.showNotification('Error de descarga', `No se pudo descargar ${doc.name}. Intente más tarde.`, NotificationType.ERROR);
+    }
   }
 
   showNavigationError(): void {

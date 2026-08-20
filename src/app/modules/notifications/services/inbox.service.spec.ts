@@ -4,63 +4,49 @@ import { InboxService } from './inbox.service';
 import { InboxStateService } from './inbox-state.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { InboxEventProcessorService } from './inbox-event-processor.service';
-import { NotificationType } from '../../../shared/components/notifications/models/notification.model';
 
-// --- INTERFACES ESTRICTAS PARA MOCKS ---
-interface TestUser {
-  id: string;
-  username: string;
-}
+import { User } from '../../users/interfaces/user.interface';
+import { InboxMessage } from '../interfaces/inbox-message.interface';
 
-interface TestInboxMessage {
-  id: string;
-  userId: string;
-  type: NotificationType;
-  title: string;
-  message: string;
-  date: Date;
-  status: 'leido' | 'no leido';
-  actionUrl?: string;
-}
-
-interface MockAuthService {
-  currentUser: jest.Mock<TestUser | null>;
-}
-
-interface MockInboxStateService {
-  messagesSignal: WritableSignal<TestInboxMessage[]>;
-  markAsRead: jest.Mock<void, [string]>;
-  deleteMessage: jest.Mock<void, [string]>;
-  clearAllMessages: jest.Mock<void, [string]>;
-}
-
-describe('Service: Inbox', () => {
+describe('InboxService', () => {
   let service: InboxService;
-  let authServiceMock: MockAuthService;
-  let inboxStateMock: MockInboxStateService;
+
+  // Signals simulados para controlar la reactividad
+  let mockCurrentUser: WritableSignal<User | null>;
+  let mockMessagesSignal: WritableSignal<InboxMessage[]>;
+
+  // Spies para verificar la delegación
+  let markAsReadSpy: jest.Mock;
+  let deleteMessageSpy: jest.Mock;
+  let clearAllMessagesSpy: jest.Mock;
 
   beforeEach(() => {
-    // 1. Mock de AuthService con control estricto de retornos
-    authServiceMock = {
-      currentUser: jest.fn(() => null)
+    mockCurrentUser = signal<User | null>(null);
+    mockMessagesSignal = signal<InboxMessage[]>([]);
+
+    markAsReadSpy = jest.fn();
+    deleteMessageSpy = jest.fn();
+    clearAllMessagesSpy = jest.fn();
+
+    const mockAuthService = {
+      currentUser: mockCurrentUser
     };
 
-    // 2. Mock de InboxStateService exponiendo un Signal reactivo real para alimentar los computed
-    inboxStateMock = {
-      messagesSignal: signal<TestInboxMessage[]>([]),
-      markAsRead: jest.fn(),
-      deleteMessage: jest.fn(),
-      clearAllMessages: jest.fn()
+    const mockInboxStateService = {
+      messagesSignal: mockMessagesSignal,
+      markAsRead: markAsReadSpy,
+      deleteMessage: deleteMessageSpy,
+      clearAllMessages: clearAllMessagesSpy
     };
 
-    // 3. Configuración del TestBed
+    const mockEventProcessorService = {}; // Solo se inyecta para inicializar
+
     TestBed.configureTestingModule({
       providers: [
         InboxService,
-        { provide: AuthService, useValue: authServiceMock },
-        { provide: InboxStateService, useValue: inboxStateMock },
-        // Se inyecta un objeto vacío para el procesador de eventos ya que en este servicio solo se invoca su inyección
-        { provide: InboxEventProcessorService, useValue: {} }
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: InboxStateService, useValue: mockInboxStateService },
+        { provide: InboxEventProcessorService, useValue: mockEventProcessorService }
       ]
     });
 
@@ -71,87 +57,89 @@ describe('Service: Inbox', () => {
     jest.clearAllMocks();
   });
 
-  it('Debe instanciar el servicio correctamente', () => {
-    expect(service).toBeTruthy();
-  });
-
-  describe('Propiedades Computadas Reactivas (messages y unreadCount)', () => {
-    it('Debe devolver un arreglo vacío y contador en 0 si NO hay usuario en sesión', () => {
-      authServiceMock.currentUser.mockReturnValue(null);
-
-      inboxStateMock.messagesSignal.set([
-        { id: '1', userId: 'user-a', type: NotificationType.INFO, title: 'T1', message: 'M1', date: new Date(), status: 'no leido' }
+  describe('Propiedades Computadas (messages y unreadCount)', () => {
+    it('debe retornar un arreglo vacío si no hay un usuario autenticado', () => {
+      // Configuramos mensajes globales, pero NO hay usuario
+      mockMessagesSignal.set([
+        { id: '1', userId: 'user-a' } as InboxMessage
       ]);
+      mockCurrentUser.set(null);
 
       expect(service.messages()).toEqual([]);
       expect(service.unreadCount()).toBe(0);
     });
 
-    it('Debe filtrar y devolver únicamente los mensajes pertenecientes al usuario activo', () => {
-      authServiceMock.currentUser.mockReturnValue({ id: 'user-1', username: 'simon.guzman' });
+    it('debe filtrar los mensajes devolviendo solo los del usuario actual', () => {
+      const activeUser = { id: 'user-a' } as unknown as User;
+      mockCurrentUser.set(activeUser);
 
-      const mixedMessages: TestInboxMessage[] = [
-        { id: 'msg-1', userId: 'user-1', type: NotificationType.INFO, title: 'T1', message: 'M1', date: new Date(), status: 'leido' },
-        { id: 'msg-2', userId: 'user-2', type: NotificationType.INFO, title: 'T2', message: 'M2', date: new Date(), status: 'no leido' },
-        { id: 'msg-3', userId: 'user-1', type: NotificationType.CONFIRMATION, title: 'T3', message: 'M3', date: new Date(), status: 'no leido' }
-      ];
+      mockMessagesSignal.set([
+        { id: '1', userId: 'user-a' } as InboxMessage,
+        { id: '2', userId: 'user-b' } as InboxMessage, // Este debe filtrarse
+        { id: '3', userId: 'user-a' } as InboxMessage
+      ]);
 
-      inboxStateMock.messagesSignal.set(mixedMessages);
-
-      const userMessages = service.messages();
-      expect(userMessages.length).toBe(2);
-      expect(userMessages.every(msg => msg.userId === 'user-1')).toBeTruthy();
-      expect(userMessages.map(m => m.id)).toEqual(['msg-1', 'msg-3']);
+      const filtered = service.messages();
+      expect(filtered.length).toBe(2);
+      expect(filtered.every(msg => msg.userId === 'user-a')).toBe(true);
     });
 
-    it('Debe recalcular correctamente la cantidad de mensajes "no leido" del usuario', () => {
-      authServiceMock.currentUser.mockReturnValue({ id: 'user-beta', username: 'estudiante' });
+    it('debe calcular correctamente el número de mensajes "no leido" del usuario actual', () => {
+      const activeUser = { id: 'user-a' } as unknown as User;
+      mockCurrentUser.set(activeUser);
 
-      const stateMessages: TestInboxMessage[] = [
-        { id: '1', userId: 'user-beta', type: NotificationType.INFO, title: 'A', message: 'B', date: new Date(), status: 'no leido' },
-        { id: '2', userId: 'user-beta', type: NotificationType.INFO, title: 'C', message: 'D', date: new Date(), status: 'leido' },
-        { id: '3', userId: 'user-beta', type: NotificationType.ERROR, title: 'E', message: 'F', date: new Date(), status: 'no leido' },
-        { id: '4', userId: 'otro-user', type: NotificationType.INFO, title: 'G', message: 'H', date: new Date(), status: 'no leido' } // No debe contarlo
-      ];
+      mockMessagesSignal.set([
+        { id: '1', userId: 'user-a', status: 'no leido' } as InboxMessage,
+        { id: '2', userId: 'user-a', status: 'leido' } as InboxMessage,
+        { id: '3', userId: 'user-a', status: 'no leido' } as InboxMessage,
+        // Este es 'no leido', pero es de OTRO usuario, el unreadCount no debe contarlo
+        { id: '4', userId: 'user-b', status: 'no leido' } as InboxMessage
+      ]);
 
-      inboxStateMock.messagesSignal.set(stateMessages);
+      expect(service.unreadCount()).toBe(2);
+    });
 
-      expect(service.unreadCount()).toBe(2); // Solo debe contar el msg 1 y 3
+    it('debe reaccionar dinámicamente si el usuario actual cambia (Log out / Log in)', () => {
+      mockMessagesSignal.set([
+        { id: '1', userId: 'user-a', status: 'no leido' } as InboxMessage
+      ]);
+
+      // Al inicio no hay usuario
+      expect(service.messages().length).toBe(0);
+
+      // El usuario hace login
+      mockCurrentUser.set({ id: 'user-a' } as unknown as User);
+      expect(service.messages().length).toBe(1);
+      expect(service.unreadCount()).toBe(1);
+
+      // El usuario hace logout
+      mockCurrentUser.set(null);
+      expect(service.messages().length).toBe(0);
+      expect(service.unreadCount()).toBe(0);
     });
   });
 
-  describe('Delegación de Acciones al Estado Global', () => {
-    it('Debe delegar "markAsRead" al servicio de estado', () => {
-      const targetId = 'noti-123';
-      service.markAsRead(targetId);
-      expect(inboxStateMock.markAsRead).toHaveBeenCalledWith(targetId);
-      expect(inboxStateMock.markAsRead).toHaveBeenCalledTimes(1);
+  describe('Delegación de Acciones (Write methods)', () => {
+    it('debe delegar markAsRead al InboxStateService', () => {
+      service.markAsRead('msg-123');
+      expect(markAsReadSpy).toHaveBeenCalledWith('msg-123');
     });
 
-    it('Debe delegar "deleteMessage" al servicio de estado', () => {
-      const targetId = 'noti-456';
-      service.deleteMessage(targetId);
-      expect(inboxStateMock.deleteMessage).toHaveBeenCalledWith(targetId);
-      expect(inboxStateMock.deleteMessage).toHaveBeenCalledTimes(1);
+    it('debe delegar deleteMessage al InboxStateService', () => {
+      service.deleteMessage('msg-456');
+      expect(deleteMessageSpy).toHaveBeenCalledWith('msg-456');
     });
 
-    describe('clearAllMessages', () => {
-      it('Debe invocar a clearAllMessages del estado con el ID del usuario si hay sesión activa', () => {
-        authServiceMock.currentUser.mockReturnValue({ id: 'usr-999', username: 'profesor' });
+    it('debe ignorar clearAllMessages si no hay un usuario autenticado', () => {
+      mockCurrentUser.set(null);
+      service.clearAllMessages();
+      expect(clearAllMessagesSpy).not.toHaveBeenCalled();
+    });
 
-        service.clearAllMessages();
-
-        expect(inboxStateMock.clearAllMessages).toHaveBeenCalledWith('usr-999');
-        expect(inboxStateMock.clearAllMessages).toHaveBeenCalledTimes(1);
-      });
-
-      it('NO debe invocar a clearAllMessages del estado si NO hay sesión activa', () => {
-        authServiceMock.currentUser.mockReturnValue(null);
-
-        service.clearAllMessages();
-
-        expect(inboxStateMock.clearAllMessages).not.toHaveBeenCalled();
-      });
+    it('debe delegar clearAllMessages usando el id del usuario actual', () => {
+      mockCurrentUser.set({ id: 'active-user' } as unknown as User);
+      service.clearAllMessages();
+      expect(clearAllMessagesSpy).toHaveBeenCalledWith('active-user');
     });
   });
 });

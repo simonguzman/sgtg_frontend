@@ -22,5 +22,4 @@ export class TabsComponent {
       this.tabChange.emit(value);
     }
   }
-
 }

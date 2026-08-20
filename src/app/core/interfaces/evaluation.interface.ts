@@ -1,5 +1,6 @@
 import { EvaluationDeadlineStatus } from "../enums/evaluation-deadline-status.enum";
 import { stateList } from "../enums/state.enum";
+import { FormattedDocument } from "./formatted-document.interface";
 
 export interface Evaluation {
   id: string;
@@ -11,7 +12,7 @@ export interface Evaluation {
   evaluatorRole: string;
   veredict: stateList;
   observations: string;
-  signedDocuments?: string[];
+  signedDocuments?: FormattedDocument[];
   date: Date;
   deadlineStatus?: EvaluationDeadlineStatus;
 }

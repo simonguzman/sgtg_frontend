@@ -1,12 +1,12 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
+import { RouterModule } from '@angular/router';
 import { FooterComponent } from '../footer/footer.component';
-import { RouterModule, Router, NavigationEnd, ActivatedRoute } from "@angular/router";
-import { HeaderComponent } from "../header/header.component";
-import { SidebarComponent } from "../sidebar/sidebar.component";
-import { filter, map } from 'rxjs/operators';
+import { HeaderComponent } from '../header/header.component';
+import { SidebarComponent } from '../sidebar/sidebar.component';
 import { BreadcrumbComponent } from '../../../components/breadcrumb/breadcrumb.component';
 import { BreadcrumbService } from '../../../services/breadcrumb/breadcrumb.service';
 import { DeadlineMonitorService } from '../../../../modules/notifications/services/deadline-monitor.service';
+import { getDeepestRouteTitle } from './helpers/deepest-route-title.helper';
 
 @Component({
   selector: 'app-main-layout',
@@ -14,34 +14,29 @@ import { DeadlineMonitorService } from '../../../../modules/notifications/servic
   templateUrl: './main-layout.component.html',
   styleUrl: './main-layout.component.css',
 })
-export class MainLayoutComponent implements OnInit {
-
-  currentPageTitle: string = '';
-  currentPageBreadcrumb: string = '';
+export class MainLayoutComponent {
+  // ← Router, NavigationEnd, toSignal, filter, map ya no se necesitan
+  // aquí: se elimina la suscripción propia a router.events, que duplicaba
+  // exactamente lo que BreadcrumbService.routerStateSnapshot ya calcula.
   private readonly breadcrumbService = inject(BreadcrumbService);
   private readonly deadlineMonitor = inject(DeadlineMonitorService);
 
-  constructor(private readonly router: Router, private readonly activatedRoute: ActivatedRoute) {}
-
-  ngOnInit() {
+  constructor() {
     this.deadlineMonitor.checkDeadlines();
-    this.router.events
-      .pipe(
-        filter(event => event instanceof NavigationEnd),
-        map(() => {
-          let route = this.activatedRoute;
-          while(route.firstChild) route = route.firstChild;
-          return route.snapshot.title ?? 'Inicio';
-        })
-      )
-      .subscribe((routeTitle) => {
-        this.currentPageTitle = routeTitle;
-      });
-
-    this.breadcrumbService.dynamicTitle$.subscribe(dynamicTitle => {
-      if (dynamicTitle) {
-        this.currentPageTitle = dynamicTitle;
-      }
-    });
   }
+
+  // ← Deriva del signal público de BreadcrumbService en vez de mantener
+  // un toSignal(router.events...) propio en paralelo. computed() en vez
+  // de toSignal() porque ya no hay observable propio que envolver, solo
+  // se deriva de un signal existente — y computed() es lazy (no se evalúa
+  // en el constructor, solo cuando el template la lee), lo cual es
+  // estrictamente más seguro que el initialValue eager que causaba el
+  // bug original.
+  private readonly staticRouteTitle = computed<string>(() =>
+    getDeepestRouteTitle(this.breadcrumbService.routerStateSnapshot().root)
+  );
+
+  protected readonly currentPageTitle = computed<string>(() =>
+    this.breadcrumbService.dynamicTitle() ?? this.staticRouteTitle()
+  );
 }

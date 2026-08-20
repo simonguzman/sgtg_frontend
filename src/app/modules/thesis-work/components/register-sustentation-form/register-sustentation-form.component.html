@@ -25,17 +25,17 @@
         <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Título', value: thesisWork().preliminaryDraftData.proposalData.title }"></ng-container>
         <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Descripción', value: thesisWork().preliminaryDraftData.proposalData.description}"></ng-container>
         <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Modalidad del trabajo de grado', value: thesisWork().preliminaryDraftData.proposalData.modality }"></ng-container>
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estudiante', value: getAuthorsNames(thesisWork().preliminaryDraftData.proposalData.authors) }"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estudiante', value: getStudentNames() }"></ng-container>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Director', value: getMemberFullName(thesisWork().preliminaryDraftData.proposalData.director) }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Director', value: getDirectorName() }"></ng-container>
           @if (thesisWork().preliminaryDraftData.proposalData.codirector) {
-            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Codirector', value: getMemberFullName(thesisWork().preliminaryDraftData.proposalData.codirector) }"></ng-container>
+            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Codirector', value: getCodirectorName() }"></ng-container>
           }
         </div>
 
         @if (thesisWork().preliminaryDraftData.proposalData.advisor) {
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Asesor', value: getMemberFullName(thesisWork().preliminaryDraftData.proposalData.advisor) }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Asesor', value: getAdvisorName() }"></ng-container>
         }
       </div>
     </section>

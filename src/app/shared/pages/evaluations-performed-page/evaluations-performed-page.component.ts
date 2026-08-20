@@ -1,20 +1,15 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-
-// Models & Interfaces
 import { NotificationType } from '../../components/notifications/models/notification.model';
 import { FormattedDocument } from '../../../core/interfaces/formatted-document.interface';
 import { EvaluationTableRow, EVALUATIONS_COLUMNS } from './models/evaluations-page.model';
-
-// Services
-import { FileDownloadService } from '../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../components/notifications/services/notification.service';
 import { EvaluationsFacadeService } from './services/evaluations-facade.service';
-
-// Components
 import { TableComponent } from '../../components/table-component/table-component.component';
 import { EvaluationModalComponent } from '../../components/modals/evaluation-modal/evaluation-modal.component';
+// ← FileDownloadService eliminado: la descarga ahora vive por completo
+// en el facade, mismo patrón que el resto de páginas del proyecto.
 
 @Component({
   selector: 'app-evaluations-performed-page',
@@ -26,22 +21,17 @@ import { EvaluationModalComponent } from '../../components/modals/evaluation-mod
 export class EvaluationsPerformedPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-
-  // Dependencias delegadas al Facade
   private readonly evaluationsFacade = inject(EvaluationsFacadeService);
-  private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
   private readonly params = toSignal(this.route.paramMap);
   private readonly parentParams = toSignal(this.route.parent?.paramMap || this.route.paramMap);
-
   private readonly contextId = computed(() =>
     this.params()?.get('id') || this.parentParams()?.get('id')
   );
 
   protected readonly columns = EVALUATIONS_COLUMNS;
 
-  // El componente solo consulta al Facade de manera reactiva
   protected evaluationsWithPermissions = computed<EvaluationTableRow[]>(() => {
     const id = this.contextId();
     if (!id) return [];
@@ -58,10 +48,6 @@ export class EvaluationsPerformedPageComponent implements OnInit {
     }
   }
 
-  // ==========================================
-  // ACCIONES DE LA INTERFAZ
-  // ==========================================
-
   handleTableAction(event: { action: string; row: EvaluationTableRow }): void {
     if (event.action === 'view_details') {
       this.modalState.set({ open: true, evaluation: event.row });
@@ -72,13 +58,11 @@ export class EvaluationsPerformedPageComponent implements OnInit {
     this.modalState.set({ open: false, evaluation: null });
   }
 
+  // ← Simplificado: solo delega. void marca explícitamente que no se
+  // espera el resultado — el facade ya maneja éxito/error con sus
+  // propias notificaciones.
   handleDownload(document: FormattedDocument): void {
-    if (!document.url) {
-      this.showNotification('Error', 'No se pudo localizar el documento.', NotificationType.ERROR);
-      return;
-    }
-    this.showNotification('Descarga', 'Iniciando descarga...', NotificationType.INFO);
-    this.downloadService.download(document.url, document.name);
+    void this.evaluationsFacade.handleDownload(document);
   }
 
   goBack(): void {

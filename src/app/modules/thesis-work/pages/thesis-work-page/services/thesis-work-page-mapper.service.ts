@@ -1,11 +1,14 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { ThesisWorkTableRow } from '../models/thesis-work-page.model';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
+import { UserService } from '../../../../users/services/user.service';
 
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkPageMapperService {
+
+  private readonly userService = inject(UserService);
 
   public mapThesisWorkToTable(
     thesisWork: ThesisWork,
@@ -42,10 +45,14 @@ export class ThesisWorkPageMapperService {
       ...(Array.isArray(proposal?.authors) ? proposal.authors : []),
       ...(thesisWork.sustentations?.[0]?.assignedJurors || [])
     ];
-
+    // ← FIX: antes `${user.firstName || ''} ${user.lastName || ''}`.trim()
+    // — omitía secondName/secondLastName. Este campo alimenta
+    // filterFields (búsqueda de la tabla, no se muestra directamente), así
+    // que el impacto real es que buscar a alguien por su segundo nombre o
+    // segundo apellido no lo encontraba.
     return allParticipants
       .filter((user): user is User => !!user && typeof user === 'object')
-      .map(user => `${user.firstName || ''} ${user.lastName || ''}`.trim())
+      .map(user => this.userService.formatFullName(user))
       .join(' ');
   }
 

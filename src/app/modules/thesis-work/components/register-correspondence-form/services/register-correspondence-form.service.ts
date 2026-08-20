@@ -66,7 +66,8 @@ export class RegisterCorrespondenceFormService {
     return correctionDoc ?? documents.find(doc => doc.type === DocumentType.FORMATO_G);
   }
 
-  downloadDocument(doc: FileDocument | undefined | null): void {
+  // ← FIX: async + try/catch, mismo patrón que el resto del proyecto.
+  async downloadDocument(doc: FileDocument | undefined | null): Promise<void> {
     if (!doc?.url) {
       this.notificationService.show({
         title: 'Archivo no disponible',
@@ -75,7 +76,16 @@ export class RegisterCorrespondenceFormService {
       });
       return;
     }
-    this.downloadService.download(doc.url, doc.name);
+    try {
+      await this.downloadService.download(doc.url, doc.name);
+    } catch (err) {
+      console.error(`Error al descargar el documento ${doc.name}:`, err);
+      this.notificationService.show({
+        title: 'Error de descarga',
+        message: `No se pudo descargar ${doc.name}. Intente más tarde.`,
+        type: NotificationType.ERROR
+      });
+    }
   }
 
   notifyInvalidFileType(): void {

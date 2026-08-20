@@ -73,7 +73,15 @@ export class ProposalStorageService {
 
   private getStoredProposals(): Proposal[] {
     const stored = localStorage.getItem('proposals');
-    return stored ? JSON.parse(stored) : this.getInitialData();
+    if (!stored) return this.getInitialData();
+
+    try {
+      return JSON.parse(stored);
+    } catch (error) {
+      console.error('Error parseando propuestas de localStorage', error);
+      localStorage.removeItem('proposals');
+      return this.getInitialData();
+    }
   }
 
   private getMockUser(id: string): User {

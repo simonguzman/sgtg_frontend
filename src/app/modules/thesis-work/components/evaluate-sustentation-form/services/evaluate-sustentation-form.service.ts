@@ -1,36 +1,26 @@
 import { inject, Injectable } from '@angular/core';
-import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
+import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
+import { ThesisFinalDeliveryDocumentResolverService } from '../../../services/thesis-final-delivery-document-resolver.service';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { SustentationRegistry } from '../../../interfaces/sustentation-registry.interface';
-import { User } from '../../../../users/interfaces/user.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
-import { ThesisFinalDeliveryDocumentResolverService } from '../../../services/thesis-final-delivery-document-resolver.service';
 
-// Sin FormGroup: este componente usa signals simples (verdictSelected, observations),
-// así que el servicio se enfoca únicamente en formateo de participantes,
-// resolución de documentos y notificaciones.
 @Injectable()
 export class EvaluateSustentationFormService {
-  private readonly userService         = inject(UserService);
   private readonly notificationService = inject(NotificationService);
+  // ← UserService eliminado: los tres métodos que lo usaban tienen
+  // equivalentes exactos en el formateador compartido.
+  private readonly participants        = inject(ThesisParticipantsFormatterService);
   private readonly documentResolver    = inject(ThesisFinalDeliveryDocumentResolverService);
 
-  getStudentNames(thesisWork: ThesisWork): string {
-    return this.userService.getAuthorsNames(
-      thesisWork?.preliminaryDraftData?.proposalData?.authors ?? []
-    );
-  }
-
-  getMemberName(id: string | undefined): string {
-    return id ? this.userService.getUserFullName(id) : '';
-  }
-
+  getStudentNames(thesisWork: ThesisWork): string   { return this.participants.getStudentNames(thesisWork); }
+  getDirectorName(thesisWork: ThesisWork): string   { return this.participants.getDirectorName(thesisWork); }
+  getCodirectorName(thesisWork: ThesisWork): string { return this.participants.getCodirectorName(thesisWork); }
+  getAdvisorName(thesisWork: ThesisWork): string     { return this.participants.getAdvisorName(thesisWork); }
   getAssignedJurors(sustentation: SustentationRegistry | null): string {
-    const jurors = sustentation?.assignedJurors ?? [];
-    if (jurors.length === 0) return 'No asignados';
-    return jurors.map((j: User) => this.userService.getUserFullName(j.id)).join(' y ');
+    return this.participants.getAssignedJurors(sustentation);
   }
 
   getExistingDocument(thesisWork: ThesisWork, type: string): FileDocument | null {

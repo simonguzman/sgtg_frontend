@@ -11,6 +11,13 @@ import { Proposal } from '../../../interfaces/proposal.interface';
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
+import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
+import { SaveProposalEvaluationEvent } from '../../../interfaces/evaluation-proposal-payload.interface';
+
+// Re-exportado para no romper a quienes ya importan este tipo desde el
+// facade (p. ej. EvaluationProposalPageComponent) — la definición real
+// ahora vive junto a Proposal.
+export type { SaveProposalEvaluationEvent };
 
 const RESULT_TO_STATE: Record<string, stateList> = {
   'Aprobado': stateList.APROBADO,
@@ -39,7 +46,7 @@ export class EvaluationProposalFacadeService {
       });
   }
 
-  public downloadOriginalDocument(proposal: Proposal): void {
+  public async downloadOriginalDocument(proposal: Proposal): Promise<void> {
     const document = proposal.documents?.[0] ?? null;
     if (!document?.url?.trim()) {
       this.showNotification(
@@ -54,17 +61,21 @@ export class EvaluationProposalFacadeService {
       'Descargando la propuesta original para su revisión...',
       NotificationType.INFO
     );
-    this.downloadService.download(document.url, document.name);
+    try {
+      await this.downloadService.download(document.url, document.name);
+    } catch (err) {
+      console.error('Error al descargar el documento original:', err);
+      this.showNotification('Error de descarga', 'No se pudo descargar el documento. Intente más tarde.', NotificationType.ERROR);
+    }
   }
 
-  public saveEvaluation(
-    event: { result: string; comments: string; signedFileName: string },
+  public async saveEvaluation(
+    event: SaveProposalEvaluationEvent,
     proposal: Proposal,
     route: ActivatedRoute,
     onError: () => void
-  ): void {
+  ): Promise<void> {
     const currentUser = this.authService.currentUser();
-
     const targetDocument = [...(proposal.documents ?? [])]
       .filter(document => document.type === DocumentType.PROPUESTA || document.type === DocumentType.CORRECCION)
       .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime())[0];
@@ -79,14 +90,24 @@ export class EvaluationProposalFacadeService {
       return;
     }
 
+    let signedFileUrl: string;
+    try {
+      signedFileUrl = await readFileAsDataUrl(event.file);
+    } catch (err) {
+      console.error('Error leyendo el archivo firmado:', err);
+      this.showNotification('Error al leer el archivo', 'No se pudo procesar el archivo adjuntado.', NotificationType.ERROR);
+      onError();
+      return;
+    }
+
     const newEvaluation: Evaluation = {
       id: crypto.randomUUID(),
       proposalId: proposal.id,
       documentId: targetDocument.id,
-      evaluatorId:  currentUser.id,
+      evaluatorId: currentUser.id,
       evaluatorName: this.userService.getUserFullName(currentUser.id),
       evaluatorRole: currentUser.roles[0] ?? 'Evaluador',
-      signedDocuments: [event.signedFileName],
+      signedDocuments: [{ name: event.file.name, url: signedFileUrl }],
       veredict: RESULT_TO_STATE[event.result] ?? proposal.state,
       observations: event.comments,
       date: new Date()

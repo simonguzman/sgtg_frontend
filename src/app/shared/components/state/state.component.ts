@@ -30,6 +30,5 @@ export class StateComponent {
   getState(): string {
     return this.state ? (this.STATE_MAP[this.state] || '') : '';
   }
-
 }
 

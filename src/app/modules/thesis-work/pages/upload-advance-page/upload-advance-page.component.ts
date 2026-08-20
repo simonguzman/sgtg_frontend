@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { UploadAdvancePayload } from '../../interfaces/advance-playload.interface';
-import { UploadAdvanceFacadeService } from './services/upload-advance-page-facade.service';
+import { UploadAdvancePageFacadeService } from './services/upload-advance-page-facade.service';
 import { UploadAdvanceFormComponent } from '../../components/upload-advance-form/upload-advance-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 
@@ -14,19 +14,17 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
   styleUrls: ['./upload-advance-page.component.css']
 })
 export class UploadAdvancePageComponent implements OnInit {
-  private readonly route       = inject(ActivatedRoute);
-  private readonly router      = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
-  protected readonly facade    = inject(UploadAdvanceFacadeService);
+  protected readonly facade = inject(UploadAdvancePageFacadeService);
 
-  // ── Estado de UI ──────────────────────────────────────────────────────────
-  readonly thesisWorkState    = signal<ThesisWork | null>(null);
+  readonly thesisWorkState = signal<ThesisWork | null>(null);
   readonly isConfirmModalOpen = signal(false);
-  readonly isSaving           = signal(false);
+  readonly isSaving = signal(false);
   readonly pendingAdvanceData = signal<UploadAdvancePayload | null>(null);
 
   ngOnInit(): void {
-    // Resolución del ID recorriendo el árbol de rutas padre
     let currentRoute: ActivatedRoute | null = this.route;
     let id: string | null = null;
     while (currentRoute && !id) {
@@ -42,8 +40,8 @@ export class UploadAdvancePageComponent implements OnInit {
 
     this.facade.loadThesisWork(
       id,
-      (work) => this.thesisWorkState.set(work),
-      ()     => this.navigateBack()
+      (thesisWork) => this.thesisWorkState.set(thesisWork),
+      () => this.navigateBack()
     );
   }
 
@@ -53,14 +51,13 @@ export class UploadAdvancePageComponent implements OnInit {
   }
 
   processAdvance(): void {
-    const data    = this.pendingAdvanceData();
-    const thesis  = this.thesisWorkState();
-    const user    = this.authService.currentUser();
+    const data = this.pendingAdvanceData();
+    const thesis = this.thesisWorkState();
+    const user = this.authService.currentUser();
     if (!data || !thesis || !user) return;
-
     this.isSaving.set(true);
-
-    this.facade.processAdvance(
+    // ← void: processAdvance() ahora es async.
+    void this.facade.processAdvance(
       thesis.thesisWorkId,
       user.id,
       data,

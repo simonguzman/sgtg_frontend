@@ -1,10 +1,9 @@
 import { Component, effect, inject, input, Output, EventEmitter } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
+import { PendingReviewData } from '../../interfaces/review-preliminary-draft-payload.interface';
 import { ReviewPreliminaryDraftFormFacadeService } from './services/review-preliminary-draft-form-facade.service';
-
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
@@ -22,7 +21,10 @@ export class ReviewPreliminaryDraftFormComponent {
   preliminaryDraft = input.required<PreliminaryDraft>();
   isSubmitting = input<boolean>(false);
 
-  @Output() onSaveEvaluation = new EventEmitter<{ formValues: any; file: File; annotatedFile?: File }>();
+  // ← FIX: antes EventEmitter<{ formValues: any; ... }>. Ahora reutiliza
+  // PendingReviewData, la misma interfaz que
+  // ReviewPreliminaryDraftPageFacadeService.handleRequestConfirmation ya exige.
+  @Output() onSaveEvaluation = new EventEmitter<PendingReviewData>();
   @Output() onDownloadPreliminaryDraft = new EventEmitter<void>();
 
   constructor() {

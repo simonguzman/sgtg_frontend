@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, OnDestroy, OnInit, signal } from '
 import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { TabConfiguration, ThesisEvaluationContext } from './tabs-logic/tab-config.interface';
-import { AdvancesTabConfig } from './tabs-logic/advaces.tab';
+import { AdvancesTabConfig } from './tabs-logic/advances.tab';
 import { FinalDeliveryTabConfig } from './tabs-logic/final-delivery.tab';
 import { PazYSalvoTabConfig } from './tabs-logic/paz_y_salvo.tab';
 import { SustentationTabConfig } from './tabs-logic/sustentation.tab';
@@ -13,7 +13,7 @@ import { TableButton, TableComponent } from '../../../../shared/components/table
 import { ThesisWorkService } from '../../services/thesis-work.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
-import { UserService } from '../../../users/services/user.service';
+import { ThesisParticipantsFormatterService } from '../../services/thesis-participants-formatter.service';
 import { TabsComponent } from '../../../../shared/components/tabs/tabs.component';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
@@ -23,6 +23,7 @@ import { Advance } from '../../interfaces/advance.interface';
 import { User } from '../../../users/interfaces/user.interface';
 import { LoadedDocumentsThesisWorkFacadeService } from './services/loaded-documents-thesis-work-facade.service';
 import { ThesisWorkDetailsModalResolverService } from './services/thesis-work-details-modal-resolver.service';
+import { ensureDate } from '../../helpers/thesis-date.helper';
 import {
   THESIS_TABS_CONFIG,
   TAB_MODAL_HEADERS,
@@ -48,15 +49,16 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   private readonly authService        = inject(AuthService);
   private readonly breadcrumbService  = inject(BreadcrumbService);
   private readonly titleService       = inject(Title);
-  private readonly userService        = inject(UserService);
+  // ← UserService reemplazado: corrige el mismo bug encontrado en
+  // CorrectedDocumentsFacadeService — director/codirector/asesor se leían
+  // del objeto User embebido en proposalData en vez de buscarlos por ID.
+  private readonly participants       = inject(ThesisParticipantsFormatterService);
   protected readonly facade           = inject(LoadedDocumentsThesisWorkFacadeService);
   private readonly modalResolver      = inject(ThesisWorkDetailsModalResolverService);
 
-  // ── Constantes del modelo ─────────────────────────────────────────────────
   protected readonly tabsConfig = THESIS_TABS_CONFIG;
 
-  // ── Estrategias de tab (patrón Strategy) ──────────────────────────────────
-  private readonly tabStrategies: Record<string, TabConfiguration> = {
+  private readonly tabStrategies: Record<string, TabConfiguration<any>> = {
     'AVANCES':         AdvancesTabConfig,
     'ENTREGA FINAL':   FinalDeliveryTabConfig,
     'PAZ Y SALVO':     PazYSalvoTabConfig,
@@ -65,7 +67,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     'SOLICITUDES':     SpecialRequestTabConfig
   };
 
-  // ── Estado de UI (exclusivo del componente) ───────────────────────────────
   readonly activeTab          = signal<string>('AVANCES');
   readonly thesisWorkId       = signal<string | null>(null);
   readonly isUploadModalOpen  = signal(false);
@@ -75,9 +76,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   readonly selectedAdvance    = signal<Advance | null>(null);
 
   constructor() {
-    // Effect: sincroniza el breadcrumb con la pestaña activa.
-    // setTimeout evita el error ExpressionChangedAfterItHasBeenChecked
-    // en el ciclo de detección de cambios de Angular.
     effect(() => {
       const tabLabel = this.tabsConfig.find(t => t.value === this.activeTab())?.label ?? 'Documentos';
       setTimeout(() => {
@@ -89,7 +87,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   }
 
   ngOnInit(): void {
-    // Resolución de ID: recorre el árbol de rutas para encontrar el parámetro :id
     let currentRoute = this.route;
     while (currentRoute.firstChild) currentRoute = currentRoute.firstChild;
 
@@ -105,46 +102,45 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     this.breadcrumbService.setDynamicTitle(null);
   }
 
-  // ── Computed: datos del trabajo de grado activo ───────────────────────────
   private readonly currentThesisWork = computed(() => {
     const id = this.thesisWorkId();
     return id ? this.thesisWorkService.allThesisWorks().find(w => w.thesisWorkId === id) : null;
   });
 
-  readonly currentStrategy = computed<TabConfiguration>(() =>
+  readonly currentStrategy = computed<TabConfiguration<any>>(() =>
     this.tabStrategies[this.activeTab()] ?? AdvancesTabConfig
   );
 
   readonly evaluationContext = computed<ThesisEvaluationContext>(() => {
-    const thesis    = this.currentThesisWork();
-    const user      = this.authService.currentUser();
-    const isAdmin   = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
+    const thesis  = this.currentThesisWork();
+    const user    = this.authService.currentUser();
+    const isAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
 
     const baseContext: ThesisEvaluationContext = {
-      thesisWork:             thesis ?? null,
-      currentUser:            user,
+      thesisWork: thesis ?? null,
+      currentUser: user,
       isAdmin,
-      isDecanatura:           this.authService.hasAnyRole([UserRoleType.DECANATURA]),
-      isConsejo:              this.authService.hasAnyRole([UserRoleType.CONSEJO]),
-      isStudent:              thesis?.preliminaryDraftData?.proposalData?.authors?.some(
+      isDecanatura: this.authService.hasAnyRole([UserRoleType.DECANATURA]),
+      isConsejo:    this.authService.hasAnyRole([UserRoleType.CONSEJO]),
+      isStudent: thesis?.preliminaryDraftData?.proposalData?.authors?.some(
         (author: { id?: string } | string) =>
           (typeof author === 'string' ? author : author.id) === user?.id
       ) ?? false,
       isDirector:   thesis?.preliminaryDraftData?.proposalData?.director?.id   === user?.id,
       isCodirector: thesis?.preliminaryDraftData?.proposalData?.codirector?.id === user?.id,
       isAdvisor:    thesis?.preliminaryDraftData?.proposalData?.advisor?.id     === user?.id,
-      isJuror:      thesis?.sustentations?.[0]?.assignedJurors?.some(
+      isJuror: thesis?.sustentations?.[0]?.assignedJurors?.some(
         (juror: User) => juror.id === user?.id
       ) ?? false,
-      latestAdvanceId:        null,
+      latestAdvanceId: null,
       isLatestAdvancePending: false,
-      isArchived:             thesis?.isArchived ?? false
+      isArchived: thesis?.isArchived ?? false
     };
 
     return this.currentStrategy().enrichEvaluationContext(baseContext);
   });
 
-  readonly currentColumns      = computed(() => this.currentStrategy().columns);
+  readonly currentColumns       = computed(() => this.currentStrategy().columns);
   readonly currentHeaderButtons = computed(() => this.currentStrategy().getHeaderButtons(this.evaluationContext()));
 
   readonly currentTableData = computed(() => {
@@ -159,32 +155,29 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     this.selectedAdvance()?.documents?.map((d: FileDocument) => d.name) ?? []
   );
 
-  // ── Computed: datos de participantes para el modal ────────────────────────
-  readonly studentName = computed<string>(() => {
-    const authors = this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.authors;
-    return this.userService.getAuthorsNames(authors) || 'Sin estudiante';
-  });
+  // ← Los 4 computed ahora delegan en ThesisParticipantsFormatterService,
+  // corrigiendo la lectura desde el objeto User embebido (potencialmente
+  // desactualizado) a una búsqueda fresca por ID.
+  readonly studentName = computed<string>(() =>
+    this.participants.getStudentNames(this.evaluationContext().thesisWork)
+  );
 
-  readonly directorName = computed<string>(() => {
-    const director = this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.director;
-    return director ? this.userService.formatFullName(director) : 'Sin director';
-  });
+  readonly directorName = computed<string>(() =>
+    this.participants.getDirectorName(this.evaluationContext().thesisWork)
+  );
 
-  readonly codirectorName = computed<string | undefined>(() => {
-    const codirector = this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.codirector;
-    return codirector ? this.userService.formatFullName(codirector) : undefined;
-  });
+  readonly codirectorName = computed<string | undefined>(() =>
+    this.participants.getCodirectorName(this.evaluationContext().thesisWork) || undefined
+  );
 
-  readonly advisorName = computed<string | undefined>(() => {
-    const advisor = this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.advisor;
-    return advisor ? this.userService.formatFullName(advisor) : undefined;
-  });
+  readonly advisorName = computed<string | undefined>(() =>
+    this.participants.getAdvisorName(this.evaluationContext().thesisWork) || undefined
+  );
 
   readonly modalityName = computed<string>(() =>
     this.evaluationContext().thesisWork?.preliminaryDraftData?.proposalData?.modality ?? 'Sin modalidad'
   );
 
-  // ← Record lookup en vez de if-else largo — más conciso y declarativo
   readonly modalDetailsHeader = computed<string>(() =>
     TAB_MODAL_HEADERS[this.activeTab()] ?? 'Detalles del Registro'
   );
@@ -193,7 +186,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     TAB_MODAL_SUBTITLES[this.activeTab()] ?? 'Información del documento cargado'
   );
 
-  // ── Handlers de tabla ─────────────────────────────────────────────────────
   handleHeaderButton(_button: TableButton): void {
     const routePath = this.currentStrategy().headerActionRoute;
     if (routePath) {
@@ -216,7 +208,8 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       case 'download': {
         const url  = typeof event.row['url']  === 'string' ? event.row['url']  : '';
         const name = typeof event.row['name'] === 'string' ? event.row['name'] : 'documento_sin_titulo';
-        this.facade.downloadDocument({ url, name } as FileDocument);
+        // ← void: downloadDocument() del facade ahora es async.
+        void this.facade.downloadDocument({ url, name } as FileDocument);
         break;
       }
       case 'evaluate-advance':
@@ -226,7 +219,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
         this.router.navigate(['evaluate_special_request', rowId], { relativeTo: this.route.parent });
         break;
       case 'view_sustentation_details':
-        // ← console.log eliminados (debug code en producción)
         this.router.navigate([event.action, rowId], { relativeTo: this.route.parent });
         break;
       case 'evaluate_sustentation':
@@ -241,7 +233,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     }
   }
 
-  // ── Flujo de carga de archivos ────────────────────────────────────────────
   onFileSelected(event: { fileName: string; file: File }): void {
     this.uploadContext.set(event);
     this.isUploadModalOpen.set(false);
@@ -249,13 +240,13 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   }
 
   confirmUpload(): void {
-    const fileData    = this.uploadContext();
-    const thesisId    = this.thesisWorkId();
-    const docType     = this.currentStrategy().modalConfig.uploadDocumentType;
+    const fileData = this.uploadContext();
+    const thesisId = this.thesisWorkId();
+    const docType  = this.currentStrategy().modalConfig.uploadDocumentType;
     if (!fileData || !thesisId || !docType) return;
-
-    // ← Delegado a la fachada que ya incluye first() y notificaciones
-    this.facade.uploadDocument(
+    // ← void: uploadDocument() del facade ahora es async (lee el File real
+    // antes de construir el documento, fix de hace dos turnos).
+    void this.facade.uploadDocument(
       thesisId,
       fileData,
       docType,
@@ -269,12 +260,10 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     this.uploadContext.set(null);
   }
 
-  // ── Modal de detalles ─────────────────────────────────────────────────────
   private openDetailsModal(rowId: string): void {
     const thesis = this.currentThesisWork();
     if (!thesis) return;
 
-    // ← 6 branches → 1 llamada al resolver (SRP)
     const resolved = this.modalResolver.resolve(rowId, this.activeTab(), thesis);
 
     if (!resolved) {
@@ -286,9 +275,9 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     this.isDetailsModalOpen.set(true);
   }
 
-  // ── Descarga por nombre (llamada desde el modal de detalles) ──────────────
   downloadDocumentByName(fileName: string): void {
-    this.facade.downloadDocumentByName(
+    // ← void: downloadDocumentByName() del facade ahora es async.
+    void this.facade.downloadDocumentByName(
       fileName,
       this.activeTab(),
       this.selectedAdvance(),
@@ -296,17 +285,12 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     );
   }
 
-  // ── Utilidad de fecha para el modal ──────────────────────────────────────
-  ensureDate(date: Date | string | undefined | null): Date {
-    if (date instanceof Date && !isNaN(date.getTime())) return date;
-    if (typeof date === 'string' && date.trim()) {
-      const parsed = new Date(date);
-      if (!isNaN(parsed.getTime())) return parsed;
-    }
-    return new Date();
-  }
+  // ← Eliminado el método local: era una copia exacta del helper ensureDate
+  // ya extraído en helpers/thesis-date.helper.ts (mismo que usa
+  // CorrectedDocumentsPageComponent). Cierra la duplicación pendiente
+  // señalada hace varios turnos.
+  ensureDate = ensureDate;
 
-  // ── Navegación ────────────────────────────────────────────────────────────
   goBack(): void {
     this.router.navigate(['../'], { relativeTo: this.route.parent });
   }

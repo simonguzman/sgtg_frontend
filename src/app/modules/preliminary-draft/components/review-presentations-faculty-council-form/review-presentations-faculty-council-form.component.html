@@ -135,7 +135,7 @@
                     <span class="text-size-role-footer text-[#777680]">Evaluación docente: {{ evalFile.evaluator }}</span>
                   </div>
                 </div>
-                <app-button-component label="Descargar" variant="primary"></app-button-component>
+                <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(evalFile)"></app-button-component>
               </div>
             }
 

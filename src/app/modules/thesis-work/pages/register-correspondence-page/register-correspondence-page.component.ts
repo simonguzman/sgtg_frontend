@@ -12,8 +12,6 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
   imports: [RegisterCorrespondenceFormComponent, ConfirmationActionModalComponent]
 })
 export class RegisterCorrespondencePageComponent implements OnInit {
-  // ← protected route / public router del original: ninguno se usaba en el
-  // template (solo goBack()), así que quedan private.
   private readonly route  = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly facade = inject(RegisterCorrespondenceFacadeService);
@@ -30,7 +28,12 @@ export class RegisterCorrespondencePageComponent implements OnInit {
       this.goBack();
       return;
     }
-    this.facade.loadThesisWork(thesisWorkId, (work) => this.thesisWorkDetails.set(work), () => this.goBack());
+
+    this.facade.loadThesisWork(
+      thesisWorkId,
+      (work) => this.thesisWorkDetails.set(work),
+      () => this.goBack()
+    );
   }
 
   handleRequestConfirmation(file: File): void {
@@ -41,19 +44,27 @@ export class RegisterCorrespondencePageComponent implements OnInit {
   processCorrespondence(): void {
     const file        = this.pendingFile();
     const currentWork = this.thesisWorkDetails();
+
     if (!file || !currentWork) return;
 
     this.isSubmitting.set(true);
     this.isConfirmModalOpen.set(false);
 
     this.facade.processCorrespondence(
-      currentWork.thesisWorkId, file,
-      () => { this.isSubmitting.set(false); this.goBack(); },
-      () => { this.isSubmitting.set(false); }
+      currentWork.thesisWorkId,
+      file,
+      () => {
+        this.isSubmitting.set(false);
+        this.goBack();
+      },
+      () => {
+        this.isSubmitting.set(false);
+      }
     );
   }
 
   goBack(): void {
-    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
+    // Angular maneja router.navigate como Promise. Usamos void explícito por buenas prácticas.
+    void this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
   }
 }

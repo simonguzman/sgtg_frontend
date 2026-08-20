@@ -4,11 +4,18 @@ import { FileDocument } from '../../../../../core/interfaces/file-document.inter
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
 
-export const CorrespondenceTabConfig: TabConfiguration = {
+interface CorrespondenceTableRow {
+  id: string;
+  name: string;
+  date: Date | string;
+  status: stateList;
+  allowedActions: string[];
+  url: string;
+}
+
+export const CorrespondenceTabConfig: TabConfiguration<CorrespondenceTableRow> = {
   tabValue: 'CORRESPONDENCIA',
-
   headerActionRoute: 'register_correspondence',
-
   columns: [
     { field: 'name', header: 'Documento / Resolución Final', type: 'text', width: '50%' },
     { field: 'date', header: 'Fecha de Registro', type: 'text', width: '30%' },
@@ -24,23 +31,22 @@ export const CorrespondenceTabConfig: TabConfiguration = {
   enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
+
     const hasCorrespondence = thesis.documents?.some(
       (doc: FileDocument) => doc.type === DocumentType.FORMATO_H
     ) ?? false;
 
-    return {
-      ...baseContext,
-      hasCorrespondence
-    };
+    return { ...baseContext, hasCorrespondence };
   },
 
-  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext) => {
+  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): CorrespondenceTableRow[] => {
     if (!documents) return [];
+
     const correspondenceDocs = documents.filter(
       (doc: FileDocument) => doc.type === DocumentType.FORMATO_H
     );
 
-    return correspondenceDocs.map(doc => ({
+    return correspondenceDocs.map((doc): CorrespondenceTableRow => ({
       id: doc.id,
       name: doc.name,
       date: doc.uploadDate || 'Sin fecha',
@@ -50,12 +56,12 @@ export const CorrespondenceTabConfig: TabConfiguration = {
     }));
   },
 
-  getHeaderButtons: (context: ThesisEvaluationContext) => {
+  getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
     const buttons: TableButton[] = [];
     const { isJuror, hasCorrespondence, isArchived } = context;
-    if (isArchived) {
-      return buttons;
-    }
+
+    if (isArchived) return buttons;
+
     if (isJuror) {
       buttons.push({
         action: 'register_correspondence',
@@ -64,7 +70,6 @@ export const CorrespondenceTabConfig: TabConfiguration = {
         disabled: !!hasCorrespondence
       });
     }
-
     return buttons;
   },
 

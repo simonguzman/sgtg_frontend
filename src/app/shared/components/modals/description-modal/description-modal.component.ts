@@ -18,5 +18,4 @@ export class DescriptionModalComponent {
   closeModal(){
     this.onClose.emit()
   }
-
 }

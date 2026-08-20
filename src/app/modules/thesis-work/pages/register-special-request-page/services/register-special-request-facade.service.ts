@@ -6,43 +6,49 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { SpecialRequestType } from '../../../enums/special-request-type.enum';
 
+// Interfaz extraída para mantener el código limpio y fuertemente tipado
+export interface SpecialRequestPayload {
+  requestType: SpecialRequestType;
+  comments: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class RegisterSpecialRequestFacadeService {
   private readonly thesisWorkService   = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
 
-  // onNotFound y onError se mantienen separados porque el componente original
-  // navega hacia atrás solo cuando el trabajo no existe, pero se queda en la
-  // página (solo notifica) cuando falla la red — se preserva esa distinción.
   public loadThesisWork(
     id: string,
     onSuccess: (work: ThesisWork) => void,
     onNotFound: () => void,
     onError: () => void
   ): void {
-    this.thesisWorkService.getThesisWorkByIdMock(id).pipe(first()).subscribe({
-      next: (data) => {
-        if (!data) {
-          this.showNotification('No encontrado', 'El trabajo de grado especificado no existe.', NotificationType.ERROR);
-          onNotFound();
-          return;
+    this.thesisWorkService.getThesisWorkByIdMock(id)
+      .pipe(first())
+      .subscribe({
+        next: (data: ThesisWork | null | undefined) => {
+          if (!data) {
+            this.showNotification('No encontrado', 'El trabajo de grado especificado no existe.', NotificationType.ERROR);
+            onNotFound();
+            return;
+          }
+          onSuccess(data);
+        },
+        error: (err: unknown) => {
+          console.error(err);
+          this.showNotification('Error', 'No se pudo cargar la información del trabajo de grado.', NotificationType.ERROR);
+          onError();
         }
-        onSuccess(data);
-      },
-      error: (err) => {
-        console.error(err);
-        this.showNotification('Error', 'No se pudo cargar la información del trabajo de grado.', NotificationType.ERROR);
-        onError();
-      }
-    });
+      });
   }
 
   public processSaveRequest(
     thesisId: string,
-    data: { requestType: SpecialRequestType; comments: string },
+    data: SpecialRequestPayload,
     onSuccess: () => void,
     onError: () => void
   ): void {
+    // Al extender ...data, aseguramos que cumpla con el payload que espera el servicio backend
     this.thesisWorkService.createSpecialRequestMock({ ...data, thesisId })
       .pipe(first())
       .subscribe({
@@ -50,7 +56,7 @@ export class RegisterSpecialRequestFacadeService {
           this.showNotification('Éxito', 'La solicitud especial ha sido registrada correctamente.', NotificationType.CONFIRMATION);
           onSuccess();
         },
-        error: (err) => {
+        error: (err: unknown) => {
           console.error(err);
           this.showNotification('Error al guardar', 'Hubo un problema registrando la solicitud. Intente nuevamente.', NotificationType.ERROR);
           onError();

@@ -1,60 +1,41 @@
-/* tslint:disable:no-unused-variable */
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of } from 'rxjs';
-
 import { EvaluationsPerformedPageComponent } from './evaluations-performed-page.component';
-import { ProposalService } from '../../../modules/proposal/services/proposal.service';
-import { PreliminaryDraftService } from '../../../modules/preliminary-draft/services/preliminary-draft.service';
-import { FileDownloadService } from '../../../core/services/filedownload/file-download.service';
+import { EvaluationsFacadeService } from './services/evaluations-facade.service';
 import { NotificationService } from '../../components/notifications/services/notification.service';
-import { stateList } from '../../../core/enums/state.enum';
 import { NotificationType } from '../../components/notifications/models/notification.model';
-import { Evaluation } from '../../../core/interfaces/evaluation.interface';
+import { EvaluationTableRow } from './models/evaluations-page.model';
+import { FormattedDocument } from '../../../core/interfaces/formatted-document.interface';
+import { stateList } from '../../../core/enums/state.enum';
 
 describe('EvaluationsPerformedPageComponent', () => {
   let component: EvaluationsPerformedPageComponent;
   let fixture: ComponentFixture<EvaluationsPerformedPageComponent>;
 
-  let mockProposalService: any;
-  let mockPreliminaryService: any;
-  let mockDownloadService: any;
-  let mockNotificationService: any;
-  let mockRouter: any;
-  let mockActivatedRoute: any;
+  // Mocks con tipado estricto (Zero-Any)
+  let mockFacade: { getMappedEvaluations: jest.Mock; handleDownload: jest.Mock };
+  let mockNotificationService: { show: jest.Mock };
+  let mockRouter: { navigate: jest.Mock; url: string };
 
-  // Mock de evaluación cumpliendo con la interfaz (incluyendo documentId)
-  const mockEvaluation: Evaluation = {
+  const mockEvaluationRow: EvaluationTableRow = {
     id: 'eval-1',
-    proposalId: 'proposal-1',
-    documentId: 'doc-123',
-    evaluatorName: 'Juan Perez',
-    evaluatorRole: 'COMITE',
-    signedDocuments: ['doc.pdf'],
+    evaluatorId: 'user-1',
+    evaluatorName: 'Dra. María',
+    evaluatorRole: 'Jurado',
     veredict: stateList.APROBADO,
-    observations: 'Todo correcto',
-    date: new Date()
+    observations: 'Excelente trabajo',
+    date: new Date(),
+    documentTargetName: 'Documento Final.pdf',
+    signedDocuments: [],
+    allowedActions: ['view_details']
   };
 
-  const mockProposal = {
-    id: 'proposal-1',
-    title: 'Propuesta de prueba',
-    evaluations: [mockEvaluation],
-    documents: [{ id: 'doc-123', name: 'archivo.pdf', type: 'Propuesta' }]
-  };
-
-  beforeEach(async () => {
-    mockProposalService = {
-      proposals: signal([mockProposal]).asReadonly()
-    };
-
-    mockPreliminaryService = {
-      preliminaryDrafts: signal([]).asReadonly()
-    };
-
-    mockDownloadService = {
-      download: jest.fn()
+  // Función de configuración para permitir probar diferentes estados de la URL
+  async function setupTestBed(routeId: string | null) {
+    mockFacade = {
+      getMappedEvaluations: jest.fn().mockReturnValue([mockEvaluationRow]),
+      handleDownload: jest.fn().mockResolvedValue(undefined)
     };
 
     mockNotificationService = {
@@ -63,90 +44,107 @@ describe('EvaluationsPerformedPageComponent', () => {
 
     mockRouter = {
       navigate: jest.fn(),
-      url: '/proposal/proposal-1/evaluations' // URL necesaria para la lógica del computed
+      url: '/history/proposal/123'
     };
 
-    // Mock reactivo para paramMap
-    mockActivatedRoute = {
-      paramMap: of(new Map([['id', 'proposal-1']])),
-      snapshot: { paramMap: { get: () => 'proposal-1' } },
-      parent: {
-        paramMap: of(new Map([['id', 'proposal-1']])),
-        snapshot: { paramMap: { get: () => 'proposal-1' } }
-      }
+    // Simulamos paramMap devolviendo el ID solicitado
+    const mockParamMap = { get: () => routeId };
+    const mockActivatedRoute = {
+      paramMap: of(mockParamMap),
+      parent: { paramMap: of(mockParamMap) }
     };
 
     await TestBed.configureTestingModule({
       imports: [EvaluationsPerformedPageComponent],
       providers: [
-        { provide: ProposalService, useValue: mockProposalService },
-        { provide: PreliminaryDraftService, useValue: mockPreliminaryService },
-        { provide: FileDownloadService, useValue: mockDownloadService },
+        { provide: EvaluationsFacadeService, useValue: mockFacade },
         { provide: NotificationService, useValue: mockNotificationService },
         { provide: Router, useValue: mockRouter },
-        { provide: ActivatedRoute, useValue: mockActivatedRoute }
-      ],
-      schemas: [NO_ERRORS_SCHEMA]
+        { provide: ActivatedRoute, useValue: mockActivatedRoute as unknown as ActivatedRoute }
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(EvaluationsPerformedPageComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+  }
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('Debe crear el componente', () => {
-    expect(component).toBeTruthy();
-  });
-
-  it('Debe retornar evaluaciones procesadas correctamente (acceso protected)', () => {
-    // Usamos casting a any para acceder a la propiedad protected en el test
-    const evaluations = (component as any).evaluationsWithPermissions();
-
-    expect(evaluations.length).toBe(1);
-    expect(evaluations[0].id).toBe(mockEvaluation.id);
-    expect(evaluations[0].documentTargetName).toBe('archivo.pdf');
-  });
-
-  it('Debe abrir el modal al hacer click en view_details', () => {
-    component.handleTableAction({
-      action: 'view_details',
-      row: mockEvaluation
+  describe('Cuando la URL tiene un ID válido', () => {
+    beforeEach(async () => {
+      await setupTestBed('prop-123');
+      fixture.detectChanges(); // Ejecuta ngOnInit y resuelve signals
     });
-    expect(component.modalState()).toEqual({
-      open: true,
-      evaluation: mockEvaluation
+
+    it('Debe crear el componente', () => {
+      expect(component).toBeTruthy();
+    });
+
+    it('Debe obtener las evaluaciones consultando al facade mediante la propiedad computada', () => {
+      // Para probar propiedades protected, usamos notación de corchetes
+      const evaluations = component['evaluationsWithPermissions']();
+
+      expect(mockFacade.getMappedEvaluations).toHaveBeenCalledWith('prop-123', '/history/proposal/123');
+      expect(evaluations.length).toBe(1);
+      expect(evaluations[0].evaluatorName).toBe('Dra. María');
+    });
+
+    it('Debe abrir el modal al hacer click en view_details', () => {
+      component.handleTableAction({ action: 'view_details', row: mockEvaluationRow });
+
+      expect(component.modalState()).toEqual({
+        open: true,
+        evaluation: mockEvaluationRow
+      });
+    });
+
+    it('Debe cerrar el modal reseteando el estado', () => {
+      component.modalState.set({ open: true, evaluation: mockEvaluationRow });
+      component.closeModal();
+
+      expect(component.modalState()).toEqual({
+        open: false,
+        evaluation: null
+      });
+    });
+
+    it('Debe delegar la descarga del documento al facade', () => {
+      const mockDoc: FormattedDocument = { name: 'archivo.pdf', url: 'http://url.com' };
+      component.handleDownload(mockDoc);
+
+      expect(mockFacade.handleDownload).toHaveBeenCalledWith(mockDoc);
+    });
+
+    it('Debe navegar hacia atrás relativo a la ruta activa', () => {
+      component.goBack();
+
+      const activatedRoute = TestBed.inject(ActivatedRoute);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['../'], { relativeTo: activatedRoute });
     });
   });
 
-  it('Debe cerrar el modal correctamente', () => {
-    component.modalState.set({
-      open: true,
-      evaluation: mockEvaluation
+  describe('Cuando la URL NO tiene un ID (Edge case)', () => {
+    beforeEach(async () => {
+      await setupTestBed(null); // Simulamos que route.paramMap.get('id') devuelve null
+      fixture.detectChanges();
     });
-    component.closeModal();
-    expect(component.modalState()).toEqual({
-      open: false,
-      evaluation: null
+
+    it('Debe disparar handleError, mostrar notificación y redirigir al home', () => {
+      expect(mockNotificationService.show).toHaveBeenCalledWith({
+        title: 'Atención',
+        message: 'No se pudo identificar el registro.',
+        type: NotificationType.ERROR
+      });
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/']);
     });
-  });
 
-  it('Debe llamar al servicio de descarga correctamente', () => {
-    component.handleDownload('evaluacion.pdf');
-    expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-      type: NotificationType.INFO,
-      title: 'Descarga'
-    }));
-    expect(mockDownloadService.download).toHaveBeenCalledWith(
-      'assets/evaluaciones/evaluacion.pdf',
-      'evaluacion.pdf'
-    );
-  });
+    it('Debe retornar un arreglo vacío en evaluationsWithPermissions', () => {
+      const evaluations = component['evaluationsWithPermissions']();
 
-  it('Debe navegar hacia atrás relativo a la ruta activa', () => {
-    component.goBack();
-    expect(mockRouter.navigate).toHaveBeenCalledWith(
-      ['../'],
-      { relativeTo: mockActivatedRoute }
-    );
+      expect(evaluations).toEqual([]);
+      expect(mockFacade.getMappedEvaluations).not.toHaveBeenCalled();
+    });
   });
 });

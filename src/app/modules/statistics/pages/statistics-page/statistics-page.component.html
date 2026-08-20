@@ -1,5 +1,4 @@
 <div class="pt-4 max-w-5xl mx-auto pb-10 flex flex-col gap-8">
-
   <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
     <div class="flex flex-col gap-1">
       <h1 class="font-display font-semibold text-primary text-size-header-title">
@@ -9,7 +8,6 @@
         Monitoreo en tiempo real de propuestas, anteproyectos y trabajos de grado
       </p>
     </div>
-
     <div>
       <app-button-component
         label="Generar Reporte PDF"
@@ -18,22 +16,19 @@
       </app-button-component>
     </div>
   </div>
-
   <div class="bg-blue-50/50 p-6 rounded-xl border border-blue-100 shadow-sm flex flex-col gap-4">
     <h3 class="font-display font-semibold text-primary text-size-section mb-2 flex items-center gap-2">
       <span class="material-symbols-outlined text-lg">filter_alt</span> Filtros de Búsqueda
     </h3>
-
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-
+    <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
       <div class="flex flex-col gap-1">
         <label for="stageFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Etapa del Proceso
         </label>
         <p-select
           id="stageFilter"
-          [options]="state.stagesOptions()"
-          [ngModel]="state.currentFilters().stage"
+          [options]="facade.stagesOptions"
+          [ngModel]="facade.currentFilters().stage"
           (ngModelChange)="onStageChange($event)"
           optionLabel="label"
           optionValue="value"
@@ -42,30 +37,28 @@
           styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
         </p-select>
       </div>
-
       <div class="flex flex-col gap-1">
         <label for="periodFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Periodo Académico
         </label>
         <p-select
           id="periodFilter"
-          [options]="state.periodsOptions()"
-          [ngModel]="state.currentFilters().period"
+          [options]="facade.periodsOptions()"
+          [ngModel]="facade.currentFilters().period"
           (ngModelChange)="onPeriodChange($event)"
           placeholder="Todos los periodos"
           [showClear]="true"
           styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
         </p-select>
       </div>
-
       <div class="flex flex-col gap-1">
         <label for="directorFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Director Asignado
         </label>
         <p-select
           id="directorFilter"
-          [options]="state.directorsOptions()"
-          [ngModel]="state.currentFilters().directorId"
+          [options]="facade.directorsOptions()"
+          [ngModel]="facade.currentFilters().directorId"
           (ngModelChange)="onDirectorChange($event)"
           optionLabel="name"
           optionValue="id"
@@ -74,7 +67,6 @@
           styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
         </p-select>
       </div>
-
       <div class="flex flex-col gap-1">
         <label for="archiveFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Tipo de Registro
@@ -82,7 +74,7 @@
         <p-select
           id="archiveFilter"
           [options]="archiveOptions"
-          [ngModel]="state.currentFilters().archiveStatus"
+          [ngModel]="facade.currentFilters().archiveStatus"
           (ngModelChange)="onArchiveStatusChange($event)"
           optionLabel="label"
           optionValue="value"
@@ -90,83 +82,85 @@
           styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
         </p-select>
       </div>
-
+      <div class="flex flex-col gap-1">
+        <label for="deadlineFilter" class="font-display font-semibold text-size-role-footer text-primary">
+          Plazo de Evaluación
+        </label>
+        <p-select
+          id="deadlineFilter"
+          [options]="deadlineFilterOptions"
+          [ngModel]="facade.currentFilters().deadlineFilter"
+          (ngModelChange)="onDeadlineFilterChange($event)"
+          optionLabel="label"
+          optionValue="value"
+          [showClear]="false"
+          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
+        </p-select>
+      </div>
       <div class="flex justify-start md:justify-end">
         <app-button-component
           label="Limpiar Filtros"
           variant="secondary"
           icon="filter_alt_off"
-          (onClick)="state.clearFilters()">
+          (onClick)="facade.clearFilters()">
         </app-button-component>
       </div>
-
     </div>
   </div>
-
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
     <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm flex items-center justify-between">
       <div class="flex flex-col gap-1">
         <span class="text-size-role-footer text-[#777680] font-medium">Proyectos Cargados</span>
-        <span class="text-3xl font-display font-bold text-primary">{{ state.totalLoaded() }}</span>
+        <span class="text-3xl font-display font-bold text-primary">{{ facade.totalLoaded() }}</span>
       </div>
       <div class="p-3 bg-blue-50 text-primary rounded-lg flex items-center justify-center">
         <span class="material-symbols-outlined text-2xl">folder_open</span>
       </div>
     </div>
-
     <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-[#2e7d32] rounded-xl shadow-sm flex items-center justify-between">
       <div class="flex flex-col gap-1">
         <span class="text-size-role-footer text-[#777680] font-medium">Proyectos Aprobados</span>
-        <span class="text-3xl font-display font-bold text-[#2e7d32]">{{ state.totalApproved() }}</span>
+        <span class="text-3xl font-display font-bold text-[#2e7d32]">{{ facade.totalApproved() }}</span>
       </div>
       <div class="p-3 bg-green-50 text-[#2e7d32] rounded-lg flex items-center justify-center">
         <span class="material-symbols-outlined text-2xl">check_circle</span>
       </div>
     </div>
-
     <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-[#ED7D31] rounded-xl shadow-sm flex items-center justify-between">
       <div class="flex flex-col gap-1">
         <span class="text-size-role-footer text-[#777680] font-medium">Aprobados con Obs.</span>
-        <span class="text-3xl font-display font-bold text-[#ED7D31]">{{ state.totalApprovedWithObservations() }}</span>
+        <span class="text-3xl font-display font-bold text-[#ED7D31]">{{ facade.totalApprovedWithObservations() }}</span>
       </div>
       <div class="p-3 bg-orange-50 text-[#ED7D31] rounded-lg flex items-center justify-center">
         <span class="material-symbols-outlined text-2xl">warning</span>
       </div>
     </div>
-
     <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-[#DB141C] rounded-xl shadow-sm flex items-center justify-between">
       <div class="flex flex-col gap-1">
         <span class="text-size-role-footer text-[#777680] font-medium">No Aprobados</span>
-        <span class="text-3xl font-display font-bold text-[#DB141C]">{{ state.totalNotApproved() }}</span>
+        <span class="text-3xl font-display font-bold text-[#DB141C]">{{ facade.totalNotApproved() }}</span>
       </div>
       <div class="p-3 bg-red-50 text-[#DB141C] rounded-lg flex items-center justify-center">
         <span class="material-symbols-outlined text-2xl">cancel</span>
       </div>
     </div>
-
   </div>
-
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
     <div class="bg-white p-6 border border-gray-200 rounded-xl shadow-sm flex flex-col gap-4">
       <h3 class="font-display font-semibold text-primary text-size-section">
         Estado de Evaluaciones Generales
       </h3>
       <div class="h-80 w-full relative">
-        <p-chart type="doughnut" [data]="state.statusChartData()" [options]="doughnutOptions"></p-chart>
+        <p-chart type="doughnut" [data]="facade.statusChartData()" [options]="doughnutOptions"></p-chart>
       </div>
     </div>
-
     <div class="bg-white p-6 border border-gray-200 rounded-xl shadow-sm flex flex-col gap-4">
       <h3 class="font-display font-semibold text-primary text-size-section">
         Volumen de Proyectos por Fase
       </h3>
       <div class="h-80 w-full relative">
-        <p-chart type="bar" [data]="state.stageChartData()" [options]="barOptions"></p-chart>
+        <p-chart type="bar" [data]="facade.stageChartData()" [options]="barOptions"></p-chart>
       </div>
     </div>
-
   </div>
-
 </div>

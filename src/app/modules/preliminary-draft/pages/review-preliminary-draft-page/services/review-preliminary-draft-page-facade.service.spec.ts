@@ -10,11 +10,19 @@ import { FileDownloadService } from '../../../../../core/services/filedownload/f
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
+
+// Hacemos mock de la función utilitaria para no leer archivos reales en las pruebas
+jest.mock('../../../../../core/utils/file-reader.utils', () => ({
+  readFileAsDataUrl: jest.fn().mockResolvedValue('data:application/pdf;base64,mock-data-url')
+}));
+
+import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
 
 describe('ReviewPreliminaryDraftPageFacadeService', () => {
   let service: ReviewPreliminaryDraftPageFacadeService;
 
-  // Mocks tipados sin usar 'any'
+  // Mocks estrictamente tipados
   let preliminaryDraftServiceMock: {
     getPreliminaryDraftById: jest.Mock;
     addEvaluation: jest.Mock;
@@ -24,21 +32,24 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
   let downloadServiceMock: { download: jest.Mock };
   let routerMock: { navigate: jest.Mock };
 
+  let routeParamMapGetMock: jest.Mock;
+  let parentRouteParamMapGetMock: jest.Mock;
+
   const mockUser = { id: 'u1', firstName: 'Juan', lastName: 'Perez' };
 
-  // Cast a Partial<PreliminaryDraft> para evitar errores de tipado por propiedades faltantes
   const mockDraft = {
     preliminaryDraftId: 'draft-1',
     proposalId: 'prop-1',
     evaluators: [{ id: 'u1' }],
     documents: [
-      { id: 'doc-1', type: 'Anteproyecto', uploadDate: '2026-07-20T10:00:00Z', url: 'url1', name: 'doc1.pdf' }
+      { id: 'doc-1', type: DocumentType.ANTEPROYECTO, uploadDate: '2026-07-20T10:00:00Z', url: 'url1', name: 'doc1.pdf' }
     ]
   } as unknown as PreliminaryDraft;
 
   beforeEach(() => {
     Object.defineProperty(window, 'crypto', {
-      value: { randomUUID: jest.fn().mockReturnValue('mock-uuid-1234') }
+      value: { randomUUID: jest.fn().mockReturnValue('mock-uuid-1234') },
+      writable: true
     });
 
     preliminaryDraftServiceMock = {
@@ -55,16 +66,20 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     };
 
     downloadServiceMock = {
-      download: jest.fn()
+      // Retornamos Promise ya que el servicio usa await
+      download: jest.fn().mockResolvedValue(undefined)
     };
 
     routerMock = {
       navigate: jest.fn()
     };
 
+    routeParamMapGetMock = jest.fn().mockReturnValue('draft-1');
+    parentRouteParamMapGetMock = jest.fn().mockReturnValue(null);
+
     const routeMock = {
-      snapshot: { paramMap: { get: jest.fn().mockReturnValue('draft-1') } },
-      parent: { snapshot: { paramMap: { get: jest.fn() } } }
+      snapshot: { paramMap: { get: routeParamMapGetMock } },
+      parent: { snapshot: { paramMap: { get: parentRouteParamMapGetMock } } }
     };
 
     TestBed.configureTestingModule({
@@ -80,6 +95,9 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     });
 
     service = TestBed.inject(ReviewPreliminaryDraftPageFacadeService);
+
+    // Restaurar implementaciones del mock global por si alguna prueba la pisa
+    (readFileAsDataUrl as jest.Mock).mockResolvedValue('data:application/pdf;base64,mock-data-url');
   });
 
   afterEach(() => {
@@ -93,11 +111,22 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
   describe('init() y loadData()', () => {
     it('debería cargar los datos si el usuario es evaluador', () => {
       preliminaryDraftServiceMock.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
-
       service.init();
 
       expect(preliminaryDraftServiceMock.getPreliminaryDraftById).toHaveBeenCalledWith('draft-1');
       expect(service.preliminaryDraftState()).toEqual(mockDraft);
+    });
+
+    it('debería mostrar error de navegación si no se encuentra el ID en la ruta', () => {
+      routeParamMapGetMock.mockReturnValue(null);
+      parentRouteParamMapGetMock.mockReturnValue(null);
+
+      service.init();
+
+      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
+        type: NotificationType.ERROR,
+        title: 'Error de navegación'
+      }));
     });
 
     it('debería denegar el acceso y redirigir si el usuario no es evaluador', () => {
@@ -113,9 +142,8 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
       expect(routerMock.navigate).toHaveBeenCalledWith(['/dashboard']);
     });
 
-    it('debería notificar error si no encuentra el anteproyecto', () => {
+    it('debería notificar error si no encuentra el anteproyecto (API retorna null/undefined)', () => {
       preliminaryDraftServiceMock.getPreliminaryDraftById.mockReturnValue(of(null));
-
       service.init();
 
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
@@ -124,9 +152,8 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
       }));
     });
 
-    it('debería notificar error de conexión si falla la API', () => {
-      preliminaryDraftServiceMock.getPreliminaryDraftById.mockReturnValue(throwError(() => new Error('Net Error')));
-
+    it('debería notificar error de conexión si falla la petición HTTP', () => {
+      preliminaryDraftServiceMock.getPreliminaryDraftById.mockReturnValue(throwError(() => new Error('Network Error')));
       service.init();
 
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
@@ -137,7 +164,7 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
   });
 
   describe('handleRequestConfirmation()', () => {
-    it('debería actualizar el estado y abrir el modal', () => {
+    it('debería actualizar el estado de pendingReviewData y abrir el modal', () => {
       const mockData: PendingReviewData = {
         formValues: { result: stateList.APROBADO, comments: 'Ok' },
         file: new File([], 'test.pdf')
@@ -151,9 +178,12 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
   });
 
   describe('processEvaluation()', () => {
-    it('debería detenerse y notificar si faltan datos', () => {
-      service.pendingReviewData.set(null);
-      service.processEvaluation();
+    const mockFile = new File([''], 'evaluacion.pdf', { type: 'application/pdf' });
+    const mockAnnotatedFile = new File([''], 'anotaciones.pdf', { type: 'application/pdf' });
+
+    it('debería detenerse y notificar si faltan datos en el estado', async () => {
+      service.pendingReviewData.set(null); // Estado incompleto
+      await service.processEvaluation();
 
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
         type: NotificationType.ERROR,
@@ -162,51 +192,131 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
       expect(preliminaryDraftServiceMock.addEvaluation).not.toHaveBeenCalled();
     });
 
-    it('debería procesar la evaluación correctamente (Aprobado) y navegar', () => {
+    it('debería notificar error si falla la lectura del archivo', async () => {
       service.preliminaryDraftState.set(mockDraft);
       service.pendingReviewData.set({
         formValues: { result: stateList.APROBADO, comments: 'Todo bien' },
-        file: new File([], 'evaluacion.pdf')
+        file: mockFile
+      });
+      // Simulamos que la Promesa de lectura falla
+      (readFileAsDataUrl as jest.Mock).mockRejectedValueOnce(new Error('File access error'));
+
+      await service.processEvaluation();
+
+      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
+        type: NotificationType.ERROR,
+        title: 'Error al leer el archivo'
+      }));
+    });
+
+    it('debería procesar la evaluación correctamente (Aprobado) y navegar', async () => {
+      service.preliminaryDraftState.set(mockDraft);
+      service.pendingReviewData.set({
+        formValues: { result: stateList.APROBADO, comments: 'Aprobado sin problemas' },
+        file: mockFile
       });
       preliminaryDraftServiceMock.addEvaluation.mockReturnValue(of(undefined));
 
-      service.processEvaluation();
+      await service.processEvaluation();
 
       expect(preliminaryDraftServiceMock.addEvaluation).toHaveBeenCalledWith(
         'draft-1',
         expect.objectContaining({
           veredict: stateList.APROBADO,
-          observations: 'Todo bien',
-          signedDocuments: ['evaluacion.pdf']
+          observations: 'Aprobado sin problemas',
+          signedDocuments: [{ name: 'evaluacion.pdf', url: 'data:application/pdf;base64,mock-data-url' }]
         })
       );
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
         type: NotificationType.CONFIRMATION,
-        title: 'Evaluación Registrada'
+        title: 'Evaluación Registrada',
+        message: 'El veredicto positivo ha sido guardado exitosamente.'
       }));
       expect(service.isConfirmModalOpen()).toBe(false);
       expect(routerMock.navigate).toHaveBeenCalledWith(['../../'], expect.any(Object));
     });
+
+    it('debería procesar la evaluación con archivo anotado y veredicto negativo', async () => {
+      service.preliminaryDraftState.set(mockDraft);
+      service.pendingReviewData.set({
+        formValues: { result: stateList.NO_APROBADO, comments: 'Requiere ajustes' },
+        file: mockFile,
+        annotatedFile: mockAnnotatedFile
+      });
+      preliminaryDraftServiceMock.addEvaluation.mockReturnValue(of(undefined));
+
+      await service.processEvaluation();
+
+      expect(preliminaryDraftServiceMock.addEvaluation).toHaveBeenCalledWith(
+        'draft-1',
+        expect.objectContaining({
+          veredict: stateList.NO_APROBADO,
+          signedDocuments: [
+            { name: 'evaluacion.pdf', url: 'data:application/pdf;base64,mock-data-url' },
+            { name: 'anotaciones.pdf', url: 'data:application/pdf;base64,mock-data-url' }
+          ]
+        })
+      );
+      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
+        type: NotificationType.CONFIRMATION,
+        message: 'Se ha registrado el veredicto negativo y se solicitarán correcciones.'
+      }));
+    });
+
+    it('debería mostrar notificación de error si falla la subida a la API', async () => {
+      service.preliminaryDraftState.set(mockDraft);
+      service.pendingReviewData.set({
+        formValues: { result: stateList.APROBADO, comments: 'Ok' },
+        file: mockFile
+      });
+      preliminaryDraftServiceMock.addEvaluation.mockReturnValue(throwError(() => new Error('API Error')));
+
+      await service.processEvaluation();
+
+      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
+        type: NotificationType.ERROR,
+        title: 'Error al guardar'
+      }));
+    });
   });
 
   describe('downloadCurrentDocument()', () => {
-    it('debería descargar el documento si hay una revisión activa', () => {
+    it('debería descargar el documento si hay una revisión activa', async () => {
       service.preliminaryDraftState.set(mockDraft);
 
-      service.downloadCurrentDocument();
+      await service.downloadCurrentDocument();
 
       expect(downloadServiceMock.download).toHaveBeenCalledWith('url1', 'doc1.pdf');
     });
 
-    it('debería mostrar error si no hay revisión activa', () => {
+    it('debería mostrar error si no hay revisión activa para descargar', async () => {
       service.preliminaryDraftState.set({ documents: [] } as unknown as PreliminaryDraft);
 
-      service.downloadCurrentDocument();
+      await service.downloadCurrentDocument();
 
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
         type: NotificationType.INFO,
         title: 'Error de descarga'
       }));
+    });
+
+    it('debería mostrar error si falla la utilidad de descarga (Exception)', async () => {
+      service.preliminaryDraftState.set(mockDraft);
+      downloadServiceMock.download.mockRejectedValue(new Error('Network error'));
+
+      await service.downloadCurrentDocument();
+
+      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
+        type: NotificationType.INFO,
+        title: 'Error de descarga'
+      }));
+    });
+  });
+
+  describe('goBack()', () => {
+    it('debería navegar a la ruta anterior', () => {
+      service.goBack();
+      expect(routerMock.navigate).toHaveBeenCalledWith(['../'], expect.any(Object));
     });
   });
 });

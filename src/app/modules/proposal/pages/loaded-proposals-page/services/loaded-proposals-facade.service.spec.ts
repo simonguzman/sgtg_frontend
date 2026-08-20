@@ -18,6 +18,9 @@ import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 
+// Importación para espiar utilidades externas
+import * as fileReaderUtils from '../../../../../core/utils/file-reader.utils';
+
 describe('LoadedProposalsFacadeService', () => {
   let service: LoadedProposalsFacadeService;
 
@@ -29,6 +32,9 @@ describe('LoadedProposalsFacadeService', () => {
 
   let mockCurrentUserSignal: WritableSignal<User | null>;
   let mockAllProposalsSignal: WritableSignal<Proposal[]>;
+
+  // Spies para utilidades
+  let readFileSpy: jest.SpyInstance;
 
   const mockUser: User = { id: 'user-director', roles: [UserRoleType.DOCENTE] } as User;
 
@@ -60,12 +66,9 @@ describe('LoadedProposalsFacadeService', () => {
   };
 
   beforeAll(() => {
-    // Mock de crypto para UUIDs predecibles
     Object.defineProperty(globalThis, 'crypto', {
       value: { randomUUID: () => 'uuid-1234' }
     });
-    // Fijamos la fecha para que formatDate no falle en distintos entornos
-    // Pasamos .getTime() para obtener los milisegundos numéricos
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2026-07-21T10:00:00Z').getTime());
   });
@@ -89,7 +92,7 @@ describe('LoadedProposalsFacadeService', () => {
     } as unknown as jest.Mocked<AuthService>;
 
     mockDownloadService = {
-      download: jest.fn()
+      download: jest.fn().mockResolvedValue(undefined) // Ajustado a Promesa
     } as unknown as jest.Mocked<FileDownloadService>;
 
     mockNotificationService = {
@@ -99,6 +102,9 @@ describe('LoadedProposalsFacadeService', () => {
     mockMapper = {
       mapDocumentToRow: jest.fn().mockReturnValue(mockMappedRow)
     } as unknown as jest.Mocked<LoadedProposalsMapperService>;
+
+    // Espiar la utilidad de lectura de archivos
+    readFileSpy = jest.spyOn(fileReaderUtils, 'readFileAsDataUrl').mockResolvedValue('data:application/pdf;base64,mockedbase64');
 
     TestBed.configureTestingModule({
       providers: [
@@ -127,7 +133,7 @@ describe('LoadedProposalsFacadeService', () => {
     });
 
     it('debería mapear los documentos usando el mapper con permisos correctos (COMITE)', () => {
-      mockAuthService.hasAnyRole.mockReturnValue(true); // Simulamos que es COMITE/ADMIN
+      mockAuthService.hasAnyRole.mockReturnValue(true);
 
       const result = service.buildDocumentsTableData('prop-1');
 
@@ -145,17 +151,17 @@ describe('LoadedProposalsFacadeService', () => {
 
     it('debería retornar vacío si el usuario no es director ni admin', () => {
       mockCurrentUserSignal.set({ id: 'user-other', roles: [UserRoleType.DOCENTE] } as User);
-      mockAuthService.hasAnyRole.mockReturnValue(false); // No es admin
+      mockAuthService.hasAnyRole.mockReturnValue(false);
 
       expect(service.buildHeaderButtons('prop-1')).toEqual([]);
     });
 
     it('debería retornar botón deshabilitado si hay un documento en revisión', () => {
-      // Por defecto mockMappedRow tiene status EN_REVISION
       const buttons = service.buildHeaderButtons('prop-1');
 
       expect(buttons).toHaveLength(1);
       expect(buttons[0]).toEqual({
+        action: 'upload_correction', // Actualizado con action
         label: 'Cargar propuesta corregida',
         variant: 'primary',
         disabled: true
@@ -163,7 +169,7 @@ describe('LoadedProposalsFacadeService', () => {
     });
 
     it('debería retornar botón habilitado si no hay docs en revisión y no está totalmente aprobada', () => {
-      mockMapper.mapDocumentToRow.mockReturnValue({ ...mockMappedRow, status: stateList.APROBADO });
+      mockMapper.mapDocumentToRow.mockReturnValue({ ...mockMappedRow, status: stateList.NO_APROBADO });
 
       const buttons = service.buildHeaderButtons('prop-1');
 
@@ -205,9 +211,22 @@ describe('LoadedProposalsFacadeService', () => {
     });
   });
 
+  describe('Método: showRestrictedActionNotification', () => {
+    it('debería mostrar la notificación estándar de acción denegada', () => {
+      service.showRestrictedActionNotification();
+
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Acción no permitida',
+          type: NotificationType.ERROR
+        })
+      );
+    });
+  });
+
   describe('Método: handleDownload', () => {
-    it('debería notificar info e iniciar descarga si el URL es válido', () => {
-      service.handleDownload(mockMappedRow);
+    it('debería notificar info e iniciar descarga si el URL es válido de forma asíncrona', async () => {
+      await service.handleDownload(mockMappedRow); // Modificado con await
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ type: NotificationType.INFO, title: 'Descarga iniciada' })
@@ -215,39 +234,56 @@ describe('LoadedProposalsFacadeService', () => {
       expect(mockDownloadService.download).toHaveBeenCalledWith('http://docs.com/doc1', 'Propuesta.pdf');
     });
 
-    it('debería notificar error si el URL es nulo o vacío', () => {
+    it('debería notificar error si el URL es nulo o vacío', async () => {
       const invalidRow = { ...mockMappedRow, url: '   ' };
-      service.handleDownload(invalidRow);
+      await service.handleDownload(invalidRow);
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ type: NotificationType.ERROR, title: 'Archivo no disponible' })
       );
       expect(mockDownloadService.download).not.toHaveBeenCalled();
     });
+
+    it('debería interceptar errores lanzados por el servicio de descargas', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      mockDownloadService.download.mockRejectedValue(new Error('Network error'));
+
+      await service.handleDownload(mockMappedRow);
+
+      expect(consoleSpy).toHaveBeenCalled();
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({ type: NotificationType.ERROR, title: 'Error de descarga' })
+      );
+
+      consoleSpy.mockRestore();
+    });
   });
 
   describe('Método: upload', () => {
     const fileData = { fileName: 'correccion_final.pdf', file: new File([], 'test.pdf') };
 
-    it('debería procesar la carga exitosamente, notificar y llamar a onSuccess', () => {
+    it('debería procesar la carga exitosamente tras leer el archivo, notificar y llamar a onSuccess', async () => {
       const onSuccess = jest.fn();
       const onError = jest.fn();
-      mockProposalService.uploadCorrectionMock.mockReturnValue(of({} as any)); // Retorno exitoso
 
-      service.upload('prop-1', fileData, onSuccess, onError);
+      // Eliminado el 'as any'
+      mockProposalService.uploadCorrectionMock.mockReturnValue(of(mockProposal));
 
-      // Verificamos notificaciones previas y posteriores
+      // Modificado con await para soportar proceso asíncrono
+      await service.upload('prop-1', fileData, onSuccess, onError);
+
+      expect(readFileSpy).toHaveBeenCalledWith(fileData.file);
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Subiendo documento' }));
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ title: '¡Documento cargado!' }));
 
-      // Verificamos payload mapeado
       expect(mockProposalService.uploadCorrectionMock).toHaveBeenCalledWith(
         'prop-1',
         expect.objectContaining({
           id: 'uuid-1234',
-          name: 'correccion_final', // PDF removido
+          name: 'correccion_final',
           type: DocumentType.CORRECCION,
           status: stateList.EN_REVISION,
+          url: 'data:application/pdf;base64,mockedbase64', // Validamos uso del mock de lectura
           uploadDate: expect.any(String)
         })
       );
@@ -256,12 +292,33 @@ describe('LoadedProposalsFacadeService', () => {
       expect(onError).not.toHaveBeenCalled();
     });
 
-    it('debería notificar error y llamar a onError si falla el servicio', () => {
+    it('debería fallar, notificar error y llamar onError si falla la lectura del archivo (Data URL)', async () => {
       const onSuccess = jest.fn();
       const onError = jest.fn();
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Forzamos error en la utilidad de FileReader
+      readFileSpy.mockRejectedValue(new Error('FileReader Error'));
+
+      await service.upload('prop-1', fileData, onSuccess, onError);
+
+      expect(consoleSpy).toHaveBeenCalled();
+      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Error de carga' }));
+      expect(mockProposalService.uploadCorrectionMock).not.toHaveBeenCalled();
+
+      expect(onError).toHaveBeenCalled();
+      expect(onSuccess).not.toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    });
+
+    it('debería notificar error y llamar a onError si falla el servicio de propuesta', async () => {
+      const onSuccess = jest.fn();
+      const onError = jest.fn();
+
       mockProposalService.uploadCorrectionMock.mockReturnValue(throwError(() => new Error('Upload failed')));
 
-      service.upload('prop-1', fileData, onSuccess, onError);
+      await service.upload('prop-1', fileData, onSuccess, onError);
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Error de carga', type: NotificationType.ERROR }));
       expect(onError).toHaveBeenCalled();

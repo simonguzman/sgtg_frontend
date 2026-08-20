@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { first } from 'rxjs/operators';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
@@ -20,35 +21,45 @@ export class ThesisWorkDetailsFacadeService {
 
   public loadThesisWorkDetails(id: string): void {
     this.isLoading.set(true);
-    this.thesisWorkService.getThesisWorkByIdMock(id).subscribe({
-      next: (foundData) => {
-        if (foundData) {
-          this.details.set(this.mapper.mapToView(foundData));
-        } else {
-          this.showNotification('Registro inexistente', 'El trabajo de grado solicitado no se encuentra registrado en el sistema.', NotificationType.ERROR);
+    // ← first() agregado: faltaba en esta suscripción.
+    this.thesisWorkService.getThesisWorkByIdMock(id)
+      .pipe(first())
+      .subscribe({
+        next: (foundData) => {
+          if (foundData) {
+            this.details.set(this.mapper.mapToView(foundData));
+          } else {
+            this.showNotification('Registro inexistente', 'El trabajo de grado solicitado no se encuentra registrado en el sistema.', NotificationType.ERROR);
+            this.goBack();
+          }
+          this.isLoading.set(false);
+        },
+        error: (error) => {
+          console.error('Error al recuperar detalles:', error);
+          this.showNotification('Error de comunicación', 'Hubo un problema al conectar con el repositorio.', NotificationType.ERROR);
           this.goBack();
+          this.isLoading.set(false);
         }
-        this.isLoading.set(false);
-      },
-      error: (error) => {
-        console.error('Error al recuperar detalles:', error);
-        this.showNotification('Error de comunicación', 'Hubo un problema al conectar con el repositorio.', NotificationType.ERROR);
-        this.goBack();
-        this.isLoading.set(false);
-      }
-    });
+      });
   }
 
-  public downloadDocument(): void {
+  // ← FIX: async + try/catch, mismo patrón ya aplicado al resto de
+  // descargas del proyecto. Antes mostraba "Descarga exitosa" de
+  // inmediato, sin esperar a que la descarga realmente completara.
+  public async downloadDocument(): Promise<void> {
     const document = this.details()?.mainDocument;
     if (!document?.url) {
       this.showNotification('Archivo no disponible', 'No se encontró un documento raíz válido vinculado.', NotificationType.ERROR);
       return;
     }
-
     this.showNotification('Iniciando transferencia', 'Localizando y preparando el documento para su descarga...', NotificationType.INFO);
-    this.downloadService.download(document.url, document.name);
-    this.showNotification('Descarga exitosa', 'El archivo original se ha guardado en su equipo.', NotificationType.CONFIRMATION);
+    try {
+      await this.downloadService.download(document.url, document.name);
+      this.showNotification('Descarga exitosa', 'El archivo original se ha guardado en su equipo.', NotificationType.CONFIRMATION);
+    } catch (err) {
+      console.error('Error al descargar el documento:', err);
+      this.showNotification('Error de descarga', 'No se pudo descargar el documento. Intente más tarde.', NotificationType.ERROR);
+    }
   }
 
   public goBack(): void {

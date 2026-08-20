@@ -23,6 +23,7 @@ export class EvaluateCorrectionsFormService {
   getDirectorName(thesisWork: ThesisWork): string   { return this.participants.getDirectorName(thesisWork); }
   getCodirectorName(thesisWork: ThesisWork): string { return this.participants.getCodirectorName(thesisWork); }
   getAdvisorName(thesisWork: ThesisWork): string     { return this.participants.getAdvisorName(thesisWork); }
+
   getAssignedJurors(thesisWork: ThesisWork): string {
     return this.participants.getAssignedJurors(thesisWork.sustentations?.[0]);
   }
@@ -31,11 +32,6 @@ export class EvaluateCorrectionsFormService {
     return observations.trim().length >= MIN_OBSERVATIONS_LENGTH;
   }
 
-  /**
-   * Construye el payload de evaluación combinando la entrega corregida más
-   * reciente, la propuesta y el usuario en sesión — lógica de dominio que
-   * no pertenece al componente.
-   */
   buildEvaluationPayload(
     thesisWork: ThesisWork,
     verdict: stateList,
@@ -44,7 +40,6 @@ export class EvaluateCorrectionsFormService {
   ): Omit<Evaluation, 'id' | 'date'> {
     const currentUser      = this.authService.currentUser();
     const targetDocumentId = correctedDeliveries[0]?.monograph?.id ?? '';
-
     return {
       documentId:    targetDocumentId,
       proposalId:    thesisWork.preliminaryDraftData?.proposalData?.id ?? '',
@@ -56,7 +51,9 @@ export class EvaluateCorrectionsFormService {
     };
   }
 
-  downloadDocument(doc: FileDocument): void {
+  // ← FIX: async + try/catch — mismo patrón ya aplicado al resto de
+  // descargas del proyecto. Antes era "fire and forget" sin await.
+  async downloadDocument(doc: FileDocument): Promise<void> {
     if (!doc?.url) {
       this.notificationService.show({
         title: 'Error de archivo',
@@ -65,7 +62,16 @@ export class EvaluateCorrectionsFormService {
       });
       return;
     }
-    this.downloadService.download(doc.url, `${doc.name}.pdf`);
+    try {
+      await this.downloadService.download(doc.url, `${doc.name}.pdf`);
+    } catch (err) {
+      console.error(`Error al descargar el documento ${doc.name}:`, err);
+      this.notificationService.show({
+        title: 'Error de descarga',
+        message: `No se pudo descargar ${doc.name}. Intente más tarde.`,
+        type: NotificationType.ERROR
+      });
+    }
   }
 
   notifyFileAttached(): void {
@@ -75,7 +81,6 @@ export class EvaluateCorrectionsFormService {
       type: NotificationType.INFO
     });
   }
-
   notifyMissingVerdict(): void {
     this.notificationService.show({
       title: 'Dictamen requerido',
@@ -83,7 +88,6 @@ export class EvaluateCorrectionsFormService {
       type: NotificationType.ERROR
     });
   }
-
   notifyInvalidObservations(): void {
     this.notificationService.show({
       title:   'Observaciones vacías',
@@ -91,7 +95,6 @@ export class EvaluateCorrectionsFormService {
       type:    NotificationType.ERROR
     });
   }
-
   notifyMissingFormatG(): void {
     this.notificationService.show({
       title: 'Formato_G Faltante',

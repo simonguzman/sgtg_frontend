@@ -29,7 +29,7 @@ export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
   getTableData: (documents: FileDocument[], context: PreliminaryDraftEvaluationContext, preliminaryDraftService: PreliminaryDraftService) => {
     const { preliminaryDraft, currentUser, isAdmin, isAssignedEvaluator, totalEvaluatorsCount, latestAnteproyectoId } = context;
 
-    const filteredDocs = documents.filter(document => document.type === 'Anteproyecto' || document.type === 'Correccion');
+    const filteredDocs = documents.filter(document => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION);
 
     return filteredDocs.map(document => {
       const isLatestDoc = document.id === latestAnteproyectoId;

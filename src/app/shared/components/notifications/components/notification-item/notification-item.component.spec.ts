@@ -1,93 +1,124 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { NotificationItemComponent } from './notification-item.component';
-import { NotificationType } from '../../models/notification.model';
+import { Notification, NotificationType } from '../../models/notification.model';
+import { NOTIFICATION_CONFIG } from './models/notification-item.model';
 
 describe('NotificationItemComponent', () => {
   let component: NotificationItemComponent;
   let fixture: ComponentFixture<NotificationItemComponent>;
 
-  beforeEach(async() => {
+  const baseNotification: Notification = {
+    id: 'notif-123',
+    type: NotificationType.INFO,
+    title: 'Título de prueba',
+    message: 'Mensaje de prueba'
+  };
+
+  beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [NotificationItemComponent]
-    })
-    .compileComponents();
+    }).compileComponents();
 
     fixture = TestBed.createComponent(NotificationItemComponent);
     component = fixture.componentInstance;
   });
 
-  const mockNotification = {
-    id: '123',
-    type: NotificationType.CONFIRMATION,
-    title: 'Exito',
-    message: 'Operación completada',
-    dismissible: true
-  };
-
-  it('debe mostrar el titulo y mensaje correctamente', () =>{
-    fixture.componentRef.setInput('notification', mockNotification);
-
-    fixture.detectChanges();
-
-    const element = fixture.nativeElement;
-    expect(element.textContent).toContain('Exito');
-    expect(element.textContent).toContain('Operación completada')
-  })
-
-  it('debe aplicar las clases correctas según el tipo (Logic Mapping)', () => {
-    // Probamos el tipo ERROR para validar el cambio de config()
-    fixture.componentRef.setInput('notification', {
-      ...mockNotification,
-      type: NotificationType.ERROR
-    });
-    fixture.detectChanges();
-
-    const container = fixture.debugElement.query(By.css('[role="alert"]')).nativeElement;
-
-    // En lugar de probar "red-500", probamos la clase lógica de tu config
-    expect(container.classList).toContain('notification--error');
-  });
-
-  it('debe emitir el ID cuando se hace clic en el botón de cerrar', () => {
-    // Arrange
-    fixture.componentRef.setInput('notification', mockNotification);
-    fixture.detectChanges();
-
-    // Creamos un espía en el output (que es una Signal de salida)
-    const emitSpy = jest.spyOn(component.dismissed, 'emit');
-
-    // Act: Buscamos el botón y simulamos el clic
-    const closeButton = fixture.debugElement.query(By.css('.notification__close'));
-    closeButton.triggerEventHandler('click', null);
-
-    // Assert
-    expect(emitSpy).toHaveBeenCalledWith('123');
-  });
-
-  it('no debe renderizar el botón de cerrar si dismissible es false', () => {
-    // Arrange
-    fixture.componentRef.setInput('notification', {
-      ...mockNotification,
-      dismissible: false
+  describe('Renderizado de contenido y Accesibilidad', () => {
+    beforeEach(() => {
+      fixture.componentRef.setInput('notification', baseNotification);
+      fixture.detectChanges();
     });
 
-    // Act
-    fixture.detectChanges();
+    it('debe mostrar el título y el mensaje correctamente', () => {
+      const titleEl = fixture.debugElement.query(By.css('.notification__title')).nativeElement as HTMLElement;
+      const messageEl = fixture.debugElement.query(By.css('.notification__message')).nativeElement as HTMLElement;
 
-    // Assert
-    const closeButton = fixture.debugElement.query(By.css('.notification__close'));
-    expect(closeButton).toBeNull(); // El botón no debe existir en el DOM
-  });
-
-  it('No debe romperse el componente si el type no es una opción valida',() => {
-    fixture.componentRef.setInput('notification',{
-      ...mockNotification,
-      type: 'INVALIDO'
+      expect(titleEl.textContent?.trim()).toBe('Título de prueba');
+      expect(messageEl.textContent?.trim()).toBe('Mensaje de prueba');
     });
 
-    expect(() => fixture.detectChanges()).not.toThrow();
+    it('debe contener el atributo role="alert" para accesibilidad', () => {
+      const containerEl = fixture.debugElement.query(By.css('.notification')).nativeElement as HTMLElement;
+      expect(containerEl.getAttribute('role')).toBe('alert');
+    });
+  });
 
-  })
+  describe('Configuración Computada (config)', () => {
+    // Función auxiliar para comprobar múltiples clases de forma segura
+    const expectClassesToExist = (element: HTMLElement, classString: string | undefined) => {
+      if (!classString) return;
+      const classes = classString.split(' ').filter(c => c.trim() !== '');
+      classes.forEach(cls => {
+        expect(element.classList.contains(cls)).toBeTruthy();
+      });
+    };
 
+    it('debe aplicar las clases correctas basándose en el tipo de notificación (ej. ERROR)', () => {
+      const errorNotification: Notification = { ...baseNotification, type: NotificationType.ERROR };
+      fixture.componentRef.setInput('notification', errorNotification);
+      fixture.detectChanges();
+
+      const expectedConfig = NOTIFICATION_CONFIG[NotificationType.ERROR];
+      const containerEl = fixture.debugElement.query(By.css('.notification')).nativeElement as HTMLElement;
+      const iconEl = fixture.debugElement.query(By.css('i.notification__icon')).nativeElement as HTMLElement;
+
+      expectClassesToExist(containerEl, expectedConfig.containerClass);
+      expectClassesToExist(iconEl, expectedConfig.icon);
+      expectClassesToExist(iconEl, expectedConfig.iconClass);
+    });
+
+    it('debe hacer fallback a INFO si se recibe un tipo desconocido', () => {
+      // Forzamos un tipo inválido estrictamente tipado como NotificationType para simular el fallo en runtime
+      const unknownNotification: Notification = { ...baseNotification, type: 'UNKNOWN_TYPE' as NotificationType };
+      fixture.componentRef.setInput('notification', unknownNotification);
+      fixture.detectChanges();
+
+      const expectedFallbackConfig = NOTIFICATION_CONFIG[NotificationType.INFO];
+      const containerEl = fixture.debugElement.query(By.css('.notification')).nativeElement as HTMLElement;
+
+      expectClassesToExist(containerEl, expectedFallbackConfig.containerClass);
+    });
+  });
+
+  describe('Botón de cerrar (dismissible)', () => {
+    it('debe renderizar el botón de cerrar si dismissible es undefined (comportamiento por defecto)', () => {
+      fixture.componentRef.setInput('notification', baseNotification);
+      fixture.detectChanges();
+
+      const closeBtn = fixture.debugElement.query(By.css('.notification__close'));
+      expect(closeBtn).toBeTruthy();
+    });
+
+    it('debe renderizar el botón de cerrar si dismissible es explícitamente true', () => {
+      fixture.componentRef.setInput('notification', { ...baseNotification, dismissible: true });
+      fixture.detectChanges();
+
+      const closeBtn = fixture.debugElement.query(By.css('.notification__close'));
+      expect(closeBtn).toBeTruthy();
+    });
+
+    it('NO debe renderizar el botón de cerrar si dismissible es explícitamente false', () => {
+      fixture.componentRef.setInput('notification', { ...baseNotification, dismissible: false });
+      fixture.detectChanges();
+
+      const closeBtn = fixture.debugElement.query(By.css('.notification__close'));
+      expect(closeBtn).toBeNull();
+    });
+  });
+
+  describe('Emisión de eventos (Outputs)', () => {
+    it('debe emitir el evento "dismissed" con el ID de la notificación al hacer click en cerrar', () => {
+      fixture.componentRef.setInput('notification', baseNotification);
+      fixture.detectChanges();
+
+      const emitSpy = jest.spyOn(component.dismissed, 'emit');
+      const closeBtn = fixture.debugElement.query(By.css('.notification__close'));
+
+      closeBtn.triggerEventHandler('click', null);
+
+      expect(emitSpy).toHaveBeenCalledTimes(1);
+      expect(emitSpy).toHaveBeenCalledWith('notif-123');
+    });
+  });
 });

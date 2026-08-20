@@ -34,50 +34,38 @@ export class ThesisWorkDetailsMapperService {
     const defaultDescription = 'Resolución original del anteproyecto aprobado';
     const evaluations = preliminaryDraft.evaluations || [];
 
-    // 1. Buscar en evaluaciones del consejo
+    // 1. Buscar en evaluaciones del consejo (Prioridad Alta)
     const consejoEvaluations = evaluations.filter(e => e.evaluatorRole?.toUpperCase().includes('CONSEJO'));
     if (consejoEvaluations.length > 0) {
       const lastConsejoEval = consejoEvaluations[consejoEvaluations.length - 1];
       if (lastConsejoEval.signedDocuments && lastConsejoEval.signedDocuments.length > 0) {
-        const resolutionUrl = lastConsejoEval.signedDocuments[lastConsejoEval.signedDocuments.length - 1];
-        const allSystemDocs = [...(preliminaryDraft.documents || []), ...(work.documents || [])];
-
-        const exactDocument = allSystemDocs.find(doc => doc.url === resolutionUrl && doc.id !== lastConsejoEval.documentId);
-        if (exactDocument) {
-          return { name: exactDocument.name, url: exactDocument.url, description: defaultDescription };
-        }
-
-        return { name: this.extractFileNameFromUrl(resolutionUrl), url: resolutionUrl, description: defaultDescription };
+        const resolutionDoc = lastConsejoEval.signedDocuments[lastConsejoEval.signedDocuments.length - 1];
+        return {
+          name: resolutionDoc.name,
+          url: resolutionDoc.url,
+          description: defaultDescription
+        };
       }
     }
 
-    // 2. Buscar en documentos del anteproyecto
+    // 2. Buscar en documentos del anteproyecto (Prioridad Media)
     const resolutionInDraft = (preliminaryDraft.documents || []).find(doc => doc.type === DocumentType.RESOLUCION);
     if (resolutionInDraft) {
-      return { name: resolutionInDraft.name, url: resolutionInDraft.url, description: defaultDescription };
+      return {
+        name: resolutionInDraft.name,
+        url: resolutionInDraft.url,
+        description: defaultDescription
+      };
     }
 
-    // 3. Buscar en documentos directos del trabajo
+    // 3. Buscar en documentos directos del trabajo (Prioridad Baja)
     const directDocs = work.documents || [];
     const finalDoc = directDocs.find(doc => doc.type === DocumentType.RESOLUCION);
 
-    return finalDoc ? { name: finalDoc.name, url: finalDoc.url, description: defaultDescription } : null;
-  }
-
-  private extractFileNameFromUrl(url: string): string {
-    let realName = 'Resolucion_Aprobacion_Consejo.pdf';
-    try {
-      const decodedUrl = decodeURIComponent(url);
-      let fileNameFromUrl = decodedUrl.substring(decodedUrl.lastIndexOf('/') + 1).split('?')[0];
-      if (fileNameFromUrl.includes('%2F')) {
-        fileNameFromUrl = fileNameFromUrl.substring(fileNameFromUrl.lastIndexOf('%2F') + 3);
-      }
-      if (fileNameFromUrl && fileNameFromUrl.trim() !== '') {
-        realName = fileNameFromUrl;
-      }
-    } catch (error) {
-      console.warn('No se pudo procesar el nombre real desde la URL.', error);
-    }
-    return realName;
+    return finalDoc ? {
+      name: finalDoc.name,
+      url: finalDoc.url,
+      description: defaultDescription
+    } : null;
   }
 }

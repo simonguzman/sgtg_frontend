@@ -1,105 +1,51 @@
-import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ChartModule } from 'primeng/chart';
 import { SelectModule } from 'primeng/select';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
-import { StatisticsStateService } from '../../services/statistics-state.service';
-import { ChartOptionsConfiguration } from '../../interfaces/chartOptionsConfiguration.interface';
+import { StatisticsPageFacadeService } from './services/statistics-page-facade.service';
 import { ProjectStage } from '../../enum/projectStage.enum';
-import { StatisticsReportService } from '../../services/statistics-reports.service';
+import { DOUGHNUT_CHART_OPTIONS, BAR_CHART_OPTIONS } from './models/statistics-chart-options.model';
+import { ARCHIVE_STATUS_OPTIONS } from './models/statistics-page.model';
+import { DEADLINE_FILTER_OPTIONS, DeadlineFilterValue } from '../../interfaces/statisticsFilters.interface';
 
 @Component({
   selector: 'app-statistics-page',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    ChartModule,
-    SelectModule,
-    ButtonComponent
-  ],
+  imports: [FormsModule, ChartModule, SelectModule, ButtonComponent],
   templateUrl: './statistics-page.component.html',
   styleUrl: './statistics-page.component.css',
 })
-export class StatisticsPageComponent implements OnInit {
+export class StatisticsPageComponent {
+  protected readonly facade = inject(StatisticsPageFacadeService);
+  protected readonly doughnutOptions = DOUGHNUT_CHART_OPTIONS;
+  protected readonly barOptions = BAR_CHART_OPTIONS;
+  protected readonly archiveOptions = ARCHIVE_STATUS_OPTIONS;
+  // ← NUEVO
+  protected readonly deadlineFilterOptions = DEADLINE_FILTER_OPTIONS;
 
-  public readonly state = inject(StatisticsStateService);
-  private readonly pdfService = inject(StatisticsReportService); // Inyectamos el nuevo servicio
-
-  public doughnutOptions!: ChartOptionsConfiguration;
-  public barOptions!: ChartOptionsConfiguration;
-
-  public readonly archiveOptions = [
-    { label: 'Activos en proceso', value: 'ACTIVE' },
-    { label: 'Historial Archivados', value: 'ARCHIVED' },
-    { label: 'Todos', value: 'ALL' }
-  ];
-
-  ngOnInit(): void {
-    this.initializeChartOptions();
+  onStageChange(stage: ProjectStage | null): void {
+    this.facade.updateFilters({ stage });
   }
 
-  private initializeChartOptions(): void {
-    this.doughnutOptions = {
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { color: '#334155' }
-        }
-      },
-      maintainAspectRatio: false,
-      aspectRatio: 0.8
-    };
-
-    this.barOptions = {
-      plugins: {
-        legend: { display: false }
-      },
-      scales: {
-        x: {
-          ticks: { color: '#475569' },
-          grid: { drawBorder: false }
-        },
-        y: {
-          ticks: { color: '#475569' },
-          grid: { color: '#f1f5f9' }
-        }
-      },
-      maintainAspectRatio: false,
-      aspectRatio: 0.8
-    };
+  onPeriodChange(period: string | null): void {
+    this.facade.updateFilters({ period });
   }
 
-  public onStageChange(stage: ProjectStage | null): void {
-    this.state.updateFilters({ stage });
+  onDirectorChange(directorId: string | null): void {
+    this.facade.updateFilters({ directorId });
   }
 
-  public onPeriodChange(period: string | null): void {
-    this.state.updateFilters({ period });
+  onArchiveStatusChange(archiveStatus: 'ACTIVE' | 'ARCHIVED' | 'ALL'): void {
+    this.facade.updateFilters({ archiveStatus });
   }
 
-  public onDirectorChange(directorId: string | null): void {
-    this.state.updateFilters({ directorId });
+  // ← NUEVO
+  onDeadlineFilterChange(deadlineFilter: DeadlineFilterValue): void {
+    this.facade.updateFilters({ deadlineFilter });
   }
 
-  public onArchiveStatusChange(archiveStatus: 'ACTIVE' | 'ARCHIVED' | 'ALL'): void {
-    this.state.updateFilters({ archiveStatus });
-  }
-
-  public handleDownloadReport(): void {
-    // Recopilamos los datos en crudo desde los signals
-    const currentFilters = this.state.currentFilters();
-    const currentData = this.state.filteredData();
-
-    const kpis = {
-      loaded: this.state.totalLoaded(),
-      approved: this.state.totalApproved(),
-      obs: this.state.totalApprovedWithObservations(),
-      rejected: this.state.totalNotApproved()
-    };
-
-    // Llamamos al servicio para que arme y descargue el PDF
-    this.pdfService.downloadPdfReport(currentFilters, currentData, kpis);
+  handleDownloadReport(): void {
+    this.facade.downloadPdfReport();
   }
 }

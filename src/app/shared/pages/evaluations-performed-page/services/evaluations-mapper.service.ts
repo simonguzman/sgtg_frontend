@@ -15,7 +15,6 @@ import { UserService } from '../../../../modules/users/services/user.service';
 
 @Injectable({ providedIn: 'root' })
 export class EvaluationsMapperService {
-
   private readonly userService = inject(UserService);
 
   public processProposalEvaluations(proposal: Proposal | undefined): EvaluationTableRow[] {
@@ -38,23 +37,20 @@ export class EvaluationsMapperService {
 
   public processThesisEvaluations(thesisWork: ThesisWork | undefined): EvaluationTableRow[] {
     if (!thesisWork) return [];
-
     const defaultTitle = thesisWork.preliminaryDraftData?.proposalData?.title || 'Trabajo de Grado';
     const allDocuments = thesisWork.documents || [];
     const allEvaluations = thesisWork.evaluations || [];
 
+    // ← Simplificado: ya no reimplementa la búsqueda de nombre amigable
+    // por su cuenta — delega a resolveDocumentDisplayName, el mismo
+    // helper que ahora también usa formatEvaluationsForTable.
     const parseSignedDocs = (
       docs: (string | FileDocument | FormattedDocument)[] | undefined,
       fallbackName: string
     ): FormattedDocument[] => {
       return (docs || []).map(item => {
         if (typeof item === 'string') {
-          const doc = allDocuments.find(document => document.url === item);
-
-          return {
-            name: doc?.name || item,
-            url: item
-          };
+          return { name: this.resolveDocumentDisplayName(item, allDocuments, item), url: item };
         }
         return { name: item.name || fallbackName, url: item.url };
       });
@@ -83,11 +79,9 @@ export class EvaluationsMapperService {
     (thesisWork.sustentations ?? []).forEach((sustentation: SustentationRegistry) => {
       (sustentation.verdicts ?? []).forEach((verdict: JurorVerdict) => {
         if (verdict.attachedDocument?.type === DocumentType.CORRECCION) return;
-
         const juror = sustentation.assignedJurors?.find((juror: User) => juror.id === verdict.jurorId);
         const jurorName = juror ? `${juror.firstName ?? ''} ${juror.lastName ?? ''}`.trim() : 'Jurado Evaluador';
         const realDocumentName = verdict.attachedDocument?.name || 'Acta de Sustentación';
-
         verdictEvaluations.push({
           id: `verdict-${verdict.jurorId}-${sustentation.id}`,
           evaluatorId: verdict.jurorId,
@@ -108,7 +102,6 @@ export class EvaluationsMapperService {
         const formattedType = request.requestType.replace(/_/g, ' ').toLowerCase();
         const capitalizedType = formattedType.charAt(0).toUpperCase() + formattedType.slice(1);
         const historicalEvaluatorId = request.evaluatorId || 'consejo-facultad';
-
         return {
           id: request.id,
           evaluatorId: historicalEvaluatorId,
@@ -136,7 +129,6 @@ export class EvaluationsMapperService {
   ): EvaluationTableRow[] {
     return evaluations.map(evaluation => {
       const targetDocument = globalDocuments.find(document => document.id === evaluation.documentId);
-
       const isCouncil = evaluation.evaluatorName?.toLowerCase().includes('consejo') || evaluation.evaluatorRole === 'Consejo';
 
       let realName = evaluation.evaluatorName;
@@ -146,7 +138,6 @@ export class EvaluationsMapperService {
           realName = userFound;
         }
       }
-
       const evaluatorName = realName || (isCouncil ? 'Representante del Consejo' : 'Evaluador');
 
       let rawRole = evaluation.evaluatorRole || (isCouncil ? 'Consejo' : 'Evaluador');
@@ -164,7 +155,16 @@ export class EvaluationsMapperService {
       let docsForModal: FormattedDocument[] = [];
       if (evaluation.signedDocuments?.length) {
         docsForModal = evaluation.signedDocuments.map(document => {
-          if (typeof document === 'string') return { name: document, url: document };
+          // ← FIX: antes, un string crudo se usaba tal cual como nombre
+          // Y como url ({ name: document, url: document }) — si el
+          // string era una ruta tipo "uploads/x.pdf", el modal mostraba
+          // esa ruta como "nombre del archivo" en vez de algo legible.
+          // Ahora intenta resolver el nombre real buscando en
+          // globalDocuments; si no encuentra coincidencia, cae al mismo
+          // comportamiento de antes (sin regresión).
+          if (typeof document === 'string') {
+            return { name: this.resolveDocumentDisplayName(document, globalDocuments, document), url: document };
+          }
           return { name: document.name, url: document.url };
         });
       } else if (targetDocument) {
@@ -184,5 +184,23 @@ export class EvaluationsMapperService {
         allowedActions: ['view_details']
       };
     });
+  }
+
+  // ← NUEVO: extraído de la lógica que ya existía duplicada dentro de
+  // parseSignedDocs (solo se aplicaba a evaluaciones de Trabajo de
+  // Grado). Ahora la comparten Propuestas, Anteproyecto y Trabajo de
+  // Grado por igual.
+  //
+  // Nota honesta: busca por coincidencia exacta de `url`, asumiendo que
+  // el string crudo ES una url. Si en algún punto del código ese string
+  // en realidad guarda un nombre de archivo (no una url), esta búsqueda
+  // no encontrará coincidencia y simplemente caerá al fallback —mismo
+  // comportamiento que existía antes de este fix, nunca peor.
+  private resolveDocumentDisplayName(
+    rawValue: string,
+    documents: FileDocument[],
+    fallbackName: string
+  ): string {
+    return documents.find(document => document.url === rawValue)?.name || fallbackName;
   }
 }

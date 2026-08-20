@@ -20,10 +20,9 @@ export class RegisterSpecialRequestFormComponent {
   @Input() isSubmitting = false;
   @Output() onSaveRequest = new EventEmitter<{ requestType: SpecialRequestType; comments: string }>();
 
-  readonly isSubmitAttempted = signal(false);
+  public readonly isSubmitAttempted = signal(false);
 
-  // ← Getters que exponen el servicio al template sin cambiar los nombres
-  // que el HTML ya usa (requestForm, requestOptions).
+  // Getters expuestos al template
   get requestForm()    { return this.formService.form; }
   get requestOptions() { return this.formService.requestOptions; }
 
@@ -32,12 +31,12 @@ export class RegisterSpecialRequestFormComponent {
   getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
   getAdvisorName(): string    { return this.formService.getAdvisorName(this.thesisWork); }
 
-  isFieldInvalid(fieldName: string): boolean {
+  public isFieldInvalid(fieldName: string): boolean {
     const control = this.requestForm.get(fieldName);
     return !!(this.isSubmitAttempted() && control?.invalid) || !!(control?.invalid && control?.touched);
   }
 
-  submit(): void {
+  public submit(): void {
     this.isSubmitAttempted.set(true);
     this.requestForm.markAllAsTouched();
 
@@ -46,11 +45,12 @@ export class RegisterSpecialRequestFormComponent {
       return;
     }
 
-    // ← Fix: sin cast. TypeScript estrecha `requestType` de `SpecialRequestType | ''`
-    // a `SpecialRequestType` tras descartar la rama falsy ('').
     const raw = this.requestForm.getRawValue();
     if (!raw.requestType) return;
 
-    this.onSaveRequest.emit({ requestType: raw.requestType, comments: raw.comments });
+    this.onSaveRequest.emit({
+      requestType: raw.requestType,
+      comments: raw.comments
+    });
   }
 }

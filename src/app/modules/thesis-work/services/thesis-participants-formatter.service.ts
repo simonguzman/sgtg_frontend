@@ -2,13 +2,12 @@ import { inject, Injectable } from '@angular/core';
 import { UserService } from '../../users/services/user.service';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { SustentationRegistry } from '../interfaces/sustentation-registry.interface';
-import { User } from '../../users/interfaces/user.interface';
 
 /**
  * Centraliza el formateo de nombres de participantes (director, codirector,
- * asesor, estudiantes, jurados) que se repetía de forma idéntica en 8
- * servicios de formulario distintos del módulo de Trabajo de Grado.
- * Cualquier ajuste futuro a estas reglas se hace en un solo lugar.
+ * asesor, estudiantes, jurados) que se repetía de forma idéntica en varios
+ * servicios del módulo de Trabajo de Grado.
+ * Cualquier ajuste futuro a estas reglas se hace en un solo lugar (SRP).
  */
 @Injectable({ providedIn: 'root' })
 export class ThesisParticipantsFormatterService {
@@ -40,6 +39,8 @@ export class ThesisParticipantsFormatterService {
   getAssignedJurors(sustentation: SustentationRegistry | null | undefined): string {
     const jurors = sustentation?.assignedJurors ?? [];
     if (jurors.length === 0) return 'No asignados';
-    return jurors.map((j: User) => this.userService.getUserFullName(j.id)).join(' y ');
+
+    // TypeScript infiere que 'j' es de tipo 'User' gracias a la interfaz
+    return jurors.map(j => this.userService.getUserFullName(j.id)).join(' y ');
   }
 }

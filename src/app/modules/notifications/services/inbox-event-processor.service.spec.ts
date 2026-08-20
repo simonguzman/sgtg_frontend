@@ -1,281 +1,171 @@
 import { TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
+import { signal, WritableSignal } from '@angular/core';
+
 import { InboxEventProcessorService } from './inbox-event-processor.service';
-import { AppEvent, AppEventType, EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { InboxStateService } from './inbox-state.service';
 import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
-import { InboxMessage } from '../interfaces/inbox-message.interface';
+
+import { AppEvent } from '../../../core/interfaces/app-event.interface';
+import { AppEventType } from '../../../core/enums/app-event-type.enum';
+import { User } from '../../users/interfaces/user.interface';
+import { InboxMessage, InboxStatus } from '../interfaces/inbox-message.interface';
 import { NotificationType } from '../../../shared/components/notifications/models/notification.model';
+import { InboxEventContext, InboxEventPayload } from '../pages/notifications-page/models/inbox-event-context.model';
 
-// --- DEFINICIONES DE TIPADO ESTRICTO PARA MOCKS ---
-interface TestCurrentUser {
-  id: string;
-  username: string;
-}
+// Importamos el helper y el diccionario para poder interceptarlos
+import * as contextHelper from '../helpers/inbox-event-context.helper';
+import { INBOX_MESSAGE_BUILDERS } from './inbox-message-builders';
 
-interface MockEventBusService {
-  events$: Subject<AppEvent>;
-}
-
-interface MockInboxStateService {
-  addMessages: jest.Mock<(messages: InboxMessage[]) => void>;
-}
-
-interface MockNotificationService {
-  show: jest.Mock;
-}
-
-interface MockAuthService {
-  currentUser: jest.Mock<TestCurrentUser | null>;
-}
-
-// Interfaz para estructurar los distintos payloads de prueba de manera segura
-interface StrictTestPayload {
-  id?: string;
-  title?: string;
-  proposalTitle?: string;
-  draftTitle?: string;
-  thesisTitle?: string;
-  proposalId?: string;
-  draftId?: string;
-  thesisId?: string;
-  thesisWorkId?: string;
-  requestId?: string;
-  sustentationId?: string;
-  daysLeft?: number;
-  veredict?: string;
-  finalState?: string;
-  status?: string;
-  type?: string;
-  isApproved?: boolean;
-  proposalData?: {
-    title: string;
-  };
-  preliminaryDraftData?: {
-    proposalData?: {
-      title: string;
-    };
-  };
-}
-
-describe('Service: InboxEventProcessor', () => {
+describe('InboxEventProcessorService', () => {
   let service: InboxEventProcessorService;
-  let eventBusMock: MockEventBusService;
-  let inboxStateMock: MockInboxStateService;
-  let notificationServiceMock: MockNotificationService;
-  let authServiceMock: MockAuthService;
+
+  // Dependencias mockeadas
+  let eventsSubject: Subject<AppEvent>;
+  let addMessagesSpy: jest.Mock;
+  let showNotificationSpy: jest.Mock;
+  let mockCurrentUserSignal: WritableSignal<User | null>;
+
+  // Spies para helpers externos
+  let extractContextSpy: jest.SpyInstance;
+  let mockBuilder: jest.Mock;
+
+  // Objeto base simulado que retornaría el Builder
+  const mockBaseMessage = {
+    type: NotificationType.INFO,
+    title: 'Título Mock',
+    message: 'Mensaje Mock',
+    date: new Date(),
+    status: 'no leido' as InboxStatus
+  } as Omit<InboxMessage, 'id' | 'userId'>;
 
   beforeEach(() => {
-    // 1. Inicialización de controladores reactivos y espías
-    eventBusMock = {
-      events$: new Subject<AppEvent>()
-    };
+    // 1. Preparamos los mocks reactivos y espías
+    eventsSubject = new Subject<AppEvent>();
+    addMessagesSpy = jest.fn();
+    showNotificationSpy = jest.fn();
+    mockCurrentUserSignal = signal<User | null>(null);
 
-    inboxStateMock = {
-      addMessages: jest.fn()
-    };
+    // Mockeamos la API nativa de UUID para garantizar predictibilidad
+    Object.defineProperty(globalThis.crypto, 'randomUUID', {
+      value: jest.fn().mockReturnValue('mock-uuid-1234'),
+      configurable: true
+    });
 
-    notificationServiceMock = {
-      show: jest.fn()
-    };
+    // 2. Interceptamos el helper (para no depender de su lógica real)
+    extractContextSpy = jest.spyOn(contextHelper, 'extractInboxEventContext')
+      .mockReturnValue({ payload: {} } as unknown as InboxEventContext);
 
-    authServiceMock = {
-      currentUser: jest.fn(() => null)
-    };
+    // 3. Preparamos el builder simulado
+    mockBuilder = jest.fn().mockReturnValue(mockBaseMessage);
 
-    // 2. Configuración del entorno de pruebas de Angular
+    // Inyectamos nuestro builder simulado temporalmente en el diccionario real
+    Object.defineProperty(INBOX_MESSAGE_BUILDERS, AppEventType.PROPOSAL_DEADLINE_EXPIRED, {
+      value: mockBuilder,
+      writable: true,
+      configurable: true
+    });
+
     TestBed.configureTestingModule({
       providers: [
         InboxEventProcessorService,
-        { provide: EventBusService, useValue: eventBusMock },
-        { provide: InboxStateService, useValue: inboxStateMock },
-        { provide: NotificationService, useValue: notificationServiceMock },
-        { provide: AuthService, useValue: authServiceMock }
+        // Proveemos el observable simulado
+        { provide: EventBusService, useValue: { events$: eventsSubject.asObservable() } },
+        { provide: InboxStateService, useValue: { addMessages: addMessagesSpy } },
+        { provide: NotificationService, useValue: { show: showNotificationSpy } },
+        { provide: AuthService, useValue: { currentUser: mockCurrentUserSignal } }
       ]
     });
 
+    // Instanciar el servicio activa el constructor y la suscripción
     service = TestBed.inject(InboxEventProcessorService);
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
+    // Limpieza de nuestro builder temporal para no contaminar otros tests
+    delete (INBOX_MESSAGE_BUILDERS as Record<string, unknown>)[AppEventType.PROPOSAL_DEADLINE_EXPIRED];
   });
 
-  it('Debe instanciarse correctamente el procesador de eventos', () => {
-    expect(service).toBeTruthy();
-  });
-
-  describe('Filtros de Seguridad y Guardianes', () => {
-    it('NO debe procesar nada si la lista de "targetUserIds" está vacía o es nula', () => {
-      const emptyEvent: AppEvent = {
-        type: AppEventType.PROPOSAL_CREATED,
+  describe('Procesamiento de Eventos', () => {
+    it('debe ignorar el evento si no hay usuarios destino (targetUserIds está vacío)', () => {
+      const emptyEvent = {
+        type: AppEventType.PROPOSAL_DEADLINE_EXPIRED,
         targetUserIds: [],
-        payload: { title: 'Propuesta Huérfana' } as StrictTestPayload
-      };
+        payload: {} as InboxEventPayload
+      } as AppEvent;
 
-      eventBusMock.events$.next(emptyEvent);
+      eventsSubject.next(emptyEvent);
 
-      expect(inboxStateMock.addMessages).not.toHaveBeenCalled();
-      expect(notificationServiceMock.show).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Procesamiento y Mapeo de Mensajes (Estructura de Datos)', () => {
-    it('Debe mapear un evento PROPOSAL_CREATED correctamente y generar identificadores únicos', () => {
-      const payloadData: StrictTestPayload = { id: 'p-100', title: 'Diseño Arquitectónico' };
-      const event: AppEvent = {
-        type: AppEventType.PROPOSAL_CREATED,
-        targetUserIds: ['user-id-abc'],
-        payload: payloadData
-      };
-
-      eventBusMock.events$.next(event);
-
-      expect(inboxStateMock.addMessages).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            id: expect.any(String), // Verifica que genera el UUID dinámico
-            userId: 'user-id-abc',
-            type: NotificationType.INFO,
-            title: 'Nueva Propuesta Registrada',
-            message: 'El director ha registrado la propuesta: "Diseño Arquitectónico"',
-            actionUrl: '/proposal/details/p-100',
-            status: 'no leido'
-          })
-        ])
-      );
+      expect(extractContextSpy).not.toHaveBeenCalled();
+      expect(addMessagesSpy).not.toHaveBeenCalled();
     });
 
-    it('Debe resolver la jerarquía de títulos del payload cuando se procesan Anteproyectos', () => {
-      const payloadData: StrictTestPayload = {
-        id: 'draft-55',
-        proposalData: { title: 'Sistema de Gestión Académica' }
-      };
+    it('debe ignorar el evento si no existe un Builder configurado para ese tipo de evento', () => {
+      // Usamos un tipo de evento inventado simulando uno no registrado
+      const unknownEvent = {
+        type: 'EVENTO_DESCONOCIDO' as AppEventType,
+        targetUserIds: ['user-1'],
+        payload: {} as InboxEventPayload
+      } as AppEvent;
 
-      const event: AppEvent = {
-        type: AppEventType.PRELIMINARY_DRAFT_CREATED,
-        targetUserIds: ['comite-user'],
-        payload: payloadData
-      };
+      eventsSubject.next(unknownEvent);
 
-      eventBusMock.events$.next(event);
-
-      expect(inboxStateMock.addMessages).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            message: 'El director ha radicado el anteproyecto: "Sistema de Gestión Académica" para revisión del comité.',
-            actionUrl: '/preliminary-draft/details/draft-55'
-          })
-        ])
-      );
+      // Extrae el contexto pero se detiene porque buildMessage es null
+      expect(extractContextSpy).toHaveBeenCalled();
+      expect(addMessagesSpy).not.toHaveBeenCalled();
     });
 
-    it('Debe expandir y registrar un mensaje independiente para cada usuario objetivo dentro del arreglo', () => {
-      const payloadData: StrictTestPayload = { proposalId: 'prop-2', title: 'Propuesta Multiusuario' };
-      const event: AppEvent = {
-        type: AppEventType.PROPOSAL_DEADLINE_WARNING,
-        targetUserIds: ['id-miembro-1', 'id-miembro-2', 'id-miembro-3'],
-        payload: { ...payloadData, daysLeft: 3 }
-      };
+    it('debe construir y guardar mensajes para todos los usuarios destino (Notificación silenciosa)', () => {
+      const validEvent = {
+        type: AppEventType.PROPOSAL_DEADLINE_EXPIRED,
+        targetUserIds: ['user-1', 'user-2'],
+        payload: {} as InboxEventPayload
+      } as AppEvent;
 
-      eventBusMock.events$.next(event);
+      // El usuario actual NO está en la lista de destinos
+      mockCurrentUserSignal.set({ id: 'user-99' } as unknown as User);
 
-      // Verificamos que se enviaron exactamente los 3 registros correspondientes en una sola operación por lote
-      expect(inboxStateMock.addMessages).toHaveBeenCalledTimes(1);
-      const argumentPassed = inboxStateMock.addMessages.mock.calls[0][0];
-      expect(argumentPassed.length).toBe(3);
-      expect(argumentPassed[0].userId).toBe('id-miembro-1');
-      expect(argumentPassed[1].userId).toBe('id-miembro-2');
-      expect(argumentPassed[2].userId).toBe('id-miembro-3');
-    });
-  });
+      eventsSubject.next(validEvent);
 
-  describe('Efectos Secundarios e Interfaz de Usuario (Toasts)', () => {
-    it('Debe disparar un aviso Toast emergente si el usuario activo en sesión se encuentra entre los destinatarios del evento', () => {
-      // Simulamos que el usuario en sesión es 'user-alpha'
-      authServiceMock.currentUser.mockReturnValue({ id: 'user-alpha', username: 'simon.guzman' });
+      // 1. Verificamos que se haya construido el mensaje
+      expect(mockBuilder).toHaveBeenCalled();
 
-      const payloadData: StrictTestPayload = { id: 'p-1', title: 'Optimización de Algoritmos' };
-      const event: AppEvent = {
-        type: AppEventType.PROPOSAL_CREATED,
-        targetUserIds: ['user-beta', 'user-alpha'], // 'user-alpha' es alcanzado
-        payload: payloadData
-      };
+      // 2. Verificamos que se guarden 2 mensajes en el State, inyectando ID y UserID
+      expect(addMessagesSpy).toHaveBeenCalledWith([
+        { ...mockBaseMessage, id: 'mock-uuid-1234', userId: 'user-1' },
+        { ...mockBaseMessage, id: 'mock-uuid-1234', userId: 'user-2' }
+      ]);
 
-      eventBusMock.events$.next(event);
-
-      expect(notificationServiceMock.show).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: NotificationType.INFO,
-          title: 'Nueva Propuesta Registrada',
-          autoDismiss: true
-        })
-      );
+      // 3. Como el currentUser NO estaba en la lista, NO se debe mostrar la notificación visual (Toast)
+      expect(showNotificationSpy).not.toHaveBeenCalled();
     });
 
-    it('NO debe disparar un aviso Toast si el usuario activo en sesión NO forma parte del grupo de destinatarios', () => {
-      authServiceMock.currentUser.mockReturnValue({ id: 'user-isolated', username: 'otro.usuario' });
+    it('debe mostrar un Toast (NotificationService) si el usuario actual es uno de los destinos', () => {
+      const validEvent = {
+        type: AppEventType.PROPOSAL_DEADLINE_EXPIRED,
+        targetUserIds: ['user-1', 'user-2'],
+        payload: {} as InboxEventPayload
+      } as AppEvent;
 
-      const payloadData: StrictTestPayload = { thesisId: 't-9', thesisTitle: 'Análisis de Redes' };
-      const event: AppEvent = {
-        type: AppEventType.THESIS_DEADLINE_EXPIRED,
-        targetUserIds: ['user-beta'], // Destinado a alguien más
-        payload: payloadData
-      };
+      // Configuramos al usuario actual para que coincida con uno de los destinos
+      mockCurrentUserSignal.set({ id: 'user-2' } as unknown as User);
 
-      eventBusMock.events$.next(event);
+      eventsSubject.next(validEvent);
 
-      expect(inboxStateMock.addMessages).toHaveBeenCalled(); // Se registra en la base del estado/inbox de destino
-      expect(notificationServiceMock.show).not.toHaveBeenCalled(); // No interrumpe la pantalla del usuario actual
-    });
+      // Se guarda en base de datos local (Inbox)
+      expect(addMessagesSpy).toHaveBeenCalled();
 
-    it('NO debe lanzar errores ni disparar Toasts si no existe ninguna sesión iniciada en el cliente', () => {
-      authServiceMock.currentUser.mockReturnValue(null); // Deslogueado
-
-      const event: AppEvent = {
-        type: AppEventType.REVIEWERS_ASSIGNED,
-        targetUserIds: ['jurado-1'],
-        payload: { draftId: 'd-1', draftTitle: 'Estudio de Datos' } as StrictTestPayload
-      };
-
-      expect(() => {
-        eventBusMock.events$.next(event);
-      }).not.toThrow();
-
-      expect(notificationServiceMock.show).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Manejo de Casos Especiales y Lógica Condicional', () => {
-    it('Debe adaptar dinámicamente el tipo de notificación en THESIS_PAZ_Y_SALVO_REGISTERED basándose en la aprobación', () => {
-      const payloadAprobado: StrictTestPayload = { thesisId: 'th-1', thesisTitle: 'Proyecto Final', isApproved: true };
-      const eventAprobado: AppEvent = {
-        type: AppEventType.THESIS_PAZ_Y_SALVO_REGISTERED,
-        targetUserIds: ['estudiante-1'],
-        payload: payloadAprobado
-      };
-
-      eventBusMock.events$.next(eventAprobado);
-      expect(inboxStateMock.addMessages).toHaveBeenLastCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({ type: NotificationType.CONFIRMATION })
-        ])
-      );
-
-      const payloadRechazado: StrictTestPayload = { thesisId: 'th-1', thesisTitle: 'Proyecto Final', isApproved: false };
-      const eventRechazado: AppEvent = {
-        type: AppEventType.THESIS_PAZ_Y_SALVO_REGISTERED,
-        targetUserIds: ['estudiante-1'],
-        payload: payloadRechazado
-      };
-
-      eventBusMock.events$.next(eventRechazado);
-      expect(inboxStateMock.addMessages).toHaveBeenLastCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({ type: NotificationType.ERROR })
-        ])
-      );
+      // Adicionalmente, se dispara el Toast en pantalla
+      expect(showNotificationSpy).toHaveBeenCalledTimes(1);
+      expect(showNotificationSpy).toHaveBeenCalledWith({
+        type: mockBaseMessage.type,
+        title: mockBaseMessage.title,
+        message: mockBaseMessage.message,
+        autoDismiss: true
+      });
     });
   });
 });

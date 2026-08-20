@@ -14,7 +14,6 @@ import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 
-
 describe('ProposalFormService', () => {
   let service: ProposalFormService;
 
@@ -29,57 +28,57 @@ describe('ProposalFormService', () => {
   let mockAuthService: jest.Mocked<AuthService>;
   let mockProposalService: jest.Mocked<ProposalService>;
 
-  // Data de prueba
-  const mockDirector: User = {
+  // Data de prueba (usamos as unknown as Type para evitar errores estrictos sin usar 'any')
+  const mockDirector = {
     id: 'director-1',
     firstName: 'Carlos',
     lastName: 'Ramirez',
     state: UserState.active
-  } as User;
+  } as unknown as User;
 
-  const mockTeacher1: User = {
+  const mockTeacher1 = {
     id: 'teacher-1',
     firstName: 'Maria',
     secondName: 'Elena',
     lastName: 'Gomez',
     secondLastName: 'Perez',
     state: UserState.active
-  } as User;
+  } as unknown as User;
 
-  const mockTeacherInactive: User = {
+  const mockTeacherInactive = {
     id: 'teacher-inactive',
     firstName: 'Juan',
     lastName: 'Inactivo',
     state: UserState.inactive
-  } as User;
+  } as unknown as User;
 
-  const mockAdvisor1: User = {
+  const mockAdvisor1 = {
     id: 'advisor-1',
     firstName: 'Pedro',
     lastName: 'Sánchez',
     state: UserState.active
-  } as User;
+  } as unknown as User;
 
-  const mockStudent1: User = {
+  const mockStudent1 = {
     id: 'stu-1',
     firstName: 'Ana',
     lastName: 'Rojas',
     state: UserState.active
-  } as User;
+  } as unknown as User;
 
-  const mockStudent2: User = {
+  const mockStudent2 = {
     id: 'stu-2',
     firstName: 'Luis',
     lastName: 'Torres',
     state: UserState.active
-  } as User;
+  } as unknown as User;
 
-  const mockStudentBusy: User = {
+  const mockStudentBusy = {
     id: 'stu-busy',
     firstName: 'Estudiante',
     lastName: 'Ocupado',
     state: UserState.active
-  } as User;
+  } as unknown as User;
 
   beforeEach(() => {
     // Reseteamos señales
@@ -190,7 +189,7 @@ describe('ProposalFormService', () => {
       // Debe excluir al mockDirector (usuario actual) y al mockTeacherInactive
       expect(options).toHaveLength(1);
       expect(options[0].id).toBe('teacher-1');
-      expect(options[0].label).toBe('Maria Elena Gomez Perez'); // Valida concatenación de nombres
+      expect(options[0].label).toBe('Maria Elena Gomez Perez'); // Valida concatenación de nombres sin dobles espacios
     });
 
     it('debería filtrar advisorOptions excluyendo inactivos y al usuario actual si aplicara', () => {
@@ -241,7 +240,7 @@ describe('ProposalFormService', () => {
     });
 
     it('debería cargar los datos de una propuesta al llamar initForEdit', () => {
-      const mockProposal: Proposal = {
+      const mockProposal = {
         id: 'prop-99',
         title: 'Sistema de Información',
         description: 'Descripción detallada',
@@ -269,11 +268,8 @@ describe('ProposalFormService', () => {
 
   describe('Construcción del Payload (buildProposalPayload)', () => {
     it('debería retornar null si no hay un director autenticado', () => {
-      // Cambiamos el valor del Signal directamente en lugar de usar mockReturnValue
       mockCurrentUserSignal.set(null);
-
       const payload = service.buildProposalPayload(null, []);
-
       expect(payload).toBeNull();
     });
 
@@ -288,7 +284,7 @@ describe('ProposalFormService', () => {
         advisor: 'advisor-1'
       });
 
-      const mockDocuments = [{ name: 'formatoA.pdf' }] as FileDocument[];
+      const mockDocuments = [{ name: 'formatoA.pdf' }] as unknown as FileDocument[];
 
       const payload = service.buildProposalPayload(null, mockDocuments);
 
@@ -305,10 +301,10 @@ describe('ProposalFormService', () => {
     });
 
     it('debería mantener la información original al actualizar una propuesta existente', () => {
-      const originalProposal: Proposal = {
+      const originalProposal = {
         id: 'prop-100',
         createdAt: new Date('2023-01-01'),
-        state: stateList.EN_REVISION,
+        state: stateList.APROBADO, // Lo ponemos en un estado diferente para asegurar que lo preserve
         evaluations: [{ id: 'eval-1' }]
       } as unknown as Proposal;
 
@@ -323,6 +319,7 @@ describe('ProposalFormService', () => {
 
       expect(payload?.id).toBe('prop-100');
       expect(payload?.createdAt).toEqual(new Date('2023-01-01'));
+      expect(payload?.state).toBe(stateList.APROBADO);
       expect(payload?.evaluations).toEqual([{ id: 'eval-1' }]);
     });
   });

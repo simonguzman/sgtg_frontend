@@ -3,27 +3,24 @@ import { FileDocument } from '../../../../../core/interfaces/file-document.inter
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
+import { Advance } from '../../../interfaces/advance.interface';
+import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
+import { formatThesisDate } from '../../../helpers/thesis-date.helper';
 
-interface AdvanceRegistry {
+export interface AdvanceTableRow {
   id: string;
-  title: string;
+  name: string;
   comments: string;
-  uploadDate: Date | string;
-  documents?: FileDocument[];
+  uploadDate: string;
   status: stateList;
+  documents: FileDocument[];
+  url: string;
+  allowedActions: string[];
 }
 
-interface EvaluationRegistry {
-  id: string;
-  advanceId?: string;
-  evaluatorId?: string;
-}
-
-export const AdvancesTabConfig: TabConfiguration = {
+export const AdvancesTabConfig: TabConfiguration<AdvanceTableRow> = {
   tabValue: 'AVANCES',
-
   headerActionRoute: 'upload_advance',
-
   columns: [
     { field: 'name', header: 'Nombre del Avance', type: 'text', width: '35%' },
     { field: 'uploadDate', header: 'Fecha', type: 'text', width: '20%' },
@@ -37,7 +34,7 @@ export const AdvancesTabConfig: TabConfiguration = {
     }
   ],
 
- enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
+  enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
 
@@ -47,14 +44,14 @@ export const AdvancesTabConfig: TabConfiguration = {
     if (proposal?.codirector) requiredEvaluatorsCount++;
     if (proposal?.advisor) requiredEvaluatorsCount++;
 
-    const advances: AdvanceRegistry[] = thesis.advances || [];
+    const advances: Advance[] = thesis.advances || [];
     const latestAdvance = advances.length > 0 ? advances[0] : null;
     const isLatestAdvancePending = latestAdvance?.status === stateList.EN_REVISION;
+
     const hasFinalDelivery = thesis.documents?.some(
-      (doc: FileDocument) => doc.type === DocumentType['FORMATO_E']
+      (doc: FileDocument) => doc.type === DocumentType.FORMATO_E
     ) ?? false;
 
-    // Validación del estado del trabajo de grado
     const isSuspendedOrCanceled = thesis.state === stateList.SUSPENDIDO || thesis.state === stateList.CANCELADO;
 
     return {
@@ -63,49 +60,35 @@ export const AdvancesTabConfig: TabConfiguration = {
       isLatestAdvancePending,
       requiredEvaluatorsCount,
       hasFinalDelivery,
-      isSuspendedOrCanceled // Añadido al contexto
+      isSuspendedOrCanceled
     };
   },
 
-  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): Record<string, unknown>[] => {
-    const activeAdvances: AdvanceRegistry[] = context.thesisWork?.advances || [];
-    const hasFinalDelivery  = context['hasFinalDelivery'] as boolean ?? false;
-    const isArchived        = context.isArchived ?? false;
+  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): AdvanceTableRow[] => {
+    const activeAdvances: Advance[] = context.thesisWork?.advances || [];
+    const hasFinalDelivery = context.hasFinalDelivery ?? false;
+    const isArchived = context.isArchived ?? false;
 
-    return activeAdvances.map((adv: AdvanceRegistry) => {
-      const allowedActions = ['view-details'];
+    return activeAdvances.map((adv: Advance): AdvanceTableRow => {
+      // Usamos Set para evitar cualquier acción duplicada accidentalmente
+      const allowedActions = new Set<string>(['view-details']);
 
-      const evaluationsForThisAdvance: EvaluationRegistry[] = context.thesisWork?.evaluations?.filter(
-        (ev: EvaluationRegistry) => ev.advanceId === adv.id
+      const evaluationsForThisAdvance: Evaluation[] = context.thesisWork?.evaluations?.filter(
+        (ev: Evaluation) => ev.advanceId === adv.id
       ) || [];
 
-      const alreadyEvaluated  = evaluationsForThisAdvance.some(
+      const alreadyEvaluated = evaluationsForThisAdvance.some(
         ev => ev.evaluatorId === context.currentUser?.id
       );
       const isAssignedEvaluator = context.isDirector || context.isCodirector || context.isAdvisor || context.isAdmin;
-      if (!isArchived && isAssignedEvaluator && !alreadyEvaluated && !hasFinalDelivery && adv.status !== stateList.EVALUADO) {
-        allowedActions.push('evaluate-advance');
-      }
-      if (isAssignedEvaluator && !alreadyEvaluated && !hasFinalDelivery && adv.status !== stateList.EVALUADO) {
-        allowedActions.push('evaluate-advance');
-      }
-      if (evaluationsForThisAdvance.length > 0) {
-        allowedActions.push('view-details');
-      }
-      let dateStr = 'Sin fecha';
-      if (adv.uploadDate) {
-        const dateObj = typeof adv.uploadDate === 'string'
-          ? new Date(adv.uploadDate)
-          : adv.uploadDate;
 
-        if (!Number.isNaN(dateObj.getTime())) {
-          dateStr = dateObj.toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-          }).replaceAll('/', ' - ');
-        }
+      if (!isArchived && isAssignedEvaluator && !alreadyEvaluated && !hasFinalDelivery && adv.status !== stateList.EVALUADO) {
+        allowedActions.add('evaluate-advance');
       }
+
+      const dateStr = adv.uploadDate
+        ? formatThesisDate(typeof adv.uploadDate === 'string' ? new Date(adv.uploadDate) : adv.uploadDate)
+        : 'Sin fecha';
 
       return {
         id: adv.id,
@@ -115,20 +98,21 @@ export const AdvancesTabConfig: TabConfiguration = {
         status: adv.status,
         documents: adv.documents || [],
         url: adv.documents?.[0]?.url || '',
-        allowedActions
+        allowedActions: Array.from(allowedActions) // Convertimos el Set de nuevo a Array
       };
     });
   },
 
   getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
     if (context.isArchived) return [];
+
     const buttons: TableButton[] = [];
-    const hasFinalDelivery = context['hasFinalDelivery'] as boolean ?? false;
-    const isSuspendedOrCanceled = context['isSuspendedOrCanceled'] as boolean ?? false;
+    const hasFinalDelivery = context.hasFinalDelivery ?? false;
+    const isSuspendedOrCanceled = context.isSuspendedOrCanceled ?? false;
 
     if (context.isStudent || context.isAdmin) {
       let buttonLabel = 'Cargar nuevo avance';
-      let buttonDisabled = context.isLatestAdvancePending;
+      let buttonDisabled = context.isLatestAdvancePending ?? false;
 
       if (hasFinalDelivery) {
         buttonLabel = 'Entrega final registrada';
@@ -137,7 +121,6 @@ export const AdvancesTabConfig: TabConfiguration = {
         buttonLabel = 'Avance en revisión';
       }
 
-      // 👇 AQUÍ APLICAMOS EL BLOQUEO VISUAL
       if (isSuspendedOrCanceled) {
         buttonDisabled = true;
       }

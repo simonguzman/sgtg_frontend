@@ -70,7 +70,7 @@ export class PreliminaryDraftApiService {
     return of(updatedData).pipe(
       delay(800),
       tap(() => {
-        this.storage.updateDraft(id, PreliminaryDraft => ({ ...PreliminaryDraft, ...updatedData }));
+        this.storage.updateDraft(id, preliminaryDraft => ({ ...preliminaryDraft, ...updatedData }));
       })
     );
   }

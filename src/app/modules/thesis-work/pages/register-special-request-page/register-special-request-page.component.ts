@@ -6,6 +6,12 @@ import { RegisterSpecialRequestFacadeService } from './services/register-special
 import { RegisterSpecialRequestFormComponent } from '../../components/register-special-request-form/register-special-request-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 
+// Interfaz local para estandarizar el payload y evitar repetición de código
+export interface SpecialRequestData {
+  requestType: SpecialRequestType;
+  comments: string;
+}
+
 @Component({
   selector: 'app-register-special-request-page',
   templateUrl: './register-special-request-page.component.html',
@@ -17,15 +23,19 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
   private readonly route  = inject(ActivatedRoute);
   protected readonly facade = inject(RegisterSpecialRequestFacadeService);
 
-  readonly isLoading         = signal(true);
-  readonly isSubmitting      = signal(false);
-  readonly thesisWorkData    = signal<ThesisWork | undefined>(undefined);
-  readonly isConfirmModalOpen = signal(false);
-  readonly pendingData       = signal<{ requestType: SpecialRequestType; comments: string } | null>(null);
+  public readonly isLoading          = signal(true);
+  public readonly isSubmitting       = signal(false);
+  public readonly thesisWorkData     = signal<ThesisWork | undefined>(undefined);
+  public readonly isConfirmModalOpen = signal(false);
+  public readonly pendingData        = signal<SpecialRequestData | null>(null);
 
   ngOnInit(): void {
     const thesisId = this.route.snapshot.paramMap.get('id') ?? this.route.parent?.snapshot.paramMap.get('id');
-    if (!thesisId) { this.goBack(); return; }
+
+    if (!thesisId) {
+      this.goBack();
+      return;
+    }
 
     this.facade.loadThesisWork(
       thesisId,
@@ -35,27 +45,29 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
     );
   }
 
-  handleRequestConfirmation(event: { requestType: SpecialRequestType; comments: string }): void {
+  public handleRequestConfirmation(event: SpecialRequestData): void {
     this.pendingData.set(event);
     this.isConfirmModalOpen.set(true);
   }
 
-  processSaveRequest(): void {
+  public processSaveRequest(): void {
     const data        = this.pendingData();
     const currentWork = this.thesisWorkData();
+
     if (!data || !currentWork) return;
 
     this.isSubmitting.set(true);
     this.isConfirmModalOpen.set(false);
 
     this.facade.processSaveRequest(
-      currentWork.thesisWorkId, data,
+      currentWork.thesisWorkId,
+      data,
       () => { this.isSubmitting.set(false); this.goBack(); },
       () => { this.isSubmitting.set(false); }
     );
   }
 
-  goBack(): void {
+  public goBack(): void {
     this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
   }
 }

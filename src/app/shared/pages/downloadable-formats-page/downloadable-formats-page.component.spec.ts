@@ -1,148 +1,116 @@
-/* tslint:disable:no-unused-variable */
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-
 import { DownloadableFormatsPageComponent } from './downloadable-formats-page.component';
-
-import { FileDownloadService } from '../../../core/services/filedownload/file-download.service';
-import { NotificationService } from '../../components/notifications/services/notification.service';
-
-import { NotificationType } from '../../components/notifications/models/notification.model';
+import { DownloadableFormatsFacadeService } from './services/downloadable-formats-facade.service';
+import {
+  DownloadableFormat,
+  DOWNLOADABLE_FORMATS_BY_CATEGORY
+} from './models/downloadable-formats-page.model';
 
 describe('DownloadableFormatsPageComponent', () => {
   let component: DownloadableFormatsPageComponent;
   let fixture: ComponentFixture<DownloadableFormatsPageComponent>;
 
-  let mockRouter: any;
-  let mockActivatedRoute: any;
-  let mockDownloadService: any;
-  let mockNotificationService: any;
+  // Tipado estricto de Mocks (Zero-Any)
+  let mockRouter: { navigate: jest.Mock };
+  let mockActivatedRoute: Record<string, never>; // Objeto vacío tipado
+  let mockFacade: { downloadFormat: jest.Mock };
 
   beforeEach(async () => {
     mockRouter = {
       navigate: jest.fn()
     };
+
     mockActivatedRoute = {};
 
-    mockDownloadService = {
-      download: jest.fn()
+    mockFacade = {
+      downloadFormat: jest.fn().mockResolvedValue(undefined)
     };
 
-    mockNotificationService = {
-      show: jest.fn()
-    };
     await TestBed.configureTestingModule({
       imports: [DownloadableFormatsPageComponent],
       providers: [
         { provide: Router, useValue: mockRouter },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
-        { provide: FileDownloadService, useValue: mockDownloadService },
-        { provide: NotificationService, useValue: mockNotificationService }
-      ],
-      schemas: [NO_ERRORS_SCHEMA]
+        { provide: DownloadableFormatsFacadeService, useValue: mockFacade }
+      ]
     }).compileComponents();
 
-    fixture = TestBed.createComponent(
-      DownloadableFormatsPageComponent
-    );
+    fixture = TestBed.createComponent(DownloadableFormatsPageComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('Debe crear el componente', () => {
     expect(component).toBeTruthy();
   });
 
-  it('Debe iniciar con la pestaña TI activa', () => {
-    expect(component.activeTab()).toBe('TI');
-  });
-
-  it('Debe retornar formatos TI por defecto', () => {
-    const formats = component.currentFormats();
-    expect(formats.length).toBeGreaterThan(0);
-    expect(formats[0].id).toContain('ti');
-  });
-
-  it('Debe cambiar formatos al cambiar pestaña a PP', () => {
-    component.activeTab.set('PP');
-    const formats = component.currentFormats();
-    expect(formats.length).toBeGreaterThan(0);
-    expect(formats[0].id).toContain('pp');
-  });
-
-  it('Debe retornar arreglo vacío si la pestaña no existe', () => {
-    component.activeTab.set('INVALID');
-    const formats = component.currentFormats();
-    expect(formats).toEqual([]);
-  });
-
-  it('Debe descargar formato correctamente', () => {
-    const row = {
-      id: 'ti-a',
-      title: 'Formato TI-A',
-      url: '/assets/formatos/TI-A.pdf'
-    };
-    component.handleTableAction({
-      action: 'descargar',
-      row
+  describe('Gestión de Pestañas (Tabs) y Formatos', () => {
+    it('Debe iniciar con la pestaña TI activa por defecto', () => {
+      // Usamos notación de corchetes para acceder a propiedades protected en los tests
+      expect(component['activeTab']()).toBe('TI');
     });
-    expect(mockNotificationService.show)
-      .toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: 'Descarga en curso',
-          type: NotificationType.INFO
-        })
-      );
-    expect(mockDownloadService.download)
-      .toHaveBeenCalledWith(
-        row.url,
-        'TI-A.pdf'
-      );
-  });
-  it('Debe mostrar error si el archivo no tiene URL', () => {
-    const row = {
-      id: 'ti-a',
-      title: 'Formato TI-A',
-      url: ''
-    };
-    component.handleTableAction({
-      action: 'descargar',
-      row
+
+    it('Debe retornar los formatos de la categoría TI por defecto', () => {
+      const formats = component['currentFormats']();
+      expect(formats).toEqual(DOWNLOADABLE_FORMATS_BY_CATEGORY['TI']);
+      expect(formats.length).toBeGreaterThan(0);
     });
-    expect(mockNotificationService.show)
-      .toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: 'Error de descarga',
-          type: NotificationType.ERROR
-        })
-      );
-    expect(mockDownloadService.download)
-      .not.toHaveBeenCalled();
+
+    it('Debe actualizar los formatos al cambiar la pestaña activa a PP', () => {
+      component['activeTab'].set('PP');
+      fixture.detectChanges(); // Forzamos la actualización reactiva
+
+      const formats = component['currentFormats']();
+      expect(formats).toEqual(DOWNLOADABLE_FORMATS_BY_CATEGORY['PP']);
+    });
+
+    it('Debe retornar un arreglo vacío si la pestaña (categoría) no existe', () => {
+      component['activeTab'].set('INVALID_TAB');
+
+      const formats = component['currentFormats']();
+      expect(formats).toEqual([]);
+    });
   });
 
-  it('No debe hacer nada si la acción no es descargar', () => {
-    const row = {
-      id: 'ti-a',
-      title: 'Formato TI-A',
-      url: '/assets/formatos/TI-A.pdf'
-    };
-    component.handleTableAction({
-      action: 'otro',
-      row
+  describe('Acciones de la Tabla', () => {
+    it('Debe delegar la acción "descargar" al Facade pasándole la fila completa', () => {
+      const mockRow: DownloadableFormat = {
+        id: 'ti-01',
+        title: 'Formato de Prueba',
+        url: '/ruta.pdf'
+      };
+
+      component.handleTableAction({ action: 'descargar', row: mockRow });
+
+      expect(mockFacade.downloadFormat).toHaveBeenCalledWith(mockRow);
     });
-    expect(mockNotificationService.show)
-      .not.toHaveBeenCalled();
-    expect(mockDownloadService.download)
-      .not.toHaveBeenCalled();
+
+    it('No debe hacer nada (retorno temprano) si la acción NO es "descargar"', () => {
+      const mockRow: DownloadableFormat = {
+        id: 'ti-01',
+        title: 'Formato de Prueba',
+        url: '/ruta.pdf'
+      };
+
+      component.handleTableAction({ action: 'ver_detalles', row: mockRow });
+
+      expect(mockFacade.downloadFormat).not.toHaveBeenCalled();
+    });
   });
 
-  it('Debe navegar hacia atrás', () => {
-    component.goBack();
-    expect(mockRouter.navigate)
-      .toHaveBeenCalledWith(
+  describe('Navegación', () => {
+    it('Debe navegar hacia la ruta padre relativa al usar goBack()', () => {
+      component.goBack();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(
         ['../'],
         { relativeTo: mockActivatedRoute }
       );
+    });
   });
 });

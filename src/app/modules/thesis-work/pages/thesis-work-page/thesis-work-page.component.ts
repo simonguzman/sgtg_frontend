@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { TableButton, TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { DescriptionModalComponent } from '../../../../shared/components/modals/description-modal/description-modal.component';
@@ -20,18 +20,19 @@ export class ThesisWorkPageComponent {
   protected readonly columns = THESIS_WORK_COLUMNS;
   protected readonly filterFields = ['title', 'modality', 'state', 'maxDeliveryDate', 'hiddenParticipants'];
 
-  descriptionModal = { show: false, title: '', content: '' };
-  reactivateState = { show: false, id: null as string | null, loading: false };
+  // ← Fix: de objetos planos mutables a signal(), mismo patrón aplicado
+  // en ProposalPageComponent hace varios turnos.
+  readonly descriptionModal = signal({ show: false, title: '', content: '' });
+  readonly reactivateState  = signal({ show: false, id: null as string | null, loading: false });
 
   handleTableAction(event: { action: string; row: ThesisWorkTableRow }): void {
     if (!event.row.allowedActions.includes(event.action)) {
       this.facade.showRestrictedAccessNotification();
       return;
     }
-
     switch (event.action) {
       case 'ver descripción':
-        this.descriptionModal = { show: true, title: 'Descripción del trabajo de grado', content: event.row.description };
+        this.descriptionModal.set({ show: true, title: 'Descripción del trabajo de grado', content: event.row.description });
         break;
       case 'ver':
         this.router.navigate(['/thesis-work/details', event.row.id]);
@@ -40,7 +41,7 @@ export class ThesisWorkPageComponent {
         this.router.navigate(['/thesis-work/edit', event.row.id]);
         break;
       case 'reactivar':
-        this.reactivateState = { show: true, id: event.row.id, loading: false };
+        this.reactivateState.set({ show: true, id: event.row.id, loading: false });
         break;
     }
   }
@@ -52,18 +53,19 @@ export class ThesisWorkPageComponent {
   }
 
   confirmReactivation(): void {
-    const id = this.reactivateState.id;
-    if (!id || this.reactivateState.loading) return;
+    const { id, loading } = this.reactivateState();
+    if (!id || loading) return;
 
-    this.reactivateState.loading = true;
+    this.reactivateState.update(s => ({ ...s, loading: true }));
+
     this.facade.reactivateThesis(
       id,
-      () => { this.reactivateState = { show: false, id: null, loading: false }; },
-      () => { this.reactivateState.loading = false; }
+      () => this.reactivateState.set({ show: false, id: null, loading: false }),
+      () => this.reactivateState.update(s => ({ ...s, loading: false }))
     );
   }
 
   cancelReactivation(): void {
-    this.reactivateState = { show: false, id: null, loading: false };
+    this.reactivateState.set({ show: false, id: null, loading: false });
   }
 }

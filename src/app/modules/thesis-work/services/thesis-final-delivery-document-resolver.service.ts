@@ -1,39 +1,50 @@
 import { Injectable } from '@angular/core';
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
+import { parseDisplayDate } from '../../../core/utils/date-utils';
 
-/**
- * Centraliza la resolución del documento vigente de entrega final y de paz y salvo.
- * Antes esta lógica (con sus mismos "FIX Bug" de ordenamiento por fecha) estaba
- * duplicada en RegisterSustentationFormComponent y EvaluateSustentationFormComponent —
- * cualquier corrección futura tenía que aplicarse dos veces. Ahora vive en un solo lugar.
- */
+export type FinalDeliveryDocType = 'MONOGRAFIA' | 'FORMATO_E' | 'ANEXOS';
+
 @Injectable({ providedIn: 'root' })
 export class ThesisFinalDeliveryDocumentResolverService {
 
   resolveLatestFinalDeliveryDocument(
-    thesis: ThesisWork,
-    type: 'MONOGRAFIA' | 'FORMATO_E' | 'ANEXOS'
+    thesisWork: ThesisWork | null | undefined,
+    type: FinalDeliveryDocType
   ): FileDocument | null {
-    if (!thesis?.finalDeliveries?.length) return null;
+    if (!thesisWork?.finalDeliveries?.length) return null;
 
-    const latest = [...thesis.finalDeliveries].sort((a, b) =>
-      new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
-    )[0];
+    // Se copia el array para evitar mutar el estado original del objeto ThesisWork
+    const latestDeliveries = [...thesisWork.finalDeliveries].sort((a, b) => {
+      const timeA = parseDisplayDate(a.uploadDate)?.getTime() || 0;
+      const timeB = parseDisplayDate(b.uploadDate)?.getTime() || 0;
+      return timeB - timeA;
+    });
 
-    if (type === 'MONOGRAFIA') return latest?.monograph ?? null;
-    if (type === 'FORMATO_E')  return latest?.formatE ?? null;
-    if (type === 'ANEXOS')     return latest?.annexes ?? null;
-    return null;
+    const latest = latestDeliveries[0];
+
+    switch (type) {
+      case 'MONOGRAFIA':
+        return latest?.monograph ?? null;
+      case 'FORMATO_E':
+        return latest?.formatE ?? null;
+      case 'ANEXOS':
+        return latest?.annexes ?? null;
+      default:
+        return null;
+    }
   }
 
-  resolveLatestPazYSalvoDocument(thesis: ThesisWork): FileDocument | null {
-    if (!thesis?.pazYSalvos?.length) return null;
+  resolveLatestPazYSalvoDocument(thesisWork: ThesisWork | null | undefined): FileDocument | null {
+    if (!thesisWork?.pazYSalvos?.length) return null;
 
-    const latest = [...thesis.pazYSalvos].sort((a, b) =>
-      new Date(b.registrationDate).getTime() - new Date(a.registrationDate).getTime()
-    )[0];
+    // Se asume que registrationDate es compatible con new Date()
+    const latestPazYSalvos = [...thesisWork.pazYSalvos].sort((a, b) => {
+      const timeA = new Date(a.registrationDate).getTime() || 0;
+      const timeB = new Date(b.registrationDate).getTime() || 0;
+      return timeB - timeA;
+    });
 
-    return latest?.document ?? null;
+    return latestPazYSalvos[0]?.document ?? null;
   }
 }

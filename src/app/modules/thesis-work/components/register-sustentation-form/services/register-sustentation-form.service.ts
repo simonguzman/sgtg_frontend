@@ -3,21 +3,24 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
+import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
+import { ThesisFinalDeliveryDocumentResolverService } from '../../../services/thesis-final-delivery-document-resolver.service';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
-import { ThesisFinalDeliveryDocumentResolverService } from '../../../services/thesis-final-delivery-document-resolver.service';
 
 @Injectable()
 export class RegisterSustentationFormService {
   private readonly fb                  = inject(FormBuilder);
+  // UserService se conserva: getEligibleJurors necesita la lista completa
+  // de usuarios (users()), algo que el formateador compartido no expone
+  // — su contrato es solo formateo, no acceso a la colección cruda.
   private readonly userService         = inject(UserService);
   private readonly notificationService = inject(NotificationService);
   private readonly documentResolver    = inject(ThesisFinalDeliveryDocumentResolverService);
+  private readonly participants        = inject(ThesisParticipantsFormatterService);
 
-  // ← Fix: nonNullable.group para que getRawValue() coincida exactamente con
-  // SustentationFormPayload sin necesitar cast `as SustentationFormPayload`.
   readonly form = this.fb.nonNullable.group({
     sustentationDate: ['', Validators.required],
     location:         ['', Validators.required],
@@ -25,18 +28,13 @@ export class RegisterSustentationFormService {
     juror2:           ['', Validators.required]
   });
 
-  /**
-   * Regla de negocio: un jurado no puede ser director, codirector, asesor,
-   * autor, evaluador del anteproyecto, ni tener rol de Jefe de Departamento o Consejo.
-   * Se centraliza aquí porque es lógica de dominio, no de presentación.
-   */
   getEligibleJurors(thesisWork: ThesisWork): User[] {
     const allUsers = this.userService.users();
     if (!thesisWork?.preliminaryDraftData?.proposalData) return [];
 
-    const proposal            = thesisWork.preliminaryDraftData.proposalData;
+    const proposal             = thesisWork.preliminaryDraftData.proposalData;
     const preliminaryDraftData = thesisWork.preliminaryDraftData;
-    const forbiddenIds        = new Set<string>();
+    const forbiddenIds         = new Set<string>();
 
     if (proposal.director?.id)   forbiddenIds.add(proposal.director.id);
     if (proposal.codirector?.id) forbiddenIds.add(proposal.codirector.id);
@@ -61,6 +59,9 @@ export class RegisterSustentationFormService {
     });
   }
 
+  // Se conserva local (no delegado): formatea un User ya en mano —jurados
+  // candidatos de una lista fresca de userService.users()— caso distinto
+  // al de "buscar por ID" que resuelve el formateador compartido.
   getMemberFullName(user: User | undefined): string {
     if (!user) return 'No asignado';
     return [user.firstName, user.secondName, user.lastName, user.secondLastName]
@@ -68,12 +69,20 @@ export class RegisterSustentationFormService {
       .join(' ');
   }
 
-  // ← Fix: eliminado el cast `ids as string[]`. UserService.getAuthorsNames ya
-  // acepta (string | User)[], así que pasar `authors` directamente es correcto
-  // y evita perder información si el arreglo contiene objetos User.
-  getAuthorsNames(authors: (string | User)[] | undefined): string {
-    return this.userService.getAuthorsNames(authors) || 'No asignado';
+  getStudentNames(thesisWork: ThesisWork): string {
+    return this.participants.getStudentNames(thesisWork);
   }
+
+  // ← FIX de consistencia: antes el componente llamaba getMemberFullName()
+  // pasando el objeto User embebido en proposalData (director/codirector/
+  // advisor), lo que podía mostrar datos desactualizados si el usuario
+  // cambió su nombre después de que la propuesta fue creada (los updates
+  // de usuario son inmutables, así que ese objeto embebido no se refresca
+  // solo). Ahora se resuelve por ID contra la lista viva de usuarios,
+  // igual que en los otros 7 formularios del módulo.
+  getDirectorName(thesisWork: ThesisWork): string   { return this.participants.getDirectorName(thesisWork); }
+  getCodirectorName(thesisWork: ThesisWork): string { return this.participants.getCodirectorName(thesisWork); }
+  getAdvisorName(thesisWork: ThesisWork): string     { return this.participants.getAdvisorName(thesisWork); }
 
   getExistingDocument(thesisWork: ThesisWork, type: string): FileDocument | null {
     const targetType = type.toUpperCase().trim();

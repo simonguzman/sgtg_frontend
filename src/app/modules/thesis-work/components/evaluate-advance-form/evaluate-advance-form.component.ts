@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output, signal, OnChanges , SimpleChanges } from '@angular/core';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
@@ -16,62 +16,45 @@ import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../i
   templateUrl: './evaluate-advance-form.component.html',
   styleUrls: ['./evaluate-advance-form.component.css']
 })
-export class EvaluateAdvanceFormComponent {
+export class EvaluateAdvanceFormComponent implements OnChanges {
   protected readonly formService = inject(EvaluateAdvanceFormService);
 
   @Input({ required: true }) advanceData!: Advance;
   @Input({ required: true }) thesisWork!: ThesisWork;
-  @Input() isSubmitting    = false;
-  @Input() alreadyEvaluated  = false;
-  @Input() isFullyEvaluated  = false;
-  @Output() onBack            = new EventEmitter<void>();
+  @Input() isSubmitting = false;
+  @Input() alreadyEvaluated = false;
+  @Input() isFullyEvaluated = false;
+  @Output() onBack = new EventEmitter<void>();
   @Output() onSaveEvaluation  = new EventEmitter<SubmitAdvanceEvaluationPayload>();
   @Output() onDownloadAdvance = new EventEmitter<void>();
 
-  // ── Estado de UI ──────────────────────────────────────────────────────────
   readonly uploadedFeedbackFiles = signal<{ fileName: string; file: File }[]>([]);
-  readonly isFeedbackModalOpen   = signal(false);
+  readonly isFeedbackModalOpen = signal(false);
 
-  // ── Getters que exponen el servicio al template ───────────────────────────
   get evaluationForm() { return this.formService.evaluationForm; }
-
-  // isReadOnly: depende de signals/inputs del componente → queda en el componente
   get isReadOnly(): boolean { return this.alreadyEvaluated || this.isFullyEvaluated; }
-
   get advanceDocuments() { return this.advanceData.documents ?? []; }
 
+  // ← Simplificados, mismo patrón que UploadAdvanceFormComponent
   getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }
-  getDirectorName(): string {
-    const id = this.thesisWork?.preliminaryDraftData?.proposalData?.director?.id;
-    return this.formService.getMemberName(id) || 'No asignado';
-  }
-  getCodirectorName(): string {
-    return this.formService.getMemberName(
-      this.thesisWork?.preliminaryDraftData?.proposalData?.codirector?.id
-    );
-  }
-  getAdvisorName(): string {
-    return this.formService.getMemberName(
-      this.thesisWork?.preliminaryDraftData?.proposalData?.advisor?.id
-    );
-  }
+  getDirectorName(): string { return this.formService.getDirectorName(this.thesisWork); }
+  getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
+  getAdvisorName(): string { return this.formService.getAdvisorName(this.thesisWork); }
 
   isFieldInvalid(fieldName: keyof typeof this.evaluationForm.controls): boolean {
     const control = this.evaluationForm.controls[fieldName];
     return !!(control?.invalid && control?.touched);
   }
 
-  // ── Manejo de archivos de retroalimentación ───────────────────────────────
   handleFeedbackUploaded(event: { fileName: string; file: File }): void {
     this.uploadedFeedbackFiles.update(files => [...files, event]);
     this.isFeedbackModalOpen.set(false);
   }
 
   removeFeedbackFile(index: number): void {
-    this.uploadedFeedbackFiles.update(files => files.filter((_, i) => i !== index));
+    this.uploadedFeedbackFiles.update(files => files.filter((_, indexFile) => indexFile !== index));
   }
 
-  // ── Envío ─────────────────────────────────────────────────────────────────
   submit(): void {
     if (this.evaluationForm.invalid) {
       this.evaluationForm.markAllAsTouched();
@@ -80,10 +63,16 @@ export class EvaluateAdvanceFormComponent {
     const values = this.evaluationForm.getRawValue();
     this.onSaveEvaluation.emit({
       formValues: {
-        result:   values.result as AdvanceEvaluationResult,
+        result: values.result as AdvanceEvaluationResult,
         comments: values.comments
       },
-      files: this.uploadedFeedbackFiles().map(f => f.file)
+      files: this.uploadedFeedbackFiles().map(fileSubmit => fileSubmit.file)
     });
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['alreadyEvaluated'] || changes['isFullyEvaluated']) {
+      this.isReadOnly ? this.evaluationForm.disable() : this.evaluationForm.enable();
+    }
   }
 }

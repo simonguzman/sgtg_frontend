@@ -1,5 +1,5 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
 import { of } from 'rxjs';
 
 import { PreliminaryDraftApiService } from './preliminary-draft-api.service';
@@ -15,41 +15,61 @@ import { AppEventType } from '../../../core/enums/app-event-type.enum';
 describe('PreliminaryDraftApiService', () => {
   let service: PreliminaryDraftApiService;
 
-  // Reemplazamos los 'any' por las clases originales envueltas en jest.Mocked
-  let mockStorageService: jest.Mocked<PreliminaryDraftStorageService>;
-  let mockUserService: jest.Mocked<UserService>;
-  let mockEventBusService: jest.Mocked<EventBusService>;
+  // 🔹 REFACTOR: Tipado estricto estructural en lugar de usar 'as unknown as jest.Mocked<T>'
+  let storageSpy: {
+    getById: jest.Mock;
+    addDraft: jest.Mock;
+    updateDraft: jest.Mock;
+    removeDraft: jest.Mock;
+  };
+
+  let userSpy: {
+    users: WritableSignal<Array<{ id: string; roles: UserRoleType[] }>>;
+  };
+
+  let eventBusSpy: {
+    emit: jest.Mock;
+  };
+
+  // 🔹 REFACTOR: Función constructora para crear objetos PreliminaryDraft válidos sin casteo forzado
+  const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
+    preliminaryDraftId: '1',
+    state: stateList.EN_REVISION,
+    evaluations: [],
+    documents: [],
+    createdData: new Date(),
+    ...overrides
+  } as PreliminaryDraft);
+  // Usamos un casteo seguro interno a nivel de fábrica para simular la interfaz
+  // sin contaminar el código de las pruebas con tipos parciales o aserciones dobles.
 
   beforeEach(() => {
-    // Sobrescribir crypto para evitar IDs aleatorios que rompan los tests
     Object.defineProperty(window, 'crypto', {
       value: { randomUUID: jest.fn().mockReturnValue('mocked-uuid') },
-      configurable: true // Permite reconfigurar si es necesario en otros tests
+      configurable: true
     });
 
-    // Inicializamos los mocks con as unknown as jest.Mocked<T>
-    mockStorageService = {
+    storageSpy = {
       getById: jest.fn(),
       addDraft: jest.fn(),
       updateDraft: jest.fn(),
       removeDraft: jest.fn()
-    } as unknown as jest.Mocked<PreliminaryDraftStorageService>;
+    };
 
-    mockUserService = {
-      // Simulamos que el sistema tiene al menos un Jefe de Departamento para la prueba de notificaciones
+    userSpy = {
       users: signal([{ id: 'jefe-depto-1', roles: [UserRoleType.JEFE_DEP] }])
-    } as unknown as jest.Mocked<UserService>;
+    };
 
-    mockEventBusService = {
+    eventBusSpy = {
       emit: jest.fn()
-    } as unknown as jest.Mocked<EventBusService>;
+    };
 
     TestBed.configureTestingModule({
       providers: [
         PreliminaryDraftApiService,
-        { provide: PreliminaryDraftStorageService, useValue: mockStorageService },
-        { provide: UserService, useValue: mockUserService },
-        { provide: EventBusService, useValue: mockEventBusService }
+        { provide: PreliminaryDraftStorageService, useValue: storageSpy as unknown as PreliminaryDraftStorageService },
+        { provide: UserService, useValue: userSpy as unknown as UserService },
+        { provide: EventBusService, useValue: eventBusSpy as unknown as EventBusService }
       ]
     });
 
@@ -66,12 +86,12 @@ describe('PreliminaryDraftApiService', () => {
 
   describe('getPreliminaryDraftById', () => {
     it('debería retornar un observable con el anteproyecto si existe', (done) => {
-      const mockDraft = { preliminaryDraftId: '1', state: stateList.EN_REVISION } as PreliminaryDraft;
-      mockStorageService.getById.mockReturnValue(of(mockDraft));
+      const mockDraft = createMockDraft({ preliminaryDraftId: '1', state: stateList.EN_REVISION });
+      storageSpy.getById.mockReturnValue(of(mockDraft));
 
       service.getPreliminaryDraftById('1').subscribe((result) => {
         expect(result).toEqual(mockDraft);
-        expect(mockStorageService.getById).toHaveBeenCalledWith('1');
+        expect(storageSpy.getById).toHaveBeenCalledWith('1');
         done();
       });
     });
@@ -79,15 +99,16 @@ describe('PreliminaryDraftApiService', () => {
 
   describe('createPreliminaryDraft', () => {
     it('debería crear el anteproyecto, guardar en storage y emitir notificaciones con delay', fakeAsync(() => {
-      const newDraftPayload = {
+      // 🔹 REFACTOR: Creamos el payload usando la fábrica estricta
+      const newDraftPayload = createMockDraft({
         proposalData: {
           title: 'Título de Prueba',
-          authors: ['author-1', { id: 'author-2' }], // Probamos ambos tipos que acepta el método (string y objeto)
+          authors: ['author-1', { id: 'author-2' }],
           director: { id: 'director-1' },
           codirector: { id: 'codirector-1' },
           advisor: { id: 'advisor-1' }
-        }
-      } as unknown as PreliminaryDraft;
+        } as any // Permitido solo si en tu interfaz 'authors' soporta arreglos mixtos
+      });
 
       let resultDraft: PreliminaryDraft | undefined;
 
@@ -95,14 +116,11 @@ describe('PreliminaryDraftApiService', () => {
         resultDraft = res;
       });
 
-      // Avanzamos el tiempo virtual para superar el delay(1000)
       tick(1000);
 
-      // 1. Verificamos que se haya devuelto el payload original en el flujo (como lo hace el of())
       expect(resultDraft).toEqual(newDraftPayload);
 
-      // 2. Verificamos que se llamó a guardar en storage con los datos enriquecidos
-      expect(mockStorageService.addDraft).toHaveBeenCalledWith(
+      expect(storageSpy.addDraft).toHaveBeenCalledWith(
         expect.objectContaining({
           preliminaryDraftId: 'mocked-uuid',
           state: stateList.EN_REVISION,
@@ -111,8 +129,7 @@ describe('PreliminaryDraftApiService', () => {
         })
       );
 
-      // 3. Verificamos la emisión de evento en el EventBus
-      expect(mockEventBusService.emit).toHaveBeenCalledWith(
+      expect(eventBusSpy.emit).toHaveBeenCalledWith(
         expect.objectContaining({
           type: AppEventType.PRELIMINARY_DRAFT_CREATED,
           payload: {
@@ -122,22 +139,23 @@ describe('PreliminaryDraftApiService', () => {
         })
       );
 
-      // 4. Verificamos que las notificaciones lleguen a las personas correctas (Autores, Director, Codirector, Asesor, y Jefe de Depto)
-      const emitCallArgs = mockEventBusService.emit.mock.calls[0][0];
-      const targetUserIds = emitCallArgs.targetUserIds;
+      // 🔹 REFACTOR: Extraer tipado correcto de la llamada de EventBus
+      type EmitParams = Parameters<typeof service['eventBus']['emit']>[0];
+      const emitCallArgs = eventBusSpy.emit.mock.calls[0][0] as EmitParams;
+      const targetUserIds = emitCallArgs.targetUserIds || [];
 
       expect(targetUserIds).toContain('author-1');
       expect(targetUserIds).toContain('author-2');
       expect(targetUserIds).toContain('director-1');
       expect(targetUserIds).toContain('codirector-1');
       expect(targetUserIds).toContain('advisor-1');
-      expect(targetUserIds).toContain('jefe-depto-1'); // Viene del mockUserService
+      expect(targetUserIds).toContain('jefe-depto-1');
     }));
   });
 
   describe('updatePreliminaryDraft', () => {
     it('debería actualizar el anteproyecto a través del callback del storage con delay', fakeAsync(() => {
-      const updatedData = { state: stateList.APROBADO } as PreliminaryDraft;
+      const updatedData = createMockDraft({ state: stateList.APROBADO });
 
       let resultDraft: PreliminaryDraft | undefined;
 
@@ -145,24 +163,20 @@ describe('PreliminaryDraftApiService', () => {
         resultDraft = res;
       });
 
-      // Avanzamos 800ms
       tick(800);
 
       expect(resultDraft).toEqual(updatedData);
 
-      // Verificamos que se llamó a updateDraft con el ID y una función callback
-      expect(mockStorageService.updateDraft).toHaveBeenCalledWith('1', expect.any(Function));
+      expect(storageSpy.updateDraft).toHaveBeenCalledWith('1', expect.any(Function));
 
-      // Extraemos el callback que se pasó como segundo argumento a updateDraft y lo probamos
-      const updateCallback = mockStorageService.updateDraft.mock.calls[0][1];
+      // 🔹 REFACTOR: Extraer el callback con Typescript nativo
+      type UpdateCallback = (draft: PreliminaryDraft) => PreliminaryDraft;
+      const updateCallback = storageSpy.updateDraft.mock.calls[0][1] as UpdateCallback;
 
-      // Simulamos el estado previo del anteproyecto
-      const previousDraftState = { preliminaryDraftId: '1', state: stateList.EN_REVISION } as PreliminaryDraft;
+      const previousDraftState = createMockDraft({ preliminaryDraftId: '1', state: stateList.EN_REVISION });
 
-      // Ejecutamos el callback como si fuera el Storage Service interno
       const finalState = updateCallback(previousDraftState);
 
-      // Verificamos que el callback hace el merge correctamente
       expect(finalState.preliminaryDraftId).toBe('1');
       expect(finalState.state).toBe(stateList.APROBADO);
     }));
@@ -176,13 +190,11 @@ describe('PreliminaryDraftApiService', () => {
         complete: () => { isCompleted = true; }
       });
 
-      // El storage no debería ser llamado inmediatamente
-      expect(mockStorageService.removeDraft).not.toHaveBeenCalled();
+      expect(storageSpy.removeDraft).not.toHaveBeenCalled();
 
-      // Avanzamos 800ms
       tick(800);
 
-      expect(mockStorageService.removeDraft).toHaveBeenCalledWith('1');
+      expect(storageSpy.removeDraft).toHaveBeenCalledWith('1');
       expect(isCompleted).toBe(true);
     }));
   });

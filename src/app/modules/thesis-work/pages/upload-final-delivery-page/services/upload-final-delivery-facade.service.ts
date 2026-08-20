@@ -7,12 +7,12 @@ import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 
 @Injectable({ providedIn: 'root' })
 export class UploadFinalDeliveryFacadeService {
-  private readonly thesisWorkService   = inject(ThesisWorkService);
+  private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
 
   public loadThesisWork(
-    id:         string,
-    onSuccess:  (work: ThesisWork) => void,
+    id: string,
+    onSuccess: (thesisWork: ThesisWork) => void,
     onNotFound: () => void
   ): void {
     this.thesisWorkService.getThesisWorkByIdMock(id)
@@ -34,10 +34,10 @@ export class UploadFinalDeliveryFacadeService {
   }
 
   public processFinalDelivery(
-    thesisId:  string,
-    files:     { monograph: File; formatE: File; annexes?: File },
+    thesisId: string,
+    files: { monograph: File; formatE: File; annexes?: File },
     onSuccess: () => void,
-    onError:   () => void
+    onError: () => void
   ): void {
     this.thesisWorkService
       .uploadFinalDeliveryMock(thesisId, files.monograph, files.formatE, files.annexes)
@@ -46,7 +46,7 @@ export class UploadFinalDeliveryFacadeService {
         next: () => {
           this.showNotification(
             '¡Entrega Registrada!',
-            'La monografía y el Formato_E se han procesado de manera oficial.',
+            'La monografía, el Formato_E y los anexos se han procesado de manera oficial.',
             NotificationType.CONFIRMATION
           );
           onSuccess();

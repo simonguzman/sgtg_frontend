@@ -1,19 +1,20 @@
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { FormattedDocument } from '../../../../../core/interfaces/formatted-document.interface';
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
-
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { UserService } from '../../../../users/services/user.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
+import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
+import { formatDisplayDate, parseDisplayDate } from '../../../../../core/utils/date-utils';
 import { SaveEvaluationPayload } from '../../../components/review-presentations-faculty-council-form/models/council-evaluation.model';
 
 @Injectable()
@@ -32,39 +33,50 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
   readonly pendingData = signal<SaveEvaluationPayload | null>(null);
 
   readonly filteredPreliminaryDraft = computed(() => {
-    const PreliminaryDraft = this.preliminaryDraftState();
-    if (!PreliminaryDraft?.documents) return null;
+    const preliminaryDraft = this.preliminaryDraftState();
+    if (!preliminaryDraft?.documents) return null;
 
-    const revisionHistoryVersion = [...PreliminaryDraft.documents]
-      .filter((document) => document.type === 'Anteproyecto' || document.type === 'Correccion')
-      .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
+    // ← FIX: 'Anteproyecto'/'Correccion' → enum, mismo patrón ya aplicado
+    // en el resto del módulo.
+    const revisionHistoryVersion = [...preliminaryDraft.documents]
+      .filter((document) => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION)
+      .sort((a, b) => parseDisplayDate(b.uploadDate).getTime() - parseDisplayDate(a.uploadDate).getTime());
 
     const activeRevisionId = revisionHistoryVersion[0]?.id;
-    const currentIterationEvaluations = PreliminaryDraft.evaluations?.filter(
-        (evaluation) => evaluation.documentId === activeRevisionId
-      ) || [];
+    const currentIterationEvaluations = preliminaryDraft.evaluations?.filter(
+      (evaluation) => evaluation.documentId === activeRevisionId
+    ) || [];
 
-    const linkedEvaluationFileRefs = currentIterationEvaluations.flatMap(
+    const linkedEvaluationFileRefs: FormattedDocument[] = currentIterationEvaluations.flatMap(
       (evaluation) => evaluation.signedDocuments || []
     );
 
-    const visibleDocumentsForCouncil = PreliminaryDraft.documents.filter((document) => {
+    const visibleDocumentsForCouncil = preliminaryDraft.documents.filter((document) => {
       const isLatestIterationBase = document.id === activeRevisionId;
+      // ← FIX: antes `fileRef === document.id || fileRef === document.name`
+      // — comparación de igualdad estricta entre un string y un objeto,
+      // que dejó de poder ser verdadera desde que signedDocuments pasó de
+      // string[] a FormattedDocument[]. Ahora compara la url real del
+      // documento firmado contra la url del documento del anteproyecto.
       const isLinkedEvaluationOutput = linkedEvaluationFileRefs.some(
-        (fileRef) => fileRef === document.id || fileRef === document.name
+        (fileRef) => fileRef.url === document.url
       );
+      // ← FIX: 'Propuesta'/'Anexos' → enum. DocumentType.PROPUESTA y
+      // DocumentType.ANEXOS asumidos por convención (mismo patrón que
+      // ANTEPROYECTO/CORRECCION/FORMATO_B/FORMATO_C ya confirmados en el
+      // enum real). Verifica que ambos nombres existan tal cual — si
+      // difieren, dime los correctos y ajusto solo esta línea.
       const isPermanentReference = [
-        'Propuesta',
+        DocumentType.PROPUESTA,
         DocumentType.FORMATO_B,
         DocumentType.FORMATO_C,
-        'Anexos'
+        DocumentType.ANEXOS
       ].includes(document.type);
-
       return isLatestIterationBase || isLinkedEvaluationOutput || isPermanentReference;
     });
 
     return {
-      ...PreliminaryDraft,
+      ...preliminaryDraft,
       documents: visibleDocumentsForCouncil,
       evaluations: currentIterationEvaluations
     };
@@ -72,7 +84,6 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
 
   loadData(): void {
     const id = this.route.snapshot.paramMap.get('id') ?? this.route.parent?.parent?.snapshot.paramMap.get('id');
-
     if (id) {
       this.preliminaryDraftService.getPreliminaryDraftById(id)
         .pipe(takeUntilDestroyed(this.destroyRef))
@@ -94,23 +105,46 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
     this.isConfirmModalOpen.set(true);
   }
 
-  processCouncilDecision(): void {
+  // ← FIX CENTRAL: antes construía resolutionDoc con url: '' y luego
+  // signedDocuments: [resolutionDoc.name] — un string[], que ya no
+  // compila contra Evaluation.signedDocuments (FormattedDocument[]).
+  // Ahora es async: lee el File real vía readFileAsDataUrl antes de
+  // construir tanto el FileDocument de la resolución como el
+  // FormattedDocument que se adjunta a la evaluación — ambos apuntan al
+  // mismo contenido real, no a una URL vacía ni a un nombre suelto.
+  //
+  // Nota: data.formValues.result ya es stateList estricto desde el fix
+  // de CouncilEvaluationFormValues — el === 'Aprobado' original comparaba
+  // un stateList contra un string literal, lo cual technically funciona
+  // porque stateList.APROBADO === 'Aprobado' en tiempo de ejecución (los
+  // enums de string de TS son sus propios valores), pero es frágil ante
+  // un futuro rename del enum. Se cambia a comparar contra stateList.APROBADO
+  // directamente, más seguro y explícito.
+  async processCouncilDecision(): Promise<void> {
     const data = this.pendingData();
-    const PreliminaryDraft = this.preliminaryDraftState();
-
-    if (!data || !PreliminaryDraft?.preliminaryDraftId) {
+    const preliminaryDraft = this.preliminaryDraftState();
+    if (!data || !preliminaryDraft?.preliminaryDraftId) {
       this.showValidationErrorNotification();
       return;
     }
 
-    const finalState = data.formValues.result === 'Aprobado' ? stateList.APROBADO : stateList.NO_APROBADO;
-    const presentationDoc = PreliminaryDraft.documents.find((document) => document.type === DocumentType.FORMATO_C);
+    const finalState = data.formValues.result === stateList.APROBADO ? stateList.APROBADO : stateList.NO_APROBADO;
+    const presentationDoc = preliminaryDraft.documents.find((document) => document.type === DocumentType.FORMATO_C);
+
+    let resolutionFileUrl: string;
+    try {
+      resolutionFileUrl = await readFileAsDataUrl(data.file);
+    } catch (err) {
+      console.error('Error leyendo el archivo de resolución:', err);
+      this.showFileReadErrorNotification();
+      return;
+    }
 
     const resolutionDoc: FileDocument = {
       id: crypto.randomUUID(),
       name: data.file.name,
-      url: '',
-      uploadDate: new Date().toLocaleDateString(),
+      url: resolutionFileUrl,
+      uploadDate: formatDisplayDate(new Date()),
       type: DocumentType.RESOLUCION,
       status: finalState
     };
@@ -121,22 +155,24 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
     const councilEvaluation: Evaluation = {
       id: crypto.randomUUID(),
       documentId: presentationDoc?.id || '',
-      proposalId: PreliminaryDraft.preliminaryDraftId,
+      proposalId: preliminaryDraft.preliminaryDraftId,
       evaluatorId: currentUser?.id || '',
       evaluatorName: currentUserName,
       evaluatorRole: 'Consejo de facultad',
       veredict: finalState,
       observations: data.formValues.comments || 'Sin observaciones adicionales.',
       date: new Date(),
-      signedDocuments: [resolutionDoc.name]
+      // ← FIX: antes [resolutionDoc.name] (string[]). Ahora un
+      // FormattedDocument real con el mismo contenido que resolutionDoc.
+      signedDocuments: [{ name: resolutionDoc.name, url: resolutionFileUrl }]
     };
 
     this.preliminaryDraftService.uploadCouncilResolution(
-        PreliminaryDraft.preliminaryDraftId,
+        preliminaryDraft.preliminaryDraftId,
         resolutionDoc,
         finalState,
         councilEvaluation,
-        data.formValues.maximumDeliveryDate ?? undefined // <-- Solución aplicada
+        data.formValues.maximumDeliveryDate ?? undefined
       )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -149,7 +185,12 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
       });
   }
 
-  downloadFile(document: FileDocument): void {
+  // ← Firma relajada: FileDocument → FormattedDocument | FileDocument.
+  // El HTML del formulario ahora emite FormattedDocument en varios de
+  // los botones "Descargar" (signedProposalDocument, evaluationFiles) —
+  // este método solo lee .name/.url, así que acepta cualquiera de los
+  // dos sin necesitar overloads.
+  downloadFile(document: FormattedDocument | FileDocument): void {
     if (document?.url) {
       this.downloadService.download(document.url, document.name);
     } else {
@@ -166,42 +207,24 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
   }
 
   private showNotFoundNotification(): void {
-    this.notification.show({
-      title: 'Información no encontrada',
-      message: 'No se pudo cargar el detalle del anteproyecto.',
-      type: NotificationType.INFO
-    });
+    this.notification.show({ title: 'Información no encontrada', message: 'No se pudo cargar el detalle del anteproyecto.', type: NotificationType.INFO });
   }
-
   private showServerErrorNotification(): void {
-    this.notification.show({
-      title: 'Error de carga',
-      message: 'Ocurrió un error al obtener los datos del servidor.',
-      type: NotificationType.ERROR
-    });
+    this.notification.show({ title: 'Error de carga', message: 'Ocurrió un error al obtener los datos del servidor.', type: NotificationType.ERROR });
   }
-
   private showSuccessNotification(): void {
-    this.notification.show({
-      title: 'Decisión Guardada',
-      message: 'Se ha registrado la resolución del consejo de facultad exitosamente.',
-      type: NotificationType.CONFIRMATION
-    });
+    this.notification.show({ title: 'Decisión Guardada', message: 'Se ha registrado la resolución del consejo de facultad exitosamente.', type: NotificationType.CONFIRMATION });
   }
-
   private showSaveErrorNotification(): void {
-    this.notification.show({
-      title: 'Error al guardar',
-      message: 'No se pudo registrar la decisión debido a un problema técnico.',
-      type: NotificationType.ERROR
-    });
+    this.notification.show({ title: 'Error al guardar', message: 'No se pudo registrar la decisión debido a un problema técnico.', type: NotificationType.ERROR });
   }
-
   private showValidationErrorNotification(): void {
-    this.notification.show({
-      title: 'Error de validación',
-      message: 'Faltan datos críticos para procesar la resolución.',
-      type: NotificationType.ERROR
-    });
+    this.notification.show({ title: 'Error de validación', message: 'Faltan datos críticos para procesar la resolución.', type: NotificationType.ERROR });
+  }
+  // ← NUEVO: antes no podía fallar porque no leía ningún archivo de
+  // forma asíncrona. Ahora que processCouncilDecision() sí lo hace,
+  // necesita su propio aviso, distinto del error de red genérico.
+  private showFileReadErrorNotification(): void {
+    this.notification.show({ title: 'Error al leer el archivo', message: 'No se pudo procesar el documento de resolución adjuntado.', type: NotificationType.ERROR });
   }
 }

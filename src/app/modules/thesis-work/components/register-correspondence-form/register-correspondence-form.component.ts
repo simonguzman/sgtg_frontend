@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal, ViewChild, ElementRef } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
@@ -19,9 +19,12 @@ export class RegisterCorrespondenceFormComponent {
   thesisWork   = input.required<ThesisWork>();
   isSubmitting = input<boolean>(false);
   onSave       = output<File>();
-  onGoBack     = output<void>();
+  onGoBack     = output<void>(); // Nota: Asegúrate de usar esta salida en el HTML o donde corresponda
 
   readonly selectedFile = signal<{ fileName: string; file: File } | null>(null);
+
+  // FIX: Usamos ViewChild en lugar de document.getElementById
+  @ViewChild('fileInput') fileInputElement!: ElementRef<HTMLInputElement>;
 
   private readonly historicalDocuments = computed(() => this.thesisWork().documents ?? []);
 
@@ -36,7 +39,7 @@ export class RegisterCorrespondenceFormComponent {
   getMemberName(userId: string | undefined): string { return this.formService.getMemberName(userId); }
 
   downloadDocument(doc: FileDocument | undefined | null): void {
-    this.formService.downloadDocument(doc);
+    void this.formService.downloadDocument(doc);
   }
 
   onFileSelected(event: Event): void {
@@ -51,13 +54,16 @@ export class RegisterCorrespondenceFormComponent {
   }
 
   triggerFileInput(): void {
-    document.getElementById('correspondenceFileInput')?.click();
+    // FIX: Acceso seguro mediante ElementRef
+    this.fileInputElement?.nativeElement.click();
   }
 
   removeSelectedFile(): void {
     this.selectedFile.set(null);
-    const inputElement = document.getElementById('correspondenceFileInput') as HTMLInputElement | null;
-    if (inputElement) inputElement.value = '';
+    // FIX: Reseteo seguro sin tocar el DOM global
+    if (this.fileInputElement) {
+      this.fileInputElement.nativeElement.value = '';
+    }
   }
 
   submitForm(): void {

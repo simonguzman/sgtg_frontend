@@ -9,6 +9,7 @@ import { FileDownloadService } from '../../../../../core/services/filedownload/f
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { User } from '../../../../users/interfaces/user.interface';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 
 @Injectable()
 export class PreliminaryDraftDetailsPageService {
@@ -24,9 +25,10 @@ export class PreliminaryDraftDetailsPageService {
   readonly mainDocument = computed(() => {
     const currentPreliminaryDraft = this.preliminaryDraftDetails();
     if (!currentPreliminaryDraft) return null;
-    return currentPreliminaryDraft.documents.find(document => document.type === 'Anteproyecto')
-           || currentPreliminaryDraft.documents[0]
-           || null;
+    // ← FIX: 'Anteproyecto' → DocumentType.ANTEPROYECTO
+    return currentPreliminaryDraft.documents.find(document => document.type === DocumentType.ANTEPROYECTO)
+          || currentPreliminaryDraft.documents[0]
+          || null;
   });
 
   init(): void {
@@ -62,17 +64,20 @@ export class PreliminaryDraftDetailsPageService {
     return this.userService.getAuthorsNames(authors);
   }
 
-  downloadDocument(): void {
+  async downloadDocument(): Promise<void> {
     const targetDocument = this.mainDocument();
-
     if (!targetDocument?.url) {
       this.showDownloadFileErrorNotification();
       return;
     }
-
     this.showDownloadFileInfoNotification();
-    this.downloadService.download(targetDocument.url, targetDocument.name);
-    this.showDownloadFileSuccessNotification();
+    try {
+      await this.downloadService.download(targetDocument.url, targetDocument.name);
+      this.showDownloadFileSuccessNotification();
+    } catch (err) {
+      console.error('Error al descargar el documento:', err);
+      this.showDownloadFileErrorNotification();
+    }
   }
 
   goBack(): void {

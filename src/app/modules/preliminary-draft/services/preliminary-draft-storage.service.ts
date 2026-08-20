@@ -19,19 +19,26 @@ export class PreliminaryDraftStorageService {
 
   public readonly preliminaryDrafts = computed(() => {
     const currentUser = this.authService.currentUser();
-    const activepreliminaryDrafts = this._preliminaryDraftsList().filter(preliminaryDraft => !preliminaryDraft.isArchived);
     if (!currentUser) return [];
 
-    if (this.authService.hasAnyRole([
+    const activePreliminaryDrafts = this._preliminaryDraftsList().filter(
+      draft => !draft.isArchived
+    );
+
+    const hasPrivilegedRole = this.authService.hasAnyRole([
       UserRoleType.ADMINISTRADOR,
       UserRoleType.COMITE,
       UserRoleType.JEFE_DEP,
       UserRoleType.CONSEJO
-    ])) {
-      return activepreliminaryDrafts;
+    ]);
+
+    if (hasPrivilegedRole) {
+      return activePreliminaryDrafts;
     }
 
-    return activepreliminaryDrafts.filter(preliminaryDraft => this.canUserAccessPreliminaryDraft(preliminaryDraft, currentUser.id));
+    return activePreliminaryDrafts.filter(draft =>
+      this.canUserAccessPreliminaryDraft(draft, currentUser.id)
+    );
   });
 
   constructor() {
@@ -40,9 +47,12 @@ export class PreliminaryDraftStorageService {
     });
   }
 
-  public updateDraft(id: string, mutator: (preliminaryDraft: PreliminaryDraft) => PreliminaryDraft): void {
+  public updateDraft(
+    id: string,
+    mutator: (preliminaryDraft: PreliminaryDraft) => PreliminaryDraft
+  ): void {
     this._preliminaryDraftsList.update(list =>
-      list.map(preliminaryDraft => preliminaryDraft.preliminaryDraftId === id ? mutator(preliminaryDraft) : preliminaryDraft)
+      list.map(draft => (draft.preliminaryDraftId === id ? mutator(draft) : draft))
     );
   }
 
@@ -52,12 +62,14 @@ export class PreliminaryDraftStorageService {
 
   public removeDraft(id: string): void {
     this._preliminaryDraftsList.update(list =>
-      list.filter(preliminaryDraft => preliminaryDraft.preliminaryDraftId !== id)
+      list.filter(draft => draft.preliminaryDraftId !== id)
     );
   }
 
   public getById(id: string): Observable<PreliminaryDraft | undefined> {
-    const preliminaryDraft = this._preliminaryDraftsList().find(preliminaryDraft => preliminaryDraft.preliminaryDraftId === id);
+    const preliminaryDraft = this._preliminaryDraftsList().find(
+      draft => draft.preliminaryDraftId === id
+    );
     return of(preliminaryDraft).pipe(delay(500));
   }
 
@@ -67,7 +79,7 @@ export class PreliminaryDraftStorageService {
     const stored = localStorage.getItem(this.STORAGE_KEY);
     if (stored && stored !== '[]') {
       try {
-        return JSON.parse(stored);
+        return JSON.parse(stored) as PreliminaryDraft[];
       } catch {
         localStorage.removeItem(this.STORAGE_KEY);
       }
@@ -79,16 +91,21 @@ export class PreliminaryDraftStorageService {
     const proposal = preliminaryDraft.proposalData;
     if (!proposal) return false;
 
-    const isDirector   = proposal.director?.id === userId;
+    const isDirector = proposal.director?.id === userId;
     const isCodirector = proposal.codirector?.id === userId;
-    const isAdvisor    = proposal.advisor?.id === userId;
+    const isAdvisor = proposal.advisor?.id === userId;
 
     const isAuthor = proposal.authors?.some(author =>
       typeof author === 'string' ? author === userId : (author as User)?.id === userId
     ) ?? false;
 
-    const isAssignedEvaluator = preliminaryDraft.evaluators?.some(evaluator => evaluator.id === userId) ?? false;
-    const hasEvaluation = preliminaryDraft.evaluations?.some(evaluator => evaluator?.id === userId) ?? false;
+    const isAssignedEvaluator = preliminaryDraft.evaluators?.some(
+      evaluator => evaluator.id === userId
+    ) ?? false;
+
+    const hasEvaluation = preliminaryDraft.evaluations?.some(
+      evaluation => evaluation?.evaluatorId === userId
+    ) ?? false;
 
     return isDirector || isCodirector || isAdvisor || isAuthor || isAssignedEvaluator || hasEvaluation;
   }

@@ -1,17 +1,14 @@
 import { inject, Injectable } from '@angular/core';
-
-// ─── Importaciones de tus interfaces (Ajusta las rutas según tu proyecto) ────
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { SustentationRegistry } from '../../../interfaces/sustentation-registry.interface';
 import { SpecialRequest } from '../../../interfaces/special-request.interface';
 import { JurorVerdict } from '../../../interfaces/juror-verdict.interface';
-import { User } from '../../../../users/interfaces/user.interface';
-
-// ─── Enums y Modelos de Vista ────────────────────────────────────────────────
 import { stateList } from '../../../../../core/enums/state.enum';
 import { SustentationStatus } from '../../../enums/sustentation-status.enum';
 import { SpecialRequestType } from '../../../enums/special-request-type.enum';
 import { UserService } from '../../../../users/services/user.service';
+import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
+import { ThesisFinalDeliveryDocumentResolverService } from '../../../services/thesis-final-delivery-document-resolver.service';
 import {
   SustentationDetailsView,
   SustentationDocumentView,
@@ -21,40 +18,46 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class SustentationDetailsMapperService {
-  private readonly userService = inject(UserService);
+  // Se conserva: mapVerdicts necesita getUserFullName(jurorId) directo —
+  // jurados de veredictos individuales, caso que el formateador compartido
+  // no cubre (su getAssignedJurors trabaja sobre la sustentación completa).
+  private readonly userService      = inject(UserService);
+  private readonly participants     = inject(ThesisParticipantsFormatterService);
+  private readonly documentResolver = inject(ThesisFinalDeliveryDocumentResolverService);
 
   public mapToView(work: ThesisWork, sustentationId: string): SustentationDetailsView | null {
-    // Buscamos la sustentación usando el tipo estricto SustentationRegistry
     const sustentation = work.sustentations?.find((s: SustentationRegistry) => s.id === sustentationId);
     if (!sustentation) return null;
 
-    const proposal = work.preliminaryDraftData.proposalData;
+    const proposal    = work.preliminaryDraftData.proposalData;
     const adminStatus = sustentation.status;
     const isPostponed = adminStatus === SustentationStatus.APLAZADA;
-
-    const authorsList: User[] = proposal.authors ?? [];
 
     return {
       title: proposal.title || 'Sin título',
       description: proposal.description || 'Sin descripción',
       modality: proposal.modality || 'No definida',
       state: work.state,
-      authors: this.userService.getAuthorsNames(authorsList as any) || 'No asignados', // Nota: Si tu UserService sigue pidiendo 'any', déjalo o actualiza el service para que reciba User[]
-
-      director: proposal.director?.id ? this.userService.getUserFullName(proposal.director.id) : 'No asignado',
-      codirector: proposal.codirector?.id ? this.userService.getUserFullName(proposal.codirector.id) : undefined,
-      advisor: proposal.advisor?.id ? this.userService.getUserFullName(proposal.advisor.id) : undefined,
-      assignedJurors: this.mapAssignedJurors(sustentation.assignedJurors),
-
+      // ← Fix: se elimina el cast `as any` (innecesario — User[] ya es
+      // asignable a (string | User)[]) y el fallback `|| 'No asignados'`
+      // muerto (getAuthorsNames nunca retorna vacío).
+      authors: this.participants.getStudentNames(work),
+      // ← Delegados al formateador compartido — este mapper YA hacía lookup
+      // por ID correctamente (a diferencia de otros lugares del módulo),
+      // así que aquí el cambio es puro DRY, sin corrección de comportamiento.
+      director: this.participants.getDirectorName(work),
+      codirector: this.participants.getCodirectorName(work) || undefined,
+      advisor: this.participants.getAdvisorName(work) || undefined,
+      assignedJurors: this.participants.getAssignedJurors(sustentation),
       sustentationDate: sustentation.sustentationDate || null,
       location: sustentation.location || 'No definido',
-
       administrativeStatus: adminStatus || 'No definido',
       isAdministrativelyPostponed: isPostponed,
       isAdministrativelyCanceled: adminStatus === SustentationStatus.CANCELADA,
       postponementReason: isPostponed ? this.getPostponementReason(work.specialRequests) : null,
       approvedSpecialRequests: this.getApprovedSpecialRequests(work.specialRequests),
-
+      // ← Delegados al resolver compartido: elimina la tercera copia de la
+      // lógica "ordenar finalDeliveries por fecha desc, tomar el más reciente".
       monograph: this.extractDocument(work, 'MONOGRAFIA'),
       annexes: this.extractDocument(work, 'ANEXOS'),
       formatEDocument: sustentation.formatEDocument ? {
@@ -62,15 +65,9 @@ export class SustentationDetailsMapperService {
         url: sustentation.formatEDocument.url,
         description: 'Formato E • Documento de programación avalado por el consejo'
       } : null,
-
       verdicts: this.mapVerdicts(sustentation.verdicts),
       showCorrectedDocumentsButton: this.shouldShowCorrectedDocs(work, sustentation)
     };
-  }
-
-  private mapAssignedJurors(jurors: User[] = []): string {
-    if (!jurors.length) return 'No asignados';
-    return jurors.map(j => this.userService.getUserFullName(j.id)).join(' y ');
   }
 
   private getPostponementReason(requests: SpecialRequest[] = []): SpecialRequestView | null {
@@ -79,6 +76,7 @@ export class SustentationDetailsMapperService {
       .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
 
     if (!reprogramming.length) return null;
+
     return {
       type: reprogramming[0].requestType,
       description: reprogramming[0].description,
@@ -98,15 +96,7 @@ export class SustentationDetailsMapperService {
   }
 
   private extractDocument(work: ThesisWork, type: 'MONOGRAFIA' | 'ANEXOS'): SustentationDocumentView | null {
-    if (!work.finalDeliveries?.length) return null;
-    const latestDelivery = [...work.finalDeliveries].sort((a, b) => {
-        // Aseguramos que uploadDate se maneje correctamente, sin importar si viene como string o Date
-        const dateA = new Date(a.uploadDate).getTime();
-        const dateB = new Date(b.uploadDate).getTime();
-        return dateB - dateA;
-    })[0];
-
-    const doc = type === 'MONOGRAFIA' ? latestDelivery?.monograph : latestDelivery?.annexes;
+    const doc = this.documentResolver.resolveLatestFinalDeliveryDocument(work, type);
     if (!doc) return null;
 
     return {
@@ -131,7 +121,6 @@ export class SustentationDetailsMapperService {
     }));
   }
 
-  // Ahora utilizamos tu stateList directamente para evaluar el veredicto
   private getVerdictColor(verdict: string): string {
     switch (verdict) {
       case stateList.APROBADO:

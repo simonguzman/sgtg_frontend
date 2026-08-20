@@ -22,11 +22,17 @@ export class EvaluateSpecialRequestFacadeService {
   ): void {
     this.thesisWorkService.getThesisWorkByIdMock(thesisId).pipe(first()).subscribe({
       next: (data) => {
-        // NOTA: si data es undefined, el original no notificaba ni navegaba —
-        // se preserva ese comportamiento exacto. Si prefieres que también
-        // redirija en este caso, dímelo y lo ajusto.
-        if (!data) return;
-
+        // ← FIX: antes `if (!data) return;` dejaba la página cargando
+        // indefinidamente sin notificar ni redirigir — inconsistente con
+        // RegisterSpecialRequestFacadeService.loadThesisWork, que sí
+        // maneja este caso. Ahora ambos facades se comportan igual, y no
+        // hizo falta tocar la firma: el mismo onError() que ya se usa para
+        // "solicitud no encontrada" sirve también aquí.
+        if (!data) {
+          this.showError('El trabajo de grado especificado no existe.');
+          onError();
+          return;
+        }
         const request = data.specialRequests?.find((req: SpecialRequest) => req.id === requestId);
         if (!request) {
           this.showError('No se encontró la solicitud especial especificada.');

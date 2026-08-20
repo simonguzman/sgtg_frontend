@@ -33,5 +33,4 @@ export class EvaluationModalComponent{
   downloadFile (document: FormattedDocument){
     this.onDownloadFile.emit(document);
   }
-
 }

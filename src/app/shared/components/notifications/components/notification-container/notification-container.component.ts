@@ -1,5 +1,5 @@
-import { NotificationService } from './../../services/notification.service';
 import { Component, inject } from '@angular/core';
+import { NotificationService } from '../../services/notification.service';
 import { NotificationItemComponent } from '../notification-item/notification-item.component';
 
 @Component({
@@ -9,5 +9,6 @@ import { NotificationItemComponent } from '../notification-item/notification-ite
   styleUrls: ['./notification-container.component.css']
 })
 export class NotificationContainerComponent {
-  protected notificationService = inject(NotificationService)
+  // ← readonly agregado: mismo patrón que cada servicio inyectado en el resto del proyecto.
+  protected readonly notificationService = inject(NotificationService);
 }

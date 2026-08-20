@@ -66,3 +66,41 @@ export function getRemainingBusinessDays(targetDate: Date | string): number {
 
   return isPast ? -businessDays : businessDays;
 }
+/**
+ * Formatea una fecha al estilo 'DD - MM - YYYY' usado para mostrar fechas
+ * de carga/registro en toda la aplicación. Se centraliza en core/utils
+ * (no en un módulo de feature) porque es una utilidad de formato de UI
+ * genérica — antes existía esta misma lógica exacta duplicada como
+ * método privado en LoadedProposalsFacadeService, además de
+ * formatThesisDate() en thesis-work/helpers/thesis-date.helper.ts.
+ */
+export function formatDisplayDate(date: Date = new Date()): string {
+  return date
+    .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    .replaceAll('/', ' - ');
+}
+
+/**
+ * Parsea una fecha que puede venir en cualquiera de las formas que
+ * `uploadDate` toma en este proyecto: un objeto Date real, un ISO string
+ * (usado p. ej. en UploadAdvanceFacadeService), o el formato de
+ * visualización 'DD - MM - YYYY' que produce formatDisplayDate().
+ *
+ * `new Date('27 - 07 - 2026')` no es parseo estándar de ECMAScript — el
+ * resultado varía según el motor JS y no hay garantía de que siga
+ * funcionando en el futuro. Este parser reconoce explícitamente el
+ * patrón "DD - MM - YYYY" en vez de delegarlo al parser genérico.
+ */
+export function parseDisplayDate(value: Date | string | undefined | null): Date {
+  if (!value) return new Date(NaN);
+  if (value instanceof Date) return value;
+
+  const displayFormatMatch = value.match(/^(\d{1,2})\s*-\s*(\d{1,2})\s*-\s*(\d{4})$/);
+  if (displayFormatMatch) {
+    const [, day, month, year] = displayFormatMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
+  // ISO u otros formatos estándar que new Date() sí parsea de forma fiable
+  return new Date(value);
+}

@@ -1,25 +1,22 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
-
+import { first } from 'rxjs/operators';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { BreadcrumbService } from '../../../../../core/services/breadcrumb/breadcrumb.service';
-
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
-
 import { PreliminaryDraftEvaluationContext, PreliminaryDraftTabConfiguration } from '../tabs-logic/tab-config.interface';
 import { AnteproyectosTabConfig } from '../tabs-logic/anteproyectos.tab';
 import { PresentacionesTabConfig } from '../tabs-logic/presentaciones.tab';
-
 import { LoadedDocumentsPreliminaryDraftMapperService } from './loaded-documents-preliminary-draft-mapper.service';
-import { LOADED_DOCUMENTS_TABS, UploadContext } from '../models/loaded-documents-preliminary-draft-page.model';
+import { LOADED_DOCUMENTS_TABS, LoadedDocumentsTabType, UploadContext } from '../models/loaded-documents-preliminary-draft-page.model';
 
 @Injectable()
 export class LoadedDocumentsPreliminaryDraftFacadeService {
@@ -35,32 +32,41 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
 
   readonly tabs = LOADED_DOCUMENTS_TABS;
 
+  // ← Claves del Record ahora usan el enum en vez de repetir los string
+  // literals. Sigue tipado Record<string, ...> (no Record<LoadedDocumentsTabType, ...>)
+  // a propósito: activeTab más abajo debe seguir siendo signal<string>
+  // porque <app-tabs> emite un string genérico en (tabChange) — mismo
+  // razonamiento ya documentado en downloadable-formats-page.model.ts
+  // para este mismo patrón de tabs en otro módulo.
   private readonly tabStrategies: Record<string, PreliminaryDraftTabConfiguration> = {
-    'ANTEPROYECTOS': AnteproyectosTabConfig,
-    'PRESENTACIONES': PresentacionesTabConfig
+    [LoadedDocumentsTabType.ANTEPROYECTOS]: AnteproyectosTabConfig,
+    [LoadedDocumentsTabType.PRESENTACIONES]: PresentacionesTabConfig
   };
 
-  // Signals de estado UI
-  readonly activeTab = signal<string>('ANTEPROYECTOS');
+  readonly activeTab = signal<string>(LoadedDocumentsTabType.ANTEPROYECTOS);
   readonly preliminaryDraftId = signal<string | null>(null);
   readonly uploadContext = signal<UploadContext | null>(null);
   readonly isUploadModalOpen = signal<boolean>(false);
   readonly isConfirmModalOpen = signal<boolean>(false);
 
   constructor() {
-    // Sincronización dinámica de breadcrumb y título mediante un Effect de Signal
     effect(() => {
       const tab = this.activeTab();
-      const tabLabel = tab === 'ANTEPROYECTOS'
+      const tabLabel = tab === LoadedDocumentsTabType.ANTEPROYECTOS
         ? 'Anteproyectos'
         : 'Presentaciones al consejo de facultad';
+      // Nota: setDynamicTitle ya actualiza internamente el título del
+      // navegador desde el refactor de BreadcrumbService de hace varios
+      // turnos — la llamada a titleService.setTitle() de abajo quedó
+      // redundante (mismo string escrito dos veces), pero no rota. No la
+      // toco porque no es parte de este pedido; queda como candidata a
+      // limpieza si en algún momento quieres simplificarlo.
       this.breadcrumbService.setDynamicBreadcrumb(tabLabel);
       this.breadcrumbService.setDynamicTitle(`Documentos cargados - ${tabLabel}`);
       this.titleService.setTitle(`Documentos cargados - ${tabLabel}`);
     });
   }
 
-  // Computeds
   private readonly currentPreliminaryDraft = computed(() => {
     const id = this.preliminaryDraftId();
     if (!id) return null;
@@ -76,10 +82,8 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
   readonly evaluationContext = computed<PreliminaryDraftEvaluationContext | null>(() => {
     const preliminaryDraft = this.currentPreliminaryDraft();
     if (!preliminaryDraft) return null;
-
     const user = this.authService.currentUser();
     const documents = preliminaryDraft.documents || [];
-
     const baseContext: PreliminaryDraftEvaluationContext = {
       preliminaryDraft: preliminaryDraft,
       currentUser: user,
@@ -89,10 +93,18 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
       isAssignedEvaluator: preliminaryDraft?.evaluators?.some((ev: { id: string }) => ev.id === user?.id) ?? false,
       isConsejoMember: this.authService.hasAnyRole([UserRoleType.CONSEJO]),
       totalEvaluatorsCount: preliminaryDraft?.evaluators?.length || 0,
-      latestAnteproyectoId: documents.find(d => d.type === 'Anteproyecto' || d.type === 'Correccion')?.id,
+      // ← FIX: 'Anteproyecto'/'Correccion' → DocumentType.ANTEPROYECTO/
+      // DocumentType.CORRECCION. DocumentType.CORRECCION está confirmado
+      // (se usa un poco más abajo en modalConfig.uploadDocumentType de
+      // AnteproyectosTabConfig). DocumentType.ANTEPROYECTO lo asumo por
+      // convención del enum — todo lo demás en el proyecto (AVANCE,
+      // FORMATO_E, FORMATO_C, FORMATO_G, PAZ_Y_SALVO) es un valor de
+      // este mismo enum, nunca un string suelto. Verifica que el nombre
+      // exacto coincida en tu document-type.enum.ts real; si difiere,
+      // dime el nombre correcto y lo ajusto.
+      latestAnteproyectoId: documents.find(d => d.type === DocumentType.ANTEPROYECTO || d.type === DocumentType.CORRECCION)?.id,
       latestPresentacionId: documents.find(d => d.type === DocumentType.FORMATO_C)?.id
     };
-
     return this.currentStrategy().enrichEvaluationContext(baseContext);
   });
 
@@ -107,7 +119,6 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
   readonly currentTableData = computed(() => {
     const context = this.evaluationContext();
     if (!context?.preliminaryDraft?.documents) return [];
-
     return this.currentStrategy().getTableData(
       context.preliminaryDraft.documents,
       context,
@@ -120,7 +131,6 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
   readonly uploadModalUserRole = computed(() => this.mapperService.getUploadModalUserRole(this.activeTab()));
   readonly confirmModalDescription = computed(() => this.mapperService.getConfirmModalDescription(this.activeTab()));
 
-  // Métodos de ciclo de vida
   init(): void {
     const preliminaryDraftId = this.route.snapshot.paramMap.get('id') || this.route.parent?.snapshot.paramMap.get('id');
     if (preliminaryDraftId) this.preliminaryDraftId.set(preliminaryDraftId);
@@ -131,7 +141,6 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     this.breadcrumbService.setDynamicTitle(null);
   }
 
-  // Métodos de acción
   handleHeaderButton(button: TableButton): void {
     if (button.action === 'upload_document') {
       this.isUploadModalOpen.set(true);
@@ -145,10 +154,12 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
       this.showRestrictedActionNotification();
       return;
     }
-
     switch (event.action) {
       case 'download':
-        this.handleDownload(event.row);
+        // ← handleDownload ahora es async; void marca explícitamente que
+        // no se espera el resultado aquí — ya maneja éxito/error con
+        // sus propias notificaciones.
+        void this.handleDownload(event.row);
         break;
       case 'evaluate':
         this.router.navigate(['review_preliminary_draft'], { relativeTo: this.route });
@@ -165,29 +176,45 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     this.isConfirmModalOpen.set(true);
   }
 
-  confirmUpload(): void {
+  // ← FIX CENTRAL: antes solo pasaba selectedFileData.fileName al
+  // mapper — selectedFileData.file (el archivo real) se descartaba sin
+  // usarse, y el mapper hardcodeaba url: ''. Mismo bug exacto que en
+  // Propuestas: cualquier corrección de anteproyecto subida desde esta
+  // página quedaba con una URL vacía, imposible de descargar después.
+  async confirmUpload(): Promise<void> {
     const selectedFileData = this.uploadContext();
     const preliminaryDraft = this.currentPreliminaryDraft();
-
     if (!selectedFileData || !preliminaryDraft?.preliminaryDraftId) return;
 
     this.showProcessingNotification();
 
-    const newDocumentRecord = this.mapperService.buildNewDocumentRecord(
-      selectedFileData.fileName,
-      this.currentStrategy().modalConfig.uploadDocumentType
-    );
+    let newDocumentRecord: FileDocument;
+    try {
+      newDocumentRecord = await this.mapperService.buildNewDocumentRecord(
+        selectedFileData.fileName,
+        selectedFileData.file,
+        this.currentStrategy().modalConfig.uploadDocumentType
+      );
+    } catch (err) {
+      console.error('Error leyendo el archivo seleccionado:', err);
+      this.showErrorReadingFileNotification();
+      return;
+    }
 
-    this.preliminaryDraftService.uploadDocument(preliminaryDraft.preliminaryDraftId, newDocumentRecord).subscribe({
-      next: () => {
-        this.showSuccessNotification();
-        this.cancelUpload();
-      },
-      error: (err) => {
-        console.error('Error en carga:', err);
-        this.showErrorNotification();
-      }
-    });
+    // ← first() agregado: faltaba en esta suscripción — el único punto
+    // de este módulo sin esa protección contra memory leaks.
+    this.preliminaryDraftService.uploadDocument(preliminaryDraft.preliminaryDraftId, newDocumentRecord)
+      .pipe(first())
+      .subscribe({
+        next: () => {
+          this.showSuccessNotification();
+          this.cancelUpload();
+        },
+        error: (err) => {
+          console.error('Error en carga:', err);
+          this.showErrorNotification();
+        }
+      });
   }
 
   cancelUpload(): void {
@@ -199,48 +226,55 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     this.router.navigate(['../'], { relativeTo: this.route });
   }
 
-  // Métodos de apoyo
-  private handleDownload(document: FileDocument): void {
-    if (!document.url) {
-      this.notificationService.show({
-        title: 'Error de descarga',
-        message: 'No existe una URL válida para este documento.',
-        type: NotificationType.ERROR
-      });
+  // ← FIX: antes era "fire and forget" — sin await ni try/catch, mismo
+  // problema corregido en LoadedProposalsFacadeService. Se agrega
+  // también "Descarga iniciada" para igualar el comportamiento que
+  // Propuestas ya tenía.
+  private async handleDownload(document: FileDocument): Promise<void> {
+    if (!document.url?.trim()) {
+      this.showNotification('Error de descarga', 'No existe una URL válida para este documento.', NotificationType.ERROR);
       return;
     }
-    this.downloadService.download(document.url, `${document.name}.pdf`);
+
+    this.showNotification('Descarga iniciada', 'El documento se está descargando.', NotificationType.INFO);
+
+    try {
+      await this.downloadService.download(document.url, `${document.name}.pdf`);
+    } catch (err) {
+      console.error(`Error al descargar el documento ${document.name}:`, err);
+      this.showNotification('Error de descarga', `No se pudo descargar ${document.name}. Intente más tarde.`, NotificationType.ERROR);
+    }
   }
 
   private showProcessingNotification(): void {
-    this.notificationService.show({
-      title: 'Subiendo documento',
-      message: 'Estamos procesando y registrando el archivo en el sistema...',
-      type: NotificationType.INFO
-    });
+    this.showNotification('Subiendo documento', 'Estamos procesando y registrando el archivo en el sistema...', NotificationType.INFO);
   }
 
   private showSuccessNotification(): void {
-    this.notificationService.show({
-      title: '¡Carga exitosa!',
-      message: 'El nuevo documento ha sido registrado y está disponible para revisión.',
-      type: NotificationType.CONFIRMATION
-    });
+    this.showNotification('¡Carga exitosa!', 'El nuevo documento ha sido registrado y está disponible para revisión.', NotificationType.CONFIRMATION);
   }
 
   private showErrorNotification(): void {
-    this.notificationService.show({
-      title: 'Error de carga',
-      message: 'No se pudo completar la subida del archivo. Por favor, intente de nuevo.',
-      type: NotificationType.ERROR
-    });
+    this.showNotification('Error de carga', 'No se pudo completar la subida del archivo. Por favor, intente de nuevo.', NotificationType.ERROR);
+  }
+
+  // ← NUEVO: con la construcción síncrona previa, leer el archivo no
+  // podía fallar de esta forma. Ahora que buildNewDocumentRecord es
+  // async (FileReader), sí puede fallar (archivo corrupto, permisos) y
+  // necesita su propio aviso, distinto del error de red de "Error de carga".
+  private showErrorReadingFileNotification(): void {
+    this.showNotification('Error al leer el archivo', 'No se pudo procesar el archivo seleccionado. Intente con otro archivo.', NotificationType.ERROR);
   }
 
   private showRestrictedActionNotification(): void {
-    this.notificationService.show({
-      title: 'Acción no permitida',
-      message: 'No tiene los permisos requeridos o el estado actual del documento no permite esta acción.',
-      type: NotificationType.ERROR
-    });
+    this.showNotification('Acción no permitida', 'No tiene los permisos requeridos o el estado actual del documento no permite esta acción.', NotificationType.ERROR);
+  }
+
+  // ← NUEVO: los 6 métodos de arriba antes repetían this.notificationService.show({...})
+  // de forma inline cada uno — mismo patrón de helper compartido que usa
+  // el resto de facades del proyecto (LoadedProposalsFacadeService,
+  // LoadedDocumentsThesisWorkFacadeService, etc.).
+  private showNotification(title: string, message: string, type: NotificationType): void {
+    this.notificationService.show({ title, message, type });
   }
 }

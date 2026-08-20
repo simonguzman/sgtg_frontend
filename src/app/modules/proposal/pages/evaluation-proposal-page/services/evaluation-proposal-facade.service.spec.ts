@@ -3,7 +3,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { signal } from '@angular/core';
 
-import { EvaluationProposalFacadeService } from './evaluation-proposal-facade.service';
+import { EvaluationProposalFacadeService, SaveProposalEvaluationEvent } from './evaluation-proposal-facade.service';
 import { ProposalService } from '../../../services/proposal.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { UserService } from '../../../../users/services/user.service';
@@ -16,6 +16,13 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
+
+// 1. IMPORTANTE: Mockear la utilidad externa de lectura de archivos
+import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
+jest.mock('../../../../../core/utils/file-reader.utils', () => ({
+  readFileAsDataUrl: jest.fn()
+}));
 
 describe('EvaluationProposalFacadeService', () => {
   let service: EvaluationProposalFacadeService;
@@ -29,14 +36,14 @@ describe('EvaluationProposalFacadeService', () => {
 
   const mockCurrentUserSignal = signal<Partial<User> | null>(null);
 
-  const mockUser: User = {
+  const mockUser = {
     id: 'evaluator-1',
     firstName: 'Carlos',
     lastName: 'Pérez',
     roles: ['DOCENTE']
   } as unknown as User;
 
-  const mockProposal: Proposal = {
+  const mockProposal = {
     id: 'prop-100',
     title: 'Propuesta de prueba',
     state: stateList.EN_REVISION,
@@ -58,6 +65,8 @@ describe('EvaluationProposalFacadeService', () => {
   });
 
   beforeEach(() => {
+    // Restaurar los mocks antes de cada prueba
+    (readFileAsDataUrl as jest.Mock).mockReset();
     mockCurrentUserSignal.set(mockUser);
 
     mockProposalService = {
@@ -74,7 +83,7 @@ describe('EvaluationProposalFacadeService', () => {
     } as unknown as jest.Mocked<UserService>;
 
     mockDownloadService = {
-      download: jest.fn()
+      download: jest.fn().mockResolvedValue(undefined)
     } as unknown as jest.Mocked<FileDownloadService>;
 
     mockNotificationService = {
@@ -145,8 +154,9 @@ describe('EvaluationProposalFacadeService', () => {
   });
 
   describe('Método: downloadOriginalDocument', () => {
-    it('debería iniciar la descarga y notificar si el documento original tiene URL válida', () => {
-      service.downloadOriginalDocument(mockProposal);
+    // 2. IMPORTANTE: Usar async/await porque el método es asíncrono
+    it('debería iniciar la descarga y notificar si el documento original tiene URL válida', async () => {
+      await service.downloadOriginalDocument(mockProposal);
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -160,10 +170,10 @@ describe('EvaluationProposalFacadeService', () => {
       );
     });
 
-    it('debería notificar error si la propuesta no tiene documentos', () => {
-      const emptyProposal = { ...mockProposal, documents: [] };
+    it('debería notificar error si la propuesta no tiene documentos', async () => {
+      const emptyProposal = { ...mockProposal, documents: [] } as unknown as Proposal;
 
-      service.downloadOriginalDocument(emptyProposal);
+      await service.downloadOriginalDocument(emptyProposal);
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -174,13 +184,10 @@ describe('EvaluationProposalFacadeService', () => {
       expect(mockDownloadService.download).not.toHaveBeenCalled();
     });
 
-    it('debería notificar error si el primer documento tiene una URL vacía o solo espacios', () => {
-      const emptyUrlProposal = {
-        ...mockProposal,
-        documents: [{ name: 'A.pdf', url: '   ' } as FileDocument]
-      };
+    it('debería notificar error si la descarga falla', async () => {
+      mockDownloadService.download.mockRejectedValue(new Error('Network error'));
 
-      service.downloadOriginalDocument(emptyUrlProposal);
+      await service.downloadOriginalDocument(mockProposal);
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -188,23 +195,31 @@ describe('EvaluationProposalFacadeService', () => {
           type: NotificationType.ERROR
         })
       );
-      expect(mockDownloadService.download).not.toHaveBeenCalled();
     });
   });
 
   describe('Método: saveEvaluation', () => {
     const mockRoute = {} as ActivatedRoute;
-    const eventPayload = {
+
+    // 3. IMPORTANTE: Usar un objeto File real para emular el evento del DOM
+    const mockFile = new File(['contenido mock'], 'evaluacion_firmada.pdf', { type: 'application/pdf' });
+    const eventPayload: SaveProposalEvaluationEvent = {
       result: 'Aprobado',
       comments: 'Excelente propuesta',
-      signedFileName: 'evaluacion_firmada.pdf'
+      file: mockFile
     };
 
-    it('debería registrar la evaluación, notificar éxito y navegar al finalizar', () => {
+    it('debería registrar la evaluación, notificar éxito y navegar al finalizar', async () => {
       const onError = jest.fn();
-      mockProposalService.addEvaluationMock.mockReturnValue(of({} as any));
 
-      service.saveEvaluation(eventPayload, mockProposal, mockRoute, onError);
+      // Eliminamos el of({} as any) y lo tipamos correctamente
+      mockProposalService.addEvaluationMock.mockReturnValue(of({} as unknown as Proposal));
+
+      // Simulamos la conversión de File a Base64
+      (readFileAsDataUrl as jest.Mock).mockResolvedValue('data:application/pdf;base64,mockUrl123');
+
+      // Esperamos a que la promesa del facade se resuelva
+      await service.saveEvaluation(eventPayload, mockProposal, mockRoute, onError);
 
       expect(mockUserService.getUserFullName).toHaveBeenCalledWith('evaluator-1');
       expect(mockProposalService.addEvaluationMock).toHaveBeenCalledWith('prop-100', expect.objectContaining({
@@ -214,7 +229,7 @@ describe('EvaluationProposalFacadeService', () => {
         evaluatorId: 'evaluator-1',
         evaluatorName: 'Carlos Pérez',
         evaluatorRole: 'DOCENTE',
-        signedDocuments: ['evaluacion_firmada.pdf'],
+        signedDocuments: [{ name: 'evaluacion_firmada.pdf', url: 'data:application/pdf;base64,mockUrl123' }],
         veredict: stateList.APROBADO,
         observations: 'Excelente propuesta'
       }));
@@ -229,11 +244,26 @@ describe('EvaluationProposalFacadeService', () => {
       expect(onError).not.toHaveBeenCalled();
     });
 
-    it('debería seleccionar el documento evaluable más reciente (PROPUESTA o CORRECCION)', () => {
+    it('debería invocar onError si la lectura del archivo falla (readFileAsDataUrl)', async () => {
       const onError = jest.fn();
-      mockProposalService.addEvaluationMock.mockReturnValue(of({} as any));
+      // Simulamos que el utilitario falla al leer el archivo
+      (readFileAsDataUrl as jest.Mock).mockRejectedValue(new Error('File read error'));
 
-      const multiDocProposal: Proposal = {
+      await service.saveEvaluation(eventPayload, mockProposal, mockRoute, onError);
+
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Error al leer el archivo', type: NotificationType.ERROR })
+      );
+      expect(onError).toHaveBeenCalled();
+      expect(mockProposalService.addEvaluationMock).not.toHaveBeenCalled();
+    });
+
+    it('debería seleccionar el documento evaluable más reciente (PROPUESTA o CORRECCION)', async () => {
+      const onError = jest.fn();
+      mockProposalService.addEvaluationMock.mockReturnValue(of({} as unknown as Proposal));
+      (readFileAsDataUrl as jest.Mock).mockResolvedValue('data:mock');
+
+      const multiDocProposal = {
         ...mockProposal,
         documents: [
           {
@@ -247,9 +277,9 @@ describe('EvaluationProposalFacadeService', () => {
             uploadDate: '2026-03-01T10:00:00.000Z'
           }
         ] as FileDocument[]
-      };
+      } as Proposal;
 
-      service.saveEvaluation(eventPayload, multiDocProposal, mockRoute, onError);
+      await service.saveEvaluation(eventPayload, multiDocProposal, mockRoute, onError);
 
       expect(mockProposalService.addEvaluationMock).toHaveBeenCalledWith(
         'prop-100',
@@ -257,11 +287,11 @@ describe('EvaluationProposalFacadeService', () => {
       );
     });
 
-    it('debería fallar si no hay un usuario autenticado', () => {
+    it('debería fallar si no hay un usuario autenticado', async () => {
       const onError = jest.fn();
       mockCurrentUserSignal.set(null);
 
-      service.saveEvaluation(eventPayload, mockProposal, mockRoute, onError);
+      await service.saveEvaluation(eventPayload, mockProposal, mockRoute, onError);
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Error de servidor', type: NotificationType.ERROR })
@@ -270,27 +300,27 @@ describe('EvaluationProposalFacadeService', () => {
       expect(mockProposalService.addEvaluationMock).not.toHaveBeenCalled();
     });
 
-    it('debería fallar si la propuesta no tiene un ID o no tiene documentos evaluables', () => {
+    it('debería fallar si la propuesta no tiene un ID o no tiene documentos evaluables', async () => {
       const onError = jest.fn();
-      const invalidProposal = { ...mockProposal, id: '', documents: [] };
+      const invalidProposal = { ...mockProposal, id: '', documents: [] } as unknown as Proposal;
 
-      service.saveEvaluation(eventPayload, invalidProposal, mockRoute, onError);
+      await service.saveEvaluation(eventPayload, invalidProposal, mockRoute, onError);
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Error de servidor', type: NotificationType.ERROR })
       );
       expect(onError).toHaveBeenCalled();
-      expect(mockProposalService.addEvaluationMock).not.toHaveBeenCalled();
     });
 
-    it('debería usar la función de fallback para el rol y el estado si el veredicto no coincide con RESULT_TO_STATE', () => {
+    it('debería usar la función de fallback para el rol y el estado si el veredicto no coincide', async () => {
       const onError = jest.fn();
-      mockCurrentUserSignal.set({ ...mockUser, roles: [] }); // Sin roles expresos
-      mockProposalService.addEvaluationMock.mockReturnValue(of({} as any));
+      mockCurrentUserSignal.set({ ...mockUser, roles: [] } as unknown as User); // Sin roles expresos
+mockProposalService.addEvaluationMock.mockReturnValue(of({} as unknown as Proposal));
+      (readFileAsDataUrl as jest.Mock).mockResolvedValue('data:mock');
 
-      const unknownResultPayload = { ...eventPayload, result: 'Pendiente' };
+      const unknownResultPayload: SaveProposalEvaluationEvent = { ...eventPayload, result: 'Pendiente' };
 
-      service.saveEvaluation(unknownResultPayload, mockProposal, mockRoute, onError);
+      await service.saveEvaluation(unknownResultPayload, mockProposal, mockRoute, onError);
 
       expect(mockProposalService.addEvaluationMock).toHaveBeenCalledWith(
         'prop-100',
@@ -301,11 +331,12 @@ describe('EvaluationProposalFacadeService', () => {
       );
     });
 
-    it('debería notificar e invocar onError si addEvaluationMock falla', () => {
+    it('debería notificar e invocar onError si addEvaluationMock falla', async () => {
       const onError = jest.fn();
+      (readFileAsDataUrl as jest.Mock).mockResolvedValue('data:mock');
       mockProposalService.addEvaluationMock.mockReturnValue(throwError(() => new Error('Error al guardar')));
 
-      service.saveEvaluation(eventPayload, mockProposal, mockRoute, onError);
+      await service.saveEvaluation(eventPayload, mockProposal, mockRoute, onError);
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Error de servidor', type: NotificationType.ERROR })

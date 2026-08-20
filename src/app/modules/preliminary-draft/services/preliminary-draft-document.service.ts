@@ -27,23 +27,16 @@ export class PreliminaryDraftDocumentService {
       delay(1000),
       tap(() => {
         let currentDraftTitle = '';
-        const notifyUserIds: string[] = [];
+        let notifyUserIds: string[] = [];
 
-        this.storage.updateDraft(preliminaryDraftId, (preliminaryDraft) => {
-          const proposal = preliminaryDraft.proposalData;
-          if (proposal) {
-            currentDraftTitle = proposal.title || '';
-            proposal.authors?.forEach(author => {
-              const id = typeof author === 'string' ? author : author?.id;
-              if (id) notifyUserIds.push(id);
-            });
-            if (proposal.director?.id)   notifyUserIds.push(proposal.director.id);
-            if (proposal.codirector?.id) notifyUserIds.push(proposal.codirector.id);
-            if (proposal.advisor?.id)    notifyUserIds.push(proposal.advisor.id);
-          }
+        this.storage.updateDraft(preliminaryDraftId, (draft) => {
+          currentDraftTitle = draft.proposalData?.title || '';
 
-          const remainingDays = preliminaryDraft.evaluationDeadline
-            ? getRemainingBusinessDays(new Date(preliminaryDraft.evaluationDeadline))
+          // 🔹 REFACTOR: Uso del helper para limpiar el código
+          notifyUserIds = this.extractUserIdsToNotify(draft, { includeJefes: true });
+
+          const remainingDays = draft.evaluationDeadline
+            ? getRemainingBusinessDays(new Date(draft.evaluationDeadline))
             : 0;
 
           const evaluationWithStatus = {
@@ -54,20 +47,14 @@ export class PreliminaryDraftDocumentService {
           };
 
           return {
-            ...preliminaryDraft,
-            evaluations: [evaluationWithStatus, ...(preliminaryDraft.evaluations || [])],
-            state: preliminaryDraft.state
+            ...draft,
+            evaluations: [evaluationWithStatus, ...(draft.evaluations || [])]
           };
         });
 
-        const jefesDepto = this.userService.users()
-          .filter(user => user.roles.includes(UserRoleType.JEFE_DEP))
-          .map(user => user.id);
-        notifyUserIds.push(...jefesDepto);
-
         this.eventBus.emit({
           type: AppEventType.PRELIMINARY_DRAFT_EVALUATION_REGISTERED,
-          targetUserIds: [...new Set(notifyUserIds)],
+          targetUserIds: notifyUserIds,
           payload: { preliminaryDraftId, veredict: evaluation.veredict, preliminaryDraftTitle: currentDraftTitle }
         });
       })
@@ -82,54 +69,30 @@ export class PreliminaryDraftDocumentService {
       delay(1000),
       tap(() => {
         let currentTitle = '';
-        const notifyUserIds: string[] = [];
+        let notifyUserIds: string[] = [];
 
-        this.storage.updateDraft(preliminaryDraftId, (preliminaryDraft) => {
-          const proposal = preliminaryDraft.proposalData;
-          if (proposal) currentTitle = proposal.title || '';
+        this.storage.updateDraft(preliminaryDraftId, (draft) => {
+          currentTitle = draft.proposalData?.title || '';
+          let newDeadline = draft.evaluationDeadline;
 
-          let newDeadline = preliminaryDraft.evaluationDeadline;
-
-          // String literal 'Correccion' → DocumentType.CORRECCION (S1481 / type-safety)
           if (document.type === DocumentType.CORRECCION) {
             newDeadline = addBusinessDays(new Date(), 10);
-            if (preliminaryDraft.evaluators) {
-              notifyUserIds.push(...preliminaryDraft.evaluators.map(evaluator => evaluator.id));
-            }
-            if (proposal?.director?.id) notifyUserIds.push(proposal.director.id);
+            notifyUserIds = this.extractUserIdsToNotify(draft, { includeEvaluators: true });
           } else if (document.type === DocumentType.FORMATO_C) {
             newDeadline = undefined;
-            if (proposal) {
-              proposal.authors?.forEach(author => {
-                const id = typeof author === 'string' ? author : author?.id;
-                if (id) notifyUserIds.push(id);
-              });
-              if (proposal.director?.id)   notifyUserIds.push(proposal.director.id);
-              if (proposal.codirector?.id) notifyUserIds.push(proposal.codirector.id);
-              if (proposal.advisor?.id)    notifyUserIds.push(proposal.advisor.id);
-            }
+            notifyUserIds = this.extractUserIdsToNotify(draft, { includeJefes: true, includeConsejo: true });
           } else {
             newDeadline = undefined;
-            proposal?.authors?.forEach(author => {
-              const id = typeof author === 'string' ? author : author?.id;
-              if (id) notifyUserIds.push(id);
-            });
+            notifyUserIds = this.extractUserIdsToNotify(draft);
           }
 
           return {
-            ...preliminaryDraft,
-            documents: [document, ...(preliminaryDraft.documents || [])],
+            ...draft,
+            documents: [document, ...(draft.documents || [])],
             state: stateList.EN_REVISION,
             evaluationDeadline: newDeadline
           };
         });
-
-        if (document.type === DocumentType.FORMATO_C) {
-          const jefesYConsejo = this.userService.users()
-            .filter(user => user.roles.includes(UserRoleType.JEFE_DEP) || user.roles.includes(UserRoleType.CONSEJO))
-            .map(user => user.id);
-          notifyUserIds.push(...jefesYConsejo);
-        }
 
         const eventType = document.type === DocumentType.FORMATO_C
           ? AppEventType.PRELIMINARY_DRAFT_COUNCIL_PRESENTATION_UPLOADED
@@ -137,7 +100,7 @@ export class PreliminaryDraftDocumentService {
 
         this.eventBus.emit({
           type: eventType,
-          targetUserIds: [...new Set(notifyUserIds)],
+          targetUserIds: notifyUserIds,
           payload: { preliminaryDraftId, documentType: document.type, preliminaryDraftTitle: currentTitle }
         });
       })
@@ -155,46 +118,34 @@ export class PreliminaryDraftDocumentService {
       delay(1000),
       map(() => {
         let updatedDraftRef: PreliminaryDraft | undefined;
-        let currentTitle = '';
-        const notifyUserIds: string[] = [];
+        let notifyUserIds: string[] = [];
 
-        this.storage.updateDraft(id, (preliminaryDraft) => {
-          currentTitle = preliminaryDraft.proposalData?.title || '';
-
+        this.storage.updateDraft(id, (draft) => {
           const updated: PreliminaryDraft = {
-            ...preliminaryDraft,
-            documents: [...(preliminaryDraft.documents || []), document],
+            ...draft,
+            documents: [...(draft.documents || []), document],
             state,
-            evaluations: [...(preliminaryDraft.evaluations || []), evaluation],
+            evaluations: [...(draft.evaluations || []), evaluation],
             maximumDeliveryDate: state === stateList.APROBADO
               ? maximumDeliveryDate
-              : preliminaryDraft.maximumDeliveryDate
+              : draft.maximumDeliveryDate
           };
 
-          updatedDraftRef = updated;
-
-          updated.proposalData?.authors?.forEach(author => {
-            const authorId = typeof author === 'string' ? author : author?.id;
-            if (authorId) notifyUserIds.push(authorId);
+          notifyUserIds = this.extractUserIdsToNotify(updated, {
+            includeEvaluators: true,
+            includeJefes: true,
+            includeConsejo: true
           });
-          if (updated.proposalData?.director?.id)   notifyUserIds.push(updated.proposalData.director.id);
-          if (updated.proposalData?.codirector?.id) notifyUserIds.push(updated.proposalData.codirector.id);
-          if (updated.proposalData?.advisor?.id)    notifyUserIds.push(updated.proposalData.advisor.id);
-          if (updated.evaluators) notifyUserIds.push(...updated.evaluators.map(e => e.id));
 
-          const jefesYConsejo = this.userService.users()
-            .filter(user => user.roles.includes(UserRoleType.JEFE_DEP) || user.roles.includes(UserRoleType.CONSEJO))
-            .map(user => user.id);
-          notifyUserIds.push(...jefesYConsejo);
-
+          updatedDraftRef = updated;
           return updated;
         });
 
         if (updatedDraftRef) {
           this.eventBus.emit({
             type: AppEventType.COUNCIL_RESOLUTION_UPLOADED,
-            targetUserIds: [...new Set(notifyUserIds)],
-            payload: { preliminaryDraftId: id, finalState: state, preliminaryDraftTitle: currentTitle }
+            targetUserIds: notifyUserIds,
+            payload: { preliminaryDraftId: id, finalState: state, preliminaryDraftTitle: updatedDraftRef.proposalData?.title || '' }
           });
         }
 
@@ -214,5 +165,37 @@ export class PreliminaryDraftDocumentService {
     if (documentEvaluations.length < totalEvaluators) return stateList.EN_REVISION;
     if (documentEvaluations.some(evaluation => evaluation.veredict === stateList.NO_APROBADO)) return stateList.NO_APROBADO;
     return stateList.APROBADO;
+  }
+
+  // 🔹 REFACTOR: Helper centralizado para no repetir lógica
+  private extractUserIdsToNotify(
+    draft: PreliminaryDraft,
+    options: { includeEvaluators?: boolean; includeJefes?: boolean; includeConsejo?: boolean } = {}
+  ): string[] {
+    const ids = new Set<string>();
+    const proposal = draft.proposalData;
+
+    if (proposal) {
+      proposal.authors?.forEach(author => {
+        const id = typeof author === 'string' ? author : author?.id;
+        if (id) ids.add(id);
+      });
+      if (proposal.director?.id) ids.add(proposal.director.id);
+      if (proposal.codirector?.id) ids.add(proposal.codirector.id);
+      if (proposal.advisor?.id) ids.add(proposal.advisor.id);
+    }
+
+    if (options.includeEvaluators && draft.evaluators) {
+      draft.evaluators.forEach(e => ids.add(e.id));
+    }
+
+    if (options.includeJefes || options.includeConsejo) {
+      this.userService.users().forEach(user => {
+        if (options.includeJefes && user.roles.includes(UserRoleType.JEFE_DEP)) ids.add(user.id);
+        if (options.includeConsejo && user.roles.includes(UserRoleType.CONSEJO)) ids.add(user.id);
+      });
+    }
+
+    return Array.from(ids); // Set garantiza que no haya IDs duplicados
   }
 }

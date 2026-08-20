@@ -26,5 +26,4 @@ export class RolesViewModalComponent {
   close() {
     this.isOpenChange.emit(false);
   }
-
 }

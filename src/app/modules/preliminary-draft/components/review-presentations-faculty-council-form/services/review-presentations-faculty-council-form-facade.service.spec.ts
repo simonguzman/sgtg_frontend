@@ -1,4 +1,4 @@
-import { fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { FormBuilder } from '@angular/forms';
 import { ReviewPresentationsFacultyCouncilFormFacadeService } from './review-presentations-faculty-council-form-facade.service';
 import { UserService } from '../../../../users/services/user.service';
@@ -13,18 +13,19 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
   let mockUserService: jest.Mocked<Partial<UserService>>;
   let mockNotificationService: jest.Mocked<Partial<NotificationService>>;
 
+  // FIX: Ajustado signedDocuments para coincidir con el contrato de FormattedDocument (name y url)
   const mockDraft = {
     id: 'draft-1',
     state: stateList.EN_DESARROLLO,
     evaluations: [
       {
         veredict: stateList.APROBADO,
-        signedDocuments: ['evaluacion_firmada.pdf'],
+        signedDocuments: [{ name: 'evaluacion_firmada.pdf', url: 'http://mock-url.com' }],
         evaluatorName: 'Docente Evaluador'
       }
     ],
     documents: [
-      { id: 'doc-1', type: 'Anteproyecto', name: 'Documento V1.pdf', uploadDate: '2026-07-23' }
+      { id: 'doc-1', type: DocumentType.ANTEPROYECTO, name: 'Documento V1.pdf', uploadDate: '2026-07-23' }
     ],
     proposalData: {
       authors: [{ id: 'user-1' }, { id: 'user-2' }],
@@ -32,7 +33,7 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
       evaluations: [
         {
           veredict: stateList.APROBADO,
-          signedDocuments: ['evaluacion_firmada.pdf'],
+          signedDocuments: [{ name: 'evaluacion_firmada.pdf', url: 'http://mock-url.com' }],
           evaluatorName: 'Docente Evaluador'
         }
       ]
@@ -63,11 +64,11 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
 
   describe('Estados Computados (Computed Signals)', () => {
     beforeEach(() => {
-      facade.draft.set(mockDraft);
+      facade.preliminaryDraft.set(mockDraft);
     });
 
     it('isReadOnly debería ser true si el estado es APROBADO', () => {
-      facade.draft.set({ ...mockDraft, state: stateList.APROBADO } as unknown as PreliminaryDraft);
+      facade.preliminaryDraft.set({ ...mockDraft, state: stateList.APROBADO } as unknown as PreliminaryDraft);
       expect(facade.isReadOnly()).toBeTruthy();
     });
 
@@ -83,30 +84,25 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
       expect(evalFiles[0].evaluator).toBe('Docente Evaluador');
     });
 
-    it('signedProposalDocument debería construir un FileDocument si existe evaluación aprobada', () => {
+    it('signedProposalDocument debería construir un FormattedDocument si existe evaluación aprobada', () => {
       const signedDoc = facade.signedProposalDocument();
       expect(signedDoc).toBeTruthy();
-      expect(signedDoc?.type).toBe(DocumentType.FORMATO_C);
+      // FIX: Se valida 'url' en lugar de 'type' según la interfaz FormattedDocument
       expect(signedDoc?.name).toBe('evaluacion_firmada.pdf');
+      expect(signedDoc?.url).toBe('http://mock-url.com');
     });
   });
 
   describe('Lógica del Formulario (initFormEffects)', () => {
     beforeEach(() => {
-      facade.draft.set(mockDraft);
-
-      TestBed.runInInjectionContext(() => {
-        facade.initFormEffects();
-      });
-
-      TestBed.flushEffects();
+      facade.preliminaryDraft.set(mockDraft);
+      facade.initFormEffects();
     });
 
     it('debería requerir maximumDeliveryDate si el result es "Aprobado"', () => {
       facade.evaluationForm.patchValue({ result: 'Aprobado' });
 
       const dateControl = facade.evaluationForm.get('maximumDeliveryDate');
-      expect(dateControl?.hasValidator).toBeTruthy();
       expect(dateControl?.valid).toBeFalsy();
     });
 
@@ -120,15 +116,10 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
     });
 
     it('debería deshabilitar el formulario si isReadOnly es true', () => {
-      // 1. Modificamos el estado a APROBADO
-      facade.draft.set({ ...mockDraft, state: stateList.APROBADO } as unknown as PreliminaryDraft);
+      facade.preliminaryDraft.set({ ...mockDraft, state: stateList.APROBADO } as unknown as PreliminaryDraft);
 
-      // 2. Volvemos a invocar initFormEffects() para que evalúe el IF con el nuevo estado
-      TestBed.runInInjectionContext(() => {
-        facade.initFormEffects();
-      });
+      facade.initFormEffects();
 
-      // 3. Comprobamos
       expect(facade.isReadOnly()).toBeTruthy();
       expect(facade.evaluationForm.disabled).toBeTruthy();
     });
@@ -136,7 +127,7 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
 
   describe('Resolución de Nombres', () => {
     beforeEach(() => {
-      facade.draft.set(mockDraft);
+      facade.preliminaryDraft.set(mockDraft);
     });
 
     it('debería resolver nombres de estudiantes, director, codirector y asesor', () => {
@@ -190,7 +181,7 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
       const payload = facade.validateAndGetPayload();
 
       expect(payload).toBeTruthy();
-      expect(payload?.formValues.result).toBe('No aprobado');
+      expect(payload?.formValues.result).toBe(stateList.NO_APROBADO);
       expect(payload?.file).toEqual(mockFile);
     });
   });

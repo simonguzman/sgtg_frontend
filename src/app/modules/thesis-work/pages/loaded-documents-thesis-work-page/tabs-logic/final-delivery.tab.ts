@@ -4,12 +4,25 @@ import { FileDocument } from '../../../../../core/interfaces/file-document.inter
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
 import { FinalDelivery } from '../../../interfaces/final-delivery.interface';
+import { formatThesisDate } from '../../../helpers/thesis-date.helper';
 
-export const FinalDeliveryTabConfig: TabConfiguration = {
-  tabValue: 'FORMATO_E',
+interface FinalDeliveryTableRow {
+  id: string;
+  name: string;
+  uploadDate: string;
+  status: stateList;
+  url: string;
+  allowedActions: string[];
+}
 
+export const FinalDeliveryTabConfig: TabConfiguration<FinalDeliveryTableRow> = {
+  // ← FIX: antes decía 'FORMATO_E', que no coincide con la clave real
+  // ('ENTREGA FINAL') que usa tabStrategies en el componente principal.
+  // Hoy este campo no se lee en ningún lado, así que era inofensivo — pero
+  // queda alineado por si algún día se reconstruye tabStrategies a partir
+  // de un arreglo de configs usando este campo como clave.
+  tabValue: 'ENTREGA FINAL',
   headerActionRoute: 'register_final_delivery',
-
   columns: [
     { field: 'name', header: 'Nombre del Documento', type: 'text', width: '40%' },
     { field: 'uploadDate', header: 'Fecha de Carga', type: 'text', width: '20%' },
@@ -30,35 +43,26 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
       (delivery: FinalDelivery) => delivery.status !== stateList.NO_APROBADO
     ) ?? false;
 
-    // 👇 Calculamos el estado de bloqueo
     const isSuspendedOrCanceled = thesis.state === stateList.SUSPENDIDO || thesis.state === stateList.CANCELADO;
 
-    return {
-      ...baseContext,
-      hasFinalDelivery,
-      isSuspendedOrCanceled // Lo inyectamos al contexto
-    };
+    return { ...baseContext, hasFinalDelivery, isSuspendedOrCanceled };
   },
 
-  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext) => {
+  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): FinalDeliveryTableRow[] => {
     const deliveries = context.thesisWork?.finalDeliveries || [];
-    // 1. Detectamos si el estado general del proyecto ya fue marcado como No Aprobado
     const isThesisNoAprobado = context.thesisWork?.state === stateList.NO_APROBADO;
 
-    return deliveries.map((delivery: FinalDelivery) => {
-      const date = delivery.uploadDate;
-      let formattedDate = 'Sin fecha';
-      if (date) {
-        if (typeof date === 'string') {
-          formattedDate = date;
-        } else if (date instanceof Date && !isNaN(date.getTime())) {
-          formattedDate = date
-            .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
-            .replaceAll('/', ' - ');
-        }
-      }
+    return deliveries.map((delivery: FinalDelivery): FinalDeliveryTableRow => {
+      // ← Reemplaza la reimplementación inline de formatThesisDate.
+      // Nota: si uploadDate ya llega como string, se propaga tal cual sin
+      // reformatear (igual que hacía el código original); solo se llama
+      // formatThesisDate cuando es un objeto Date real.
+      const formattedDate = !delivery.uploadDate
+        ? 'Sin fecha'
+        : typeof delivery.uploadDate === 'string'
+          ? delivery.uploadDate
+          : formatThesisDate(delivery.uploadDate);
 
-      // 2. Si el trabajo global está No Aprobado, la entrega final también debe mostrarlo
       const currentStatus = isThesisNoAprobado
         ? stateList.NO_APROBADO
         : (delivery.status || stateList.EN_REVISION);
@@ -67,21 +71,20 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
         id: delivery.id,
         name: `Entrega Final - ${delivery.monograph?.name || 'Documentación'}`,
         uploadDate: formattedDate,
-        status: currentStatus, // Usamos el estado evaluado
+        status: currentStatus,
         url: '',
         allowedActions: ['view-details']
       };
     });
   },
 
-  getHeaderButtons: (context: ThesisEvaluationContext) => {
+  getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
     if (context.isArchived) return [];
     const buttons: TableButton[] = [];
     const thesis = context.thesisWork;
-    const hasFinalDelivery = !!context['hasFinalDelivery'];
-    const isSuspendedOrCanceled = context['isSuspendedOrCanceled'] as boolean ?? false;
-
-    // Detectamos el estado de reprobación general
+    // ← Antes: context['hasFinalDelivery'] as boolean ?? false
+    const hasFinalDelivery = context.hasFinalDelivery ?? false;
+    const isSuspendedOrCanceled = context.isSuspendedOrCanceled ?? false;
     const isNotApproved = thesis?.state === stateList.NO_APROBADO;
 
     if (context.isDirector || context.isAdmin) {
@@ -92,8 +95,6 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
         buttonLabel = 'Entrega final registrada';
         buttonDisabled = true;
       }
-
-      // Aplicamos el bloqueo visual si está suspendido, cancelado o NO APROBADO
       if (isSuspendedOrCanceled || isNotApproved) {
         buttonDisabled = true;
       }
@@ -105,7 +106,6 @@ export const FinalDeliveryTabConfig: TabConfiguration = {
         disabled: buttonDisabled
       });
     }
-
     return buttons;
   },
 

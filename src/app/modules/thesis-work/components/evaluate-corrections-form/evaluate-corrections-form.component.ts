@@ -46,8 +46,9 @@ export class EvaluateCorrectionsFormComponent {
   getAdvisorName(): string    { return this.formService.getAdvisorName(this.thesisWork); }
   getAssignedJurors(): string { return this.formService.getAssignedJurors(this.thesisWork); }
 
+  // ← void: downloadDocument() del servicio ahora es async.
   downloadDocument(doc: FileDocument): void {
-    this.formService.downloadDocument(doc);
+    void this.formService.downloadDocument(doc);
   }
 
   // ← Fix: reemplaza $any($event.target).value por un método con tipado correcto

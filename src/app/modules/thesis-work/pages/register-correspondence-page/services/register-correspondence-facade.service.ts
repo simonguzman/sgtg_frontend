@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
-import { first } from 'rxjs/operators';
+import { first, switchMap, catchError } from 'rxjs/operators';
+import { from, EMPTY, throwError } from 'rxjs';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
@@ -8,6 +9,7 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { formatThesisDate } from '../../../helpers/thesis-date.helper';
+import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
 
 @Injectable({ providedIn: 'root' })
 export class RegisterCorrespondenceFacadeService {
@@ -16,7 +18,7 @@ export class RegisterCorrespondenceFacadeService {
 
   public loadThesisWork(id: string, onSuccess: (work: ThesisWork) => void, onError: () => void): void {
     this.thesisWorkService.getThesisWorkByIdMock(id).pipe(first()).subscribe({
-      next: (data) => {
+      next: (data: ThesisWork | null | undefined) => {
         if (!data) {
           this.showNotification('Registro inexistente', 'El trabajo de grado solicitado no existe.', NotificationType.ERROR);
           onError();
@@ -24,7 +26,7 @@ export class RegisterCorrespondenceFacadeService {
         }
         onSuccess(data);
       },
-      error: (err) => {
+      error: (err: unknown) => {
         console.error(err);
         this.showNotification('Error', 'Hubo un problema al recuperar los detalles.', NotificationType.ERROR);
         onError();
@@ -38,34 +40,44 @@ export class RegisterCorrespondenceFacadeService {
     onSuccess: () => void,
     onError: () => void
   ): void {
-    // ← Fix: se elimina `('Resolución' as any)` como fallback — DocumentType.FORMATO_H
-    // siempre existe en el enum, ese fallback nunca podía ejecutarse.
-    const finalCorrespondenceDoc: FileDocument = {
-      id:         crypto.randomUUID(),
-      name:       file.name.replace('.pdf', ''),
-      url:        `uploads/correspondencia/resolucion_${crypto.randomUUID().substring(0, 8)}.pdf`,
-      uploadDate: formatThesisDate(),
-      type:       DocumentType.FORMATO_H,
-      status:     stateList.APROBADO
-    };
+    // Convertimos la promesa de lectura de archivo en un Observable
+    from(readFileAsDataUrl(file)).pipe(
+      first(),
+      catchError((err: unknown) => {
+        console.error('Error leyendo el archivo de correspondencia:', err);
+        this.showNotification('Error al leer el archivo', 'No se pudo procesar el documento seleccionado.', NotificationType.ERROR);
+        onError();
+        return EMPTY; // Detiene el flujo sin lanzar una excepción no manejada
+      }),
+      switchMap((fileUrl: string) => {
+        const finalCorrespondenceDoc: FileDocument = {
+          id:         crypto.randomUUID(),
+          name:       file.name.replace('.pdf', ''),
+          url:        fileUrl,
+          uploadDate: formatThesisDate(),
+          type:       DocumentType.FORMATO_H,
+          status:     stateList.APROBADO
+        };
 
-    this.thesisWorkService.registerCorrespondenceDocumentMock(thesisWorkId, finalCorrespondenceDoc)
-      .pipe(first())
-      .subscribe({
-        next: () => {
-          this.showNotification(
-            '¡Trabajo de Grado Concluido!',
-            'El formato H ha sido asentado correctamente. El proceso se encuentra formalmente cerrado.',
-            NotificationType.CONFIRMATION
-          );
-          onSuccess();
-        },
-        error: (err) => {
-          console.error(err);
-          this.showNotification('Error en guardado', 'No se pudo registrar la correspondencia final.', NotificationType.ERROR);
-          onError();
-        }
-      });
+        return this.thesisWorkService.registerCorrespondenceDocumentMock(thesisWorkId, finalCorrespondenceDoc).pipe(
+          catchError((err: unknown) => {
+            console.error(err);
+            this.showNotification('Error en guardado', 'No se pudo registrar la correspondencia final.', NotificationType.ERROR);
+            onError();
+            return EMPTY;
+          })
+        );
+      })
+    ).subscribe({
+      next: () => {
+        this.showNotification(
+          '¡Trabajo de Grado Concluido!',
+          'El formato H ha sido asentado correctamente. El proceso se encuentra formalmente cerrado.',
+          NotificationType.CONFIRMATION
+        );
+        onSuccess();
+      }
+    });
   }
 
   public showNavigationError(): void {

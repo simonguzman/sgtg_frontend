@@ -5,7 +5,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { By } from '@angular/platform-browser';
 
 import { EvaluationProposalPageComponent } from './evaluation-proposal-page.component';
-import { EvaluationProposalFacadeService } from './services/evaluation-proposal-facade.service';
+import { EvaluationProposalFacadeService, SaveProposalEvaluationEvent } from './services/evaluation-proposal-facade.service';
 import { Proposal } from '../../interfaces/proposal.interface';
 
 // Importamos el componente real para poder removerlo en la configuración del TestBed
@@ -22,8 +22,10 @@ import { EvaluationProposalFormComponent } from '../../components/evaluation-pro
 class MockEvaluationProposalFormComponent {
   @Input() proposal!: Proposal;
   @Output() onDownloadOriginal = new EventEmitter<void>();
-  // Tipado estricto en lugar de EventEmitter<any>
-  @Output() onSaveEvaluation = new EventEmitter<{ result: string; comments: string; signedFileName: string }>();
+
+  // FIX: Tipado estricto alineado con la interfaz real que requiere un File
+  @Output() onSaveEvaluation = new EventEmitter<SaveProposalEvaluationEvent>();
+
   @Output() onGoBack = new EventEmitter<void>();
 }
 
@@ -33,11 +35,17 @@ describe('EvaluationProposalPageComponent', () => {
 
   let mockFacade: jest.Mocked<EvaluationProposalFacadeService>;
   let mockLocation: jest.Mocked<Location>;
-
-  // Tipado estricto para el mock de la ruta
   let mockActivatedRoute: jest.Mocked<ActivatedRoute>;
 
   const mockProposal: Proposal = { id: 'prop-1', title: 'Propuesta 1' } as Proposal;
+
+  // FIX: Objeto File real para simular el payload esperado
+  const mockFile = new File(['contenido de prueba'], 'firma.pdf', { type: 'application/pdf' });
+  const mockSaveEvent: SaveProposalEvaluationEvent = {
+    result: 'Aprobado',
+    comments: 'Ok',
+    file: mockFile
+  };
 
   beforeEach(async () => {
     mockFacade = {
@@ -50,7 +58,7 @@ describe('EvaluationProposalPageComponent', () => {
       back: jest.fn()
     } as unknown as jest.Mocked<Location>;
 
-    // Configuración del mock de la ruta sin usar 'any'
+    // Configuración del mock de la ruta estrictamente tipado
     mockActivatedRoute = {
       snapshot: { paramMap: { get: jest.fn() } },
       parent: { snapshot: { paramMap: { get: jest.fn() } } }
@@ -65,7 +73,6 @@ describe('EvaluationProposalPageComponent', () => {
       ]
     })
     .overrideComponent(EvaluationProposalPageComponent, {
-      // AQUÍ ESTÁ LA SOLUCIÓN: Removemos explícitamente el componente real
       remove: { imports: [EvaluationProposalFormComponent] },
       add: { imports: [MockEvaluationProposalFormComponent] }
     })
@@ -163,12 +170,10 @@ describe('EvaluationProposalPageComponent', () => {
     });
 
     it('handleSaveEvaluation: debería delegar al facade si hay propuesta', () => {
-      const mockEvent = { result: 'Aprobado', comments: 'Ok', signedFileName: 'firma.pdf' };
-
-      component.handleSaveEvaluation(mockEvent);
+      component.handleSaveEvaluation(mockSaveEvent);
 
       expect(mockFacade.saveEvaluation).toHaveBeenCalledWith(
-        mockEvent,
+        mockSaveEvent,
         mockProposal,
         mockActivatedRoute,
         expect.any(Function)
@@ -177,7 +182,8 @@ describe('EvaluationProposalPageComponent', () => {
 
     it('handleSaveEvaluation: NO debería hacer nada si no hay propuesta', () => {
       component.proposal.set(null);
-      component.handleSaveEvaluation({ result: '', comments: '', signedFileName: '' });
+      component.handleSaveEvaluation(mockSaveEvent);
+
       expect(mockFacade.saveEvaluation).not.toHaveBeenCalled();
     });
   });

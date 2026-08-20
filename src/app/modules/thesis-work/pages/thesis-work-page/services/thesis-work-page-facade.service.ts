@@ -1,4 +1,5 @@
 import { computed, inject, Injectable } from '@angular/core';
+import { first } from 'rxjs/operators';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
@@ -24,9 +25,7 @@ export class ThesisWorkPageFacadeService {
       UserRoleType.DECANATURA,
       UserRoleType.CONSEJO
     ]);
-
     const activeThesisWorks = this.thesisWorkService.thesisWorks().filter(work => !work.isArchived);
-
     return activeThesisWorks.map(thesisWork =>
       this.mapper.mapThesisWorkToTable(thesisWork, hasFullAccessRole, isAdmin, String(currentUser?.id))
     );
@@ -34,17 +33,19 @@ export class ThesisWorkPageFacadeService {
 
   public reactivateThesis(id: string, onSuccess: () => void, onError: () => void): void {
     this.showNotification('Reactivando trabajo', 'Procesando la solicitud...', NotificationType.INFO);
-
-    this.thesisWorkService.reactivateThesisWorkMock(id).subscribe({
-      next: () => {
-        this.showNotification('Trabajo Reactivado', 'El trabajo ha sido reactivado correctamente.', NotificationType.CONFIRMATION);
-        onSuccess();
-      },
-      error: () => {
-        this.showNotification('Error', 'Hubo un error al reactivar el trabajo.', NotificationType.ERROR);
-        onError();
-      }
-    });
+    // ← first() agregado: consistente con el resto del módulo.
+    this.thesisWorkService.reactivateThesisWorkMock(id)
+      .pipe(first())
+      .subscribe({
+        next: () => {
+          this.showNotification('Trabajo Reactivado', 'El trabajo ha sido reactivado correctamente.', NotificationType.CONFIRMATION);
+          onSuccess();
+        },
+        error: () => {
+          this.showNotification('Error', 'Hubo un error al reactivar el trabajo.', NotificationType.ERROR);
+          onError();
+        }
+      });
   }
 
   public showRestrictedAccessNotification(): void {

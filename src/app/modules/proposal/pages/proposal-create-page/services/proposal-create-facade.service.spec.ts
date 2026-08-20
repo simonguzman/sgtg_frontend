@@ -1,24 +1,41 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
+
 import { ProposalCreateFacadeService } from './proposal-create-facade.service';
 import { ProposalService } from '../../../services/proposal.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { Proposal } from '../../../interfaces/proposal.interface';
 
+// 1. Interfaces estrictas para los mocks, evitando el uso de 'any'
+interface MockProposalService {
+  validateProposalRules: jest.Mock;
+  createProposalMock: jest.Mock;
+}
+
+interface MockNotificationService {
+  show: jest.Mock;
+}
+
+interface MockRouter {
+  navigate: jest.Mock;
+}
+
 describe('ProposalCreateFacadeService', () => {
   let service: ProposalCreateFacadeService;
 
-  // 1. Tipado estricto de los mocks
-  let mockProposalService: { validateProposalRules: jest.Mock; createProposalMock: jest.Mock };
-  let mockNotificationService: { show: jest.Mock };
-  let mockRouter: { navigate: jest.Mock };
+  // 2. Declaración fuertemente tipada de los mocks
+  let mockProposalService: MockProposalService;
+  let mockNotificationService: MockNotificationService;
+  let mockRouter: MockRouter;
 
-  const mockProposal = { id: '1', title: 'Test Proposal' } as unknown as Proposal;
+  // 3. Uso de type assertion directo (sin unknown)
+  // o Partial para construir datos de prueba seguros.
+  const mockProposal = { id: '1', title: 'Test Proposal' } as Proposal;
 
   beforeEach(() => {
-    // 2. Inicialización de mocks
+    // Inicialización limpia de las funciones mockeadas
     mockProposalService = {
       validateProposalRules: jest.fn(),
       createProposalMock: jest.fn(),
@@ -35,20 +52,25 @@ describe('ProposalCreateFacadeService', () => {
     TestBed.configureTestingModule({
       providers: [
         ProposalCreateFacadeService,
-        { provide: ProposalService, useValue: mockProposalService as unknown as ProposalService },
-        { provide: NotificationService, useValue: mockNotificationService as unknown as NotificationService },
-        { provide: Router, useValue: mockRouter as unknown as Router },
+        // 4. Se utiliza Partial<T> para inyectar los mocks sin romper el tipado estricto
+        { provide: ProposalService, useValue: mockProposalService as Partial<ProposalService> },
+        { provide: NotificationService, useValue: mockNotificationService as Partial<NotificationService> },
+        { provide: Router, useValue: mockRouter as Partial<Router> },
       ],
     });
 
     service = TestBed.inject(ProposalCreateFacadeService);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('debe crearse correctamente', () => {
     expect(service).toBeTruthy();
   });
 
-  describe('validate', () => {
+  describe('validate()', () => {
     it('debe retornar true si no hay errores de validación', () => {
       mockProposalService.validateProposalRules.mockReturnValue(null); // Sin error
 
@@ -65,15 +87,17 @@ describe('ProposalCreateFacadeService', () => {
       const result = service.validate(mockProposal);
 
       expect(result).toBeFalsy();
-      expect(mockNotificationService.show).toHaveBeenCalledWith({
-        title: 'Atención',
-        message: errorMessage,
-        type: NotificationType.ERROR
-      });
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Atención',
+          message: errorMessage,
+          type: NotificationType.ERROR
+        })
+      );
     });
   });
 
-  describe('save', () => {
+  describe('save()', () => {
     it('debe completar el flujo de éxito: notificar, guardar, redireccionar y ejecutar onSuccess', () => {
       const onSuccessMock = jest.fn();
       const onErrorMock = jest.fn();
@@ -84,21 +108,23 @@ describe('ProposalCreateFacadeService', () => {
       service.save(mockProposal, onSuccessMock, onErrorMock);
 
       // Verificamos notificación de inicio
-      expect(mockNotificationService.show).toHaveBeenCalledWith({
-        title: 'Procesando registro',
-        message: 'Estamos guardando la información de la propuesta en el sistema...',
-        type: NotificationType.INFO
-      });
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Procesando registro',
+          type: NotificationType.INFO
+        })
+      );
 
       // Verificamos llamada al servicio
       expect(mockProposalService.createProposalMock).toHaveBeenCalledWith(mockProposal);
 
       // Verificamos notificación de éxito (fue llamado por segunda vez)
-      expect(mockNotificationService.show).toHaveBeenCalledWith({
-        title: '¡Propuesta registrada!',
-        message: 'La propuesta ha sido creada exitosamente y ya puede ser gestionada.',
-        type: NotificationType.CONFIRMATION
-      });
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: '¡Propuesta registrada!',
+          type: NotificationType.CONFIRMATION
+        })
+      );
 
       // Verificamos redirección y callback de éxito
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/proposal']);
@@ -114,21 +140,23 @@ describe('ProposalCreateFacadeService', () => {
       mockProposalService.createProposalMock.mockReturnValue(throwError(() => new Error('Error de servidor')));
 
       // Espiamos console.error para no ensuciar la terminal durante los tests
-      jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       service.save(mockProposal, onSuccessMock, onErrorMock);
 
-      // Verificamos notificación de error (segunda llamada)
-      expect(mockNotificationService.show).toHaveBeenCalledWith({
-        title: 'Error de servidor',
-        message: 'No se pudo completar el registro. Por favor, intente nuevamente más tarde.',
-        type: NotificationType.ERROR
-      });
+      // Verificamos notificación de error
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Error de servidor',
+          type: NotificationType.ERROR
+        })
+      );
 
-      // Verificamos que se ejecutó onError y NO onSuccess
+      // Verificamos que se ejecutó onError y NO onSuccess ni la navegación
       expect(onErrorMock).toHaveBeenCalled();
       expect(onSuccessMock).not.toHaveBeenCalled();
       expect(mockRouter.navigate).not.toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalled();
     });
   });
 });

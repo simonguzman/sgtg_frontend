@@ -1,29 +1,96 @@
+// 1. Angular Core & Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
+import { By } from '@angular/platform-browser';
+import { provideNoopAnimations } from '@angular/platform-browser/animations'; // Previene error NG05105 de hijos
 
+// 2. Core Enums & Interfaces
+import { stateList } from '../../../../core/enums/state.enum';
+import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
+
+// 3. Shared Modules Enums & Interfaces
+import { IdentificationType } from '../../../users/enum/identification-type.enum';
+import { UserState } from '../../../users/enum/user-state.enum';
+import { User } from '.././../../users/interfaces/user.interface';
+import { Modality } from '../../../proposal/enums/modality.enum';
+import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
+
+// 4. Component, Service & Models
+import { SaveEvaluationPayload } from '../../components/review-presentations-faculty-council-form/models/council-evaluation.model';
 import { ReviewPresentationsFacultyCouncilPageComponent } from './review-presentations-faculty-council-page.component';
 import { ReviewPresentationsFacultyCouncilPageFacadeService } from './services/review-presentations-faculty-council-page-facade.service';
-import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
-import { SaveEvaluationPayload } from '../../components/review-presentations-faculty-council-form/models/council-evaluation.model';
-import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+
+// Interfaz para el mock del facade (sin usar 'any')
+interface MockPageFacadeService {
+  filteredPreliminaryDraft: WritableSignal<PreliminaryDraft | null>;
+  isConfirmModalOpen: WritableSignal<boolean>;
+  loadData: jest.Mock<void, []>;
+  goBack: jest.Mock<void, []>;
+  handleRequestConfirmation: jest.Mock<void, [SaveEvaluationPayload]>;
+  processCouncilDecision: jest.Mock<void, []>;
+  downloadFile: jest.Mock<void, [FormattedDocument]>;
+}
 
 describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
   let component: ReviewPresentationsFacultyCouncilPageComponent;
   let fixture: ComponentFixture<ReviewPresentationsFacultyCouncilPageComponent>;
-  let mockFacade: jest.Mocked<Partial<ReviewPresentationsFacultyCouncilPageFacadeService>>;
+  let mockFacade: MockPageFacadeService;
 
-  // Solución: Agregar evaluations: [] al mock para que el componente hijo no colapse
-  const mockDraft = {
-    id: 'draft-1',
+  // Mock completo sin usar 'any' ni 'as unknown'
+  const mockUser: User = {
+    id: 'user-1',
+    idType: IdentificationType.CC,
+    idNumber: 123456789,
+    firstName: 'Carlos',
+    lastName: 'Pérez',
+    secondLastName: 'Gómez',
+    codeNumber: 20261001,
+    roles: [],
+    email: 'carlos@universidad.edu.co',
+    password: 'hash',
+    state: UserState.active
+  };
+
+  const mockDraft: PreliminaryDraft = {
+    preliminaryDraftId: 'draft-1',
+    proposalId: 'prop-1',
+    state: stateList.EN_REVISION,
+    createdData: new Date(),
+    evaluations: [],
     documents: [],
-    evaluations: []
-  } as unknown as PreliminaryDraft;
+    proposalData: {
+      id: 'prop-1',
+      title: 'Sistema de Gestión',
+      description: 'Desc',
+      modality: Modality.TI,
+      authors: [mockUser],
+      director: mockUser,
+      state: stateList.EN_REVISION,
+      createdAt: new Date(),
+      documents: [],
+      evaluations: []
+    }
+  };
+
+  const mockPayload: SaveEvaluationPayload = {
+    formValues: {
+      result: stateList.APROBADO,
+      comments: 'Excelente',
+      maximumDeliveryDate: null,
+      document: null
+    },
+    file: new File([''], 'resolucion.pdf', { type: 'application/pdf' })
+  };
+
+  const mockDocument: FormattedDocument = {
+    name: 'documento.pdf',
+    url: 'http://docs/documento.pdf'
+  };
 
   beforeEach(async () => {
     mockFacade = {
-      filteredPreliminaryDraft: signal(mockDraft),
-      isConfirmModalOpen: signal(false),
-
+      filteredPreliminaryDraft: signal<PreliminaryDraft | null>(mockDraft),
+      isConfirmModalOpen: signal<boolean>(false),
       loadData: jest.fn(),
       goBack: jest.fn(),
       handleRequestConfirmation: jest.fn(),
@@ -32,7 +99,10 @@ describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ReviewPresentationsFacultyCouncilPageComponent]
+      imports: [ReviewPresentationsFacultyCouncilPageComponent],
+      providers: [
+        provideNoopAnimations() // Evita errores de animaciones de componentes hijos (Material/PrimeNG)
+      ]
     })
     .overrideComponent(ReviewPresentationsFacultyCouncilPageComponent, {
       set: {
@@ -47,43 +117,64 @@ describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
     component = fixture.componentInstance;
   });
 
-  it('debería crearse correctamente y ejecutar loadData en ngOnInit', () => {
-    fixture.detectChanges();
+  describe('Inicialización y navegación', () => {
+    it('debería crearse correctamente y ejecutar loadData en ngOnInit', () => {
+      fixture.detectChanges();
 
-    expect(component).toBeTruthy();
-    expect(mockFacade.loadData).toHaveBeenCalled();
+      expect(component).toBeTruthy();
+      expect(mockFacade.loadData).toHaveBeenCalledTimes(1);
+    });
+
+    it('debería invocar goBack del facade al hacer clic en el botón de regresar', () => {
+      fixture.detectChanges();
+
+      const backButton = fixture.debugElement.query(By.css('button'));
+      backButton.nativeElement.click();
+
+      expect(mockFacade.goBack).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('debería invocar goBack del facade al hacer click en el botón de regresar', () => {
-    fixture.detectChanges();
-    const backButton = fixture.nativeElement.querySelector('button');
-    backButton.click();
-
-    expect(mockFacade.goBack).toHaveBeenCalled();
-  });
-
-  // Validaciones de eventos delegados a la vista
-  describe('Interacciones con Componentes Hijos', () => {
+  describe('Interacciones con Componentes Hijos desde la Vista (Template Bindings)', () => {
     beforeEach(() => {
+      // Configuramos el draft para que se renderice el @if de la vista
+      mockFacade.filteredPreliminaryDraft.set(mockDraft);
       fixture.detectChanges();
     });
 
-    it('debería delegar el evento onSaveEvaluation al facade', () => {
-      const mockPayload = {} as SaveEvaluationPayload;
-      // Simulamos la llamada como si viniera del HTML
-      component.facade.handleRequestConfirmation(mockPayload);
+    it('debería delegar el evento onSaveEvaluation del formulario al facade', () => {
+      const formComponentDE = fixture.debugElement.query(By.css('app-review-presentations-faculty-council-form'));
+
+      // Simulamos que el componente hijo emite el evento desde el HTML
+      formComponentDE.triggerEventHandler('onSaveEvaluation', mockPayload);
+
       expect(mockFacade.handleRequestConfirmation).toHaveBeenCalledWith(mockPayload);
     });
 
-    it('debería delegar el evento onDownloadFile al facade', () => {
-      const mockFile = {} as FileDocument;
-      component.facade.downloadFile(mockFile);
-      expect(mockFacade.downloadFile).toHaveBeenCalledWith(mockFile);
+    it('debería delegar el evento onDownloadFile del formulario al facade', () => {
+      const formComponentDE = fixture.debugElement.query(By.css('app-review-presentations-faculty-council-form'));
+
+      formComponentDE.triggerEventHandler('onDownloadFile', mockDocument);
+
+      expect(mockFacade.downloadFile).toHaveBeenCalledWith(mockDocument);
     });
 
-    it('debería delegar confirmación del modal al processCouncilDecision', () => {
-      component.facade.processCouncilDecision();
-      expect(mockFacade.processCouncilDecision).toHaveBeenCalled();
+    it('debería delegar la confirmación del modal al processCouncilDecision', () => {
+      const modalDE = fixture.debugElement.query(By.css('app-confirmation-action-modal'));
+
+      modalDE.triggerEventHandler('confirm', undefined);
+
+      expect(mockFacade.processCouncilDecision).toHaveBeenCalledTimes(1);
+    });
+
+    it('debería cambiar el estado del modal a falso al emitir onClose desde el modal', () => {
+      mockFacade.isConfirmModalOpen.set(true);
+      fixture.detectChanges();
+
+      const modalDE = fixture.debugElement.query(By.css('app-confirmation-action-modal'));
+      modalDE.triggerEventHandler('onClose', undefined);
+
+      expect(mockFacade.isConfirmModalOpen()).toBeFalsy();
     });
   });
 });

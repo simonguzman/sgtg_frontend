@@ -3,6 +3,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { Proposal } from '../../interfaces/proposal.interface';
 import { User } from '../../../users/interfaces/user.interface';
 import { EvaluationProposalFormService } from './services/evaluation-proposal-form.service';
+import { SaveProposalEvaluationEvent } from '../../interfaces/evaluation-proposal-payload.interface';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
@@ -27,29 +28,30 @@ export class EvaluationProposalFormComponent {
 
   proposal = input.required<Proposal>();
   onDownloadOriginal = output<void>();
-  onSaveEvaluation = output<{ result: string; comments: string; signedFileName: string }>();
+  // ← FIX: antes emitía { result, comments, signedFileName: string } —
+  // el File real se descartaba en handleFileUploaded(), un nivel más
+  // abajo. Ahora reutiliza SaveProposalEvaluationEvent, que exige el
+  // File real.
+  onSaveEvaluation = output<SaveProposalEvaluationEvent>();
   onGoBack = output<void>();
 
-  readonly signedFile = signal<{ name: string } | null>(null);
+  // ← Ahora guarda también el File real, no solo su nombre.
+  readonly signedFile = signal<{ name: string; file: File } | null>(null);
   readonly formSubmitted = signal<boolean>(false);
   readonly modalState = signal({ upload: false, confirm: false });
 
   get evaluationForm() {
     return this.formService.evaluationForm;
-
   }
   get originalDocument() {
     return this.formService.resolveOriginalDocument(this.proposal());
   }
-
   get currentDocument() {
     return this.formService.resolveCurrentDocument(this.proposal());
   }
-
   get documentUploadDate() {
     return this.formService.formatUploadDate(this.currentDocument);
   }
-
   get isFileInvalid(): boolean {
     return this.formSubmitted() && !this.signedFile();
   }
@@ -57,15 +59,12 @@ export class EvaluationProposalFormComponent {
   getStudentNames(authors: User[] | undefined): string {
     return this.formService.getStudentNames(authors);
   }
-
   getDirectorName(id: string): string {
     return this.formService.getMemberName(id);
   }
-
   getCodirectorName(id?: string): string {
     return id ? this.formService.getMemberName(id) : '';
   }
-
   getAdvisorName(id?: string): string {
     return id ? this.formService.getMemberName(id) : '';
   }
@@ -73,13 +72,13 @@ export class EvaluationProposalFormComponent {
   setUploadModal(isOpen: boolean): void {
     this.modalState.update(state => ({ ...state, upload: isOpen }));
   }
-
   setConfirmModal(isOpen: boolean): void {
     this.modalState.update(state => ({ ...state, confirm: isOpen }));
   }
 
   handleFileUploaded(event: { fileName: string; file: File }): void {
-    this.signedFile.set({ name: event.fileName });
+    // ← FIX: antes solo `{ name: event.fileName }`.
+    this.signedFile.set({ name: event.fileName, file: event.file });
     this.setUploadModal(false);
     this.formService.notifyFileUploaded();
   }
@@ -113,7 +112,8 @@ export class EvaluationProposalFormComponent {
     this.onSaveEvaluation.emit({
       result: result!,
       comments: comments!,
-      signedFileName: this.signedFile()!.name
+      // ← FIX CENTRAL: file real, no el nombre.
+      file: this.signedFile()!.file
     });
   }
 

@@ -1,15 +1,18 @@
-import { inject, runInInjectionContext } from '@angular/core';
-import { UserService } from '../../../../users/services/user.service';
+import { Injectable, inject } from '@angular/core';
 import { HistoryTabConfiguration } from '../../../interfaces/history-tab-config.interface';
 import { HistoryEvaluationContext } from '../../../interfaces/history-evaluation-context.interface';
 import { PreliminaryDraftService } from '../../../../preliminary-draft/services/preliminary-draft.service';
+import { UserService } from '../../../../users/services/user.service';
 import { PreliminaryDraft } from '../../../../preliminary-draft/interfaces/preliminary-draft.interface';
+import { Column } from '../../../../../shared/components/table-component/table-component.component';
 
-export const ArchivedPreliminaryDraftsTabConfig: HistoryTabConfiguration = {
-  tabValue: 'ANTEPROYECTOS',
+@Injectable({
+  providedIn: 'root'
+})
+export class ArchivedPreliminaryDraftsTabService implements HistoryTabConfiguration {
+  readonly tabValue = 'ANTEPROYECTOS';
 
-  // 1. Estandarizamos las columnas para que sean idénticas a las de Propuestas
-  columns: [
+  readonly columns: Column[] = [
     { field: 'title', header: 'Titulo', type: 'text', width: '25%' },
     { field: 'modality', header: 'Modalidad', type: 'text', width: '15%' },
     { field: 'authors', header: 'Estudiantes', type: 'text', width: '20%' },
@@ -27,56 +30,47 @@ export const ArchivedPreliminaryDraftsTabConfig: HistoryTabConfiguration = {
       header: 'Acciones',
       type: 'actions', width: '10%',
       actions: [
-        // Usamos la acción 'ver' con el icono de ojo para mantener la consistencia
         { action: 'ver', icon: 'visibility', variant: 'primary', disabled: false }
       ]
     }
-  ],
+  ];
 
-  getTableData: (context: HistoryEvaluationContext): Record<string, unknown>[] => {
-    return runInInjectionContext(context.injector, () => {
-      const draftService = inject(PreliminaryDraftService);
-      const userService = inject(UserService);
-      const userId = context.currentUser?.id;
+  // Inyección de dependencias nativa y limpia
+  private readonly draftService = inject(PreliminaryDraftService);
+  private readonly userService = inject(UserService);
 
-      if (!draftService || !userService) return [];
+  getTableData(context: HistoryEvaluationContext): Record<string, unknown>[] {
+    const userId = context.currentUser?.id;
 
-      // 1. Filtrar archivados
-      const allArchived = draftService.allPreliminaryDrafts().filter(d => d.isArchived === true);
+    const allArchived = this.draftService.allPreliminaryDrafts().filter(d => d.isArchived === true);
 
-      const allowedDrafts = allArchived.filter((draft: PreliminaryDraft) => {
-        if (context.hasGlobalAccess) return true; // 👈 ACTUALIZADO
+    const allowedDrafts = allArchived.filter((draft: PreliminaryDraft) => {
+      if (context.hasGlobalAccess) return true;
 
-        const proposal = draft.proposalData;
+      const proposal = draft.proposalData;
+      if (!proposal) return false;
 
-        const isAuthor = proposal?.authors?.some(auth => (typeof auth === 'string' ? auth : auth.id) === userId);
-        const isDirector = proposal?.director?.id === userId;
-        const isCodirector = proposal?.codirector?.id === userId;
-        const isAdvisor = proposal?.advisor?.id === userId;
+      const isAuthor = proposal.authors?.some(auth => (typeof auth === 'string' ? auth : auth.id) === userId);
+      const isDirector = proposal.director?.id === userId;
+      const isCodirector = proposal.codirector?.id === userId;
+      const isAdvisor = proposal.advisor?.id === userId;
 
-        // ❌ ELIMINADO: const isEvaluator = ...
+      return isAuthor || isDirector || isCodirector || isAdvisor;
+    });
 
-        return isAuthor || isDirector || isCodirector || isAdvisor; // 👈 ACTUALIZADO
-      });
+    return allowedDrafts.map((preliminaryDraft: PreliminaryDraft) => {
+      const proposal = preliminaryDraft.proposalData;
 
-      // 3. Mapear a formato plano alimentando exactamente las columnas definidas
-      return allowedDrafts.map((preliminaryDraft: PreliminaryDraft) => {
-        const proposal = preliminaryDraft.proposalData;
-
-        return {
-          id: preliminaryDraft.preliminaryDraftId,
-          title: proposal?.title || 'Sin título',
-          modality: proposal?.modality || 'No definida',
-          authors: userService.getAuthorsNames(proposal?.authors) || 'Sin asignar',
-
-          description: proposal?.description || 'Sin descripción',
-          state: preliminaryDraft.state, // Se empareja con la columna 'state'
-          deadlineStatus: 'Finalizado', // Texto estático para historial
-
-          // Permisos para los botones mapeados en la tabla
-          allowedActions: ['ver descripcion', 'ver']
-        };
-      });
+      return {
+        id: preliminaryDraft.preliminaryDraftId,
+        title: proposal?.title || 'Sin título',
+        modality: proposal?.modality || 'No definida',
+        authors: this.userService.getAuthorsNames(proposal?.authors) || 'Sin asignar',
+        description: proposal?.description || 'Sin descripción',
+        state: preliminaryDraft.state,
+        deadlineStatus: 'Finalizado',
+        allowedActions: ['ver descripcion', 'ver']
+      };
     });
   }
-};
+}

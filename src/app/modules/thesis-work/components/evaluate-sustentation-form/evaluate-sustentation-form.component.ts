@@ -33,10 +33,10 @@ export class EvaluateSustentationFormComponent {
   @Output() onBack         = new EventEmitter<void>();
   @Output() onDownloadFile = new EventEmitter<FileDocument>();
 
-  readonly verdictSelected  = signal<SustentationVeredict | null>(null);
-  readonly observations     = signal<string>('');
-  readonly uploadedFormat   = signal<{ fileName: string; file: File } | null>(null);
-  readonly isModalOpen      = signal<boolean>(false);
+  readonly verdictSelected   = signal<SustentationVeredict | null>(null);
+  readonly observations      = signal<string>('');
+  readonly uploadedFormat    = signal<{ fileName: string; file: File } | null>(null);
+  readonly isModalOpen       = signal<boolean>(false);
   readonly isSubmitAttempted = signal<boolean>(false);
 
   get states(): typeof stateList { return stateList; }
@@ -45,25 +45,12 @@ export class EvaluateSustentationFormComponent {
     return this.thesisWork?.sustentations?.[0] ?? null;
   }
 
-  getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }
-  getDirectorName(): string {
-    return this.formService.getMemberName(
-      this.thesisWork?.preliminaryDraftData?.proposalData?.director?.id
-    ) || 'No asignado';
-  }
-  getCodirectorName(): string {
-    return this.formService.getMemberName(
-      this.thesisWork?.preliminaryDraftData?.proposalData?.codirector?.id
-    );
-  }
-  getAdvisorName(): string {
-    return this.formService.getMemberName(
-      this.thesisWork?.preliminaryDraftData?.proposalData?.advisor?.id
-    );
-  }
-  getAssignedJurors(): string {
-    return this.formService.getAssignedJurors(this.currentSustentation);
-  }
+  // ← Simplificados: delegan directo al servicio con el ThesisWork completo
+  getStudentNames(): string   { return this.formService.getStudentNames(this.thesisWork); }
+  getDirectorName(): string   { return this.formService.getDirectorName(this.thesisWork); }
+  getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
+  getAdvisorName(): string    { return this.formService.getAdvisorName(this.thesisWork); }
+  getAssignedJurors(): string { return this.formService.getAssignedJurors(this.currentSustentation); }
 
   getExistingDocument(type: string): FileDocument | null {
     return this.formService.getExistingDocument(this.thesisWork, type);
@@ -73,8 +60,6 @@ export class EvaluateSustentationFormComponent {
     if (doc) this.onDownloadFile.emit(doc);
   }
 
-  // ← Fix: reemplaza $any($event.target).value por un método con tipado correcto,
-  // mismo patrón aplicado en RegisterPazYSalvoFormComponent.
   onObservationsChange(event: Event): void {
     this.observations.set((event.target as HTMLTextAreaElement).value);
   }
@@ -92,21 +77,11 @@ export class EvaluateSustentationFormComponent {
     const verdict  = this.verdictSelected();
     const fileData = this.uploadedFormat();
 
-    if (!verdict) {
-      this.formService.notifyMissingVerdict();
-      return;
-    }
-    if (!fileData) {
-      this.formService.notifyMissingFile();
-      return;
-    }
+    if (!verdict) { this.formService.notifyMissingVerdict(); return; }
+    if (!fileData) { this.formService.notifyMissingFile(); return; }
 
     this.onSave.emit({
-      payload: {
-        veredict: verdict,
-        observations: this.observations(),
-        evaluationDate: new Date()
-      },
+      payload: { veredict: verdict, observations: this.observations(), evaluationDate: new Date() },
       file: fileData.file
     });
   }

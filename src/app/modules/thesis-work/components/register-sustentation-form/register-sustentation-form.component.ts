@@ -23,8 +23,6 @@ export interface SustentationFormPayload {
   selector: 'app-register-sustentation-form',
   templateUrl: './register-sustentation-form.component.html',
   styleUrls: ['./register-sustentation-form.component.css'],
-  // ← CommonModule → solo NgTemplateOutlet (único directive del template).
-  // FormsModule eliminado: el template no usa [(ngModel)], solo formControlName.
   imports: [NgTemplateOutlet, ReactiveFormsModule, FileUploadModalComponent, ButtonComponent, DatePicker, InfoBannerComponent, SearchableSelectComponent],
   providers: [RegisterSustentationFormService]
 })
@@ -38,7 +36,6 @@ export class RegisterSustentationFormComponent implements OnInit {
   @Output() onBack         = new EventEmitter<void>();
   @Output() onDownloadFile = new EventEmitter<FileDocument>();
 
-  // ── Estado de UI ──────────────────────────────────────────────────────────
   private readonly firstJurorSelectedId = signal<string>('');
   readonly isModalOpen       = signal<boolean>(false);
   readonly uploadedFormatE   = signal<{ fileName: string; file: File } | null>(null);
@@ -51,8 +48,6 @@ export class RegisterSustentationFormComponent implements OnInit {
 
   get form() { return this.formService.form; }
 
-  // ── Selección de jurados: filtrado depende de un signal de este componente,
-  // por eso el computed queda aquí, delegando la regla de negocio al servicio.
   readonly availableJurors = computed<User[]>(() =>
     this.formService.getEligibleJurors(this.thesisWork())
   );
@@ -64,17 +59,13 @@ export class RegisterSustentationFormComponent implements OnInit {
 
   readonly juror1Options = computed<SelectOption[]>(() =>
     this.availableJurors().map(user => ({
-      id: user.id,
-      value: user.id,
-      label: this.formService.getMemberFullName(user)
+      id: user.id, value: user.id, label: this.formService.getMemberFullName(user)
     }))
   );
 
   readonly juror2Options = computed<SelectOption[]>(() =>
     this.filteredJurorsForJ2().map(user => ({
-      id: user.id,
-      value: user.id,
-      label: this.formService.getMemberFullName(user)
+      id: user.id, value: user.id, label: this.formService.getMemberFullName(user)
     }))
   );
 
@@ -90,12 +81,15 @@ export class RegisterSustentationFormComponent implements OnInit {
       });
   }
 
+  // ← Simplificados: delegan al servicio con el ThesisWork completo,
+  // sin extraer el objeto User embebido de la propuesta manualmente.
+  getStudentNames(): string   { return this.formService.getStudentNames(this.thesisWork()); }
+  getDirectorName(): string   { return this.formService.getDirectorName(this.thesisWork()); }
+  getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork()); }
+  getAdvisorName(): string    { return this.formService.getAdvisorName(this.thesisWork()); }
+
   getMemberFullName(user: User | undefined): string {
     return this.formService.getMemberFullName(user);
-  }
-
-  getAuthorsNames(ids: (string | User)[] | undefined): string {
-    return this.formService.getAuthorsNames(ids);
   }
 
   isFieldInvalid(fieldName: string): boolean {
@@ -131,11 +125,6 @@ export class RegisterSustentationFormComponent implements OnInit {
       return;
     }
 
-    // ← form ya no necesita cast: nonNullable.group + getRawValue() produce
-    // exactamente { sustentationDate, location, juror1, juror2 } como strings.
-    this.onSave.emit({
-      payload: this.form.getRawValue(),
-      file: currentFile.file
-    });
+    this.onSave.emit({ payload: this.form.getRawValue(), file: currentFile.file });
   }
 }

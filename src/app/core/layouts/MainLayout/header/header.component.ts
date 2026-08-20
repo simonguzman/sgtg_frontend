@@ -1,89 +1,98 @@
-import { Component, computed, inject, ViewChild } from '@angular/core';
+import { Component, computed, inject, signal, ViewChild } from '@angular/core';
 import { AvatarModule } from 'primeng/avatar';
 import { MenuModule, Menu } from 'primeng/menu';
 import { MenuItem } from 'primeng/api';
-import { CommonModule } from '@angular/common';
-import { AuthService } from '../../../services/auth/auth.service';
 import { Router } from '@angular/router';
+import { AuthService } from '../../../services/auth/auth.service';
+import { UserService } from '../../../../modules/users/services/user.service';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { ChangePasswordModalComponent } from '../../../../shared/components/modals/change-password-modal/change-password-modal.component';
 import { InboxService } from '../../../../modules/notifications/services/inbox.service';
 
 @Component({
   selector: 'app-header',
-  imports: [CommonModule, AvatarModule, MenuModule, ConfirmationActionModalComponent, ChangePasswordModalComponent],
+  // ← CommonModule eliminado: el template solo usa @if nativo.
+  imports: [AvatarModule, MenuModule, ConfirmationActionModalComponent, ChangePasswordModalComponent],
   templateUrl: './header.component.html',
   styleUrl: './header.component.css',
 })
 export class HeaderComponent {
-  protected authService = inject(AuthService);
-  private router = inject(Router);
+  protected readonly authService = inject(AuthService);
+  protected readonly inboxService = inject(InboxService);
+  private readonly userService = inject(UserService);
+  private readonly router = inject(Router);
 
-  // 2. INYECTA EL SERVICIO
-  protected inboxService = inject(InboxService);
-
+  // @ViewChild con `!` es aquí el patrón correcto (no el mismo caso que
+  // LoginComponent): la referencia solo existe después de que la vista se
+  // inicializa, no hay forma idiomática de evitarlo con un ViewChild.
   @ViewChild('menu') menu!: Menu;
-  isMenuOpen = false;
-  isLogoutModal = false;
-  isChangePasswordModal = false;
 
-  userName = 'Admin';
-  userRole = 'Administrador';
-  userAvatar = 'assets/images/avatar-default.png';
+  // ← Convertidos a signal(): mismo patrón que isConfirmModalOpen,
+  // isUploadModalOpen, etc. en el resto del proyecto.
+  readonly isMenuOpen = signal(false);
+  readonly isLogoutModal = signal(false);
+  readonly isChangePasswordModal = signal(false);
 
-  protected userFullName = computed(() => {
+  protected readonly userAvatar = 'assets/images/avatar-default.png';
+
+  // ← FIX: eliminada la reimplementación manual con regex. El comentario
+  // original decía que reutilizaba UserFormatterService pero no lo hacía.
+  protected readonly userFullName = computed<string>(() => {
     const user = this.authService.currentUser();
-    if (!user) return 'Invitado';
-
-    // Reutilizamos la lógica estructural de tu UserFormatterService
-    return `${user.firstName} ${user.secondName || ''} ${user.lastName} ${user.secondLastName || ''}`
-      .replace(/\s+/g, ' ')
-      .trim();
+    return user ? this.userService.formatFullName(user) : 'Invitado';
   });
 
-  menuItems: MenuItem[] = [
-    {
-      label: 'Mi Perfil',
-      icon: 'pi pi-user',
-      command: () => this.goToProfile()
-    },
-    { separator: true},
-    {
-      label: 'Cambiar contraseña',
-      icon: 'pi pi-key',
-      command: () => this.openChangePasswordModal()
-    },
+  // ← NUEVO: con un solo rol el resultado es idéntico al binding anterior
+  // ({{ currentUser()?.roles }} mostraba "Administrador" en tu captura).
+  // Con varios roles, evita el "Director,Jurado" pegado sin espacio.
+  protected readonly userRoleLabel = computed<string>(() => {
+    const roles = this.authService.currentUser()?.roles;
+    return roles && roles.length > 0 ? roles.join(' / ') : '';
+  });
+
+  protected readonly menuItems: MenuItem[] = [
+    { label: 'Mi Perfil', icon: 'pi pi-user', command: () => this.goToProfile() },
     { separator: true },
-    {
-      label: 'Cerrar Sesión',
-      icon: 'pi pi-sign-out',
-      command: () => this.openLogoutModal()
-    }
+    { label: 'Cambiar contraseña', icon: 'pi pi-key', command: () => this.openChangePasswordModal() },
+    { separator: true },
+    { label: 'Cerrar Sesión', icon: 'pi pi-sign-out', command: () => this.openLogoutModal() }
   ];
 
-  // 3. AGREGA LA NAVEGACIÓN A LA BANDEJA
-  goToInbox() {
-    this.router.navigate(['/notifications']); // O la ruta que definiste en tu app.routes
+  goToInbox(): void {
+    this.router.navigate(['/notifications']);
   }
 
-  onMenuToggle(event: Event) {
-    this.isMenuOpen = !this.isMenuOpen;
+  onMenuToggle(event: Event): void {
+    this.isMenuOpen.update(open => !open);
     this.menu.toggle(event);
   }
 
-  goToProfile() {
+  goToProfile(): void {
     this.router.navigate(['/users/profile']);
   }
 
-  // ... (el resto de tus métodos de modales se quedan igual)
-  closeMenu() { this.isMenuOpen = false; }
-  openLogoutModal() { this.isLogoutModal = true; }
-  cancelLogout() { this.isLogoutModal = false; }
-  confirmLogout(){
-    this.isLogoutModal = false;
+  openLogoutModal(): void {
+    this.isLogoutModal.set(true);
+  }
+
+  cancelLogout(): void {
+    this.isLogoutModal.set(false);
+  }
+
+  confirmLogout(): void {
+    this.isLogoutModal.set(false);
     this.authService.logout();
     this.router.navigate(['/auth/login']);
   }
-  openChangePasswordModal() { this.isChangePasswordModal = true; }
-  closeChangePasswordModal() { this.isChangePasswordModal = false; }
+
+  openChangePasswordModal(): void {
+    this.isChangePasswordModal.set(true);
+  }
+
+  closeChangePasswordModal(): void {
+    this.isChangePasswordModal.set(false);
+  }
+
+  // ← closeMenu() eliminado: verificado contra el template completo, no
+  // se llama desde ningún binding — era código muerto.
 }

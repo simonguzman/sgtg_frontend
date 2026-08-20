@@ -24,13 +24,10 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly breadcrumbService = inject(BreadcrumbService);
   protected readonly facade          = inject(CorrectedDocumentsFacadeService);
-  // ← titleService eliminado: se inyectaba pero nunca se usaba en ningún método.
 
   readonly columns = CORRECTED_DOCUMENTS_COLUMNS;
-
   readonly thesisWorkId       = signal<string | null>(null);
   readonly isDetailsModalOpen = signal<boolean>(false);
-  // ← Fix: any → CorrectedDelivery
   readonly selectedDelivery   = signal<CorrectedDelivery | null>(null);
   readonly isArchived         = signal<boolean>(false);
 
@@ -40,11 +37,9 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
       this.router.url.includes('/historial') ||
       !!this.route.snapshot.data['isArchived']
     );
-
     const id = this.route.snapshot.paramMap.get('id')
       ?? this.route.parent?.snapshot.paramMap.get('id')
       ?? this.route.parent?.parent?.snapshot.paramMap.get('id');
-
     if (!id) {
       this.facade.showNavigationError();
       this.goBack();
@@ -58,21 +53,29 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
     this.breadcrumbService.setDynamicTitle(null);
   }
 
-  // ── Computed reactivos: delegan la lógica pura a la fachada ───────────────
+  // ← FIX CENTRAL: thesisWorks() → allThesisWorks(). thesisWorks() es la
+  // señal filtrada (mismo patrón ya corregido en ArchivedProcessComponent
+  // para proposals/preliminaryDrafts) — al evaluar correcciones, el
+  // trabajo de grado deja de aparecer en esa lista filtrada, por lo que
+  // currentThesisWork() se vuelve null y buildTableData(null) devuelve []
+  // — de ahí que la tabla se vacíe por completo tras la evaluación.
+  // allThesisWorks() es exactamente lo que ya usa el componente hermano
+  // LoadedDocumentsThesisWorkPageComponent para este mismo propósito
+  // (buscar un trabajo de grado específico por ID en una página de
+  // gestión/detalle). Además, este mismo componente ya asume trabajar con
+  // registros archivados (ver isArchived más abajo, derivado de la ruta,
+  // no del campo thesis.isArchived) — reforzando que usar la señal sin
+  // filtrar es lo correcto aquí.
   readonly currentThesisWork = computed(() =>
-    this.facade.findThesisWork(this.thesisWorkId(), this.thesisWorkService.thesisWorks())
+    this.facade.findThesisWork(this.thesisWorkId(), this.thesisWorkService.allThesisWorks())
   );
 
   readonly isDirector = computed(() => this.facade.isDirector(this.currentThesisWork()));
   readonly isJuror     = computed(() => this.facade.isJuror(this.currentThesisWork()));
 
-  // ← hasUploadedCorrections eliminado: no se referenciaba en ningún lado del
-  // template — era código muerto.
-
   readonly canDirectorUpload = computed(() =>
     this.facade.canDirectorUpload(this.currentThesisWork(), this.isDirector(), this.isArchived())
   );
-
   readonly canJurorEvaluate = computed(() =>
     this.facade.canJurorEvaluate(this.currentThesisWork(), this.isJuror(), this.isArchived())
   );
@@ -93,8 +96,6 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
     this.currentThesisWork()?.preliminaryDraftData?.proposalData?.modality ?? 'Sin modalidad'
   );
 
-  // ← Ahora importado del helper compartido en vez de reimplementarse aquí
-  // (duplicaba exactamente la misma lógica de LoadedDocumentsThesisWorkPageComponent).
   ensureDate = ensureDate;
 
   handleTableAction(event: { action: string; row: CorrectedDeliveryTableRow }): void {
@@ -104,8 +105,9 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ← void: downloadDocumentByName() del facade ahora es async.
   downloadDocumentByName(fileName: string): void {
-    this.facade.downloadDocumentByName(this.selectedDelivery(), fileName);
+    void this.facade.downloadDocumentByName(this.selectedDelivery(), fileName);
   }
 
   navigateToUploadCorrections(): void {
@@ -117,11 +119,10 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
   }
 
   goBack(): void {
-    const id            = this.thesisWorkId();
+    const id             = this.thesisWorkId();
     const sustentationId = this.currentThesisWork()?.sustentations?.[0]?.id;
-    const currentUrl    = this.router.url;
+    const currentUrl     = this.router.url;
     const baseUrlSegment = currentUrl.split('/details')[0] || '/thesis-work';
-
     if (!id) {
       this.router.navigate([baseUrlSegment]);
       return;

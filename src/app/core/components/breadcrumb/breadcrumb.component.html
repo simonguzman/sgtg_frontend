@@ -1,12 +1,12 @@
 <nav class="text-size-body font-light mb-4" aria-label="Breadcrumb">
   <ol class="inline-flex items-center">
-    @for (breadcrumb of breadcrumbs$ | async; track $index) {
+    @for (breadcrumb of breadcrumbs(); track $index) {
       <li class="inline-flex items-center">
         @if (!$last) {
           <a [routerLink]="breadcrumb.url" class="text-[#A7A6B0] hover:text-primary transition-colors">
             {{ breadcrumb.label }}
           </a>
-          <span class="mx-2 text-[#DB141C] font-bold font-sans">></span>
+          <span class="mx-2 text-[#DB141C] font-bold font-sans">&gt;</span>
         } @else {
           <span class="text-[#A7A6B0]">{{ breadcrumb.label }}</span>
         }

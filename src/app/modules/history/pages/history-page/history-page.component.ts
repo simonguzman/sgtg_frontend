@@ -1,21 +1,18 @@
-import { Component, computed, effect, inject, Injector, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnDestroy, signal } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Title } from '@angular/platform-browser';
-import { TabItem, TabsComponent } from '../../../../shared/components/tabs/tabs.component';
+import { TabsComponent } from '../../../../shared/components/tabs/tabs.component';
 import { TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { DescriptionModalComponent } from '../../../../shared/components/modals/description-modal/description-modal.component';
-
-// Interfaces de Estrategia
 import { HistoryTabConfiguration } from '../../interfaces/history-tab-config.interface';
 import { HistoryEvaluationContext } from '../../interfaces/history-evaluation-context.interface';
-import { ArchivedProposalsTabConfig } from '../archived-process/tabs-logic/archived-proposal.tab';
-import { ArchivedPreliminaryDraftsTabConfig } from '../archived-process/tabs-logic/archived-preliminaryDraft.tab';
-import { ArchivedThesisWorksTabConfig } from '../archived-process/tabs-logic/archived-thesisWorks.tab';
-import { ProposalService } from '../../../proposal/services/proposal.service';
-import { UserService } from '../../../users/services/user.service';
+import { ArchivedProposalsTabService } from './services/archived-proposals-tab.service';
+import { ArchivedPreliminaryDraftsTabService } from './services/archived-preliminary-drafts-tab.service';
+import { ArchivedThesisWorksTabService } from './services/archived-thesis-works-tab.service';
+import { HISTORY_TABS_CONFIG, HISTORY_DETAIL_ROUTES } from './models/history-page.model';
 
 @Component({
   selector: 'app-history-page',
@@ -23,39 +20,37 @@ import { UserService } from '../../../users/services/user.service';
   styleUrls: ['./history-page.component.css'],
   imports: [TabsComponent, TableComponent, DescriptionModalComponent]
 })
-export class HistoryPageComponent implements OnInit, OnDestroy {
+// ← OnInit eliminado: ngOnInit(): void {} estaba vacío — implementar la
+// interfaz solo para un método sin cuerpo es ruido puro.
+export class HistoryPageComponent implements OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly titleService = inject(Title);
   private readonly authService = inject(AuthService);
-  private readonly proposalService = inject(ProposalService);
-  private readonly userService = inject(UserService);
   private readonly breadcrumbService = inject(BreadcrumbService);
-  private readonly injector = inject(Injector);
 
-  // 1. Configuración de Pestañas
-  readonly tabsConfig: TabItem[] = [
-    { label: 'Propuestas Archivadas', value: 'PROPUESTAS' },
-    { label: 'Anteproyectos Archivados', value: 'ANTEPROYECTOS' },
-    { label: 'Trabajos de Grado Finalizados', value: 'TRABAJOS' },
-  ];
+  // ← Las 3 estrategias ahora son servicios inyectables en vez de
+  // constantes planas — ProposalService/UserService ya no se inyectan
+  // aquí solo para reenviarlos por el context; cada servicio de tab
+  // resuelve sus propias dependencias.
+  private readonly proposalsTab = inject(ArchivedProposalsTabService);
+  private readonly draftsTab = inject(ArchivedPreliminaryDraftsTabService);
+  private readonly thesisWorksTab = inject(ArchivedThesisWorksTabService);
 
-  // 2. Diccionario de Estrategias
+  protected readonly tabsConfig = HISTORY_TABS_CONFIG;
+
   private readonly tabStrategies: Record<string, HistoryTabConfiguration> = {
-    'PROPUESTAS': ArchivedProposalsTabConfig,
-    'ANTEPROYECTOS': ArchivedPreliminaryDraftsTabConfig,
-    'TRABAJOS': ArchivedThesisWorksTabConfig
+    'PROPUESTAS': this.proposalsTab,
+    'ANTEPROYECTOS': this.draftsTab,
+    'TRABAJOS': this.thesisWorksTab
   };
 
-  activeTab = signal<string>('PROPUESTAS');
-
-  // Estado para controlar el modal de descripción
-  descriptionModal = { show: false, title: '', content: '' };
+  readonly activeTab = signal<string>('PROPUESTAS');
+  readonly descriptionModal = signal({ show: false, title: '', content: '' });
 
   constructor() {
     effect(() => {
-      const matchTab = this.tabsConfig.find(t => t.value === this.activeTab());
-      const tabLabel = matchTab ? matchTab.label : 'Historial';
+      const tabLabel = this.tabsConfig.find(t => t.value === this.activeTab())?.label ?? 'Historial';
       setTimeout(() => {
         this.breadcrumbService.setDynamicBreadcrumb(tabLabel);
         this.breadcrumbService.setDynamicTitle(`Historial - ${tabLabel}`);
@@ -64,70 +59,52 @@ export class HistoryPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit(): void {}
-
-  ngOnDestroy(): void{
+  ngOnDestroy(): void {
     this.breadcrumbService.clearDynamicBreadcrumb();
     this.breadcrumbService.setDynamicTitle(null);
   }
 
-  // 3. Evaluación de Contexto de Usuario
-  evaluationContext = computed<HistoryEvaluationContext>(() => {
+  readonly evaluationContext = computed<HistoryEvaluationContext>(() => {
     const user = this.authService.currentUser();
-
-    // 👈 NUEVO: Agrupamos los roles institucionales (Asegúrate de que los nombres del enum coincidan con los tuyos)
     const hasGlobalAccess = this.authService.hasAnyRole([
       UserRoleType.ADMINISTRADOR,
       UserRoleType.COMITE,
       UserRoleType.CONSEJO,
       UserRoleType.JEFE_DEP
     ]);
-
-    return {
-      currentUser: user,
-      hasGlobalAccess, // 👈 NUEVO
-      injector: this.injector,
-      proposalService: this.proposalService,
-      userService: this.userService
-    };
+    return { currentUser: user, hasGlobalAccess };
   });
 
-  currentStrategy = computed<HistoryTabConfiguration>(() => {
-    return this.tabStrategies[this.activeTab()] || ArchivedProposalsTabConfig;
-  });
+  readonly currentStrategy = computed<HistoryTabConfiguration>(() =>
+    this.tabStrategies[this.activeTab()] ?? this.proposalsTab
+  );
 
-  currentColumns = computed(() => this.currentStrategy().columns);
+  readonly currentColumns = computed(() => this.currentStrategy().columns);
 
-  currentTableData = computed(() => {
-    return this.currentStrategy().getTableData(this.evaluationContext());
-  });
+  readonly currentTableData = computed(() =>
+    this.currentStrategy().getTableData(this.evaluationContext())
+  );
 
   handleTableAction(event: { action: string; row: Record<string, unknown> }): void {
     const rowId = event.row['id'] as string;
 
     switch (event.action) {
       case 'ver descripcion':
-        this.descriptionModal = {
+        this.descriptionModal.set({
           show: true,
           title: 'Descripción del registro archivado',
           content: (event.row['description'] as string) || 'No hay descripción disponible para este registro.'
-        };
+        });
         break;
-
       case 'view-details':
-      case 'ver':
-        if (this.activeTab() === 'PROPUESTAS') {
-          this.router.navigate(['proposal-details', rowId], { relativeTo: this.route });
-        }
-        else if (this.activeTab() === 'ANTEPROYECTOS') {
-          this.router.navigate(['preliminary-draft-details', rowId], { relativeTo: this.route });
-        }
-        // 🚀 NUEVO: Ruta específica para redirigir a los detalles de los Trabajos de Grado
-        else if (this.activeTab() === 'TRABAJOS') {
-          this.router.navigate(['thesis-work-details', rowId], { relativeTo: this.route });
+      case 'ver': {
+        // ← Antes: 3 if/else if comparando activeTab() como string.
+        const routeSegment = HISTORY_DETAIL_ROUTES[this.activeTab()];
+        if (routeSegment) {
+          this.router.navigate([routeSegment, rowId], { relativeTo: this.route });
         }
         break;
-
+      }
       default:
         console.warn(`Acción no manejada en historial: ${event.action}`);
         break;

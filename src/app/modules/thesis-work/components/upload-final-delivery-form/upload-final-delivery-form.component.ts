@@ -5,8 +5,8 @@ import { InfoBannerComponent } from '../../../../shared/components/info-banner/i
 import { UploadFinalDeliveryFormService } from './services/upload-final-delivery-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 
-type FileSlot = 'MONOGRAPH' | 'FORMAT_E' | 'ANNEXES';
-type UploadedFile = { fileName: string; file: File };
+export type FileSlot = 'MONOGRAPH' | 'FORMAT_E' | 'ANNEXES';
+export type UploadedFile = { fileName: string; file: File };
 
 @Component({
   selector: 'app-upload-final-delivery-form',
@@ -21,67 +21,46 @@ export class UploadFinalDeliveryFormComponent {
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
   @Output() onSaveDelivery = new EventEmitter<{ monograph: File; formatE: File; annexes: File }>();
-  @Output() onGoBack       = new EventEmitter<void>();
 
-  // ── Estado de UI ──────────────────────────────────────────────────────────
-  readonly uploadedMonograph    = signal<UploadedFile | null>(null);
-  readonly uploadedFormatE      = signal<UploadedFile | null>(null);
-  readonly uploadedAnnexes      = signal<UploadedFile | null>(null);
-  readonly activeModal          = signal<FileSlot | null>(null);
-  readonly isSubmitAttempted    = signal(false);
+  readonly uploadedMonograph = signal<UploadedFile | null>(null);
+  readonly uploadedFormatE = signal<UploadedFile | null>(null);
+  readonly uploadedAnnexes = signal<UploadedFile | null>(null);
+  readonly activeModal = signal<FileSlot | null>(null);
+  readonly isSubmitAttempted = signal(false);
 
-  // ── Getters que exponen el servicio al template ───────────────────────────
   getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }
-  getDirectorName(): string {
-    const id = this.thesisWork?.preliminaryDraftData?.proposalData?.director?.id;
-    return this.formService.getMemberName(id) || 'No asignado';
-  }
-  getCodirectorName(): string {
-    return this.formService.getMemberName(
-      this.thesisWork?.preliminaryDraftData?.proposalData?.codirector?.id
-    );
-  }
-  getAdvisorName(): string {
-    return this.formService.getMemberName(
-      this.thesisWork?.preliminaryDraftData?.proposalData?.advisor?.id
-    );
-  }
+  getDirectorName(): string { return this.formService.getDirectorName(this.thesisWork); }
+  getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
+  getAdvisorName(): string { return this.formService.getAdvisorName(this.thesisWork); }
 
-  // ── Manejo de archivos ────────────────────────────────────────────────────
-  openModal(type: FileSlot): void  { this.activeModal.set(type); }
-  closeModal(): void               { this.activeModal.set(null); }
+  openModal(type: FileSlot): void { this.activeModal.set(type); }
+  closeModal(): void { this.activeModal.set(null); }
 
   handleFileUploaded(event: UploadedFile): void {
     const type = this.activeModal();
     if (type === 'MONOGRAPH') this.uploadedMonograph.set(event);
-    if (type === 'FORMAT_E')  this.uploadedFormatE.set(event);
-    if (type === 'ANNEXES')   this.uploadedAnnexes.set(event);
+    if (type === 'FORMAT_E') this.uploadedFormatE.set(event);
+    if (type === 'ANNEXES') this.uploadedAnnexes.set(event);
     this.closeModal();
     this.formService.notifyFileAttached(event.fileName);
   }
 
   removeFile(type: FileSlot): void {
     if (type === 'MONOGRAPH') this.uploadedMonograph.set(null);
-    if (type === 'FORMAT_E')  this.uploadedFormatE.set(null);
-    if (type === 'ANNEXES')   this.uploadedAnnexes.set(null);
+    if (type === 'FORMAT_E') this.uploadedFormatE.set(null);
+    if (type === 'ANNEXES') this.uploadedAnnexes.set(null);
   }
 
-  // ── Envío ─────────────────────────────────────────────────────────────────
   submit(): void {
     this.isSubmitAttempted.set(true);
     const monograph = this.uploadedMonograph();
-    const formatE   = this.uploadedFormatE();
-    const annexes   = this.uploadedAnnexes();
+    const formatE = this.uploadedFormatE();
+    const annexes = this.uploadedAnnexes();
 
     if (!monograph || !formatE || !annexes) {
       this.formService.notifyMissingDocuments();
       return;
     }
-
-    this.onSaveDelivery.emit({
-      monograph: monograph.file,
-      formatE:   formatE.file,
-      annexes:   annexes.file
-    });
+    this.onSaveDelivery.emit({ monograph: monograph.file, formatE: formatE.file, annexes: annexes.file });
   }
 }

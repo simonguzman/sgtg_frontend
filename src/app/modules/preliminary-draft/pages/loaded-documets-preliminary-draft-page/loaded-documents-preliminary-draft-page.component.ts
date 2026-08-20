@@ -12,12 +12,12 @@ import { LoadedDocumentsPreliminaryDraftMapperService } from './services/loaded-
   styleUrls: ['./loaded-documents-preliminary-draft-page.component.css'],
   standalone: true,
   imports: [FileUploadModalComponent, ConfirmationActionModalComponent, TableComponent, TabsComponent],
-  // Proveemos los servicios aquí para atarlos al ciclo de vida del componente
   providers: [LoadedDocumentsPreliminaryDraftFacadeService, LoadedDocumentsPreliminaryDraftMapperService]
 })
 export class LoadedDocumentsPreliminaryDraftPageComponent implements OnInit, OnDestroy {
-  // Inyectamos el facade público para usarlo directamente en el HTML
-  public readonly facade = inject(LoadedDocumentsPreliminaryDraftFacadeService);
+  // ← public → protected: el template accede igual (protected basta para
+  // bindings), consistente con el resto de páginas del proyecto.
+  protected readonly facade = inject(LoadedDocumentsPreliminaryDraftFacadeService);
 
   ngOnInit(): void {
     this.facade.init();

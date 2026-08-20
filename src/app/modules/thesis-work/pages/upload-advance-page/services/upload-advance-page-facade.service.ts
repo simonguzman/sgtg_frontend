@@ -8,19 +8,16 @@ import { FileDocument } from '../../../../../core/interfaces/file-document.inter
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { UploadAdvancePayload } from '../../../interfaces/advance-playload.interface';
+import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
 
 @Injectable({ providedIn: 'root' })
-export class UploadAdvanceFacadeService {
+export class UploadAdvancePageFacadeService {
   private readonly thesisWorkService   = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
 
-  /**
-   * Carga el trabajo de grado por ID con notificaciones integradas.
-   * first() garantiza que la suscripción se complete tras la primera emisión.
-   */
   public loadThesisWork(
-    id:         string,
-    onSuccess:  (work: ThesisWork) => void,
+    id: string,
+    onSuccess: (thesisWork: ThesisWork) => void,
     onNotFound: () => void
   ): void {
     this.thesisWorkService.getThesisWorkByIdMock(id)
@@ -42,37 +39,57 @@ export class UploadAdvanceFacadeService {
   }
 
   /**
-   * Construye los documentos del avance y ejecuta las subidas en paralelo.
-   * forkJoin completa automáticamente cuando todas las subidas terminan.
+   * ← FIX CENTRAL: antes `url: 'url-pendiente-de-carga-s3'` — un
+   * placeholder literal, no una URL real. Mismo bug que ya corregimos en
+   * Propuestas/Anteproyecto, aquí con un string no vacío en vez de `''`,
+   * lo que hacía que ni siquiera la validación `!url?.trim()` de
+   * FileDownloadService lo detectara antes de intentar la descarga.
+   *
+   * uploadDate se mantiene como new Date().toISOString() — NO se cambia
+   * a formatDisplayDate(): ThesisWorkAdvanceService reconstruye este
+   * valor con `new Date(document.uploadDate)` para poblar
+   * Advance.uploadDate, y un ISO string es parseo estándar fiable en
+   * cualquier motor JS, a diferencia del formato "DD - MM - YYYY".
    */
-  public processAdvance(
-    thesisId:  string,
-    userId:    string,
-    data:      UploadAdvancePayload,
+  public async processAdvance(
+    thesisId: string,
+    userId: string,
+    data: UploadAdvancePayload,
     onSuccess: () => void,
-    onError:   () => void
-  ): void {
+    onError: () => void
+  ): Promise<void> {
     const advanceBlockId = crypto.randomUUID();
     const advanceMeta = {
-      title:     data.formValues.title,
-      comments:  data.formValues.comments,
+      title: data.formValues.title,
+      comments: data.formValues.comments,
       studentId: userId,
       advanceId: advanceBlockId
     };
 
-    const documentsToUpload: FileDocument[] = data.files.map(file => ({
-      id:         crypto.randomUUID(),
-      name:       `${data.formValues.title} - ${file.name}`,
-      url:        'url-pendiente-de-carga-s3',
-      type:       DocumentType.AVANCE,
-      uploadDate: new Date().toISOString()
-    }));
+    let documentsToUpload: FileDocument[];
+    try {
+      documentsToUpload = await Promise.all(
+        data.files.map(async (file) => ({
+          id: crypto.randomUUID(),
+          name: `${data.formValues.title} - ${file.name}`,
+          url: await readFileAsDataUrl(file),
+          type: DocumentType.AVANCE,
+          uploadDate: new Date().toISOString()
+        }))
+      );
+    } catch (err) {
+      console.error('Error leyendo los archivos del avance:', err);
+      this.showNotification('Error al leer el archivo', 'No se pudo procesar uno de los archivos seleccionados.', NotificationType.ERROR);
+      onError();
+      return;
+    }
 
+    // ← first() agregado: faltaba en esta suscripción.
     forkJoin(
-      documentsToUpload.map(doc =>
-        this.thesisWorkService.uploadDocumentMock(thesisId, doc, advanceMeta)
+      documentsToUpload.map(document =>
+        this.thesisWorkService.uploadDocumentMock(thesisId, document, advanceMeta)
       )
-    ).subscribe({
+    ).pipe(first()).subscribe({
       next: () => {
         this.showNotification(
           'Avance registrado',
@@ -93,11 +110,7 @@ export class UploadAdvanceFacadeService {
   }
 
   public showNavigationError(): void {
-    this.showNotification(
-      'Error de navegación',
-      'No se pudo identificar el identificador del trabajo de grado.',
-      NotificationType.ERROR
-    );
+    this.showNotification('Error de navegación', 'No se pudo identificar el identificador del trabajo de grado.', NotificationType.ERROR);
   }
 
   private showNotification(title: string, message: string, type: NotificationType): void {

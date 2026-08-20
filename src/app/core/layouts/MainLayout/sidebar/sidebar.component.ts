@@ -1,74 +1,31 @@
-import { CommonModule } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { MenuModule } from 'primeng/menu';
-import { UserRoleType } from '../../../enums/user-role-type.enum';
 import { AuthService } from '../../../services/auth/auth.service';
-
-interface MenuItem {
-  label: string;
-  icon: string;
-  routerLink: string;
-  roles: UserRoleType[]; // Roles permitidos para este item
-}
+import { SIDEBAR_MENU_ITEMS, SidebarMenuItem } from './models/sidebar-menu.model';
 
 @Component({
   selector: 'app-sidebar',
-  imports: [CommonModule, RouterModule, MenuModule],
+  // ← CommonModule y MenuModule eliminados: el template usa @for nativo
+  // (no *ngFor/*ngIf) y no contiene ningún componente de PrimeNG Menu
+  // (p-menu) — ambos imports eran residuo muerto, probablemente copiado
+  // desde HeaderComponent, que sí usa p-menu de verdad.
+  imports: [RouterModule],
   templateUrl: './sidebar.component.html',
   styleUrl: './sidebar.component.css',
 })
 export class SidebarComponent {
-  private authService = inject(AuthService);
+  private readonly authService = inject(AuthService);
 
-  private allMenuItems: MenuItem[] = [
-    {
-      label: 'Bandeja de entrada',
-      routerLink: '/notifications',
-      icon: 'inbox', // Ícono actualizado a Material Symbols
-      roles: [UserRoleType.ESTUDIANTE, UserRoleType.DOCENTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR, UserRoleType.ADMINISTRADOR, UserRoleType.COMITE, UserRoleType.JEFE_DEP, UserRoleType.CONSEJO, UserRoleType.DECANATURA, UserRoleType.JURADO, UserRoleType.EVALUADOR]
-    },
-    {
-      label: 'Usuarios',
-      routerLink: '/users',
-      icon: 'group', // Ícono actualizado
-      roles: [UserRoleType.ADMINISTRADOR]
-    },
-    {
-      label: 'Propuesta',
-      routerLink: '/proposal',
-      icon: 'article', // Ícono actualizado
-      roles: [UserRoleType.ESTUDIANTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR, UserRoleType.JEFE_DEP, UserRoleType.ADMINISTRADOR, UserRoleType.COMITE]
-    },
-    {
-      label: 'Anteproyecto',
-      routerLink: '/preliminary-draft',
-      icon: 'note_alt', // Ícono actualizado
-      roles: [UserRoleType.ESTUDIANTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR, UserRoleType.JEFE_DEP, UserRoleType.EVALUADOR, UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
-    },
-    {
-      label: 'Trabajo de grado',
-      routerLink: '/thesis-work',
-      icon: 'school', // Ícono actualizado
-      roles: [UserRoleType.ESTUDIANTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR, UserRoleType.DECANATURA, UserRoleType.JURADO, UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
-    },
-    {
-      label: 'Estadísticas',
-      routerLink: '/statistics',
-      icon: 'bar_chart', // Ícono actualizado
-      roles: [UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
-    },
-    {
-      label: 'Historial',
-      routerLink: '/history',
-      icon: 'history', // Ícono actualizado
-      roles: [UserRoleType.ESTUDIANTE, UserRoleType.DOCENTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR, UserRoleType.ADMINISTRADOR, UserRoleType.COMITE, UserRoleType.JEFE_DEP, UserRoleType.CONSEJO, UserRoleType.DECANATURA, UserRoleType.JURADO, UserRoleType.EVALUADOR]
-    }
-  ];
-
-  public menuItems = computed(() => {
-    return this.allMenuItems.filter(item =>
-      this.authService.hasAnyRole(item.roles)
-    );
-  });
+  // ← El arreglo estático de 7 ítems sale del componente hacia el modelo
+  // (mismo patrón que STAGE_OPTIONS, THESIS_TABS_CONFIG, NOTIFICATION_CONFIG
+  // en turnos anteriores): la responsabilidad del componente es filtrar
+  // por permisos y renderizar, no poseer la estructura de navegación.
+  //
+  // ← FIX: `!item.roles || ...` — antes "Bandeja de entrada" e "Historial"
+  // enumeraban los 12 UserRoleType existentes a mano. Con `roles` opcional,
+  // ambos quedan visibles para cualquier usuario autenticado sin depender
+  // de mantener esa lista sincronizada si el enum crece en el futuro.
+  protected readonly menuItems = computed<SidebarMenuItem[]>(() =>
+    SIDEBAR_MENU_ITEMS.filter(item => !item.roles || this.authService.hasAnyRole(item.roles))
+  );
 }

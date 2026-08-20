@@ -10,8 +10,6 @@ import { UploadAdvancePayload } from '../../interfaces/advance-playload.interfac
 
 @Component({
   selector: 'app-upload-advance-form',
-  // CommonModule → solo los dos standalone directives que el template realmente usa:
-  // NgTemplateOutlet para *ngTemplateOutlet y NgClass para [ngClass].
   imports: [NgTemplateOutlet, NgClass, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent],
   providers: [UploadAdvanceFormService],
   templateUrl: './upload-advance-form.component.html',
@@ -23,47 +21,31 @@ export class UploadAdvanceFormComponent {
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
   @Output() onSaveAdvance = new EventEmitter<UploadAdvancePayload>();
-  @Output() onGoBack      = new EventEmitter<void>();
+  @Output() onGoBack = new EventEmitter<void>();
 
-  // ── Estado de UI (exclusivo del componente) ───────────────────────────────
-  readonly uploadedFiles    = signal<{ fileName: string; file: File }[]>([]);
+  readonly uploadedFiles = signal<{ fileName: string; file: File }[]>([]);
   readonly isUploadModalOpen = signal(false);
 
-  // ── Getters que exponen el servicio al template (mismo patrón que ProposalFormComponent) ──
-  get advanceForm()  { return this.formService.advanceForm; }
-
+  get advanceForm() { return this.formService.advanceForm; }
   getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }
-  getDirectorName(): string {
-    const id = this.thesisWork?.preliminaryDraftData?.proposalData?.director?.id;
-    return this.formService.getMemberName(id) || 'No asignado';
-  }
-  getCodirectorName(): string {
-    return this.formService.getMemberName(
-      this.thesisWork?.preliminaryDraftData?.proposalData?.codirector?.id
-    );
-  }
-  getAdvisorName(): string {
-    return this.formService.getMemberName(
-      this.thesisWork?.preliminaryDraftData?.proposalData?.advisor?.id
-    );
-  }
+  getDirectorName(): string { return this.formService.getDirectorName(this.thesisWork); }
+  getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
+  getAdvisorName(): string { return this.formService.getAdvisorName(this.thesisWork); }
 
   isFieldInvalid(fieldName: keyof typeof this.advanceForm.controls): boolean {
     const control = this.advanceForm.controls[fieldName];
     return !!(control?.invalid && control?.touched);
   }
 
-  // ── Manejo de archivos ────────────────────────────────────────────────────
   handleFileUploaded(event: { fileName: string; file: File }): void {
     this.uploadedFiles.update(files => [...files, event]);
     this.isUploadModalOpen.set(false);
   }
 
   removeFile(index: number): void {
-    this.uploadedFiles.update(files => files.filter((_, i) => i !== index));
+    this.uploadedFiles.update(files => files.filter((_, indexFile) => indexFile !== index));
   }
 
-  // ── Envío ─────────────────────────────────────────────────────────────────
   submit(): void {
     if (this.advanceForm.invalid) {
       this.advanceForm.markAllAsTouched();
@@ -77,7 +59,7 @@ export class UploadAdvanceFormComponent {
     const { title, comments } = this.advanceForm.getRawValue();
     this.onSaveAdvance.emit({
       formValues: { title, comments },
-      files:      this.uploadedFiles().map(item => item.file)
+      files: this.uploadedFiles().map(item => item.file)
     });
   }
 }

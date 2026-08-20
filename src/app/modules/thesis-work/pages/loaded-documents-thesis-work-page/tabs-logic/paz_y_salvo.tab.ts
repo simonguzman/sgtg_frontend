@@ -4,12 +4,20 @@ import { FileDocument } from '../../../../../core/interfaces/file-document.inter
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
 import { FinalDelivery } from '../../../interfaces/final-delivery.interface';
+import { formatThesisDate } from '../../../helpers/thesis-date.helper';
 
-export const PazYSalvoTabConfig: TabConfiguration = {
+interface PazYSalvoTableRow {
+  id: string;
+  name: string;
+  uploadDate: string;
+  status: stateList;
+  url: string;
+  allowedActions: string[];
+}
+
+export const PazYSalvoTabConfig: TabConfiguration<PazYSalvoTableRow> = {
   tabValue: 'PAZ_Y_SALVO',
-
   headerActionRoute: 'register_paz_y_salvo',
-
   columns: [
     { field: 'name', header: 'Nombre del Documento', type: 'text', width: '40%' },
     { field: 'uploadDate', header: 'Fecha de Carga', type: 'text', width: '20%' },
@@ -36,27 +44,16 @@ export const PazYSalvoTabConfig: TabConfiguration = {
 
     const isSuspendedOrCanceled = thesis.state === stateList.SUSPENDIDO || thesis.state === stateList.CANCELADO;
 
-    return {
-      ...baseContext,
-      hasActiveFinalDelivery,
-      hasApprovedPazYSalvo,
-      isSuspendedOrCanceled
-    };
+    return { ...baseContext, hasActiveFinalDelivery, hasApprovedPazYSalvo, isSuspendedOrCanceled };
   },
 
-  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext) => {
-    const pySDocs = documents.filter(doc => doc.type === DocumentType['PAZ_Y_SALVO']);
-    return pySDocs.map((doc: FileDocument) => {
-      let formattedDate = 'Sin fecha';
-      if (doc.uploadDate) {
-        if (typeof doc.uploadDate === 'string') {
-          formattedDate = doc.uploadDate;
-        } else if (doc.uploadDate instanceof Date && !isNaN(doc.uploadDate.getTime())) {
-          formattedDate = doc.uploadDate
-            .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
-            .replaceAll('/', ' - ');
-        }
-      }
+  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): PazYSalvoTableRow[] => {
+    const pySDocs = documents.filter(doc => doc.type === DocumentType.PAZ_Y_SALVO);
+
+    return pySDocs.map((doc: FileDocument): PazYSalvoTableRow => {
+      const formattedDate = doc.uploadDate
+        ? formatThesisDate(typeof doc.uploadDate === 'string' ? new Date(doc.uploadDate) : doc.uploadDate)
+        : 'Sin fecha';
 
       return {
         id: doc.id,
@@ -69,14 +66,16 @@ export const PazYSalvoTabConfig: TabConfiguration = {
     });
   },
 
-  getHeaderButtons: (context: ThesisEvaluationContext) => {
+  getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
     if (context.isArchived) return [];
     const buttons: TableButton[] = [];
-    const isSuspendedOrCanceled = context['isSuspendedOrCanceled'] as boolean ?? false;
+    const isSuspendedOrCanceled = context.isSuspendedOrCanceled ?? false;
+
     if (context.isDecanatura || context.isAdmin) {
       const { hasActiveFinalDelivery, hasApprovedPazYSalvo } = context;
       let buttonLabel = 'Registrar Paz y Salvo';
       let buttonDisabled = false;
+
       if (hasApprovedPazYSalvo) {
         buttonLabel = 'Paz y Salvo Registrado';
         buttonDisabled = true;
@@ -84,9 +83,11 @@ export const PazYSalvoTabConfig: TabConfiguration = {
         buttonLabel = 'Requiere Entrega Final';
         buttonDisabled = true;
       }
+
       if (isSuspendedOrCanceled) {
         buttonDisabled = true;
       }
+
       buttons.push({
         action: 'register_paz_y_salvo',
         label: buttonLabel,
