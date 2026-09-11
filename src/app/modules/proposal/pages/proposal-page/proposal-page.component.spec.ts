@@ -63,6 +63,11 @@ describe('ProposalPageComponent', () => {
   } as ProposalTableRow;
 
   beforeEach(async () => {
+    // 1. Espías para silenciar la consola
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     mockRouter = { navigate: jest.fn() };
     mockFacade = {
       proposalsTableData: signal([mockRow]),
@@ -87,6 +92,11 @@ describe('ProposalPageComponent', () => {
     fixture = TestBed.createComponent(ProposalPageComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    // 2. Restauramos todos los espías y mocks originales al terminar cada prueba
+    jest.restoreAllMocks();
   });
 
   describe('handleTableAction', () => {

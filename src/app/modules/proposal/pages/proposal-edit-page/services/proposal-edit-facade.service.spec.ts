@@ -19,6 +19,11 @@ describe('ProposalEditFacadeService', () => {
   const mockProposal = { id: 'prop-1', director: { id: 'user-123' } } as unknown as Proposal;
 
   beforeEach(() => {
+    // 1. Espías para silenciar la consola
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     mockProposalService = {
       getProposalByIdMock: jest.fn(),
       validateProposalRules: jest.fn(),
@@ -44,6 +49,11 @@ describe('ProposalEditFacadeService', () => {
     });
 
     service = TestBed.inject(ProposalEditFacadeService);
+  });
+
+  afterEach(() => {
+    // 2. Restauramos todos los espías y mocks originales al terminar cada prueba
+    jest.restoreAllMocks();
   });
 
   describe('loadAndAuthorize', () => {
@@ -110,7 +120,7 @@ describe('ProposalEditFacadeService', () => {
     });
 
     it('debe ejecutar onError si la actualización falla', () => {
-      mockProposalService.updateProposalMock.mockReturnValue(throwError(() => new Error()));
+      mockProposalService.updateProposalMock.mockReturnValue(throwError(() => new Error('Simulated Error')));
       const onError = jest.fn();
 
       service.saveUpdate('1', mockProposal, jest.fn(), onError);

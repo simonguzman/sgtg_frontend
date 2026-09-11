@@ -20,6 +20,12 @@ export class ThesisWorkPageFacadeService {
   public readonly tableData = computed<ThesisWorkTableRow[]>(() => {
     const currentUser = this.authService.currentUser();
     const isAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
+    // ← NUEVO: separado de hasFullAccessRole a propósito. hasFullAccessRole
+    // incluye DECANATURA, que según thesis-work.routes.ts (evaluate_special_request:
+    // [ADMINISTRADOR, CONSEJO]) no tiene permiso para resolver solicitudes
+    // especiales — reutilizar ese flag habría abierto "reactivar" también a
+    // Decanatura, un rol sin autoridad real sobre esta acción.
+    const isConsejo = this.authService.hasAnyRole([UserRoleType.CONSEJO]);
     const hasFullAccessRole = this.authService.hasAnyRole([
       UserRoleType.ADMINISTRADOR,
       UserRoleType.DECANATURA,
@@ -27,13 +33,12 @@ export class ThesisWorkPageFacadeService {
     ]);
     const activeThesisWorks = this.thesisWorkService.thesisWorks().filter(work => !work.isArchived);
     return activeThesisWorks.map(thesisWork =>
-      this.mapper.mapThesisWorkToTable(thesisWork, hasFullAccessRole, isAdmin, String(currentUser?.id))
+      this.mapper.mapThesisWorkToTable(thesisWork, hasFullAccessRole, isAdmin, isConsejo, String(currentUser?.id))
     );
   });
 
   public reactivateThesis(id: string, onSuccess: () => void, onError: () => void): void {
     this.showNotification('Reactivando trabajo', 'Procesando la solicitud...', NotificationType.INFO);
-    // ← first() agregado: consistente con el resto del módulo.
     this.thesisWorkService.reactivateThesisWorkMock(id)
       .pipe(first())
       .subscribe({

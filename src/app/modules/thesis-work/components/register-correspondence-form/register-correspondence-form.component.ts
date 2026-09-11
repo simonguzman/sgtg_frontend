@@ -1,7 +1,8 @@
-import { Component, computed, inject, input, output, signal, ViewChild, ElementRef } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { RegisterCorrespondenceFormService } from './services/register-correspondence-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
@@ -10,24 +11,25 @@ import { FileDocument } from '../../../../core/interfaces/file-document.interfac
   selector: 'app-register-correspondence-form',
   templateUrl: './register-correspondence-form.component.html',
   styleUrls: ['./register-correspondence-form.component.css'],
-  imports: [ButtonComponent, DatePipe, InfoBannerComponent],
+  // ← FileUploadModalComponent agregado: reemplaza el <input type="file">
+  // nativo oculto por el mismo modal que usan los otros 7 formularios de
+  // carga del proyecto.
+  imports: [ButtonComponent, DatePipe, InfoBannerComponent, FileUploadModalComponent],
   providers: [RegisterCorrespondenceFormService]
 })
 export class RegisterCorrespondenceFormComponent {
   protected readonly formService = inject(RegisterCorrespondenceFormService);
-
   thesisWork   = input.required<ThesisWork>();
   isSubmitting = input<boolean>(false);
   onSave       = output<File>();
-  onGoBack     = output<void>(); // Nota: Asegúrate de usar esta salida en el HTML o donde corresponda
+  onGoBack     = output<void>();
 
   readonly selectedFile = signal<{ fileName: string; file: File } | null>(null);
-
-  // FIX: Usamos ViewChild en lugar de document.getElementById
-  @ViewChild('fileInput') fileInputElement!: ElementRef<HTMLInputElement>;
+  // ← NUEVO: controla el modal, mismo patrón que isModalOpen/isUploadModalOpen
+  // en el resto de formularios del proyecto.
+  readonly isModalOpen  = signal(false);
 
   private readonly historicalDocuments = computed(() => this.thesisWork().documents ?? []);
-
   readonly formatoEDoc = computed(() => this.formService.findFormatoE(this.historicalDocuments()));
   readonly formatoFDoc = computed(() => this.formService.findFormatoF(this.historicalDocuments()));
   readonly formatoGDoc = computed(() => this.formService.findFormatoG(this.historicalDocuments()));
@@ -42,28 +44,18 @@ export class RegisterCorrespondenceFormComponent {
     void this.formService.downloadDocument(doc);
   }
 
-  onFileSelected(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-
-    if (file.type !== 'application/pdf') {
-      this.formService.notifyInvalidFileType();
-      return;
-    }
-    this.selectedFile.set({ fileName: file.name, file });
-  }
-
-  triggerFileInput(): void {
-    // FIX: Acceso seguro mediante ElementRef
-    this.fileInputElement?.nativeElement.click();
+  // ← FIX CENTRAL: reemplaza onFileSelected(event: Event) + triggerFileInput().
+  // El modal entrega {fileName, file} directamente — no hace falta leer
+  // event.target.files a mano, y ningún otro formulario del proyecto
+  // revalida el tipo de archivo tras recibir el evento del modal, así que
+  // esta validación deja de tener sentido aquí también.
+  handleFileUploaded(event: { fileName: string; file: File }): void {
+    this.selectedFile.set(event);
+    this.isModalOpen.set(false);
   }
 
   removeSelectedFile(): void {
     this.selectedFile.set(null);
-    // FIX: Reseteo seguro sin tocar el DOM global
-    if (this.fileInputElement) {
-      this.fileInputElement.nativeElement.value = '';
-    }
   }
 
   submitForm(): void {

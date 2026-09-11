@@ -12,81 +12,106 @@ import { StatisticsReportKpis } from '../../../interfaces/statisticsReportKpis.i
 import { RawProjectData } from '../../../interfaces/rawProjectData.interface';
 import { ProjectStage } from '../../../enum/projectStage.enum';
 
+// ── Tipados Estrictos para los Mocks (Zero 'any', 'unknown') ─────────────────
+
+interface MockChartData {
+  labels: string[];
+  datasets: Record<string, unknown>[];
+}
+
+interface MockStageOption {
+  label: string;
+  value: ProjectStage | null;
+}
+
+// ── Funciones Fábrica ────────────────────────────────────────────────────────
+
+const createMockRawProjectData = (overrides: Partial<RawProjectData> = {}): RawProjectData => ({
+  id: 'proj-123',
+  title: 'Proyecto Mock',
+  stage: ProjectStage.PROPUESTA,
+  status: 'EN_DESARROLLO' as any, // Simulación genérica del estado
+  originalState: 'EN_REVISION',
+  period: '2026-1',
+  directorId: 'usr-1',
+  directorName: 'Director Mock',
+  registrationDate: new Date(),
+  isArchived: false,
+  deadlineStatus: null,
+  ...overrides
+} as RawProjectData);
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('StatisticsPageFacadeService', () => {
   let facadeService: StatisticsPageFacadeService;
 
-  // Mock de State Service
-  let mockStateService: Partial<StatisticsStateService>;
-  let mockCurrentFilters: WritableSignal<StatisticsFilters>;
-  let mockFilteredData: WritableSignal<RawProjectData[]>;
-  let mockPeriodsOptions: WritableSignal<string[]>;
-  let mockDirectorsOptions: WritableSignal<{ id: string; name: string }[]>;
+  // Mocks con tipado estrictamente definido
+  let mockStateService: {
+    currentFilters: WritableSignal<StatisticsFilters>;
+    filteredData: WritableSignal<RawProjectData[]>;
+    stagesOptions: MockStageOption[];
+    periodsOptions: WritableSignal<string[]>;
+    directorsOptions: WritableSignal<{ id: string; name: string }[]>;
+    updateFilters: jest.Mock<void, [Partial<StatisticsFilters>]>;
+    clearFilters: jest.Mock<void, []>;
+  };
 
-  // Mock de Metrics Service
-  let mockMetricsService: Partial<StatisticsMetricsService>;
-  let mockTotalLoaded: WritableSignal<number>;
-  let mockTotalApproved: WritableSignal<number>;
-  let mockTotalApprovedWithObservations: WritableSignal<number>;
-  let mockTotalNotApproved: WritableSignal<number>;
+  let mockMetricsService: {
+    totalLoaded: WritableSignal<number>;
+    totalApproved: WritableSignal<number>;
+    totalApprovedWithObservations: WritableSignal<number>;
+    totalNotApproved: WritableSignal<number>;
+  };
 
-  // Mock de Chart Data Service
-  let mockChartDataService: Partial<StatisticsChartDataService>;
-  let mockStatusChartData: WritableSignal<unknown>;
-  let mockStageChartData: WritableSignal<unknown>;
+  let mockChartDataService: {
+    statusChartData: WritableSignal<MockChartData>;
+    stageChartData: WritableSignal<MockChartData>;
+  };
 
-  // Mock de Report Service
-  let mockReportService: Partial<StatisticsReportService>;
+  let mockReportService: {
+    downloadPdfReport: jest.Mock<void, [StatisticsFilters, RawProjectData[], StatisticsReportKpis]>;
+  };
 
   beforeEach(() => {
-    // 1. Inicialización de Signals
-    mockCurrentFilters = signal<StatisticsFilters>({
-      stage: null,
-      period: null,
-      directorId: null,
-      archiveStatus: 'ACTIVE',
-    });
-    mockFilteredData = signal<RawProjectData[]>([]);
-    mockPeriodsOptions = signal<string[]>(['2026-1', '2025-2']);
-    mockDirectorsOptions = signal<{ id: string; name: string }[]>([{ id: 'd1', name: 'Director 1' }]);
+    // 🔕 Silenciar consola para mantener terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    mockTotalLoaded = signal<number>(10);
-    mockTotalApproved = signal<number>(5);
-    mockTotalApprovedWithObservations = signal<number>(3);
-    mockTotalNotApproved = signal<number>(2);
-
-    mockStatusChartData = signal<unknown>({ labels: [], data: [] });
-    mockStageChartData = signal<unknown>({ labels: [], data: [] });
-
-    // 2. Definición de Mocks
+    // 1. Inicialización de Signals y Mocks
     mockStateService = {
-      currentFilters: mockCurrentFilters,
-      filteredData: mockFilteredData,
-      // Corrección 1: Usamos el tipo exacto que espera el servicio original extraído dinámicamente
-      stagesOptions: [] as unknown as StatisticsStateService['stagesOptions'],
-      periodsOptions: mockPeriodsOptions,
-      directorsOptions: mockDirectorsOptions,
+      currentFilters: signal<StatisticsFilters>({
+        stage: null,
+        period: null,
+        directorId: null,
+        archiveStatus: 'ACTIVE',
+        deadlineFilter: 'ALL',
+      }),
+      filteredData: signal<RawProjectData[]>([]),
+      stagesOptions: [],
+      periodsOptions: signal<string[]>(['2026-1', '2025-2']),
+      directorsOptions: signal<{ id: string; name: string }[]>([{ id: 'd1', name: 'Director 1' }]),
       updateFilters: jest.fn(),
       clearFilters: jest.fn(),
     };
 
     mockMetricsService = {
-      totalLoaded: mockTotalLoaded,
-      totalApproved: mockTotalApproved,
-      totalApprovedWithObservations: mockTotalApprovedWithObservations,
-      totalNotApproved: mockTotalNotApproved,
+      totalLoaded: signal<number>(10),
+      totalApproved: signal<number>(5),
+      totalApprovedWithObservations: signal<number>(3),
+      totalNotApproved: signal<number>(2),
     };
 
     mockChartDataService = {
-      // Corrección 2: Casteamos el Signal de unknown al tipo de Signal estricto que exige el servicio
-      statusChartData: mockStatusChartData as unknown as StatisticsChartDataService['statusChartData'],
-      stageChartData: mockStageChartData as unknown as StatisticsChartDataService['stageChartData'],
+      statusChartData: signal<MockChartData>({ labels: [], datasets: [] }),
+      stageChartData: signal<MockChartData>({ labels: [], datasets: [] }),
     };
 
     mockReportService = {
       downloadPdfReport: jest.fn(),
     };
 
-    // 3. Configuración del TestBed
+    // 2. Configuración del TestBed
     TestBed.configureTestingModule({
       providers: [
         StatisticsPageFacadeService,
@@ -102,11 +127,12 @@ describe('StatisticsPageFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola
   });
 
   describe('Exposición de Estado y Signals (Propiedades de Lectura)', () => {
     it('debería re-exponer correctamente las opciones y filtros del StateService', () => {
-      expect(facadeService.currentFilters()).toEqual(mockCurrentFilters());
+      expect(facadeService.currentFilters()).toEqual(mockStateService.currentFilters());
       expect(facadeService.stagesOptions).toEqual(mockStateService.stagesOptions);
       expect(facadeService.periodsOptions()).toEqual(['2026-1', '2025-2']);
       expect(facadeService.directorsOptions()).toEqual([{ id: 'd1', name: 'Director 1' }]);
@@ -120,8 +146,8 @@ describe('StatisticsPageFacadeService', () => {
     });
 
     it('debería re-exponer correctamente los datos de gráficos del ChartDataService', () => {
-      expect(facadeService.statusChartData()).toEqual({ labels: [], data: [] });
-      expect(facadeService.stageChartData()).toEqual({ labels: [], data: [] });
+      expect(facadeService.statusChartData()).toEqual({ labels: [], datasets: [] });
+      expect(facadeService.stageChartData()).toEqual({ labels: [], datasets: [] });
     });
   });
 
@@ -149,19 +175,21 @@ describe('StatisticsPageFacadeService', () => {
         period: '2026-1',
         directorId: null,
         archiveStatus: 'ACTIVE',
+        deadlineFilter: 'ALL'
       };
+
       const filteredData: RawProjectData[] = [
-        { id: '1', title: 'Test 1' } as unknown as RawProjectData,
+        createMockRawProjectData({ id: '1', title: 'Test 1' })
       ];
 
-      mockCurrentFilters.set(currentFilters);
-      mockFilteredData.set(filteredData);
+      mockStateService.currentFilters.set(currentFilters);
+      mockStateService.filteredData.set(filteredData);
 
       // Ajustamos los KPIs
-      mockTotalLoaded.set(20);
-      mockTotalApproved.set(10);
-      mockTotalApprovedWithObservations.set(5);
-      mockTotalNotApproved.set(5);
+      mockMetricsService.totalLoaded.set(20);
+      mockMetricsService.totalApproved.set(10);
+      mockMetricsService.totalApprovedWithObservations.set(5);
+      mockMetricsService.totalNotApproved.set(5);
 
       // 2. Ejecutamos el método
       facadeService.downloadPdfReport();

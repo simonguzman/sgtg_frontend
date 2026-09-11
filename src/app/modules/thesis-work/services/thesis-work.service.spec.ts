@@ -15,15 +15,66 @@ import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
+import { DocumentType } from '../../../core/enums/document-type.enum';
 import { CreateAdvanceRequest } from '../interfaces/advance-playload.interface';
 import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
 import { SpecialRequestType } from '../enums/special-request-type.enum';
 import { SustentationFormData } from '../interfaces/sustentation-form-data.interface';
+import { ThesisWork } from '../interfaces/thesis-work.interface';
+
+// ── Mocks Estrictos de Servicios ─────────────────────────────────────────────
+
+interface MockThesisWorkStorageService {
+  thesisWorks: Signal<ThesisWork[]>;
+  allThesisWorks: Signal<ThesisWork[]>;
+  isHydrated: Signal<boolean>;
+}
+
+// ── Funciones Fábrica fuertemente tipadas (Adiós "any" y aserciones) ─────────
+
+const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
+  id: 'doc-1',
+  name: 'Documento.pdf',
+  url: 'http://mock.url/doc.pdf',
+  uploadDate: new Date().toISOString(),
+  type: DocumentType.PROPUESTA,
+  status: stateList.EN_REVISION,
+  ...overrides
+} as FileDocument);
+
+const createMockAdvanceRequest = (overrides: Partial<CreateAdvanceRequest> = {}): CreateAdvanceRequest => ({
+  comments: 'Primer avance',
+  ...overrides
+} as CreateAdvanceRequest);
+
+const createMockEvaluation = (overrides: Partial<Evaluation> = {}): Evaluation => ({
+  id: 'eval-1',
+  proposalId: 'thesis-101',
+  evaluatorId: 'user-1',
+  evaluatorName: 'Dr. Evaluador',
+  evaluatorRole: UserRoleType.EVALUADOR,
+  observations: 'Excelente',
+  veredict: stateList.APROBADO,
+  date: new Date('2026-08-19'),
+  ...overrides
+} as Evaluation);
+
+const createMockSustentationFormData = (overrides: Partial<SustentationFormData> = {}): SustentationFormData => ({
+  location: 'Auditorio A',
+  sustentationDate: '2026-10-10',
+  sustentationTime: '10:00',
+  juror1: 'juror-1',
+  juror2: 'juror-2',
+  formatEDocument: new File([''], 'formatoE.pdf'),
+  ...overrides
+} as SustentationFormData);
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('ThesisWorkService (Facade)', () => {
   let service: ThesisWorkService;
 
-  let storageMock: { thesisWorks: Signal<any[]>; allThesisWorks: Signal<any[]> };
+  let storageMock: MockThesisWorkStorageService;
   let apiMock: jest.Mocked<Partial<ThesisWorkApiService>>;
   let advanceMock: jest.Mocked<Partial<ThesisWorkAdvanceService>>;
   let deliveryMock: jest.Mocked<Partial<ThesisWorkDeliveryService>>;
@@ -32,9 +83,14 @@ describe('ThesisWorkService (Facade)', () => {
   let sustentationMock: jest.Mocked<Partial<ThesisWorkSustentationService>>;
 
   beforeEach(() => {
+    // 🔕 Silenciar consola
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     storageMock = {
       thesisWorks: signal([]),
-      allThesisWorks: signal([])
+      allThesisWorks: signal([]),
+      isHydrated: signal(true)
     };
 
     apiMock = {
@@ -97,6 +153,7 @@ describe('ThesisWorkService (Facade)', () => {
     it('debe exponer los Signals de almacenamiento expuestos por el StorageService', () => {
       expect(service.thesisWorks).toBe(storageMock.thesisWorks);
       expect(service.allThesisWorks).toBe(storageMock.allThesisWorks);
+      expect(service.isHydrated).toBe(storageMock.isHydrated);
     });
   });
 
@@ -114,8 +171,8 @@ describe('ThesisWorkService (Facade)', () => {
 
   describe('Avances', () => {
     it('debe delegar uploadDocumentMock al AdvanceService', () => {
-      const doc = { id: 'doc-1', name: 'Avance.pdf' } as FileDocument;
-      const meta = { comments: 'Primer avance' } as CreateAdvanceRequest;
+      const doc = createMockFileDocument({ id: 'doc-1', name: 'Avance.pdf' });
+      const meta = createMockAdvanceRequest({ comments: 'Primer avance' });
 
       service.uploadDocumentMock('thesis-101', doc, meta);
       expect(advanceMock.uploadDocumentMock).toHaveBeenCalledWith('thesis-101', doc, meta);
@@ -141,7 +198,7 @@ describe('ThesisWorkService (Facade)', () => {
     });
 
     it('debe delegar registerCorrespondenceDocumentMock al DeliveryService', () => {
-      const doc = { id: 'doc-2', name: 'Oficio.pdf' } as FileDocument;
+      const doc = createMockFileDocument({ id: 'doc-2', name: 'Oficio.pdf' });
 
       service.registerCorrespondenceDocumentMock('thesis-101', doc);
       expect(deliveryMock.registerCorrespondenceDocumentMock).toHaveBeenCalledWith('thesis-101', doc);
@@ -161,16 +218,7 @@ describe('ThesisWorkService (Facade)', () => {
 
   describe('Evaluación de avances', () => {
     it('debe delegar addEvaluationMock al EvaluationService', () => {
-      const evalData: Evaluation = {
-        id: 'eval-1',
-        proposalId: 'thesis-101',
-        evaluatorId: 'user-1',
-        evaluatorName: 'Dr. Evaluador',
-        evaluatorRole: UserRoleType.EVALUADOR,
-        observations: 'Excelente',
-        veredict: stateList.APROBADO,
-        date: new Date('2026-08-19')
-      };
+      const evalData = createMockEvaluation();
 
       service.addEvaluationMock('thesis-101', evalData);
       expect(evaluationMock.addEvaluationMock).toHaveBeenCalledWith('thesis-101', evalData);
@@ -179,7 +227,7 @@ describe('ThesisWorkService (Facade)', () => {
 
   describe('Sustentación', () => {
     it('debe delegar saveSustentationRegistryMock al SustentationService', () => {
-      const formData = { location: 'Auditorio A' } as SustentationFormData;
+      const formData = createMockSustentationFormData({ location: 'Auditorio A' });
 
       service.saveSustentationRegistryMock('thesis-101', formData);
       expect(sustentationMock.saveSustentationRegistryMock).toHaveBeenCalledWith('thesis-101', formData);

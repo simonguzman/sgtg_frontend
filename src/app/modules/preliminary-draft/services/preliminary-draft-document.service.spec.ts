@@ -22,15 +22,24 @@ describe('PreliminaryDraftDocumentService', () => {
 
   // 🔹 REFACTOR: Spies tipados sin 'unknown'
   let mockStorageService: { updateDraft: jest.Mock };
-  let mockUserService: { users: WritableSignal<Partial<User>[]> };
+  let mockUserService: { users: WritableSignal<User[]> }; // Tipado estricto a User[]
   let mockEventBusService: { emit: jest.Mock };
 
-  // 🔹 REFACTOR: Fábricas para generar entidades válidas sin 'as any'
+  // 🔹 REFACTOR: Fábricas para generar entidades válidas sin 'as any' o 'as unknown'
+  const createMockUser = (overrides: Partial<User> = {}): User => ({
+    id: 'default-user', roles: [], ...overrides
+  } as User);
+
+  const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
+    id: 'default-doc', name: 'document.pdf', type: DocumentType.AVANCE, ...overrides
+  } as FileDocument);
+
+  const createMockEvaluation = (overrides: Partial<Evaluation> = {}): Evaluation => ({
+    documentId: 'default-doc', veredict: stateList.EN_REVISION, ...overrides
+  } as Evaluation);
+
   const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
-    id: 'prop-1',
-    title: 'Propuesta Base',
-    authors: [],
-    ...overrides
+    id: 'prop-1', title: 'Propuesta Base', authors: [], ...overrides
   } as Proposal);
 
   const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
@@ -43,14 +52,18 @@ describe('PreliminaryDraftDocumentService', () => {
   } as PreliminaryDraft);
 
   beforeEach(() => {
+    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockStorageService = {
       updateDraft: jest.fn()
     };
 
     mockUserService = {
       users: signal([
-        { id: 'jefe-1', roles: [UserRoleType.JEFE_DEP] },
-        { id: 'consejo-1', roles: [UserRoleType.CONSEJO] }
+        createMockUser({ id: 'jefe-1', roles: [UserRoleType.JEFE_DEP] }),
+        createMockUser({ id: 'consejo-1', roles: [UserRoleType.CONSEJO] })
       ])
     };
 
@@ -61,9 +74,10 @@ describe('PreliminaryDraftDocumentService', () => {
     TestBed.configureTestingModule({
       providers: [
         PreliminaryDraftDocumentService,
-        { provide: PreliminaryDraftStorageService, useValue: mockStorageService as unknown as PreliminaryDraftStorageService },
-        { provide: UserService, useValue: mockUserService as unknown as UserService },
-        { provide: EventBusService, useValue: mockEventBusService as unknown as EventBusService }
+        // 🔹 REFACTOR: Asignaciones directas sin casteo forzado a 'unknown'
+        { provide: PreliminaryDraftStorageService, useValue: mockStorageService },
+        { provide: UserService, useValue: mockUserService },
+        { provide: EventBusService, useValue: mockEventBusService }
       ]
     });
 
@@ -72,6 +86,7 @@ describe('PreliminaryDraftDocumentService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones originales de la consola
   });
 
   it('debería crearse correctamente', () => {
@@ -84,22 +99,22 @@ describe('PreliminaryDraftDocumentService', () => {
     });
 
     it('debería retornar EN_REVISION si faltan evaluaciones', () => {
-      const evals = [{ documentId: 'doc-1', veredict: stateList.APROBADO } as Evaluation];
+      const evals = [createMockEvaluation({ documentId: 'doc-1', veredict: stateList.APROBADO })];
       expect(service.calculateDocumentStatus('doc-1', evals, 2)).toBe(stateList.EN_REVISION);
     });
 
     it('debería retornar NO_APROBADO si al menos una evaluación es NO_APROBADO', () => {
       const evals = [
-        { documentId: 'doc-1', veredict: stateList.APROBADO } as Evaluation,
-        { documentId: 'doc-1', veredict: stateList.NO_APROBADO } as Evaluation
+        createMockEvaluation({ documentId: 'doc-1', veredict: stateList.APROBADO }),
+        createMockEvaluation({ documentId: 'doc-1', veredict: stateList.NO_APROBADO })
       ];
       expect(service.calculateDocumentStatus('doc-1', evals, 2)).toBe(stateList.NO_APROBADO);
     });
 
     it('debería retornar APROBADO si todas las evaluaciones son APROBADO', () => {
       const evals = [
-        { documentId: 'doc-1', veredict: stateList.APROBADO } as Evaluation,
-        { documentId: 'doc-1', veredict: stateList.APROBADO } as Evaluation
+        createMockEvaluation({ documentId: 'doc-1', veredict: stateList.APROBADO }),
+        createMockEvaluation({ documentId: 'doc-1', veredict: stateList.APROBADO })
       ];
       expect(service.calculateDocumentStatus('doc-1', evals, 2)).toBe(stateList.APROBADO);
     });
@@ -107,13 +122,15 @@ describe('PreliminaryDraftDocumentService', () => {
 
   describe('addEvaluationMock', () => {
     it('debería añadir evaluación, clasificar el status (ON_TIME) y notificar', fakeAsync(() => {
-      const mockEvaluation = { veredict: stateList.APROBADO } as Evaluation;
+      const mockEvaluation = createMockEvaluation({ veredict: stateList.APROBADO });
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 5);
 
-      // 🔹 REFACTOR: Uso de fábrica y array de objetos 'User' en lugar de strings
       const mockDraft = createMockDraft({
-        proposalData: createMockProposal({ title: 'Tesis', authors: [{ id: 'author-1' } as User] }),
+        proposalData: createMockProposal({
+          title: 'Tesis',
+          authors: [createMockUser({ id: 'author-1' })]
+        }),
         evaluationDeadline: futureDate
       });
 
@@ -138,15 +155,15 @@ describe('PreliminaryDraftDocumentService', () => {
 
   describe('uploadDocumentMock', () => {
     it('debería subir CORRECCION, actualizar deadline y notificar evaluadores', fakeAsync(() => {
-      const document = { type: DocumentType.CORRECCION } as FileDocument;
+      const document = createMockFileDocument({ type: DocumentType.CORRECCION });
 
       const mockDraft = createMockDraft({
         proposalData: createMockProposal({
           title: 'Correcciones',
-          authors: [{ id: 'auth-1' } as User],
-          director: { id: 'dir-1' } as User
+          authors: [createMockUser({ id: 'auth-1' })],
+          director: createMockUser({ id: 'dir-1' })
         }),
-        evaluators: [{ id: 'eval-1' } as User]
+        evaluators: [createMockUser({ id: 'eval-1' })]
       });
 
       let finalDraft: PreliminaryDraft | undefined;
@@ -169,10 +186,13 @@ describe('PreliminaryDraftDocumentService', () => {
     }));
 
     it('debería subir FORMATO_C, limpiar deadline y notificar a consejo/jefes', fakeAsync(() => {
-      const document = { type: DocumentType.FORMATO_C } as FileDocument;
+      const document = createMockFileDocument({ type: DocumentType.FORMATO_C });
 
       const mockDraft = createMockDraft({
-        proposalData: createMockProposal({ title: 'Presentacion', authors: [{ id: 'auth-1' } as User] })
+        proposalData: createMockProposal({
+          title: 'Presentacion',
+          authors: [createMockUser({ id: 'auth-1' })]
+        })
       });
 
       let finalDraft: PreliminaryDraft | undefined;
@@ -188,8 +208,6 @@ describe('PreliminaryDraftDocumentService', () => {
       expect(mockEventBusService.emit).toHaveBeenCalledWith(
         expect.objectContaining({
           type: AppEventType.PRELIMINARY_DRAFT_COUNCIL_PRESENTATION_UPLOADED,
-          // Al limpiarlo en Set() dentro del servicio ya no repite usuarios,
-          // arrayContaining verificará que al menos estos estén presentes
           targetUserIds: expect.arrayContaining(['auth-1', 'jefe-1', 'consejo-1'])
         })
       );
@@ -198,12 +216,15 @@ describe('PreliminaryDraftDocumentService', () => {
 
   describe('uploadCouncilResolutionMock', () => {
     it('debería registrar resolución, actualizar estado y setear maximumDeliveryDate si es APROBADO', fakeAsync(() => {
-      const document = { id: 'doc-resolucion' } as FileDocument;
-      const evaluation = { veredict: stateList.APROBADO } as Evaluation;
+      const document = createMockFileDocument({ id: 'doc-resolucion' });
+      const evaluation = createMockEvaluation({ veredict: stateList.APROBADO });
       const maxDate = new Date('2024-12-31');
 
       const mockDraft = createMockDraft({
-        proposalData: createMockProposal({ title: 'Resolucion', authors: [{ id: 'auth-1' } as User] })
+        proposalData: createMockProposal({
+          title: 'Resolucion',
+          authors: [createMockUser({ id: 'auth-1' })]
+        })
       });
 
       let finalDraft: PreliminaryDraft | undefined;

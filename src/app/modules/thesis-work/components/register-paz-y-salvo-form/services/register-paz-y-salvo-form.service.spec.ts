@@ -1,35 +1,125 @@
+// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
+
+// 2. Servicio a probar
 import { RegisterPazYSalvoFormService } from './register-paz-y-salvo-form.service';
+
+// 3. Dependencias (Servicios)
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
 import { ThesisFinalDeliveryDocumentResolverService } from '../../../services/thesis-final-delivery-document-resolver.service';
+
+// 4. Interfaces y Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { User } from '../../../../users/interfaces/user.interface';
+import { stateList } from '../../../../../core/enums/state.enum';
+import { IdentificationType } from '../../../../users/enum/identification-type.enum';
+import { UserState } from '../../../../users/enum/user-state.enum';
+import { Modality } from '../../../../proposal/enums/modality.enum';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 
-// Utilidad para tipar profundamente mocks sin usar 'any' ni 'unknown'
-type DeepPartial<T> = {
-  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown', 'DeepPartial') ────────
+
+interface MockNotificationService {
+  show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
+}
+
+interface MockParticipantsService {
+  getStudentNames: jest.Mock<string, [ThesisWork]>;
+  getDirectorName: jest.Mock<string, [ThesisWork]>;
+  getCodirectorName: jest.Mock<string, [ThesisWork]>;
+  getAdvisorName: jest.Mock<string, [ThesisWork]>;
+}
+
+interface MockDocumentResolverService {
+  resolveLatestFinalDeliveryDocument: jest.Mock<FileDocument | null, [ThesisWork, string]>;
+}
+
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'u-1',
+  idType: IdentificationType.CC,
+  idNumber: 123456789,
+  firstName: 'Juan',
+  secondName: '',
+  lastName: 'Perez',
+  secondLastName: '',
+  codeNumber: 1234567890,
+  email: 'juan@test.com',
+  password: 'hash',
+  state: UserState.active,
+  roles: [],
+  ...overrides
+});
+
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
+  const baseUser = createMockUser();
+  const baseThesis: ThesisWork = {
+    thesisWorkId: 'mock-thesis-123',
+    preliminaryDraftId: 'draft-1',
+    documents: [],
+    evaluations: [],
+    specialRequests: [],
+    state: stateList.EN_DESARROLLO,
+    createdDate: new Date(),
+    preliminaryDraftData: {
+      preliminaryDraftId: 'draft-1',
+      proposalId: 'p-1',
+      state: stateList.APROBADO,
+      createdData: new Date(),
+      evaluations: [],
+      documents: [],
+      proposalData: {
+        id: 'p-1',
+        title: 'Título',
+        description: 'Desc',
+        modality: Modality.TI,
+        authors: [baseUser],
+        director: baseUser,
+        state: stateList.APROBADO,
+        createdAt: new Date(),
+        documents: [],
+        evaluations: []
+      }
+    }
+  };
+  return { ...baseThesis, ...overrides };
 };
+
+const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
+  id: 'doc-1',
+  name: 'documento.pdf',
+  url: 'http://test/doc.pdf',
+  type: DocumentType.MONOGRAFIA,
+  uploadDate: new Date(),
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('RegisterPazYSalvoFormService', () => {
   let service: RegisterPazYSalvoFormService;
 
-  // Tipados estrictos sin as unknown as ...
-  let notificationMock: { show: jest.Mock };
-  let participantsMock: {
-    getStudentNames: jest.Mock;
-    getDirectorName: jest.Mock;
-    getCodirectorName: jest.Mock;
-    getAdvisorName: jest.Mock;
-  };
-  let documentResolverMock: { resolveLatestFinalDeliveryDocument: jest.Mock };
+  // Tipados estrictos
+  let notificationMock: MockNotificationService;
+  let participantsMock: MockParticipantsService;
+  let documentResolverMock: MockDocumentResolverService;
 
-  const mockThesisWork: DeepPartial<ThesisWork> = { thesisWorkId: '123' };
+  // Datos de prueba generados por fábrica
+  const mockThesisWork = createMockThesisWork();
 
   beforeEach(() => {
+    // 🔕 Silenciar consola como medida preventiva
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // Arrange: Inicialización limpia de mocks
-    notificationMock = { show: jest.fn() };
+    notificationMock = {
+      show: jest.fn()
+    };
 
     participantsMock = {
       getStudentNames: jest.fn().mockReturnValue('Estudiante 1'),
@@ -56,6 +146,7 @@ describe('RegisterPazYSalvoFormService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   it('debería crearse correctamente', () => {
@@ -65,10 +156,10 @@ describe('RegisterPazYSalvoFormService', () => {
   describe('Delegación de participantes', () => {
     it('debería obtener nombres delegando al formateador', () => {
       // Act
-      const student = service.getStudentNames(mockThesisWork as ThesisWork);
-      const director = service.getDirectorName(mockThesisWork as ThesisWork);
-      const codirector = service.getCodirectorName(mockThesisWork as ThesisWork);
-      const advisor = service.getAdvisorName(mockThesisWork as ThesisWork);
+      const student = service.getStudentNames(mockThesisWork);
+      const director = service.getDirectorName(mockThesisWork);
+      const codirector = service.getCodirectorName(mockThesisWork);
+      const advisor = service.getAdvisorName(mockThesisWork);
 
       // Assert
       expect(student).toBe('Estudiante 1');
@@ -83,14 +174,14 @@ describe('RegisterPazYSalvoFormService', () => {
     });
   });
 
-  describe('getExistingDocument()', () => {
+  describe('Resolución de Documentos (getExistingDocument)', () => {
     it('debería resolver MONOGRAFIA correctamente delegando en el resolver', () => {
       // Arrange
-      const mockDoc: DeepPartial<FileDocument> = { id: 'doc1' };
+      const mockDoc = createMockFileDocument();
       documentResolverMock.resolveLatestFinalDeliveryDocument.mockReturnValue(mockDoc);
 
       // Act
-      const result = service.getExistingDocument(mockThesisWork as ThesisWork, 'monografia');
+      const result = service.getExistingDocument(mockThesisWork, 'monografia');
 
       // Assert
       expect(result).toEqual(mockDoc);
@@ -102,7 +193,7 @@ describe('RegisterPazYSalvoFormService', () => {
       documentResolverMock.resolveLatestFinalDeliveryDocument.mockReturnValue(null);
 
       // Act
-      service.getExistingDocument(mockThesisWork as ThesisWork, 'formato');
+      service.getExistingDocument(mockThesisWork, 'formato');
 
       // Assert
       expect(documentResolverMock.resolveLatestFinalDeliveryDocument).toHaveBeenCalledWith(mockThesisWork, 'FORMATO_E');
@@ -110,7 +201,7 @@ describe('RegisterPazYSalvoFormService', () => {
 
     it('debería retornar null para un tipo de documento no válido sin llamar al resolver', () => {
       // Act
-      const result = service.getExistingDocument(mockThesisWork as ThesisWork, 'INVALIDO');
+      const result = service.getExistingDocument(mockThesisWork, 'INVALIDO');
 
       // Assert
       expect(result).toBeNull();
@@ -118,7 +209,7 @@ describe('RegisterPazYSalvoFormService', () => {
     });
   });
 
-  describe('Notificaciones', () => {
+  describe('Sistema de Notificaciones', () => {
     it('notifyFileAttached() debería emitir una notificación de tipo INFO', () => {
       // Act
       service.notifyFileAttached('archivo.pdf');

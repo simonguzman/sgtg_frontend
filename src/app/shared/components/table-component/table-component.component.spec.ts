@@ -1,10 +1,40 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Column, TableComponent, TableRow } from './table-component.component';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { By } from '@angular/platform-browser';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Tooltip } from 'primeng/tooltip';
 
-// --- Mocks de Configuración ---
+import { Column, TableButton, TableComponent, TableRow } from './table-component.component';
+
+// ── Componentes Originales a Remover (Shallow Testing) ───────────────────────
+import { ButtonComponent } from '../button-component/button-component.component';
+import { StateComponent } from '../state/state.component';
+import { EmptyStateComponent } from '../empty-state/empty-state.component';
+
+// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
+
+@Component({ selector: 'app-button-component', standalone: true, template: '' })
+class MockButtonComponent {
+  @Input() label?: string;
+  @Input() icon?: string;
+  @Input() variant: 'primary' | 'secondary' = 'primary';
+  @Input() disabled = false;
+  @Output() onClick = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-state', standalone: true, template: '' })
+class MockStateComponent {
+  @Input() label?: string;
+  @Input() state?: string;
+}
+
+@Component({ selector: 'app-empty-state', standalone: true, template: '' })
+class MockEmptyStateComponent {
+  @Input() message = '';
+}
+
+// ── Mocks de Configuración ──────────────────────────────────────────────────
+
 const COLUMNS_TEXT: Column[] = [
   { field: 'nombre', header: 'Nombre', type: 'text', width: '50%' },
   { field: 'correo', header: 'Correo', type: 'text', width: '50%' },
@@ -28,13 +58,13 @@ const COLUMNS_ACTIONS: Column[] = [
   },
 ];
 
-// Tipado estricto usando la interfaz exportada por tu componente en lugar de any[]
 const ROWS: TableRow[] = [
   { nombre: 'Simón Guzmán', correo: 'simonguzman@unicauca.edu.co', estado: 'Aprobado' },
   { nombre: 'Vanessa Agredo', correo: 'vanessaagredo@unicauca.edu.co', estado: 'En revisión' },
 ];
 
-// --- Función Auxiliar Moderna ---
+// ── Función Auxiliar Moderna ────────────────────────────────────────────────
+
 async function mountTable(
   columns: Column[],
   value: TableRow[] = ROWS,
@@ -43,11 +73,9 @@ async function mountTable(
   const fixture = TestBed.createComponent(TableComponent);
   const component = fixture.componentInstance;
 
-  // Usamos setInput para garantizar que los hooks de Angular (ej. ngOnChanges) se disparen
   fixture.componentRef.setInput('columns', columns);
   fixture.componentRef.setInput('value', value);
 
-  // Aplicar overrides tipados correctamente
   for (const [key, val] of Object.entries(overrides)) {
     fixture.componentRef.setInput(key, val);
   }
@@ -58,12 +86,32 @@ async function mountTable(
   return { fixture, component };
 }
 
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('TableComponent', () => {
   beforeEach(async () => {
+    // 🔕 Silenciar consola para mantener terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     await TestBed.configureTestingModule({
       imports: [TableComponent],
       providers: [provideNoopAnimations()]
-    }).compileComponents();
+    })
+    .overrideComponent(TableComponent, {
+      remove: {
+        imports: [ButtonComponent, StateComponent, EmptyStateComponent]
+      },
+      add: {
+        imports: [MockButtonComponent, MockStateComponent, MockEmptyStateComponent]
+      }
+    })
+    .compileComponents();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Renderizado e Inicialización', () => {
@@ -99,14 +147,15 @@ describe('TableComponent', () => {
   describe('Estados Especiales de las Columnas', () => {
     it('debería mostrar el empty state cuando el value esté vacío', async () => {
       const { fixture } = await mountTable(COLUMNS_TEXT, []);
-      const emptyState = fixture.debugElement.query(By.css('app-empty-state'));
+      // Al usar el Mock, buscamos por la directiva en lugar de la clase o selector CSS
+      const emptyState = fixture.debugElement.query(By.directive(MockEmptyStateComponent));
 
       expect(emptyState).toBeTruthy();
     });
 
     it('debería pasar correctamente el valor al componente de estado (app-state)', async () => {
       const { fixture } = await mountTable(COLUMNS_STATE);
-      const states = fixture.debugElement.queryAll(By.css('app-state'));
+      const states = fixture.debugElement.queryAll(By.directive(MockStateComponent));
 
       expect(states.length).toBeGreaterThan(0);
       expect(states[0].componentInstance.state).toBe('Aprobado');
@@ -126,25 +175,29 @@ describe('TableComponent', () => {
       const { fixture, component } = await mountTable(COLUMNS_ACTIONS);
       const spy = jest.spyOn(component.actionClick, 'emit');
 
-      const buttons = fixture.debugElement.queryAll(By.css('td app-button-component'));
+      // Buscamos directamente la instancia del componente simulado
+      const buttons = fixture.debugElement.queryAll(By.directive(MockButtonComponent));
       buttons[0].componentInstance.onClick.emit();
 
-      // Eliminamos el expect.any(Object) y comprobamos la referencia estricta de la fila mock
       expect(spy).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'ver', row: ROWS[0] })
       );
     });
 
     it('debería emitir headerButtonClick al hacer clic en un botón del encabezado', async () => {
-      const headerBtnMock = { label: 'Nuevo', variant: 'primary' as const };
+      // Tipado estricto
+      const headerBtnMock: TableButton = { label: 'Nuevo', variant: 'primary' };
+
       const { fixture, component } = await mountTable(COLUMNS_TEXT, ROWS, {
         headerButtons: [headerBtnMock]
       });
 
       const spy = jest.spyOn(component.headerButtonClick, 'emit');
-      const btn = fixture.debugElement.query(By.css('.flex.gap-2 app-button-component'));
 
+      // Buscamos el MockButtonComponent y simulamos el output
+      const btn = fixture.debugElement.query(By.directive(MockButtonComponent));
       expect(btn).not.toBeNull();
+
       btn.componentInstance.onClick.emit();
 
       expect(spy).toHaveBeenCalledWith(

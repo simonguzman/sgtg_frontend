@@ -52,9 +52,16 @@ describe('ProposalDocumentService', () => {
   let mockUserService: jest.Mocked<UserService>;
 
   beforeEach(() => {
-    Object.defineProperty(window, 'crypto', {
-      value: { randomUUID: jest.fn().mockReturnValue('mock-uuid-document') }
-    });
+    // 1. Espías para silenciar la consola
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    // 2. Mock de crypto de forma segura y con formato UUID válido para TypeScript
+    if (!window.crypto) {
+      (window as any).crypto = {};
+    }
+    jest.spyOn(window.crypto, 'randomUUID').mockReturnValue('00000000-0000-0000-0000-000000000000');
 
     mockStorageService = {
       getProposalsListSnapshot: jest.fn(),
@@ -82,7 +89,8 @@ describe('ProposalDocumentService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    // 3. Restauramos todos los espías y mocks originales al terminar cada prueba
+    jest.restoreAllMocks();
   });
 
   it('debería crearse correctamente', () => {
@@ -124,7 +132,10 @@ describe('ProposalDocumentService', () => {
 
       expect(resultProp?.state).toBe(stateList.APROBADO_CON_OBSERVACIONES);
       const newEval = resultProp?.evaluations?.[0];
-      expect(newEval?.id).toBe('mock-uuid-document');
+
+      // Actualizamos la aserción con el nuevo UUID válido
+      expect(newEval?.id).toBe('00000000-0000-0000-0000-000000000000');
+
       expect(newEval?.deadlineStatus).toBe(EvaluationDeadlineStatus.ON_TIME);
       expect(resultProp?.documents?.[0].status).toBe(stateList.APROBADO_CON_OBSERVACIONES);
 

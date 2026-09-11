@@ -6,63 +6,81 @@ import { ThesisWorkService } from '../../../../thesis-work/services/thesis-work.
 import { UserService } from '../../../../users/services/user.service';
 import { HistoryEvaluationContext } from '../../../interfaces/history-evaluation-context.interface';
 import { ThesisWork } from '../../../../thesis-work/interfaces/thesis-work.interface';
+import { PreliminaryDraft } from '../../../../preliminary-draft/interfaces/preliminary-draft.interface';
+import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 import { ARCHIVED_ALLOWED_ACTIONS } from '../models/archived-tab-columns.model';
 import { Modality } from '../../../../proposal/enums/modality.enum';
+import { stateList } from '../../../../../core/enums/state.enum';
 
-// ── Utilidad de Tipado Profundo (Zero-Any) ───────────────────────────────────
-// Convierte recursivamente todas las propiedades de una interfaz en opcionales.
-// Esto elimina el error TS2740 al permitirnos mockear objetos profundamente anidados
-// (como proposalData dentro de preliminaryDraftData) sin exigir la interfaz completa.
-type DeepPartialMock<T> = {
-  [P in keyof T]?: T[P] extends Array<infer U>
-    ? Array<DeepPartialMock<U>>
-    : T[P] extends ReadonlyArray<infer U>
-    ? ReadonlyArray<DeepPartialMock<U>>
-    : T[P] extends Date
-    ? Date
-    : T[P] extends object
-    ? DeepPartialMock<T[P]>
-    : T[P];
-};
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown' y 'never') ──
 
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
-function createMockUser(overrides: Partial<User> = {}): User {
-  return {
-    id: 'user-default',
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john@example.com',
-    ...overrides
-  } as User;
-}
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-default',
+  firstName: 'John',
+  lastName: 'Doe',
+  email: 'john@example.com',
+  roles: [],
+  ...overrides
+} as User);
 
-function createMockThesisWork(overrides: DeepPartialMock<ThesisWork> = {}): ThesisWork {
-  return {
-    thesisWorkId: 'tw-1',
-    // Usamos 'as never' para inyectar el string burlando la validación del Enum,
-    // garantizando que no se dispare el error TS2339 y cumpliendo la regla de 0 "any".
-    state: 'FINALIZADO' as never,
-    isArchived: true,
-    ...overrides
-  } as ThesisWork;
-}
+const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
+  id: 'prop-1',
+  title: 'Default Title',
+  modality: Modality.TI,
+  description: 'Default Description',
+  state: stateList.APROBADO,
+  director: createMockUser(),
+  authors: [createMockUser()],
+  createdAt: new Date(),
+  documents: [],
+  evaluations: [],
+  ...overrides
+} as Proposal);
+
+const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
+  preliminaryDraftId: 'draft-1',
+  proposalId: 'prop-1',
+  isArchived: false,
+  state: stateList.APROBADO,
+  proposalData: createMockProposal(),
+  evaluators: [],
+  evaluations: [],
+  documents: [],
+  createdData: new Date(),
+  ...overrides
+} as PreliminaryDraft);
+
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => ({
+  thesisWorkId: 'tw-1',
+  // Extraemos el tipo exacto de 'state' de la interfaz para evitar usar 'never'
+  state: 'FINALIZADO' as ThesisWork['state'],
+  isArchived: true,
+  preliminaryDraftData: createMockPreliminaryDraft(),
+  ...overrides
+} as ThesisWork);
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('ArchivedThesisWorksTabService', () => {
   let service: ArchivedThesisWorksTabService;
 
-  // Mocks de dependencias
+  // 🔹 REFACTOR: Tipado estricto de dependencias
   let mockThesisWorkService: { allThesisWorks: WritableSignal<ThesisWork[]> };
-  let mockUserService: jest.Mocked<UserService>;
+  let mockUserService: { getAuthorsNames: jest.Mock<string, [User[] | undefined]> };
 
   beforeEach(() => {
+    // 🔕 Silenciar los console.error y console.warn para mantener limpia la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockThesisWorkService = {
       allThesisWorks: signal<ThesisWork[]>([])
     };
 
     mockUserService = {
-      getAuthorsNames: jest.fn().mockReturnValue('Autores Mockeados'),
-    } as Partial<UserService> as jest.Mocked<UserService>;
+      getAuthorsNames: jest.fn().mockReturnValue('Autores Mockeados')
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -77,6 +95,7 @@ describe('ArchivedThesisWorksTabService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola
   });
 
   describe('Configuración Básica', () => {
@@ -101,18 +120,21 @@ describe('ArchivedThesisWorksTabService', () => {
     });
 
     it('debería excluir los trabajos de grado que NO están archivados (isArchived = false)', () => {
-      // Asignamos a 'user-123' como autor en ambos trabajos para pasar el filtro de permisos locales
-      // y así poder probar exclusivamente si la bandera 'isArchived' los filtra correctamente.
+      // Usamos el anidamiento limpio de los factories para evitar el DeepPartialMock
       const activeWork = createMockThesisWork({
         thesisWorkId: 'tw-active-1',
         isArchived: false,
-        preliminaryDraftData: { proposalData: { authors: [createMockUser({ id: 'user-123' })] } }
+        preliminaryDraftData: createMockPreliminaryDraft({
+          proposalData: createMockProposal({ authors: [createMockUser({ id: 'user-123' })] })
+        })
       });
 
       const archivedWork = createMockThesisWork({
         thesisWorkId: 'tw-arch-1',
         isArchived: true,
-        preliminaryDraftData: { proposalData: { authors: [createMockUser({ id: 'user-123' })] } }
+        preliminaryDraftData: createMockPreliminaryDraft({
+          proposalData: createMockProposal({ authors: [createMockUser({ id: 'user-123' })] })
+        })
       });
 
       mockThesisWorkService.allThesisWorks.set([activeWork, archivedWork]);
@@ -127,11 +149,15 @@ describe('ArchivedThesisWorksTabService', () => {
     it('debería retornar TODOS los trabajos archivados si el contexto tiene acceso global', () => {
       const workPropio = createMockThesisWork({
         thesisWorkId: 'tw-arch-1',
-        preliminaryDraftData: { proposalData: { authors: [createMockUser({ id: 'user-admin' })] } }
+        preliminaryDraftData: createMockPreliminaryDraft({
+          proposalData: createMockProposal({ authors: [createMockUser({ id: 'user-admin' })] })
+        })
       });
       const workAjeno = createMockThesisWork({
         thesisWorkId: 'tw-arch-2',
-        preliminaryDraftData: { proposalData: { authors: [createMockUser({ id: 'user-other' })] } }
+        preliminaryDraftData: createMockPreliminaryDraft({
+          proposalData: createMockProposal({ authors: [createMockUser({ id: 'user-other' })] })
+        })
       });
 
       mockThesisWorkService.allThesisWorks.set([workPropio, workAjeno]);
@@ -145,29 +171,39 @@ describe('ArchivedThesisWorksTabService', () => {
     it('debería mapear correctamente las columnas y procesar la fecha máxima de entrega dinámicamente', () => {
       const fullWork = createMockThesisWork({
         thesisWorkId: 'tw-arch-1',
-        state: 'FINALIZADO' as never,
-        preliminaryDraftData: {
+        state: 'FINALIZADO' as ThesisWork['state'],
+        preliminaryDraftData: createMockPreliminaryDraft({
           maximumDeliveryDate: new Date('2026-12-31T10:00:00'),
-          proposalData: {
+          proposalData: createMockProposal({
             title: 'Sistema de Gestión Tesis',
-            modality: Modality.TI, // <-- Utilizamos Modality dinámico y strict typing
+            modality: Modality.TI,
             description: 'Descripción del trabajo de grado',
-            authors: [createMockUser({ id: 'user-123' })],
-          }
-        }
+            authors: [createMockUser({ id: 'user-123' })]
+          })
+        })
       });
 
       const emptyWork = createMockThesisWork({
         thesisWorkId: 'tw-arch-3',
-        state: 'CANCELADO' as never,
-        preliminaryDraftData: {
-          proposalData: {
-            authors: [createMockUser({ id: 'user-123' })]
-          }
-        }
+        state: 'CANCELADO' as ThesisWork['state'],
+        preliminaryDraftData: createMockPreliminaryDraft({
+          maximumDeliveryDate: undefined,
+          proposalData: createMockProposal({
+            title: undefined,
+            modality: undefined,
+            description: undefined,
+            authors: [],
+            director: createMockUser({ id: 'user-123' }) // <-- FIX: Le damos acceso siendo el director para que no sea filtrada
+          })
+        })
       });
 
       mockThesisWorkService.allThesisWorks.set([fullWork, emptyWork]);
+
+      // Simulamos que para el trabajo vacío, getAuthorsNames retorne falso/vacío
+      mockUserService.getAuthorsNames.mockImplementation((authors) => {
+        return authors && authors.length > 0 ? 'Autores Mockeados' : '';
+      });
 
       const context = createContext('user-123');
       const data = service.getTableData(context);
@@ -193,7 +229,7 @@ describe('ArchivedThesisWorksTabService', () => {
         title: 'Sin título',
         modality: 'No definida',
         description: 'Sin descripción',
-        maxDeliveryDate: 'Sin fecha límite',
+        maxDeliveryDate: 'Sin fecha límite', // Test del Fallback de Fecha
       }));
     });
   });

@@ -11,6 +11,8 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { stateList } from '../../../../../core/enums/state.enum';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { User } from '../../../../users/interfaces/user.interface';
 
 // Hacemos mock de la función utilitaria para no leer archivos reales en las pruebas
 jest.mock('../../../../../core/utils/file-reader.utils', () => ({
@@ -19,10 +21,13 @@ jest.mock('../../../../../core/utils/file-reader.utils', () => ({
 
 import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
 
+// Asignamos un alias tipado para evitar usar 'as jest.Mock' dentro de las pruebas
+const mockReadFileAsDataUrl = readFileAsDataUrl as jest.MockedFunction<typeof readFileAsDataUrl>;
+
 describe('ReviewPreliminaryDraftPageFacadeService', () => {
   let service: ReviewPreliminaryDraftPageFacadeService;
 
-  // Mocks estrictamente tipados
+  // 🔹 REFACTOR: Mocks estrictamente tipados estructuralmente
   let preliminaryDraftServiceMock: {
     getPreliminaryDraftById: jest.Mock;
     addEvaluation: jest.Mock;
@@ -35,18 +40,36 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
   let routeParamMapGetMock: jest.Mock;
   let parentRouteParamMapGetMock: jest.Mock;
 
-  const mockUser = { id: 'u1', firstName: 'Juan', lastName: 'Perez' };
+  // 🔹 REFACTOR: Fábricas para generar entidades válidas sin 'as unknown'
+  const createMockUser = (overrides: Partial<User> = {}): User => ({
+    id: 'u1',
+    firstName: 'Juan',
+    lastName: 'Perez',
+    ...overrides
+  } as User);
 
-  const mockDraft = {
+  const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
+    id: 'doc-1',
+    type: DocumentType.ANTEPROYECTO,
+    uploadDate: '2026-07-20T10:00:00Z',
+    url: 'url1',
+    name: 'doc1.pdf',
+    ...overrides
+  } as FileDocument);
+
+  const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
     preliminaryDraftId: 'draft-1',
     proposalId: 'prop-1',
-    evaluators: [{ id: 'u1' }],
-    documents: [
-      { id: 'doc-1', type: DocumentType.ANTEPROYECTO, uploadDate: '2026-07-20T10:00:00Z', url: 'url1', name: 'doc1.pdf' }
-    ]
-  } as unknown as PreliminaryDraft;
+    evaluators: [createMockUser()],
+    documents: [createMockFileDocument()],
+    ...overrides
+  } as PreliminaryDraft);
 
   beforeEach(() => {
+    // 🔕 Silenciar los console.error y console.warn
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     Object.defineProperty(window, 'crypto', {
       value: { randomUUID: jest.fn().mockReturnValue('mock-uuid-1234') },
       writable: true
@@ -58,7 +81,7 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     };
 
     authServiceMock = {
-      currentUser: jest.fn().mockReturnValue(mockUser)
+      currentUser: jest.fn().mockReturnValue(createMockUser())
     };
 
     notificationServiceMock = {
@@ -66,7 +89,6 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     };
 
     downloadServiceMock = {
-      // Retornamos Promise ya que el servicio usa await
       download: jest.fn().mockResolvedValue(undefined)
     };
 
@@ -97,11 +119,12 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     service = TestBed.inject(ReviewPreliminaryDraftPageFacadeService);
 
     // Restaurar implementaciones del mock global por si alguna prueba la pisa
-    (readFileAsDataUrl as jest.Mock).mockResolvedValue('data:application/pdf;base64,mock-data-url');
+    mockReadFileAsDataUrl.mockResolvedValue('data:application/pdf;base64,mock-data-url');
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   it('debería crearse correctamente', () => {
@@ -110,11 +133,12 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
 
   describe('init() y loadData()', () => {
     it('debería cargar los datos si el usuario es evaluador', () => {
-      preliminaryDraftServiceMock.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
+      const draft = createMockDraft();
+      preliminaryDraftServiceMock.getPreliminaryDraftById.mockReturnValue(of(draft));
       service.init();
 
       expect(preliminaryDraftServiceMock.getPreliminaryDraftById).toHaveBeenCalledWith('draft-1');
-      expect(service.preliminaryDraftState()).toEqual(mockDraft);
+      expect(service.preliminaryDraftState()).toEqual(draft);
     });
 
     it('debería mostrar error de navegación si no se encuentra el ID en la ruta', () => {
@@ -130,8 +154,8 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     });
 
     it('debería denegar el acceso y redirigir si el usuario no es evaluador', () => {
-      authServiceMock.currentUser.mockReturnValue({ id: 'u2' });
-      preliminaryDraftServiceMock.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
+      authServiceMock.currentUser.mockReturnValue(createMockUser({ id: 'u2' })); // Usuario distinto al evaluador
+      preliminaryDraftServiceMock.getPreliminaryDraftById.mockReturnValue(of(createMockDraft()));
 
       service.init();
 
@@ -193,16 +217,18 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     });
 
     it('debería notificar error si falla la lectura del archivo', async () => {
-      service.preliminaryDraftState.set(mockDraft);
+      service.preliminaryDraftState.set(createMockDraft());
       service.pendingReviewData.set({
         formValues: { result: stateList.APROBADO, comments: 'Todo bien' },
         file: mockFile
       });
+
       // Simulamos que la Promesa de lectura falla
-      (readFileAsDataUrl as jest.Mock).mockRejectedValueOnce(new Error('File access error'));
+      mockReadFileAsDataUrl.mockRejectedValueOnce(new Error('File access error'));
 
       await service.processEvaluation();
 
+      expect(console.error).toHaveBeenCalled(); // Validamos que el log se ejecutó (está silenciado)
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
         type: NotificationType.ERROR,
         title: 'Error al leer el archivo'
@@ -210,7 +236,7 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     });
 
     it('debería procesar la evaluación correctamente (Aprobado) y navegar', async () => {
-      service.preliminaryDraftState.set(mockDraft);
+      service.preliminaryDraftState.set(createMockDraft());
       service.pendingReviewData.set({
         formValues: { result: stateList.APROBADO, comments: 'Aprobado sin problemas' },
         file: mockFile
@@ -237,7 +263,7 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     });
 
     it('debería procesar la evaluación con archivo anotado y veredicto negativo', async () => {
-      service.preliminaryDraftState.set(mockDraft);
+      service.preliminaryDraftState.set(createMockDraft());
       service.pendingReviewData.set({
         formValues: { result: stateList.NO_APROBADO, comments: 'Requiere ajustes' },
         file: mockFile,
@@ -264,7 +290,7 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     });
 
     it('debería mostrar notificación de error si falla la subida a la API', async () => {
-      service.preliminaryDraftState.set(mockDraft);
+      service.preliminaryDraftState.set(createMockDraft());
       service.pendingReviewData.set({
         formValues: { result: stateList.APROBADO, comments: 'Ok' },
         file: mockFile
@@ -282,7 +308,7 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
 
   describe('downloadCurrentDocument()', () => {
     it('debería descargar el documento si hay una revisión activa', async () => {
-      service.preliminaryDraftState.set(mockDraft);
+      service.preliminaryDraftState.set(createMockDraft());
 
       await service.downloadCurrentDocument();
 
@@ -290,7 +316,7 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     });
 
     it('debería mostrar error si no hay revisión activa para descargar', async () => {
-      service.preliminaryDraftState.set({ documents: [] } as unknown as PreliminaryDraft);
+      service.preliminaryDraftState.set(createMockDraft({ documents: [] }));
 
       await service.downloadCurrentDocument();
 
@@ -301,11 +327,12 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     });
 
     it('debería mostrar error si falla la utilidad de descarga (Exception)', async () => {
-      service.preliminaryDraftState.set(mockDraft);
+      service.preliminaryDraftState.set(createMockDraft());
       downloadServiceMock.download.mockRejectedValue(new Error('Network error'));
 
       await service.downloadCurrentDocument();
 
+      expect(console.error).toHaveBeenCalled(); // Validamos que el log se ejecutó (está silenciado)
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
         type: NotificationType.INFO,
         title: 'Error de descarga'

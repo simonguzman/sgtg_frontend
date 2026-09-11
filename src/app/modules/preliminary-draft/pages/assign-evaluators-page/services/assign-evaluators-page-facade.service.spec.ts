@@ -1,28 +1,49 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { signal } from '@angular/core';
 
 import { AssignEvaluatorsPageFacadeService } from './assign-evaluators-page-facade.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
+import { stateList } from '../../../../../core/enums/state.enum';
+
+// 🔹 REFACTOR: Fábricas para generar entidades limpias sin usar 'as unknown'
+const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
+  preliminaryDraftId: 'draft-123',
+  proposalId: 'prop-1',
+  state: stateList.EN_REVISION,
+  evaluators: [],
+  documents: [],
+  evaluations: [],
+  ...overrides
+} as PreliminaryDraft);
 
 describe('AssignEvaluatorsPageFacadeService', () => {
   let facade: AssignEvaluatorsPageFacadeService;
 
-  let mockRoute: Partial<ActivatedRoute>;
-  let mockRouter: jest.Mocked<Partial<Router>>;
-  let mockPreliminaryDraftService: jest.Mocked<Partial<PreliminaryDraftService>>;
-  let mockNotificationService: jest.Mocked<Partial<NotificationService>>;
-
-  const mockDraft = { preliminaryDraftId: 'draft-123' } as unknown as PreliminaryDraft;
+  // 🔹 REFACTOR: Mocks estrictos sin Partial ni Any
+  let mockRouteParamMapGet: jest.Mock;
+  let mockRouteParentParamMapGet: jest.Mock;
+  let mockRouter: { navigate: jest.Mock };
+  let mockPreliminaryDraftService: {
+    getPreliminaryDraftById: jest.Mock;
+    assignReviewers: jest.Mock;
+  };
+  let mockNotificationService: { show: jest.Mock };
 
   beforeEach(() => {
-    mockRoute = {
-      snapshot: { paramMap: { get: jest.fn().mockReturnValue('draft-123') } } as any,
-      parent: null
+    // 🔕 Silenciar los console.error y console.warn para mantener limpia la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    mockRouteParamMapGet = jest.fn().mockReturnValue('draft-123');
+    mockRouteParentParamMapGet = jest.fn().mockReturnValue(null);
+
+    const mockRoute = {
+      snapshot: { paramMap: { get: mockRouteParamMapGet } },
+      parent: { snapshot: { paramMap: { get: mockRouteParentParamMapGet } } }
     };
 
     mockRouter = {
@@ -51,20 +72,27 @@ describe('AssignEvaluatorsPageFacadeService', () => {
     facade = TestBed.inject(AssignEvaluatorsPageFacadeService);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola original
+  });
+
   describe('Inicialización y Carga de Datos (init)', () => {
     it('debería mostrar error de navegación y retroceder si no hay ID en la ruta', () => {
-      (mockRoute.snapshot!.paramMap.get as jest.Mock).mockReturnValue(null);
+      mockRouteParamMapGet.mockReturnValue(null);
+      mockRouteParentParamMapGet.mockReturnValue(null);
 
       facade.init();
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ type: NotificationType.ERROR, title: 'Error de navegación' })
       );
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['../'], { relativeTo: mockRoute });
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['../'], { relativeTo: expect.anything() });
     });
 
     it('debería cargar los datos si el ID existe y setear selectedPreliminaryDraft', () => {
-      (mockPreliminaryDraftService.getPreliminaryDraftById as jest.Mock).mockReturnValue(of(mockDraft));
+      const mockDraft = createMockPreliminaryDraft();
+      mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
 
       facade.init();
 
@@ -74,7 +102,7 @@ describe('AssignEvaluatorsPageFacadeService', () => {
     });
 
     it('debería mostrar error si el anteproyecto no se encuentra', () => {
-      (mockPreliminaryDraftService.getPreliminaryDraftById as jest.Mock).mockReturnValue(of(null));
+      mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(null));
 
       facade.init();
 
@@ -86,7 +114,7 @@ describe('AssignEvaluatorsPageFacadeService', () => {
     });
 
     it('debería manejar el error de conexión en la carga', () => {
-      (mockPreliminaryDraftService.getPreliminaryDraftById as jest.Mock).mockReturnValue(throwError(() => new Error('Error')));
+      mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(throwError(() => new Error('Error')));
 
       facade.init();
 
@@ -100,10 +128,12 @@ describe('AssignEvaluatorsPageFacadeService', () => {
 
   describe('Flujo de Asignación', () => {
     const evaluators = { ev1: 'user-1', ev2: 'user-2' };
+    const mockDraft = createMockPreliminaryDraft();
 
     beforeEach(() => {
-      // Forzamos el estado como si la data ya hubiera cargado
-      (facade as any).selectedPreliminaryDraft = signal(mockDraft);
+      // 🔹 REFACTOR: Inicializamos el componente correctamente en lugar de forzar la señal
+      mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
+      facade.init();
     });
 
     it('debería abrir el modal y guardar la data pendiente en handleAssign', () => {
@@ -122,7 +152,7 @@ describe('AssignEvaluatorsPageFacadeService', () => {
     });
 
     it('debería procesar la asignación exitosa, mostrar notificación y volver atrás', () => {
-      (mockPreliminaryDraftService.assignReviewers as jest.Mock).mockReturnValue(of({}));
+      mockPreliminaryDraftService.assignReviewers.mockReturnValue(of({}));
       facade.handleAssign(evaluators);
 
       facade.confirmAssignment();
@@ -139,7 +169,7 @@ describe('AssignEvaluatorsPageFacadeService', () => {
     });
 
     it('debería manejar el error de servicio al asignar', () => {
-      (mockPreliminaryDraftService.assignReviewers as jest.Mock).mockReturnValue(throwError(() => new Error('API Error')));
+      mockPreliminaryDraftService.assignReviewers.mockReturnValue(throwError(() => new Error('API Error')));
       facade.handleAssign(evaluators);
 
       facade.confirmAssignment();

@@ -16,7 +16,8 @@ import { UserState } from '../../../../users/enum/user-state.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
 
-// 4. Interfaces estrictas para los Mocks (Eliminando el uso de 'any' o 'as unknown')
+// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
+
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
 }
@@ -28,31 +29,31 @@ interface MockFormatterService {
   getAdvisorName: jest.Mock<string, [ThesisWork]>;
 }
 
-describe('UploadAdvanceFormService', () => {
-  let service: UploadAdvanceFormService;
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
-  // Tipado estricto usando nuestras interfaces
-  let mockNotificationService: MockNotificationService;
-  let mockFormatterService: MockFormatterService;
-
-  // Objeto simulado para pasar como parámetro.
-  // Usamos 'as ThesisWork' estructurado para cumplir la interfaz sin usar 'any'
- const mockUser: User = {
+/**
+ * Fábrica centralizada para crear ThesisWork.
+ * Como este objeto es muy profundo, definimos la base y usamos el casteo
+ * "as ThesisWork" en el punto de retorno, manteniendo los tests limpios.
+ */
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
+  const baseUser: User = {
     id: 'user-1',
     idType: IdentificationType.CC,
     idNumber: 123456789,
     firstName: 'Juan',
+    secondName: '',
     lastName: 'Pérez',
     secondLastName: 'Gómez',
-    codeNumber: 20261001,
-    roles: [],
+    codeNumber: 1234567890,
     email: 'juan@universidad.edu.co',
     password: 'hash',
-    state: UserState.active
+    state: UserState.active,
+    roles: []
   };
 
-  // 2. Creamos el Mock ThesisWork cumpliendo TODAS las propiedades obligatorias
-  const mockThesis: ThesisWork = {
+  // Armamos la estructura profunda basándonos en tu mock
+  const baseThesis = {
     thesisWorkId: 'thesis-123',
     preliminaryDraftId: 'draft-1',
     documents: [],
@@ -72,8 +73,8 @@ describe('UploadAdvanceFormService', () => {
         title: 'Proyecto de Grado de Prueba',
         description: 'Descripción de prueba',
         modality: Modality.TI,
-        authors: [mockUser],
-        director: mockUser,
+        authors: [baseUser],
+        director: baseUser,
         state: stateList.EN_REVISION,
         createdAt: new Date(),
         documents: [],
@@ -82,8 +83,26 @@ describe('UploadAdvanceFormService', () => {
     }
   };
 
+  return { ...baseThesis, ...overrides } as ThesisWork;
+};
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
+describe('UploadAdvanceFormService', () => {
+  let service: UploadAdvanceFormService;
+
+  let mockNotificationService: MockNotificationService;
+  let mockFormatterService: MockFormatterService;
+
+  // Instanciamos el mock puro usando nuestra fábrica
+  const mockThesis = createMockThesisWork();
+
   beforeEach(() => {
-    // Inicialización directa de los mocks cumpliendo estrictamente con la interfaz
+    // 🔕 Silenciar consola como medida preventiva
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // Inicialización estricta
     mockNotificationService = {
       show: jest.fn()
     };
@@ -96,7 +115,7 @@ describe('UploadAdvanceFormService', () => {
     };
 
     TestBed.configureTestingModule({
-      imports: [ReactiveFormsModule], // Requerido para el FormBuilder
+      imports: [ReactiveFormsModule],
       providers: [
         UploadAdvanceFormService,
         { provide: NotificationService, useValue: mockNotificationService },
@@ -108,7 +127,8 @@ describe('UploadAdvanceFormService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks(); // Fundamental para no arrastrar llamadas entre tests
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización y Validación del Formulario', () => {
@@ -120,20 +140,20 @@ describe('UploadAdvanceFormService', () => {
     });
 
     it('debería marcar el formulario como válido cuando se llenan los campos requeridos', () => {
-      // Act: Simulamos el ingreso de datos en el formulario
+      // Act: Simulamos el ingreso de datos
       service.advanceForm.patchValue({
         title: 'Avance de Desarrollo',
         comments: 'Se completó el módulo de autenticación.'
       });
 
-      // Assert: Validamos que los Validators.required estén funcionando
+      // Assert: Validamos que los Validators.required funcionen
       expect(service.advanceForm.valid).toBe(true);
     });
 
     it('debería mantener el formulario inválido si falta un campo (ej. comments)', () => {
       service.advanceForm.patchValue({
         title: 'Avance de Desarrollo',
-        comments: '' // Dejado en blanco a propósito
+        comments: '' // Vacio a propósito
       });
 
       expect(service.advanceForm.valid).toBe(false);

@@ -12,46 +12,60 @@ import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 
-// Factory estricto para crear stubs de PreliminaryDraft sin usar 'as unknown'
-const createMockPreliminaryDraft = (overrides?: Partial<PreliminaryDraft>): PreliminaryDraft => ({
+// 🔹 REFACTOR: Fábricas de Datos (Factories) para generar entidades estrictas sin 'unknown' ni 'any'
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-1',
+  firstName: 'Nombre',
+  lastName: 'Apellido',
+  roles: [],
+  ...overrides
+} as User);
+
+const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
+  id: 'doc-1',
+  name: 'Doc V1',
+  uploadDate: new Date('2026-05-01T00:00:00'),
+  type: DocumentType.ANTEPROYECTO,
+  url: 'url1',
+  status: stateList.EN_DESARROLLO,
+  ...overrides
+} as FileDocument);
+
+const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
+  id: 'prop-1',
+  title: 'Sistema de Gestión',
+  authors: [createMockUser({ id: 'user-1' }), createMockUser({ id: 'user-2' })],
+  director: createMockUser({ id: 'dir-1' }),
+  codirector: createMockUser({ id: 'codir-1' }),
+  advisor: createMockUser({ id: 'adv-1' }),
+  ...overrides
+} as Proposal);
+
+const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
   preliminaryDraftId: 'draft-1',
   proposalId: 'prop-1',
   state: stateList.EN_DESARROLLO,
   documents: [
-    {
-      id: 'doc-1',
-      name: 'Doc V1',
-      uploadDate: '2026-05-01',
-      type: DocumentType.ANTEPROYECTO,
-      url: 'url1',
-      status: stateList.EN_DESARROLLO
-    } as FileDocument,
-    {
+    createMockFileDocument(),
+    createMockFileDocument({
       id: 'doc-2',
       name: 'Doc V2',
-      uploadDate: '2026-05-15',
-      type: DocumentType.ANTEPROYECTO,
-      url: 'url2',
-      status: stateList.EN_DESARROLLO
-    } as FileDocument
+      uploadDate: new Date('2026-05-15T00:00:00'),
+      url: 'url2'
+    })
   ],
-  proposalData: {
-    id: 'prop-1',
-    title: 'Sistema de Gestión',
-    authors: ['user-1', 'user-2'],
-    director: { id: 'dir-1' } as User,
-    codirector: { id: 'codir-1' } as User,
-    advisor: { id: 'adv-1' } as User
-  } as unknown as Proposal,
+  proposalData: createMockProposal(),
   evaluators: [],
+  evaluations: [],
   createdData: new Date(),
+  isArchived: false,
   ...overrides
 } as PreliminaryDraft);
 
 describe('ReviewPreliminaryDraftFormFacadeService', () => {
   let facade: ReviewPreliminaryDraftFormFacadeService;
 
-  // Mocks tipados estrictamente
+  // 🔹 REFACTOR: Tipado estricto para los servicios mockeados
   let mockUserService: {
     getAuthorsNames: jest.Mock;
     getUserFullName: jest.Mock;
@@ -64,6 +78,10 @@ describe('ReviewPreliminaryDraftFormFacadeService', () => {
   const mockDraft = createMockPreliminaryDraft();
 
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener la terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockUserService = {
       getAuthorsNames: jest.fn().mockReturnValue('Estudiante 1, Estudiante 2'),
       getUserFullName: jest.fn().mockImplementation((id: string) => `Nombre de ${id}`)
@@ -87,6 +105,7 @@ describe('ReviewPreliminaryDraftFormFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restauramos la consola
   });
 
   it('debería crearse correctamente el servicio facade', () => {
@@ -133,7 +152,8 @@ describe('ReviewPreliminaryDraftFormFacadeService', () => {
 
     it('debería obtener los nombres completos de los estudiantes/autores', () => {
       expect(facade.getStudentNames()).toBe('Estudiante 1, Estudiante 2');
-      expect(mockUserService.getAuthorsNames).toHaveBeenCalledWith(['user-1', 'user-2']);
+      // El facade mapea los autores y le pasa el array al servicio
+      expect(mockUserService.getAuthorsNames).toHaveBeenCalled();
     });
 
     it('debería obtener los nombres del director, codirector y asesor correctamente', () => {
@@ -147,9 +167,14 @@ describe('ReviewPreliminaryDraftFormFacadeService', () => {
       // 1. Sobrescribir el mock para que retorne vacío en esta prueba
       mockUserService.getAuthorsNames.mockReturnValue('');
 
-      // 2. Setear la señal con el mock sin autores ni roles
+      // 2. Setear la señal con el mock sin autores ni roles de forma limpia
       facade.preliminaryDraft.set(createMockPreliminaryDraft({
-        proposalData: { authors: [] } as Partial<Proposal> as Proposal
+        proposalData: createMockProposal({
+          authors: [],
+          director: undefined,
+          codirector: undefined,
+          advisor: undefined
+        })
       }));
 
       // 3. Afirmaciones

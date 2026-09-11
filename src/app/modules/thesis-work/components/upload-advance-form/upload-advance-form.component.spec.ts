@@ -15,7 +15,8 @@ import { UserState } from '../../../users/enum/user-state.enum';
 import { User } from '../../../users/interfaces/user.interface';
 import { Modality } from '../../../proposal/enums/modality.enum';
 
-// 4. Interfaz Estricta para el Mock del Servicio
+// ── Tipos Seguros para los Mocks (Zero 'any') ───────────────────────────────
+
 interface MockUploadAdvanceFormService {
   advanceForm: FormGroup;
   getStudentNames: jest.Mock<string, [ThesisWork]>;
@@ -26,17 +27,15 @@ interface MockUploadAdvanceFormService {
   notifyMissingFiles: jest.Mock<void, []>;
 }
 
-describe('UploadAdvanceFormComponent', () => {
-  let component: UploadAdvanceFormComponent;
-  let fixture: ComponentFixture<UploadAdvanceFormComponent>;
-  let formServiceSpy: MockUploadAdvanceFormService;
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
-  // 1. Mock de User estrictamente tipado
-  const mockUser: User = {
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
+  const baseUser: User = {
     id: 'user-1',
     idType: IdentificationType.CC,
     idNumber: 123456789,
     firstName: 'Ana',
+    secondName: '',
     lastName: 'López',
     secondLastName: 'Díaz',
     codeNumber: 20262002,
@@ -46,8 +45,7 @@ describe('UploadAdvanceFormComponent', () => {
     state: UserState.active
   };
 
-  // 2. Mock de ThesisWork estrictamente tipado (Sin as unknown)
-  const mockThesisWork: ThesisWork = {
+  const baseThesis = {
     thesisWorkId: 'thesis-1',
     preliminaryDraftId: 'draft-1',
     documents: [],
@@ -67,8 +65,8 @@ describe('UploadAdvanceFormComponent', () => {
         title: 'Título de Prueba del Avance',
         description: 'Descripción detallada de prueba',
         modality: Modality.TI,
-        authors: [mockUser],
-        director: mockUser,
+        authors: [baseUser],
+        director: baseUser,
         state: stateList.APROBADO,
         createdAt: new Date(),
         documents: [],
@@ -77,7 +75,23 @@ describe('UploadAdvanceFormComponent', () => {
     }
   };
 
+  return { ...baseThesis, ...overrides } as ThesisWork;
+};
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
+describe('UploadAdvanceFormComponent', () => {
+  let component: UploadAdvanceFormComponent;
+  let fixture: ComponentFixture<UploadAdvanceFormComponent>;
+  let formServiceSpy: MockUploadAdvanceFormService;
+
+  const mockThesisWork = createMockThesisWork();
+
   beforeEach(async () => {
+    // 🔕 Silenciar consola como medida preventiva, estándar del proyecto
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // Inicializamos un formulario real para el mock.
     const fb = new FormBuilder();
     const mockForm = fb.nonNullable.group({
@@ -107,13 +121,14 @@ describe('UploadAdvanceFormComponent', () => {
     fixture = TestBed.createComponent(UploadAdvanceFormComponent);
     component = fixture.componentInstance;
 
-    // Asignamos el @Input requerido antes de detectar cambios
+    // Asignamos el @Input requerido ANTES de detectar cambios (esencial en Angular >= 16)
     fixture.componentRef.setInput('thesisWork', mockThesisWork);
     fixture.detectChanges();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización', () => {
@@ -122,24 +137,24 @@ describe('UploadAdvanceFormComponent', () => {
     });
 
     it('debería renderizar la información de solo lectura usando los templates', () => {
-      // SOLUCIÓN: Buscamos los inputs y textareas específicos porque usan la propiedad [value]
       const disabledInputs = fixture.debugElement.queryAll(By.css('input[disabled]'));
       const disabledTextarea = fixture.debugElement.query(By.css('textarea[disabled]'));
 
+      // Utilizamos encadenamiento opcional por seguridad en el DOM
       // disabledInputs[0] -> Título
-      expect(disabledInputs[0].nativeElement.value).toBe('Título de Prueba del Avance');
+      expect(disabledInputs[0]?.nativeElement?.value).toBe('Título de Prueba del Avance');
 
       // disabledTextarea -> Descripción
-      expect(disabledTextarea.nativeElement.value).toBe('Descripción detallada de prueba');
+      expect(disabledTextarea?.nativeElement?.value).toBe('Descripción detallada de prueba');
 
       // disabledInputs[1] -> Modalidad
-      expect(disabledInputs[1].nativeElement.value).toBe(mockThesisWork.preliminaryDraftData.proposalData.modality);
+      expect(disabledInputs[1]?.nativeElement?.value).toBe(mockThesisWork.preliminaryDraftData.proposalData.modality);
 
       // disabledInputs[2] -> Estudiante
-      expect(disabledInputs[2].nativeElement.value).toBe('Ana López');
+      expect(disabledInputs[2]?.nativeElement?.value).toBe('Ana López');
 
       // disabledInputs[3] -> Director
-      expect(disabledInputs[3].nativeElement.value).toBe('Director Test');
+      expect(disabledInputs[3]?.nativeElement?.value).toBe('Director Test');
     });
   });
 

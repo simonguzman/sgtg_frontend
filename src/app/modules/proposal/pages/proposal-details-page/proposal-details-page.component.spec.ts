@@ -31,6 +31,11 @@ describe('ProposalDetailsPageComponent', () => {
   const mockProposal = { id: '123', title: 'Test Proposal', authors: [] } as unknown as Proposal;
 
   beforeEach(async () => {
+    // 1. Espías para silenciar la consola globalmente en todas las pruebas
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     mockRouter = {
       navigate: jest.fn(),
     };
@@ -64,6 +69,11 @@ describe('ProposalDetailsPageComponent', () => {
 
     fixture = TestBed.createComponent(ProposalDetailsPageComponent);
     component = fixture.componentInstance;
+  });
+
+  afterEach(() => {
+    // 2. Restauramos todos los espías y mocks originales al terminar cada prueba
+    jest.restoreAllMocks();
   });
 
   it('debe crearse correctamente', () => {

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { FormBuilder } from '@angular/forms';
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
 
 import { AssignEvaluatorsFormFacadeService } from './assign-evaluators-form-facade.service';
 import { UserService } from '../../../../users/services/user.service';
@@ -12,28 +12,65 @@ import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
+import { stateList } from '../../../../../core/enums/state.enum';
+
+// 🔹 REFACTOR: Fábricas de Datos (Factories) para generar entidades estrictas sin 'unknown' ni 'any'
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'u1',
+  firstName: 'Nombre',
+  lastName: 'Apellido',
+  roles: [],
+  ...overrides
+} as User);
+
+const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
+  id: 'p1',
+  title: 'Propuesta de Prueba',
+  state: stateList.APROBADO,
+  director: createMockUser(),
+  evaluations: [],
+  ...overrides
+} as Proposal);
+
+const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
+  preliminaryDraftId: 'draft-1',
+  proposalId: 'p1',
+  proposalData: createMockProposal(),
+  documents: [],
+  state: stateList.EN_REVISION,
+  createdData: new Date(),
+  evaluations: [],
+  evaluators: [],
+  isArchived: false,
+  ...overrides
+} as PreliminaryDraft);
 
 describe('AssignEvaluatorsFormFacadeService', () => {
   let facade: AssignEvaluatorsFormFacadeService;
 
-  let mockUserService: { users: ReturnType<typeof signal>; getAuthorsNames: jest.Mock };
+  // 🔹 REFACTOR: Tipado estricto para los mocks
+  let mockUserService: { users: WritableSignal<User[]>; getAuthorsNames: jest.Mock };
   let mockPreliminaryDraftService: { validateReviewersRules: jest.Mock };
   let mockNotificationService: { show: jest.Mock };
 
-  // Ampliamos el mock de usuarios para cubrir TODAS las ramas lógicas del computado
+  // Ampliamos el mock de usuarios usando el Factory para cubrir TODAS las ramas lógicas sin casquetes inseguros
   const mockUsers: User[] = [
-    { id: 'u1', firstName: 'Docente', lastName: 'Uno', roles: [UserRoleType.DOCENTE] },
-    { id: 'u2', firstName: 'Docente', lastName: 'Dos', roles: [UserRoleType.DOCENTE] },
-    { id: 'u3', firstName: 'Jefe', lastName: 'Dep', roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] }, // Conflicto: Jefe
-    { id: 'u4', firstName: 'Director', lastName: 'Proyecto', roles: [UserRoleType.DOCENTE] }, // Participante: Director
-    { id: 'u5', firstName: 'Codirector', lastName: 'Proyecto', roles: [UserRoleType.DOCENTE] }, // Participante: Codirector
-    { id: 'u6', firstName: 'Asesor', lastName: 'Proyecto', roles: [UserRoleType.DOCENTE] }, // Participante: Asesor
-    { id: 'u7', firstName: 'Autor', lastName: 'String', roles: [UserRoleType.DOCENTE] }, // Participante: Autor (ID string)
-    { id: 'u8', firstName: 'Autor', lastName: 'Object', roles: [UserRoleType.DOCENTE] }, // Participante: Autor (Objeto)
-    { id: 'u9', firstName: 'Sin', lastName: 'RolDocente', roles: [] }, // No es docente
-  ] as unknown as User[];
+    createMockUser({ id: 'u1', firstName: 'Docente', lastName: 'Uno', roles: [UserRoleType.DOCENTE] }),
+    createMockUser({ id: 'u2', firstName: 'Docente', lastName: 'Dos', roles: [UserRoleType.DOCENTE] }),
+    createMockUser({ id: 'u3', firstName: 'Jefe', lastName: 'Dep', roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] }), // Conflicto: Jefe
+    createMockUser({ id: 'u4', firstName: 'Director', lastName: 'Proyecto', roles: [UserRoleType.DOCENTE] }), // Participante: Director
+    createMockUser({ id: 'u5', firstName: 'Codirector', lastName: 'Proyecto', roles: [UserRoleType.DOCENTE] }), // Participante: Codirector
+    createMockUser({ id: 'u6', firstName: 'Asesor', lastName: 'Proyecto', roles: [UserRoleType.DOCENTE] }), // Participante: Asesor
+    createMockUser({ id: 'u7', firstName: 'Autor', lastName: 'String', roles: [UserRoleType.DOCENTE] }), // Participante: Autor (ID string)
+    createMockUser({ id: 'u8', firstName: 'Autor', lastName: 'Object', roles: [UserRoleType.DOCENTE] }), // Participante: Autor (Objeto)
+    createMockUser({ id: 'u9', firstName: 'Sin', lastName: 'RolDocente', roles: [] }), // No es docente
+  ];
 
   beforeEach(() => {
+    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockUserService = {
       users: signal(mockUsers),
       getAuthorsNames: jest.fn().mockReturnValue('Autor Test')
@@ -62,6 +99,7 @@ describe('AssignEvaluatorsFormFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Computados: availableEvaluators & options', () => {
@@ -69,19 +107,20 @@ describe('AssignEvaluatorsFormFacadeService', () => {
       facade.preliminaryDraft.set(null);
       expect(facade.evaluator1Options()).toEqual([]);
 
-      facade.preliminaryDraft.set({} as PreliminaryDraft); // Sin proposalData
+      // Pasamos un draft sin proposalData (simulando estado corrupto)
+      facade.preliminaryDraft.set(createMockPreliminaryDraft({ proposalData: undefined }));
       expect(facade.evaluator1Options()).toEqual([]);
     });
 
     it('debería filtrar participantes del proyecto, no-docentes y roles conflictivos', () => {
-      const mockDraft = {
-        proposalData: {
-          director: { id: 'u4' },
-          codirector: { id: 'u5' },
-          advisor: { id: 'u6' },
-          authors: ['u7', { id: 'u8' } as User] // Prueba la rama string y la rama User
-        } as Proposal
-      } as PreliminaryDraft;
+      const mockDraft = createMockPreliminaryDraft({
+        proposalData: createMockProposal({
+          director: createMockUser({ id: 'u4' }),
+          codirector: createMockUser({ id: 'u5' }),
+          advisor: createMockUser({ id: 'u6' }),
+          authors: [createMockUser({ id: 'u7' }), createMockUser({ id: 'u8' })]
+        })
+      });
 
       facade.preliminaryDraft.set(mockDraft);
 
@@ -93,7 +132,7 @@ describe('AssignEvaluatorsFormFacadeService', () => {
     });
 
     it('evaluator2Options no debería incluir al usuario seleccionado en evaluator1', () => {
-      const mockDraft = { proposalData: {} as Proposal } as PreliminaryDraft;
+      const mockDraft = createMockPreliminaryDraft();
       facade.preliminaryDraft.set(mockDraft);
 
       // Simulamos selección en el primer select (reacciona al valueChanges)
@@ -119,7 +158,7 @@ describe('AssignEvaluatorsFormFacadeService', () => {
 
   describe('Helpers de la vista', () => {
     it('getMemberFullName debería concatenar los nombres ignorando undefined', () => {
-      const userFull = { firstName: 'Juan', secondName: 'Carlos', lastName: 'Pérez' } as User;
+      const userFull = createMockUser({ firstName: 'Juan', secondName: 'Carlos', lastName: 'Pérez', secondLastName: '' });
       expect(facade.getMemberFullName(userFull)).toBe('Juan Carlos Pérez');
       expect(facade.getMemberFullName(undefined)).toBe('No asignado');
     });
@@ -172,7 +211,7 @@ describe('AssignEvaluatorsFormFacadeService', () => {
     });
 
     it('debería retornar null y notificar si validateReviewersRules falla', () => {
-      const mockDraft = { proposalData: {} as Proposal } as PreliminaryDraft;
+      const mockDraft = createMockPreliminaryDraft();
       facade.preliminaryDraft.set(mockDraft);
       facade.form.patchValue({ evaluator1: 'u1', evaluator2: 'u2' });
 
@@ -187,7 +226,7 @@ describe('AssignEvaluatorsFormFacadeService', () => {
     });
 
     it('debería retornar el payload si el formulario y las reglas de negocio son válidos', () => {
-      const mockDraft = { proposalData: {} as Proposal } as PreliminaryDraft;
+      const mockDraft = createMockPreliminaryDraft();
       facade.preliminaryDraft.set(mockDraft);
       facade.form.patchValue({ evaluator1: 'u1', evaluator2: 'u2' });
 

@@ -18,6 +18,57 @@ import { ProjectStatus } from '../enum/projectStatus.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
 
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
+  id: 'prop-1',
+  title: 'Default Title',
+  state: stateList.EN_REVISION,
+  createdAt: new Date(),
+  authors: [],
+  evaluations: [],
+  documents: [],
+  isArchived: false,
+  ...overrides
+} as Proposal);
+
+const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
+  preliminaryDraftId: 'draft-1',
+  proposalId: 'prop-1',
+  state: stateList.APROBADO,
+  isArchived: false,
+  evaluators: [],
+  evaluations: [],
+  documents: [],
+  createdData: new Date(),
+  ...overrides
+} as PreliminaryDraft);
+
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => ({
+  thesisWorkId: 'thesis-1',
+  state: 'FINALIZADO' as ThesisWork['state'],
+  isArchived: false,
+  createdDate: new Date(),
+  ...overrides
+} as ThesisWork);
+
+const createMockRawProjectData = (overrides: Partial<RawProjectData> = {}): RawProjectData => ({
+  id: 'raw-1',
+  title: 'Proyecto Mock',
+  stage: ProjectStage.PROPUESTA,
+  status: ProjectStatus.EN_DESARROLLO,
+  originalState: stateList.EN_REVISION,
+  period: '2026-1',
+  directorId: 'usr-1',
+  directorName: 'Director Mock',
+  registrationDate: new Date(),
+  isArchived: false,
+  deadlineStatus: null,
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('StatisticsStateService', () => {
   let service: StatisticsStateService;
 
@@ -25,9 +76,19 @@ describe('StatisticsStateService', () => {
   let mockProposalsSignal: WritableSignal<Proposal[]>;
   let mockDraftsSignal: WritableSignal<PreliminaryDraft[]>;
   let mockThesisSignal: WritableSignal<ThesisWork[]>;
-  let mockMapper: Partial<ProjectDataMapperService>;
+
+  // Mapper estricto sin retornos inseguros
+  let mockMapper: {
+    mapProposal: jest.Mock<RawProjectData, [Proposal]>;
+    mapPreliminaryDraft: jest.Mock<RawProjectData, [PreliminaryDraft]>;
+    mapThesisWork: jest.Mock<RawProjectData, [ThesisWork]>;
+  };
 
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockProposalsSignal = signal<Proposal[]>([]);
     mockDraftsSignal = signal<PreliminaryDraft[]>([]);
     mockThesisSignal = signal<ThesisWork[]>([]);
@@ -43,9 +104,9 @@ describe('StatisticsStateService', () => {
     };
 
     mockMapper = {
-      mapProposal: jest.fn((p: Proposal): RawProjectData => p as unknown as RawProjectData),
-      mapPreliminaryDraft: jest.fn((d: PreliminaryDraft): RawProjectData => d as unknown as RawProjectData),
-      mapThesisWork: jest.fn((t: ThesisWork): RawProjectData => t as unknown as RawProjectData),
+      mapProposal: jest.fn(),
+      mapPreliminaryDraft: jest.fn(),
+      mapThesisWork: jest.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -63,6 +124,7 @@ describe('StatisticsStateService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('Estado inicial y gestión de filtros', () => {
@@ -114,69 +176,55 @@ describe('StatisticsStateService', () => {
   });
 
   describe('Computeds de Datos base y Opciones', () => {
-    const mockProject1: RawProjectData = {
+    // 🔹 REFACTOR: Generamos los RawProjectData estrictamente
+    const rawProject1 = createMockRawProjectData({
       id: '1',
-      title: 'Desarrollo de sistema web',
-      status: ProjectStatus.EN_DESARROLLO,
-      registrationDate: new Date('2025-02-15'),
       period: '2025-1',
       directorId: 'dir-1',
       directorName: 'Juan Pérez',
-      originalState: stateList.EN_REVISION,
-      stage: ProjectStage.PROPUESTA,
-      isArchived: false,
-      deadlineStatus: EvaluationDeadlineStatus.ON_TIME,
-    };
+    });
 
-    const mockProject2: RawProjectData = {
+    const rawProject2 = createMockRawProjectData({
       id: '2',
-      title: 'Implementación de IA',
-      status: ProjectStatus.APROBADO,
-      registrationDate: new Date('2026-03-10'),
       period: '2026-1',
       directorId: 'dir-2',
       directorName: 'Ana Gómez',
-      originalState: stateList.APROBADO,
-      stage: ProjectStage.ANTEPROYECTO,
-      isArchived: false,
-      deadlineStatus: EvaluationDeadlineStatus.DELAYED,
-    };
+    });
 
-    const mockProject3: RawProjectData = {
+    const rawProject3 = createMockRawProjectData({
       id: '3',
-      title: 'Aplicación móvil de salud',
-      status: ProjectStatus.EN_DESARROLLO,
-      registrationDate: new Date('2025-05-20'),
       period: '2025-1',
       directorId: 'dir-1',
       directorName: 'Juan Pérez',
-      originalState: stateList.EN_REVISION,
-      stage: ProjectStage.TRABAJO_GRADO,
-      isArchived: false,
-      deadlineStatus: null,
-    };
+    });
 
-    const mockProjectNoDirector: RawProjectData = {
+    const rawProjectNoDirector = createMockRawProjectData({
       id: '4',
-      title: 'Proyecto sin asignar',
-      status: ProjectStatus.EN_DESARROLLO,
-      registrationDate: new Date('2024-11-05'),
       period: '2024-2',
       directorId: 'sin-director',
       directorName: 'Sin Asignar',
-      originalState: stateList.EN_REVISION,
-      stage: ProjectStage.ANTEPROYECTO,
-      isArchived: false,
-      deadlineStatus: null,
-    };
+    });
 
     beforeEach(() => {
-      mockProposalsSignal.set([mockProject1 as unknown as Proposal]);
-      mockDraftsSignal.set([
-        mockProject2 as unknown as PreliminaryDraft,
-        mockProjectNoDirector as unknown as PreliminaryDraft,
-      ]);
-      mockThesisSignal.set([mockProject3 as unknown as ThesisWork]);
+      // Configuramos entidades genuinas para inyectarlas en los Signals
+      const prop1 = createMockProposal({ id: '1' });
+      const draft2 = createMockPreliminaryDraft({ preliminaryDraftId: '2' });
+      const draftNoDir = createMockPreliminaryDraft({ preliminaryDraftId: '4' });
+      const thesis3 = createMockThesisWork({ thesisWorkId: '3' });
+
+      // Instruimos al mockMapper para devolver el Raw adecuado según el ID que le llegue
+      mockMapper.mapProposal.mockImplementation(p => p.id === '1' ? rawProject1 : createMockRawProjectData());
+      mockMapper.mapPreliminaryDraft.mockImplementation(d => {
+        if (d.preliminaryDraftId === '2') return rawProject2;
+        if (d.preliminaryDraftId === '4') return rawProjectNoDirector;
+        return createMockRawProjectData();
+      });
+      mockMapper.mapThesisWork.mockImplementation(t => t.thesisWorkId === '3' ? rawProject3 : createMockRawProjectData());
+
+      // Alimentamos los signals
+      mockProposalsSignal.set([prop1]);
+      mockDraftsSignal.set([draft2, draftNoDir]);
+      mockThesisSignal.set([thesis3]);
     });
 
     it('rawData: debe combinar y mapear los datos de los 3 servicios', () => {
@@ -203,69 +251,61 @@ describe('StatisticsStateService', () => {
   });
 
   describe('filteredData (Lógica de filtrado)', () => {
-    const activeProject: RawProjectData = {
+    // 🔹 REFACTOR: Construimos la data resultante de forma limpia
+    const activeRaw = createMockRawProjectData({
       id: 'p1',
-      title: 'Proyecto Activo On Time',
-      status: ProjectStatus.EN_DESARROLLO,
-      registrationDate: new Date('2026-02-01'),
-      originalState: stateList.EN_REVISION,
       stage: ProjectStage.PROPUESTA,
       period: '2026-1',
       directorId: 'd1',
-      directorName: 'Carlos',
       isArchived: false,
       deadlineStatus: EvaluationDeadlineStatus.ON_TIME,
-    };
+    });
 
-    const archivedProject: RawProjectData = {
+    const archivedRaw = createMockRawProjectData({
       id: 'p2',
-      title: 'Proyecto Archivado Delayed',
-      status: ProjectStatus.APROBADO,
-      registrationDate: new Date('2025-08-15'),
-      originalState: stateList.APROBADO,
       stage: ProjectStage.ANTEPROYECTO,
       period: '2025-2',
       directorId: 'd2',
-      directorName: 'María',
       isArchived: true,
       deadlineStatus: EvaluationDeadlineStatus.DELAYED,
-    };
+    });
 
-    const unevaluatedProject: RawProjectData = {
+    const unevaluatedRaw = createMockRawProjectData({
       id: 'p3',
-      title: 'Proyecto Sin Evaluar',
-      status: ProjectStatus.EN_DESARROLLO,
-      registrationDate: new Date('2026-01-10'),
-      originalState: stateList.EN_REVISION,
       stage: ProjectStage.PROPUESTA,
       period: '2026-1',
       directorId: 'd1',
-      directorName: 'Carlos',
       isArchived: false,
       deadlineStatus: null,
-    };
+    });
 
-    const evaluatedProject: RawProjectData = {
+    const evaluatedRaw = createMockRawProjectData({
       id: 'p4',
-      title: 'Proyecto Evaluado Excluido',
-      status: ProjectStatus.EN_DESARROLLO,
-      registrationDate: new Date('2026-01-01'),
       originalState: stateList.EVALUADO,
       stage: ProjectStage.PROPUESTA,
       period: '2026-1',
       directorId: 'd1',
-      directorName: 'Carlos',
       isArchived: false,
       deadlineStatus: EvaluationDeadlineStatus.ON_TIME,
-    };
+    });
 
     beforeEach(() => {
-      mockProposalsSignal.set([
-        activeProject as unknown as Proposal,
-        archivedProject as unknown as Proposal,
-        unevaluatedProject as unknown as Proposal,
-        evaluatedProject as unknown as Proposal,
-      ]);
+      // Creamos 4 propuestas dummy que alimentarán el Signal principal
+      const p1 = createMockProposal({ id: 'p1' });
+      const p2 = createMockProposal({ id: 'p2' });
+      const p3 = createMockProposal({ id: 'p3' });
+      const p4 = createMockProposal({ id: 'p4' });
+
+      // Enrutamos las respuestas del mapper según el ID
+      mockMapper.mapProposal.mockImplementation(p => {
+        if (p.id === 'p1') return activeRaw;
+        if (p.id === 'p2') return archivedRaw;
+        if (p.id === 'p3') return unevaluatedRaw;
+        if (p.id === 'p4') return evaluatedRaw;
+        return createMockRawProjectData();
+      });
+
+      mockProposalsSignal.set([p1, p2, p3, p4]);
     });
 
     it('debe excluir siempre proyectos cuyo originalState sea EVALUADO', () => {

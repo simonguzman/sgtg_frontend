@@ -33,8 +33,10 @@ describe('LoadedProposalsFacadeService', () => {
   let mockCurrentUserSignal: WritableSignal<User | null>;
   let mockAllProposalsSignal: WritableSignal<Proposal[]>;
 
-  // Spies para utilidades
+  // Spies para utilidades y consola
   let readFileSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
+  let consoleWarnSpy: jest.SpyInstance;
 
   const mockUser: User = { id: 'user-director', roles: [UserRoleType.DOCENTE] } as User;
 
@@ -78,6 +80,10 @@ describe('LoadedProposalsFacadeService', () => {
   });
 
   beforeEach(() => {
+    // Silenciamos la consola para evitar ruido en los tests
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockCurrentUserSignal = signal<User | null>(mockUser);
     mockAllProposalsSignal = signal<Proposal[]>([mockProposal]);
 
@@ -92,7 +98,7 @@ describe('LoadedProposalsFacadeService', () => {
     } as unknown as jest.Mocked<AuthService>;
 
     mockDownloadService = {
-      download: jest.fn().mockResolvedValue(undefined) // Ajustado a Promesa
+      download: jest.fn().mockResolvedValue(undefined)
     } as unknown as jest.Mocked<FileDownloadService>;
 
     mockNotificationService = {
@@ -122,6 +128,8 @@ describe('LoadedProposalsFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 
   describe('Método: buildDocumentsTableData', () => {
@@ -161,7 +169,7 @@ describe('LoadedProposalsFacadeService', () => {
 
       expect(buttons).toHaveLength(1);
       expect(buttons[0]).toEqual({
-        action: 'upload_correction', // Actualizado con action
+        action: 'upload_correction',
         label: 'Cargar propuesta corregida',
         variant: 'primary',
         disabled: true
@@ -226,7 +234,7 @@ describe('LoadedProposalsFacadeService', () => {
 
   describe('Método: handleDownload', () => {
     it('debería notificar info e iniciar descarga si el URL es válido de forma asíncrona', async () => {
-      await service.handleDownload(mockMappedRow); // Modificado con await
+      await service.handleDownload(mockMappedRow);
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ type: NotificationType.INFO, title: 'Descarga iniciada' })
@@ -245,17 +253,14 @@ describe('LoadedProposalsFacadeService', () => {
     });
 
     it('debería interceptar errores lanzados por el servicio de descargas', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockDownloadService.download.mockRejectedValue(new Error('Network error'));
 
       await service.handleDownload(mockMappedRow);
 
-      expect(consoleSpy).toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalled(); // Se usa el espía global
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ type: NotificationType.ERROR, title: 'Error de descarga' })
       );
-
-      consoleSpy.mockRestore();
     });
   });
 
@@ -266,10 +271,8 @@ describe('LoadedProposalsFacadeService', () => {
       const onSuccess = jest.fn();
       const onError = jest.fn();
 
-      // Eliminado el 'as any'
       mockProposalService.uploadCorrectionMock.mockReturnValue(of(mockProposal));
 
-      // Modificado con await para soportar proceso asíncrono
       await service.upload('prop-1', fileData, onSuccess, onError);
 
       expect(readFileSpy).toHaveBeenCalledWith(fileData.file);
@@ -283,7 +286,7 @@ describe('LoadedProposalsFacadeService', () => {
           name: 'correccion_final',
           type: DocumentType.CORRECCION,
           status: stateList.EN_REVISION,
-          url: 'data:application/pdf;base64,mockedbase64', // Validamos uso del mock de lectura
+          url: 'data:application/pdf;base64,mockedbase64',
           uploadDate: expect.any(String)
         })
       );
@@ -295,21 +298,18 @@ describe('LoadedProposalsFacadeService', () => {
     it('debería fallar, notificar error y llamar onError si falla la lectura del archivo (Data URL)', async () => {
       const onSuccess = jest.fn();
       const onError = jest.fn();
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       // Forzamos error en la utilidad de FileReader
       readFileSpy.mockRejectedValue(new Error('FileReader Error'));
 
       await service.upload('prop-1', fileData, onSuccess, onError);
 
-      expect(consoleSpy).toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalled(); // Se usa el espía global
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Error de carga' }));
       expect(mockProposalService.uploadCorrectionMock).not.toHaveBeenCalled();
 
       expect(onError).toHaveBeenCalled();
       expect(onSuccess).not.toHaveBeenCalled();
-
-      consoleSpy.mockRestore();
     });
 
     it('debería notificar error y llamar a onError si falla el servicio de propuesta', async () => {

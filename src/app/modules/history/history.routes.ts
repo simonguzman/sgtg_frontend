@@ -21,6 +21,9 @@ import { ThesisWorkDetailsPageComponent } from '../thesis-work/pages/thesis-work
 import { LoadedDocumentsThesisWorkPageComponent } from '../thesis-work/pages/loaded-documents-thesis-work-page/loaded-documents-thesis-work-page.component';
 import { SustentationDetailsPageComponent } from '../thesis-work/pages/sustentation-details-page/sustentation-details-page.component';
 import { CorrectedDocumentsPageComponent } from '../thesis-work/pages/corrected-documents-page/corrected-documents-page.component';
+import { proposalOwnershipGuard } from '../../core/guards/proposal-ownership.guard';
+import { preliminaryDraftOwnershipGuard } from '../../core/guards/preliminary-draft-ownership.guard';
+import { thesisWorkOwnershipGuard } from '../../core/guards/thesis-work-ownership.guard';
 
 const ALL_ROLES = [
   UserRoleType.ADMINISTRADOR,
@@ -53,6 +56,7 @@ export const historyRoutes: Routes = [
       // ==========================================
       {
         path: 'proposal-details/:id',
+        canActivate: [proposalOwnershipGuard],
         data: { breadcrumb: 'Propuestas Archivadas' },
         children: [
           {
@@ -103,6 +107,7 @@ export const historyRoutes: Routes = [
       // ==========================================
       {
         path: 'preliminary-draft-details/:id',
+        canActivate: [preliminaryDraftOwnershipGuard],
         data: { breadcrumb: 'Anteproyectos Archivados' },
         children: [
           {
@@ -148,6 +153,7 @@ export const historyRoutes: Routes = [
       // ==========================================
       {
         path: 'thesis-work-details/:id',
+        canActivate: [thesisWorkOwnershipGuard],
         data: { breadcrumb: 'Trabajos de Grado Archivados' },
         children: [
           {

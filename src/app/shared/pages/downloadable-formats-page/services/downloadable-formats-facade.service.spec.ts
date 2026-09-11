@@ -5,14 +5,34 @@ import { NotificationService } from '../../../components/notifications/services/
 import { NotificationType } from '../../../components/notifications/models/notification.model';
 import { DownloadableFormat } from '../models/downloadable-formats-page.model';
 
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockDownloadableFormat = (overrides: Partial<DownloadableFormat> = {}): DownloadableFormat => ({
+  id: 'f-01',
+  title: 'Formato de Prueba',
+  url: 'http://midominio.com/formato.pdf',
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('DownloadableFormatsFacadeService', () => {
   let facade: DownloadableFormatsFacadeService;
 
   // Tipado estricto de Mocks (Zero-Any)
-  let mockDownloadService: { download: jest.Mock };
-  let mockNotificationService: { show: jest.Mock };
+  let mockDownloadService: {
+    download: jest.Mock<Promise<void>, [string, string, boolean]>;
+  };
+
+  let mockNotificationService: {
+    show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
+  };
 
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener terminal limpia de advertencias y errores
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockDownloadService = {
       download: jest.fn().mockResolvedValue(undefined)
     };
@@ -34,15 +54,13 @@ describe('DownloadableFormatsFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola y espías
   });
 
   describe('downloadFormat()', () => {
     it('debería mostrar notificación de error y detenerse si la URL es inválida (vacía o solo espacios)', async () => {
-      const mockFormat: DownloadableFormat = {
-        id: 'f-01',
-        title: 'Formato de Prueba',
-        url: '   ' // URL con solo espacios
-      };
+      // Usando la fábrica para simular la URL inválida con espacios
+      const mockFormat = createMockDownloadableFormat({ url: '   ' });
 
       await facade.downloadFormat(mockFormat);
 
@@ -55,11 +73,12 @@ describe('DownloadableFormatsFacadeService', () => {
     });
 
     it('debería notificar el inicio de descarga y llamar al FileDownloadService con la URL, nombre en mayúsculas y flag de uso de blob en true', async () => {
-      const mockFormat: DownloadableFormat = {
+      // Creamos el formato simulado con parámetros ideales
+      const mockFormat = createMockDownloadableFormat({
         id: 'f-01', // El código debe transformarse a F-01
         title: 'Formato de Prueba',
         url: 'http://midominio.com/formato.pdf'
-      };
+      });
 
       await facade.downloadFormat(mockFormat);
 

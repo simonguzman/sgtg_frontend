@@ -1,46 +1,151 @@
+// 1. Angular y Configuración
 import { SpecialRequestTabConfig } from './special-request.tab';
 import { ThesisEvaluationContext } from './tab-config.interface';
+
+// 2. Interfaces y Enums
 import { stateList } from '../../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 import { SpecialRequest } from '../../../interfaces/special-request.interface';
 import { JurorVerdict } from '../../../interfaces/juror-verdict.interface';
+import { IdentificationType } from '../../../../users/enum/identification-type.enum';
+import { UserState } from '../../../../users/enum/user-state.enum';
+import { SpecialRequestType } from '../../../enums/special-request-type.enum';
+import { Modality } from '../../../../proposal/enums/modality.enum';
+import { SustentationRegistry } from '../../../interfaces/sustentation-registry.interface';
+import { SustentationStatus } from '../../../enums/sustentation-status.enum';
 
-// Inferimos el tipo exacto del arreglo de sustentaciones desde ThesisWork
-// Esto evita tener que importar interfaces que tal vez no expone el módulo
-type SustentationItem = NonNullable<ThesisWork['sustentations']>[number];
+// ── Funciones Fábrica fuertemente tipadas (Cero 'any') ───────────────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-1',
+  idType: IdentificationType.CC,
+  idNumber: 123456789,
+  firstName: 'Juan',
+  secondName: '',
+  lastName: 'Perez',
+  secondLastName: '',
+  codeNumber: 1234567890,
+  email: 'juan@test.com',
+  password: 'hash',
+  state: UserState.active,
+  roles: [],
+  ...overrides
+});
+
+const createMockJurorVerdict = (overrides: Partial<JurorVerdict> = {}): JurorVerdict => ({
+  jurorId: 'juror-1',
+  evaluationDate: new Date(),
+  veredict: stateList.APROBADO,
+  observations: '',
+  attachedDocument: undefined,
+  ...overrides
+});
+
+const createMockSustentation = (overrides: Partial<SustentationRegistry> = {}): SustentationRegistry => ({
+  id: 'sus-1',
+  sustentationDate: new Date(),
+  location: 'Auditorio',
+  status: SustentationStatus.PROGRAMADA,
+  verdicts: [],
+  assignedJurors: [],
+  ...overrides
+});
+
+const createMockSpecialRequest = (overrides: Partial<SpecialRequest> = {}): SpecialRequest => ({
+  id: 'req-1',
+  requestType: SpecialRequestType.PRORROGA,
+  description: 'Descripción base',
+  resolutionDetails: undefined,
+  grantedDeadline: undefined,
+  directorId: 'dir-1',
+  status: stateList.EN_REVISION,
+  requestDate: new Date(),
+  ...overrides
+});
+
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
+  const baseUser = createMockUser();
+
+  // Construcción estricta para el borrador preliminar
+  const mockDraftData: NonNullable<ThesisWork['preliminaryDraftData']> = {
+    preliminaryDraftId: 'draft-1',
+    proposalId: 'prop-1',
+    state: stateList.APROBADO,
+    createdData: new Date(),
+    evaluators: [],
+    evaluations: [],
+    documents: [],
+    proposalData: {
+      id: 'prop-1',
+      title: 'Mock Title',
+      description: 'Desc',
+      modality: Modality.TI,
+      authors: [baseUser],
+      director: baseUser,
+      state: stateList.APROBADO,
+      createdAt: new Date(),
+      documents: [],
+      evaluations: []
+    } as NonNullable<ThesisWork['preliminaryDraftData']>['proposalData']
+  };
+
+  return {
+    thesisWorkId: 'thesis-1',
+    preliminaryDraftId: 'draft-1',
+    documents: [],
+    evaluations: [],
+    specialRequests: [],
+    correctedDeliveries: [],
+    sustentations: [],
+    advances: [],
+    finalDeliveries: [],
+    pazYSalvos: [],
+    state: stateList.EN_DESARROLLO,
+    createdDate: new Date(),
+    isArchived: false,
+    preliminaryDraftData: mockDraftData,
+    ...overrides
+  };
+};
+
+const createMockEvaluationContext = (overrides: Partial<ThesisEvaluationContext> = {}): ThesisEvaluationContext => ({
+  thesisWork: createMockThesisWork(),
+  currentUser: createMockUser(),
+  isStudent: false,
+  isDirector: false,
+  isCodirector: false,
+  isAdvisor: false,
+  isAdmin: false,
+  isArchived: false,
+  isDecanatura: false,
+  isJuror: false,
+  isConsejo: false,
+  latestAdvanceId: null,
+  isLatestAdvancePending: false,
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('SpecialRequestTabConfig', () => {
   let baseContext: ThesisEvaluationContext;
 
   beforeEach(() => {
+    // 🔕 Silenciador preventivo global de consola para limpiar la terminal en Jest
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+
     jest.clearAllMocks();
 
-    const mockUser: Partial<User> = { id: 'user-1' };
+    // Contexto base prístino inicializado para cada test
+    baseContext = createMockEvaluationContext();
+  });
 
-    const mockThesisWork: Partial<ThesisWork> = {
-      thesisWorkId: 'thesis-1',
-      state: stateList.EN_DESARROLLO,
-      sustentations: [],
-      specialRequests: []
-    };
-
-    baseContext = {
-      currentUser: mockUser as User,
-      isStudent: false,
-      isDirector: false,
-      isCodirector: false,
-      isAdvisor: false,
-      isAdmin: false,
-      isArchived: false,
-      isDecanatura: false,
-      isJuror: false,
-      isConsejo: false,
-      latestAdvanceId: null,
-      isLatestAdvancePending: false,
-      thesisWork: mockThesisWork as ThesisWork
-    };
+  afterEach(() => {
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Propiedades Estáticas', () => {
@@ -53,49 +158,49 @@ describe('SpecialRequestTabConfig', () => {
   });
 
   describe('enrichEvaluationContext', () => {
-    it('debe retornar el contexto original si no hay thesisWork', () => {
+    it('debe retornar el contexto original intacto si no hay thesisWork', () => {
       baseContext.thesisWork = null;
-      const result = SpecialRequestTabConfig.enrichEvaluationContext!(baseContext);
+
+      const result = SpecialRequestTabConfig.enrichEvaluationContext(baseContext);
+
       expect(result).toEqual(baseContext);
     });
 
-    it('debe marcar isSustentationFinalized como false si no hay sustentaciones o veredictos', () => {
-      baseContext.thesisWork!.sustentations = [];
-      let result = SpecialRequestTabConfig.enrichEvaluationContext!(baseContext);
+    it('debe marcar isSustentationFinalized como false si no hay sustentaciones o no hay veredictos', () => {
+      // Sin sustentaciones
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [] });
+      let result = SpecialRequestTabConfig.enrichEvaluationContext(baseContext);
       expect(result.isSustentationFinalized).toBe(false);
 
-      const mockSustentation: Partial<SustentationItem> = { verdicts: [] };
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
+      // Con sustentación pero sin veredictos
+      const sustentationSinVeredictos = createMockSustentation({ verdicts: [] });
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [sustentationSinVeredictos] });
 
-      result = SpecialRequestTabConfig.enrichEvaluationContext!(baseContext);
+      result = SpecialRequestTabConfig.enrichEvaluationContext(baseContext);
       expect(result.isSustentationFinalized).toBe(false);
     });
 
     it('debe marcar isSustentationFinalized como false si el último veredicto es APLAZADO', () => {
-      const mockSustentation: Partial<SustentationItem> = {
-        verdicts: [
-          { veredict: stateList.APROBADO } as Partial<JurorVerdict> as JurorVerdict,
-          { veredict: stateList.APLAZADO } as Partial<JurorVerdict> as JurorVerdict
-        ]
-      };
+      const verdictAprobado = createMockJurorVerdict({ veredict: stateList.APROBADO });
+      const verdictAplazado = createMockJurorVerdict({ veredict: stateList.APLAZADO }); // Último en el arreglo
 
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
+      const sustentation = createMockSustentation({ verdicts: [verdictAprobado, verdictAplazado] });
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [sustentation] });
 
-      const result = SpecialRequestTabConfig.enrichEvaluationContext!(baseContext);
+      const result = SpecialRequestTabConfig.enrichEvaluationContext(baseContext);
+
       expect(result.isSustentationFinalized).toBe(false);
     });
 
     it('debe marcar isSustentationFinalized como true si hay veredictos y el último NO es APLAZADO', () => {
-      const mockSustentation: Partial<SustentationItem> = {
-        verdicts: [
-          { veredict: stateList.APLAZADO } as Partial<JurorVerdict> as JurorVerdict,
-          { veredict: stateList.APROBADO } as Partial<JurorVerdict> as JurorVerdict
-        ]
-      };
+      const verdictAplazado = createMockJurorVerdict({ veredict: stateList.APLAZADO });
+      const verdictAprobado = createMockJurorVerdict({ veredict: stateList.APROBADO }); // Último en el arreglo
 
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
+      const sustentation = createMockSustentation({ verdicts: [verdictAplazado, verdictAprobado] });
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [sustentation] });
 
-      const result = SpecialRequestTabConfig.enrichEvaluationContext!(baseContext);
+      const result = SpecialRequestTabConfig.enrichEvaluationContext(baseContext);
+
       expect(result.isSustentationFinalized).toBe(true);
     });
   });
@@ -103,48 +208,66 @@ describe('SpecialRequestTabConfig', () => {
   describe('getTableData', () => {
     const dummyDocs: FileDocument[] = [];
 
-    it('debe retornar un array vacío si no hay thesisWork o specialRequests', () => {
-      // Eliminamos la propiedad de forma segura en TypeScript para testear el IF de control
-      const thesisPartial: Partial<ThesisWork> = baseContext.thesisWork as Partial<ThesisWork>;
-      delete thesisPartial.specialRequests;
+    it('debe retornar un array vacío si no hay thesisWork o specialRequests (programación defensiva)', () => {
+      baseContext.thesisWork = createMockThesisWork({ specialRequests: undefined });
 
-      const rows = SpecialRequestTabConfig.getTableData!(dummyDocs, baseContext);
+      const rows = SpecialRequestTabConfig.getTableData(dummyDocs, baseContext);
+
       expect(rows).toEqual([]);
     });
 
-    it('debe mapear correctamente los datos y manejar fechas nulas o ausentes', () => {
-      const mockRequest: Partial<SpecialRequest> = {
+    it('debe mapear correctamente los datos y manejar fechas nulas o ausentes de manera segura', () => {
+      const mockRequest = createMockSpecialRequest({
         id: 'req-1',
         description: 'Prorroga de entrega',
-        requestDate: undefined, // En lugar de usar null con un cast a Date, simulamos su ausencia
+        requestDate: undefined, // Ausencia intencional para forzar fallback
         status: stateList.APROBADO
-      };
+      });
 
-      baseContext.thesisWork!.specialRequests = [mockRequest as SpecialRequest];
+      baseContext.thesisWork = createMockThesisWork({ specialRequests: [mockRequest] });
 
-      const rows = SpecialRequestTabConfig.getTableData!(dummyDocs, baseContext);
+      const rows = SpecialRequestTabConfig.getTableData(dummyDocs, baseContext);
 
       expect(rows).toHaveLength(1);
       expect(rows[0].id).toBe('req-1');
       expect(rows[0].description).toBe('Prorroga de entrega');
-      expect(rows[0].date).toBe('Sin fecha');
+      expect(rows[0].date).toBe('Sin fecha'); // Validación del fallback
       expect(rows[0].status).toBe(stateList.APROBADO);
       expect(rows[0].allowedActions).toEqual(['view-details']);
     });
 
-    it('debe formatear la fecha correctamente usando toLocaleDateString', () => {
-      const dateString = '2026-08-15T10:00:00Z';
-      const mockRequest: Partial<SpecialRequest> = {
+    it('debe formatear la fecha correctamente cuando viene como objeto Date', () => {
+      const dateObj = new Date('2026-08-15T10:00:00Z');
+      const mockRequest = createMockSpecialRequest({
         id: 'req-2',
-        requestDate: dateString as unknown as Date, // Aseguramos que TS lo tome si la interfaz requiere tipo Date strict
+        requestDate: dateObj,
         status: stateList.EN_REVISION
-      };
+      });
 
-      baseContext.thesisWork!.specialRequests = [mockRequest as SpecialRequest];
+      baseContext.thesisWork = createMockThesisWork({ specialRequests: [mockRequest] });
+
+      const rows = SpecialRequestTabConfig.getTableData(dummyDocs, baseContext);
+
+      // Valida formateo nativo de toLocaleDateString
+      const expectedDate = dateObj.toLocaleDateString('es-ES');
+      expect(rows[0].date).toBe(expectedDate);
+    });
+
+    it('debe parsear y formatear la fecha correctamente si se recibe como string desde la API', () => {
+      const dateString = '2026-08-15T10:00:00Z';
+      const mockRequest = createMockSpecialRequest({
+        id: 'req-2',
+        status: stateList.EN_REVISION
+      });
+
+      // Simulación segura sin @ts-ignore para probar resiliencia en runtime (JavaScript/API Response)
+      mockRequest.requestDate = dateString as unknown as Date;
+
+      baseContext.thesisWork = createMockThesisWork({ specialRequests: [mockRequest] });
+
+      const rows = SpecialRequestTabConfig.getTableData(dummyDocs, baseContext);
 
       const expectedDate = new Date(dateString).toLocaleDateString('es-ES');
-      const rows = SpecialRequestTabConfig.getTableData!(dummyDocs, baseContext);
-
       expect(rows[0].date).toBe(expectedDate);
     });
 
@@ -152,13 +275,11 @@ describe('SpecialRequestTabConfig', () => {
       baseContext.isConsejo = true;
       baseContext.isArchived = true;
 
-      const mockRequest: Partial<SpecialRequest> = {
-        id: 'req-3',
-        status: stateList.EN_REVISION
-      };
-      baseContext.thesisWork!.specialRequests = [mockRequest as SpecialRequest];
+      const mockRequest = createMockSpecialRequest({ id: 'req-3', status: stateList.EN_REVISION });
+      baseContext.thesisWork = createMockThesisWork({ specialRequests: [mockRequest] });
 
-      const rows = SpecialRequestTabConfig.getTableData!(dummyDocs, baseContext);
+      const rows = SpecialRequestTabConfig.getTableData(dummyDocs, baseContext);
+
       expect(rows[0].allowedActions).toEqual(['view-details']);
     });
 
@@ -166,13 +287,11 @@ describe('SpecialRequestTabConfig', () => {
       baseContext.isConsejo = true;
       baseContext.isArchived = false;
 
-      const mockRequest: Partial<SpecialRequest> = {
-        id: 'req-4',
-        status: stateList.APROBADO
-      };
-      baseContext.thesisWork!.specialRequests = [mockRequest as SpecialRequest];
+      const mockRequest = createMockSpecialRequest({ id: 'req-4', status: stateList.APROBADO });
+      baseContext.thesisWork = createMockThesisWork({ specialRequests: [mockRequest] });
 
-      const rows = SpecialRequestTabConfig.getTableData!(dummyDocs, baseContext);
+      const rows = SpecialRequestTabConfig.getTableData(dummyDocs, baseContext);
+
       expect(rows[0].allowedActions).toEqual(['view-details']);
     });
 
@@ -180,13 +299,11 @@ describe('SpecialRequestTabConfig', () => {
       baseContext.isConsejo = true;
       baseContext.isArchived = false;
 
-      const mockRequest: Partial<SpecialRequest> = {
-        id: 'req-5',
-        status: stateList.EN_REVISION
-      };
-      baseContext.thesisWork!.specialRequests = [mockRequest as SpecialRequest];
+      const mockRequest = createMockSpecialRequest({ id: 'req-5', status: stateList.EN_REVISION });
+      baseContext.thesisWork = createMockThesisWork({ specialRequests: [mockRequest] });
 
-      const rows = SpecialRequestTabConfig.getTableData!(dummyDocs, baseContext);
+      const rows = SpecialRequestTabConfig.getTableData(dummyDocs, baseContext);
+
       expect(rows[0].allowedActions).toContain('view-details');
       expect(rows[0].allowedActions).toContain('evaluate_special_request');
     });
@@ -195,15 +312,20 @@ describe('SpecialRequestTabConfig', () => {
   describe('getHeaderButtons', () => {
     it('debe retornar array vacío si está archivado', () => {
       baseContext.isArchived = true;
-      baseContext.isDirector = true;
-      const buttons = SpecialRequestTabConfig.getHeaderButtons!(baseContext);
+      baseContext.isDirector = true; // Intentamos forzar con un rol autorizado
+
+      const buttons = SpecialRequestTabConfig.getHeaderButtons(baseContext);
+
       expect(buttons).toEqual([]);
     });
 
     it('debe retornar array vacío si el usuario no es Director ni Admin', () => {
       baseContext.isDirector = false;
       baseContext.isAdmin = false;
-      const buttons = SpecialRequestTabConfig.getHeaderButtons!(baseContext);
+      baseContext.isStudent = true; // Rol sin permisos para crear
+
+      const buttons = SpecialRequestTabConfig.getHeaderButtons(baseContext);
+
       expect(buttons).toEqual([]);
     });
 
@@ -211,7 +333,7 @@ describe('SpecialRequestTabConfig', () => {
       baseContext.isAdmin = true;
       baseContext.isSustentationFinalized = false;
 
-      const buttons = SpecialRequestTabConfig.getHeaderButtons!(baseContext);
+      const buttons = SpecialRequestTabConfig.getHeaderButtons(baseContext);
 
       expect(buttons).toHaveLength(1);
       expect(buttons[0].label).toBe('Registrar Solicitud Especial');
@@ -223,7 +345,7 @@ describe('SpecialRequestTabConfig', () => {
       baseContext.isDirector = true;
       baseContext.isSustentationFinalized = true;
 
-      const buttons = SpecialRequestTabConfig.getHeaderButtons!(baseContext);
+      const buttons = SpecialRequestTabConfig.getHeaderButtons(baseContext);
 
       expect(buttons).toHaveLength(1);
       expect(buttons[0].label).toBe('Sustentación Finalizada');

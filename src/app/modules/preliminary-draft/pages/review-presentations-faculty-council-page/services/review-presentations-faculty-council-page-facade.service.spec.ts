@@ -1,5 +1,5 @@
 // 1. Angular Core & Testing
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -30,21 +30,33 @@ import { SaveEvaluationPayload } from '../../../components/review-presentations-
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { ReviewPresentationsFacultyCouncilPageFacadeService } from './review-presentations-faculty-council-page-facade.service';
 
-// Hacemos mock de la utilidad de lectura de archivos para que Jest no intente leer un Blob real
+// Hacemos mock de la utilidad de lectura de archivos
 jest.mock('../../../../../core/utils/file-reader.utils', () => ({
   readFileAsDataUrl: jest.fn().mockResolvedValue('data:application/pdf;base64,mockFileContent')
 }));
 
+// Asignamos un alias tipado para la función mockeada globalmente
+const mockReadFileAsDataUrl = readFileAsDataUrl as jest.MockedFunction<typeof readFileAsDataUrl>;
+
 describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
   let facade: ReviewPresentationsFacultyCouncilPageFacadeService;
-  let mockPreliminaryDraftService: jest.Mocked<Partial<PreliminaryDraftService>>;
-  let mockAuthService: jest.Mocked<Partial<AuthService>>;
-  let mockUserService: jest.Mocked<Partial<UserService>>;
-  let mockNotification: jest.Mocked<Partial<NotificationService>>;
-  let mockDownloadService: jest.Mocked<Partial<FileDownloadService>>;
-  let mockRouter: jest.Mocked<Partial<Router>>;
 
-  // Mocks Tipados Estrictamente (Sin 'any' ni 'as unknown')
+  // 🔹 REFACTOR: Mocks tipados estructuralmente sin 'Partial' ni 'unknown'
+  let mockPreliminaryDraftService: {
+    getPreliminaryDraftById: jest.Mock;
+    uploadCouncilResolution: jest.Mock;
+  };
+  let mockAuthService: {
+    currentUser: WritableSignal<User | null>;
+  };
+  let mockUserService: {
+    getUserFullName: jest.Mock;
+  };
+  let mockNotification: { show: jest.Mock };
+  let mockDownloadService: { download: jest.Mock };
+  let mockRouter: { navigate: jest.Mock };
+
+  // Mocks Tipados Estrictamente
   const mockUser: User = {
     id: 'user-1',
     idType: IdentificationType.CC,
@@ -83,7 +95,7 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
     evaluations: [
       {
         id: 'eval-1',
-        documentId: 'doc-1', // Vincula a la iteración activa
+        documentId: 'doc-1',
         proposalId: 'prop-1',
         evaluatorId: 'user-1',
         evaluatorName: 'Usuario Mock',
@@ -115,6 +127,10 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
   };
 
   beforeEach(() => {
+    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockPreliminaryDraftService = {
       getPreliminaryDraftById: jest.fn().mockReturnValue(of(mockDraft)),
       uploadCouncilResolution: jest.fn().mockReturnValue(of({}))
@@ -146,7 +162,11 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
     });
 
     facade = TestBed.inject(ReviewPresentationsFacultyCouncilPageFacadeService);
-    jest.clearAllMocks(); // Limpia el historial del FileReader mockeado entre tests
+    jest.clearAllMocks(); // Limpia el historial de los mocks entre tests
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks(); // 🧹 Restaura las implementaciones originales de la consola
   });
 
   describe('Carga de Datos (loadData)', () => {
@@ -157,7 +177,8 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
     });
 
     it('debería mostrar notificación INFO si la petición es exitosa pero no retorna datos', () => {
-      (mockPreliminaryDraftService.getPreliminaryDraftById as jest.Mock).mockReturnValue(of(null));
+      // 🔹 REFACTOR: Llamado directo sin necesidad de casteo 'as jest.Mock'
+      mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(null));
       facade.loadData();
 
       expect(mockNotification.show).toHaveBeenCalledWith(
@@ -166,7 +187,7 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
     });
 
     it('debería mostrar notificación ERROR si falla la petición HTTP', () => {
-      (mockPreliminaryDraftService.getPreliminaryDraftById as jest.Mock).mockReturnValue(throwError(() => new Error('Error')));
+      mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(throwError(() => new Error('Error')));
       facade.loadData();
 
       expect(mockNotification.show).toHaveBeenCalledWith(
@@ -214,7 +235,8 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
     });
 
     it('debería mostrar notificación de error si falla la lectura del archivo', async () => {
-      (readFileAsDataUrl as jest.Mock).mockRejectedValueOnce(new Error('Read failed'));
+      // 🔹 REFACTOR: Eliminado el consoleSpy local, la consola ya está silenciada globalmente
+      mockReadFileAsDataUrl.mockRejectedValueOnce(new Error('Read failed'));
       facade.preliminaryDraftState.set(mockDraft);
       facade.pendingData.set(mockPayload);
 
@@ -229,10 +251,9 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
       facade.preliminaryDraftState.set(mockDraft);
       facade.pendingData.set(mockPayload);
 
-      // Importante: Await porque el método ahora es async
       await facade.processCouncilDecision();
 
-      expect(readFileAsDataUrl).toHaveBeenCalledWith(mockPayload.file);
+      expect(mockReadFileAsDataUrl).toHaveBeenCalledWith(mockPayload.file);
       expect(mockPreliminaryDraftService.uploadCouncilResolution).toHaveBeenCalled();
       expect(mockNotification.show).toHaveBeenCalledWith(
         expect.objectContaining({ type: NotificationType.CONFIRMATION })
@@ -242,7 +263,7 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
     });
 
     it('debería mostrar error si falla la subida de la resolución HTTP', async () => {
-      (mockPreliminaryDraftService.uploadCouncilResolution as jest.Mock).mockReturnValue(throwError(() => new Error('Error')));
+      mockPreliminaryDraftService.uploadCouncilResolution.mockReturnValue(throwError(() => new Error('Error')));
       facade.preliminaryDraftState.set(mockDraft);
       facade.pendingData.set(mockPayload);
 

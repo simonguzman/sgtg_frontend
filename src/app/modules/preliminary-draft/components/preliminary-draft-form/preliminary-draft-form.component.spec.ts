@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { signal, WritableSignal } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators, NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
+import { signal, WritableSignal, Component, Input, Output, EventEmitter, forwardRef } from '@angular/core';
 
 import { PreliminaryDraftFormComponent } from './preliminary-draft-form.component';
 import { PreliminaryDraftFormService } from './services/preliminary-draft-form.service';
@@ -13,9 +13,62 @@ import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../core/enums/state.enum';
 import { Proposal } from '../../../proposal/interfaces/proposal.interface';
 import { User } from '../../../users/interfaces/user.interface';
-import { SelectOption } from '../../../../shared/components/searchable-select/searchable-select.component';
+import { SelectOption, SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select.component';
 import { Modality } from '../../../proposal/enums/modality.enum';
 import { readFileAsDataUrl } from '../../../../core/utils/file-reader.utils';
+
+// Componentes originales para el override
+import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
+import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+
+// --- Mocks de Componentes Hijos (Shallow Testing) ---
+
+@Component({ selector: 'app-button-component', standalone: true, template: '<button (click)="onClick.emit()">{{label}}</button>' })
+class MockButtonComponent {
+  @Input() label = '';
+  @Input() variant = '';
+  @Input() disabled = false;
+  @Input() type = 'button';
+  @Output() onClick = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-file-upload-modal', standalone: true, template: '<div>Mock Modal</div>' })
+class MockFileUploadModalComponent {
+  @Input() isOpen = false;
+  @Input() description = '';
+  @Input() uploadedBy = '';
+  @Output() onFileUploaded = new EventEmitter<{ fileName: string; file: File }>();
+  @Output() onClose = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-info-banner', standalone: true, template: '<div>Mock Banner <ng-content></ng-content></div>' })
+class MockInfoBannerComponent {
+  @Input() title = '';
+}
+
+// 🔹 REFACTOR: Mock de componente de formulario (Requiere ControlValueAccessor simulado)
+@Component({
+  selector: 'app-searchable-select',
+  standalone: true,
+  template: '<select><option>Mock Select</option></select>',
+  providers: [{
+    provide: NG_VALUE_ACCESSOR,
+    useExisting: forwardRef(() => MockSearchableSelectComponent),
+    multi: true
+  }]
+})
+class MockSearchableSelectComponent implements ControlValueAccessor {
+  @Input() id = '';
+  @Input() options: SelectOption[] = [];
+  @Input() placeholder = '';
+  @Input() hasError = false;
+  @Input() isValid = false;
+
+  writeValue(obj: unknown): void {}
+  registerOnChange(fn: unknown): void {}
+  registerOnTouched(fn: unknown): void {}
+}
 
 // --- Mocking Utils ---
 jest.mock('../../../../core/utils/file-reader.utils', () => ({
@@ -23,15 +76,16 @@ jest.mock('../../../../core/utils/file-reader.utils', () => ({
 }));
 const mockedReadFileAsDataUrl = readFileAsDataUrl as jest.MockedFunction<typeof readFileAsDataUrl>;
 
-// --- Factories estrictamente tipadas (FIX del error TS2352) ---
-const createMockUser = (overrides?: Partial<User>): User => ({
+// --- Factories estrictamente tipadas (Cero 'any' y 'unknown') ---
+const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u1',
   firstName: 'Director',
   lastName: 'Prueba',
+  roles: [],
   ...overrides
 } as User);
 
-const createMockProposal = (overrides?: Partial<Proposal>): Proposal => ({
+const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
   id: 'p1',
   title: 'Propuesta de Prueba',
   description: 'Desc',
@@ -45,17 +99,17 @@ const createMockProposal = (overrides?: Partial<Proposal>): Proposal => ({
   ...overrides
 } as Proposal);
 
-const createMockFileDocument = (overrides?: Partial<FileDocument>): FileDocument => ({
+const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
   id: 'doc-1',
   name: 'anteproyecto.pdf',
   url: 'http://example.com/doc.pdf',
-  uploadDate: '11/08/2026', // O un Date, dependiendo de tu interfaz FileDocument
+  uploadDate: new Date('2026-08-11T00:00:00'),
   type: DocumentType.ANTEPROYECTO,
   status: stateList.EN_REVISION,
   ...overrides
 } as FileDocument);
 
-const createMockPreliminaryDraft = (overrides?: Partial<PreliminaryDraft>): PreliminaryDraft => ({
+const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
   preliminaryDraftId: 'draft-1',
   proposalId: 'p1',
   proposalData: createMockProposal(),
@@ -63,6 +117,8 @@ const createMockPreliminaryDraft = (overrides?: Partial<PreliminaryDraft>): Prel
   state: stateList.EN_REVISION,
   createdData: new Date(),
   evaluations: [],
+  evaluators: [],
+  isArchived: false,
   ...overrides
 } as PreliminaryDraft);
 
@@ -94,6 +150,10 @@ describe('PreliminaryDraftFormComponent', () => {
   let mockNotificationService: jest.Mocked<Pick<NotificationService, 'show'>>;
 
   beforeEach(async () => {
+    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // Configuración de resolución exitosa del file reader mock
     mockedReadFileAsDataUrl.mockResolvedValue('data:application/pdf;base64,mock');
 
@@ -127,7 +187,14 @@ describe('PreliminaryDraftFormComponent', () => {
       ]
     })
     .overrideComponent(PreliminaryDraftFormComponent, {
-      set: {
+      remove: {
+        // Removemos los componentes reales y el proveedor local
+        imports: [ButtonComponent, FileUploadModalComponent, InfoBannerComponent, SearchableSelectComponent],
+        providers: [PreliminaryDraftFormService]
+      },
+      add: {
+        // Inyectamos nuestros mocks que aseguran aislamiento del DOM
+        imports: [MockButtonComponent, MockFileUploadModalComponent, MockInfoBannerComponent, MockSearchableSelectComponent],
         providers: [{ provide: PreliminaryDraftFormService, useValue: mockFormService }]
       }
     })
@@ -140,6 +207,7 @@ describe('PreliminaryDraftFormComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola y espías
   });
 
   describe('Inicialización y Ciclo de Vida', () => {

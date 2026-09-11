@@ -11,11 +11,15 @@ export function hasArchiveAccess(
   hasGlobalAccess: boolean
 ): boolean {
   if (hasGlobalAccess) return true;
-  if (!proposal) return false;
+
+  // FIX: Agregamos !userId. Evita el bug donde (undefined === undefined)
+  // le de acceso a un usuario sin ID si la propuesta no tiene codirector/asesor.
+  if (!proposal || !userId) return false;
 
   const isAuthor = proposal.authors?.some(author =>
     (typeof author === 'string' ? author : author.id) === userId
   ) ?? false;
+
   const isDirector = proposal.director?.id === userId;
   const isCodirector = proposal.codirector?.id === userId;
   const isAdvisor = proposal.advisor?.id === userId;

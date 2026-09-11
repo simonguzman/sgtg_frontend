@@ -1,30 +1,59 @@
-/* tslint:disable:no-unused-variable */
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
+
 import { UserFormFacadeService } from './user-form-facade.service';
 import { UserService } from '../../services/user.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { User } from '../../interfaces/user.interface';
+import { IdentificationType } from '../../enum/identification-type.enum';
+import { UserState } from '../../enum/user-state.enum';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 
-describe('Service: UserCreateFormFacadeService', () => {
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: '123',
+  idType: IdentificationType.CC,
+  idNumber: 123456789,
+  firstName: 'Juan',
+  secondName: '',
+  lastName: 'Pérez',
+  secondLastName: '',
+  email: 'juan@test.com',
+  password: '123',
+  codeNumber: 1,
+  state: UserState.active,
+  roles: [UserRoleType.DOCENTE],
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
+describe('Service: UserFormFacadeService', () => {
   let service: UserFormFacadeService;
+
+  // Tipado estricto de las dependencias simuladas
   let mockUserService: {
-    getUserByIdMock: jest.Mock;
-    createUserMock: jest.Mock;
-    updateUserMock: jest.Mock;
+    getUserByIdMock: jest.Mock<Observable<User | undefined>, [string]>;
+    createUserMock: jest.Mock<Observable<User>, [User]>;
+    updateUserMock: jest.Mock<Observable<User>, [string, Partial<User>]>;
   };
 
   let mockNotificationService: {
-    show: jest.Mock;
+    show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
   };
 
   let mockRouter: {
-    navigate: jest.Mock;
+    navigate: jest.Mock<Promise<boolean>, [string[]]>;
   };
 
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener terminal limpia de errores simulados (RxJS throwError)
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockUserService = {
       getUserByIdMock: jest.fn(),
       createUserMock: jest.fn(),
@@ -36,7 +65,7 @@ describe('Service: UserCreateFormFacadeService', () => {
     };
 
     mockRouter = {
-      navigate: jest.fn(),
+      navigate: jest.fn().mockResolvedValue(true),
     };
 
     TestBed.configureTestingModule({
@@ -49,12 +78,11 @@ describe('Service: UserCreateFormFacadeService', () => {
     });
 
     service = TestBed.inject(UserFormFacadeService);
-
-    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Fundamental para limpiar los espías de consola
   });
 
   it('debería inicializarse correctamente', () => {
@@ -63,7 +91,7 @@ describe('Service: UserCreateFormFacadeService', () => {
 
   describe('Consultas (getUserById)', () => {
     it('debería llamar a getUserByIdMock del UserService', () => {
-      const mockUser = { id: '123', firstName: 'Test' } as User;
+      const mockUser = createMockUser({ id: '123', firstName: 'Test' });
       mockUserService.getUserByIdMock.mockReturnValue(of(mockUser));
 
       service.getUserById('123').subscribe(user => {
@@ -87,9 +115,11 @@ describe('Service: UserCreateFormFacadeService', () => {
 
   describe('Creación de Usuarios (createUser)', () => {
     it('Flujo Exitoso: debería notificar, llamar al servicio, ejecutar onSuccess y navegar', () => {
-      const mockUser = { firstName: 'Juan' } as User;
+      const mockUser = createMockUser({ firstName: 'Juan' });
       const onSuccessSpy = jest.fn();
-      mockUserService.createUserMock.mockReturnValue(of({}));
+
+      // Simulamos respuesta exitosa del backend
+      mockUserService.createUserMock.mockReturnValue(of(mockUser));
 
       service.createUser(mockUser, onSuccessSpy);
 
@@ -109,10 +139,12 @@ describe('Service: UserCreateFormFacadeService', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/users']);
     });
 
-    it('Flujo Fallido: debería notificar error si createUserMock falla', () => {
-      const mockUser = { firstName: 'Juan' } as User;
+    it('Flujo Fallido: debería notificar error si createUserMock falla y no navegar', () => {
+      const mockUser = createMockUser({ firstName: 'Juan' });
       const onSuccessSpy = jest.fn();
-      mockUserService.createUserMock.mockReturnValue(throwError(() => new Error('Error')));
+
+      // Simulamos falla del backend
+      mockUserService.createUserMock.mockReturnValue(throwError(() => new Error('Error de red')));
 
       service.createUser(mockUser, onSuccessSpy);
 
@@ -121,6 +153,9 @@ describe('Service: UserCreateFormFacadeService', () => {
         type: NotificationType.ERROR
       }));
 
+      // Verificamos que registramos el error en consola pero de forma silenciosa
+      expect(console.error).toHaveBeenCalled();
+
       expect(onSuccessSpy).not.toHaveBeenCalled();
       expect(mockRouter.navigate).not.toHaveBeenCalled();
     });
@@ -128,10 +163,11 @@ describe('Service: UserCreateFormFacadeService', () => {
 
   describe('Actualización de Usuarios (updateUser)', () => {
     it('Flujo Exitoso: debería notificar, actualizar, ejecutar onSuccess y navegar', () => {
-      const mockUser = { firstName: 'Ana' } as User;
+      const mockUser = createMockUser({ firstName: 'Ana' });
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
-      mockUserService.updateUserMock.mockReturnValue(of({}));
+
+      mockUserService.updateUserMock.mockReturnValue(of(mockUser));
 
       service.updateUser('123', mockUser, onSuccessSpy, onErrorSpy);
 
@@ -140,15 +176,17 @@ describe('Service: UserCreateFormFacadeService', () => {
         message: 'Los datos del usuario han sido modificados correctamente.',
         type: NotificationType.CONFIRMATION
       });
+
       expect(onSuccessSpy).toHaveBeenCalled();
       expect(onErrorSpy).not.toHaveBeenCalled();
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/users']);
     });
 
-    it('Flujo Fallido: debería notificar error, NO navegar y ejecutar onError', () => {
-      const mockUser = { firstName: 'Ana' } as User;
+    it('Flujo Fallido: debería notificar error, ejecutar onError y NO navegar', () => {
+      const mockUser = createMockUser({ firstName: 'Ana' });
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
+
       mockUserService.updateUserMock.mockReturnValue(throwError(() => new Error('Error de red')));
 
       service.updateUser('123', mockUser, onSuccessSpy, onErrorSpy);
@@ -157,6 +195,9 @@ describe('Service: UserCreateFormFacadeService', () => {
         title: 'Error de actualización',
         type: NotificationType.ERROR
       }));
+
+      expect(console.error).toHaveBeenCalled();
+
       expect(onErrorSpy).toHaveBeenCalled();
       expect(onSuccessSpy).not.toHaveBeenCalled();
       expect(mockRouter.navigate).not.toHaveBeenCalled();

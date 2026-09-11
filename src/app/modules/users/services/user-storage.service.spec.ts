@@ -5,46 +5,60 @@ import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { IdentificationType } from '../enum/identification-type.enum';
 import { UserState } from '../enum/user-state.enum';
 
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'default-id',
+  idType: IdentificationType.CC,
+  idNumber: 123456789,
+  firstName: 'Default',
+  secondName: '',
+  lastName: 'User',
+  secondLastName: '',
+  email: 'default@test.com',
+  password: '123',
+  codeNumber: 1,
+  state: UserState.active,
+  roles: [UserRoleType.ESTUDIANTE],
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('UserStorageService', () => {
   let service: UserStorageService;
-  let localStorageStore: { [key: string]: string };
+  let localStorageStore: Record<string, string>;
 
-  // Usuarios simulados y tipados estrictamente
-  const mockStudent: User = {
+  // Usuarios simulados construidos con la fábrica
+  const mockStudent = createMockUser({
     id: '11111111-1111-1111-1111-111111111111',
-    idType: IdentificationType.CC,
     idNumber: 111,
     firstName: 'Estudiante',
-    secondName: '',
     lastName: 'Test',
-    secondLastName: '',
     email: 'student@test.com',
-    password: '123',
     codeNumber: 1,
-    state: UserState.active,
     roles: [UserRoleType.ESTUDIANTE]
-  };
+  });
 
-  const mockTeacher: User = {
+  const mockTeacher = createMockUser({
     id: '22222222-2222-2222-2222-222222222222',
-    idType: IdentificationType.CC,
     idNumber: 222,
     firstName: 'Docente',
-    secondName: '',
     lastName: 'Test',
-    secondLastName: '',
     email: 'teacher@test.com',
-    password: '123',
     codeNumber: 2,
-    state: UserState.active,
     roles: [UserRoleType.DOCENTE]
-  };
+  });
 
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener terminal limpia ante errores intencionales de parseo
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // 1. Limpiamos y preparamos el mock de LocalStorage antes de inyectar el servicio
     localStorageStore = {};
 
-    // CORRECCIÓN: Espiar Storage.prototype en lugar de window.localStorage
+    // Espiar Storage.prototype asegurando firmas estrictas
     jest.spyOn(Storage.prototype, 'getItem').mockImplementation((key: string) => localStorageStore[key] || null);
     jest.spyOn(Storage.prototype, 'setItem').mockImplementation((key: string, value: string) => { localStorageStore[key] = value; });
     jest.spyOn(Storage.prototype, 'removeItem').mockImplementation((key: string) => { delete localStorageStore[key]; });
@@ -52,6 +66,7 @@ describe('UserStorageService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Fundamental para limpiar Storage.prototype y console
   });
 
   // ==========================================
@@ -104,6 +119,13 @@ describe('UserStorageService', () => {
       expect(service.teachers()).toEqual([mockTeacher]);
       expect(service.potentialDirectors()).toEqual([mockTeacher]);
     });
+
+    it('debería segmentar correctamente al arreglo de asesores', () => {
+      const mockAdvisor = createMockUser({ roles: [UserRoleType.ASESOR] });
+      service.updateUsersList((current) => [...current, mockAdvisor]);
+
+      expect(service.advisors()).toEqual([mockAdvisor]);
+    });
   });
 
   // ==========================================
@@ -123,6 +145,15 @@ describe('UserStorageService', () => {
 
       expect(service.getUsersSnapshot()).toEqual([mockTeacher]);
       expect(Storage.prototype.setItem).toHaveBeenCalledWith('sgtg_users', JSON.stringify([mockTeacher]));
+    });
+
+    it('updateCurrentUser() debería mutar al usuario actual y disparar el effect', () => {
+      service.updateCurrentUser(() => mockTeacher);
+
+      TestBed.flushEffects();
+
+      expect(service.currentUser()).toEqual(mockTeacher);
+      expect(Storage.prototype.setItem).toHaveBeenCalledWith('sgtg_current_session', JSON.stringify(mockTeacher));
     });
 
     it('setCurrentUser() debería actualizar la sesión y disparar el effect hacia LocalStorage', () => {

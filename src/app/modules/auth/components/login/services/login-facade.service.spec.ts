@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
+
 import { LoginFacadeService } from './login-facade.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
@@ -9,11 +10,9 @@ import { NotificationType } from '../../../../../shared/components/notifications
 describe('LoginFacadeService', () => {
   let service: LoginFacadeService;
 
-  // ── Tipado estricto de los mocks ───────────────────────────────────────────
+  // ── Tipado estricto de los mocks (Zero 'any', 'unknown') ───────────────────
   let authServiceMock: {
-    // isAuthenticated() retorna un boolean, no recibe argumentos
     isAuthenticated: jest.Mock<boolean, []>;
-    // login() retorna un Observable, recibe un objeto con email y password
     login: jest.Mock<Observable<{ success: boolean; message?: string }>, [{ email: string; password: string }]>;
   };
 
@@ -26,6 +25,10 @@ describe('LoginFacadeService', () => {
   };
 
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // 1. Inicializamos los mocks con jest.fn()
     authServiceMock = {
       isAuthenticated: jest.fn(),
@@ -51,13 +54,11 @@ describe('LoginFacadeService', () => {
     });
 
     service = TestBed.inject(LoginFacadeService);
-
-    // Silenciar console.error (no requiere mock manual de tipos porque usamos spyOn)
-    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola
   });
 
   describe('checkAlreadyAuthenticated', () => {
@@ -77,7 +78,7 @@ describe('LoginFacadeService', () => {
   describe('login', () => {
     const mockCredentials = { email: 'test@unicauca.edu.co', password: 'password123' };
 
-    // Tipamos los callbacks
+    // Tipamos los callbacks estrictamente
     let onStartMock: jest.Mock<void, []>;
     let onCompleteMock: jest.Mock<void, []>;
 
@@ -118,13 +119,16 @@ describe('LoginFacadeService', () => {
     });
 
     it('debe manejar errores críticos del sistema (ej. 500 o sin red)', () => {
-      authServiceMock.login.mockReturnValue(throwError(() => new Error('Network error')));
+      authServiceMock.login.mockReturnValue(throwError(() => new Error('Network error simulado')));
 
       service.login(mockCredentials, onStartMock, onCompleteMock);
 
       expect(onStartMock).toHaveBeenCalled();
       expect(onCompleteMock).toHaveBeenCalled();
-      expect(console.error).toHaveBeenCalled();
+
+      // Verifica que el error fue logueado (pero está silenciado por nuestro espía)
+      expect(console.error).toHaveBeenCalledWith('Error en el flujo de login', expect.any(Error));
+
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
         title: 'Error del Sistema',
         message: 'Ocurrió un error técnico al intentar conectar.',

@@ -54,44 +54,66 @@ function createMockDocument(overrides: Partial<FileDocument> = {}): FileDocument
 describe('PreliminaryDraftService (Facade)', () => {
   let service: PreliminaryDraftService;
 
+  // 🔹 REFACTOR: Definimos la estructura exacta de los espías sin usar 'unknown'
   let mockStorageService: {
     preliminaryDrafts: WritableSignal<PreliminaryDraft[]>;
     allPreliminaryDrafts: WritableSignal<PreliminaryDraft[]>;
   };
-  let mockApiService: jest.Mocked<PreliminaryDraftApiService>;
-  let mockAssignmentService: jest.Mocked<PreliminaryDraftAssignmentService>;
-  let mockDocumentService: jest.Mocked<PreliminaryDraftDocumentService>;
+
+  let mockApiService: {
+    getPreliminaryDraftById: jest.Mock;
+    createPreliminaryDraft: jest.Mock;
+    updatePreliminaryDraft: jest.Mock;
+    deleteDraft: jest.Mock;
+  };
+
+  let mockAssignmentService: {
+    validateReviewersRules: jest.Mock;
+    assignReviewersMock: jest.Mock;
+  };
+
+  let mockDocumentService: {
+    addEvaluationMock: jest.Mock;
+    uploadDocumentMock: jest.Mock;
+    uploadCouncilResolutionMock: jest.Mock;
+    calculateDocumentStatus: jest.Mock;
+  };
 
   beforeEach(() => {
+    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // Configuración limpia de Signals
     mockStorageService = {
       preliminaryDrafts: signal<PreliminaryDraft[]>([]),
       allPreliminaryDrafts: signal<PreliminaryDraft[]>([])
     };
 
-    // Mocks de servicios con tipado de Jest
+    // Mocks de servicios puramente estructurales (sin as unknown)
     mockApiService = {
       getPreliminaryDraftById: jest.fn(),
       createPreliminaryDraft: jest.fn(),
       updatePreliminaryDraft: jest.fn(),
       deleteDraft: jest.fn()
-    } as unknown as jest.Mocked<PreliminaryDraftApiService>;
+    };
 
     mockAssignmentService = {
       validateReviewersRules: jest.fn(),
       assignReviewersMock: jest.fn()
-    } as unknown as jest.Mocked<PreliminaryDraftAssignmentService>;
+    };
 
     mockDocumentService = {
       addEvaluationMock: jest.fn(),
       uploadDocumentMock: jest.fn(),
       uploadCouncilResolutionMock: jest.fn(),
       calculateDocumentStatus: jest.fn()
-    } as unknown as jest.Mocked<PreliminaryDraftDocumentService>;
+    };
 
     TestBed.configureTestingModule({
       providers: [
         PreliminaryDraftService,
+        // 🔹 REFACTOR: Asignaciones directas y limpias
         { provide: PreliminaryDraftStorageService, useValue: mockStorageService },
         { provide: PreliminaryDraftApiService, useValue: mockApiService },
         { provide: PreliminaryDraftAssignmentService, useValue: mockAssignmentService },
@@ -104,6 +126,7 @@ describe('PreliminaryDraftService (Facade)', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones originales de la consola
   });
 
   it('debería crearse correctamente', () => {

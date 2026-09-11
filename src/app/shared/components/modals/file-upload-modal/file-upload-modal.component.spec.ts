@@ -9,6 +9,10 @@ describe('FileUploadModalComponent', () => {
   let fixture: ComponentFixture<FileUploadModalComponent>;
 
   beforeEach(async () => {
+    // 🔕 Silenciar consola para mantener terminal limpia ante warnings de p-dialog en JSDOM
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     await TestBed.configureTestingModule({
       imports: [FileUploadModalComponent],
       providers: [provideNoopAnimations()]
@@ -19,7 +23,8 @@ describe('FileUploadModalComponent', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola y espías (incluyendo el alert)
   });
 
   describe('Inicialización y Renderizado', () => {
@@ -28,8 +33,9 @@ describe('FileUploadModalComponent', () => {
     });
 
     it('debería mostrar la descripción inicial cuando no se ha cargado un archivo', () => {
-      component.description = 'Sube tu archivo PDF de tesis';
-      component.isOpen = true;
+      // Uso de API moderna para inyectar @Inputs
+      fixture.componentRef.setInput('description', 'Sube tu archivo PDF de tesis');
+      fixture.componentRef.setInput('isOpen', true);
       fixture.detectChanges();
 
       const text = fixture.nativeElement.textContent;
@@ -39,9 +45,12 @@ describe('FileUploadModalComponent', () => {
 
     it('debería mostrar la información del archivo y el usuario cuando el archivo existe', () => {
       const mockFile = new File(['contenido'], 'documento-tesis.pdf', { type: 'application/pdf' });
+
+      fixture.componentRef.setInput('uploadedBy', 'Simón Guzmán');
+      fixture.componentRef.setInput('isOpen', true);
+
+      // uploadedFile no es un @Input, es un estado interno
       component.uploadedFile = mockFile;
-      component.uploadedBy = 'Simón Guzmán';
-      component.isOpen = true;
       fixture.detectChanges();
 
       const text = fixture.nativeElement.textContent;
@@ -74,15 +83,14 @@ describe('FileUploadModalComponent', () => {
 
     it('debería rechazar un archivo que NO sea PDF, lanzar alerta y limpiar el input', () => {
       const spyEmit = jest.spyOn(component.onFileUploaded, 'emit');
+
+      // Espiamos window.alert para que la prueba no se detenga ni muestre el popup en consola
       const spyAlert = jest.spyOn(window, 'alert').mockImplementation(() => {});
 
       const invalidFile = new File(['contenido'], 'imagen.png', { type: 'image/png' });
       const inputElement = document.createElement('input');
       inputElement.type = 'file';
       Object.defineProperty(inputElement, 'files', { value: [invalidFile] });
-
-      // Eliminamos la asignación de inputElement.value para evitar el InvalidStateError
-      // JSDOM ahora se comportará correctamente.
 
       const mockEvent = new Event('change');
       Object.defineProperty(mockEvent, 'target', { writable: false, value: inputElement });
@@ -100,6 +108,7 @@ describe('FileUploadModalComponent', () => {
     it('debería limpiar el archivo al llamar a removeFile()', () => {
       component.uploadedFile = new File(['contenido'], 'test.pdf');
       component.removeFile();
+
       expect(component.uploadedFile).toBeNull();
     });
 
@@ -115,8 +124,10 @@ describe('FileUploadModalComponent', () => {
 
     it('debería invocar removeFile() al hacer clic en el botón de eliminar archivo renderizado', () => {
       const spyRemove = jest.spyOn(component, 'removeFile');
+
+      // Seteamos estado y abrimos modal
       component.uploadedFile = new File(['contenido'], 'test.pdf', { type: 'application/pdf' });
-      component.isOpen = true;
+      fixture.componentRef.setInput('isOpen', true);
       fixture.detectChanges();
 
       // Buscamos específicamente el botón con la clase text-gray-400 para ignorar el
@@ -124,7 +135,7 @@ describe('FileUploadModalComponent', () => {
       const removeButton = fixture.debugElement.query(By.css('button.text-gray-400'));
       expect(removeButton).toBeTruthy();
 
-      // Usamos el nativeElement para simular un clic de usuario de la forma más real posible
+      // Usamos el nativeElement para simular un clic de usuario real en el DOM
       removeButton.nativeElement.click();
 
       expect(spyRemove).toHaveBeenCalledTimes(1);

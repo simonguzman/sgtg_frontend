@@ -30,7 +30,6 @@ export const THESIS_WORK_COLUMNS: Column[] = [
     type: 'actions',
     actions: [
       { action: 'ver', icon: 'visibility', variant: 'primary', disabled: false },
-      { action: 'editar', icon: 'edit', variant: 'primary', disabled: false },
       { action: 'reactivar', icon: 'play_circle', variant: 'secondary', disabled: false },
     ],
     width: '15%'

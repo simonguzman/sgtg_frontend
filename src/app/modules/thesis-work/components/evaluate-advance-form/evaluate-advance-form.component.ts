@@ -8,6 +8,7 @@ import { EvaluateAdvanceFormService } from './services/evaluate-advance-form.ser
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { Advance } from '../../interfaces/advance.interface';
 import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playload.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 
 @Component({
   selector: 'app-evaluate-advance-form',
@@ -26,7 +27,7 @@ export class EvaluateAdvanceFormComponent implements OnChanges {
   @Input() isFullyEvaluated = false;
   @Output() onBack = new EventEmitter<void>();
   @Output() onSaveEvaluation  = new EventEmitter<SubmitAdvanceEvaluationPayload>();
-  @Output() onDownloadAdvance = new EventEmitter<void>();
+  @Output() onDownloadAdvance = new EventEmitter<FileDocument>();
 
   readonly uploadedFeedbackFiles = signal<{ fileName: string; file: File }[]>([]);
   readonly isFeedbackModalOpen = signal(false);

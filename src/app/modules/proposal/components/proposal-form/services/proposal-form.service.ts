@@ -13,6 +13,7 @@ import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { User } from '../../../../users/interfaces/user.interface';
+import { first } from 'rxjs';
 
 @Injectable()
 export class ProposalFormService {
@@ -135,7 +136,13 @@ export class ProposalFormService {
 
     if (!currentDirector) return null;
 
-    if (raw.codirector) this.userService.addRoleToUser(raw.codirector, UserRoleType.CODIRECTOR);
+    if (raw.codirector) {
+      // ← FIX: Observable creado pero nunca suscrito — el rol nunca se
+      // agregaba porque el código dentro de addRoleToUser() jamás corría.
+      this.userService.addRoleToUser(raw.codirector, UserRoleType.CODIRECTOR)
+        .pipe(first())
+        .subscribe();
+    }
 
     const authorsArray = this.userService.students().filter(student =>
       student.id === raw.student1 || student.id === raw.student2

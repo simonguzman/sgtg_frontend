@@ -10,34 +10,68 @@ import { PreliminaryDraftMapperService } from './preliminary-draft-mapper.servic
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { User } from '../../../../users/interfaces/user.interface';
+import { PreliminaryDraftTableRow } from '../models/preliminary-draft-page.model';
+
+// 🔹 REFACTOR: Fábricas para generar datos limpios y tipados
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-1',
+  roles: [],
+  ...overrides
+} as User);
+
+const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
+  preliminaryDraftId: '1',
+  isArchived: false,
+  // Tipado estricto accediendo a la propiedad real de la interfaz
+  proposalData: { createdAt: new Date() } as PreliminaryDraft['proposalData'],
+  ...overrides
+} as PreliminaryDraft);
+
+const createMockTableRow = (overrides: Partial<PreliminaryDraftTableRow> = {}): PreliminaryDraftTableRow => ({
+  id: '1',
+  title: 'Mapped',
+  status: 'En revisión',
+  authors: 'Autor',
+  director: 'Director',
+  date: '2026-08-21',
+  actions: [],
+  ...overrides
+} as PreliminaryDraftTableRow);
 
 describe('PreliminaryDraftFacadeService', () => {
   let service: PreliminaryDraftFacadeService;
 
-  // Reemplazamos los 'any' por tipados estrictos estructurados
+  // 🔹 REFACTOR: Tipados estrictos estructurales sin 'Partial'
   let mockPreliminaryDraftService: {
-    preliminaryDrafts: WritableSignal<Partial<PreliminaryDraft>[]>;
+    preliminaryDrafts: WritableSignal<PreliminaryDraft[]>;
     deleteDraft: jest.Mock;
   };
+
   let mockAuthService: {
-    currentUser: WritableSignal<Partial<User>>;
+    currentUser: WritableSignal<User | null>;
     hasAnyRole: jest.Mock;
   };
+
   let mockNotificationService: {
     show: jest.Mock;
   };
+
   let mockMapperService: {
     mapPreliminaryDraftToTable: jest.Mock;
   };
 
   beforeEach(() => {
+    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockPreliminaryDraftService = {
-      preliminaryDrafts: signal([{ preliminaryDraftId: '1', isArchived: false, proposalData: { createdAt: new Date() } } as Partial<PreliminaryDraft>]),
+      preliminaryDrafts: signal([createMockDraft()]),
       deleteDraft: jest.fn()
     };
 
     mockAuthService = {
-      currentUser: signal({ id: 'user-1' }),
+      currentUser: signal(createMockUser()),
       hasAnyRole: jest.fn()
     };
 
@@ -46,12 +80,13 @@ describe('PreliminaryDraftFacadeService', () => {
     };
 
     mockMapperService = {
-      mapPreliminaryDraftToTable: jest.fn().mockReturnValue({ id: '1', title: 'Mapped' })
+      mapPreliminaryDraftToTable: jest.fn().mockReturnValue(createMockTableRow())
     };
 
     TestBed.configureTestingModule({
       providers: [
         PreliminaryDraftFacadeService,
+        // Asignación limpia sin usar 'as unknown as Type'
         { provide: PreliminaryDraftService, useValue: mockPreliminaryDraftService },
         { provide: AuthService, useValue: mockAuthService },
         { provide: NotificationService, useValue: mockNotificationService },
@@ -64,6 +99,7 @@ describe('PreliminaryDraftFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones originales de la consola
   });
 
   describe('Señal Computada: tableData', () => {
@@ -119,6 +155,7 @@ describe('PreliminaryDraftFacadeService', () => {
 
       service.deleteDraft('1', onSuccess, onError);
 
+      // Verificamos que se haya notificado el error
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: NotificationType.ERROR }));
       expect(onError).toHaveBeenCalled();
       expect(onSuccess).not.toHaveBeenCalled();
@@ -126,6 +163,7 @@ describe('PreliminaryDraftFacadeService', () => {
 
     it('debería mostrar notificación de acceso restringido', () => {
       service.showRestrictedAccessNotification();
+
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
         title: 'Acceso denegado',
         type: NotificationType.ERROR

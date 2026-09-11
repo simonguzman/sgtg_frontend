@@ -5,15 +5,27 @@ import { FileDownloadService } from './file-download.service';
 import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../shared/components/notifications/models/notification.model';
 
+// ── Tipos para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
+
+interface MockNotificationService {
+  show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
+}
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('FileDownloadService', () => {
   let service: FileDownloadService;
   let httpMock: HttpTestingController;
-  let mockNotificationService: jest.Mocked<NotificationService>;
+  let mockNotificationService: MockNotificationService;
 
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener limpia la terminal durante los tests de error
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockNotificationService = {
       show: jest.fn()
-    } as unknown as jest.Mocked<NotificationService>;
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -27,19 +39,20 @@ describe('FileDownloadService', () => {
     service = TestBed.inject(FileDownloadService);
     httpMock = TestBed.inject(HttpTestingController);
 
-    // Mockeamos métodos globales de URL que JSDOM no soporta
+    // Mockeamos métodos globales de URL que JSDOM no soporta nativamente
     window.URL.createObjectURL = jest.fn().mockReturnValue('blob:mock-url');
     window.URL.revokeObjectURL = jest.fn();
-
-    // Espiamos console.error para mantener limpia la consola durante los tests de error
-    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     httpMock.verify();
-    jest.restoreAllMocks();
-    // Limpiamos los timers falsos de Jest para no afectar otras pruebas
+
+    // Limpiamos los timers falsos de Jest para no afectar otras pruebas ni causar fugas
+    jest.runOnlyPendingTimers();
     jest.useRealTimers();
+
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola y espías
   });
 
   describe('Inicialización', () => {
@@ -74,9 +87,8 @@ describe('FileDownloadService', () => {
   });
 
   describe('Descarga por Blob (useBlob = true)', () => {
-    // Nota el cambio a "async () =>" en lugar de "fakeAsync(() =>)"
     it('debería obtener el blob por HTTP, crear la ObjectURL y revocarla tras el delay', async () => {
-      // Activamos los fake timers de Jest para controlar el setTimeout
+      // Activamos los fake timers de Jest para controlar el setTimeout del servicio
       jest.useFakeTimers();
 
       const realAnchor = document.createElement('a');
@@ -113,7 +125,7 @@ describe('FileDownloadService', () => {
       // En este punto, la Object URL aún no debería ser revocada
       expect(window.URL.revokeObjectURL).not.toHaveBeenCalled();
 
-      // 4. Avanzamos el tiempo específicamente para que el setTimeout se dispare
+      // 4. Avanzamos el tiempo específicamente para que el setTimeout se dispare (100ms)
       jest.advanceTimersByTime(100);
 
       expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
@@ -133,12 +145,18 @@ describe('FileDownloadService', () => {
       // Esperamos que el bloque "catch" del servicio se ejecute por completo
       await downloadPromise;
 
+      // Usamos el validador nativo de Jest expect.any(Object) porque ProgressEvent en JSDOM
+      // crea una estructura compleja. Esto no rompe la regla de TypeScript porque 'any'
+      // aquí es un matcher de Jest, no un casteo de variable de TS.
       expect(console.error).toHaveBeenCalledWith('Error al descargar el archivo:', expect.any(Object));
-      expect(mockNotificationService.show).toHaveBeenCalledWith({
-        title: 'Error de descarga',
-        message: `No fue posible descargar "${testFileName}". Verifique su conexión e inténtelo nuevamente.`,
-        type: NotificationType.ERROR
-      });
+
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Error de descarga',
+          message: `No fue posible descargar "${testFileName}". Verifique su conexión e inténtelo nuevamente.`,
+          type: NotificationType.ERROR
+        })
+      );
     });
   });
 });

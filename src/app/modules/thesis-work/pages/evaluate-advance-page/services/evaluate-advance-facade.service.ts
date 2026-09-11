@@ -12,6 +12,7 @@ import { Advance } from '../../../interfaces/advance.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../../interfaces/advance-playload.interface';
 import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 
 @Injectable({ providedIn: 'root' })
 export class EvaluateAdvanceFacadeService {
@@ -110,11 +111,9 @@ export class EvaluateAdvanceFacadeService {
       });
   }
 
-  // ← FIX: antes "fire and forget" sin async/try-catch, y sin
-  // notificación cuando el documento no tenía url. Mismo patrón ya
-  // aplicado al resto de descargas del proyecto.
-  public async downloadAdvance(advance: Advance): Promise<void> {
-    const document = advance?.documents?.[0];
+  // ← FIX: recibe el FileDocument exacto en vez de derivarlo con
+  // advance.documents[0], que ignoraba cuál botón se había presionado.
+  public async downloadAdvance(document: FileDocument): Promise<void> {
     if (!document?.url) {
       this.showNotification('Error de descarga', 'No existe un documento válido para descargar.', NotificationType.ERROR);
       return;

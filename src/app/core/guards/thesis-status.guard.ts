@@ -1,40 +1,67 @@
-import { inject } from '@angular/core';
+import { inject, Injector } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { ThesisWorkService } from '../../modules/thesis-work/services/thesis-work.service';
+import { ThesisWorkStorageService } from '../../modules/thesis-work/services/thesis-work-storage.service';
 import { NotificationService } from '../../shared/components/notifications/services/notification.service';
 import { stateList } from '../enums/state.enum';
 import { NotificationType } from '../../shared/components/notifications/models/notification.model';
+import { resolveEntityForGuard } from '../helpers/resolve-entity-for-guard.helper';
 
-
-export const thesisRestrictedStatusGuard: CanActivateFn = (route, state) => {
+export const thesisRestrictedStatusGuard: CanActivateFn = (route) => {
   const router = inject(Router);
-  const thesisWorkService = inject(ThesisWorkService);
+  const thesisStorage = inject(ThesisWorkStorageService);
   const notificationService = inject(NotificationService);
+  const injector = inject(Injector);
 
-  // Buscar el ID del trabajo en la ruta actual o en el padre
   const id = route.paramMap.get('id') || route.parent?.paramMap.get('id');
+  if (!id) return true;
 
-  if (!id) {
-    return true; // Si no hay ID, dejamos que el componente maneje el error de "No encontrado"
-  }
-
-  // Obtenemos los trabajos actuales de la señal
-  const currentWork = thesisWorkService.thesisWorks().find(w => w.thesisWorkId === id);
-
-  if (currentWork) {
-    // Verificamos si tiene un estado restrictivo
+  return resolveEntityForGuard(
+    thesisStorage.isHydrated,
+    () => thesisStorage.allThesisWorks(),
+    work => work.thesisWorkId === id,
+    injector
+  ).then(currentWork => {
+    if (!currentWork) return true;
     if (currentWork.state === stateList.CANCELADO || currentWork.state === stateList.SUSPENDIDO) {
-
       notificationService.show({
         title: 'Acceso Restringido',
         message: `La acción no está permitida porque el trabajo de grado se encuentra ${currentWork.state}.`,
         type: NotificationType.ERROR
       });
-
-      // Bloqueamos la navegación y redirigimos al dashboard de documentos o a la lista general
-      // Ajusta esta ruta a donde quieras devolver al usuario
-      return router.createUrlTree(['/rutas/lista-trabajos']);
+      return router.createUrlTree(['/thesis-work']);
     }
-  }
-  return true;
+    return true;
+  });
+};
+
+/**
+ * Bloquea solo la VISUALIZACIÓN mientras el trabajo está SUSPENDIDO —
+ * deliberadamente NO bloquea CANCELADO, porque ese queda archivado y su
+ * lectura sigue siendo el propósito del módulo de Historial.
+ */
+export const thesisSuspendedViewGuard: CanActivateFn = (route) => {
+  const router = inject(Router);
+  const thesisStorage = inject(ThesisWorkStorageService);
+  const notificationService = inject(NotificationService);
+  const injector = inject(Injector);
+
+  const id = route.paramMap.get('id') || route.parent?.paramMap.get('id');
+  if (!id) return true;
+
+  return resolveEntityForGuard(
+    thesisStorage.isHydrated,
+    () => thesisStorage.allThesisWorks(),
+    work => work.thesisWorkId === id,
+    injector
+  ).then(currentWork => {
+    if (currentWork?.state === stateList.SUSPENDIDO) {
+      notificationService.show({
+        title: 'Acceso Restringido',
+        message: 'No es posible consultar este trabajo de grado mientras se encuentre suspendido.',
+        type: NotificationType.ERROR
+      });
+      return router.createUrlTree(['/thesis-work']);
+    }
+    return true;
+  });
 };

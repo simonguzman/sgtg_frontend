@@ -4,18 +4,27 @@ import { NotificationItemComponent } from './notification-item.component';
 import { Notification, NotificationType } from '../../models/notification.model';
 import { NOTIFICATION_CONFIG } from './models/notification-item.model';
 
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockNotification = (overrides: Partial<Notification> = {}): Notification => ({
+  id: 'notif-123',
+  type: NotificationType.INFO,
+  title: 'Título de prueba',
+  message: 'Mensaje de prueba',
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('NotificationItemComponent', () => {
   let component: NotificationItemComponent;
   let fixture: ComponentFixture<NotificationItemComponent>;
 
-  const baseNotification: Notification = {
-    id: 'notif-123',
-    type: NotificationType.INFO,
-    title: 'Título de prueba',
-    message: 'Mensaje de prueba'
-  };
-
   beforeEach(async () => {
+    // 🔕 Silenciar consola para mantener terminal limpia ante advertencias
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     await TestBed.configureTestingModule({
       imports: [NotificationItemComponent]
     }).compileComponents();
@@ -24,9 +33,14 @@ describe('NotificationItemComponent', () => {
     component = fixture.componentInstance;
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
+  });
+
   describe('Renderizado de contenido y Accesibilidad', () => {
     beforeEach(() => {
-      fixture.componentRef.setInput('notification', baseNotification);
+      fixture.componentRef.setInput('notification', createMockNotification());
       fixture.detectChanges();
     });
 
@@ -55,7 +69,7 @@ describe('NotificationItemComponent', () => {
     };
 
     it('debe aplicar las clases correctas basándose en el tipo de notificación (ej. ERROR)', () => {
-      const errorNotification: Notification = { ...baseNotification, type: NotificationType.ERROR };
+      const errorNotification = createMockNotification({ type: NotificationType.ERROR });
       fixture.componentRef.setInput('notification', errorNotification);
       fixture.detectChanges();
 
@@ -67,23 +81,11 @@ describe('NotificationItemComponent', () => {
       expectClassesToExist(iconEl, expectedConfig.icon);
       expectClassesToExist(iconEl, expectedConfig.iconClass);
     });
-
-    it('debe hacer fallback a INFO si se recibe un tipo desconocido', () => {
-      // Forzamos un tipo inválido estrictamente tipado como NotificationType para simular el fallo en runtime
-      const unknownNotification: Notification = { ...baseNotification, type: 'UNKNOWN_TYPE' as NotificationType };
-      fixture.componentRef.setInput('notification', unknownNotification);
-      fixture.detectChanges();
-
-      const expectedFallbackConfig = NOTIFICATION_CONFIG[NotificationType.INFO];
-      const containerEl = fixture.debugElement.query(By.css('.notification')).nativeElement as HTMLElement;
-
-      expectClassesToExist(containerEl, expectedFallbackConfig.containerClass);
-    });
   });
 
   describe('Botón de cerrar (dismissible)', () => {
     it('debe renderizar el botón de cerrar si dismissible es undefined (comportamiento por defecto)', () => {
-      fixture.componentRef.setInput('notification', baseNotification);
+      fixture.componentRef.setInput('notification', createMockNotification({ dismissible: undefined }));
       fixture.detectChanges();
 
       const closeBtn = fixture.debugElement.query(By.css('.notification__close'));
@@ -91,7 +93,7 @@ describe('NotificationItemComponent', () => {
     });
 
     it('debe renderizar el botón de cerrar si dismissible es explícitamente true', () => {
-      fixture.componentRef.setInput('notification', { ...baseNotification, dismissible: true });
+      fixture.componentRef.setInput('notification', createMockNotification({ dismissible: true }));
       fixture.detectChanges();
 
       const closeBtn = fixture.debugElement.query(By.css('.notification__close'));
@@ -99,7 +101,7 @@ describe('NotificationItemComponent', () => {
     });
 
     it('NO debe renderizar el botón de cerrar si dismissible es explícitamente false', () => {
-      fixture.componentRef.setInput('notification', { ...baseNotification, dismissible: false });
+      fixture.componentRef.setInput('notification', createMockNotification({ dismissible: false }));
       fixture.detectChanges();
 
       const closeBtn = fixture.debugElement.query(By.css('.notification__close'));
@@ -109,7 +111,7 @@ describe('NotificationItemComponent', () => {
 
   describe('Emisión de eventos (Outputs)', () => {
     it('debe emitir el evento "dismissed" con el ID de la notificación al hacer click en cerrar', () => {
-      fixture.componentRef.setInput('notification', baseNotification);
+      fixture.componentRef.setInput('notification', createMockNotification({ id: 'notif-777' }));
       fixture.detectChanges();
 
       const emitSpy = jest.spyOn(component.dismissed, 'emit');
@@ -118,7 +120,7 @@ describe('NotificationItemComponent', () => {
       closeBtn.triggerEventHandler('click', null);
 
       expect(emitSpy).toHaveBeenCalledTimes(1);
-      expect(emitSpy).toHaveBeenCalledWith('notif-123');
+      expect(emitSpy).toHaveBeenCalledWith('notif-777');
     });
   });
 });

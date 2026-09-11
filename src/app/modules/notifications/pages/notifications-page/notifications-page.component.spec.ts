@@ -1,43 +1,116 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { NotificationsPageComponent } from './notifications-page.component';
 import { Router } from '@angular/router';
-import { signal } from '@angular/core';
+import { signal, WritableSignal, Component, Input, Output, EventEmitter } from '@angular/core';
+
+import { NotificationsPageComponent } from './notifications-page.component';
 import { NotificationsPageFacadeService } from './services/notifications-page-facade.service';
-import { InboxMessageTableRow } from './../../models/notifications-page.model';
+
+import { InboxMessageTableRow, ModalActionType } from './../../models/notifications-page.model';
 import { TableButton } from '../../../../shared/components/table-component/table-component.component';
+import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
+
+// ── Componentes Originales a Remover (Shallow Testing) ───────────────────────
+import { TableComponent } from '../../../../shared/components/table-component/table-component.component';
+import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockInboxMessageTableRow = (overrides: Partial<InboxMessageTableRow> = {}): InboxMessageTableRow => ({
+  id: 'row-default',
+  userId: 'user-123',
+  type: NotificationType.INFO,
+  title: 'Título del mensaje',
+  message: 'Cuerpo del mensaje',
+  date: new Date(),
+  status: 'no leido', // FIX: Usamos la propiedad estricta del modelo base
+  stateLabel: 'No Leído',
+  dateFormatted: 'Hace un momento', // FIX: Agregado según tu nueva interfaz
+  allowedActions: ['ver_detalle', 'eliminar'],
+  ...overrides
+} as InboxMessageTableRow);
+
+// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
+
+@Component({ selector: 'app-table-component', standalone: true, template: '' })
+class MockTableComponent {
+  @Input() value!: unknown[];
+  @Input() headerButtons!: unknown[];
+  @Input() columns!: unknown[];
+  @Input() paginator!: boolean;
+  @Input() rows!: number;
+  @Input() emptyMessage!: string;
+  @Output() actionClick = new EventEmitter<{ action: string; row: InboxMessageTableRow }>();
+  @Output() headerButtonClick = new EventEmitter<TableButton>();
+}
+
+@Component({ selector: 'app-confirmation-action-modal', standalone: true, template: '' })
+class MockConfirmationActionModalComponent {
+  @Input() isOpen!: boolean;
+  @Input() description!: string;
+  @Output() onClose = new EventEmitter<void>();
+  @Output() confirm = new EventEmitter<void>();
+}
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('NotificationsPageComponent', () => {
   let component: NotificationsPageComponent;
   let fixture: ComponentFixture<NotificationsPageComponent>;
-  let mockRouter: jest.Mocked<Router>;
-  let mockFacade: Partial<NotificationsPageFacadeService>;
+
+  // Mocks tipados estrictamente (Zero 'unknown')
+  let mockRouter: {
+    navigateByUrl: jest.Mock<Promise<boolean>, [string]>;
+  };
+
+  let mockFacade: {
+    tableData: WritableSignal<InboxMessageTableRow[]>;
+    headerButtons: WritableSignal<TableButton[]>;
+    markAsRead: jest.Mock<void, [string]>;
+    clearAllMessages: jest.Mock<void, []>;
+    deleteMessage: jest.Mock<void, [string]>;
+  };
 
   beforeEach(async () => {
-    // 1. Mock de Router
-    mockRouter = {
-      navigateByUrl: jest.fn(),
-    } as unknown as jest.Mocked<Router>;
+    // 🔕 Silenciar consola para mantener terminal limpia de advertencias de UI
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // 2. Mock del Facade (usando signals reales para que la plantilla funcione)
+    // 1. Inicialización de Mocks
+    mockRouter = {
+      navigateByUrl: jest.fn().mockResolvedValue(true),
+    };
+
     mockFacade = {
-      tableData: signal([]),
-      headerButtons: signal([]),
+      tableData: signal<InboxMessageTableRow[]>([]),
+      headerButtons: signal<TableButton[]>([]),
       markAsRead: jest.fn(),
       clearAllMessages: jest.fn(),
       deleteMessage: jest.fn(),
     };
 
+    // 2. Configuración del TestBed
     await TestBed.configureTestingModule({
-      imports: [NotificationsPageComponent], // Al ser standalone importa sus dependencias
+      imports: [NotificationsPageComponent],
       providers: [
         { provide: Router, useValue: mockRouter },
         { provide: NotificationsPageFacadeService, useValue: mockFacade },
       ],
-    }).compileComponents();
+    })
+    .overrideComponent(NotificationsPageComponent, {
+      // Reemplazamos los componentes pesados de presentación por mocks ligeros
+      remove: { imports: [TableComponent, ConfirmationActionModalComponent] },
+      add: { imports: [MockTableComponent, MockConfirmationActionModalComponent] }
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(NotificationsPageComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar espías de consola
   });
 
   it('debería crear el componente correctamente', () => {
@@ -63,14 +136,19 @@ describe('NotificationsPageComponent', () => {
       component.pendingAction.set('delete_single');
       expect(component.modalDescription()).toContain('eliminar esta notificación');
     });
+
+    it('debería retornar un string vacío si la acción no coincide', () => {
+      component.pendingAction.set(null);
+      expect(component.modalDescription()).toBe('');
+    });
   });
 
   describe('Interacciones de la Tabla (handleTableAction)', () => {
-    const mockRow: InboxMessageTableRow = {
+    // Usamos la fábrica para garantizar que el objeto cumple toda la interfaz
+    const mockRow = createMockInboxMessageTableRow({
       id: 'notif-123',
       actionUrl: '/some/path',
-      // ... otros campos requeridos por tu interfaz
-    } as InboxMessageTableRow;
+    });
 
     it('debería marcar como leída y navegar si la acción es "ver_detalle"', () => {
       component.handleTableAction({ action: 'ver_detalle', row: mockRow });
@@ -80,7 +158,11 @@ describe('NotificationsPageComponent', () => {
     });
 
     it('no debería navegar si la acción es "ver_detalle" pero no hay actionUrl', () => {
-      const rowWithoutUrl = { ...mockRow, actionUrl: undefined };
+      const rowWithoutUrl = createMockInboxMessageTableRow({
+        id: 'notif-123',
+        actionUrl: undefined
+      });
+
       component.handleTableAction({ action: 'ver_detalle', row: rowWithoutUrl });
 
       expect(mockFacade.markAsRead).toHaveBeenCalledWith('notif-123');
@@ -104,6 +186,15 @@ describe('NotificationsPageComponent', () => {
 
       expect(component.pendingAction()).toBe('clear_all');
       expect(component.isConfirmModalOpen()).toBeTruthy();
+    });
+
+    it('no debería hacer nada si el botón no es el esperado', () => {
+      const btn: TableButton = { label: 'Otro Botón', action: 'other', variant: 'secondary' };
+
+      component.handleHeaderButton(btn);
+
+      expect(component.pendingAction()).toBeNull();
+      expect(component.isConfirmModalOpen()).toBeFalsy();
     });
   });
 
@@ -139,6 +230,17 @@ describe('NotificationsPageComponent', () => {
       component.executePendingAction();
 
       expect(mockFacade.deleteMessage).toHaveBeenCalledWith('notif-456');
+      expect(component.closeModal).toHaveBeenCalled();
+    });
+
+    it('no debería ejecutar borrado individual si no hay pendingNotificationId', () => {
+      jest.spyOn(component, 'closeModal');
+      component.pendingAction.set('delete_single');
+      component.pendingNotificationId.set(null); // Sin ID asignado
+
+      component.executePendingAction();
+
+      expect(mockFacade.deleteMessage).not.toHaveBeenCalled();
       expect(component.closeModal).toHaveBeenCalled();
     });
   });

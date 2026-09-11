@@ -9,22 +9,25 @@ import { ReviewPreliminaryDraftPageFacadeService, PendingReviewData } from './se
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { ReviewPreliminaryDraftFormComponent } from '../../components/review-preliminary-draft-form/review-preliminary-draft-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { stateList } from '../../../../core/enums/state.enum';
 
-// Mock robusto para evitar errores de propiedades no definidas en la vista
-const mockDraft = {
+// 🔹 REFACTOR: Fábricas de datos para generar entidades limpias sin usar 'as unknown'
+// NOTA: Se corrigió 'proposal' a 'proposalData' para coincidir con la interfaz real de PreliminaryDraft
+const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
   preliminaryDraftId: '123',
   proposalId: 'prop-1',
-  proposal: {
-    title: 'Título de prueba'
-  },
+  proposalData: { title: 'Título de prueba' } as PreliminaryDraft['proposalData'],
   evaluators: [],
-  documents: []
-} as unknown as PreliminaryDraft;
+  documents: [],
+  ...overrides
+} as PreliminaryDraft);
 
-const mockPendingData = {
-  formValues: { result: 'APROBADO', comments: 'Todo correcto' },
-  file: new File([''], 'evaluacion.pdf', { type: 'application/pdf' })
-} as unknown as PendingReviewData;
+const createMockPendingData = (overrides: Partial<PendingReviewData> = {}): PendingReviewData => ({
+  formValues: { result: stateList.APROBADO, comments: 'Todo correcto' },
+  file: new File([''], 'evaluacion.pdf', { type: 'application/pdf' }),
+  ...overrides
+} as PendingReviewData);
+
 
 @Component({
   selector: 'app-review-preliminary-draft-form',
@@ -49,11 +52,12 @@ class MockConfirmationModalComponent {
   @Output() confirm = new EventEmitter<void>();
 }
 
+
 describe('ReviewPreliminaryDraftPageComponent', () => {
   let component: ReviewPreliminaryDraftPageComponent;
   let fixture: ComponentFixture<ReviewPreliminaryDraftPageComponent>;
 
-  // Interfaz estricta para el mock del facade eliminando el 'any'
+  // Interfaz estricta para el mock del facade (sin usar 'any')
   let facadeMock: {
     preliminaryDraftState: WritableSignal<PreliminaryDraft | null>;
     isConfirmModalOpen: WritableSignal<boolean>;
@@ -66,6 +70,10 @@ describe('ReviewPreliminaryDraftPageComponent', () => {
   };
 
   beforeEach(async () => {
+    // 🔕 Silenciar los console.error y console.warn
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // Inicialización del mock con tipado estricto
     facadeMock = {
       preliminaryDraftState: signal<PreliminaryDraft | null>(null),
@@ -108,6 +116,10 @@ describe('ReviewPreliminaryDraftPageComponent', () => {
     component = fixture.componentInstance;
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones originales de la consola
+  });
+
   it('debería crearse correctamente', () => {
     expect(component).toBeTruthy();
   });
@@ -126,13 +138,14 @@ describe('ReviewPreliminaryDraftPageComponent', () => {
   });
 
   it('debería mostrar el formulario si preliminaryDraftState tiene datos', () => {
-    facadeMock.preliminaryDraftState.set(mockDraft);
+    const draft = createMockDraft();
+    facadeMock.preliminaryDraftState.set(draft);
     fixture.detectChanges();
 
     const formEl = fixture.debugElement.query(By.directive(MockReviewFormComponent));
     expect(formEl).toBeTruthy();
     // Validamos que el Input se esté pasando correctamente
-    expect(formEl.componentInstance.preliminaryDraft).toEqual(mockDraft);
+    expect(formEl.componentInstance.preliminaryDraft).toEqual(draft);
   });
 
   it('debería llamar a facade.goBack() al hacer click en el botón regresar', () => {
@@ -146,7 +159,7 @@ describe('ReviewPreliminaryDraftPageComponent', () => {
 
   describe('Interacciones con el Formulario (Hijo)', () => {
     beforeEach(() => {
-      facadeMock.preliminaryDraftState.set(mockDraft);
+      facadeMock.preliminaryDraftState.set(createMockDraft());
       fixture.detectChanges();
     });
 
@@ -154,9 +167,10 @@ describe('ReviewPreliminaryDraftPageComponent', () => {
       const formDebugEl = fixture.debugElement.query(By.directive(MockReviewFormComponent));
       const formComponent: MockReviewFormComponent = formDebugEl.componentInstance;
 
-      formComponent.onSaveEvaluation.emit(mockPendingData);
+      const payload = createMockPendingData();
+      formComponent.onSaveEvaluation.emit(payload);
 
-      expect(facadeMock.handleRequestConfirmation).toHaveBeenCalledWith(mockPendingData);
+      expect(facadeMock.handleRequestConfirmation).toHaveBeenCalledWith(payload);
     });
 
     it('debería delegar a downloadCurrentDocument cuando el formulario emite onDownloadPreliminaryDraft', () => {

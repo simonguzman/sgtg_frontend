@@ -7,17 +7,16 @@ import { UserService } from '../../../../users/services/user.service';
 
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkPageMapperService {
-
   private readonly userService = inject(UserService);
 
   public mapThesisWorkToTable(
     thesisWork: ThesisWork,
     hasFullAccessRole: boolean,
     isAdmin: boolean,
+    isConsejo: boolean,
     currentUserId: string | undefined
   ): ThesisWorkTableRow {
     const proposal = thesisWork.preliminaryDraftData?.proposalData;
-
     return {
       id: thesisWork.thesisWorkId || '',
       title: proposal?.title || 'Sin título',
@@ -26,7 +25,7 @@ export class ThesisWorkPageMapperService {
       state: thesisWork.state,
       maxDeliveryDate: this.formatMaxDeliveryDate(thesisWork.preliminaryDraftData?.maximumDeliveryDate),
       hiddenParticipants: this.buildHiddenParticipants(thesisWork),
-      allowedActions: this.calculateAllowedActions(thesisWork, hasFullAccessRole, isAdmin, currentUserId)
+      allowedActions: this.calculateAllowedActions(thesisWork, hasFullAccessRole, isAdmin, isConsejo, currentUserId)
     };
   }
 
@@ -45,11 +44,6 @@ export class ThesisWorkPageMapperService {
       ...(Array.isArray(proposal?.authors) ? proposal.authors : []),
       ...(thesisWork.sustentations?.[0]?.assignedJurors || [])
     ];
-    // ← FIX: antes `${user.firstName || ''} ${user.lastName || ''}`.trim()
-    // — omitía secondName/secondLastName. Este campo alimenta
-    // filterFields (búsqueda de la tabla, no se muestra directamente), así
-    // que el impacto real es que buscar a alguien por su segundo nombre o
-    // segundo apellido no lo encontraba.
     return allParticipants
       .filter((user): user is User => !!user && typeof user === 'object')
       .map(user => this.userService.formatFullName(user))
@@ -60,37 +54,38 @@ export class ThesisWorkPageMapperService {
     thesisWork: ThesisWork,
     hasFullAccessRole: boolean,
     isAdmin: boolean,
+    isConsejo: boolean,
     currentUserId: string | undefined
   ): string[] {
     if (!currentUserId) return ['ver descripción'];
-
     const proposal = thesisWork.preliminaryDraftData?.proposalData;
     const isMatchingUser = (entity?: Pick<User, 'id'> | string) => {
       if (!entity) return false;
       const id = typeof entity === 'string' ? entity : entity.id;
       return String(id) === currentUserId;
     };
-
     const isUserInList = (list?: (User | { id: string } | string)[]) => Array.isArray(list) && list.some(isMatchingUser);
-
     const isDirector = isMatchingUser(proposal?.director);
     const isCodirector = isMatchingUser(proposal?.codirector);
     const isAdvisor = isMatchingUser(proposal?.advisor);
     const isStudentAuthor = isUserInList(proposal?.authors);
     const isJuror = isUserInList(thesisWork.sustentations?.[0]?.assignedJurors);
-
     const hasViewPermission = hasFullAccessRole || isDirector || isCodirector || isAdvisor || isStudentAuthor || isJuror;
     const isOwnerOrAdmin = isAdmin || isDirector;
+    const isSuspended = thesisWork.state === stateList.SUSPENDIDO;
 
     let allowed: string[] = ['ver descripción'];
-
-    if (hasViewPermission) allowed.push('ver');
+    // ← FIX: se agrega `&& !isSuspended` — mientras el trabajo está
+    // suspendido, el botón "ver" queda oculto para todos (no solo
+    // Admin/Consejo) hasta que se reactive. Nota: esto también retira el
+    // acceso de "ver" al propio director/estudiante mientras dure la
+    // suspensión — si prefieres que ellos sí conserven vista de solo
+    // lectura y esto se acote solo a Admin/Consejo, dímelo y lo ajusto.
+    if (hasViewPermission && !isSuspended) allowed.push('ver');
     if (isOwnerOrAdmin) allowed.push('editar');
-
-    if (thesisWork.state === stateList.SUSPENDIDO && isAdmin) {
+    if (isSuspended && (isAdmin || isConsejo)) {
       allowed.push('reactivar');
     }
-
     return allowed;
   }
 }

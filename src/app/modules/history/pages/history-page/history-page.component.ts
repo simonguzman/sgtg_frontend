@@ -110,8 +110,4 @@ export class HistoryPageComponent implements OnDestroy {
         break;
     }
   }
-
-  goBack(): void {
-    this.router.navigate(['../'], { relativeTo: this.route });
-  }
 }

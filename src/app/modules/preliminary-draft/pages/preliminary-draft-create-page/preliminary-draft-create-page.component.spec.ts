@@ -5,10 +5,42 @@ import { Component, EventEmitter, Input, Output, signal, WritableSignal } from '
 import { PreliminaryDraftCreatePageComponent } from './preliminary-draft-create-page.component';
 import { PreliminaryDraftCreatePageService } from './services/preliminary-draft-create-page.service';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
-import { Proposal } from '../../../proposal/interfaces/proposal.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { PreliminaryDraftFormComponent } from '../../components/preliminary-draft-form/preliminary-draft-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { User } from '../../../users/interfaces/user.interface';
+
+// 🔹 REFACTOR: Fábricas para generar entidades limpias sin usar casteos forzados en medio del test
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-1',
+  roles: [],
+  ...overrides
+} as User);
+
+type ProposalData = NonNullable<PreliminaryDraft['proposalData']>;
+const createMockProposalData = (overrides: Partial<ProposalData> = {}): ProposalData => ({
+  id: 'prop-1',
+  title: 'Título de prueba',
+  description: 'Descripción',
+  state: stateList.EN_REVISION,
+  createdAt: new Date(),
+  documents: [],
+  evaluations: [],
+  authors: [],
+  director: createMockUser(),
+  ...overrides
+} as ProposalData);
+
+const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
+  preliminaryDraftId: 'draft-1',
+  proposalId: 'prop-1',
+  state: stateList.EN_REVISION,
+  createdData: new Date(),
+  evaluations: [],
+  documents: [],
+  proposalData: createMockProposalData(),
+  ...overrides
+} as PreliminaryDraft);
 
 // 1. Mocks de Componentes Hijos (Standalone)
 @Component({
@@ -53,6 +85,10 @@ describe('PreliminaryDraftCreatePageComponent', () => {
   };
 
   beforeEach(async () => {
+    // 🔕 Silenciar los console.error y console.warn
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockPageService = {
       checkAccess: jest.fn(),
       goBack: jest.fn(),
@@ -89,6 +125,7 @@ describe('PreliminaryDraftCreatePageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar implementaciones originales de la consola
   });
 
   describe('Inicialización', () => {
@@ -121,16 +158,8 @@ describe('PreliminaryDraftCreatePageComponent', () => {
     });
 
     it('debería llamar a openConfirmation cuando el formulario emita onSave', () => {
-      // AQUÍ SE CORRIGIÓ EL ERROR: Se agregó 'evaluations: []'
-      const mockDraft: PreliminaryDraft = {
-        preliminaryDraftId: '1',
-        proposalId: '2',
-        proposalData: {} as Proposal,
-        documents: [],
-        evaluations: [], // <-- PROPIEDAD FALTANTE AGREGADA
-        state: stateList.EN_REVISION,
-        createdData: new Date()
-      };
+      // 🔹 REFACTOR: Uso de fábrica limpia y estrictamente tipada
+      const mockDraft = createMockDraft();
 
       const formElement = fixture.debugElement.query(By.directive(MockPreliminaryDraftFormComponent));
       formElement.triggerEventHandler('onSave', mockDraft);

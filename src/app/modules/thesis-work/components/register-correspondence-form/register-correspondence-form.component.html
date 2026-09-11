@@ -1,27 +1,22 @@
 <div class="p-6 bg-white rounded-lg w-full">
-
   <app-info-banner title="Registro de Correspondencia y Resolución" class="mb-6 block">
     Para dar por terminado el proceso de trabajo de grado de manera formal, cargue el documento oficial
     de correspondencia o resolución de consejo (<strong>Formato_H</strong>). Este es un requisito
     <strong>obligatorio</strong> para cerrar el expediente académico.
   </app-info-banner>
-
   <section class="mb-8">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
-
     <div class="flex flex-col gap-4">
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Título</span>
         <input type="text" [value]="thesisWork().preliminaryDraftData.proposalData.title || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
-
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Descripciòn</span>
         <input type="text" [value]="thesisWork().preliminaryDraftData.proposalData.description" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
-
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="flex flex-col gap-1">
           <span class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</span>
@@ -34,14 +29,12 @@
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
       </div>
-
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="flex flex-col gap-1">
           <span class="font-display font-semibold text-primary text-size-section">Director</span>
           <input type="text" [value]="getDirectorName()" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
-
         @if (thesisWork().preliminaryDraftData.proposalData.codirector) {
           <div class="flex flex-col gap-1">
             <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
@@ -49,7 +42,6 @@
                    class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
           </div>
         }
-
         @if (thesisWork().preliminaryDraftData.proposalData.advisor) {
           <div class="flex flex-col gap-1">
             <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
@@ -58,7 +50,6 @@
           </div>
         }
       </div>
-
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Estado Actual</span>
         <input type="text" [value]="thesisWork().state" disabled
@@ -66,10 +57,8 @@
       </div>
     </div>
   </section>
-
   <section class="mb-8">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Detalles de Sustentación</h3>
-
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Jurados Asignados</span>
@@ -81,7 +70,6 @@
           }
         </div>
       </div>
-
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Fecha de Sustentación</span>
         <input type="text" [value]="(thesisWork().sustentations?.[0]?.sustentationDate | date:'dd / MM / yyyy') || 'Pendiente'" disabled
@@ -89,14 +77,10 @@
       </div>
     </div>
   </section>
-
   <hr class="border-gray-200 mb-8">
-
   <section class="mb-8">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Archivos adjuntos cargados</h3>
-
     <div class="flex flex-col gap-4">
-
       @if (formatoEDoc(); as docE) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
           <div class="flex items-center gap-3 overflow-hidden">
@@ -109,7 +93,6 @@
           <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docE)"></app-button-component>
         </div>
       }
-
       @if (formatoFDoc(); as docF) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
           <div class="flex items-center gap-3 overflow-hidden">
@@ -122,7 +105,6 @@
           <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docF)"></app-button-component>
         </div>
       }
-
       @if (formatoGDoc(); as docG) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
           <div class="flex items-center gap-3 overflow-hidden">
@@ -135,25 +117,18 @@
           <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docG)"></app-button-component>
         </div>
       }
-
     </div>
   </section>
-
   <hr class="border-gray-200 mb-8">
-
   <section>
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Carga del Formato H</h3>
-
-    <input type="file" #fileInput id="correspondenceFileInput" class="hidden" accept=".pdf" (change)="onFileSelected($event)">
-
     <div class="flex flex-col gap-4">
-
       @if (!selectedFile()) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm transition-colors">
           <div class="flex items-center gap-3">
             <span class="material-symbols-outlined text-4xl text-[#777680]">picture_as_pdf</span>
             <div class="flex flex-col">
-              <span class="text-size-body font-bold text-[#777680]">Documento de Correspondencia / Resolución</span>
+              <span class="text-size-body font-bold text-[#777680]">Documento de Correspondencia</span>
               <span class="text-size-role-footer text-[#777680]">
                 No ha sido cargado ningún archivo. Debe adjuntar el Formato_H para formalizar el cierre del proceso.
               </span>
@@ -162,11 +137,10 @@
           <app-button-component
             label="Cargar Formato H"
             variant="secondary"
-            (onClick)="triggerFileInput()">
+            (onClick)="isModalOpen.set(true)">
           </app-button-component>
         </div>
       }
-
       @else {
         <div class="flex items-center justify-between p-4 bg-white border-l-4 border-l-state-approved border border-gray-200 rounded-xl shadow-sm transition-colors">
           <div class="flex items-center gap-3">
@@ -184,9 +158,7 @@
           </button>
         </div>
       }
-
     </div>
-
     <div class="flex gap-4 justify-end mt-10">
       <app-button-component
         label="Registrar y Finalizar Proceso"
@@ -196,5 +168,10 @@
       </app-button-component>
     </div>
   </section>
-
 </div>
+<app-file-upload-modal
+  [isOpen]="isModalOpen()"
+  description="Subir Formato H de correspondencia"
+  (onFileUploaded)="handleFileUploaded($event)"
+  (onClose)="isModalOpen.set(false)">
+</app-file-upload-modal>

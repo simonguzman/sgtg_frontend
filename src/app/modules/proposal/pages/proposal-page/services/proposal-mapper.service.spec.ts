@@ -25,11 +25,21 @@ describe('ProposalMapperService', () => {
   } as unknown as Proposal;
 
   beforeEach(() => {
+    // 1. Espías para silenciar la consola
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     TestBed.configureTestingModule({
       providers: [ProposalMapperService]
     });
     service = TestBed.inject(ProposalMapperService);
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    // 2. Restauramos todos los espías y mocks originales al terminar cada prueba
+    jest.restoreAllMocks();
   });
 
   describe('mapProposalToTable - Permisos (allowedActions)', () => {

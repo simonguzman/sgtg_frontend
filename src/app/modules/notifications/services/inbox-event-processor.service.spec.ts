@@ -13,19 +13,44 @@ import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { User } from '../../users/interfaces/user.interface';
 import { InboxMessage, InboxStatus } from '../interfaces/inbox-message.interface';
 import { NotificationType } from '../../../shared/components/notifications/models/notification.model';
-import { InboxEventContext, InboxEventPayload } from '../pages/notifications-page/models/inbox-event-context.model';
+import { InboxEventContext } from '../pages/notifications-page/models/inbox-event-context.model';
 
 // Importamos el helper y el diccionario para poder interceptarlos
 import * as contextHelper from '../helpers/inbox-event-context.helper';
 import { INBOX_MESSAGE_BUILDERS } from './inbox-message-builders';
 
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-default',
+  roles: [],
+  ...overrides
+} as User);
+
+const createMockAppEvent = (overrides: Partial<AppEvent> = {}): AppEvent => ({
+  type: AppEventType.PROPOSAL_DEADLINE_EXPIRED,
+  targetUserIds: ['user-1'],
+  payload: {},
+  ...overrides
+} as AppEvent);
+
+const createMockInboxEventContext = (overrides: Partial<InboxEventContext> = {}): InboxEventContext => ({
+  payload: {},
+  proposalTitle: 'Propuesta sin título',
+  draftTitle: 'Anteproyecto sin título',
+  thesisTitle: 'Trabajo de grado sin título',
+  ...overrides
+} as InboxEventContext);
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('InboxEventProcessorService', () => {
   let service: InboxEventProcessorService;
 
-  // Dependencias mockeadas
+  // Dependencias mockeadas (Tipos Estrictos)
   let eventsSubject: Subject<AppEvent>;
-  let addMessagesSpy: jest.Mock;
-  let showNotificationSpy: jest.Mock;
+  let addMessagesSpy: jest.Mock<void, [InboxMessage[]]>;
+  let showNotificationSpy: jest.Mock<void, [any]>; // El payload real depende de tu NotificationService
   let mockCurrentUserSignal: WritableSignal<User | null>;
 
   // Spies para helpers externos
@@ -33,15 +58,19 @@ describe('InboxEventProcessorService', () => {
   let mockBuilder: jest.Mock;
 
   // Objeto base simulado que retornaría el Builder
-  const mockBaseMessage = {
+  const mockBaseMessage: Omit<InboxMessage, 'id' | 'userId'> = {
     type: NotificationType.INFO,
     title: 'Título Mock',
     message: 'Mensaje Mock',
-    date: new Date(),
-    status: 'no leido' as InboxStatus
-  } as Omit<InboxMessage, 'id' | 'userId'>;
+    date: new Date('2026-08-10T12:00:00Z'),
+    status: 'no leido'
+  };
 
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // 1. Preparamos los mocks reactivos y espías
     eventsSubject = new Subject<AppEvent>();
     addMessagesSpy = jest.fn();
@@ -49,14 +78,14 @@ describe('InboxEventProcessorService', () => {
     mockCurrentUserSignal = signal<User | null>(null);
 
     // Mockeamos la API nativa de UUID para garantizar predictibilidad
-    Object.defineProperty(globalThis.crypto, 'randomUUID', {
-      value: jest.fn().mockReturnValue('mock-uuid-1234'),
+    Object.defineProperty(globalThis, 'crypto', {
+      value: { randomUUID: jest.fn().mockReturnValue('mock-uuid-1234') },
       configurable: true
     });
 
     // 2. Interceptamos el helper (para no depender de su lógica real)
     extractContextSpy = jest.spyOn(contextHelper, 'extractInboxEventContext')
-      .mockReturnValue({ payload: {} } as unknown as InboxEventContext);
+      .mockReturnValue(createMockInboxEventContext());
 
     // 3. Preparamos el builder simulado
     mockBuilder = jest.fn().mockReturnValue(mockBaseMessage);
@@ -91,11 +120,7 @@ describe('InboxEventProcessorService', () => {
 
   describe('Procesamiento de Eventos', () => {
     it('debe ignorar el evento si no hay usuarios destino (targetUserIds está vacío)', () => {
-      const emptyEvent = {
-        type: AppEventType.PROPOSAL_DEADLINE_EXPIRED,
-        targetUserIds: [],
-        payload: {} as InboxEventPayload
-      } as AppEvent;
+      const emptyEvent = createMockAppEvent({ targetUserIds: [] });
 
       eventsSubject.next(emptyEvent);
 
@@ -104,12 +129,9 @@ describe('InboxEventProcessorService', () => {
     });
 
     it('debe ignorar el evento si no existe un Builder configurado para ese tipo de evento', () => {
-      // Usamos un tipo de evento inventado simulando uno no registrado
-      const unknownEvent = {
-        type: 'EVENTO_DESCONOCIDO' as AppEventType,
-        targetUserIds: ['user-1'],
-        payload: {} as InboxEventPayload
-      } as AppEvent;
+      // Usamos un tipo de evento simulando uno no registrado en el diccionario
+      // El cast as AppEventType es válido aquí para probar comportamientos de fallback o eventos desactualizados
+      const unknownEvent = createMockAppEvent({ type: 'EVENTO_DESCONOCIDO' as AppEventType });
 
       eventsSubject.next(unknownEvent);
 
@@ -119,14 +141,13 @@ describe('InboxEventProcessorService', () => {
     });
 
     it('debe construir y guardar mensajes para todos los usuarios destino (Notificación silenciosa)', () => {
-      const validEvent = {
+      const validEvent = createMockAppEvent({
         type: AppEventType.PROPOSAL_DEADLINE_EXPIRED,
-        targetUserIds: ['user-1', 'user-2'],
-        payload: {} as InboxEventPayload
-      } as AppEvent;
+        targetUserIds: ['user-1', 'user-2']
+      });
 
       // El usuario actual NO está en la lista de destinos
-      mockCurrentUserSignal.set({ id: 'user-99' } as unknown as User);
+      mockCurrentUserSignal.set(createMockUser({ id: 'user-99' }));
 
       eventsSubject.next(validEvent);
 
@@ -144,14 +165,13 @@ describe('InboxEventProcessorService', () => {
     });
 
     it('debe mostrar un Toast (NotificationService) si el usuario actual es uno de los destinos', () => {
-      const validEvent = {
+      const validEvent = createMockAppEvent({
         type: AppEventType.PROPOSAL_DEADLINE_EXPIRED,
-        targetUserIds: ['user-1', 'user-2'],
-        payload: {} as InboxEventPayload
-      } as AppEvent;
+        targetUserIds: ['user-1', 'user-2']
+      });
 
       // Configuramos al usuario actual para que coincida con uno de los destinos
-      mockCurrentUserSignal.set({ id: 'user-2' } as unknown as User);
+      mockCurrentUserSignal.set(createMockUser({ id: 'user-2' }));
 
       eventsSubject.next(validEvent);
 

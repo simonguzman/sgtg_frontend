@@ -8,6 +8,7 @@ import { NotificationService } from '../../../../shared/components/notifications
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 
 import { Proposal } from '../../interfaces/proposal.interface';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../core/enums/state.enum';
 import { SelectOption } from '../../../../shared/components/searchable-select/searchable-select.component';
@@ -15,8 +16,10 @@ import { SelectOption } from '../../../../shared/components/searchable-select/se
 // 1. Mock de la utilidad de lectura de archivos
 jest.mock('../../../../core/utils/file-reader.utils');
 import { readFileAsDataUrl } from '../../../../core/utils/file-reader.utils';
+import { Modality } from '../../enums/modality.enum';
 
-// 2. Definición estricta de interfaces para evitar el uso de 'any'
+// ── Interfaces Estrictas para Spies ──────────────────────────────────────────
+
 interface MockFormService {
   form: FormGroup;
   initForCreate: jest.Mock;
@@ -29,12 +32,44 @@ interface MockFormService {
   advisorOptions: WritableSignal<SelectOption[]>;
 }
 
+interface MockNotificationService {
+  show: jest.Mock;
+}
+
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
+
+const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
+  id: 'doc-1',
+  name: 'DocumentoOriginal.pdf',
+  url: 'http://docs.com/1',
+  uploadDate: new Date(),
+  type: DocumentType.PROPUESTA,
+  status: stateList.EN_REVISION,
+  ...overrides
+});
+
+const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
+  id: 'prop-1',
+  title: 'Título Base',
+  description: 'Desc',
+  modality: Modality.TI,
+  state: stateList.EN_REVISION,
+  authors: [],
+  evaluations: [],
+  documents: [createMockFileDocument()],
+  // @ts-expect-error: Evitamos mockear el árbol profundo de historial/director si no se usa
+  director: { id: 'dir-1' },
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('ProposalFormComponent', () => {
   let component: ProposalFormComponent;
   let fixture: ComponentFixture<ProposalFormComponent>;
 
   let mockFormService: MockFormService;
-  let mockNotificationService: jest.Mocked<NotificationService>;
+  let mockNotificationService: MockNotificationService;
   let mockFormGroup: FormGroup;
 
   const mockReadFileAsDataUrl = readFileAsDataUrl as jest.MockedFunction<typeof readFileAsDataUrl>;
@@ -48,6 +83,10 @@ describe('ProposalFormComponent', () => {
   });
 
   beforeEach(async () => {
+    // 🔕 Silenciador preventivo global de consola
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockFormGroup = fb.group({
       title: ['', Validators.required],
       description: ['', Validators.required],
@@ -56,10 +95,9 @@ describe('ProposalFormComponent', () => {
       student2: [''],
       codirector: [''],
       advisor: [''],
-      document: ['']
+      document: [''] // No tiene validator requerido porque la validación es custom (attachedFile)
     });
 
-    // Implementación tipada del servicio mockeado
     mockFormService = {
       form: mockFormGroup,
       initForCreate: jest.fn(),
@@ -72,9 +110,7 @@ describe('ProposalFormComponent', () => {
       advisorOptions: signal([])
     };
 
-    mockNotificationService = {
-      show: jest.fn()
-    } as unknown as jest.Mocked<NotificationService>;
+    mockNotificationService = { show: jest.fn() };
 
     await TestBed.configureTestingModule({
       imports: [ProposalFormComponent, ReactiveFormsModule],
@@ -83,9 +119,7 @@ describe('ProposalFormComponent', () => {
       ]
     })
     .overrideComponent(ProposalFormComponent, {
-      set: {
-        providers: [{ provide: ProposalFormService, useValue: mockFormService }]
-      }
+      set: { providers: [{ provide: ProposalFormService, useValue: mockFormService }] }
     })
     .compileComponents();
 
@@ -97,6 +131,7 @@ describe('ProposalFormComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización y Reactividad (effect)', () => {
@@ -109,10 +144,7 @@ describe('ProposalFormComponent', () => {
     });
 
     it('debería iniciar en modo edición si se proporciona una propuesta', () => {
-      const mockProposal = {
-        id: 'prop-1',
-        documents: [{ name: 'DocumentoOriginal.pdf' }]
-      } as Proposal;
+      const mockProposal = createMockProposal();
 
       fixture.componentRef.setInput('proposal', mockProposal);
       fixture.detectChanges();
@@ -179,18 +211,33 @@ describe('ProposalFormComponent', () => {
       expect(component.isFieldInvalid('title')).toBeFalsy();
     });
 
-    it('debería calcular correctamente hasValue', () => {
-      expect(component.hasValue('student2')).toBeFalsy();
+    it('debería calcular correctamente isFileFieldInvalid basado en isSubmitAttempted y attachedFile', () => {
+      // Estado inicial (No se ha intentado enviar)
+      expect(component.isFileFieldInvalid).toBeFalsy();
 
-      mockFormGroup.get('student2')?.setValue('stu2');
-      expect(component.hasValue('student2')).toBeTruthy();
+      // Intento fallido de envío sin archivo
+      component.isSubmitAttempted.set(true);
+      component.attachedFile.hasFile = false;
+      expect(component.isFileFieldInvalid).toBeTruthy(); // Ahora sí debe ser inválido
+
+      // Intento de envío con archivo
+      component.attachedFile.hasFile = true;
+      expect(component.isFileFieldInvalid).toBeFalsy();
     });
   });
 
-  describe('Flujo de Envío (Submit asíncrono)', () => {
+  describe('Flujo de Envío (Submit asíncrono y mapDocuments)', () => {
+    beforeEach(() => {
+      // Hacemos que el formulario sea válido base para poder probar las guardas posteriores
+      mockFormGroup.patchValue({ title: 'T', description: 'D', modality: 'M', student1: 'S' });
+    });
+
     it('debería detenerse y notificar error si el formulario es inválido', async () => {
+      mockFormGroup.patchValue({ title: '' }); // Lo invalidamos
+
       await component.submit();
 
+      expect(component.isSubmitAttempted()).toBeTruthy();
       expect(mockFormGroup.touched).toBeTruthy();
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Formulario incorrecto', type: NotificationType.ERROR })
@@ -198,9 +245,8 @@ describe('ProposalFormComponent', () => {
       expect(mockFormService.buildProposalPayload).not.toHaveBeenCalled();
     });
 
-    it('debería detenerse y notificar error si falta el archivo en modo creación', async () => {
-      mockFormGroup.patchValue({ title: 'T', description: 'D', modality: 'M', student1: 'S' });
-      fixture.detectChanges();
+    it('debería detenerse y notificar error si falta el archivo en Modo Creación', async () => {
+      component.attachedFile.hasFile = false; // Estado sin archivo
 
       await component.submit();
 
@@ -209,8 +255,24 @@ describe('ProposalFormComponent', () => {
       );
     });
 
-    it('debería notificar error si ocurre un fallo al leer el archivo adjunto', async () => {
-      mockFormGroup.patchValue({ title: 'T', description: 'D', modality: 'M', student1: 'S' });
+    it('debería detenerse y notificar error si el usuario ELIMINÓ el archivo en Modo Edición', async () => {
+      // 1. Iniciamos en edición
+      fixture.componentRef.setInput('proposal', createMockProposal());
+      fixture.detectChanges();
+
+      // 2. Simulamos que el usuario le dio al botón de "eliminar archivo"
+      component.removeFile();
+
+      // 3. Intenta enviar
+      await component.submit();
+
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Archivo requerido', type: NotificationType.ERROR })
+      );
+      expect(mockFormService.buildProposalPayload).not.toHaveBeenCalled();
+    });
+
+    it('debería notificar error si ocurre un fallo al leer el nuevo archivo adjunto (Caso 1 de mapDocuments)', async () => {
       component.handleFileUploaded({ fileName: 'A.pdf', file: new File([''], 'A.pdf') });
 
       // Simulamos que el file reader arroja una excepción
@@ -224,31 +286,44 @@ describe('ProposalFormComponent', () => {
       expect(mockFormService.buildProposalPayload).not.toHaveBeenCalled();
     });
 
-    it('debería emitir el payload exitosamente con los documentos mapeados (Modo Creación)', async () => {
-      mockFormGroup.patchValue({ title: 'T', description: 'D', modality: 'M', student1: 'S' });
-
-      const mockPayload = { id: 'payload-1' } as Proposal;
+    it('debería procesar y enviar un DOCUMENTO NUEVO si se adjuntó un archivo (Caso 1 de mapDocuments)', async () => {
+      const mockPayload = createMockProposal({ id: 'payload-nuevo' });
       mockFormService.buildProposalPayload.mockReturnValue(mockPayload);
       mockReadFileAsDataUrl.mockResolvedValue('data:application/pdf;base64,m0ck');
 
-      component.handleFileUploaded({ fileName: 'A.pdf', file: new File([''], 'A.pdf') });
+      // Se simula la carga de un archivo desde la UI
+      component.handleFileUploaded({ fileName: 'NUEVO_DOC.pdf', file: new File([''], 'NUEVO_DOC.pdf') });
 
-      // Esperamos a que resuelva la promesa del submit completo
       await component.submit();
 
       expect(mockReadFileAsDataUrl).toHaveBeenCalledWith(expect.any(File));
       expect(mockFormService.buildProposalPayload).toHaveBeenCalledWith(null, expect.arrayContaining([
-        expect.objectContaining({
-          name: 'A.pdf',
-          type: DocumentType.PROPUESTA,
-          status: stateList.EN_REVISION
-        })
+        expect.objectContaining({ name: 'NUEVO_DOC.pdf', type: DocumentType.PROPUESTA })
       ]));
       expect(component.onSubmit.emit).toHaveBeenCalledWith(mockPayload);
     });
 
+    it('debería reutilizar el DOCUMENTO ORIGINAL si no se reemplazó el archivo en Modo Edición (Caso 2 de mapDocuments)', async () => {
+      const mockProposal = createMockProposal();
+      fixture.componentRef.setInput('proposal', mockProposal);
+      fixture.detectChanges(); // Esto setea attachedFile.hasFile = true, pero file = null
+
+      const mockPayload = createMockProposal({ id: 'payload-editado' });
+      mockFormService.buildProposalPayload.mockReturnValue(mockPayload);
+
+      await component.submit();
+
+      // Nunca debe intentar leer el archivo, porque es nulo y estamos reutilizando el existente
+      expect(mockReadFileAsDataUrl).not.toHaveBeenCalled();
+
+      // Debe haber pasado los documentos originales (mockProposal.documents) al payload
+      expect(mockFormService.buildProposalPayload).toHaveBeenCalledWith(
+        mockProposal, mockProposal.documents
+      );
+      expect(component.onSubmit.emit).toHaveBeenCalledWith(mockPayload);
+    });
+
     it('debería notificar error si buildProposalPayload retorna null', async () => {
-      mockFormGroup.patchValue({ title: 'T', description: 'D', modality: 'M', student1: 'S' });
       mockFormService.buildProposalPayload.mockReturnValue(null);
       mockReadFileAsDataUrl.mockResolvedValue('data:application/pdf;base64,m0ck');
 
@@ -260,23 +335,6 @@ describe('ProposalFormComponent', () => {
         expect.objectContaining({ title: 'Error', type: NotificationType.ERROR })
       );
       expect(component.onSubmit.emit).not.toHaveBeenCalled();
-    });
-
-    it('debería usar los documentos originales al enviar en Modo Edición', async () => {
-      const mockProposal = { id: 'prop-1', documents: [{ name: 'DocOriginal.pdf' }] } as Proposal;
-      fixture.componentRef.setInput('proposal', mockProposal);
-      fixture.detectChanges();
-
-      mockFormGroup.patchValue({ title: 'T', description: 'D', modality: 'M', student1: 'S' });
-      const mockPayload = { id: 'payload-edit' } as Proposal;
-      mockFormService.buildProposalPayload.mockReturnValue(mockPayload);
-
-      await component.submit();
-
-      expect(mockFormService.buildProposalPayload).toHaveBeenCalledWith(
-        mockProposal, mockProposal.documents
-      );
-      expect(component.onSubmit.emit).toHaveBeenCalledWith(mockPayload);
     });
   });
 });

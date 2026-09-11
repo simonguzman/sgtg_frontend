@@ -1,58 +1,151 @@
+// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+
+// 2. Componente a probar
 import { EvaluateSustentationPageComponent } from './evaluate-sustentation-page.component';
+
+// 3. Servicios y Facades
 import { EvaluateSustentationFacadeService } from './services/evaluate-sustentation-facade.service';
+
+// 4. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SustentationEvaluationPayload } from '../../components/evaluate-sustentation-form/evaluate-sustentation-form.component';
+import { User } from '../../../users/interfaces/user.interface';
 import { stateList } from '../../../../core/enums/state.enum';
-import { SustentationVeredict } from '../../services/thesis-work-sustentation.service';
+import { IdentificationType } from '../../../users/enum/identification-type.enum';
+import { UserState } from '../../../users/enum/user-state.enum';
+import { Modality } from '../../../proposal/enums/modality.enum';
 
-// Importaciones reales
+// Importamos los componentes reales para removerlos en el override
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { EvaluateSustentationFormComponent } from '../../components/evaluate-sustentation-form/evaluate-sustentation-form.component';
 
-// Stubs con tipado estricto
+// ── Mocks de Componentes Hijos (Standalone) ──────────────────────────────────
+
 @Component({ selector: 'app-confirmation-action-modal', template: '', standalone: true })
 class MockConfirmationActionModalComponent {
-  @Input() isOpen!: boolean;
-  @Input() description!: string;
+  @Input() isOpen = false;
+  @Input() description = '';
   @Output() onClose = new EventEmitter<void>();
   @Output() confirm = new EventEmitter<void>();
 }
 
 @Component({ selector: 'app-evaluate-sustentation-form', template: '', standalone: true })
 class MockEvaluateSustentationFormComponent {
-  @Input() thesisWork!: ThesisWork;
-  @Input() isSubmitting!: boolean;
+  @Input({ required: true }) thesisWork!: ThesisWork;
+  @Input() isSubmitting = false;
   @Output() onSave = new EventEmitter<{ payload: SustentationEvaluationPayload; file: File }>();
   @Output() onBack = new EventEmitter<void>();
 }
 
-// Interfaz para eliminar el 'any' en el mock de ActivatedRoute
-interface MockActivatedRoute {
-  snapshot: { paramMap: { get: jest.Mock } };
-  parent: MockActivatedRoute | null;
+// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
+
+interface MockRouteNode {
+  snapshot: { paramMap: { get: jest.Mock<string | null, [string]> } };
+  parent: MockRouteNode | null;
 }
+
+interface MockRouter {
+  navigate: jest.Mock<void, [string[], { relativeTo: MockRouteNode | null }]>;
+}
+
+interface MockEvaluateSustentationFacadeService {
+  loadThesisWork: jest.Mock<void, [string, (work: ThesisWork) => void, () => void]>;
+  processEvaluation: jest.Mock<void, [string, SustentationEvaluationPayload, File, () => void, () => void]>;
+}
+
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'u-1',
+  idType: IdentificationType.CC,
+  idNumber: 123456789,
+  firstName: 'Juan',
+  secondName: '',
+  lastName: 'Perez',
+  secondLastName: '',
+  codeNumber: 1234567890,
+  email: 'juan@test.com',
+  password: 'hash',
+  state: UserState.active,
+  roles: [],
+  ...overrides
+});
+
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
+  const baseUser = createMockUser();
+  const baseThesis: ThesisWork = {
+    thesisWorkId: 'mock-thesis-123', // Estructura actualizada
+    preliminaryDraftId: 'draft-1',
+    documents: [],
+    evaluations: [],
+    specialRequests: [],
+    state: stateList.EN_DESARROLLO,
+    createdDate: new Date(),
+    preliminaryDraftData: {
+      preliminaryDraftId: 'draft-1',
+      proposalId: 'p-1',
+      state: stateList.APROBADO,
+      createdData: new Date(),
+      evaluations: [],
+      documents: [],
+      proposalData: {
+        id: 'p-1',
+        title: 'Título Mock',
+        description: 'Desc',
+        modality: Modality.TI,
+        authors: [baseUser],
+        director: baseUser,
+        state: stateList.APROBADO,
+        createdAt: new Date(),
+        documents: [],
+        evaluations: []
+      }
+    }
+  };
+  return { ...baseThesis, ...overrides };
+};
+
+const createMockEvaluationPayload = (overrides: Partial<SustentationEvaluationPayload> = {}): SustentationEvaluationPayload => {
+  return {
+    veredict: stateList.APROBADO,
+    observations: 'Sin observaciones',
+    evaluationDate: new Date('2026-08-24T10:00:00'),
+    ...overrides
+  } as SustentationEvaluationPayload;
+};
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('EvaluateSustentationPageComponent', () => {
   let component: EvaluateSustentationPageComponent;
   let fixture: ComponentFixture<EvaluateSustentationPageComponent>;
-  let facadeMock: jest.Mocked<EvaluateSustentationFacadeService>;
-  let routerMock: jest.Mocked<Router>;
-  let activatedRouteMock: MockActivatedRoute;
+
+  // Interfaces estrictas
+  let facadeMock: MockEvaluateSustentationFacadeService;
+  let routerMock: MockRouter;
+  let activatedRouteMock: MockRouteNode;
+
+  const mockWork = createMockThesisWork({ thesisWorkId: '123' });
 
   beforeEach(async () => {
+    // 🔕 Silenciar consola como medida preventiva
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // Mocks inicializados cumpliendo 100% sus interfaces
     facadeMock = {
       loadThesisWork: jest.fn(),
       processEvaluation: jest.fn()
-    } as unknown as jest.Mocked<EvaluateSustentationFacadeService>;
+    };
 
     routerMock = {
       navigate: jest.fn()
-    } as unknown as jest.Mocked<Router>;
+    };
 
-    // Mock estricto sin usar 'any'
+    // Estructura recursiva para simular el ActivatedRoute sin 'any'
     activatedRouteMock = {
       snapshot: { paramMap: { get: jest.fn().mockReturnValue(null) } },
       parent: {
@@ -66,12 +159,16 @@ describe('EvaluateSustentationPageComponent', () => {
       providers: [
         { provide: EvaluateSustentationFacadeService, useValue: facadeMock },
         { provide: Router, useValue: routerMock },
-        { provide: ActivatedRoute, useValue: activatedRouteMock as unknown as ActivatedRoute }
+        { provide: ActivatedRoute, useValue: activatedRouteMock }
       ]
     })
     .overrideComponent(EvaluateSustentationPageComponent, {
-      remove: { imports: [ConfirmationActionModalComponent, EvaluateSustentationFormComponent] },
-      add: { imports: [MockConfirmationActionModalComponent, MockEvaluateSustentationFormComponent] }
+      remove: {
+        imports: [ConfirmationActionModalComponent, EvaluateSustentationFormComponent]
+      },
+      add: {
+        imports: [MockConfirmationActionModalComponent, MockEvaluateSustentationFormComponent]
+      }
     })
     .compileComponents();
 
@@ -81,99 +178,121 @@ describe('EvaluateSustentationPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('ngOnInit y Navegación', () => {
     it('debería buscar el ID en la ruta anidada y cargar la tesis', () => {
-      // Simular que facade.loadThesisWork llama al callback onSuccess
-      facadeMock.loadThesisWork.mockImplementation((id, onSuccess) => {
-        onSuccess({ thesisWorkId: '123' } as ThesisWork);
-      });
+      // Arrange
+      facadeMock.loadThesisWork.mockImplementation((id, onSuccess) => onSuccess(mockWork));
 
+      // Act
       fixture.detectChanges(); // Dispara ngOnInit
 
-      expect(facadeMock.loadThesisWork).toHaveBeenCalledWith('123', expect.any(Function), expect.any(Function));
-      expect(component.thesisWorkState()?.thesisWorkId).toBe('123');
+      // Assert
+      expect(facadeMock.loadThesisWork).toHaveBeenCalledWith(
+        '123',
+        expect.any(Function),
+        expect.any(Function)
+      );
+      expect(component.thesisWorkState()).toEqual(mockWork);
     });
 
-    it('debería regresar si no encuentra el ID en la ruta', () => {
-      // Modificamos el mock para que nunca encuentre el ID de forma segura
-      if (activatedRouteMock.parent) {
-        activatedRouteMock.parent.snapshot.paramMap.get = jest.fn().mockReturnValue(null);
-      }
-
+    it('debería regresar si no encuentra el ID en la ruta o sus padres', () => {
+      // Arrange
+      activatedRouteMock.parent!.snapshot.paramMap.get.mockReturnValue(null);
       const goBackSpy = jest.spyOn(component, 'goBack');
+
+      // Act
       fixture.detectChanges();
 
+      // Assert
       expect(goBackSpy).toHaveBeenCalled();
       expect(facadeMock.loadThesisWork).not.toHaveBeenCalled();
     });
 
     it('debería navegar a loaded_documents al llamar a goBack', () => {
+      // Act
       component.goBack();
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: activatedRouteMock.parent as unknown as ActivatedRoute });
+
+      // Assert
+      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: activatedRouteMock.parent });
     });
   });
 
   describe('Flujo de Guardado', () => {
-    // Uso de unknown intermedio para castear enum a un tipo cerrado sin usar 'any'
     const mockData = {
-      payload: {
-        veredict: stateList.APROBADO as unknown as SustentationVeredict,
-        observations: '',
-        evaluationDate: new Date()
-      },
+      payload: createMockEvaluationPayload(),
       file: new File([''], 'test.pdf')
     };
 
     beforeEach(() => {
-      component.thesisWorkState.set({ thesisWorkId: '123' } as ThesisWork);
+      // Configuramos un estado legal previo al envío
+      component.thesisWorkState.set(mockWork);
     });
 
     it('debería almacenar datos temporales y abrir el modal en handleSaveTriggered', () => {
+      // Act
       component.handleSaveTriggered(mockData);
 
+      // Assert
       expect(component.pendingData()).toEqual(mockData);
       expect(component.isConfirmModalOpen()).toBe(true);
     });
 
-    it('debería procesar la sustentación y ejecutar onSuccess', () => {
-      component.pendingData.set(mockData);
-      const goBackSpy = jest.spyOn(component, 'goBack');
+    it('debería detenerse temprano si no hay datos pendientes o thesisId', () => {
+      // Arrange
+      component.pendingData.set(null);
 
-      // Simulamos la ejecución del callback onSuccess
-      facadeMock.processEvaluation.mockImplementation((id, payload, file, onSuccess) => {
-        onSuccess();
-      });
-
+      // Act
       component.processSustentationEvaluation();
 
+      // Assert
+      expect(facadeMock.processEvaluation).not.toHaveBeenCalled();
+      expect(component.isSubmitting()).toBe(false); // Nunca inició
+    });
+
+    it('debería procesar la sustentación, resetear indicadores y ejecutar onSuccess', () => {
+      // Arrange
+      component.pendingData.set(mockData);
+      component.isConfirmModalOpen.set(true);
+      const goBackSpy = jest.spyOn(component, 'goBack');
+
+      // Simulamos éxito
+      facadeMock.processEvaluation.mockImplementation((id, payload, file, onSuccess) => onSuccess());
+
+      // Act
+      component.processSustentationEvaluation();
+
+      // Assert
       expect(component.isSubmitting()).toBe(false);
       expect(component.isConfirmModalOpen()).toBe(false);
-      expect(facadeMock.processEvaluation).toHaveBeenCalledWith('123', mockData.payload, mockData.file, expect.any(Function), expect.any(Function));
+      expect(facadeMock.processEvaluation).toHaveBeenCalledWith(
+        '123',
+        mockData.payload,
+        mockData.file,
+        expect.any(Function),
+        expect.any(Function)
+      );
       expect(goBackSpy).toHaveBeenCalled();
     });
 
-    it('debería procesar la sustentación y manejar el onError si falla', () => {
+    it('debería procesar la sustentación y mantener al usuario en pantalla si falla', () => {
+      // Arrange
       component.pendingData.set(mockData);
+      component.isConfirmModalOpen.set(true);
       const goBackSpy = jest.spyOn(component, 'goBack');
 
-      // Simulamos la ejecución del callback onError
-      facadeMock.processEvaluation.mockImplementation((id, payload, file, onSuccess, onError) => {
-        onError();
-      });
+      // Simulamos error
+      facadeMock.processEvaluation.mockImplementation((id, payload, file, onSuccess, onError) => onError());
 
+      // Act
       component.processSustentationEvaluation();
 
+      // Assert
       expect(component.isSubmitting()).toBe(false);
+      expect(component.isConfirmModalOpen()).toBe(false); // Modal sí se cierra, porque cerró antes del request asíncrono real
       expect(goBackSpy).not.toHaveBeenCalled(); // No debe regresar si falló
-    });
-
-    it('no debería procesar nada si no hay datos pendientes o no hay ID de tesis', () => {
-      component.pendingData.set(null);
-      component.processSustentationEvaluation();
-
-      expect(facadeMock.processEvaluation).not.toHaveBeenCalled();
     });
   });
 });

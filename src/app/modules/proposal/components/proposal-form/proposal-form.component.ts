@@ -1,4 +1,4 @@
-import { Component, effect, EventEmitter, inject, input, Output } from '@angular/core';
+import { Component, effect, EventEmitter, inject, input, signal, Output } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
@@ -32,6 +32,8 @@ export class ProposalFormComponent {
   attachedFile = { hasFile: false, name: null as string | null, file: null as File | null };
   uploadModalOpen = false;
 
+  readonly isSubmitAttempted = signal(false);
+
   get modalityOptions(): SelectOption[] { return this.formService.modalityOptions; }
   student1Options(): SelectOption[] { return this.formService.student1Options(); }
   student2Options(): SelectOption[] { return this.formService.student2Options(); }
@@ -59,6 +61,13 @@ export class ProposalFormComponent {
   get form() { return this.formService.form; }
   get showAdvisorField(): boolean { return this.form.get('modality')?.value === 'Practica profesional'; }
 
+  // ← FIX: se elimina `!this.isEditMode` — el documento es obligatorio en
+  // ambos modos. Antes, quitar el archivo en edición nunca activaba esta
+  // condición, así que la alerta visual jamás aparecía.
+  get isFileFieldInvalid(): boolean {
+    return this.isSubmitAttempted() && !this.attachedFile.hasFile;
+  }
+
   isFieldInvalid(fieldName: string): boolean {
     const field = this.form.get(fieldName);
     return !!(field?.invalid && field?.touched);
@@ -82,17 +91,18 @@ export class ProposalFormComponent {
     this.attachedFile = { hasFile: false, name: null, file: null };
   }
 
-  // ← async: mapDocuments() ahora necesita leer el File real antes de
-  // poder construir el Proposal completo. La validación síncrona de
-  // formulario/archivo requerido sigue ocurriendo ANTES del primer
-  // await, así que el comportamiento de esas dos rutas de error no cambia.
   async submit(): Promise<void> {
+    this.isSubmitAttempted.set(true);
+
     this.form.markAllAsTouched();
     if (this.form.invalid) {
       this.notificationService.show({ title: 'Formulario incorrecto', message: 'Diligencie todos los campos obligatorios.', type: NotificationType.ERROR });
       return;
     }
-    if (!this.isEditMode && !this.attachedFile.hasFile) {
+    // ← FIX: se elimina `!this.isEditMode &&` — antes esta guarda solo
+    // bloqueaba el envío en creación. Quitar el documento en edición y
+    // enviar pasaba de largo por aquí sin ningún aviso.
+    if (!this.attachedFile.hasFile) {
       this.notificationService.show({ title: 'Archivo requerido', message: 'Debe adjuntar el formato de propuesta.', type: NotificationType.ERROR });
       return;
     }
@@ -114,26 +124,35 @@ export class ProposalFormComponent {
     this.onSubmit.emit(payload);
   }
 
-  // ← FIX CENTRAL: antes `url: ''` hardcodeado, ignorando attachedFile.file
-  // (el File real, capturado en handleFileUploaded pero nunca usado). Es
-  // el mismo bug ya corregido en corrección de propuesta, anteproyecto y
-  // evaluación — esta vez en el Formato A original, el documento con el
-  // que nace toda propuesta nueva.
+  // ← FIX CENTRAL: antes, en modo edición, esta función devolvía
+  // `this.proposal()?.documents` sin mirar attachedFile en absoluto —
+  // ignoraba por completo si el usuario había quitado o reemplazado el
+  // archivo en la UI. Ahora distingue explícitamente los 3 estados
+  // reales posibles.
   private async mapDocuments(): Promise<FileDocument[]> {
-    if (this.isEditMode) return this.proposal()?.documents ?? [];
-    if (!this.attachedFile.hasFile || !this.attachedFile.file) return [];
-
-    const fileUrl = await readFileAsDataUrl(this.attachedFile.file);
-    return [{
-      id: crypto.randomUUID(),
-      name: this.attachedFile.name!,
-      url: fileUrl,
-      // ← toLocaleDateString('es-ES') sin opciones → formatDisplayDate,
-      // mismo helper usado en el resto del proyecto (garantiza padding
-      // de 2 dígitos consistente entre navegadores).
-      uploadDate: formatDisplayDate(new Date()),
-      type: DocumentType.PROPUESTA,
-      status: stateList.EN_REVISION
-    }];
+    // Caso 1: hay un File real (creación, o reemplazo del documento en
+    // edición vía handleFileUploaded) — se lee y se construye un
+    // documento nuevo.
+    if (this.attachedFile.hasFile && this.attachedFile.file) {
+      const fileUrl = await readFileAsDataUrl(this.attachedFile.file);
+      return [{
+        id: crypto.randomUUID(),
+        name: this.attachedFile.name!,
+        url: fileUrl,
+        uploadDate: formatDisplayDate(new Date()),
+        type: DocumentType.PROPUESTA,
+        status: stateList.EN_REVISION
+      }];
+    }
+    // Caso 2: edición, el usuario no tocó el archivo (sigue marcado como
+    // presente pero sin un File nuevo que leer — es el estado inicial al
+    // abrir el formulario) — se conserva el documento original.
+    if (this.isEditMode && this.attachedFile.hasFile) {
+      return this.proposal()?.documents ?? [];
+    }
+    // Caso 3: sin archivo. submit() ya bloquea este estado antes de
+    // llegar aquí — se conserva como salvaguarda, sin reutilizar nada
+    // en silencio si algún día se llama a este método por otra vía.
+    return [];
   }
 }

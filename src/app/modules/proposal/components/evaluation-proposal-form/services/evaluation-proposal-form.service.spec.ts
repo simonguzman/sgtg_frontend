@@ -14,6 +14,10 @@ import { NotificationType } from '../../../../../shared/components/notifications
 describe('EvaluationProposalFormService', () => {
   let service: EvaluationProposalFormService;
 
+  // Espías globales para silenciar la consola
+  let consoleErrorSpy: jest.SpyInstance;
+  let consoleWarnSpy: jest.SpyInstance;
+
   let userServiceMock: {
     getAuthorsNames: jest.Mock;
     getUserFullName: jest.Mock;
@@ -24,6 +28,10 @@ describe('EvaluationProposalFormService', () => {
   };
 
   beforeEach(() => {
+    // Silenciamos la consola para toda la suite
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     userServiceMock = {
       getAuthorsNames: jest.fn(),
       getUserFullName: jest.fn()
@@ -49,6 +57,9 @@ describe('EvaluationProposalFormService', () => {
   afterEach(() => {
     jest.clearAllMocks();
     jest.restoreAllMocks();
+    // Restauramos los espías explícitamente para mantener consistencia
+    consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 
   describe('Inicialización', () => {

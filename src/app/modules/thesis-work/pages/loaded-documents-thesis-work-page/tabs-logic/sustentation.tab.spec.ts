@@ -1,50 +1,151 @@
+// 1. Archivo a probar
 import { SustentationTabConfig } from './sustentation.tab';
 import { ThesisEvaluationContext } from './tab-config.interface';
+
+// 2. Interfaces y Enums
 import { stateList } from '../../../../../core/enums/state.enum';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { User } from '../../../../users/interfaces/user.interface';
-import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { SustentationRegistry } from '../../../interfaces/sustentation-registry.interface';
 import { SustentationStatus } from '../../../enums/sustentation-status.enum';
 import { JurorVerdict } from '../../../interfaces/juror-verdict.interface';
+import { IdentificationType } from '../../../../users/enum/identification-type.enum';
+import { UserState } from '../../../../users/enum/user-state.enum';
+import { Modality } from '../../../../proposal/enums/modality.enum';
 
-// Inferencia inteligente de tipos para evitar dependencias innecesarias de interfaces no exportadas
-type SustentationItem = NonNullable<ThesisWork['sustentations']>[number];
-type JurorItem = NonNullable<SustentationItem['assignedJurors']>[number];
+// ── Funciones Fábrica fuertemente tipadas (Cero 'any', cero 'as Type') ──────
+
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-1',
+  idType: IdentificationType.CC,
+  idNumber: 123456789,
+  firstName: 'Juan',
+  secondName: '',
+  lastName: 'Perez',
+  secondLastName: '',
+  codeNumber: 1234567890,
+  email: 'juan@test.com',
+  password: 'hash',
+  state: UserState.active,
+  roles: [],
+  ...overrides
+});
+
+const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
+  id: 'doc-1',
+  name: 'documento_base',
+  url: 'http://url.com/doc.pdf',
+  type: DocumentType.FORMATO_E,
+  uploadDate: new Date(),
+  status: stateList.EN_REVISION,
+  ...overrides
+});
+
+const createMockJurorVerdict = (overrides: Partial<JurorVerdict> = {}): JurorVerdict => ({
+  jurorId: 'juror-1',
+  evaluationDate: new Date(),
+  veredict: stateList.APROBADO,
+  observations: 'Observación base',
+  ...overrides
+});
+
+// Tipado directo a la interfaz oficial sin necesidad de aliases
+const createMockSustentation = (overrides: Partial<SustentationRegistry> = {}): SustentationRegistry => ({
+  id: 'sus-1',
+  sustentationDate: new Date(),
+  location: 'Auditorio',
+  status: SustentationStatus.PROGRAMADA,
+  verdicts: [],
+  assignedJurors: [],
+  ...overrides
+});
+
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
+  const baseUser = createMockUser();
+
+  // Construcción estricta para evitar el 'as any' en preliminaryDraftData
+  const mockDraftData: NonNullable<ThesisWork['preliminaryDraftData']> = {
+    preliminaryDraftId: 'draft-1',
+    proposalId: 'prop-1',
+    state: stateList.APROBADO,
+    createdData: new Date(),
+    evaluators: [],
+    evaluations: [],
+    documents: [],
+    proposalData: {
+      id: 'prop-1',
+      title: 'Mock Title',
+      description: 'Desc',
+      modality: Modality.TI,
+      authors: [baseUser],
+      director: baseUser,
+      state: stateList.APROBADO,
+      createdAt: new Date(),
+      documents: [],
+      evaluations: []
+    } as NonNullable<ThesisWork['preliminaryDraftData']>['proposalData']
+  };
+
+  return {
+    thesisWorkId: 'thesis-1',
+    preliminaryDraftId: 'draft-1',
+    documents: [],
+    evaluations: [],
+    specialRequests: [],
+    correctedDeliveries: [],
+    sustentations: [],
+    advances: [],
+    finalDeliveries: [],
+    pazYSalvos: [],
+    state: stateList.EN_DESARROLLO,
+    createdDate: new Date(),
+    isArchived: false,
+    preliminaryDraftData: mockDraftData,
+    ...overrides
+  };
+};
+
+const createMockEvaluationContext = (overrides: Partial<ThesisEvaluationContext> = {}): ThesisEvaluationContext => ({
+  thesisWork: createMockThesisWork(),
+  currentUser: createMockUser({ id: 'juror-1' }),
+  isStudent: false,
+  isDirector: false,
+  isCodirector: false,
+  isAdvisor: false,
+  isAdmin: false,
+  isArchived: false,
+  isDecanatura: false,
+  isJuror: false,
+  isConsejo: false,
+  latestAdvanceId: null,
+  isLatestAdvancePending: false,
+  hasApprovedPazYSalvo: false,
+  hasSustentationRegistered: false,
+  isSustentationEvaluated: false,
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('SustentationTabConfig', () => {
   let baseContext: ThesisEvaluationContext;
 
   beforeEach(() => {
+    // 🔕 Silenciador preventivo global de consola
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+
     jest.clearAllMocks();
 
-    const mockUser: Partial<User> = { id: 'juror-1' };
+    // Contexto base prístino inicializado con la fábrica
+    baseContext = createMockEvaluationContext();
+  });
 
-    const mockThesisWork: Partial<ThesisWork> = {
-      thesisWorkId: 'thesis-1',
-      documents: [],
-      sustentations: [],
-    };
-
-    baseContext = {
-      currentUser: mockUser as User,
-      isStudent: false,
-      isDirector: false,
-      isCodirector: false,
-      isAdvisor: false,
-      isAdmin: false,
-      isArchived: false,
-      isDecanatura: false,
-      isJuror: false,
-      isConsejo: false,
-      latestAdvanceId: null,
-      isLatestAdvancePending: false,
-      thesisWork: mockThesisWork as ThesisWork,
-      hasApprovedPazYSalvo: false,
-      hasSustentationRegistered: false,
-      isSustentationEvaluated: false
-    };
+  afterEach(() => {
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Propiedades Estáticas', () => {
@@ -57,47 +158,49 @@ describe('SustentationTabConfig', () => {
   });
 
   describe('enrichEvaluationContext', () => {
-    it('debe retornar el contexto base si no hay thesisWork', () => {
+    it('debe retornar el contexto base intacto si no hay thesisWork', () => {
       baseContext.thesisWork = null;
-      const result = SustentationTabConfig.enrichEvaluationContext!(baseContext);
+      const result = SustentationTabConfig.enrichEvaluationContext(baseContext);
       expect(result).toEqual(baseContext);
     });
 
-    it('debe evaluar correctamente hasApprovedPazYSalvo', () => {
-      const mockDocument: Partial<FileDocument> = {
+    it('debe evaluar correctamente hasApprovedPazYSalvo examinando los documentos', () => {
+      const mockDocument = createMockFileDocument({
         type: DocumentType.PAZ_Y_SALVO,
         status: stateList.APROBADO
-      };
-      baseContext.thesisWork!.documents = [mockDocument as FileDocument];
+      });
+      baseContext.thesisWork = createMockThesisWork({ documents: [mockDocument] });
 
-      const result = SustentationTabConfig.enrichEvaluationContext!(baseContext);
+      const result = SustentationTabConfig.enrichEvaluationContext(baseContext);
 
       expect(result.hasApprovedPazYSalvo).toBe(true);
     });
 
     it('debe validar si el usuario actual es jurado de la sustentación activa', () => {
-      const mockJuror: Partial<JurorItem> = { id: 'juror-1' };
-      const mockSustentation: Partial<SustentationItem> = {
-        assignedJurors: [mockJuror as JurorItem]
-      };
+      const mockJuror = createMockUser({ id: 'juror-1' }); // currentUser ID
 
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
+      // Ya no necesitamos el `as JurorItem`, TypeScript valida la compatibilidad estructural
+      const mockSustentation = createMockSustentation({
+        assignedJurors: [mockJuror]
+      });
 
-      const result = SustentationTabConfig.enrichEvaluationContext!(baseContext);
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
+
+      const result = SustentationTabConfig.enrichEvaluationContext(baseContext);
 
       expect(result.isJuror).toBe(true);
       expect(result.hasSustentationRegistered).toBe(true);
     });
 
     it('debe validar que isSustentationEvaluated sea true si tiene veredictos', () => {
-      const mockVerdict: Partial<JurorVerdict> = { veredict: stateList.APROBADO };
-      const mockSustentation: Partial<SustentationItem> = {
-        verdicts: [mockVerdict as JurorVerdict]
-      };
+      const mockVerdict = createMockJurorVerdict({ veredict: stateList.APROBADO });
+      const mockSustentation = createMockSustentation({
+        verdicts: [mockVerdict]
+      });
 
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
 
-      const result = SustentationTabConfig.enrichEvaluationContext!(baseContext);
+      const result = SustentationTabConfig.enrichEvaluationContext(baseContext);
 
       expect(result.isSustentationEvaluated).toBe(true);
     });
@@ -106,24 +209,23 @@ describe('SustentationTabConfig', () => {
   describe('getTableData (y resolveDisplayStatus)', () => {
     const dummyDocs: FileDocument[] = [];
 
-    it('debe retornar array vacío si no hay sustentaciones', () => {
-      // Sustituimos 'as any' usando manipulación segura a través de un Partial
-      const thesisPartial: Partial<ThesisWork> = baseContext.thesisWork as Partial<ThesisWork>;
-      thesisPartial.sustentations = [];
+    it('debe retornar array vacío si no hay sustentaciones (programación defensiva)', () => {
+      baseContext.thesisWork = createMockThesisWork({ sustentations: undefined });
 
-      const result = SustentationTabConfig.getTableData!(dummyDocs, baseContext);
+      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
+
       expect(result).toEqual([]);
     });
 
     it('debe mostrar estado CANCELADO y fecha pendiente si es el caso', () => {
-      const mockSustentation: Partial<SustentationItem> = {
+      const mockSustentation = createMockSustentation({
         id: 'sus-1',
         status: SustentationStatus.CANCELADA,
-        sustentationDate: undefined
-      };
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
+        sustentationDate: undefined // Ausencia intencional para fallback
+      });
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
 
-      const result = SustentationTabConfig.getTableData!(dummyDocs, baseContext);
+      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
 
       expect(result[0].status).toBe(stateList.CANCELADO);
       expect(result[0].date).toBe('Fecha pendiente');
@@ -132,106 +234,109 @@ describe('SustentationTabConfig', () => {
 
     it('debe mostrar estado APLAZADO y formatear fecha si es aplazada administrativamente', () => {
       const dateRaw = new Date('2026-08-03T10:00:00Z');
-      const mockSustentation: Partial<SustentationItem> = {
+      const mockSustentation = createMockSustentation({
         id: 'sus-2',
         status: SustentationStatus.APLAZADA,
         sustentationDate: dateRaw
-      };
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
+      });
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
 
-      const result = SustentationTabConfig.getTableData!(dummyDocs, baseContext);
+      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
 
       expect(result[0].status).toBe(stateList.APLAZADO);
       expect(result[0].date).toBe(dateRaw.toLocaleDateString('es-ES'));
     });
 
-    it('debe mostrar EN_REVISION si no tiene veredictos', () => {
-      const mockSustentation: Partial<SustentationItem> = {
+    it('debe mostrar EN_REVISION si no tiene veredictos y no está aplazada/cancelada', () => {
+      const mockSustentation = createMockSustentation({
         id: 'sus-3',
+        status: SustentationStatus.PROGRAMADA,
         verdicts: []
-      };
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
+      });
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
 
-      const result = SustentationTabConfig.getTableData!(dummyDocs, baseContext);
+      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
 
       expect(result[0].status).toBe(stateList.EN_REVISION);
     });
 
-    it('debe mostrar APROBADO_CON_OBSERVACIONES si hubo observaciones y el último es APROBADO', () => {
-      const mockSustentation: Partial<SustentationItem> = {
-        id: 'sus-4',
-        verdicts: [
-          { veredict: stateList.APROBADO_CON_OBSERVACIONES } as Partial<JurorVerdict> as JurorVerdict,
-          { veredict: stateList.APROBADO } as Partial<JurorVerdict> as JurorVerdict
-        ]
-      };
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
+    it('debe mostrar APROBADO_CON_OBSERVACIONES si hubo observaciones previas y el último es APROBADO', () => {
+      const verdictObservaciones = createMockJurorVerdict({ veredict: stateList.APROBADO_CON_OBSERVACIONES });
+      const verdictAprobado = createMockJurorVerdict({ veredict: stateList.APROBADO }); // Último
 
-      const result = SustentationTabConfig.getTableData!(dummyDocs, baseContext);
+      const mockSustentation = createMockSustentation({
+        id: 'sus-4',
+        verdicts: [verdictObservaciones, verdictAprobado]
+      });
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
+
+      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
 
       expect(result[0].status).toBe(stateList.APROBADO_CON_OBSERVACIONES);
     });
 
-    it('debe mostrar el último veredicto si es diferente a las reglas de observación', () => {
-      const mockSustentation: Partial<SustentationItem> = {
-        id: 'sus-5',
-        verdicts: [
-          { veredict: stateList.APROBADO_CON_OBSERVACIONES } as Partial<JurorVerdict> as JurorVerdict,
-          { veredict: stateList.NO_APROBADO } as Partial<JurorVerdict> as JurorVerdict
-        ]
-      };
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
+    it('debe mostrar el último veredicto si es diferente a las reglas de observación cruzadas', () => {
+      const verdictObservaciones = createMockJurorVerdict({ veredict: stateList.APROBADO_CON_OBSERVACIONES });
+      const verdictNoAprobado = createMockJurorVerdict({ veredict: stateList.NO_APROBADO }); // Último
 
-      const result = SustentationTabConfig.getTableData!(dummyDocs, baseContext);
+      const mockSustentation = createMockSustentation({
+        id: 'sus-5',
+        verdicts: [verdictObservaciones, verdictNoAprobado]
+      });
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
+
+      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
 
       expect(result[0].status).toBe(stateList.NO_APROBADO);
     });
 
-    it('debe añadir acción evaluate_sustentation para Admin o Jurado en estado valido', () => {
+    it('debe añadir acción evaluate_sustentation para Admin o Jurado en estado PROGRAMADA sin veredictos', () => {
       baseContext.isAdmin = true;
       baseContext.isArchived = false;
-      const mockSustentation: Partial<SustentationItem> = {
+
+      const mockSustentation = createMockSustentation({
         id: 'sus-6',
         status: SustentationStatus.PROGRAMADA,
         verdicts: []
-      };
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
+      });
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
 
-      const result = SustentationTabConfig.getTableData!(dummyDocs, baseContext);
+      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
 
       expect(result[0].allowedActions).toContain('evaluate_sustentation');
     });
 
-    it('NO debe añadir acción evaluate_sustentation si ya fue evaluado o aplazado', () => {
+    it('NO debe añadir acción evaluate_sustentation si ya tiene veredictos emitidos', () => {
       baseContext.isAdmin = true;
-      const mockSustentation: Partial<SustentationItem> = {
-        id: 'sus-7',
-        verdicts: [{ veredict: stateList.APROBADO } as Partial<JurorVerdict> as JurorVerdict]
-      };
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
 
-      const result = SustentationTabConfig.getTableData!(dummyDocs, baseContext);
+      const mockSustentation = createMockSustentation({
+        id: 'sus-7',
+        verdicts: [createMockJurorVerdict({ veredict: stateList.APROBADO })]
+      });
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
+
+      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
 
       expect(result[0].allowedActions).not.toContain('evaluate_sustentation');
     });
   });
 
   describe('getHeaderButtons', () => {
-    it('debe retornar vacío si está archivado o no es Consejo', () => {
+    it('debe retornar vacío si está archivado o no es rol Consejo', () => {
       baseContext.isArchived = true;
       baseContext.isConsejo = true;
-      expect(SustentationTabConfig.getHeaderButtons!(baseContext)).toEqual([]);
+      expect(SustentationTabConfig.getHeaderButtons(baseContext)).toEqual([]);
 
       baseContext.isArchived = false;
-      baseContext.isConsejo = false;
-      expect(SustentationTabConfig.getHeaderButtons!(baseContext)).toEqual([]);
+      baseContext.isConsejo = false; // Falla rol
+      expect(SustentationTabConfig.getHeaderButtons(baseContext)).toEqual([]);
     });
 
-    it('debe pedir Paz y Salvo si no lo tiene (Consejo)', () => {
+    it('debe pedir Paz y Salvo si no lo tiene (Rol Consejo)', () => {
       baseContext.isConsejo = true;
       baseContext.hasApprovedPazYSalvo = false;
 
-      const buttons = SustentationTabConfig.getHeaderButtons!(baseContext);
+      const buttons = SustentationTabConfig.getHeaderButtons(baseContext);
 
       expect(buttons[0].label).toBe('Requiere Paz y Salvo Aprobado');
       expect(buttons[0].disabled).toBe(true);
@@ -242,23 +347,38 @@ describe('SustentationTabConfig', () => {
       baseContext.hasApprovedPazYSalvo = true;
       baseContext.hasSustentationRegistered = false;
 
-      const buttons = SustentationTabConfig.getHeaderButtons!(baseContext);
+      const buttons = SustentationTabConfig.getHeaderButtons(baseContext);
 
       expect(buttons[0].label).toBe('Registrar Sustentación');
       expect(buttons[0].disabled).toBe(false);
     });
 
-    it('debe permitir Registrar Nueva Sustentación si fue APLAZADO en veredicto o estado administrativo', () => {
+    it('debe permitir Registrar Nueva Sustentación si fue APLAZADO administrativamente', () => {
       baseContext.isConsejo = true;
       baseContext.hasApprovedPazYSalvo = true;
       baseContext.hasSustentationRegistered = true;
 
-      const mockSustentation: Partial<SustentationItem> = {
-        status: SustentationStatus.APLAZADA
-      };
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
+      const mockSustentation = createMockSustentation({ status: SustentationStatus.APLAZADA });
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
 
-      const buttons = SustentationTabConfig.getHeaderButtons!(baseContext);
+      const buttons = SustentationTabConfig.getHeaderButtons(baseContext);
+
+      expect(buttons[0].label).toBe('Registrar Nueva Sustentación');
+      expect(buttons[0].disabled).toBe(false);
+    });
+
+    it('debe permitir Registrar Nueva Sustentación si fue APLAZADO en veredicto del jurado', () => {
+      baseContext.isConsejo = true;
+      baseContext.hasApprovedPazYSalvo = true;
+      baseContext.hasSustentationRegistered = true;
+
+      const mockSustentation = createMockSustentation({
+        status: SustentationStatus.PROGRAMADA,
+        verdicts: [createMockJurorVerdict({ veredict: stateList.APLAZADO })]
+      });
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
+
+      const buttons = SustentationTabConfig.getHeaderButtons(baseContext);
 
       expect(buttons[0].label).toBe('Registrar Nueva Sustentación');
       expect(buttons[0].disabled).toBe(false);
@@ -268,14 +388,14 @@ describe('SustentationTabConfig', () => {
       baseContext.isConsejo = true;
       baseContext.hasApprovedPazYSalvo = true;
       baseContext.hasSustentationRegistered = true;
-      baseContext.isSustentationEvaluated = true;
+      baseContext.isSustentationEvaluated = true; // Context flag
 
-      const mockSustentation: Partial<SustentationItem> = {
-        verdicts: [{ veredict: stateList.APROBADO } as Partial<JurorVerdict> as JurorVerdict]
-      };
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
+      const mockSustentation = createMockSustentation({
+        verdicts: [createMockJurorVerdict({ veredict: stateList.APROBADO })] // Diferente de APLAZADO
+      });
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
 
-      const buttons = SustentationTabConfig.getHeaderButtons!(baseContext);
+      const buttons = SustentationTabConfig.getHeaderButtons(baseContext);
 
       expect(buttons[0].label).toBe('Sustentación Evaluada');
       expect(buttons[0].disabled).toBe(true);
@@ -285,15 +405,15 @@ describe('SustentationTabConfig', () => {
       baseContext.isConsejo = true;
       baseContext.hasApprovedPazYSalvo = true;
       baseContext.hasSustentationRegistered = true;
-      baseContext.isSustentationEvaluated = false;
+      baseContext.isSustentationEvaluated = false; // Context flag
 
-      const mockSustentation: Partial<SustentationItem> = {
+      const mockSustentation = createMockSustentation({
         status: SustentationStatus.PROGRAMADA,
-        verdicts: []
-      };
-      baseContext.thesisWork!.sustentations = [mockSustentation as SustentationItem];
+        verdicts: [] // Sin veredictos
+      });
+      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
 
-      const buttons = SustentationTabConfig.getHeaderButtons!(baseContext);
+      const buttons = SustentationTabConfig.getHeaderButtons(baseContext);
 
       expect(buttons[0].label).toBe('Sustentación Programada');
       expect(buttons[0].disabled).toBe(true);

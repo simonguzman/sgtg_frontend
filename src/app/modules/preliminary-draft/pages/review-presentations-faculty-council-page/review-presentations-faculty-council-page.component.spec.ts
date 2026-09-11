@@ -31,65 +31,69 @@ interface MockPageFacadeService {
   downloadFile: jest.Mock<void, [FormattedDocument]>;
 }
 
+// 🔹 REFACTOR: Fábricas para generar datos limpios por cada test, evitando mutaciones cruzadas
+const createMockUser = (): User => ({
+  id: 'user-1',
+  idType: IdentificationType.CC,
+  idNumber: 123456789,
+  firstName: 'Carlos',
+  lastName: 'Pérez',
+  secondLastName: 'Gómez',
+  codeNumber: 20261001,
+  roles: [],
+  email: 'carlos@universidad.edu.co',
+  password: 'hash',
+  state: UserState.active
+});
+
+const createMockDraft = (): PreliminaryDraft => ({
+  preliminaryDraftId: 'draft-1',
+  proposalId: 'prop-1',
+  state: stateList.EN_REVISION,
+  createdData: new Date(),
+  evaluations: [],
+  documents: [],
+  proposalData: {
+    id: 'prop-1',
+    title: 'Sistema de Gestión',
+    description: 'Desc',
+    modality: Modality.TI,
+    authors: [createMockUser()],
+    director: createMockUser(),
+    state: stateList.EN_REVISION,
+    createdAt: new Date(),
+    documents: [],
+    evaluations: []
+  }
+});
+
+const createMockPayload = (): SaveEvaluationPayload => ({
+  formValues: {
+    result: stateList.APROBADO,
+    comments: 'Excelente',
+    maximumDeliveryDate: null,
+    document: null
+  },
+  file: new File([''], 'resolucion.pdf', { type: 'application/pdf' })
+});
+
+const createMockDocument = (): FormattedDocument => ({
+  name: 'documento.pdf',
+  url: 'http://docs/documento.pdf'
+});
+
 describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
   let component: ReviewPresentationsFacultyCouncilPageComponent;
   let fixture: ComponentFixture<ReviewPresentationsFacultyCouncilPageComponent>;
   let mockFacade: MockPageFacadeService;
 
-  // Mock completo sin usar 'any' ni 'as unknown'
-  const mockUser: User = {
-    id: 'user-1',
-    idType: IdentificationType.CC,
-    idNumber: 123456789,
-    firstName: 'Carlos',
-    lastName: 'Pérez',
-    secondLastName: 'Gómez',
-    codeNumber: 20261001,
-    roles: [],
-    email: 'carlos@universidad.edu.co',
-    password: 'hash',
-    state: UserState.active
-  };
-
-  const mockDraft: PreliminaryDraft = {
-    preliminaryDraftId: 'draft-1',
-    proposalId: 'prop-1',
-    state: stateList.EN_REVISION,
-    createdData: new Date(),
-    evaluations: [],
-    documents: [],
-    proposalData: {
-      id: 'prop-1',
-      title: 'Sistema de Gestión',
-      description: 'Desc',
-      modality: Modality.TI,
-      authors: [mockUser],
-      director: mockUser,
-      state: stateList.EN_REVISION,
-      createdAt: new Date(),
-      documents: [],
-      evaluations: []
-    }
-  };
-
-  const mockPayload: SaveEvaluationPayload = {
-    formValues: {
-      result: stateList.APROBADO,
-      comments: 'Excelente',
-      maximumDeliveryDate: null,
-      document: null
-    },
-    file: new File([''], 'resolucion.pdf', { type: 'application/pdf' })
-  };
-
-  const mockDocument: FormattedDocument = {
-    name: 'documento.pdf',
-    url: 'http://docs/documento.pdf'
-  };
-
   beforeEach(async () => {
+    // 🔕 Silenciar los console.error y console.warn para mantener limpia la consola de pruebas
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockFacade = {
-      filteredPreliminaryDraft: signal<PreliminaryDraft | null>(mockDraft),
+      filteredPreliminaryDraft: signal<PreliminaryDraft | null>(createMockDraft()),
       isConfirmModalOpen: signal<boolean>(false),
       loadData: jest.fn(),
       goBack: jest.fn(),
@@ -117,6 +121,10 @@ describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
     component = fixture.componentInstance;
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
+  });
+
   describe('Inicialización y navegación', () => {
     it('debería crearse correctamente y ejecutar loadData en ngOnInit', () => {
       fixture.detectChanges();
@@ -138,25 +146,27 @@ describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
   describe('Interacciones con Componentes Hijos desde la Vista (Template Bindings)', () => {
     beforeEach(() => {
       // Configuramos el draft para que se renderice el @if de la vista
-      mockFacade.filteredPreliminaryDraft.set(mockDraft);
+      mockFacade.filteredPreliminaryDraft.set(createMockDraft());
       fixture.detectChanges();
     });
 
     it('debería delegar el evento onSaveEvaluation del formulario al facade', () => {
       const formComponentDE = fixture.debugElement.query(By.css('app-review-presentations-faculty-council-form'));
 
+      const payload = createMockPayload();
       // Simulamos que el componente hijo emite el evento desde el HTML
-      formComponentDE.triggerEventHandler('onSaveEvaluation', mockPayload);
+      formComponentDE.triggerEventHandler('onSaveEvaluation', payload);
 
-      expect(mockFacade.handleRequestConfirmation).toHaveBeenCalledWith(mockPayload);
+      expect(mockFacade.handleRequestConfirmation).toHaveBeenCalledWith(payload);
     });
 
     it('debería delegar el evento onDownloadFile del formulario al facade', () => {
       const formComponentDE = fixture.debugElement.query(By.css('app-review-presentations-faculty-council-form'));
 
-      formComponentDE.triggerEventHandler('onDownloadFile', mockDocument);
+      const document = createMockDocument();
+      formComponentDE.triggerEventHandler('onDownloadFile', document);
 
-      expect(mockFacade.downloadFile).toHaveBeenCalledWith(mockDocument);
+      expect(mockFacade.downloadFile).toHaveBeenCalledWith(document);
     });
 
     it('debería delegar la confirmación del modal al processCouncilDecision', () => {

@@ -9,6 +9,7 @@ import { EvaluationsPerformedPageComponent } from '../../shared/pages/evaluation
 import { EvaluationProposalPageComponent } from './pages/evaluation-proposal-page/evaluation-proposal-page.component';
 import { roleGuard } from '../../core/guards/role.guard';
 import { UserRoleType } from '../../core/enums/user-role-type.enum';
+import { proposalOwnershipGuard } from '../../core/guards/proposal-ownership.guard';
 
 export const proposalRoutes: Routes = [
   {
@@ -49,6 +50,7 @@ export const proposalRoutes: Routes = [
       },
       {
         path: 'details/:id',
+        canActivate: [proposalOwnershipGuard],
         data: { breadcrumb: 'Información de la propuesta' },
         children:[
           {

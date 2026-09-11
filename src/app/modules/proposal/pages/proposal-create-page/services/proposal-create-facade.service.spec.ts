@@ -35,6 +35,11 @@ describe('ProposalCreateFacadeService', () => {
   const mockProposal = { id: '1', title: 'Test Proposal' } as Proposal;
 
   beforeEach(() => {
+    // 1. Espías para silenciar la consola globalmente en todas las pruebas
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     // Inicialización limpia de las funciones mockeadas
     mockProposalService = {
       validateProposalRules: jest.fn(),
@@ -63,7 +68,9 @@ describe('ProposalCreateFacadeService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    // 2. Restauramos todos los espías y mocks originales al terminar cada prueba
+    // Cambiamos clearAllMocks por restoreAllMocks para que se limpien los espías del console
+    jest.restoreAllMocks();
   });
 
   it('debe crearse correctamente', () => {
@@ -139,9 +146,6 @@ describe('ProposalCreateFacadeService', () => {
       // Simulamos error en el observable
       mockProposalService.createProposalMock.mockReturnValue(throwError(() => new Error('Error de servidor')));
 
-      // Espiamos console.error para no ensuciar la terminal durante los tests
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
       service.save(mockProposal, onSuccessMock, onErrorMock);
 
       // Verificamos notificación de error
@@ -156,7 +160,9 @@ describe('ProposalCreateFacadeService', () => {
       expect(onErrorMock).toHaveBeenCalled();
       expect(onSuccessMock).not.toHaveBeenCalled();
       expect(mockRouter.navigate).not.toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalled();
+
+      // Verificamos que el error se imprimió (atrapado por nuestro espía global del beforeEach)
+      expect(console.error).toHaveBeenCalled();
     });
   });
 });

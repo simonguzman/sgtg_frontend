@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 
 // Componentes y Servicios
 import { UploadAdvancePageFacadeService } from './upload-advance-page-facade.service';
@@ -7,24 +7,85 @@ import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 
-// Interfaces
+// Interfaces y Enums
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { UploadAdvancePayload } from '../../../interfaces/advance-playload.interface';
+import { stateList } from '../../../../../core/enums/state.enum';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { User } from '../../../../users/interfaces/user.interface';
+import { IdentificationType } from '../../../../users/enum/identification-type.enum';
+import { UserState } from '../../../../users/enum/user-state.enum';
+import { Modality } from '../../../../proposal/enums/modality.enum';
 
-// Mock de utilidades externas
+// Mock de utilidades externas (FileReader)
 jest.mock('../../../../../core/utils/file-reader.utils', () => ({
   readFileAsDataUrl: jest.fn().mockResolvedValue('data:application/pdf;base64,mocked_base64_string')
 }));
 
-// Interfaces estrictas para los espías (Evita el uso de as unknown)
+// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
+
 interface MockThesisWorkService {
-  getThesisWorkByIdMock: jest.Mock;
-  uploadDocumentMock: jest.Mock;
+  getThesisWorkByIdMock: jest.Mock<Observable<ThesisWork | undefined>, [string]>;
+  uploadDocumentMock: jest.Mock<Observable<void>, [string, FileDocument, Record<string, unknown>]>;
 }
 
 interface MockNotificationService {
-  show: jest.Mock;
+  show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
 }
+
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
+
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
+  const baseUser: User = {
+    id: 'user-1',
+    idType: IdentificationType.CC,
+    idNumber: 123456789,
+    firstName: 'Ana',
+    secondName: '',
+    lastName: 'López',
+    secondLastName: 'Díaz',
+    codeNumber: 1234567890,
+    email: 'ana@universidad.edu.co',
+    password: 'hash',
+    state: UserState.active,
+    roles: []
+  };
+
+  const baseThesis = {
+    id: '123', // Propiedad base archivable
+    thesisWorkId: '123',
+    preliminaryDraftId: 'draft-1',
+    documents: [],
+    evaluations: [],
+    specialRequests: [],
+    state: stateList.EN_DESARROLLO,
+    createdDate: new Date(),
+    preliminaryDraftData: {
+      preliminaryDraftId: 'draft-1',
+      proposalId: 'prop-1',
+      state: stateList.APROBADO,
+      createdData: new Date(),
+      evaluations: [],
+      documents: [],
+      proposalData: {
+        id: 'prop-1',
+        title: 'Título de Prueba',
+        description: 'Descripción',
+        modality: Modality.TI,
+        authors: [baseUser],
+        director: baseUser,
+        state: stateList.APROBADO,
+        createdAt: new Date(),
+        documents: [],
+        evaluations: []
+      }
+    }
+  };
+
+  return { ...baseThesis, ...overrides } as ThesisWork;
+};
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('UploadAdvancePageFacadeService', () => {
   let service: UploadAdvancePageFacadeService;
@@ -35,11 +96,16 @@ describe('UploadAdvancePageFacadeService', () => {
     // Simulamos crypto.randomUUID de forma segura para entornos de prueba NodeJS/jsdom
     Object.defineProperty(globalThis, 'crypto', {
       value: { randomUUID: () => 'mock-uuid-1234' },
-      writable: true
+      writable: true,
+      configurable: true // Permite limpieza futura
     });
   });
 
   beforeEach(() => {
+    // 🔕 Silenciar consola como medida preventiva (clave para el catch del processAdvance)
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // Inicialización de espías estrictamente tipados
     thesisWorkSpy = {
       getThesisWorkByIdMock: jest.fn(),
@@ -63,17 +129,15 @@ describe('UploadAdvancePageFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Carga de Trabajo de Grado (loadThesisWork)', () => {
     const onSuccessMock = jest.fn();
     const onNotFoundMock = jest.fn();
 
-    // Mock estrictamente tipado usando Partial casteado de forma segura
-    const mockThesis: ThesisWork = {
-      id: '123',
-      thesisWorkId: '123'
-    } as Partial<ThesisWork> as ThesisWork;
+    // Utilizamos nuestra fábrica pura en lugar del casteo sucio
+    const mockThesis = createMockThesisWork();
 
     it('debe llamar a onSuccess si el trabajo de grado existe', () => {
       thesisWorkSpy.getThesisWorkByIdMock.mockReturnValue(of(mockThesis));

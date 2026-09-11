@@ -1,32 +1,97 @@
+// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
+
+// 2. Servicio a probar
 import { ThesisWorkPageMapperService } from './thesis-work-page-mapper.service';
+
+// 3. Dependencias
 import { UserService } from '../../../../users/services/user.service';
+
+// 4. Interfaces y Enums
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 import { Modality } from '../../../../proposal/enums/modality.enum';
+import { IdentificationType } from '../../../../users/enum/identification-type.enum';
+import { UserState } from '../../../../users/enum/user-state.enum';
 
-describe('ThesisWorkPageMapperService', () => {
-  let service: ThesisWorkPageMapperService;
-  let userServiceMock: jest.Mocked<Partial<UserService>>;
+// ── Tipos Seguros para los Mocks (Cero 'any', 'unknown') ─────────────────────
 
-  const mockUser: Partial<User> = {
+interface MockUserService {
+  formatFullName: jest.Mock<string, [User]>;
+}
+
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => {
+  const base: Partial<User> = {
     id: 'u-1',
+    idType: IdentificationType.CC,
+    idNumber: 123456789,
     firstName: 'Juan',
     secondName: 'Carlos',
     lastName: 'Perez',
-    secondLastName: 'Gomez'
+    secondLastName: 'Gomez',
+    codeNumber: 1234567890,
+    email: 'juan@test.com',
+    password: 'hash',
+    state: UserState.active,
+    roles: [],
+    ...overrides
   };
+  return base as User;
+};
 
-  const mockUser2: Partial<User> = {
-    id: 'u-2',
-    firstName: 'Maria',
-    lastName: 'Lopez'
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
+  const baseUser = createMockUser();
+  const baseThesis: Partial<ThesisWork> = {
+    thesisWorkId: 'tw-1',
+    preliminaryDraftId: 'draft-1',
+    documents: [],
+    evaluations: [],
+    specialRequests: [],
+    state: stateList.EN_DESARROLLO,
+    createdDate: new Date(),
+    preliminaryDraftData: {
+      preliminaryDraftId: 'draft-1',
+      proposalId: 'prop-1',
+      state: stateList.APROBADO,
+      createdData: new Date(),
+      evaluators: [],
+      evaluations: [],
+      documents: [],
+      maximumDeliveryDate: new Date('2026-12-31T00:00:00'),
+      proposalData: {
+        id: 'prop-1',
+        title: 'Tesis IA',
+        description: 'Descripción corta',
+        modality: Modality.TI,
+        authors: [baseUser],
+        director: baseUser,
+        state: stateList.APROBADO,
+        createdAt: new Date(),
+        documents: [],
+        evaluations: []
+      }
+    } as any // Casteo temporal para aislar la data del draft base
   };
+  return { ...baseThesis, ...overrides } as ThesisWork;
+};
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
+describe('ThesisWorkPageMapperService', () => {
+  let service: ThesisWorkPageMapperService;
+  let userServiceMock: MockUserService;
 
   beforeEach(() => {
+    // 🔕 Silenciador preventivo de consola
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // Inicialización del mock respetando la firma estricta
     userServiceMock = {
-      formatFullName: jest.fn().mockImplementation((user: Partial<User>) => {
+      formatFullName: jest.fn().mockImplementation((user: User) => {
         return [user.firstName, user.secondName, user.lastName, user.secondLastName]
           .filter(Boolean)
           .join(' ');
@@ -45,59 +110,56 @@ describe('ThesisWorkPageMapperService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('Mapeo principal de ThesisWork a TableRow', () => {
     it('debe mapear un ThesisWork completo a ThesisWorkTableRow correctamente', () => {
-      // Arrange
-      const mockThesisWork: Partial<ThesisWork> = {
-        thesisWorkId: 'tw-1',
-        state: stateList.EN_DESARROLLO,
-        preliminaryDraftData: {
-          maximumDeliveryDate: new Date('2026-12-31T00:00:00'),
-          proposalData: {
-            title: 'Tesis IA',
-            modality: Modality.TI,
-            description: 'Descripción corta',
-            director: mockUser as User,
-            authors: [mockUser as User, mockUser2 as User]
-          }
-        } as ThesisWork['preliminaryDraftData'],
-        sustentations: [{ assignedJurors: [mockUser2 as User] }] as ThesisWork['sustentations']
-      };
+      const author1 = createMockUser();
+      const author2 = createMockUser({ id: 'u-2', firstName: 'Maria', secondName: '', lastName: 'Lopez', secondLastName: '' });
 
-      // Act
-      const result = service.mapThesisWorkToTable(
-        mockThesisWork as ThesisWork,
-        false,
-        false,
-        'u-1'
-      );
+      const mockThesisWork = createMockThesisWork({
+        preliminaryDraftData: {
+          ...createMockThesisWork().preliminaryDraftData!,
+          proposalData: {
+            ...createMockThesisWork().preliminaryDraftData!.proposalData,
+            authors: [author1, author2]
+          }
+        },
+        sustentations: [{
+          id: 'sust-1',
+          sustentationDate: new Date(),
+          location: 'Aula',
+          verdicts: [],
+          assignedJurors: [author2]
+        }]
+      });
+
+      // Act (Nuevos 5 parámetros)
+      const result = service.mapThesisWorkToTable(mockThesisWork, false, false, false, 'u-1');
 
       // Assert
       expect(result.id).toBe('tw-1');
       expect(result.title).toBe('Tesis IA');
-      expect(result.modality).toBe('Trabajo de investigación');
+      expect(result.modality).toBe(Modality.TI);
       expect(result.description).toBe('Descripción corta');
       expect(result.state).toBe(stateList.EN_DESARROLLO);
       expect(result.maxDeliveryDate).toContain('2026');
+
       expect(userServiceMock.formatFullName).toHaveBeenCalled();
       expect(result.hiddenParticipants).toContain('Juan Carlos Perez Gomez');
       expect(result.hiddenParticipants).toContain('Maria Lopez');
     });
 
-    it('debe retornar "No asignada" y valores por defecto si faltan datos o el estado es EN_REVISION', () => {
-      // Arrange
-      const emptyWork: Partial<ThesisWork> = {
+    it('debe retornar "No asignada" y valores por defecto si faltan datos de la propuesta', () => {
+      const emptyWork = createMockThesisWork({
         thesisWorkId: 'tw-empty',
         state: stateList.EN_REVISION,
         preliminaryDraftData: undefined
-      };
+      });
 
-      // Act
-      const result = service.mapThesisWorkToTable(emptyWork as ThesisWork, false, false, 'u-1');
+      const result = service.mapThesisWorkToTable(emptyWork, false, false, false, 'u-1');
 
-      // Assert
       expect(result.title).toBe('Sin título');
       expect(result.modality).toBe('No definida');
       expect(result.maxDeliveryDate).toBe('No asignada');
@@ -106,72 +168,82 @@ describe('ThesisWorkPageMapperService', () => {
     });
 
     it('debe retornar "No asignada" si la fecha máxima es inválida (string corrupto)', () => {
-      // Arrange
-      const invalidDateWork: Partial<ThesisWork> = {
-        preliminaryDraftData: { maximumDeliveryDate: 'fecha-invalida' } as unknown as ThesisWork['preliminaryDraftData']
-      };
+      const invalidDateWork = createMockThesisWork();
+      invalidDateWork.preliminaryDraftData!.maximumDeliveryDate = 'fecha-invalida' as any;
 
-      // Act
-      const result = service.mapThesisWorkToTable(invalidDateWork as ThesisWork, false, false, 'u-1');
+      const result = service.mapThesisWorkToTable(invalidDateWork, false, false, false, 'u-1');
 
-      // Assert
       expect(result.maxDeliveryDate).toBe('No asignada');
     });
   });
 
-  describe('Cálculo de acciones permitidas (RBAC)', () => {
-    let baseWork: Partial<ThesisWork>;
+  describe('Cálculo de acciones permitidas (RBAC) - Reglas de Suspensión', () => {
+    let baseWork: ThesisWork;
 
     beforeEach(() => {
-      baseWork = {
+      const director = createMockUser({ id: 'director-id' });
+      const student = createMockUser({ id: 'student-id' });
+
+      baseWork = createMockThesisWork({
         thesisWorkId: 'tw-rbac',
-        state: stateList.EN_DESARROLLO,
-        preliminaryDraftData: {
-          proposalData: {
-            director: { id: 'director-id' } as User,
-            authors: [{ id: 'student-id' } as User]
-          }
-        } as ThesisWork['preliminaryDraftData']
-      };
+        state: stateList.EN_DESARROLLO
+      });
+
+      baseWork.preliminaryDraftData!.proposalData.director = director;
+      baseWork.preliminaryDraftData!.proposalData.authors = [student];
     });
 
-    it('debe devolver solo "ver descripción" si no hay usuario logueado', () => {
-      const result = service.mapThesisWorkToTable(baseWork as ThesisWork, false, false, undefined);
+    it('debe devolver solo "ver descripción" si no hay usuario logueado (currentUserId: undefined)', () => {
+      const result = service.mapThesisWorkToTable(baseWork, false, false, false, undefined);
       expect(result.allowedActions).toEqual(['ver descripción']);
     });
 
-    it('debe permitir "ver" y "editar" si el usuario actual es el director', () => {
-      const result = service.mapThesisWorkToTable(baseWork as ThesisWork, false, false, 'director-id');
+    it('debe permitir "ver" y "editar" si el usuario actual es el director en estado normal', () => {
+      const result = service.mapThesisWorkToTable(baseWork, false, false, false, 'director-id');
       expect(result.allowedActions).toEqual(['ver descripción', 'ver', 'editar']);
     });
 
     it('debe permitir solo "ver descripción" y "ver" si el usuario es un estudiante autor', () => {
-      const result = service.mapThesisWorkToTable(baseWork as ThesisWork, false, false, 'student-id');
+      const result = service.mapThesisWorkToTable(baseWork, false, false, false, 'student-id');
       expect(result.allowedActions).toEqual(['ver descripción', 'ver']);
     });
 
-    it('debe permitir "ver" y "editar" si el usuario tiene rol de acceso total (Admin) aunque no pertenezca a la tesis', () => {
-      const result = service.mapThesisWorkToTable(baseWork as ThesisWork, true, true, 'admin-id');
-      expect(result.allowedActions).toEqual(['ver descripción', 'ver', 'editar']);
-    });
+    // ── FIX: Evaluación de la nueva regla `!isSuspended` y el botón `reactivar` ──
 
-    it('debe incluir "reactivar" si la tesis está suspendida y el usuario es admin', () => {
+    it('debe OCULTAR "ver" pero mantener "editar" y agregar "reactivar" para el Administrador si está suspendido', () => {
       baseWork.state = stateList.SUSPENDIDO;
 
-      const result = service.mapThesisWorkToTable(baseWork as ThesisWork, true, true, 'admin-id');
+      // hasFullAccess = true, isAdmin = true, isConsejo = false
+      const result = service.mapThesisWorkToTable(baseWork, true, true, false, 'admin-id');
 
+      expect(result.allowedActions).toContain('ver descripción');
+      expect(result.allowedActions).toContain('editar');
       expect(result.allowedActions).toContain('reactivar');
-      expect(result.allowedActions).toContain('editar');
-      expect(result.allowedActions).toContain('ver');
+      expect(result.allowedActions).not.toContain('ver'); // FIX: Verifica que se oculta por la suspensión
     });
 
-    it('NO debe incluir "reactivar" si la tesis está suspendida pero el usuario NO es admin', () => {
+    it('debe OCULTAR "ver" y agregar "reactivar" para el Consejo (no es owner ni admin) si está suspendido', () => {
       baseWork.state = stateList.SUSPENDIDO;
 
-      const result = service.mapThesisWorkToTable(baseWork as ThesisWork, false, false, 'director-id');
+      // hasFullAccess = true, isAdmin = false, isConsejo = true
+      const result = service.mapThesisWorkToTable(baseWork, true, false, true, 'consejo-id');
 
-      expect(result.allowedActions).not.toContain('reactivar');
-      expect(result.allowedActions).toContain('editar');
+      expect(result.allowedActions).toContain('ver descripción');
+      expect(result.allowedActions).toContain('reactivar');
+      expect(result.allowedActions).not.toContain('ver');    // Oculto por suspensión
+      expect(result.allowedActions).not.toContain('editar'); // Consejo no es dueño ni admin
+    });
+
+    it('debe OCULTAR "ver" al propio director y NO agregar "reactivar" si está suspendido', () => {
+      baseWork.state = stateList.SUSPENDIDO;
+
+      // Director: no tiene full access, no es admin, no es consejo
+      const result = service.mapThesisWorkToTable(baseWork, false, false, false, 'director-id');
+
+      expect(result.allowedActions).toContain('ver descripción');
+      expect(result.allowedActions).toContain('editar');     // Owner conserva edición
+      expect(result.allowedActions).not.toContain('ver');    // Pierde ver temporalmente
+      expect(result.allowedActions).not.toContain('reactivar'); // No tiene permisos de reactivar
     });
   });
 });

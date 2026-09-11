@@ -5,11 +5,30 @@ import { PreliminaryDraftFacadeService } from './services/preliminary-draft-faca
 import { PreliminaryDraftTableRow } from './models/preliminary-draft-page.model';
 import { TableButton } from '../../../../shared/components/table-component/table-component.component';
 
+// 🔹 REFACTOR: Fábricas para generar datos limpios y tipados
+const createMockTableRow = (overrides: Partial<PreliminaryDraftTableRow> = {}): PreliminaryDraftTableRow => ({
+  id: '1',
+  title: 'Test',
+  modality: 'Trabajo de Grado',
+  description: 'Desc',
+  state: 'EN_REVISION',
+  remainingTime: 'Quedan 5 días',
+  hiddenParticipants: 'Juan Perez',
+  allowedActions: ['ver', 'editar', 'eliminar', 'ver descripción'],
+  ...overrides
+});
+
+const createMockTableButton = (overrides: Partial<TableButton> = {}): TableButton => ({
+  label: 'Registrar anteproyecto',
+  variant: 'primary',
+  ...overrides
+});
+
 describe('PreliminaryDraftPageComponent', () => {
   let component: PreliminaryDraftPageComponent;
   let fixture: ComponentFixture<PreliminaryDraftPageComponent>;
 
-  // Reemplazamos los 'any' definiendo la estructura exacta de los mocks
+  // 🔹 REFACTOR: Tipado estructural para evitar 'any' y 'unknown'
   let mockRouter: { navigate: jest.Mock };
   let mockFacade: {
     tableData: jest.Mock;
@@ -19,6 +38,10 @@ describe('PreliminaryDraftPageComponent', () => {
   };
 
   beforeEach(async () => {
+    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockRouter = {
       navigate: jest.fn()
     };
@@ -43,18 +66,20 @@ describe('PreliminaryDraftPageComponent', () => {
     fixture.detectChanges();
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones originales de la consola
+  });
+
   it('debería crearse correctamente', () => {
     expect(component).toBeTruthy();
   });
 
   describe('Interacción con la Tabla (handleTableAction)', () => {
-    const mockRow: PreliminaryDraftTableRow = {
-      id: '1', title: 'Test', modality: '', description: 'Desc', state: '',
-      remainingTime: '', hiddenParticipants: '', allowedActions: ['ver', 'editar', 'eliminar', 'ver descripción']
-    };
+    const mockRow = createMockTableRow();
 
     it('debería denegar acceso si la acción no está permitida', () => {
-      const restrictedRow = { ...mockRow, allowedActions: ['ver descripción'] };
+      const restrictedRow = createMockTableRow({ allowedActions: ['ver descripción'] });
       component.handleTableAction({ action: 'editar', row: restrictedRow });
 
       expect(mockFacade.showRestrictedAccessNotification).toHaveBeenCalled();
@@ -68,12 +93,14 @@ describe('PreliminaryDraftPageComponent', () => {
 
     it('debería abrir el modal de descripción', () => {
       component.handleTableAction({ action: 'ver descripción', row: mockRow });
+
       expect(component.descriptionModal.show).toBe(true);
       expect(component.descriptionModal.content).toBe('Desc');
     });
 
     it('debería preparar el estado de eliminación', () => {
       component.handleTableAction({ action: 'eliminar', row: mockRow });
+
       expect(component.deleteState.show).toBe(true);
       expect(component.deleteState.id).toBe('1');
     });
@@ -81,16 +108,14 @@ describe('PreliminaryDraftPageComponent', () => {
 
   describe('Interacción con Botones de Cabecera (handleHeaderButton)', () => {
     it('debería navegar a crear anteproyecto', () => {
-      // Solución al error TS(2345): Proveemos la propiedad 'variant' requerida
-      const buttonMock: TableButton = { label: 'Registrar anteproyecto', variant: 'primary' };
+      const buttonMock = createMockTableButton({ label: 'Registrar anteproyecto' });
 
       component.handleHeaderButton(buttonMock);
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/preliminary-draft/create']);
     });
 
     it('debería navegar a formatos descargables', () => {
-      // Solución al error TS(2345): Proveemos la propiedad 'variant' requerida
-      const buttonMock: TableButton = { label: 'Formatos descargables', variant: 'primary' };
+      const buttonMock = createMockTableButton({ label: 'Formatos descargables' });
 
       component.handleHeaderButton(buttonMock);
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/preliminary-draft/downloadable_formats']);
@@ -98,20 +123,52 @@ describe('PreliminaryDraftPageComponent', () => {
   });
 
   describe('Modal de Eliminación', () => {
-    it('debería cancelar la eliminación', () => {
+    it('debería cancelar la eliminación limpiando el estado', () => {
       component.deleteState = { show: true, id: '1', title: 'Test', loading: false };
+
       component.cancelDelete();
+
       expect(component.deleteState.show).toBe(false);
       expect(component.deleteState.id).toBeNull();
     });
 
-    it('debería confirmar la eliminación llamando a la fachada', () => {
+    it('debería confirmar la eliminación llamando a la fachada y gestionar el éxito', () => {
       component.deleteState = { show: true, id: '1', title: 'Test', loading: false };
+
+      // 🔹 REFACTOR: Simulamos que el facade llama al callback de éxito (onSuccess)
+      // para validar que el componente limpia su estado correctamente.
+      mockFacade.deleteDraft.mockImplementation((id: string, onSuccess: () => void) => {
+        onSuccess();
+      });
 
       component.confirmDelete();
 
-      expect(component.deleteState.loading).toBe(true);
       expect(mockFacade.deleteDraft).toHaveBeenCalledWith('1', expect.any(Function), expect.any(Function));
+      expect(component.deleteState.show).toBe(false);
+      expect(component.deleteState.id).toBeNull();
+      expect(component.deleteState.loading).toBe(false);
+    });
+
+    it('debería gestionar el error restaurando el estado de loading', () => {
+      component.deleteState = { show: true, id: '1', title: 'Test', loading: false };
+
+      // 🔹 REFACTOR: Simulamos que el facade llama al callback de error (onError)
+      mockFacade.deleteDraft.mockImplementation((id: string, onSuccess: () => void, onError: () => void) => {
+        onError();
+      });
+
+      component.confirmDelete();
+
+      expect(component.deleteState.loading).toBe(false);
+      expect(component.deleteState.show).toBe(true); // El modal sigue abierto en caso de error
+    });
+
+    it('no debería ejecutar la eliminación si ya está cargando o no hay ID', () => {
+      component.deleteState = { show: true, id: '1', title: 'Test', loading: true };
+
+      component.confirmDelete();
+
+      expect(mockFacade.deleteDraft).not.toHaveBeenCalled();
     });
   });
 });

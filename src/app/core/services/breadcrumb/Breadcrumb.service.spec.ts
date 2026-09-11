@@ -1,42 +1,97 @@
 import { TestBed } from '@angular/core/testing';
-import { Router, NavigationEnd, Event as RouterEvent, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+import {
+  Router,
+  NavigationEnd,
+  Event as RouterEvent,
+  ActivatedRouteSnapshot,
+  RouterStateSnapshot,
+  NavigationStart
+} from '@angular/router';
 import { Title } from '@angular/platform-browser';
-import { Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 
 import { BreadcrumbService } from './breadcrumb.service';
 import { buildBreadcrumbTrail } from './helpers/breadcrumb-builder.helper';
+import { BreadcrumbItem } from '../../interfaces/breadcrumb-item.interface';
 
 // Mockeamos la función helper pura
 jest.mock('./helpers/breadcrumb-builder.helper', () => ({
   buildBreadcrumbTrail: jest.fn()
 }));
 
+// ── Funciones Fábrica y Tipos Estrictos (Zero 'any', 'unknown', 'as') ────────
+
+const createMockRouteSnapshot = (): ActivatedRouteSnapshot => {
+  const dummyParamMap = { has: () => false, get: () => null, getAll: () => [], keys: [] };
+  const snapshot: ActivatedRouteSnapshot = {
+    url: [],
+    params: {},
+    queryParams: {},
+    fragment: null,
+    data: {},
+    outlet: 'primary',
+    component: null,
+    routeConfig: null,
+    get root() { return snapshot; },
+    parent: null,
+    firstChild: null,
+    children: [],
+    pathFromRoot: [],
+    paramMap: dummyParamMap,
+    queryParamMap: dummyParamMap,
+    title: ''
+  };
+  return snapshot;
+};
+
+interface MockTitleService {
+  setTitle: jest.Mock<void, [string]>;
+  getTitle: jest.Mock<string, []>;
+}
+
+// Usamos Pick e intersecciones para crear un tipo seguro para el Router
+type MockRouter = Pick<Router, 'events' | 'url'> & { routerState: { snapshot: RouterStateSnapshot } };
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('BreadcrumbService', () => {
   let service: BreadcrumbService;
 
-  let mockTitleService: jest.Mocked<Title>;
-  let mockRouter: Partial<Router>;
+  let mockTitleService: MockTitleService;
+  let mockRouter: MockRouter;
   let routerEventsSubject: Subject<RouterEvent>;
   let mockSnapshot: RouterStateSnapshot;
 
+  const buildBreadcrumbTrailMock = jest.mocked(buildBreadcrumbTrail);
+
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener terminal limpia ante cualquier advertencia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     routerEventsSubject = new Subject<RouterEvent>();
 
-    mockSnapshot = { root: {} as ActivatedRouteSnapshot } as RouterStateSnapshot;
+    // Inicialización de Snapshot estructuralmente perfecto sin 'as unknown'
+    mockSnapshot = {
+      root: createMockRouteSnapshot(),
+      url: '/ruta-actual'
+    };
 
+    // Inicialización de Router seguro y tipado
     mockRouter = {
       events: routerEventsSubject.asObservable(),
       url: '/ruta-actual',
-      routerState: { snapshot: mockSnapshot } as unknown as Router['routerState']
+      routerState: { snapshot: mockSnapshot }
     };
 
+    // Inicialización de Title seguro y tipado
     mockTitleService = {
       setTitle: jest.fn(),
       getTitle: jest.fn()
-    } as unknown as jest.Mocked<Title>;
+    };
 
     // Comportamiento por defecto del helper mockeado
-    (buildBreadcrumbTrail as jest.Mock).mockReturnValue([
+    buildBreadcrumbTrailMock.mockReturnValue([
       { label: 'Ruta 1', url: '/ruta-1' }
     ]);
 
@@ -53,6 +108,7 @@ describe('BreadcrumbService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización y Signals Computed', () => {
@@ -67,7 +123,7 @@ describe('BreadcrumbService', () => {
         { label: 'Inicio', url: '/' },
         { label: 'Ruta 1', url: '/ruta-1' }
       ]);
-      expect(buildBreadcrumbTrail).toHaveBeenCalledWith(mockSnapshot.root);
+      expect(buildBreadcrumbTrailMock).toHaveBeenCalledWith(mockSnapshot.root);
     });
 
     it('debería añadir el dynamicLabel al final de los breadcrumbs si está presente', () => {
@@ -131,15 +187,17 @@ describe('BreadcrumbService', () => {
       service.breadcrumbs();
 
       // 2. Cambiamos el retorno del helper mockeado
-      (buildBreadcrumbTrail as jest.Mock).mockReturnValue([
+      buildBreadcrumbTrailMock.mockReturnValue([
         { label: 'Ruta Nueva', url: '/ruta-nueva' }
       ]);
 
       // 3. Actualizamos la referencia interna del snapshot en el Router mockeado
-      const newSnapshot = { root: {} as ActivatedRouteSnapshot } as RouterStateSnapshot;
-      if (mockRouter.routerState) {
-        mockRouter.routerState.snapshot = newSnapshot;
-      }
+      const newSnapshot: RouterStateSnapshot = {
+        root: createMockRouteSnapshot(),
+        url: '/ruta-nueva'
+      };
+
+      mockRouter.routerState.snapshot = newSnapshot;
 
       // 4. Emitimos el evento de navegación
       routerEventsSubject.next(new NavigationEnd(1, '/nueva', '/nueva'));
@@ -152,20 +210,20 @@ describe('BreadcrumbService', () => {
         { label: 'Inicio', url: '/' },
         { label: 'Ruta Nueva', url: '/ruta-nueva' }
       ]);
-      expect(buildBreadcrumbTrail).toHaveBeenCalledWith(newSnapshot.root);
+      expect(buildBreadcrumbTrailMock).toHaveBeenCalledWith(newSnapshot.root);
     });
 
     it('NO debería re-calcular los breadcrumbs con otros eventos del router', () => {
       service.breadcrumbs();
-      (buildBreadcrumbTrail as jest.Mock).mockClear();
+      buildBreadcrumbTrailMock.mockClear();
 
-      // Emitimos un evento que NO es NavigationEnd
-      routerEventsSubject.next({ id: 1, url: '/test' } as unknown as RouterEvent);
+      // Usamos un evento real de Angular (NavigationStart) en lugar de un casteo inventado 'as unknown'
+      routerEventsSubject.next(new NavigationStart(1, '/test'));
 
       TestBed.flushEffects();
 
       service.breadcrumbs();
-      expect(buildBreadcrumbTrail).not.toHaveBeenCalled();
+      expect(buildBreadcrumbTrailMock).not.toHaveBeenCalled();
     });
   });
 
@@ -192,7 +250,8 @@ describe('BreadcrumbService', () => {
     });
 
     it('debería emitir valores a través de breadcrumbs$ cuando los breadcrumbs cambian', () => {
-      const emittedBreadcrumbs: any[] = [];
+      // Reemplazamos any[] por tipado estricto
+      const emittedBreadcrumbs: BreadcrumbItem[][] = [];
 
       const sub = service.breadcrumbs$.subscribe((items) => {
         emittedBreadcrumbs.push(items);

@@ -21,6 +21,11 @@ describe('ProposalService', () => {
   let mockApiService: jest.Mocked<ProposalApiService>;
 
   beforeEach(() => {
+    // 1. Espías para silenciar la consola
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     // Mock del Storage
     mockStorageService = {
       proposals: signal([] as Proposal[]),
@@ -61,7 +66,8 @@ describe('ProposalService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    // 2. Restauramos todos los espías y mocks originales al terminar cada prueba
+    jest.restoreAllMocks();
   });
 
   it('debería crearse correctamente', () => {

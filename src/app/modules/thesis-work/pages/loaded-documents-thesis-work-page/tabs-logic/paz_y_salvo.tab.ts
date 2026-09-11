@@ -5,6 +5,7 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
 import { FinalDelivery } from '../../../interfaces/final-delivery.interface';
 import { formatThesisDate } from '../../../helpers/thesis-date.helper';
+import { parseDisplayDate } from '../../../../../core/utils/date-utils';
 
 interface PazYSalvoTableRow {
   id: string;
@@ -49,12 +50,13 @@ export const PazYSalvoTabConfig: TabConfiguration<PazYSalvoTableRow> = {
 
   getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): PazYSalvoTableRow[] => {
     const pySDocs = documents.filter(doc => doc.type === DocumentType.PAZ_Y_SALVO);
-
     return pySDocs.map((doc: FileDocument): PazYSalvoTableRow => {
+      // ← FIX: new Date(string) sobre "DD - MM - YYYY" no es parseo
+      // estándar — mismo bug ya cerrado en otros 3 archivos del proyecto.
+      // parseDisplayDate reconoce explícitamente ese formato.
       const formattedDate = doc.uploadDate
-        ? formatThesisDate(typeof doc.uploadDate === 'string' ? new Date(doc.uploadDate) : doc.uploadDate)
+        ? formatThesisDate(parseDisplayDate(doc.uploadDate))
         : 'Sin fecha';
-
       return {
         id: doc.id,
         name: doc.name,

@@ -1,19 +1,44 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
+
 import { StatisticsMetricsService } from './statistics-metrics.service';
 import { StatisticsStateService } from './statistics-state.service';
 import { ProjectStatus } from '../enum/projectStatus.enum';
 import { RawProjectData } from '../interfaces/rawProjectData.interface';
+import { ProjectStage } from '../enum/projectStage.enum';
+
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockRawProjectData = (overrides: Partial<RawProjectData> = {}): RawProjectData => ({
+  id: 'proj-123',
+  title: 'Proyecto Mock',
+  stage: ProjectStage.PROPUESTA,
+  status: ProjectStatus.EN_DESARROLLO,
+  originalState: 'EN_REVISION',
+  period: '2026-1',
+  directorId: 'usr-1',
+  directorName: 'Director Mock',
+  registrationDate: new Date(),
+  isArchived: false,
+  deadlineStatus: null,
+  ...overrides
+} as RawProjectData);
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('StatisticsMetricsService', () => {
   let service: StatisticsMetricsService;
 
-  // Signal para simular el estado reactivo centralizado
-  let mockFilteredDataSignal = signal<RawProjectData[]>([]);
+  // Signal estricto para simular el estado reactivo centralizado
+  let mockFilteredDataSignal: WritableSignal<RawProjectData[]>;
 
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener terminal limpia ante posibles advertencias
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // Resetear el signal a un estado limpio antes de cada prueba
-    mockFilteredDataSignal.set([]);
+    mockFilteredDataSignal = signal<RawProjectData[]>([]);
 
     const mockStateService = {
       filteredData: mockFilteredDataSignal
@@ -29,6 +54,11 @@ describe('StatisticsMetricsService', () => {
     service = TestBed.inject(StatisticsMetricsService);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola
+  });
+
   it('debería inyectarse correctamente', () => {
     expect(service).toBeTruthy();
   });
@@ -42,15 +72,15 @@ describe('StatisticsMetricsService', () => {
     });
 
     it('debería calcular correctamente las métricas basadas en los estados', () => {
-      // Preparamos un mix de datos para verificar que los filtros son exactos
-      const mockData = [
-        { status: ProjectStatus.APROBADO },
-        { status: ProjectStatus.APROBADO }, // 2 Aprobados
-        { status: ProjectStatus.APROBADO_OBSERVACIONES }, // 1 Aprobado con Observaciones
-        { status: ProjectStatus.NO_APROBADO },
-        { status: ProjectStatus.CANCELADO }, // 2 No Aprobados (suma de ambos estados)
-        { status: 'EN_PROGRESO' as ProjectStatus } // 1 Estado diferente (ruido para probar exclusión)
-      ] as unknown as RawProjectData[];
+      // Preparamos un mix de datos usando la fábrica (sin casteos inseguros)
+      const mockData: RawProjectData[] = [
+        createMockRawProjectData({ status: ProjectStatus.APROBADO }),
+        createMockRawProjectData({ status: ProjectStatus.APROBADO }), // 2 Aprobados
+        createMockRawProjectData({ status: ProjectStatus.APROBADO_OBSERVACIONES }), // 1 Aprobado con Observaciones
+        createMockRawProjectData({ status: ProjectStatus.NO_APROBADO }),
+        createMockRawProjectData({ status: ProjectStatus.CANCELADO }), // 2 No Aprobados (suma de ambos estados)
+        createMockRawProjectData({ status: ProjectStatus.EN_DESARROLLO }) // 1 Estado diferente genuino para probar exclusión
+      ];
 
       mockFilteredDataSignal.set(mockData);
 
@@ -70,14 +100,14 @@ describe('StatisticsMetricsService', () => {
 
       // Mutación 1: Añadimos un proyecto aprobado
       mockFilteredDataSignal.set([
-        { status: ProjectStatus.APROBADO } as unknown as RawProjectData
+        createMockRawProjectData({ status: ProjectStatus.APROBADO })
       ]);
       expect(service.totalApproved()).toBe(1);
       expect(service.totalLoaded()).toBe(1);
 
       // Mutación 2: Añadimos un proyecto no aprobado y quitamos el aprobado
       mockFilteredDataSignal.set([
-        { status: ProjectStatus.NO_APROBADO } as unknown as RawProjectData
+        createMockRawProjectData({ status: ProjectStatus.NO_APROBADO })
       ]);
 
       expect(service.totalApproved()).toBe(0); // Volvió a cero

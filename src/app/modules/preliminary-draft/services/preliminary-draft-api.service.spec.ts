@@ -15,7 +15,7 @@ import { AppEventType } from '../../../core/enums/app-event-type.enum';
 describe('PreliminaryDraftApiService', () => {
   let service: PreliminaryDraftApiService;
 
-  // 🔹 REFACTOR: Tipado estricto estructural en lugar de usar 'as unknown as jest.Mocked<T>'
+  // 🔹 REFACTOR: Tipado estricto estructural (ya no usaremos 'as unknown' en los providers)
   let storageSpy: {
     getById: jest.Mock;
     addDraft: jest.Mock;
@@ -31,7 +31,7 @@ describe('PreliminaryDraftApiService', () => {
     emit: jest.Mock;
   };
 
-  // 🔹 REFACTOR: Función constructora para crear objetos PreliminaryDraft válidos sin casteo forzado
+  // 🔹 REFACTOR: Función constructora para crear objetos PreliminaryDraft válidos
   const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
     preliminaryDraftId: '1',
     state: stateList.EN_REVISION,
@@ -40,10 +40,12 @@ describe('PreliminaryDraftApiService', () => {
     createdData: new Date(),
     ...overrides
   } as PreliminaryDraft);
-  // Usamos un casteo seguro interno a nivel de fábrica para simular la interfaz
-  // sin contaminar el código de las pruebas con tipos parciales o aserciones dobles.
 
   beforeEach(() => {
+    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     Object.defineProperty(window, 'crypto', {
       value: { randomUUID: jest.fn().mockReturnValue('mocked-uuid') },
       configurable: true
@@ -67,9 +69,10 @@ describe('PreliminaryDraftApiService', () => {
     TestBed.configureTestingModule({
       providers: [
         PreliminaryDraftApiService,
-        { provide: PreliminaryDraftStorageService, useValue: storageSpy as unknown as PreliminaryDraftStorageService },
-        { provide: UserService, useValue: userSpy as unknown as UserService },
-        { provide: EventBusService, useValue: eventBusSpy as unknown as EventBusService }
+        // 🔹 REFACTOR: Asignación directa limpia. TypeScript acepta la estructura.
+        { provide: PreliminaryDraftStorageService, useValue: storageSpy },
+        { provide: UserService, useValue: userSpy },
+        { provide: EventBusService, useValue: eventBusSpy }
       ]
     });
 
@@ -78,6 +81,7 @@ describe('PreliminaryDraftApiService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones de la consola
   });
 
   it('debería crearse correctamente', () => {
@@ -99,15 +103,17 @@ describe('PreliminaryDraftApiService', () => {
 
   describe('createPreliminaryDraft', () => {
     it('debería crear el anteproyecto, guardar en storage y emitir notificaciones con delay', fakeAsync(() => {
-      // 🔹 REFACTOR: Creamos el payload usando la fábrica estricta
+
+      // 🔹 REFACTOR: Eliminado el `as any`. Usamos directamente un casteo al tipo real de
+      // proposalData aprovechando la utilidad NonNullable.
       const newDraftPayload = createMockDraft({
         proposalData: {
           title: 'Título de Prueba',
-          authors: ['author-1', { id: 'author-2' }],
+          authors: [{ id: 'author-1' }, { id: 'author-2' }],
           director: { id: 'director-1' },
           codirector: { id: 'codirector-1' },
           advisor: { id: 'advisor-1' }
-        } as any // Permitido solo si en tu interfaz 'authors' soporta arreglos mixtos
+        } as NonNullable<PreliminaryDraft['proposalData']>
       });
 
       let resultDraft: PreliminaryDraft | undefined;
@@ -139,7 +145,6 @@ describe('PreliminaryDraftApiService', () => {
         })
       );
 
-      // 🔹 REFACTOR: Extraer tipado correcto de la llamada de EventBus
       type EmitParams = Parameters<typeof service['eventBus']['emit']>[0];
       const emitCallArgs = eventBusSpy.emit.mock.calls[0][0] as EmitParams;
       const targetUserIds = emitCallArgs.targetUserIds || [];
@@ -169,7 +174,6 @@ describe('PreliminaryDraftApiService', () => {
 
       expect(storageSpy.updateDraft).toHaveBeenCalledWith('1', expect.any(Function));
 
-      // 🔹 REFACTOR: Extraer el callback con Typescript nativo
       type UpdateCallback = (draft: PreliminaryDraft) => PreliminaryDraft;
       const updateCallback = storageSpy.updateDraft.mock.calls[0][1] as UpdateCallback;
 

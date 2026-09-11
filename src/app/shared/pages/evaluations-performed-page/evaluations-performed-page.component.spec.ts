@@ -1,40 +1,95 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { of } from 'rxjs';
+
 import { EvaluationsPerformedPageComponent } from './evaluations-performed-page.component';
 import { EvaluationsFacadeService } from './services/evaluations-facade.service';
 import { NotificationService } from '../../components/notifications/services/notification.service';
 import { NotificationType } from '../../components/notifications/models/notification.model';
-import { EvaluationTableRow } from './models/evaluations-page.model';
+import { EvaluationTableRow, EVALUATIONS_COLUMNS } from './models/evaluations-page.model';
 import { FormattedDocument } from '../../../core/interfaces/formatted-document.interface';
 import { stateList } from '../../../core/enums/state.enum';
+
+// ── Componentes Originales a Remover (Shallow Testing) ───────────────────────
+import { TableComponent } from '../../components/table-component/table-component.component';
+import { EvaluationModalComponent } from '../../components/modals/evaluation-modal/evaluation-modal.component';
+
+// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
+
+@Component({ selector: 'app-table-component', standalone: true, template: '' })
+class MockTableComponent {
+  @Input() value: EvaluationTableRow[] = [];
+  @Input() columns: typeof EVALUATIONS_COLUMNS = [];
+  @Input() paginator = false;
+  @Input() emptyMessage = '';
+  @Output() actionClick = new EventEmitter<{ action: string; row: EvaluationTableRow }>();
+}
+
+@Component({ selector: 'app-evaluation-modal', standalone: true, template: '' })
+class MockEvaluationModalComponent {
+  @Input() isOpen = false;
+  @Input() name = '';
+  @Input() role = '';
+  @Input() evaluationDate!: Date;
+  @Input() state = '';
+  @Input() comments = '';
+  @Input() documents: FormattedDocument[] = [];
+  @Output() onClose = new EventEmitter<void>();
+  @Output() onDownloadFile = new EventEmitter<FormattedDocument>();
+}
+
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockEvaluationRow = (overrides: Partial<EvaluationTableRow> = {}): EvaluationTableRow => ({
+  id: 'eval-1',
+  evaluatorId: 'user-1',
+  evaluatorName: 'Dra. María',
+  evaluatorRole: 'Jurado',
+  veredict: stateList.APROBADO,
+  observations: 'Excelente trabajo',
+  date: new Date('2024-01-01T10:00:00Z'),
+  documentTargetName: 'Documento Final.pdf',
+  signedDocuments: [],
+  allowedActions: ['view_details'],
+  ...overrides
+});
+
+const createMockFormattedDocument = (overrides: Partial<FormattedDocument> = {}): FormattedDocument => ({
+  name: 'archivo.pdf',
+  url: 'http://url.com',
+  // FIX: Se eliminó la propiedad 'size' que no existe en la interfaz original
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('EvaluationsPerformedPageComponent', () => {
   let component: EvaluationsPerformedPageComponent;
   let fixture: ComponentFixture<EvaluationsPerformedPageComponent>;
 
-  // Mocks con tipado estricto (Zero-Any)
-  let mockFacade: { getMappedEvaluations: jest.Mock; handleDownload: jest.Mock };
-  let mockNotificationService: { show: jest.Mock };
-  let mockRouter: { navigate: jest.Mock; url: string };
-
-  const mockEvaluationRow: EvaluationTableRow = {
-    id: 'eval-1',
-    evaluatorId: 'user-1',
-    evaluatorName: 'Dra. María',
-    evaluatorRole: 'Jurado',
-    veredict: stateList.APROBADO,
-    observations: 'Excelente trabajo',
-    date: new Date(),
-    documentTargetName: 'Documento Final.pdf',
-    signedDocuments: [],
-    allowedActions: ['view_details']
+  // Tipado estricto de los espías
+  let mockFacade: {
+    getMappedEvaluations: jest.Mock<EvaluationTableRow[], [string, string]>;
+    handleDownload: jest.Mock<Promise<void>, [FormattedDocument]>;
   };
 
-  // Función de configuración para permitir probar diferentes estados de la URL
-  async function setupTestBed(routeId: string | null) {
+  let mockNotificationService: {
+    show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>
+  };
+
+  let mockRouter: {
+    navigate: jest.Mock<Promise<boolean>, [string[], any?]>;
+    url: string
+  };
+
+  const setupTestBed = async (routeId: string | null) => {
+    // 🔕 Silenciar consola para mantener terminal limpia de advertencias y errores simulados
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockFacade = {
-      getMappedEvaluations: jest.fn().mockReturnValue([mockEvaluationRow]),
+      getMappedEvaluations: jest.fn().mockReturnValue([createMockEvaluationRow()]),
       handleDownload: jest.fn().mockResolvedValue(undefined)
     };
 
@@ -43,12 +98,18 @@ describe('EvaluationsPerformedPageComponent', () => {
     };
 
     mockRouter = {
-      navigate: jest.fn(),
+      navigate: jest.fn().mockResolvedValue(true),
       url: '/history/proposal/123'
     };
 
-    // Simulamos paramMap devolviendo el ID solicitado
-    const mockParamMap = { get: () => routeId };
+    // Estructura completa de paramMap para evitar casteos "as unknown as ActivatedRoute"
+    const mockParamMap = {
+      has: jest.fn(),
+      getAll: jest.fn(),
+      keys: [],
+      get: jest.fn().mockReturnValue(routeId) // Dinámico según el parámetro
+    };
+
     const mockActivatedRoute = {
       paramMap: of(mockParamMap),
       parent: { paramMap: of(mockParamMap) }
@@ -60,16 +121,26 @@ describe('EvaluationsPerformedPageComponent', () => {
         { provide: EvaluationsFacadeService, useValue: mockFacade },
         { provide: NotificationService, useValue: mockNotificationService },
         { provide: Router, useValue: mockRouter },
-        { provide: ActivatedRoute, useValue: mockActivatedRoute as unknown as ActivatedRoute }
+        { provide: ActivatedRoute, useValue: mockActivatedRoute }
       ]
-    }).compileComponents();
+    })
+    .overrideComponent(EvaluationsPerformedPageComponent, {
+      remove: {
+        imports: [TableComponent, EvaluationModalComponent]
+      },
+      add: {
+        imports: [MockTableComponent, MockEvaluationModalComponent]
+      }
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(EvaluationsPerformedPageComponent);
     component = fixture.componentInstance;
-  }
+  };
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola y espías
   });
 
   describe('Cuando la URL tiene un ID válido', () => {
@@ -92,16 +163,20 @@ describe('EvaluationsPerformedPageComponent', () => {
     });
 
     it('Debe abrir el modal al hacer click en view_details', () => {
-      component.handleTableAction({ action: 'view_details', row: mockEvaluationRow });
+      const mockRow = createMockEvaluationRow();
+
+      component.handleTableAction({ action: 'view_details', row: mockRow });
 
       expect(component.modalState()).toEqual({
         open: true,
-        evaluation: mockEvaluationRow
+        evaluation: mockRow
       });
     });
 
     it('Debe cerrar el modal reseteando el estado', () => {
-      component.modalState.set({ open: true, evaluation: mockEvaluationRow });
+      const mockRow = createMockEvaluationRow();
+      component.modalState.set({ open: true, evaluation: mockRow });
+
       component.closeModal();
 
       expect(component.modalState()).toEqual({
@@ -111,7 +186,8 @@ describe('EvaluationsPerformedPageComponent', () => {
     });
 
     it('Debe delegar la descarga del documento al facade', () => {
-      const mockDoc: FormattedDocument = { name: 'archivo.pdf', url: 'http://url.com' };
+      const mockDoc = createMockFormattedDocument();
+
       component.handleDownload(mockDoc);
 
       expect(mockFacade.handleDownload).toHaveBeenCalledWith(mockDoc);

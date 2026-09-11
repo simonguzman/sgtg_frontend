@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { signal, WritableSignal, Component, Input, Output, EventEmitter, forwardRef } from '@angular/core';
+import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 
 import { StatisticsPageComponent } from './statistics-page.component';
 import { StatisticsPageFacadeService } from './services/statistics-page-facade.service';
@@ -7,10 +8,89 @@ import { ProjectStage } from '../../enum/projectStage.enum';
 import { DeadlineFilterValue, StatisticsFilters } from '../../interfaces/statisticsFilters.interface';
 import { EvaluationDeadlineStatus } from '../../../../core/enums/evaluation-deadline-status.enum';
 
+// ── Componentes y Módulos Originales a Remover ───────────────────────────────
+import { ChartModule } from 'primeng/chart';
+import { SelectModule } from 'primeng/select';
+import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+
+// ── Tipados Estrictos para Mocks (Zero 'any', 'unknown') ─────────────────────
+
+interface MockChartData {
+  labels: string[];
+  datasets: Record<string, unknown>[];
+}
+
+interface MockOption {
+  label: string;
+  value: string | null;
+}
+
+// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
+
+// FIX: Para que Angular permita usar [ngModel] en un componente mock, este
+// debe proveer NG_VALUE_ACCESSOR e implementar ControlValueAccessor.
+@Component({
+  selector: 'p-select',
+  standalone: true,
+  template: '',
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => MockPSelectComponent),
+      multi: true,
+    },
+  ],
+})
+class MockPSelectComponent implements ControlValueAccessor {
+  @Input() options!: unknown[];
+  @Input() optionLabel!: string;
+  @Input() optionValue!: string;
+  @Input() placeholder!: string;
+  @Input() showClear!: boolean;
+  @Input() styleClass!: string;
+
+  // Implementación vacía de ControlValueAccessor para satisfacer a FormsModule
+  writeValue(value: unknown): void {}
+  registerOnChange(fn: unknown): void {}
+  registerOnTouched(fn: unknown): void {}
+}
+
+@Component({ selector: 'p-chart', standalone: true, template: '' })
+class MockPChartComponent {
+  @Input() type!: string;
+  @Input() data!: MockChartData;
+  @Input() options!: Record<string, unknown>;
+}
+
+@Component({ selector: 'app-button-component', standalone: true, template: '' })
+class MockButtonComponent {
+  @Input() label!: string;
+  @Input() variant!: string;
+  @Input() icon!: string;
+  @Output() onClick = new EventEmitter<void>();
+}
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('StatisticsPageComponent', () => {
   let component: StatisticsPageComponent;
   let fixture: ComponentFixture<StatisticsPageComponent>;
-  let mockFacadeService: Partial<StatisticsPageFacadeService>;
+
+  let mockFacadeService: {
+    updateFilters: jest.Mock<void, [Partial<StatisticsFilters>]>;
+    downloadPdfReport: jest.Mock<void, []>;
+    clearFilters: jest.Mock<void, []>;
+    currentFilters: WritableSignal<StatisticsFilters>;
+    stagesOptions: MockOption[];
+    periodsOptions: WritableSignal<string[]>;
+    directorsOptions: WritableSignal<{ id: string; name: string }[]>;
+    totalLoaded: WritableSignal<number>;
+    totalApproved: WritableSignal<number>;
+    totalApprovedWithObservations: WritableSignal<number>;
+    totalNotApproved: WritableSignal<number>;
+    statusChartData: WritableSignal<MockChartData>;
+    stageChartData: WritableSignal<MockChartData>;
+  };
 
   const initialFilters: StatisticsFilters = {
     stage: null,
@@ -21,12 +101,15 @@ describe('StatisticsPageComponent', () => {
   };
 
   beforeEach(async () => {
+    // 🔕 Silenciar consola para mantener terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockFacadeService = {
       updateFilters: jest.fn(),
       downloadPdfReport: jest.fn(),
       clearFilters: jest.fn(),
 
-      // Signals simulados para prevenir errores en el renderizado del template
       currentFilters: signal<StatisticsFilters>(initialFilters),
       stagesOptions: [],
       periodsOptions: signal<string[]>([]),
@@ -35,8 +118,8 @@ describe('StatisticsPageComponent', () => {
       totalApproved: signal<number>(0),
       totalApprovedWithObservations: signal<number>(0),
       totalNotApproved: signal<number>(0),
-      statusChartData: signal({ labels: [], datasets: [] }),
-      stageChartData: signal({ labels: [], datasets: [] }),
+      statusChartData: signal<MockChartData>({ labels: [], datasets: [] }),
+      stageChartData: signal<MockChartData>({ labels: [], datasets: [] }),
     };
 
     await TestBed.configureTestingModule({
@@ -44,7 +127,12 @@ describe('StatisticsPageComponent', () => {
       providers: [
         { provide: StatisticsPageFacadeService, useValue: mockFacadeService },
       ],
-    }).compileComponents();
+    })
+    .overrideComponent(StatisticsPageComponent, {
+      remove: { imports: [ChartModule, SelectModule, ButtonComponent] },
+      add: { imports: [MockPChartComponent, MockPSelectComponent, MockButtonComponent] }
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(StatisticsPageComponent);
     component = fixture.componentInstance;
@@ -53,6 +141,7 @@ describe('StatisticsPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola
   });
 
   describe('Inicialización', () => {

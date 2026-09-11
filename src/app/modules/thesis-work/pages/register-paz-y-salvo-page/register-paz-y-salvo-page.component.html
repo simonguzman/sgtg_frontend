@@ -14,7 +14,8 @@
         [thesisWork]="thesisWorkState()!"
         [isSubmitting]="isSubmitting()"
         (onSave)="handleRequestConfirmation($event)"
-        (onGoBack)="goBack()">
+        (onGoBack)="goBack()"
+        (onDownloadFile)="downloadDocument($event)">
       </app-register-paz-y-salvo-form>
     }
 

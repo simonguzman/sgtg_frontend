@@ -7,40 +7,62 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
+import { User } from '../../../../users/interfaces/user.interface';
+
+// 🔹 REFACTOR: Fábricas de Datos (Factories) para generar entidades sin usar 'any' ni 'unknown'
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'u1',
+  firstName: 'Juan',
+  lastName: 'Perez',
+  roles: [],
+  ...overrides
+} as User);
+
+const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
+  id: 'prop-1',
+  title: 'Mock Proposal',
+  ...overrides
+} as Proposal);
+
+const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
+  preliminaryDraftId: '1',
+  proposalId: 'prop-1',
+  proposalData: createMockProposal(),
+  evaluators: [],
+  evaluations: [],
+  documents: [],
+  state: stateList.EN_REVISION,
+  createdData: new Date(),
+  isArchived: false,
+  ...overrides
+} as PreliminaryDraft);
+
+const createMockContext = (overrides: Partial<PreliminaryDraftEvaluationContext> = {}): PreliminaryDraftEvaluationContext => ({
+  preliminaryDraft: createMockPreliminaryDraft(),
+  currentUser: createMockUser(),
+  isAdmin: false,
+  isJefe: false,
+  isDirector: false,
+  isAssignedEvaluator: false,
+  isConsejoMember: false,
+  totalEvaluatorsCount: 2,
+  latestAnteproyectoId: 'doc-1',
+  ...overrides
+});
 
 describe('AnteproyectosTabConfig', () => {
   let mockContext: PreliminaryDraftEvaluationContext;
-  let mockPreliminaryDraftService: jest.Mocked<Partial<PreliminaryDraftService>>;
+  let mockPreliminaryDraftService: { calculateDocumentStatus: jest.Mock };
 
   beforeEach(() => {
-    // 1. Construimos un objeto PreliminaryDraft válido, usando Partial
-    // para evitar el anti-patrón 'as unknown as' simulando la info mínima necesaria.
-    const mockPreliminaryDraft: PreliminaryDraft = {
-      preliminaryDraftId: '1',
-      proposalId: 'prop-1',
-      proposalData: { id: 'prop-1', title: 'Mock Proposal' } as Partial<Proposal> as Proposal,
-      evaluators: [],
-      evaluations: [],
-      documents: [],
-      state: stateList.EN_REVISION,
-      createdData: new Date(),
-      isArchived: false
-    };
+    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // 2. Asignamos el objeto al contexto
-    mockContext = {
-      preliminaryDraft: mockPreliminaryDraft,
-      currentUser: { id: 'u1', firstName: 'Juan', lastName: 'Perez' },
-      isAdmin: false,
-      isJefe: false,
-      isDirector: false,
-      isAssignedEvaluator: false,
-      isConsejoMember: false,
-      totalEvaluatorsCount: 2,
-      latestAnteproyectoId: 'doc-1'
-    };
+    // 1. Inicializamos el contexto usando la fábrica limpia
+    mockContext = createMockContext();
 
-    // 3. Mockeamos el servicio estrictamente tipado con Partial
+    // 2. Mockeamos el servicio estrictamente
     mockPreliminaryDraftService = {
       calculateDocumentStatus: jest.fn().mockReturnValue(stateList.EN_REVISION)
     };
@@ -48,26 +70,25 @@ describe('AnteproyectosTabConfig', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('getTableData', () => {
     it('debería mapear documentos de anteproyecto y permitir evaluar a evaluadores asignados', () => {
       mockContext.isAssignedEvaluator = true;
 
-      const documents: FileDocument[] = [
-        {
-          id: 'doc-1',
-          name: 'v1',
-          url: 'http://localhost/v1.pdf',
-          uploadDate: new Date(),
-          type: DocumentType.ANTEPROYECTO // <- FIX: Uso del Enum nativo en vez de strings casteados
-        }
-      ];
+      const documents: FileDocument[] = [{
+        id: 'doc-1',
+        name: 'v1',
+        url: 'http://localhost/v1.pdf',
+        uploadDate: new Date(),
+        type: DocumentType.ANTEPROYECTO
+      } as FileDocument];
 
       const result = AnteproyectosTabConfig.getTableData(
         documents,
         mockContext,
-        mockPreliminaryDraftService as PreliminaryDraftService
+        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
       );
 
       expect(result).toHaveLength(1);
@@ -93,43 +114,39 @@ describe('AnteproyectosTabConfig', () => {
 
       mockContext.preliminaryDraft.evaluations = [mockEvaluation];
 
-      const documents: FileDocument[] = [
-        {
-          id: 'doc-1',
-          name: 'v1',
-          url: 'http://localhost/v1.pdf',
-          uploadDate: new Date(),
-          type: DocumentType.ANTEPROYECTO
-        }
-      ];
+      const documents: FileDocument[] = [{
+        id: 'doc-1',
+        name: 'v1',
+        url: 'http://localhost/v1.pdf',
+        uploadDate: new Date(),
+        type: DocumentType.ANTEPROYECTO
+      } as FileDocument];
 
       const result = AnteproyectosTabConfig.getTableData(
         documents,
         mockContext,
-        mockPreliminaryDraftService as PreliminaryDraftService
+        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
       );
 
       expect(result[0].allowedActions).not.toContain('evaluate');
     });
 
     it('debería setear el estado a NO_APROBADO para documentos antiguos si antes estaban aprobados', () => {
-      const documents: FileDocument[] = [
-        {
-          id: 'doc-old', // Diferente al latestAnteproyectoId ('doc-1')
-          name: 'old_version',
-          url: 'url',
-          uploadDate: new Date(),
-          type: DocumentType.ANTEPROYECTO
-        }
-      ];
+      const documents: FileDocument[] = [{
+        id: 'doc-old', // Diferente al latestAnteproyectoId ('doc-1')
+        name: 'old_version',
+        url: 'url',
+        uploadDate: new Date(),
+        type: DocumentType.ANTEPROYECTO
+      } as FileDocument];
 
       // Simulamos que el calculador inicial dice que estaba Aprobado
-      mockPreliminaryDraftService.calculateDocumentStatus = jest.fn().mockReturnValue(stateList.APROBADO);
+      mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.APROBADO);
 
       const result = AnteproyectosTabConfig.getTableData(
         documents,
         mockContext,
-        mockPreliminaryDraftService as PreliminaryDraftService
+        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
       );
 
       // Como no es el documento más reciente, la regla de negocio lo debe invalidar
@@ -144,7 +161,7 @@ describe('AnteproyectosTabConfig', () => {
 
       const result = AnteproyectosTabConfig.getHeaderButtons(
         mockContext,
-        mockPreliminaryDraftService as PreliminaryDraftService
+        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
       );
 
       expect(result).toHaveLength(1);
@@ -158,7 +175,7 @@ describe('AnteproyectosTabConfig', () => {
 
       const result = AnteproyectosTabConfig.getHeaderButtons(
         mockContext,
-        mockPreliminaryDraftService as PreliminaryDraftService
+        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
       );
 
       expect(result).toHaveLength(1);
@@ -172,7 +189,7 @@ describe('AnteproyectosTabConfig', () => {
 
       const result = AnteproyectosTabConfig.getHeaderButtons(
         mockContext,
-        mockPreliminaryDraftService as PreliminaryDraftService
+        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
       );
 
       expect(result).toHaveLength(0);
@@ -180,11 +197,11 @@ describe('AnteproyectosTabConfig', () => {
 
     it('debería retornar el botón de "Cargar anteproyecto" bloqueado para el Director si está En Revisión', () => {
       mockContext.isDirector = true;
-      mockPreliminaryDraftService.calculateDocumentStatus = jest.fn().mockReturnValue(stateList.EN_REVISION);
+      mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.EN_REVISION);
 
       const result = AnteproyectosTabConfig.getHeaderButtons(
         mockContext,
-        mockPreliminaryDraftService as PreliminaryDraftService
+        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
       );
 
       expect(result).toHaveLength(1);
@@ -195,11 +212,11 @@ describe('AnteproyectosTabConfig', () => {
     it('debería retornar el botón de "Cargar anteproyecto" habilitado para el Director si el último fue Rechazado', () => {
       mockContext.isDirector = true;
       mockContext.preliminaryDraft.state = stateList.NO_APROBADO; // Rechazo general
-      mockPreliminaryDraftService.calculateDocumentStatus = jest.fn().mockReturnValue(stateList.NO_APROBADO);
+      mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.NO_APROBADO);
 
       const result = AnteproyectosTabConfig.getHeaderButtons(
         mockContext,
-        mockPreliminaryDraftService as PreliminaryDraftService
+        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
       );
 
       expect(result).toHaveLength(1);

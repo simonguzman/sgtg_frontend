@@ -5,15 +5,44 @@ import autoTable from 'jspdf-autotable';
 import { StatisticsFilters } from '../interfaces/statisticsFilters.interface';
 import { RawProjectData } from '../interfaces/rawProjectData.interface';
 import { StatisticsReportKpis } from '../interfaces/statisticsReportKpis.interface';
+import { ProjectStage } from '../enum/projectStage.enum';
+import { ProjectStatus } from '../enum/projectStatus.enum';
 
-// Hacemos mock de las librerías externas para evitar renderizados reales en la consola
+// Hacemos mock de las librerías externas para evitar renderizados reales
 jest.mock('jspdf');
 jest.mock('jspdf-autotable');
+
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any') ────────────────────────
+
+const createMockRawProjectData = (overrides: Partial<RawProjectData> = {}): RawProjectData => ({
+  id: 'proj-123',
+  title: 'Proyecto Mock',
+  stage: ProjectStage.PROPUESTA,
+  status: ProjectStatus.EN_DESARROLLO,
+  originalState: 'EN_REVISION',
+  period: '2026-1',
+  directorId: 'usr-1',
+  directorName: 'Director Mock',
+  registrationDate: new Date(),
+  isArchived: false,
+  deadlineStatus: null,
+  ...overrides
+} as RawProjectData);
+
+const createMockStatisticsFilters = (overrides: Partial<StatisticsFilters> = {}): StatisticsFilters => ({
+  stage: null,
+  period: '',
+  directorId: '',
+  archiveStatus: 'ALL',
+  ...overrides
+} as StatisticsFilters);
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('StatisticsReportService', () => {
   let service: StatisticsReportService;
 
-  // Objeto espía para interceptar los llamados internos de jsPDF
+  // Objeto espía tipado para interceptar los llamados internos de jsPDF
   let mockJsPdfInstance: {
     setFontSize: jest.Mock;
     setTextColor: jest.Mock;
@@ -22,7 +51,11 @@ describe('StatisticsReportService', () => {
   };
 
   beforeEach(() => {
-    // Definimos qué métodos vamos a espiar en el documento PDF
+    // 🔕 Silenciar consola para mantener terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // Definimos los métodos espía para el documento PDF virtual
     mockJsPdfInstance = {
       setFontSize: jest.fn(),
       setTextColor: jest.fn(),
@@ -30,8 +63,10 @@ describe('StatisticsReportService', () => {
       save: jest.fn(),
     };
 
-    // Cuando se llame a 'new jsPDF()', retornará nuestro mock
-    (jsPDF as unknown as jest.Mock).mockImplementation(() => mockJsPdfInstance);;
+    // FIX: Cuando mockeamos clases de librerías externas, TypeScript obliga
+    // a usar 'unknown' porque el tipo nativo de 'jsPDF' no se superpone
+    // en absoluto con el tipo de una función espía de Jest.
+    (jsPDF as unknown as jest.Mock).mockImplementation(() => mockJsPdfInstance);
 
     // Limpiamos el mock de la tabla antes de cada test
     (autoTable as unknown as jest.Mock).mockClear();
@@ -41,6 +76,11 @@ describe('StatisticsReportService', () => {
     });
 
     service = TestBed.inject(StatisticsReportService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola
   });
 
   it('debería inyectarse correctamente', () => {
@@ -55,18 +95,19 @@ describe('StatisticsReportService', () => {
       rejected: 3
     };
 
-    const mockData = [
-      {
+    // Usamos el Factory puro para los datos
+    const mockData: RawProjectData[] = [
+      createMockRawProjectData({
         title: 'Proyecto de Prueba',
-        stage: 'PROPUESTA',
-        status: 'EN_PROGRESO',
+        stage: ProjectStage.PROPUESTA,
+        status: ProjectStatus.EN_DESARROLLO,
         directorName: 'Juan Pérez',
         period: '2026-1'
-      }
-    ] as unknown as RawProjectData[];
+      })
+    ];
 
     it('debería inicializar jsPDF y guardar el documento con la fecha actual', () => {
-      const mockFilters = {} as StatisticsFilters;
+      const mockFilters = createMockStatisticsFilters();
 
       service.downloadPdfReport(mockFilters, mockData, mockKpis);
 
@@ -77,7 +118,7 @@ describe('StatisticsReportService', () => {
     });
 
     it('debería imprimir el header y los KPIs correctamente', () => {
-      const mockFilters = {} as StatisticsFilters;
+      const mockFilters = createMockStatisticsFilters();
 
       service.downloadPdfReport(mockFilters, mockData, mockKpis);
 
@@ -94,27 +135,32 @@ describe('StatisticsReportService', () => {
     });
 
     it('debería formatear correctamente los textos de la sección de filtros', () => {
-      // Configuramos filtros específicos para evaluar las condiciones ternarias
-      const mockFilters = {
-        stage: 'TRABAJO_GRADO',
+      // FIX: Configuramos filtros específicos usando los Enums correctos
+      const mockFilters = createMockStatisticsFilters({
+        stage: ProjectStage.TRABAJO_GRADO,
         period: '2025-2',
         directorId: 'dir-123',
         archiveStatus: 'ARCHIVED',
-        globalSearch: ''
-      } as unknown as StatisticsFilters;
+      });
 
       service.downloadPdfReport(mockFilters, mockData, mockKpis);
 
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('Filtros Aplicados:', 14, 40);
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Etapa: TRABAJO_GRADO', 14, 48);
+      // Usamos template literal con el Enum para que haga match dinámicamente
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith(`• Etapa: ${ProjectStage.TRABAJO_GRADO}`, 14, 48);
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Periodo: 2025-2', 14, 54);
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Director: Director Específico', 14, 60);
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Registros: Historial (Archivados)', 14, 66);
     });
 
     it('debería usar textos por defecto cuando no hay filtros aplicados', () => {
-      // Filtros vacíos
-      const mockFilters = {} as StatisticsFilters;
+      // Filtros vacíos o no definidos explícitamente con null
+      const mockFilters = createMockStatisticsFilters({
+        stage: null,
+        period: '',
+        directorId: '',
+        archiveStatus: 'ALL'
+      });
 
       service.downloadPdfReport(mockFilters, mockData, mockKpis);
 
@@ -125,7 +171,7 @@ describe('StatisticsReportService', () => {
     });
 
     it('debería configurar autoTable mapeando correctamente la data cruda', () => {
-      const mockFilters = {} as StatisticsFilters;
+      const mockFilters = createMockStatisticsFilters();
 
       service.downloadPdfReport(mockFilters, mockData, mockKpis);
 
@@ -142,9 +188,9 @@ describe('StatisticsReportService', () => {
       const tableConfig = autoTableArgs[1];
       expect(tableConfig.startY).toBe(75);
 
-      // Aseguramos que la data cruda se transformó en arrays de strings secuenciales
+      // Aseguramos que la data cruda se transformó usando directamente los enums subyacentes
       expect(tableConfig.body).toEqual([
-        ['1', 'Proyecto de Prueba', 'PROPUESTA', 'EN_PROGRESO', 'Juan Pérez', '2026-1']
+        ['1', 'Proyecto de Prueba', ProjectStage.PROPUESTA, ProjectStatus.EN_DESARROLLO, 'Juan Pérez', '2026-1']
       ]);
     });
   });

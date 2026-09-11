@@ -1,46 +1,85 @@
 import { TestBed } from '@angular/core/testing';
 import { FormBuilder } from '@angular/forms';
+import { signal } from '@angular/core';
+
 import { ReviewPresentationsFacultyCouncilFormFacadeService } from './review-presentations-faculty-council-form-facade.service';
 import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
+import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
+import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { User } from '../../../../users/interfaces/user.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 
+// 🔹 REFACTOR: Fábricas de Datos (Factories) para generar entidades estrictas sin 'unknown' ni 'any'
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-1',
+  firstName: 'Nombre',
+  lastName: 'Apellido',
+  roles: [],
+  ...overrides
+} as User);
+
+const createMockEvaluation = (overrides: Partial<Evaluation> = {}): Evaluation => ({
+  id: 'ev-1',
+  proposalId: 'prop-1',
+  documentId: 'doc-1',
+  evaluatorId: 'eval-1',
+  evaluatorName: 'Docente Evaluador',
+  evaluatorRole: 'Evaluador',
+  veredict: stateList.APROBADO,
+  observations: '',
+  date: new Date(),
+  signedDocuments: [{ name: 'evaluacion_firmada.pdf', url: 'http://mock-url.com' }],
+  ...overrides
+} as Evaluation);
+
+const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
+  id: 'doc-1',
+  name: 'Documento V1',
+  type: DocumentType.ANTEPROYECTO,
+  url: 'http://mock-url.com',
+  uploadDate: new Date('2026-07-23T00:00:00'),
+  ...overrides
+} as FileDocument);
+
+const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
+  id: 'prop-1',
+  title: 'Mock Proposal',
+  authors: [createMockUser({ id: 'user-1' }), createMockUser({ id: 'user-2' })],
+  director: createMockUser({ id: 'dir-1' }),
+  evaluations: [createMockEvaluation()],
+  ...overrides
+} as Proposal);
+
+const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
+  preliminaryDraftId: 'draft-1',
+  proposalId: 'prop-1',
+  proposalData: createMockProposal(),
+  state: stateList.EN_DESARROLLO,
+  evaluations: [createMockEvaluation()],
+  documents: [createMockFileDocument()],
+  evaluators: [],
+  createdData: new Date(),
+  isArchived: false,
+  ...overrides
+} as PreliminaryDraft);
+
 describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
   let facade: ReviewPresentationsFacultyCouncilFormFacadeService;
-  let mockUserService: jest.Mocked<Partial<UserService>>;
-  let mockNotificationService: jest.Mocked<Partial<NotificationService>>;
 
-  // FIX: Ajustado signedDocuments para coincidir con el contrato de FormattedDocument (name y url)
-  const mockDraft = {
-    id: 'draft-1',
-    state: stateList.EN_DESARROLLO,
-    evaluations: [
-      {
-        veredict: stateList.APROBADO,
-        signedDocuments: [{ name: 'evaluacion_firmada.pdf', url: 'http://mock-url.com' }],
-        evaluatorName: 'Docente Evaluador'
-      }
-    ],
-    documents: [
-      { id: 'doc-1', type: DocumentType.ANTEPROYECTO, name: 'Documento V1.pdf', uploadDate: '2026-07-23' }
-    ],
-    proposalData: {
-      authors: [{ id: 'user-1' }, { id: 'user-2' }],
-      director: { id: 'dir-1' },
-      evaluations: [
-        {
-          veredict: stateList.APROBADO,
-          signedDocuments: [{ name: 'evaluacion_firmada.pdf', url: 'http://mock-url.com' }],
-          evaluatorName: 'Docente Evaluador'
-        }
-      ]
-    }
-  } as unknown as PreliminaryDraft;
+  // 🔹 REFACTOR: Tipado estricto para los mocks de servicios
+  let mockUserService: { getAuthorsNames: jest.Mock; getUserFullName: jest.Mock };
+  let mockNotificationService: { show: jest.Mock };
 
   beforeEach(() => {
+    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockUserService = {
       getAuthorsNames: jest.fn().mockReturnValue('Estudiante 1, Estudiante 2'),
       getUserFullName: jest.fn().mockImplementation((id: string) => `Nombre de ${id}`)
@@ -62,19 +101,24 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
     facade = TestBed.inject(ReviewPresentationsFacultyCouncilFormFacadeService);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
+  });
+
   describe('Estados Computados (Computed Signals)', () => {
     beforeEach(() => {
-      facade.preliminaryDraft.set(mockDraft);
+      facade.preliminaryDraft.set(createMockDraft());
     });
 
     it('isReadOnly debería ser true si el estado es APROBADO', () => {
-      facade.preliminaryDraft.set({ ...mockDraft, state: stateList.APROBADO } as unknown as PreliminaryDraft);
+      facade.preliminaryDraft.set(createMockDraft({ state: stateList.APROBADO }));
       expect(facade.isReadOnly()).toBeTruthy();
     });
 
     it('approvedPreliminaryDraftDocument debería retornar el documento tipo Anteproyecto', () => {
       const doc = facade.approvedPreliminaryDraftDocument();
-      expect(doc?.name).toBe('Documento V1.pdf');
+      expect(doc?.name).toBe('Documento V1');
     });
 
     it('evaluationFiles debería listar las evaluaciones aprobadas con su evaluador', () => {
@@ -87,15 +131,20 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
     it('signedProposalDocument debería construir un FormattedDocument si existe evaluación aprobada', () => {
       const signedDoc = facade.signedProposalDocument();
       expect(signedDoc).toBeTruthy();
-      // FIX: Se valida 'url' en lugar de 'type' según la interfaz FormattedDocument
       expect(signedDoc?.name).toBe('evaluacion_firmada.pdf');
       expect(signedDoc?.url).toBe('http://mock-url.com');
+    });
+
+    it('documentUploadDate debería formatear correctamente la fecha del primer documento', () => {
+      const uploadDateStr = facade.documentUploadDate();
+      // Ya que hemos seteado el mock de fecha explícitamente a 2026-07-23
+      expect(uploadDateStr).toMatch(/23.*7.*2026|23\/7\/2026|23\/07\/2026/); // Expresión regular flexible para los formatos locales (es-ES)
     });
   });
 
   describe('Lógica del Formulario (initFormEffects)', () => {
     beforeEach(() => {
-      facade.preliminaryDraft.set(mockDraft);
+      facade.preliminaryDraft.set(createMockDraft());
       facade.initFormEffects();
     });
 
@@ -107,8 +156,8 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
     });
 
     it('NO debería requerir maximumDeliveryDate si el result NO es "Aprobado"', () => {
-      facade.evaluationForm.patchValue({ result: 'Aprobado' });
-      facade.evaluationForm.patchValue({ result: 'No aprobado' });
+      facade.evaluationForm.patchValue({ result: 'Aprobado' }); // Seteamos uno
+      facade.evaluationForm.patchValue({ result: 'No aprobado' }); // Cambiamos al otro
 
       const dateControl = facade.evaluationForm.get('maximumDeliveryDate');
       expect(dateControl?.valid).toBeTruthy();
@@ -116,8 +165,10 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
     });
 
     it('debería deshabilitar el formulario si isReadOnly es true', () => {
-      facade.preliminaryDraft.set({ ...mockDraft, state: stateList.APROBADO } as unknown as PreliminaryDraft);
+      // Recreamos el caso de solo lectura
+      facade.preliminaryDraft.set(createMockDraft({ state: stateList.APROBADO }));
 
+      // Reinicializamos los efectos
       facade.initFormEffects();
 
       expect(facade.isReadOnly()).toBeTruthy();
@@ -127,13 +178,14 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
 
   describe('Resolución de Nombres', () => {
     beforeEach(() => {
-      facade.preliminaryDraft.set(mockDraft);
+      facade.preliminaryDraft.set(createMockDraft());
     });
 
     it('debería resolver nombres de estudiantes, director, codirector y asesor', () => {
       expect(facade.getStudentNames()).toBe('Estudiante 1, Estudiante 2');
       expect(facade.getDirectorName()).toBe('Nombre de dir-1');
 
+      // Al no enviar codirector ni asesor en el mock por defecto, deben devolver cadena vacía
       expect(facade.getCodirectorName()).toBe('');
       expect(facade.getAdvisorName()).toBe('');
     });
@@ -153,6 +205,7 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
 
     it('debería retornar null y mostrar error si el formulario es inválido', () => {
       facade.uploadedSignedFile.set(mockFileEvent);
+
       const payload = facade.validateAndGetPayload();
 
       expect(payload).toBeNull();
@@ -163,6 +216,7 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
 
     it('debería retornar null y mostrar error específico si falta el archivo', () => {
       facade.evaluationForm.patchValue({ result: 'No aprobado', comments: 'Observación' });
+
       const payload = facade.validateAndGetPayload();
 
       expect(payload).toBeNull();

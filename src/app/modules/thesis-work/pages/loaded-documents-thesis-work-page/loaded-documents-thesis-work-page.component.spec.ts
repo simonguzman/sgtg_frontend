@@ -1,75 +1,243 @@
+// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, ParamMap } from '@angular/router';
 import { Title } from '@angular/platform-browser';
-import { signal, WritableSignal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, WritableSignal } from '@angular/core';
 
+// 2. Componente a probar
 import { LoadedDocumentsThesisWorkPageComponent } from './loaded-documents-thesis-work-page.component';
+
+// 3. Servicios y Facades
 import { ThesisWorkService } from '../../services/thesis-work.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
 import { ThesisParticipantsFormatterService } from '../../services/thesis-participants-formatter.service';
 import { LoadedDocumentsThesisWorkFacadeService } from './services/loaded-documents-thesis-work-facade.service';
 import { ThesisWorkDetailsModalResolverService } from './services/thesis-work-details-modal-resolver.service';
-import { TableButton } from '../../../../shared/components/table-component/table-component.component';
 
+// 4. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { User } from '../../../users/interfaces/user.interface';
 import { Advance } from '../../interfaces/advance.interface';
 import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { TabConfiguration } from './tabs-logic/tab-config.interface';
+import { stateList } from '../../../../core/enums/state.enum';
+import { IdentificationType } from '../../../users/enum/identification-type.enum';
+import { UserState } from '../../../users/enum/user-state.enum';
+import { Modality } from '../../../proposal/enums/modality.enum';
+
+// Importaciones de los componentes reales para removerlos en el override
+import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
+import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
+import { TableComponent, TableButton } from '../../../../shared/components/table-component/table-component.component';
+import { TabsComponent } from '../../../../shared/components/tabs/tabs.component';
+
+// ── Mocks de Componentes Hijos (Standalone y Strict-Init) ────────────────────
+
+@Component({ selector: 'app-table-component', template: '', standalone: true })
+class MockTableComponent {
+  @Input() value: unknown[] = [];
+  @Input() columns: unknown[] = [];
+  @Input() paginator = true;
+  @Input() headerButtons: TableButton[] = [];
+  @Input() emptyMessage = '';
+  @Output() headerButtonClick = new EventEmitter<TableButton>();
+  @Output() actionClick = new EventEmitter<{ action: string; row: Record<string, unknown> }>();
+}
+
+@Component({ selector: 'app-tabs', template: '', standalone: true })
+class MockTabsComponent {
+  @Input() tabs: unknown[] = [];
+  @Input() activeTab = '';
+  @Output() tabChange = new EventEmitter<string>();
+}
+
+@Component({ selector: 'app-file-upload-modal', template: '', standalone: true })
+class MockFileUploadModalComponent {
+  @Input() isOpen = false;
+  @Input() description = '';
+  @Input() uploadedBy = '';
+  @Output() onFileUploaded = new EventEmitter<{ fileName: string; file: File }>();
+  @Output() onClose = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-confirmation-action-modal', template: '', standalone: true })
+class MockConfirmationActionModalComponent {
+  @Input() isOpen = false;
+  @Input() description = '';
+  @Output() confirm = new EventEmitter<void>();
+  @Output() onClose = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-register-information-modal', template: '', standalone: true })
+class MockRegisterInformationModalComponent {
+  @Input() isOpen = false;
+  @Input() modalHeader = '';
+  @Input() subTitle = '';
+  @Input() title = '';
+  @Input() comments = '';
+  @Input() modality = '';
+  @Input() student = '';
+  @Input() director = '';
+  @Input() codirector: string | undefined = undefined;
+  @Input() adviser: string | undefined = undefined;
+  @Input() chargeDate = '';
+  @Input() state = '';
+  @Input() documents: string[] = [];
+  @Output() onClose = new EventEmitter<void>();
+  @Output() onDownloadFile = new EventEmitter<string>();
+}
+
+// ── Tipos Estructurales Seguros para Mocks Recursivos y Espías ──────────────
+
+type DeepPartialActivatedRoute = {
+  snapshot: { paramMap: ParamMap };
+  firstChild?: DeepPartialActivatedRoute | null;
+  parent?: DeepPartialActivatedRoute | null;
+};
+
+interface MockLoadedDocumentsFacade {
+  uploadDocument: jest.Mock;
+  downloadDocument: jest.Mock;
+  downloadDocumentByName: jest.Mock;
+  showRestrictedActionNotification: jest.Mock;
+  showNotFoundError: jest.Mock;
+}
+
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-1',
+  idType: IdentificationType.CC,
+  idNumber: 123456789,
+  firstName: 'Juan',
+  secondName: '',
+  lastName: 'Perez',
+  secondLastName: '',
+  codeNumber: 1234567890,
+  email: 'juan@test.com',
+  password: 'hash',
+  state: UserState.active,
+  roles: [],
+  ...overrides
+});
+
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
+  const baseUser = createMockUser();
+  const baseThesis: Partial<ThesisWork> = {
+    thesisWorkId: 'thesis-1',
+    preliminaryDraftId: 'draft-1',
+    documents: [],
+    evaluations: [],
+    specialRequests: [],
+    correctedDeliveries: [],
+    sustentations: [],
+    advances: [],
+    finalDeliveries: [],
+    pazYSalvos: [],
+    state: stateList.EN_DESARROLLO,
+    createdDate: new Date(),
+    isArchived: false,
+    // FIX: Reemplazamos el "any" por el casteo estricto anidado
+    preliminaryDraftData: {
+      preliminaryDraftId: 'draft-1',
+      proposalId: 'prop-1',
+      state: stateList.APROBADO,
+      createdData: new Date(),
+      evaluators: [],
+      evaluations: [],
+      documents: [],
+      proposalData: {
+        id: 'prop-1',
+        title: 'Mock Title',
+        description: 'Desc',
+        modality: Modality.TI,
+        authors: [baseUser],
+        director: baseUser,
+        state: stateList.APROBADO,
+        createdAt: new Date(),
+        documents: [],
+        evaluations: []
+      } as NonNullable<ThesisWork['preliminaryDraftData']>['proposalData']
+    } as NonNullable<ThesisWork['preliminaryDraftData']>
+  };
+  return { ...baseThesis, ...overrides } as ThesisWork;
+};
+
+const createMockAdvance = (overrides: Partial<Advance> = {}): Advance => ({
+  id: 'adv-1',
+  title: 'Avance Base',
+  comments: 'Comentarios base',
+  uploadDate: new Date(),
+  studentId: 'student-1',
+  status: stateList.EN_REVISION,
+  documents: [],
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('LoadedDocumentsThesisWorkPageComponent', () => {
   let component: LoadedDocumentsThesisWorkPageComponent;
   let fixture: ComponentFixture<LoadedDocumentsThesisWorkPageComponent>;
 
-  let routerSpy: jest.Mocked<Router>;
-  let facadeSpy: jest.Mocked<LoadedDocumentsThesisWorkFacadeService>;
-  let resolverSpy: jest.Mocked<ThesisWorkDetailsModalResolverService>;
-  let authSpy: jest.Mocked<Partial<AuthService>>;
-  let breadcrumbSpy: jest.Mocked<BreadcrumbService>;
-  let participantsSpy: jest.Mocked<ThesisParticipantsFormatterService>;
-  let titleSpy: jest.Mocked<Title>;
+  let routerSpy: Pick<Router, 'navigate'>;
+  let facadeSpy: MockLoadedDocumentsFacade;
+  let resolverSpy: { resolve: jest.Mock };
+
+  let authSpy: Partial<AuthService>;
+  let breadcrumbSpy: Partial<BreadcrumbService>;
+  let participantsSpy: Partial<ThesisParticipantsFormatterService>;
+  let titleSpy: Partial<Title>;
 
   let thesisWorksSignal: WritableSignal<ThesisWork[]>;
   let currentUserSignal: WritableSignal<User | null>;
-  let routeMock: ActivatedRoute;
+  let routeMock: DeepPartialActivatedRoute;
 
   let originalAdvancesStrategy: TabConfiguration<unknown>;
 
   beforeEach(async () => {
-    routerSpy = { navigate: jest.fn() } as unknown as jest.Mocked<Router>;
+    // 🔕 Silenciador preventivo global de consola
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    routerSpy = { navigate: jest.fn() };
 
     facadeSpy = {
-      uploadDocument: jest.fn((id, file, type, onSuccess, onError) => onSuccess()),
-      downloadDocument: jest.fn(),
-      downloadDocumentByName: jest.fn(),
+      // Simulamos la ejecución síncrona del callback de éxito
+      uploadDocument: jest.fn((id, file, type, onSuccess, _onError) => onSuccess()),
+      downloadDocument: jest.fn().mockResolvedValue(undefined),
+      downloadDocumentByName: jest.fn().mockResolvedValue(undefined),
       showRestrictedActionNotification: jest.fn(),
       showNotFoundError: jest.fn()
-    } as unknown as jest.Mocked<LoadedDocumentsThesisWorkFacadeService>;
+    };
 
-    resolverSpy = { resolve: jest.fn() } as unknown as jest.Mocked<ThesisWorkDetailsModalResolverService>;
+    resolverSpy = { resolve: jest.fn() };
 
-    currentUserSignal = signal<User | null>({ id: 'user-123' } as User);
+    currentUserSignal = signal<User | null>(createMockUser({ id: 'user-123' }));
     authSpy = {
       currentUser: currentUserSignal,
       hasAnyRole: jest.fn().mockReturnValue(false)
-    } as unknown as jest.Mocked<Partial<AuthService>>;
+    };
 
     breadcrumbSpy = {
       setDynamicBreadcrumb: jest.fn(),
       clearDynamicBreadcrumb: jest.fn(),
       setDynamicTitle: jest.fn()
-    } as unknown as jest.Mocked<BreadcrumbService>;
+    };
 
-    titleSpy = { setTitle: jest.fn() } as unknown as jest.Mocked<Title>;
+    titleSpy = { setTitle: jest.fn() };
 
     participantsSpy = {
       getStudentNames: jest.fn().mockReturnValue('Estudiante Mock'),
       getDirectorName: jest.fn().mockReturnValue('Director Mock'),
       getCodirectorName: jest.fn().mockReturnValue(undefined),
       getAdvisorName: jest.fn().mockReturnValue(undefined)
-    } as unknown as jest.Mocked<ThesisParticipantsFormatterService>;
+    };
 
+    // Estructura limpia y tipada que simula el árbol de ActivatedRoute
     routeMock = {
       snapshot: { paramMap: convertToParamMap({}) },
       firstChild: {
@@ -79,15 +247,9 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
       parent: {
         snapshot: { paramMap: convertToParamMap({ id: 'id-from-parent' }) }
       }
-    } as unknown as ActivatedRoute;
-
-    const dummyThesis: Partial<ThesisWork> = {
-      thesisWorkId: 'id-from-child',
-      isArchived: false,
-      documents: []
     };
 
-    thesisWorksSignal = signal<ThesisWork[]>([dummyThesis as ThesisWork]);
+    thesisWorksSignal = signal<ThesisWork[]>([createMockThesisWork({ thesisWorkId: 'id-from-child' })]);
 
     await TestBed.configureTestingModule({
       imports: [LoadedDocumentsThesisWorkPageComponent],
@@ -102,21 +264,45 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
         { provide: ThesisWorkService, useValue: { allThesisWorks: thesisWorksSignal } },
         { provide: ThesisParticipantsFormatterService, useValue: participantsSpy }
       ]
-    }).compileComponents();
+    })
+    .overrideComponent(LoadedDocumentsThesisWorkPageComponent, {
+      remove: {
+        imports: [
+          FileUploadModalComponent,
+          ConfirmationActionModalComponent,
+          TableComponent,
+          TabsComponent,
+          RegisterInformationModalComponent
+        ]
+      },
+      add: {
+        imports: [
+          MockFileUploadModalComponent,
+          MockConfirmationActionModalComponent,
+          MockTableComponent,
+          MockTabsComponent,
+          MockRegisterInformationModalComponent
+        ]
+      }
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(LoadedDocumentsThesisWorkPageComponent);
     component = fixture.componentInstance;
 
-    // Almacenamos la estrategia original para restaurarla y evitar fugas de estado entre tests
-    originalAdvancesStrategy = component['tabStrategies']['AVANCES'];
+    // Almacenamos la estrategia original para restaurarla
+    // FIX: Tipado estricto `unknown` en vez de `any`
+    originalAdvancesStrategy = component['tabStrategies']['AVANCES'] as TabConfiguration<unknown>;
 
     fixture.detectChanges();
   });
 
   afterEach(() => {
-    // Restablecemos las propiedades de la clase que fueron modificadas
+    // Restablecemos la estrategia original
     component['tabStrategies']['AVANCES'] = originalAdvancesStrategy;
+
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización y Ciclo de Vida', () => {
@@ -125,40 +311,29 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
     });
 
     it('debe actualizar breadcrumb y title a través del effect al cambiar la pestaña', (done) => {
-      breadcrumbSpy.setDynamicBreadcrumb.mockClear();
-      titleSpy.setTitle.mockClear();
+      (breadcrumbSpy.setDynamicBreadcrumb as jest.Mock).mockClear();
+      (titleSpy.setTitle as jest.Mock).mockClear();
 
-      // 1. Cambiamos el valor de la signal
       component.activeTab.set('CORRESPONDENCIA');
-
-      // 2. Disparamos la detección de cambios para que Angular marque el effect()
       fixture.detectChanges();
 
-      // 3. Evaluamos en el siguiente ciclo del Event Loop para sortear el setTimeout interno
       setTimeout(() => {
         expect(breadcrumbSpy.setDynamicBreadcrumb).toHaveBeenCalledWith('Correspondencia');
         expect(titleSpy.setTitle).toHaveBeenCalledWith('Trabajo de Grado - Correspondencia');
-
-        // Finalizamos la prueba asíncrona
         done();
       }, 10);
     });
 
     it('debe usar un valor por defecto para breadcrumb y title si la pestaña no se encuentra en la configuración', (done) => {
-      breadcrumbSpy.setDynamicBreadcrumb.mockClear();
-      titleSpy.setTitle.mockClear();
+      (breadcrumbSpy.setDynamicBreadcrumb as jest.Mock).mockClear();
+      (titleSpy.setTitle as jest.Mock).mockClear();
 
       component.activeTab.set('PESTANA_INEXISTENTE');
-
-      // Disparamos la detección de cambios aquí también
       fixture.detectChanges();
 
-      // Evaluamos en el siguiente ciclo del Event Loop
       setTimeout(() => {
         expect(breadcrumbSpy.setDynamicBreadcrumb).toHaveBeenCalledWith('Documentos');
         expect(titleSpy.setTitle).toHaveBeenCalledWith('Trabajo de Grado - Documentos');
-
-        // Finalizamos la prueba asíncrona
         done();
       }, 10);
     });
@@ -201,24 +376,21 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
       component['tabStrategies']['AVANCES'] = {
         ...originalAdvancesStrategy,
         headerActionRoute: undefined
-      };
+      } as TabConfiguration<unknown>;
 
-      // Forzar la reevaluación del computed de la estrategia
+      // Forzar la reevaluación
       component.activeTab.set('OTRA_PESTAÑA');
-      fixture.detectChanges(); // Ejecuta el effect
-
+      fixture.detectChanges();
       component.activeTab.set('AVANCES');
-      fixture.detectChanges(); // Ejecuta el effect nuevamente
+      fixture.detectChanges();
 
-      // Esperamos a que el setTimeout interno del effect() termine para no "ensuciar" el siguiente test
       setTimeout(() => {
         const button: TableButton = { label: 'Subir', action: 'upload', variant: 'primary' };
         component.handleHeaderButton(button);
 
         expect(component.isUploadModalOpen()).toBe(true);
         expect(routerSpy.navigate).not.toHaveBeenCalled();
-
-        done(); // Finalizamos la prueba asíncrona
+        done();
       }, 10);
     });
 
@@ -226,23 +398,19 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
       component['tabStrategies']['AVANCES'] = {
         ...originalAdvancesStrategy,
         headerActionRoute: 'upload_advance'
-      };
+      } as TabConfiguration<unknown>;
 
-      // Forzar la reevaluación del computed de la estrategia
       component.activeTab.set('OTRA_PESTAÑA');
       fixture.detectChanges();
-
       component.activeTab.set('AVANCES');
       fixture.detectChanges();
 
-      // Esperamos a que el setTimeout interno del effect() termine
       setTimeout(() => {
         const button: TableButton = { label: 'Ir', action: 'go', variant: 'primary' };
         component.handleHeaderButton(button);
 
         expect(routerSpy.navigate).toHaveBeenCalledWith(['upload_advance'], { relativeTo: routeMock.parent });
-
-        done(); // Finalizamos la prueba asíncrona
+        done();
       }, 10);
     });
   });
@@ -301,8 +469,8 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
     });
 
     it('debe abrir el modal con el avance seleccionado y delegar las descargas al facade', () => {
-      const mockAdvance: Partial<Advance> = { id: 'adv-resolved' };
-      resolverSpy.resolve.mockReturnValue(mockAdvance as Advance);
+      const mockAdvance = createMockAdvance({ id: 'adv-resolved' });
+      resolverSpy.resolve.mockReturnValue(mockAdvance);
 
       component.handleTableAction({ action: 'view-details', row: { id: 'adv-1' } });
 
@@ -311,11 +479,10 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
 
       component.downloadDocumentByName('mi_archivo.pdf');
 
+      // FIX: Alineado estrictamente con lo que recibe el componente en su firma real: (fileName, advance)
       expect(facadeSpy.downloadDocumentByName).toHaveBeenCalledWith(
         'mi_archivo.pdf',
-        'AVANCES',
-        mockAdvance,
-        component['currentThesisWork']()
+        mockAdvance
       );
     });
   });
@@ -327,7 +494,10 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
 
       component['tabStrategies']['AVANCES'] = {
         ...originalAdvancesStrategy,
-        modalConfig: { uploadDocumentType: DocumentType.AVANCE }
+        modalConfig: {
+          ...originalAdvancesStrategy.modalConfig,
+          uploadDocumentType: DocumentType.AVANCE
+        }
       } as TabConfiguration<unknown>;
 
       component.confirmUpload();
@@ -336,13 +506,13 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
         'id-from-child',
         fileData,
         DocumentType.AVANCE,
-        expect.any(Function),
-        expect.any(Function)
+        expect.any(Function), // onSuccess callback
+        expect.any(Function)  // onError callback
       );
     });
 
     it('confirmUpload debe retornar tempranamente si falta el fileData, el thesisId o el docType', () => {
-      component.uploadContext.set(null); // Provocar null
+      component.uploadContext.set(null); // Provocar null intencionalmente
       component.confirmUpload();
 
       expect(facadeSpy.uploadDocument).not.toHaveBeenCalled();

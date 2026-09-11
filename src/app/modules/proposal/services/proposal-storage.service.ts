@@ -8,6 +8,10 @@ import { Modality } from '../enums/modality.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { User } from '../../users/interfaces/user.interface';
+import { IndexedDbListStoreService } from '../../../core/services/persistence/indexed-db-list-store.service';
+
+const STORE_KEY = 'proposals';
+const LEGACY_LOCALSTORAGE_KEY = 'proposals';
 
 @Injectable({
   providedIn: 'root'
@@ -15,9 +19,36 @@ import { User } from '../../users/interfaces/user.interface';
 export class ProposalStorageService {
   private readonly authService = inject(AuthService);
   private readonly userService = inject(UserService);
-  private readonly _proposalsList = signal<Proposal[]>(this.getStoredProposals());
+  private readonly dbStore = inject(IndexedDbListStoreService);
+
+  // ← FIX: antes signal<Proposal[]>(this.getStoredProposals()) — lectura
+  // síncrona de localStorage sin límite de tamaño para documentos en
+  // base64, la misma causa raíz del QuotaExceededError ya corregido en
+  // PreliminaryDraft y ThesisWork. Este archivo nunca había recibido ese
+  // fix — arranca vacío y se hidrata desde IndexedDB en el constructor.
+  private readonly _proposalsList = signal<Proposal[]>([]);
+  private readonly hydrated = signal(false);
 
   public allProposals = this._proposalsList.asReadonly();
+  public readonly isHydrated = this.hydrated.asReadonly();
+
+  private readonly PRIVILEGED_ROLES = [UserRoleType.ADMINISTRADOR, UserRoleType.COMITE];
+
+  public hasPrivilegedAccess(): boolean {
+    return this.authService.hasAnyRole(this.PRIVILEGED_ROLES);
+  }
+
+  public canUserAccessProposal(proposal: Proposal, userId: string): boolean {
+    const isAuthor = proposal.authors?.some(author => author.id === userId);
+    const isDirector = proposal.director?.id === userId;
+    const isCodirector = proposal.codirector?.id === userId;
+    const isAdvisor = proposal.advisor?.id === userId;
+    return isAuthor || isDirector || isCodirector || isAdvisor;
+  }
+
+  public canUserViewProposal(proposal: Proposal, userId: string): boolean {
+    return this.hasPrivilegedAccess() || this.canUserAccessProposal(proposal, userId);
+  }
 
   /**
    * Señal computada reactiva que expone las propuestas activas filtradas por el rol
@@ -26,27 +57,56 @@ export class ProposalStorageService {
   public proposals = computed(() => {
     const currentUser = this.authService.currentUser();
     const activeProposals = this._proposalsList().filter(proposal => proposal.isActive !== false && !proposal.isArchived);
-
     if (!currentUser) return [];
-
-    if (this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR, UserRoleType.COMITE])) {
-      return activeProposals;
-    }
-
-    return activeProposals.filter(proposal => {
-      const isAuthor = proposal.authors?.some(author => author.id === currentUser.id);
-      const isDirector = proposal.director?.id === currentUser.id;
-      const isCodirector = proposal.codirector?.id === currentUser.id;
-      const isAdvisor = proposal.advisor?.id === currentUser.id;
-
-      return isAuthor || isDirector || isCodirector || isAdvisor;
-    });
+    if (this.hasPrivilegedAccess()) return activeProposals;
+    return activeProposals.filter(proposal => this.canUserAccessProposal(proposal, currentUser.id));
   });
 
   constructor() {
+    void this.hydrateFromIndexedDb();
+
     effect(() => {
-      localStorage.setItem('proposals', JSON.stringify(this._proposalsList()));
+      if (!this.hydrated()) return;
+      const currentList = this._proposalsList();
+      void this.dbStore.set(STORE_KEY, currentList).catch(error => {
+        console.error('Error guardando propuestas en IndexedDB', error);
+      });
     });
+  }
+
+  private async hydrateFromIndexedDb(): Promise<void> {
+    try {
+      const stored = await this.dbStore.get<Proposal[]>(STORE_KEY);
+      if (stored && stored.length > 0) {
+        this._proposalsList.set(stored);
+      } else {
+        const migrated = this.migrateFromLegacyLocalStorage();
+        this._proposalsList.set(migrated ?? this.getInitialData());
+      }
+    } catch (error) {
+      console.error('Error leyendo propuestas de IndexedDB', error);
+      this._proposalsList.set(this.getInitialData());
+    } finally {
+      this.hydrated.set(true);
+    }
+  }
+
+  /**
+   * Migración de un solo uso: si ya tenías datos guardados con el esquema
+   * anterior (localStorage), los recupera antes de que IndexedDB tome el
+   * control, para no perder trabajo ya hecho.
+   */
+  private migrateFromLegacyLocalStorage(): Proposal[] | null {
+    const stored = localStorage.getItem(LEGACY_LOCALSTORAGE_KEY);
+    if (!stored) return null;
+    try {
+      const parsed = JSON.parse(stored) as Proposal[];
+      localStorage.removeItem(LEGACY_LOCALSTORAGE_KEY);
+      return parsed;
+    } catch {
+      localStorage.removeItem(LEGACY_LOCALSTORAGE_KEY);
+      return null;
+    }
   }
 
   /**
@@ -69,19 +129,6 @@ export class ProposalStorageService {
   public getById(id: string): Observable<Proposal | undefined> {
     const proposal = this._proposalsList().find(proposal => proposal.id === id);
     return of(proposal).pipe(delay(1000));
-  }
-
-  private getStoredProposals(): Proposal[] {
-    const stored = localStorage.getItem('proposals');
-    if (!stored) return this.getInitialData();
-
-    try {
-      return JSON.parse(stored);
-    } catch (error) {
-      console.error('Error parseando propuestas de localStorage', error);
-      localStorage.removeItem('proposals');
-      return this.getInitialData();
-    }
   }
 
   private getMockUser(id: string): User {

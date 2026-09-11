@@ -3,6 +3,21 @@ import { InboxStateService } from './inbox-state.service';
 import { InboxMessage } from '../interfaces/inbox-message.interface';
 import { NotificationType } from '../../../shared/components/notifications/models/notification.model';
 
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockInboxMessage = (overrides: Partial<InboxMessage> = {}): InboxMessage => ({
+  id: 'msg-default',
+  userId: 'user-default',
+  type: NotificationType.INFO,
+  title: 'Título por defecto',
+  message: 'Cuerpo por defecto',
+  date: new Date(),
+  status: 'no leido',
+  ...overrides
+} as InboxMessage);
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('InboxStateService', () => {
   let service: InboxStateService;
 
@@ -23,16 +38,12 @@ describe('InboxStateService', () => {
 
   const STORAGE_KEY = 'academic_inbox_messages';
 
-  // Datos base simulados libres de 'any'
-  const mockMessageBase = {
-    type: NotificationType.INFO,
-    title: 'Test',
-    message: 'Message',
-    status: 'no leido',
-  } as unknown as InboxMessage;
-
   beforeEach(() => {
-    // Reemplazamos el localStorage real por nuestro mock
+    // 🔕 Silenciar consola para mantener terminal limpia ante los errores intencionales
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // Reemplazamos el localStorage real del navegador por nuestro mock
     Object.defineProperty(window, 'localStorage', {
       value: mockLocalStorage,
       writable: true
@@ -41,6 +52,10 @@ describe('InboxStateService', () => {
     // Reiniciamos el estado del mock antes de cada prueba
     store = {};
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola
   });
 
   describe('Inicialización y loadFromStorage', () => {
@@ -53,8 +68,17 @@ describe('InboxStateService', () => {
     });
 
     it('debe parsear los datos y convertir las fechas de string a objetos Date', () => {
+      // Simulamos la estructura exacta que guardaría localStorage (date como string)
       const storedData = [
-        { id: '1', date: '2026-08-10T12:00:00.000Z', title: 'Título 1' },
+        {
+          id: '1',
+          userId: 'user-1',
+          type: NotificationType.INFO,
+          title: 'Título 1',
+          message: 'Mensaje 1',
+          status: 'no leido',
+          date: '2026-08-10T12:00:00.000Z'
+        }
       ];
       store[STORAGE_KEY] = JSON.stringify(storedData);
 
@@ -64,7 +88,7 @@ describe('InboxStateService', () => {
       const state = service.messagesSignal();
       expect(state.length).toBe(1);
       expect(state[0].title).toBe('Título 1');
-      // Verificamos que la reconstrucción del Date funcionó
+      // Verificamos que la reconstrucción del Date funcionó correctamente
       expect(state[0].date).toBeInstanceOf(Date);
       expect(state[0].date.toISOString()).toBe('2026-08-10T12:00:00.000Z');
     });
@@ -73,16 +97,13 @@ describe('InboxStateService', () => {
       // Simulamos un JSON inválido/corrupto
       store[STORAGE_KEY] = '{ corrupted_json: true ';
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
       TestBed.configureTestingModule({ providers: [InboxStateService] });
       service = TestBed.inject(InboxStateService);
 
       expect(service.messagesSignal()).toEqual([]);
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEY);
-      expect(consoleSpy).toHaveBeenCalled();
-
-      consoleSpy.mockRestore();
+      // Validamos que el servicio intentó notificar el error por consola
+      expect(console.error).toHaveBeenCalled();
     });
   });
 
@@ -93,10 +114,10 @@ describe('InboxStateService', () => {
     });
 
     it('debe agregar nuevos mensajes al inicio de la lista (addMessages)', () => {
-      const initialMessage = { ...mockMessageBase, id: 'old-1' } as InboxMessage;
+      const initialMessage = createMockInboxMessage({ id: 'old-1' });
       service.addMessages([initialMessage]);
 
-      const newMessage = { ...mockMessageBase, id: 'new-1' } as InboxMessage;
+      const newMessage = createMockInboxMessage({ id: 'new-1' });
       service.addMessages([newMessage]);
 
       const state = service.messagesSignal();
@@ -106,7 +127,7 @@ describe('InboxStateService', () => {
     });
 
     it('debe marcar un mensaje específico como leído (markAsRead)', () => {
-      service.addMessages([{ ...mockMessageBase, id: 'msg-1', status: 'no leido' } as InboxMessage]);
+      service.addMessages([createMockInboxMessage({ id: 'msg-1', status: 'no leido' })]);
 
       service.markAsRead('msg-1');
 
@@ -116,8 +137,8 @@ describe('InboxStateService', () => {
 
     it('debe eliminar un mensaje específico (deleteMessage)', () => {
       service.addMessages([
-        { ...mockMessageBase, id: 'msg-1' } as InboxMessage,
-        { ...mockMessageBase, id: 'msg-2' } as InboxMessage
+        createMockInboxMessage({ id: 'msg-1' }),
+        createMockInboxMessage({ id: 'msg-2' })
       ]);
 
       service.deleteMessage('msg-1');
@@ -129,9 +150,9 @@ describe('InboxStateService', () => {
 
     it('debe vaciar todos los mensajes de un usuario específico (clearAllMessages)', () => {
       service.addMessages([
-        { ...mockMessageBase, id: '1', userId: 'user-a' } as InboxMessage,
-        { ...mockMessageBase, id: '2', userId: 'user-a' } as InboxMessage,
-        { ...mockMessageBase, id: '3', userId: 'user-b' } as InboxMessage,
+        createMockInboxMessage({ id: '1', userId: 'user-a' }),
+        createMockInboxMessage({ id: '2', userId: 'user-a' }),
+        createMockInboxMessage({ id: '3', userId: 'user-b' }),
       ]);
 
       service.clearAllMessages('user-a');
@@ -150,7 +171,7 @@ describe('InboxStateService', () => {
       // Limpiamos los llamados previos producto de la inicialización
       mockLocalStorage.setItem.mockClear();
 
-      const newMessage = { ...mockMessageBase, id: 'effect-1' } as InboxMessage;
+      const newMessage = createMockInboxMessage({ id: 'effect-1' });
       service.addMessages([newMessage]);
 
       // IMPORTANTE: En Angular, effect() corre asincrónicamente o durante el ciclo

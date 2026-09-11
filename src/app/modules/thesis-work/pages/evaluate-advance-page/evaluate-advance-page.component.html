@@ -19,7 +19,7 @@
         [thesisWork]="thesisWorkState()!"
         (onBack)="navigateBack()"
         (onSaveEvaluation)="handleRequestConfirmation($event)"
-        (onDownloadAdvance)="downloadCurrentAdvance()">
+        (onDownloadAdvance)="downloadCurrentAdvance($event)">
       </app-evaluate-advance-form>
     }
 

@@ -1,48 +1,92 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
+import { signal, WritableSignal, Component, Input } from '@angular/core';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
+
 import { HeaderComponent } from './header.component';
 import { AuthService } from '../../../services/auth/auth.service';
 import { UserService } from '../../../../modules/users/services/user.service';
 import { InboxService } from '../../../../modules/notifications/services/inbox.service';
-import { Router } from '@angular/router';
-import { signal, WritableSignal, Component, Input } from '@angular/core';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { By } from '@angular/platform-browser';
+
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { ChangePasswordModalComponent } from '../../../../shared/components/modals/change-password-modal/change-password-modal.component';
 
-// 1. Mocks de Componentes Hijos (Para aislar la prueba y evitar dependencias profundas)
-@Component({ selector: 'app-confirmation-action-modal', template: '' })
+import { User } from '../../../../modules/users/interfaces/user.interface';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
+import { UserState } from '../../../../modules/users/enum/user-state.enum';
+
+// ── Tipos Seguros para los Mocks (Zero 'any') ───────────────────────────────
+
+interface MockAuthService {
+  currentUser: WritableSignal<User | null>;
+  logout: jest.Mock<void, []>;
+}
+
+interface MockUserService {
+  formatFullName: jest.Mock<string, [User]>;
+}
+
+interface MockInboxService {
+  unreadCount: WritableSignal<number>;
+}
+
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => {
+  const baseUser: User = {
+    id: '1',
+    idType: 'CC',
+    idNumber: 1000000000,
+    firstName: 'Simón',
+    secondName: '',
+    lastName: 'Guzmán',
+    secondLastName: 'Anaya',
+    codeNumber: 1234567890,
+    email: 'test@test.com',
+    password: '123',
+    state: UserState.active,
+    // Forzamos el casteo en el array para que coincida con el enum si el test original
+    // pasaba strings crudos, pero mantenemos la integridad del tipo UserRoleType.
+    roles: ['Director', 'Jurado'] as unknown as UserRoleType[]
+  };
+
+  return { ...baseUser, ...overrides } as User;
+};
+
+// ── Mocks de Componentes Hijos (Standalone) ──────────────────────────────────
+
+// 🔥 CORRECCIÓN: Los mocks también deben ser standalone para reemplazar componentes standalone
+@Component({ selector: 'app-confirmation-action-modal', template: '', standalone: true })
 class MockConfirmationActionModalComponent {
   @Input() isOpen = false;
   @Input() description = '';
 }
 
-@Component({ selector: 'app-change-password-modal', template: '' })
+@Component({ selector: 'app-change-password-modal', template: '', standalone: true })
 class MockChangePasswordModalComponent {
   @Input() isOpen = false;
 }
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('HeaderComponent', () => {
   let component: HeaderComponent;
   let fixture: ComponentFixture<HeaderComponent>;
 
-  // Variables para los mocks
-  let mockAuthService: any;
-  let mockUserService: any;
-  let mockInboxService: any;
-  let mockRouter: any;
+  let mockAuthService: MockAuthService;
+  let mockUserService: MockUserService;
+  let mockInboxService: MockInboxService;
+  let mockRouter: Pick<Router, 'navigate'>;
 
-  // Signals reactivos para manipular el estado durante las pruebas
-  let mockCurrentUserSignal: WritableSignal<any>;
-  let mockUnreadCountSignal: WritableSignal<number>;
+  const mockUser = createMockUser();
 
   beforeEach(async () => {
-    // Inicialización de Signals mockeados
-    mockCurrentUserSignal = signal({ id: 1, roles: ['Director', 'Jurado'] });
-    mockUnreadCountSignal = signal(0);
+    // 🔕 Silenciar consola para mantener la terminal limpia ante warnings
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     mockAuthService = {
-      currentUser: mockCurrentUserSignal,
+      currentUser: signal<User | null>(mockUser),
       logout: jest.fn()
     };
 
@@ -51,7 +95,7 @@ describe('HeaderComponent', () => {
     };
 
     mockInboxService = {
-      unreadCount: mockUnreadCountSignal
+      unreadCount: signal(0)
     };
 
     mockRouter = {
@@ -68,7 +112,6 @@ describe('HeaderComponent', () => {
         provideNoopAnimations()
       ]
     })
-    // Sobrescribimos referenciando explícitamente las clases reales
     .overrideComponent(HeaderComponent, {
       remove: { imports: [ConfirmationActionModalComponent, ChangePasswordModalComponent] },
       add: { imports: [MockConfirmationActionModalComponent, MockChangePasswordModalComponent] }
@@ -80,18 +123,24 @@ describe('HeaderComponent', () => {
     fixture.detectChanges();
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
+  });
+
   describe('Inicialización y Propiedades Computadas', () => {
     it('debería crearse correctamente', () => {
       expect(component).toBeTruthy();
     });
 
     it('debería calcular el nombre de usuario usando UserService si existe sesión', () => {
+      // Como formatFullName recibe un User completo, esperamos que se llame con mockUser
       expect(component['userFullName']()).toBe('Simón Guzmán');
-      expect(mockUserService.formatFullName).toHaveBeenCalledWith({ id: 1, roles: ['Director', 'Jurado'] });
+      expect(mockUserService.formatFullName).toHaveBeenCalledWith(mockUser);
     });
 
     it('debería retornar "Invitado" si no hay usuario en sesión', () => {
-      mockCurrentUserSignal.set(null);
+      mockAuthService.currentUser.set(null);
       fixture.detectChanges();
 
       expect(component['userFullName']()).toBe('Invitado');
@@ -102,7 +151,10 @@ describe('HeaderComponent', () => {
     });
 
     it('debería manejar usuarios sin roles correctamente', () => {
-      mockCurrentUserSignal.set({ id: 1, roles: [] });
+      // Generamos un nuevo mock sin roles
+      const userWithoutRoles = createMockUser({ roles: [] });
+      mockAuthService.currentUser.set(userWithoutRoles);
+
       fixture.detectChanges();
 
       expect(component['userRoleLabel']()).toBe('');
@@ -163,7 +215,7 @@ describe('HeaderComponent', () => {
 
   describe('Renderizado del DOM', () => {
     it('no debería renderizar el badge de notificaciones si el conteo es 0', () => {
-      mockUnreadCountSignal.set(0);
+      mockInboxService.unreadCount.set(0);
       fixture.detectChanges();
 
       const badge = fixture.nativeElement.querySelector('.bg-\\[\\#DB141C\\]');
@@ -171,19 +223,20 @@ describe('HeaderComponent', () => {
     });
 
     it('debería renderizar el badge con el número exacto si es entre 1 y 9', () => {
-      mockUnreadCountSignal.set(5);
+      mockInboxService.unreadCount.set(5);
       fixture.detectChanges();
 
       const badge = fixture.nativeElement.querySelector('.bg-\\[\\#DB141C\\]');
-      expect(badge.textContent.trim()).toBe('5');
+      // Usamos encadenamiento opcional para evitar crash si el selector falla
+      expect(badge?.textContent?.trim()).toBe('5');
     });
 
     it('debería renderizar "9+" en el badge si hay más de 9 notificaciones', () => {
-      mockUnreadCountSignal.set(12);
+      mockInboxService.unreadCount.set(12);
       fixture.detectChanges();
 
       const badge = fixture.nativeElement.querySelector('.bg-\\[\\#DB141C\\]');
-      expect(badge.textContent.trim()).toBe('9+');
+      expect(badge?.textContent?.trim()).toBe('9+');
     });
   });
 });

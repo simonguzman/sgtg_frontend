@@ -1,6 +1,17 @@
-import {  addBusinessDays, getRemainingBusinessDays, formatDisplayDate, parseDisplayDate } from './date-utils';
+import { addBusinessDays, getRemainingBusinessDays, formatDisplayDate, parseDisplayDate } from './date-utils';
 
 describe('Date Utils', () => {
+
+  beforeEach(() => {
+    // 🔕 Silenciar consola como medida preventiva, estándar del proyecto
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
+  });
 
   describe('addBusinessDays()', () => {
     it('debe sumar días correctamente sin atravesar un fin de semana', () => {
@@ -65,14 +76,16 @@ describe('Date Utils', () => {
       expect(resultNegative.getTime()).toBe(startDate.getTime());
     });
 
-    it('debe devolver la fecha actual si startDate es nulo o indefinido', () => {
+    it('debe devolver la fecha actual si startDate es falsy (vacío o indefinido)', () => {
       // Arrange
       jest.useFakeTimers();
       const fakeToday = new Date('2026-08-10T12:00:00');
       jest.setSystemTime(fakeToday.getTime());
 
       // Act
-      const result = addBusinessDays(null as unknown as string, 3);
+      // Usamos un string vacío (falsy) en lugar de un cast a 'null as unknown as string'.
+      // Esto respeta el tipado de TypeScript y activa el if (!startDate) de la función.
+      const result = addBusinessDays('', 3);
 
       // Assert
       expect(result.getTime()).toBe(fakeToday.getTime());
@@ -85,12 +98,14 @@ describe('Date Utils', () => {
   describe('getRemainingBusinessDays()', () => {
     const fixedToday = new Date('2026-08-10T12:00:00'); // Lunes 10 de Agosto, 12:00 PM
 
-    beforeAll(() => {
+    // Cambiado de beforeAll a beforeEach para evitar efectos secundarios
+    // entre diferentes suites si el testrunner se detiene a la mitad.
+    beforeEach(() => {
       jest.useFakeTimers();
       jest.setSystemTime(fixedToday.getTime());
     });
 
-    afterAll(() => {
+    afterEach(() => {
       jest.useRealTimers();
     });
 
@@ -149,9 +164,10 @@ describe('Date Utils', () => {
       expect(result).toBe(2);
     });
 
-    it('debe retornar 0 si targetDate es null', () => {
+    it('debe retornar 0 si targetDate es falsy (string vacío)', () => {
       // Act
-      const result = getRemainingBusinessDays(null as unknown as string);
+      // Evaluamos la nulidad con '' respetando la firma Date | string sin casteos
+      const result = getRemainingBusinessDays('');
 
       // Assert
       expect(result).toBe(0);
@@ -226,7 +242,7 @@ describe('Date Utils', () => {
     });
 
     it('debe retornar un Date inválido (NaN) si el valor es null o undefined', () => {
-      // Act
+      // Act - Esta función sí recibe null/undefined en su firma nativamente, por lo que no requiere casteos
       const resultNull = parseDisplayDate(null);
       const resultUndefined = parseDisplayDate(undefined);
 

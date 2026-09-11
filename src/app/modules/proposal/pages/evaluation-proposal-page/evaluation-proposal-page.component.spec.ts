@@ -33,6 +33,10 @@ describe('EvaluationProposalPageComponent', () => {
   let component: EvaluationProposalPageComponent;
   let fixture: ComponentFixture<EvaluationProposalPageComponent>;
 
+  // Espías globales para silenciar la consola
+  let consoleErrorSpy: jest.SpyInstance;
+  let consoleWarnSpy: jest.SpyInstance;
+
   let mockFacade: jest.Mocked<EvaluationProposalFacadeService>;
   let mockLocation: jest.Mocked<Location>;
   let mockActivatedRoute: jest.Mocked<ActivatedRoute>;
@@ -48,6 +52,10 @@ describe('EvaluationProposalPageComponent', () => {
   };
 
   beforeEach(async () => {
+    // Silenciamos la consola para toda la suite
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockFacade = {
       load: jest.fn(),
       downloadOriginalDocument: jest.fn(),
@@ -84,6 +92,9 @@ describe('EvaluationProposalPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    // Restauramos los espías de la consola después de cada prueba
+    consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 
   describe('ngOnInit (Resolución de ID y Carga)', () => {

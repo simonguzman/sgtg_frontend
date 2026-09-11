@@ -3,7 +3,8 @@ import { By } from '@angular/platform-browser';
 import { Component } from '@angular/core';
 import { InfoBannerComponent } from './info-banner.component';
 
-// Componente Host auxiliar (Wrapper) para probar el <ng-content>
+// ── Componente Host auxiliar (Wrapper) para probar el <ng-content> ──────────
+
 @Component({
   standalone: true,
   imports: [InfoBannerComponent],
@@ -18,7 +19,20 @@ class TestHostComponent {
   testIcon = 'warning';
 }
 
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('InfoBannerComponent', () => {
+
+  beforeEach(() => {
+    // 🔕 Silenciar consola para mantener terminal limpia ante cualquier posible advertencia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola para no afectar otros tests
+  });
 
   describe('Pruebas Aisladas (Signal Inputs)', () => {
     let component: InfoBannerComponent;
@@ -83,6 +97,7 @@ describe('InfoBannerComponent', () => {
     it('debería renderizar el contenido proyectado dentro de app-info-banner', () => {
       // Buscamos el elemento que proyectamos desde el HostComponent
       const projectedElement = hostFixture.debugElement.query(By.css('.projected-content'));
+
       expect(projectedElement).toBeTruthy();
       expect(projectedElement.nativeElement.textContent.trim()).toBe('Este es un mensaje proyectado de prueba');
 

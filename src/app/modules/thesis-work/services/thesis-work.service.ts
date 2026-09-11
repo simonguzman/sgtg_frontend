@@ -29,6 +29,7 @@ export class ThesisWorkService {
 
   readonly thesisWorks    = this.storage.thesisWorks;
   readonly allThesisWorks = this.storage.allThesisWorks;
+  readonly isHydrated     = this.storage.isHydrated;
 
   constructor() {
     // verifyDeliveryDeadlinesMock se ejecuta una vez al iniciar la app.

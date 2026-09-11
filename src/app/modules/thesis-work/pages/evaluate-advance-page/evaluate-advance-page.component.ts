@@ -7,6 +7,7 @@ import { SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playloa
 import { EvaluateAdvanceFacadeService } from './services/evaluate-advance-facade.service';
 import { EvaluateAdvanceFormComponent } from '../../components/evaluate-advance-form/evaluate-advance-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 
 @Component({
   selector: 'app-evaluate-advance-page',
@@ -75,10 +76,8 @@ export class EvaluateAdvancePageComponent implements OnInit {
     );
   }
 
-  downloadCurrentAdvance(): void {
-    const advance = this.currentAdvance();
-    // ← void: downloadAdvance() ahora es async.
-    if (advance) void this.facade.downloadAdvance(advance);
+  downloadCurrentAdvance(doc: FileDocument): void {
+    void this.facade.downloadAdvance(doc);
   }
 
   navigateBack(): void {

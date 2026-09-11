@@ -5,36 +5,54 @@ import { User } from '../interfaces/user.interface';
 import { UserState } from '../enum/user-state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { IdentificationType } from '../enum/identification-type.enum';
-import { of } from 'rxjs';
+import { Observable, of } from 'rxjs';
+
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockUser = (id: string, roles: UserRoleType[] = [UserRoleType.DOCENTE]): User => ({
+  id,
+  idType: IdentificationType.CC,
+  idNumber: 12345,
+  firstName: 'Test',
+  secondName: '',
+  lastName: 'User',
+  secondLastName: '',
+  email: `${id}@test.com`,
+  password: 'old-password',
+  codeNumber: 100,
+  state: UserState.active,
+  roles
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('UserApiService', () => {
   let service: UserApiService;
-  let mockStorageService: jest.Mocked<any>;
 
-  const createMockUser = (id: string, roles: UserRoleType[] = [UserRoleType.DOCENTE]): User => ({
-    id,
-    idType: IdentificationType.CC,
-    idNumber: 12345,
-    firstName: 'Test',
-    secondName: '',
-    lastName: 'User',
-    secondLastName: '',
-    email: `${id}@test.com`,
-    password: 'old-password',
-    codeNumber: 100,
-    state: UserState.active,
-    roles
-  });
+  // Tipado estricto del Mock del Storage (Zero 'any')
+  // FIX: Se corrigió la firma del array de argumentos para no envolver el callback
+  let mockStorageService: {
+    getById: jest.Mock<Observable<User | undefined>, [string]>;
+    getUsersSnapshot: jest.Mock<User[], []>;
+    updateUsersList: jest.Mock<void, [(users: User[]) => User[]]>;
+    currentUser: jest.Mock<User | null, []>;
+    updateCurrentUser: jest.Mock<void, [(current: User | null) => User | null]>;
+  };
 
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // Inicializamos el mock con las firmas correctas y callbacks funcionales
     mockStorageService = {
       getById: jest.fn(),
       getUsersSnapshot: jest.fn(),
-      updateUsersList: jest.fn((cb: Function) => {
+      updateUsersList: jest.fn((cb: (users: User[]) => User[]) => {
         cb([]);
       }),
       currentUser: jest.fn(),
-      updateCurrentUser: jest.fn((cb: Function) => {
+      updateCurrentUser: jest.fn((cb: (current: User | null) => User | null) => {
         cb(null);
       })
     };
@@ -48,7 +66,16 @@ describe('UserApiService', () => {
 
     service = TestBed.inject(UserApiService);
 
-    jest.spyOn(crypto, 'randomUUID').mockReturnValue('11111111-1111-1111-1111-111111111111');
+    // Mockeamos la API nativa de UUID para garantizar predictibilidad absoluta
+    Object.defineProperty(globalThis, 'crypto', {
+      value: { randomUUID: jest.fn().mockReturnValue('11111111-1111-1111-1111-111111111111') },
+      configurable: true
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   it('debería instanciarse correctamente el servicio', () => {
@@ -82,7 +109,9 @@ describe('UserApiService', () => {
       });
 
       expect(emittedResult).toBeUndefined();
-      tick(400);
+
+      tick(400); // Simulamos el paso del tiempo del observable
+
       expect(emittedResult).toEqual([u1]);
     }));
   });
@@ -110,12 +139,14 @@ describe('UserApiService', () => {
       const targetUser = createMockUser('1');
       mockStorageService.currentUser.mockReturnValue(targetUser);
 
-      mockStorageService.updateUsersList.mockImplementationOnce((cb: Function) => {
+      // Sobrescribimos el mock temporalmente para interceptar y evaluar el callback interno
+      mockStorageService.updateUsersList.mockImplementationOnce((cb: (users: User[]) => User[]) => {
         const result = cb([targetUser]);
         expect(result[0].firstName).toBe('NuevoNombre');
       });
 
       service.updateUser('1', { firstName: 'NuevoNombre' }).subscribe();
+
       tick(800);
 
       expect(mockStorageService.updateUsersList).toHaveBeenCalled();
@@ -125,12 +156,13 @@ describe('UserApiService', () => {
     it('updateUserPassword() debería alterar únicamente el campo password', fakeAsync(() => {
       const targetUser = createMockUser('1');
 
-      mockStorageService.updateUsersList.mockImplementationOnce((cb: Function) => {
+      mockStorageService.updateUsersList.mockImplementationOnce((cb: (users: User[]) => User[]) => {
         const result = cb([targetUser]);
         expect(result[0].password).toBe('new-secure-password');
       });
 
       service.updateUserPassword('1', 'new-secure-password').subscribe();
+
       tick(600);
 
       expect(mockStorageService.updateUsersList).toHaveBeenCalled();
@@ -139,12 +171,13 @@ describe('UserApiService', () => {
     it('softDeleteUser() debería conmutar el estado del usuario', fakeAsync(() => {
       const activeUser = createMockUser('1');
 
-      mockStorageService.updateUsersList.mockImplementationOnce((cb: Function) => {
+      mockStorageService.updateUsersList.mockImplementationOnce((cb: (users: User[]) => User[]) => {
         const result = cb([activeUser]);
         expect(result[0].state).toBe(UserState.inactive);
       });
 
       service.softDeleteUser('1').subscribe();
+
       tick(800);
 
       expect(mockStorageService.updateUsersList).toHaveBeenCalled();
@@ -153,12 +186,13 @@ describe('UserApiService', () => {
     it('addRoleToUser() debería añadir un rol nuevo al usuario si no lo tiene', fakeAsync(() => {
       const user = createMockUser('1', [UserRoleType.DOCENTE]);
 
-      mockStorageService.updateUsersList.mockImplementationOnce((cb: Function) => {
+      mockStorageService.updateUsersList.mockImplementationOnce((cb: (users: User[]) => User[]) => {
         const result = cb([user]);
         expect(result[0].roles).toContain(UserRoleType.ADMINISTRADOR);
       });
 
       service.addRoleToUser('1', UserRoleType.ADMINISTRADOR).subscribe();
+
       tick(500);
 
       expect(mockStorageService.updateUsersList).toHaveBeenCalled();
@@ -167,13 +201,14 @@ describe('UserApiService', () => {
     it('removeRoleFromUser() debería sustraer el rol indicado del perfil', fakeAsync(() => {
       const user = createMockUser('1', [UserRoleType.DOCENTE, UserRoleType.ADMINISTRADOR]);
 
-      mockStorageService.updateUsersList.mockImplementationOnce((cb: Function) => {
+      mockStorageService.updateUsersList.mockImplementationOnce((cb: (users: User[]) => User[]) => {
         const result = cb([user]);
         expect(result[0].roles).not.toContain(UserRoleType.ADMINISTRADOR);
         expect(result[0].roles).toContain(UserRoleType.DOCENTE);
       });
 
       service.removeRoleFromUser('1', UserRoleType.ADMINISTRADOR).subscribe();
+
       tick(500);
 
       expect(mockStorageService.updateUsersList).toHaveBeenCalled();
@@ -184,13 +219,14 @@ describe('UserApiService', () => {
       const user2 = createMockUser('2', [UserRoleType.ADMINISTRADOR]);
       mockStorageService.currentUser.mockReturnValue(user1);
 
-      mockStorageService.updateUsersList.mockImplementationOnce((cb: Function) => {
+      mockStorageService.updateUsersList.mockImplementationOnce((cb: (users: User[]) => User[]) => {
         const result = cb([user1, user2]);
         expect(result[0].roles).not.toContain(UserRoleType.ADMINISTRADOR);
         expect(result[1].roles).not.toContain(UserRoleType.ADMINISTRADOR);
       });
 
       service.removeRolesFromUsers(['1', '2'], [UserRoleType.ADMINISTRADOR]).subscribe();
+
       tick(600);
 
       expect(mockStorageService.updateUsersList).toHaveBeenCalled();

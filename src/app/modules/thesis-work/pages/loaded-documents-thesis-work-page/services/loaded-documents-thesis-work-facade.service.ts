@@ -80,16 +80,13 @@ export class LoadedDocumentsThesisWorkFacadeService {
     }
   }
 
-  public async downloadDocumentByName(
-    fileName:        string,
-    activeTab:       string,
-    selectedAdvance: Advance | null,
-    thesis:          ThesisWork | null | undefined
-  ): Promise<void> {
-    const source = activeTab === 'AVANCES'
-      ? selectedAdvance?.documents
-      : thesis?.documents;
-    const target = source?.find(d => d.name === fileName);
+  // ← FIX: eliminada la bifurcación por activeTab. selectedAdvance ya trae
+  // el conjunto correcto de documentos para CUALQUIER pestaña — resuelto
+  // por ThesisWorkDetailsModalResolverService al abrir el modal. Buscar en
+  // thesis?.documents para "todo lo que no sea AVANCES" ignoraba que
+  // Entrega Final vive en finalDeliveries[], no ahí.
+  public async downloadDocumentByName(fileName: string, selectedAdvance: Advance | null): Promise<void> {
+    const target = selectedAdvance?.documents?.find(d => d.name === fileName);
     await this.downloadDocument(target ?? { name: fileName, url: '' } as FileDocument);
   }
 

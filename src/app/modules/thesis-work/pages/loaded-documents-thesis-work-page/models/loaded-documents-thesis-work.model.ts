@@ -24,5 +24,5 @@ export const TAB_MODAL_SUBTITLES: Record<string, string> = {
   'ENTREGA FINAL':   'Información de los documentos de entrega final',
   'PAZ Y SALVO':     'Información de aprobaciones académicas y financieras',
   'CORRESPONDENCIA': 'Información de la resolución o correspondencia oficial',
-  'SOLICITUDES':     'Información de la solicitud y su documento adjunto',
+  'SOLICITUDES':     'Información de la solicitud especial',
 };

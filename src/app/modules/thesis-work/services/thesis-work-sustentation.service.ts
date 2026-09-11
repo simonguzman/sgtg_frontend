@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { catchError, delay, forkJoin, from, map, Observable, of, switchMap, tap } from 'rxjs';
+import { catchError, delay, first, forkJoin, from, map, Observable, of, switchMap, tap } from 'rxjs';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
@@ -55,8 +55,14 @@ export class ThesisWorkSustentationService {
             let currentThesisTitle = '';
             const newSustentationId = crypto.randomUUID();
 
-            if (formData.juror1) this.userService.addRoleToUser(formData.juror1, UserRoleType.JURADO);
-            if (formData.juror2) this.userService.addRoleToUser(formData.juror2, UserRoleType.JURADO);
+            // ← FIX: mismo bug — causa raíz de "los jurados no quedan con el rol
+            // asignado" al programar la sustentación.
+            if (formData.juror1) {
+              this.userService.addRoleToUser(formData.juror1, UserRoleType.JURADO).pipe(first()).subscribe();
+            }
+            if (formData.juror2) {
+              this.userService.addRoleToUser(formData.juror2, UserRoleType.JURADO).pipe(first()).subscribe();
+            }
 
             this.storage.updateWork(thesisWorkId, (thesisWork) => {
               const proposal = thesisWork.preliminaryDraftData?.proposalData;

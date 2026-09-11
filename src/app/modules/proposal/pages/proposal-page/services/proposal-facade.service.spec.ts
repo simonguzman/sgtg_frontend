@@ -19,6 +19,11 @@ describe('ProposalFacadeService', () => {
   let mockMapperService: { mapProposalToTable: jest.Mock };
 
   beforeEach(() => {
+    // 1. Espías para silenciar la consola y evitar el ruido de los throwError
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     mockProposalService = {
       proposals: signal([{ id: 'prop-1' } as Proposal]),
       deleteProposalMock: jest.fn()
@@ -46,6 +51,11 @@ describe('ProposalFacadeService', () => {
     });
 
     service = TestBed.inject(ProposalFacadeService);
+  });
+
+  afterEach(() => {
+    // 2. Restauramos todos los espías para mantener limpio el entorno de pruebas
+    jest.restoreAllMocks();
   });
 
   describe('Propiedades Computed', () => {
@@ -87,7 +97,7 @@ describe('ProposalFacadeService', () => {
     });
 
     it('debe manejar el flujo de error y notificar', () => {
-      mockProposalService.deleteProposalMock.mockReturnValue(throwError(() => new Error()));
+      mockProposalService.deleteProposalMock.mockReturnValue(throwError(() => new Error('Simulated Error')));
       const onError = jest.fn();
 
       service.deleteProposal('1', jest.fn(), onError);

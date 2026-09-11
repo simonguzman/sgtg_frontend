@@ -1,19 +1,8 @@
-import { TestBed, fakeAsync, flush, flushMicrotasks, tick } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick, flushMicrotasks } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 
-import { ThesisWorkSustentationService } from './thesis-work-sustentation.service';
-import { ThesisWorkStorageService } from './thesis-work-storage.service';
-import { UserService } from '../../users/services/user.service';
-import { AuthService } from '../../../core/services/auth/auth.service';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
-
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
-import { stateList } from '../../../core/enums/state.enum';
-import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-import { DocumentType } from '../../../core/enums/document-type.enum';
-
-// 1. MOCKEAR LAS FUNCIONES EXTERNAS
+// 1. MOCKEAR LAS FUNCIONES EXTERNAS ANTES DE IMPORTAR EL SERVICIO
 jest.mock('../../../core/utils/file-reader.utils', () => ({
   readFileAsDataUrl: jest.fn()
 }));
@@ -28,42 +17,106 @@ import { readFileAsDataUrl } from '../../../core/utils/file-reader.utils';
 import { formatThesisDate } from '../helpers/thesis-date.helper';
 import { collectParticipantIds } from '../helpers/thesis-participants.helper';
 
+// Importamos SustentationVeredict para tipar correctamente los payloads
+import { ThesisWorkSustentationService, SustentationVeredict } from './thesis-work-sustentation.service';
+import { ThesisWorkStorageService } from './thesis-work-storage.service';
+import { UserService } from '../../users/services/user.service';
+import { AuthService } from '../../../core/services/auth/auth.service';
+import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+
+import { AppEventType } from '../../../core/enums/app-event-type.enum';
+import { stateList } from '../../../core/enums/state.enum';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
+import { DocumentType } from '../../../core/enums/document-type.enum';
+import { User } from '../../users/interfaces/user.interface';
+import { ThesisWork } from '../interfaces/thesis-work.interface';
+import { SustentationFormData } from '../interfaces/sustentation-form-data.interface';
+import { Evaluation } from '../../../core/interfaces/evaluation.interface';
+import { IdentificationType } from '../../users/enum/identification-type.enum';
+import { UserState } from '../../users/enum/user-state.enum';
+import { PreliminaryDraft } from '../../preliminary-draft/interfaces/preliminary-draft.interface';
+
+// ── Mocks Estrictos de Servicios ─────────────────────────────────────────────
+
+interface MockUserService {
+  addRoleToUser: jest.Mock;
+  users: WritableSignal<User[]>;
+  removeRolesFromUsersMock: jest.Mock;
+}
+
+interface MockAuthService {
+  currentUser: WritableSignal<User | null>;
+}
+
+interface MockThesisWorkStorageService {
+  updateWork: jest.Mock;
+}
+
+interface MockEventBusService {
+  emit: jest.Mock;
+}
+
+// ── Funciones Fábrica fuertemente tipadas (Adiós "any") ──────────────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'u-1',
+  idType: IdentificationType.CC,
+  idNumber: 123456789,
+  firstName: 'Juan',
+  secondName: '',
+  lastName: 'Perez',
+  secondLastName: '',
+  codeNumber: 1234567890,
+  email: 'juan@test.com',
+  password: 'hash',
+  state: UserState.active,
+  roles: [],
+  ...overrides
+} as User);
+
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => ({
+  thesisWorkId: 'thesis-1',
+  preliminaryDraftId: 'draft-1',
+  state: stateList.EN_DESARROLLO,
+  createdDate: new Date(),
+  isArchived: false,
+  documents: [{ id: 'doc-1', name: 'doc', url: 'url', type: DocumentType.FORMATO_E, uploadDate: new Date(), status: stateList.EN_REVISION }],
+  sustentations: [{ id: 'sust-1', assignedJurors: [createMockUser({ id: 'juror-1' })], verdicts: [] }],
+  correctedDeliveries: [],
+  preliminaryDraftData: {
+    preliminaryDraftId: 'draft-1',
+    proposalId: 'prop-1',
+    state: stateList.APROBADO,
+    createdData: new Date(),
+    evaluators: [createMockUser({ id: 'eval-1' })],
+    proposalData: { title: 'Título de Prueba' } as any
+  } as PreliminaryDraft,
+  ...overrides
+} as ThesisWork);
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('ThesisWorkSustentationService', () => {
   let service: ThesisWorkSustentationService;
 
-  // 🔹 REFACTOR: Interfaces estrictas en lugar de 'any' para los espías
-  let storageSpy: { updateWork: jest.Mock };
-  let userSpy: {
-    addRoleToUser: jest.Mock;
-    users: WritableSignal<Array<{ id: string; roles: UserRoleType[] }>>;
-    removeRolesFromUsersMock: jest.Mock;
-  };
-  let authSpy: { currentUser: WritableSignal<{ id: string }> };
-  let eventBusSpy: { emit: jest.Mock };
+  let storageSpy: MockThesisWorkStorageService;
+  let userSpy: MockUserService;
+  let authSpy: MockAuthService;
+  let eventBusSpy: MockEventBusService;
   let removeRolesSpy: jest.Mock;
 
-  const getMockThesisBase = () => ({
-    thesisWorkId: 'thesis-1',
-    preliminaryDraftData: {
-      proposalData: { title: 'Título de Prueba' },
-      evaluators: [{ id: 'eval-1' }]
-    },
-    sustentations: [{
-      id: 'sust-1',
-      assignedJurors: [{ id: 'juror-1' }],
-      verdicts: []
-    }],
-    documents: [{ type: DocumentType.FORMATO_E, status: stateList.EN_REVISION }],
-    correctedDeliveries: [{ status: 'PENDIENTE', monograph: { status: 'PENDIENTE' } }]
-  });
+  let mutableMockThesis: ThesisWork;
 
   beforeEach(() => {
+    // 🔕 Silenciar ruidos en la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    mutableMockThesis = createMockThesisWork();
+
     storageSpy = {
-      // 🔹 REFACTOR: Tipado para el callback en lugar de 'updateCb: any'
-      updateWork: jest.fn().mockImplementation((id: string, updateCb: (work: unknown) => unknown) => {
-        const mockThesis = getMockThesisBase();
-        const result = typeof updateCb === 'function' ? updateCb(mockThesis) : mockThesis;
-        return of(result);
+      updateWork: jest.fn().mockImplementation((id: string, mutator: (work: ThesisWork) => ThesisWork) => {
+        mutableMockThesis = mutator(mutableMockThesis);
       })
     };
 
@@ -72,15 +125,15 @@ describe('ThesisWorkSustentationService', () => {
     userSpy = {
       addRoleToUser: jest.fn().mockReturnValue(of(undefined)),
       users: signal([
-        { id: 'juror-1', roles: [] },
-        { id: 'juror-2', roles: [] },
-        { id: 'consejo-1', roles: [UserRoleType.CONSEJO] }
+        createMockUser({ id: 'juror-1' }),
+        createMockUser({ id: 'juror-2' }),
+        createMockUser({ id: 'consejo-1', roles: [UserRoleType.CONSEJO] })
       ]),
       removeRolesFromUsersMock: removeRolesSpy
     };
 
     authSpy = {
-      currentUser: signal({ id: 'juror-1' })
+      currentUser: signal(createMockUser({ id: 'juror-1' }))
     };
 
     eventBusSpy = {
@@ -90,15 +143,16 @@ describe('ThesisWorkSustentationService', () => {
     TestBed.configureTestingModule({
       providers: [
         ThesisWorkSustentationService,
-        { provide: ThesisWorkStorageService, useValue: storageSpy as unknown as ThesisWorkStorageService },
-        { provide: UserService, useValue: userSpy as unknown as UserService },
-        { provide: AuthService, useValue: authSpy as unknown as AuthService },
-        { provide: EventBusService, useValue: eventBusSpy as unknown as EventBusService }
+        { provide: ThesisWorkStorageService, useValue: storageSpy },
+        { provide: UserService, useValue: userSpy },
+        { provide: AuthService, useValue: authSpy },
+        { provide: EventBusService, useValue: eventBusSpy }
       ]
     });
 
     service = TestBed.inject(ThesisWorkSustentationService);
 
+    // Configuración base de mocks globales
     (readFileAsDataUrl as jest.Mock).mockResolvedValue('data:application/pdf;base64,mockFile');
     (formatThesisDate as jest.Mock).mockReturnValue('2026-08-19');
     (collectParticipantIds as jest.Mock).mockReturnValue(['student-1']);
@@ -111,7 +165,7 @@ describe('ThesisWorkSustentationService', () => {
   describe('saveSustentationRegistryMock', () => {
     it('debe construir el documento, asignar roles a jurados, actualizar storage y emitir evento', fakeAsync(() => {
       const mockFile = new File([''], 'formatoE.pdf', { type: 'application/pdf' });
-      const formData = {
+      const formData: SustentationFormData = {
         formatEDocument: mockFile,
         juror1: 'juror-1',
         juror2: 'juror-2',
@@ -120,23 +174,22 @@ describe('ThesisWorkSustentationService', () => {
         location: 'Auditorio'
       };
 
-      // 🔹 REFACTOR: Definimos exactamente la estructura que devuelve la promesa
-      type DocumentReturnType = {
+      // FIX: Puenteamos el agujero negro de native async/await en Zone.js
+      // espiando estrictamente el método interno sin usar "any".
+      interface FileDocumentMock {
         id: string;
         name: string;
         url: string;
         uploadDate: string;
         type: DocumentType;
         status: stateList;
+      }
+
+      const serviceExposed = service as unknown as {
+        buildSustentationFormatEDocument: (file: unknown, dateStr: string) => Promise<FileDocumentMock>
       };
 
-      // 🔹 REFACTOR: Casteamos el servicio a un objeto anónimo sin usar '&' para evitar colisión a 'never'
-      const serviceWithExposedMethod = service as unknown as {
-        buildSustentationFormatEDocument: () => Promise<DocumentReturnType>;
-      };
-
-      // Usamos mockResolvedValue, que es más limpio que mockReturnValue(Promise.resolve(...))
-      jest.spyOn(serviceWithExposedMethod, 'buildSustentationFormatEDocument').mockResolvedValue({
+      jest.spyOn(serviceExposed, 'buildSustentationFormatEDocument').mockResolvedValue({
         id: 'mock-doc-id',
         name: 'formatoE.pdf',
         url: 'data:application/pdf;base64,mockFile',
@@ -147,21 +200,19 @@ describe('ThesisWorkSustentationService', () => {
 
       let completed = false;
 
-      // 🔹 REFACTOR: Obtener automáticamente el tipo de los parámetros de la función original
-      type SaveSustentationParams = Parameters<typeof service.saveSustentationRegistryMock>[1];
-
-      service.saveSustentationRegistryMock('thesis-1', formData as unknown as SaveSustentationParams).subscribe({
+      service.saveSustentationRegistryMock('thesis-1', formData).subscribe({
         next: () => completed = true,
         error: (err) => { throw err; }
       });
 
+      // El tick procesará instantáneamente el flujo RxJS ahora que la promesa no se pierde
       flushMicrotasks();
       tick(1000);
-      flush();
 
       expect(completed).toBe(true);
       expect(userSpy.addRoleToUser).toHaveBeenCalledWith('juror-1', UserRoleType.JURADO);
       expect(userSpy.addRoleToUser).toHaveBeenCalledWith('juror-2', UserRoleType.JURADO);
+
       expect(storageSpy.updateWork).toHaveBeenCalledWith('thesis-1', expect.any(Function));
 
       expect(eventBusSpy.emit).toHaveBeenCalledWith(expect.objectContaining({
@@ -174,61 +225,51 @@ describe('ThesisWorkSustentationService', () => {
   describe('registerSustentationVerdictMock', () => {
     it('debe registrar el veredicto (APROBADO), actualizar storage y no limpiar roles', fakeAsync(() => {
       const mockFile = new File([''], 'veredicto.pdf', { type: 'application/pdf' });
-      const payload = {
-        veredict: stateList.APROBADO, // 🔹 REFACTOR: Sin 'as any'
+
+      const payload: { veredict: SustentationVeredict; observations: string; evaluationDate: Date } = {
+        veredict: stateList.APROBADO,
         observations: 'Excelente',
-        evaluationDate: new Date(),
-        proposalId: 'thesis-1',
-        evaluatorId: 'juror-1',
-        evaluatorName: 'Nombre Jurado',
-        evaluatorRole: UserRoleType.JURADO
+        evaluationDate: new Date()
       };
 
-      type VerdictPayloadType = Parameters<typeof service.registerSustentationVerdictMock>[1];
-
       let completed = false;
-      service.registerSustentationVerdictMock('thesis-1', payload as unknown as VerdictPayloadType, mockFile).subscribe({
+      service.registerSustentationVerdictMock('thesis-1', payload, mockFile).subscribe({
         next: () => completed = true,
         error: (err) => { throw err; }
       });
 
       flushMicrotasks();
       tick(1000);
-      flush();
 
       expect(completed).toBe(true);
       expect(readFileAsDataUrl).toHaveBeenCalledWith(mockFile);
       expect(storageSpy.updateWork).toHaveBeenCalled();
+
       expect(eventBusSpy.emit).toHaveBeenCalledWith(expect.objectContaining({
         type: AppEventType.THESIS_VERDICT_REGISTERED,
         payload: expect.objectContaining({ veredict: stateList.APROBADO })
       }));
+
       expect(removeRolesSpy).not.toHaveBeenCalled();
     }));
 
     it('debe registrar veredicto (NO_APROBADO), archivar tesis y limpiar roles de jurados/evaluadores', fakeAsync(() => {
       const mockFile = new File([''], 'veredicto_malo.pdf');
-      const payload = {
-        veredict: stateList.NO_APROBADO, // 🔹 REFACTOR: Sin 'as any'
+
+      const payload: { veredict: SustentationVeredict; observations: string; evaluationDate: Date } = {
+        veredict: stateList.NO_APROBADO,
         observations: 'Debe repetir',
-        evaluationDate: new Date(),
-        proposalId: 'thesis-1',
-        evaluatorId: 'juror-1',
-        evaluatorName: 'Nombre Jurado',
-        evaluatorRole: UserRoleType.JURADO
+        evaluationDate: new Date()
       };
 
-      type VerdictPayloadType = Parameters<typeof service.registerSustentationVerdictMock>[1];
-
       let completed = false;
-      service.registerSustentationVerdictMock('thesis-1', payload as unknown as VerdictPayloadType, mockFile).subscribe({
+      service.registerSustentationVerdictMock('thesis-1', payload, mockFile).subscribe({
         next: () => completed = true,
         error: (err) => { throw err; }
       });
 
       flushMicrotasks();
       tick(1000);
-      flush();
 
       expect(completed).toBe(true);
       expect(removeRolesSpy).toHaveBeenCalledTimes(2);
@@ -236,65 +277,55 @@ describe('ThesisWorkSustentationService', () => {
       expect(removeRolesSpy).toHaveBeenCalledWith(['juror-1'], [UserRoleType.JURADO]);
     }));
 
-    it('debe capturar el error si removeRolesFromUsersMock falla, sin romper el flujo', fakeAsync(() => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    it('debe capturar el error si la limpieza de roles falla, sin romper el flujo principal', fakeAsync(() => {
       const mockFile = new File([''], 'veredicto_malo.pdf');
-      const payload = {
-        veredict: stateList.NO_APROBADO, // 🔹 REFACTOR: Sin 'as any'
-        observations: '',
-        evaluationDate: new Date(),
-        proposalId: 'thesis-1',
-        evaluatorId: 'juror-1',
-        evaluatorName: 'Nombre Jurado',
-        evaluatorRole: UserRoleType.JURADO
-      };
 
-      type VerdictPayloadType = Parameters<typeof service.registerSustentationVerdictMock>[1];
+      const payload: { veredict: SustentationVeredict; observations: string; evaluationDate: Date } = {
+        veredict: stateList.NO_APROBADO,
+        observations: 'Falla red',
+        evaluationDate: new Date()
+      };
 
       removeRolesSpy.mockReturnValue(throwError(() => new Error('Error de red')));
 
       let completed = false;
-      service.registerSustentationVerdictMock('thesis-1', payload as unknown as VerdictPayloadType, mockFile).subscribe({
+      service.registerSustentationVerdictMock('thesis-1', payload, mockFile).subscribe({
         next: () => completed = true,
         error: (err) => { throw err; }
       });
 
       flushMicrotasks();
       tick(1000);
-      flush();
 
       expect(completed).toBe(true);
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(console.error).toHaveBeenCalledWith(
         'Error al limpiar roles tras el veredicto de sustentación:',
         expect.any(Error)
       );
-      consoleSpy.mockRestore();
     }));
   });
 
   describe('evaluateCorrectedDocumentsMock', () => {
     it('debe actualizar documentos corregidos, asignar estado final y emitir evento', fakeAsync(() => {
       const mockFile = new File([''], 'formatoG.pdf', { type: 'application/pdf' });
-      const payload = {
-        veredict: stateList.APROBADO, // 🔹 REFACTOR: Sin 'as any'
-        observations: 'Correcciones aceptadas',
-        proposalId: 'thesis-1',
+
+      const payload: Omit<Evaluation, 'id' | 'date'> = {
+        proposalId: 'prop-1',
         evaluatorId: 'juror-1',
         evaluatorName: 'Nombre Jurado',
-        evaluatorRole: UserRoleType.JURADO
+        evaluatorRole: UserRoleType.JURADO,
+        veredict: stateList.APROBADO,
+        observations: 'Correcciones aceptadas'
       };
 
-      type EvaluationPayloadType = Parameters<typeof service.evaluateCorrectedDocumentsMock>[1];
-
       let completed = false;
-      service.evaluateCorrectedDocumentsMock('thesis-1', payload as unknown as EvaluationPayloadType, mockFile).subscribe({
+      service.evaluateCorrectedDocumentsMock('thesis-1', payload, mockFile).subscribe({
         next: () => completed = true,
         error: (err) => { throw err; }
       });
 
       flushMicrotasks();
       tick(1200);
-      flush();
 
       expect(completed).toBe(true);
       expect(readFileAsDataUrl).toHaveBeenCalledWith(mockFile);

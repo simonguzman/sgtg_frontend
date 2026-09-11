@@ -16,7 +16,6 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
-import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
 
 // 1. IMPORTANTE: Mockear la utilidad externa de lectura de archivos
 import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
@@ -26,6 +25,10 @@ jest.mock('../../../../../core/utils/file-reader.utils', () => ({
 
 describe('EvaluationProposalFacadeService', () => {
   let service: EvaluationProposalFacadeService;
+
+  // Espías globales para silenciar la consola
+  let consoleErrorSpy: jest.SpyInstance;
+  let consoleWarnSpy: jest.SpyInstance;
 
   let mockProposalService: jest.Mocked<ProposalService>;
   let mockAuthService: jest.Mocked<AuthService>;
@@ -65,6 +68,10 @@ describe('EvaluationProposalFacadeService', () => {
   });
 
   beforeEach(() => {
+    // Silenciamos la consola para toda la suite
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // Restaurar los mocks antes de cada prueba
     (readFileAsDataUrl as jest.Mock).mockReset();
     mockCurrentUserSignal.set(mockUser);
@@ -111,6 +118,8 @@ describe('EvaluationProposalFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 
   it('debería crearse correctamente', () => {
@@ -189,6 +198,8 @@ describe('EvaluationProposalFacadeService', () => {
 
       await service.downloadOriginalDocument(mockProposal);
 
+      // Utilizamos el espía global en lugar de uno local
+      expect(consoleErrorSpy).toHaveBeenCalled();
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Error de descarga',
@@ -246,11 +257,14 @@ describe('EvaluationProposalFacadeService', () => {
 
     it('debería invocar onError si la lectura del archivo falla (readFileAsDataUrl)', async () => {
       const onError = jest.fn();
+
       // Simulamos que el utilitario falla al leer el archivo
       (readFileAsDataUrl as jest.Mock).mockRejectedValue(new Error('File read error'));
 
       await service.saveEvaluation(eventPayload, mockProposal, mockRoute, onError);
 
+      // Utilizamos el espía global
+      expect(consoleErrorSpy).toHaveBeenCalled();
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Error al leer el archivo', type: NotificationType.ERROR })
       );
@@ -315,7 +329,7 @@ describe('EvaluationProposalFacadeService', () => {
     it('debería usar la función de fallback para el rol y el estado si el veredicto no coincide', async () => {
       const onError = jest.fn();
       mockCurrentUserSignal.set({ ...mockUser, roles: [] } as unknown as User); // Sin roles expresos
-mockProposalService.addEvaluationMock.mockReturnValue(of({} as unknown as Proposal));
+      mockProposalService.addEvaluationMock.mockReturnValue(of({} as unknown as Proposal));
       (readFileAsDataUrl as jest.Mock).mockResolvedValue('data:mock');
 
       const unknownResultPayload: SaveProposalEvaluationEvent = { ...eventPayload, result: 'Pendiente' };

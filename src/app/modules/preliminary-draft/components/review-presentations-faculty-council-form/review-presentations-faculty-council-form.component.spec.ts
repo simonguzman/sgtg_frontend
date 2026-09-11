@@ -1,8 +1,8 @@
 // 1. Angular Core & Testing
-import { ComponentRef, WritableSignal, signal } from '@angular/core';
+import { ComponentRef, WritableSignal, signal, Component, Input, Output, EventEmitter } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { provideNoopAnimations } from '@angular/platform-browser/animations'; // <-- Solución al error de animaciones
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 
 // 2. Core Enums & Interfaces
 import { stateList } from '../../../../core/enums/state.enum';
@@ -14,17 +14,45 @@ import { IdentificationType } from '../../../users/enum/identification-type.enum
 import { UserState } from '../../../users/enum/user-state.enum';
 import { User } from '../../../users/interfaces/user.interface';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
+import { Proposal } from '../../../proposal/interfaces/proposal.interface';
 
 // 4. Component, Service & Models
 import { SaveEvaluationPayload } from './models/council-evaluation.model';
 import { ReviewPresentationsFacultyCouncilFormComponent } from './review-presentations-faculty-council-form.component';
 import { ReviewPresentationsFacultyCouncilFormFacadeService } from './services/review-presentations-faculty-council-form-facade.service';
 
+// 5. Original Components for Override
+import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
+import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 
-// Interfaz para el Mock de la fachada sin hacer uso de 'any'
+// 🔹 REFACTOR: Mocks de Componentes Hijos para aislar el test del DOM y lógica externa
+@Component({ selector: 'app-button-component', standalone: true, template: '<button (click)="onClick.emit()">{{label}}</button>' })
+class MockButtonComponent {
+  @Input() label = '';
+  @Input() variant = '';
+  @Input() disabled = false;
+  @Input() type = 'button';
+  @Output() onClick = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-file-upload-modal', standalone: true, template: '<div>Mock Modal</div>' })
+class MockFileUploadModalComponent {
+  @Input() isOpen = false;
+  @Input() description = '';
+  @Output() onFileUploaded = new EventEmitter<{ fileName: string; file: File }>();
+  @Output() onClose = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-info-banner', standalone: true, template: '<div>Mock Banner <ng-content></ng-content></div>' })
+class MockInfoBannerComponent {
+  @Input() title = '';
+}
+
+// 🔹 REFACTOR: Interfaz estricta para el Facade sin el uso de 'any'
 interface MockFacadeService {
   preliminaryDraft: WritableSignal<PreliminaryDraft | null>;
-  uploadedSignedFile: WritableSignal<{ fileName: string } | null>;
+  uploadedSignedFile: WritableSignal<{ fileName: string; file: File } | null>;
   isUploadModalOpen: WritableSignal<boolean>;
   isReadOnly: WritableSignal<boolean>;
   signedProposalDocument: WritableSignal<FormattedDocument | undefined>;
@@ -35,7 +63,7 @@ interface MockFacadeService {
   evaluationForm: FormGroup;
   initFormEffects: jest.Mock<void, []>;
   isFieldInvalid: jest.Mock<boolean, [string]>;
-  handleFileUploaded: jest.Mock<void, [File]>;
+  handleFileUploaded: jest.Mock<void, [{ fileName: string; file: File }]>;
   validateAndGetPayload: jest.Mock<SaveEvaluationPayload | null, []>;
   getStudentNames: jest.Mock<string, []>;
   getDirectorName: jest.Mock<string, []>;
@@ -43,50 +71,55 @@ interface MockFacadeService {
   getAdvisorName: jest.Mock<string, []>;
 }
 
+// 🔹 REFACTOR: Fábricas de Datos (Factories)
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'usr-101',
+  idType: IdentificationType.CC,
+  idNumber: 123456789,
+  firstName: 'Carlos',
+  lastName: 'Pérez',
+  secondLastName: 'Gómez',
+  codeNumber: 20261001,
+  roles: [],
+  email: 'carlos.perez@universidad.edu.co',
+  password: 'hashed_password',
+  state: UserState.active,
+  ...overrides
+} as User);
+
+const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
+  preliminaryDraftId: 'draft-101',
+  proposalId: 'prop-101',
+  state: stateList.EN_REVISION,
+  createdData: new Date('2026-08-12'),
+  evaluations: [],
+  documents: [],
+  evaluators: [],
+  isArchived: false,
+  proposalData: {
+    id: 'prop-101',
+    title: 'Sistema de Gestión Académica',
+    description: 'Proyecto de software para la facultad',
+    modality: Modality.TI,
+    authors: [createMockUser()],
+    director: createMockUser(),
+    codirector: createMockUser(),
+    advisor: createMockUser(),
+    state: stateList.EN_REVISION,
+    createdAt: new Date('2026-08-12'),
+    documents: [],
+    evaluations: []
+  } as Proposal,
+  ...overrides
+} as PreliminaryDraft);
+
 describe('ReviewPresentationsFacultyCouncilFormComponent', () => {
   let component: ReviewPresentationsFacultyCouncilFormComponent;
   let fixture: ComponentFixture<ReviewPresentationsFacultyCouncilFormComponent>;
   let componentRef: ComponentRef<ReviewPresentationsFacultyCouncilFormComponent>;
   let mockFacade: MockFacadeService;
 
-  // 1. Mock base para los usuarios (Director, Codirector, Asesor, Autores)
-  const mockUser: User = {
-    id: 'usr-101',
-    idType: IdentificationType.CC,
-    idNumber: 123456789,
-    firstName: 'Carlos',
-    lastName: 'Pérez',
-    secondLastName: 'Gómez',
-    codeNumber: 20261001,
-    roles: [],
-    email: 'carlos.perez@universidad.edu.co',
-    password: 'hashed_password',
-    state: UserState.active
-  };
-
-  // 2. Mock completo de PreliminaryDraft tipado directamente
-  const mockPreliminaryDraft: PreliminaryDraft = {
-    preliminaryDraftId: 'draft-101',
-    proposalId: 'prop-101',
-    state: stateList.EN_REVISION,
-    createdData: new Date('2026-08-12'),
-    evaluations: [],
-    documents: [],
-    proposalData: {
-      id: 'prop-101',
-      title: 'Sistema de Gestión Académica',
-      description: 'Proyecto de software para la facultad',
-      modality: Modality.TI,
-      authors: [mockUser],
-      director: mockUser,
-      codirector: mockUser,
-      advisor: mockUser,
-      state: stateList.EN_REVISION,
-      createdAt: new Date('2026-08-12'),
-      documents: [],
-      evaluations: []
-    }
-  };
+  const mockDraftData = createMockPreliminaryDraft();
 
   const mockFormattedDocument: FormattedDocument = {
     name: 'documento_resolucion.pdf',
@@ -94,9 +127,13 @@ describe('ReviewPresentationsFacultyCouncilFormComponent', () => {
   };
 
   beforeEach(async () => {
+    // 🔕 Silenciar los console.error y console.warn
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockFacade = {
       preliminaryDraft: signal<PreliminaryDraft | null>(null),
-      uploadedSignedFile: signal<{ fileName: string } | null>(null),
+      uploadedSignedFile: signal<{ fileName: string; file: File } | null>(null),
       isUploadModalOpen: signal<boolean>(false),
       isReadOnly: signal<boolean>(false),
       signedProposalDocument: signal<FormattedDocument | undefined>(undefined),
@@ -125,14 +162,17 @@ describe('ReviewPresentationsFacultyCouncilFormComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ReviewPresentationsFacultyCouncilFormComponent],
       providers: [
-        provideNoopAnimations() // <-- FIX: Provee el módulo vacío de animaciones para los tests
+        provideNoopAnimations() // <-- FIX: Provee el módulo vacío de animaciones para los tests de PrimeNG
       ]
     })
     .overrideComponent(ReviewPresentationsFacultyCouncilFormComponent, {
-      set: {
-        providers: [
-          { provide: ReviewPresentationsFacultyCouncilFormFacadeService, useValue: mockFacade }
-        ]
+      remove: {
+        imports: [ButtonComponent, FileUploadModalComponent, InfoBannerComponent],
+        providers: [ReviewPresentationsFacultyCouncilFormFacadeService]
+      },
+      add: {
+        imports: [MockButtonComponent, MockFileUploadModalComponent, MockInfoBannerComponent],
+        providers: [{ provide: ReviewPresentationsFacultyCouncilFormFacadeService, useValue: mockFacade }]
       }
     })
     .compileComponents();
@@ -141,7 +181,13 @@ describe('ReviewPresentationsFacultyCouncilFormComponent', () => {
     component = fixture.componentInstance;
     componentRef = fixture.componentRef;
 
-    componentRef.setInput('preliminaryDraft', mockPreliminaryDraft);
+    // Asignación de la señal de entrada requerida (input.required)
+    componentRef.setInput('preliminaryDraft', mockDraftData);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización y Ciclo de Vida', () => {
@@ -157,7 +203,7 @@ describe('ReviewPresentationsFacultyCouncilFormComponent', () => {
 
     it('debería sincronizar el input preliminaryDraft con el signal preliminaryDraft del facade', () => {
       fixture.detectChanges();
-      expect(mockFacade.preliminaryDraft()).toEqual(mockPreliminaryDraft);
+      expect(mockFacade.preliminaryDraft()).toEqual(mockDraftData);
     });
   });
 
@@ -212,7 +258,7 @@ describe('ReviewPresentationsFacultyCouncilFormComponent', () => {
     });
 
     it('debería invocar la eliminación del archivo firmado cuando el usuario lo remueve', () => {
-      mockFacade.uploadedSignedFile.set({ fileName: 'resolucion_firmada.pdf' });
+      mockFacade.uploadedSignedFile.set({ fileName: 'resolucion_firmada.pdf', file: new File([], 'resolucion_firmada.pdf') });
       fixture.detectChanges();
 
       mockFacade.uploadedSignedFile.set(null);

@@ -1,5 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+
 import { DownloadableFormatsPageComponent } from './downloadable-formats-page.component';
 import { DownloadableFormatsFacadeService } from './services/downloadable-formats-facade.service';
 import {
@@ -7,18 +9,61 @@ import {
   DOWNLOADABLE_FORMATS_BY_CATEGORY
 } from './models/downloadable-formats-page.model';
 
+// ── Componentes Originales a Remover (Shallow Testing) ───────────────────────
+import { TabsComponent, TabItem } from './../../components/tabs/tabs.component';
+import { TableComponent, Column } from './../../components/table-component/table-component.component';
+
+// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
+
+@Component({ selector: 'app-tabs', standalone: true, template: '' })
+class MockTabsComponent {
+  @Input() tabs: TabItem[] = [];
+  @Input() activeTab = '';
+  @Output() tabChange = new EventEmitter<string>();
+}
+
+@Component({ selector: 'app-table-component', standalone: true, template: '' })
+class MockTableComponent {
+  @Input() value: DownloadableFormat[] = [];
+  @Input() columns: Column[] = [];
+  @Input() paginator = false;
+  @Input() emptyMessage = '';
+  @Output() actionClick = new EventEmitter<{ action: string; row: DownloadableFormat }>();
+}
+
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockDownloadableFormat = (overrides: Partial<DownloadableFormat> = {}): DownloadableFormat => ({
+  id: 'ti-01',
+  title: 'Formato de Prueba',
+  url: '/ruta.pdf',
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('DownloadableFormatsPageComponent', () => {
   let component: DownloadableFormatsPageComponent;
   let fixture: ComponentFixture<DownloadableFormatsPageComponent>;
 
   // Tipado estricto de Mocks (Zero-Any)
-  let mockRouter: { navigate: jest.Mock };
+  let mockRouter: {
+    navigate: jest.Mock<Promise<boolean>, [string[], any?]>
+  };
+
   let mockActivatedRoute: Record<string, never>; // Objeto vacío tipado
-  let mockFacade: { downloadFormat: jest.Mock };
+
+  let mockFacade: {
+    downloadFormat: jest.Mock<Promise<void>, [DownloadableFormat]>
+  };
 
   beforeEach(async () => {
+    // 🔕 Silenciar consola para mantener terminal limpia de advertencias visuales
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockRouter = {
-      navigate: jest.fn()
+      navigate: jest.fn().mockResolvedValue(true)
     };
 
     mockActivatedRoute = {};
@@ -34,7 +79,16 @@ describe('DownloadableFormatsPageComponent', () => {
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
         { provide: DownloadableFormatsFacadeService, useValue: mockFacade }
       ]
-    }).compileComponents();
+    })
+    .overrideComponent(DownloadableFormatsPageComponent, {
+      remove: {
+        imports: [TabsComponent, TableComponent]
+      },
+      add: {
+        imports: [MockTabsComponent, MockTableComponent]
+      }
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(DownloadableFormatsPageComponent);
     component = fixture.componentInstance;
@@ -43,6 +97,7 @@ describe('DownloadableFormatsPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   it('Debe crear el componente', () => {
@@ -79,11 +134,7 @@ describe('DownloadableFormatsPageComponent', () => {
 
   describe('Acciones de la Tabla', () => {
     it('Debe delegar la acción "descargar" al Facade pasándole la fila completa', () => {
-      const mockRow: DownloadableFormat = {
-        id: 'ti-01',
-        title: 'Formato de Prueba',
-        url: '/ruta.pdf'
-      };
+      const mockRow = createMockDownloadableFormat();
 
       component.handleTableAction({ action: 'descargar', row: mockRow });
 
@@ -91,11 +142,7 @@ describe('DownloadableFormatsPageComponent', () => {
     });
 
     it('No debe hacer nada (retorno temprano) si la acción NO es "descargar"', () => {
-      const mockRow: DownloadableFormat = {
-        id: 'ti-01',
-        title: 'Formato de Prueba',
-        url: '/ruta.pdf'
-      };
+      const mockRow = createMockDownloadableFormat();
 
       component.handleTableAction({ action: 'ver_detalles', row: mockRow });
 

@@ -12,6 +12,10 @@ describe('LoadedDocumentsPreliminaryDraftMapperService', () => {
   let service: LoadedDocumentsPreliminaryDraftMapperService;
 
   beforeEach(() => {
+    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     TestBed.configureTestingModule({
       providers: [LoadedDocumentsPreliminaryDraftMapperService]
     });
@@ -19,8 +23,7 @@ describe('LoadedDocumentsPreliminaryDraftMapperService', () => {
   });
 
   afterEach(() => {
-    // Limpiamos los mocks después de cada prueba para evitar que se filtren
-    jest.clearAllMocks();
+    // 🧹 Limpiamos los mocks y restauramos la consola a la normalidad
     jest.restoreAllMocks();
   });
 
@@ -77,8 +80,9 @@ describe('LoadedDocumentsPreliminaryDraftMapperService', () => {
     });
 
     it('debería devolver la configuración por defecto (presentaciones) si se pasa un tab desconocido', () => {
-      // Forzamos un string diferente para probar el comportamiento por defecto de los ternarios
-      const tab = 'OTRA_COSA' as LoadedDocumentsTabType;
+      // 🔹 REFACTOR: Como el método recibe un 'string' por firma, no necesitamos
+      // forzar un casteo "as LoadedDocumentsTabType" para probar esta rama.
+      const tab = 'OTRA_COSA';
 
       expect(service.getEmptyMessage(tab)).toBe('No hay presentaciones registradas para este anteproyecto');
       expect(service.getUploadModalUserRole(tab)).toBe('Jefe de Departamento');

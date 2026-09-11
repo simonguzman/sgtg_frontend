@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { ThesisWorkPageComponent } from './pages/thesis-work-page/thesis-work-page.component';
 import { ThesisWorkDetailsPageComponent } from './pages/thesis-work-details-page/thesis-work-details-page.component';
 import { roleGuard } from '../../core/guards/role.guard';
-import { thesisRestrictedStatusGuard } from '../../core/guards/thesis-status.guard';
+import { thesisRestrictedStatusGuard, thesisSuspendedViewGuard } from '../../core/guards/thesis-status.guard';
 import { UserRoleType } from '../../core/enums/user-role-type.enum';
 import { EvaluationsPerformedPageComponent } from '../../shared/pages/evaluations-performed-page/evaluations-performed-page.component';
 import { LoadedDocumentsThesisWorkPageComponent } from './pages/loaded-documents-thesis-work-page/loaded-documents-thesis-work-page.component';
@@ -20,6 +20,7 @@ import { RegisterCorrespondencePageComponent } from './pages/register-correspond
 import { RegisterSpecialRequestPageComponent } from './pages/register-special-request-page/register-special-request-page.component';
 import { EvaluateSpecialRequestPageComponent } from './pages/evaluate-special-request-page/evaluate-special-request-page.component';
 import { DownloadableFormatsPageComponent } from '../../shared/pages/downloadable-formats-page/downloadable-formats-page.component';
+import { thesisWorkOwnershipGuard } from '../../core/guards/thesis-work-ownership.guard';
 
 export const thesisWorkRoutes: Routes = [
   {
@@ -40,12 +41,13 @@ export const thesisWorkRoutes: Routes = [
       },
       {
         path: 'details/:id',
+        canActivate: [thesisWorkOwnershipGuard],
         data: { breadcrumb: 'Información del trabajo de grado' },
         children: [
           {
             path: '',
             component: ThesisWorkDetailsPageComponent,
-            canActivate: [roleGuard],
+            canActivate: [roleGuard, thesisSuspendedViewGuard],
             title: 'Información del trabajo de grado',
             data: {
               breadcrumb: null,
@@ -59,7 +61,7 @@ export const thesisWorkRoutes: Routes = [
           {
             path: 'evaluations_performed',
             component: EvaluationsPerformedPageComponent,
-            canActivate: [roleGuard],
+            canActivate: [roleGuard, thesisSuspendedViewGuard],
             title: 'Evaluaciones realizadas',
             data: {
               breadcrumb: 'Evaluaciones realizadas',
@@ -73,7 +75,7 @@ export const thesisWorkRoutes: Routes = [
           {
             path: 'loaded_documents',
             component: LoadedDocumentsThesisWorkPageComponent,
-            canActivate: [roleGuard],
+            canActivate: [roleGuard, thesisSuspendedViewGuard],
             title: 'Documentos cargados',
             data: {
               breadcrumb: 'Documentos cargados',
@@ -147,7 +149,7 @@ export const thesisWorkRoutes: Routes = [
           {
             path: 'view_sustentation_details/:sustentationId',
             component: SustentationDetailsPageComponent,
-            canActivate: [roleGuard],
+            canActivate: [roleGuard, thesisSuspendedViewGuard],
             title: 'Detalles de la sustentación',
             data: {
               breadcrumb: 'Detalles de la sustentación',
@@ -192,7 +194,7 @@ export const thesisWorkRoutes: Routes = [
           {
             path: 'corrected_documents',
             component: CorrectedDocumentsPageComponent,
-            canActivate: [roleGuard],
+            canActivate: [roleGuard, thesisSuspendedViewGuard],
             title: 'Documentos corregidos',
             data: {
               breadcrumb: 'Documentos corregidos',

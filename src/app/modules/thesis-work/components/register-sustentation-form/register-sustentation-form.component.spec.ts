@@ -1,65 +1,220 @@
+// 1. Angular Core, Testing y Formularios
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { RegisterSustentationFormComponent } from './register-sustentation-form.component';
-import { RegisterSustentationFormService } from './services/register-sustentation-form.service';
-import { FormBuilder, Validators } from '@angular/forms';
-import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { Component, Input, Output, EventEmitter, forwardRef } from '@angular/core';
+import { FormBuilder, Validators, FormGroup, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { DatePicker } from 'primeng/datepicker';
+
+// 2. Componente a probar
+import { RegisterSustentationFormComponent, SustentationFormPayload } from './register-sustentation-form.component';
+import { RegisterSustentationFormService } from './services/register-sustentation-form.service';
+
+// 3. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { User } from '../../../users/interfaces/user.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { Modality } from '../../../proposal/enums/modality.enum';
+import { stateList } from '../../../../core/enums/state.enum';
+import { IdentificationType } from '../../../users/enum/identification-type.enum';
+import { UserState } from '../../../users/enum/user-state.enum';
+import { DocumentType } from '../../../../core/enums/document-type.enum';
+import { SelectOption } from '../../../../shared/components/searchable-select/searchable-select.component';
+
+// 4. Componentes Reales para Override
+import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
+import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select.component';
+
+// ── Mocks de Componentes Hijos (Standalone) ──────────────────────────────────
+
+@Component({ selector: 'app-button-component', template: '', standalone: true })
+class MockButtonComponent {
+  @Input() label = '';
+  @Input() variant = '';
+  @Input() type = 'button';
+  @Input() disabled = false;
+  @Output() onClick = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-file-upload-modal', template: '', standalone: true })
+class MockFileUploadModalComponent {
+  @Input() isOpen = false;
+  @Input() description = '';
+  @Output() onFileUploaded = new EventEmitter<{ fileName: string; file: File }>();
+  @Output() onClose = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-info-banner', template: '', standalone: true })
+class MockInfoBannerComponent {
+  @Input() title = '';
+}
+
+@Component({
+  selector: 'app-searchable-select',
+  template: '',
+  standalone: true,
+  providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => MockSearchableSelectComponent), multi: true }]
+})
+class MockSearchableSelectComponent {
+  @Input() id = '';
+  @Input() options: SelectOption[] = [];
+  @Input() placeholder = '';
+  @Input() hasError = false;
+  @Input() isValid = false;
+  writeValue(obj: any): void {}
+  registerOnChange(fn: any): void {}
+  registerOnTouched(fn: any): void {}
+}
+
+@Component({
+  selector: 'p-datepicker',
+  template: '',
+  standalone: true,
+  providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => MockDatePickerComponent), multi: true }]
+})
+class MockDatePickerComponent {
+  @Input() showTime = false;
+  @Input() hourFormat = '12';
+  @Input() placeholder = '';
+  @Input() styleClass = '';
+  @Input() inputStyleClass = '';
+  writeValue(obj: any): void {}
+  registerOnChange(fn: any): void {}
+  registerOnTouched(fn: any): void {}
+}
+
+// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
+
+interface MockRegisterSustentationFormService {
+  form: FormGroup;
+  getEligibleJurors: jest.Mock<User[], [ThesisWork]>;
+  getMemberFullName: jest.Mock<string, [User | undefined]>;
+  getStudentNames: jest.Mock<string, [ThesisWork]>;
+  getDirectorName: jest.Mock<string, [ThesisWork]>;
+  getCodirectorName: jest.Mock<string, [ThesisWork]>;
+  getAdvisorName: jest.Mock<string, [ThesisWork]>;
+  getExistingDocument: jest.Mock<FileDocument | null, [ThesisWork, string]>;
+  notifyIncompleteForm: jest.Mock<void, []>;
+}
+
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'u-1',
+  idType: IdentificationType.CC,
+  idNumber: 123456789,
+  firstName: 'Juan',
+  secondName: '',
+  lastName: 'Perez',
+  secondLastName: '',
+  codeNumber: 1234567890,
+  email: 'juan@test.com',
+  password: 'hash',
+  state: UserState.active,
+  roles: [],
+  ...overrides
+});
+
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
+  const baseUser = createMockUser();
+  const baseThesis: ThesisWork = {
+    thesisWorkId: 'mock-thesis-123',
+    preliminaryDraftId: 'draft-1',
+    documents: [],
+    evaluations: [],
+    specialRequests: [],
+    state: stateList.EN_DESARROLLO,
+    createdDate: new Date(),
+    preliminaryDraftData: {
+      preliminaryDraftId: 'draft-1',
+      proposalId: 'p-1',
+      state: stateList.APROBADO,
+      createdData: new Date(),
+      evaluations: [],
+      documents: [],
+      proposalData: {
+        id: 'p-1',
+        title: 'Título Mock',
+        description: 'Desc',
+        modality: Modality.TI,
+        authors: [baseUser],
+        director: baseUser,
+        state: stateList.APROBADO,
+        createdAt: new Date(),
+        documents: [],
+        evaluations: []
+      }
+    }
+  };
+  return { ...baseThesis, ...overrides };
+};
+
+const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
+  id: 'doc-1',
+  name: 'documento.pdf',
+  url: 'http://test/doc.pdf',
+  type: DocumentType.MONOGRAFIA,
+  uploadDate: new Date(),
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('RegisterSustentationFormComponent', () => {
   let component: RegisterSustentationFormComponent;
   let fixture: ComponentFixture<RegisterSustentationFormComponent>;
-  let formServiceMock: jest.Mocked<Partial<RegisterSustentationFormService>>;
+  let formServiceMock: MockRegisterSustentationFormService;
+  let fb: FormBuilder;
 
-  // Usamos fb.nonNullable.group para igualar exactamente la estructura de tipos del servicio
-  const fb = new FormBuilder();
-  const mockForm = fb.nonNullable.group({
-    sustentationDate: ['', Validators.required],
-    location: ['', Validators.required],
-    juror1: ['', Validators.required],
-    juror2: ['', Validators.required]
-  });
-
-  const mockThesisWork = {
-    preliminaryDraftData: {
-      proposalData: { title: 'Test Title', modality: Modality.TI, description: 'Test Desc' }
-    }
-  } as ThesisWork;
-
-  const mockUsers: Partial<User>[] = [
-    { id: 'j1', firstName: 'Jurado', lastName: 'Uno' },
-    { id: 'j2', firstName: 'Jurado', lastName: 'Dos' },
-    { id: 'j3', firstName: 'Jurado', lastName: 'Tres' }
+  const mockThesisWork = createMockThesisWork();
+  const mockUsers: User[] = [
+    createMockUser({ id: 'j1', firstName: 'Jurado', lastName: 'Uno' }),
+    createMockUser({ id: 'j2', firstName: 'Jurado', lastName: 'Dos' }),
+    createMockUser({ id: 'j3', firstName: 'Jurado', lastName: 'Tres' })
   ];
 
   beforeEach(async () => {
-    // Reseteamos el estado del formulario antes de cada prueba
-    mockForm.reset();
+    // 🔕 Silenciar consola como medida preventiva
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    fb = new FormBuilder();
+
+    // Creamos el FormGroup reactivo exactamente igual al original
+    const mockForm = fb.nonNullable.group({
+      sustentationDate: ['', Validators.required],
+      location: ['', Validators.required],
+      juror1: ['', Validators.required],
+      juror2: ['', Validators.required]
+    });
 
     formServiceMock = {
       form: mockForm,
-      getEligibleJurors: jest.fn().mockReturnValue(mockUsers as User[]),
-      getMemberFullName: jest.fn().mockImplementation((u: User) => `${u.firstName} ${u.lastName}`),
+      getEligibleJurors: jest.fn().mockReturnValue(mockUsers),
+      getMemberFullName: jest.fn().mockImplementation((u: User | undefined) => u ? `${u.firstName} ${u.lastName}` : 'No asignado'),
       getStudentNames: jest.fn().mockReturnValue('Estudiante Test'),
       getDirectorName: jest.fn().mockReturnValue('Director Test'),
       getCodirectorName: jest.fn().mockReturnValue('Codirector Test'),
       getAdvisorName: jest.fn().mockReturnValue('Asesor Test'),
-      getExistingDocument: jest.fn(),
+      getExistingDocument: jest.fn().mockReturnValue(null),
       notifyIncompleteForm: jest.fn()
     };
 
     await TestBed.configureTestingModule({
       imports: [
         RegisterSustentationFormComponent,
-        NoopAnimationsModule // Previene errores de animación por el DatePicker de PrimeNG
-      ],
-      schemas: [NO_ERRORS_SCHEMA]
+        ReactiveFormsModule,
+        NoopAnimationsModule
+      ]
     })
     .overrideComponent(RegisterSustentationFormComponent, {
-      set: {
+      remove: {
+        imports: [ButtonComponent, FileUploadModalComponent, InfoBannerComponent, SearchableSelectComponent, DatePicker],
+        providers: [RegisterSustentationFormService]
+      },
+      add: {
+        imports: [MockButtonComponent, MockFileUploadModalComponent, MockInfoBannerComponent, MockSearchableSelectComponent, MockDatePickerComponent],
         providers: [{ provide: RegisterSustentationFormService, useValue: formServiceMock }]
       }
     })
@@ -68,12 +223,14 @@ describe('RegisterSustentationFormComponent', () => {
     fixture = TestBed.createComponent(RegisterSustentationFormComponent);
     component = fixture.componentInstance;
 
+    // Asignación segura del Signal input requerido
     fixture.componentRef.setInput('thesisWork', mockThesisWork);
     fixture.detectChanges();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización y Signals (Signals & Computeds)', () => {
@@ -127,7 +284,7 @@ describe('RegisterSustentationFormComponent', () => {
     });
 
     it('debería delegar getMemberFullName al servicio', () => {
-      const user = { firstName: 'Juan', lastName: 'Perez' } as User;
+      const user = createMockUser({ firstName: 'Juan', lastName: 'Perez' });
       component.getMemberFullName(user);
       expect(formServiceMock.getMemberFullName).toHaveBeenCalledWith(user);
     });
@@ -170,7 +327,7 @@ describe('RegisterSustentationFormComponent', () => {
       expect(emitSpy).not.toHaveBeenCalled();
 
       // Caso exitoso
-      const mockDoc = { id: 'doc1', name: 'archivo.pdf' } as FileDocument;
+      const mockDoc = createMockFileDocument({ id: 'doc1', name: 'archivo.pdf' });
       component.downloadDocument(mockDoc);
       expect(emitSpy).toHaveBeenCalledWith(mockDoc);
     });

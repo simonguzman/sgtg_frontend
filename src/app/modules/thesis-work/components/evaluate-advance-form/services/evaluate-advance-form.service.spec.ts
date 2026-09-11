@@ -11,19 +11,92 @@ import { ThesisParticipantsFormatterService } from '../../../services/thesis-par
 // 4. Interfaces y Enums
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { AdvanceEvaluationResult } from '../../../interfaces/advance-playload.interface';
+import { User } from '../../../../users/interfaces/user.interface';
+import { stateList } from '../../../../../core/enums/state.enum';
+import { IdentificationType } from '../../../../users/enum/identification-type.enum';
+import { UserState } from '../../../../users/enum/user-state.enum';
+import { Modality } from '../../../../proposal/enums/modality.enum';
+
+// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
+
+interface MockFormatterService {
+  getStudentNames: jest.Mock<string, [ThesisWork]>;
+  getDirectorName: jest.Mock<string, [ThesisWork]>;
+  getCodirectorName: jest.Mock<string, [ThesisWork]>;
+  getAdvisorName: jest.Mock<string, [ThesisWork]>;
+}
+
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-123',
+  idType: IdentificationType.CC,
+  idNumber: 123456789,
+  firstName: 'Estudiante',
+  secondName: '',
+  lastName: 'Test',
+  secondLastName: '',
+  codeNumber: 1234567890,
+  email: 'test@test.com',
+  password: 'hash',
+  state: UserState.active,
+  roles: [],
+  ...overrides
+});
+
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
+  const baseUser = createMockUser();
+  const baseThesis = {
+    id: '123',
+    thesisWorkId: 'mock-id-123',
+    preliminaryDraftId: 'draft-1',
+    documents: [],
+    evaluations: [],
+    specialRequests: [],
+    state: stateList.EN_DESARROLLO,
+    createdDate: new Date(),
+    preliminaryDraftData: {
+      preliminaryDraftId: 'draft-1',
+      proposalId: 'prop-1',
+      state: stateList.APROBADO,
+      createdData: new Date(),
+      evaluations: [],
+      documents: [],
+      proposalData: {
+        id: 'prop-1',
+        title: 'Mock Title',
+        description: 'Desc',
+        modality: Modality.TI,
+        authors: [baseUser],
+        director: baseUser,
+        state: stateList.APROBADO,
+        createdAt: new Date(),
+        documents: [],
+        evaluations: []
+      }
+    }
+  };
+  return { ...baseThesis, ...overrides } as ThesisWork;
+};
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('EvaluateAdvanceFormService', () => {
   let service: EvaluateAdvanceFormService;
-  let formatterSpy: jest.Mocked<ThesisParticipantsFormatterService>;
+  let formatterSpy: MockFormatterService;
 
   beforeEach(() => {
+    // 🔕 Silenciar consola como medida preventiva, estándar del proyecto
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // Inicialización del espía con métodos fuertemente tipados
     formatterSpy = {
       getStudentNames: jest.fn().mockReturnValue('Estudiante 1'),
       getDirectorName: jest.fn().mockReturnValue('Director 1'),
       getCodirectorName: jest.fn().mockReturnValue('Codirector 1'),
       getAdvisorName: jest.fn().mockReturnValue('Asesor 1')
-    } as unknown as jest.Mocked<ThesisParticipantsFormatterService>;
+    };
 
     TestBed.configureTestingModule({
       imports: [ReactiveFormsModule],
@@ -38,6 +111,7 @@ describe('EvaluateAdvanceFormService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización del Formulario', () => {
@@ -61,8 +135,8 @@ describe('EvaluateAdvanceFormService', () => {
   });
 
   describe('Métodos Proxy de Participantes', () => {
-    // Mock robusto de ThesisWork para las validaciones
-    const mockThesis = { thesisWorkId: 'mock-id-123' } as unknown as ThesisWork;
+    // Uso de la fábrica en lugar de casteos 'unknown'
+    const mockThesis = createMockThesisWork();
 
     it('debe obtener y retornar los nombres de los estudiantes desde el formatter', () => {
       // Act

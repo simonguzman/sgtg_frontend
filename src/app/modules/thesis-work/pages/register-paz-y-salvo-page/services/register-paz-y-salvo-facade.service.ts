@@ -5,11 +5,14 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { PazYSalvoPayload } from '../../../interfaces/paz-y-salvo-playload.interface';
+import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 
 @Injectable({ providedIn: 'root' })
 export class RegisterPazYSalvoFacadeService {
   private readonly thesisWorkService   = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
+  private readonly downloadService = inject(FileDownloadService);
 
   public loadThesisWork(
     id:        string,
@@ -50,6 +53,21 @@ export class RegisterPazYSalvoFacadeService {
           onError();
         }
       });
+  }
+
+  // ← NUEVO: faltaba por completo — el formulario emitía onDownloadFile
+  // pero ningún método de este facade lo atendía.
+  public async downloadDocument(doc: FileDocument): Promise<void> {
+    if (!doc?.url) {
+      this.showNotification('Error de descarga', 'No existe una URL válida vinculada a este archivo.', NotificationType.ERROR);
+      return;
+    }
+    try {
+      await this.downloadService.download(doc.url, `${doc.name}.pdf`);
+    } catch (err) {
+      console.error(`Error al descargar el documento ${doc.name}:`, err);
+      this.showNotification('Error de descarga', `No se pudo descargar ${doc.name}. Intente más tarde.`, NotificationType.ERROR);
+    }
   }
 
   private showNotification(title: string, message: string, type: NotificationType): void {

@@ -82,7 +82,7 @@
                   <span class="text-size-role-footer text-[#777680]">Cargado por el estudiante</span>
                 </div>
               </div>
-              <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadAdvance.emit()"></app-button-component>
+              <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadAdvance.emit(doc)"></app-button-component>
             </div>
           } @empty {
             <div class="p-6 border border-dashed border-gray-300 rounded-xl text-center bg-gray-50/50">

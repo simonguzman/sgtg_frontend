@@ -17,18 +17,18 @@ import { FileDocument } from '../../../../../core/interfaces/file-document.inter
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 
-// --- Funciones Helper (Factories) para crear mocks tipados sin usar 'any' ---
-
-const createMockUser = (overrides?: Partial<User>): User => ({
+// 🔹 REFACTOR: Funciones Helper (Factories) estrictas para crear mocks sin usar 'any' ni 'unknown'
+const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u1',
   firstName: 'Juan',
   secondName: 'Carlos',
   lastName: 'Pérez',
   secondLastName: 'Gómez',
+  roles: [],
   ...overrides
 } as User);
 
-const createMockEvaluation = (overrides?: Partial<Evaluation>): Evaluation => ({
+const createMockEvaluation = (overrides: Partial<Evaluation> = {}): Evaluation => ({
   id: 'eval-1',
   proposalId: 'p1',
   documentId: 'doc-1',
@@ -42,7 +42,7 @@ const createMockEvaluation = (overrides?: Partial<Evaluation>): Evaluation => ({
   ...overrides
 } as Evaluation);
 
-const createMockProposal = (overrides?: Partial<Proposal>): Proposal => ({
+const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
   id: 'p1',
   title: 'Propuesta de Prueba',
   description: 'Descripción de prueba',
@@ -52,7 +52,7 @@ const createMockProposal = (overrides?: Partial<Proposal>): Proposal => ({
   ...overrides
 } as Proposal);
 
-const createMockPreliminaryDraft = (overrides?: Partial<PreliminaryDraft>): PreliminaryDraft => ({
+const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
   preliminaryDraftId: 'draft-1',
   proposalId: 'p1',
   proposalData: createMockProposal(),
@@ -60,24 +60,29 @@ const createMockPreliminaryDraft = (overrides?: Partial<PreliminaryDraft>): Prel
   state: stateList.EN_REVISION,
   createdData: new Date(),
   evaluations: [],
+  evaluators: [],
+  isArchived: false,
   ...overrides
 } as PreliminaryDraft);
-
-// --- Inicio del Bloque de Pruebas ---
 
 describe('PreliminaryDraftFormService', () => {
   let service: PreliminaryDraftFormService;
 
-  let mockProposalService: Partial<ProposalService>;
-  let mockAuthService: Partial<AuthService>;
-  let mockPreliminaryDraftService: Partial<PreliminaryDraftService>;
-  let mockUserService: Partial<UserService>;
+  // 🔹 REFACTOR: Interfaces estrictas para los mocks en lugar de Partial<Service>
+  let mockProposalService: { proposals: WritableSignal<Proposal[]> };
+  let mockAuthService: { currentUser: WritableSignal<User | null> };
+  let mockPreliminaryDraftService: { preliminaryDrafts: WritableSignal<PreliminaryDraft[]> };
+  let mockUserService: { getAuthorsNames: jest.Mock };
 
   let currentUserSignal: WritableSignal<User | null>;
   let proposalsSignal: WritableSignal<Proposal[]>;
   let draftsSignal: WritableSignal<PreliminaryDraft[]>;
 
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener la terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     currentUserSignal = signal<User | null>(null);
     proposalsSignal = signal<Proposal[]>([]);
     draftsSignal = signal<PreliminaryDraft[]>([]);
@@ -99,6 +104,11 @@ describe('PreliminaryDraftFormService', () => {
     });
 
     service = TestBed.inject(PreliminaryDraftFormService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('setupDynamicLogic y selectedProposal', () => {

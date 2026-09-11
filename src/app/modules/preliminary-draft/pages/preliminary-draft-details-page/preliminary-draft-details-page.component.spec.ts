@@ -1,6 +1,6 @@
 // 1. Angular Core & Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal, WritableSignal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal, WritableSignal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 
 // 2. Core Enums & Interfaces
@@ -20,6 +20,69 @@ import { PreliminaryDraftDetailsPageComponent } from './preliminary-draft-detail
 import { PreliminaryDraftDetailsPageService } from './services/preliminary-draft-details-page.service';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 
+// 🔹 REFACTOR: Fábricas para generar entidades limpias sin usar 'as unknown'
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-1',
+  idType: IdentificationType.CC,
+  idNumber: 123456789,
+  firstName: 'Juan',
+  lastName: 'Pérez',
+  secondLastName: 'Gómez',
+  codeNumber: 20261001,
+  roles: [],
+  email: 'juan@universidad.edu.co',
+  password: 'hash',
+  state: UserState.active,
+  ...overrides
+} as User);
+
+const createMockDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
+  id: 'doc-1',
+  name: 'Documento_Anteproyecto_Final.pdf',
+  url: 'http://docs/documento.pdf',
+  uploadDate: '12/08/2026',
+  type: DocumentType.ANTEPROYECTO,
+  ...overrides
+} as FileDocument);
+
+type ProposalData = NonNullable<PreliminaryDraft['proposalData']>;
+const createMockProposalData = (overrides: Partial<ProposalData> = {}): ProposalData => ({
+  id: 'prop-1',
+  title: 'Sistema Inteligente de Gestión',
+  description: 'Descripción detallada del sistema',
+  modality: Modality.TI,
+  authors: [createMockUser()],
+  director: createMockUser(),
+  state: stateList.EN_REVISION,
+  createdAt: new Date(),
+  documents: [],
+  evaluations: [],
+  ...overrides
+} as ProposalData);
+
+const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
+  preliminaryDraftId: 'draft-1',
+  proposalId: 'prop-1',
+  state: stateList.EN_REVISION,
+  createdData: new Date(),
+  evaluations: [],
+  documents: [createMockDocument()],
+  proposalData: createMockProposalData(),
+  ...overrides
+} as PreliminaryDraft);
+
+// 🔹 REFACTOR: Mock del componente hijo para aislar la prueba
+@Component({
+  selector: 'app-button-component',
+  standalone: true,
+  template: '<button (click)="onClick.emit()">{{ label }}</button>'
+})
+class MockButtonComponent {
+  @Input() label = '';
+  @Input() variant = '';
+  @Output() onClick = new EventEmitter<void>();
+}
+
 // Interfaz estricta para el Mock del Servicio
 interface MockPageService {
   init: jest.Mock<void, []>;
@@ -38,51 +101,11 @@ describe('PreliminaryDraftDetailsPageComponent', () => {
   let fixture: ComponentFixture<PreliminaryDraftDetailsPageComponent>;
   let mockPageService: MockPageService;
 
-  // Mock Objects con Tipado Estricto (Sin usar as unknown)
-  const mockUser: User = {
-    id: 'user-1',
-    idType: IdentificationType.CC,
-    idNumber: 123456789,
-    firstName: 'Juan',
-    lastName: 'Pérez',
-    secondLastName: 'Gómez',
-    codeNumber: 20261001,
-    roles: [],
-    email: 'juan@universidad.edu.co',
-    password: 'hash',
-    state: UserState.active
-  };
-
-  const mockDocument: FileDocument = {
-    id: 'doc-1',
-    name: 'Documento_Anteproyecto_Final.pdf',
-    url: 'http://docs/documento.pdf',
-    uploadDate: '12/08/2026',
-    type: DocumentType.ANTEPROYECTO
-  };
-
-  const mockDraft: PreliminaryDraft = {
-    preliminaryDraftId: 'draft-1',
-    proposalId: 'prop-1',
-    state: stateList.EN_REVISION,
-    createdData: new Date(),
-    evaluations: [],
-    documents: [mockDocument],
-    proposalData: {
-      id: 'prop-1',
-      title: 'Sistema Inteligente de Gestión',
-      description: 'Descripción detallada del sistema',
-      modality: Modality.TI,
-      authors: [mockUser],
-      director: mockUser,
-      state: stateList.EN_REVISION,
-      createdAt: new Date(),
-      documents: [],
-      evaluations: []
-    }
-  };
-
   beforeEach(async () => {
+    // 🔕 Silenciar los console.error y console.warn para mantener limpia la consola de pruebas
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockPageService = {
       init: jest.fn(),
       goBack: jest.fn(),
@@ -98,9 +121,13 @@ describe('PreliminaryDraftDetailsPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [PreliminaryDraftDetailsPageComponent]
     })
-    // Sobrescribimos el proveedor a nivel del decorador del componente
+    // Sobrescribimos el proveedor y el componente hijo
     .overrideComponent(PreliminaryDraftDetailsPageComponent, {
-      set: {
+      remove: {
+        imports: [ButtonComponent]
+      },
+      add: {
+        imports: [MockButtonComponent],
         providers: [
           { provide: PreliminaryDraftDetailsPageService, useValue: mockPageService }
         ]
@@ -110,6 +137,10 @@ describe('PreliminaryDraftDetailsPageComponent', () => {
 
     fixture = TestBed.createComponent(PreliminaryDraftDetailsPageComponent);
     component = fixture.componentInstance;
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización y renderizado condicional', () => {
@@ -128,9 +159,11 @@ describe('PreliminaryDraftDetailsPageComponent', () => {
     });
 
     it('debería renderizar la información principal cuando existen detalles del anteproyecto', () => {
-      // Configuramos el estado inicial antes de detectar cambios
-      mockPageService.preliminaryDraftDetails.set(mockDraft);
-      mockPageService.mainDocument.set(mockDocument);
+      const draft = createMockDraft();
+      const document = createMockDocument();
+
+      mockPageService.preliminaryDraftDetails.set(draft);
+      mockPageService.mainDocument.set(document);
 
       fixture.detectChanges();
 
@@ -145,16 +178,16 @@ describe('PreliminaryDraftDetailsPageComponent', () => {
       expect(compiled.textContent).toContain('Documento_Anteproyecto_Final.pdf');
 
       // Comprobamos que delegó el formato a los métodos del servicio
-      expect(mockPageService.getAuthors).toHaveBeenCalledWith(mockDraft.proposalData.authors);
-      expect(mockPageService.getMemberName).toHaveBeenCalledWith(mockDraft.proposalData.director.id);
+      expect(mockPageService.getAuthors).toHaveBeenCalledWith(draft.proposalData.authors);
+      expect(mockPageService.getMemberName).toHaveBeenCalledWith(draft.proposalData.director.id);
     });
   });
 
   describe('Interacciones y Eventos de Vista (Bindings)', () => {
     beforeEach(() => {
       // Necesitamos cargar los datos para que el HTML renderice los botones
-      mockPageService.preliminaryDraftDetails.set(mockDraft);
-      mockPageService.mainDocument.set(mockDocument);
+      mockPageService.preliminaryDraftDetails.set(createMockDraft());
+      mockPageService.mainDocument.set(createMockDocument());
       fixture.detectChanges();
     });
 
@@ -168,28 +201,28 @@ describe('PreliminaryDraftDetailsPageComponent', () => {
     });
 
     it('debería ejecutar navigateToEvaluations() al emitir onClick en el botón de Evaluaciones', () => {
-      // Obtenemos todos los app-button-component. El índice 0 es 'Evaluaciones realizadas'
-      const buttons = fixture.debugElement.queryAll(By.directive(ButtonComponent));
+      // Obtenemos todos los MockButtonComponent. El índice 0 es 'Evaluaciones realizadas'
+      const buttons = fixture.debugElement.queryAll(By.directive(MockButtonComponent));
 
-      buttons[0].triggerEventHandler('onClick', undefined);
+      buttons[0].componentInstance.onClick.emit();
 
       expect(mockPageService.navigateToEvaluations).toHaveBeenCalledTimes(1);
     });
 
     it('debería ejecutar navigateToDocuments() al emitir onClick en el botón de Documentos', () => {
       // El índice 1 corresponde a 'Documentos cargados'
-      const buttons = fixture.debugElement.queryAll(By.directive(ButtonComponent));
+      const buttons = fixture.debugElement.queryAll(By.directive(MockButtonComponent));
 
-      buttons[1].triggerEventHandler('onClick', undefined);
+      buttons[1].componentInstance.onClick.emit();
 
       expect(mockPageService.navigateToDocuments).toHaveBeenCalledTimes(1);
     });
 
     it('debería ejecutar downloadDocument() al emitir onClick en el botón de Descargar', () => {
       // El índice 2 corresponde a 'Descargar'
-      const buttons = fixture.debugElement.queryAll(By.directive(ButtonComponent));
+      const buttons = fixture.debugElement.queryAll(By.directive(MockButtonComponent));
 
-      buttons[2].triggerEventHandler('onClick', undefined);
+      buttons[2].componentInstance.onClick.emit();
 
       expect(mockPageService.downloadDocument).toHaveBeenCalledTimes(1);
     });

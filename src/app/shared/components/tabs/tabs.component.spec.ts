@@ -2,17 +2,31 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { TabsComponent, TabItem } from './tabs.component';
 
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockTabItem = (overrides: Partial<TabItem> = {}): TabItem => ({
+  label: 'Default Tab',
+  value: 'default_tab',
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('TabsComponent', () => {
   let component: TabsComponent;
   let fixture: ComponentFixture<TabsComponent>;
 
   const mockTabs: TabItem[] = [
-    { label: 'Pestaña 1', value: 'tab1' },
-    { label: 'Pestaña 2', value: 'tab2' },
-    { label: 'Pestaña 3', value: 'tab3' }
+    createMockTabItem({ label: 'Pestaña 1', value: 'tab1' }),
+    createMockTabItem({ label: 'Pestaña 2', value: 'tab2' }),
+    createMockTabItem({ label: 'Pestaña 3', value: 'tab3' })
   ];
 
   beforeEach(async () => {
+    // 🔕 Silenciar consola para mantener terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     await TestBed.configureTestingModule({
       imports: [TabsComponent]
     }).compileComponents();
@@ -25,6 +39,11 @@ describe('TabsComponent', () => {
     fixture.componentRef.setInput('activeTab', 'tab1');
 
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Renderizado e Inicialización', () => {

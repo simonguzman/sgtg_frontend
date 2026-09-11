@@ -1,13 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { AuthFooterComponent } from './auth-footer.component';
 import { APP_VERSION, getCurrentYear } from '../../../utils/app-metadata-utils';
-import { By } from '@angular/platform-browser';
 
 describe('AuthFooterComponent', () => {
   let component: AuthFooterComponent;
   let fixture: ComponentFixture<AuthFooterComponent>;
 
   beforeEach(async () => {
+    // 🔕 Silenciar consola como medida preventiva y estándar en todos los tests
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     await TestBed.configureTestingModule({
       // Importamos el componente como Standalone puro
       imports: [AuthFooterComponent]
@@ -15,7 +19,12 @@ describe('AuthFooterComponent', () => {
 
     fixture = TestBed.createComponent(AuthFooterComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges(); // Renderiza el DOM
+    fixture.detectChanges(); // Renderiza el DOM inicial
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización', () => {
@@ -24,6 +33,8 @@ describe('AuthFooterComponent', () => {
     });
 
     it('debería inicializar el año y la versión leyendo las utilidades compartidas', () => {
+      // Como las propiedades son 'protected', typescript normal daría error al acceder,
+      // la notación de brackets component['...'] evade amistosamente esta restricción en tests.
       expect(component['currentYear']).toBe(getCurrentYear());
       expect(component['version']).toBe(APP_VERSION);
     });
@@ -63,6 +74,7 @@ describe('AuthFooterComponent', () => {
 
     it('debería renderizar la franja de colores superior (5 bloques)', () => {
       // Verificamos que los div de la barra de colores institucional estén presentes
+      // NOTA: Se debe escapar el punto de la clase de Tailwind h-1.5 usando doble backslash en CSS
       const colorBars = fixture.debugElement.queryAll(By.css('.h-1\\.5 > div'));
 
       // Deben existir 5 divs de colores (Rojo, Naranja, Amarillo, Azul, Morado)

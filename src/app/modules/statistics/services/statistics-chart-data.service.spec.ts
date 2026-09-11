@@ -1,9 +1,11 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
+
 import { StatisticsChartDataService } from './statistics-chart-data.service';
 import { StatisticsStateService } from './statistics-state.service';
 import { RawProjectData } from '../interfaces/rawProjectData.interface';
 import { ProjectStage } from '../enum/projectStage.enum';
+import { ProjectStatus } from '../enum/projectStatus.enum';
 
 // Importamos las constantes para hacer aserciones dinámicas y robustas
 import {
@@ -15,15 +17,38 @@ import {
   STAGE_CHART_COLORS
 } from '../models/statistics-chart.model';
 
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockRawProjectData = (overrides: Partial<RawProjectData> = {}): RawProjectData => ({
+  id: 'proj-123',
+  title: 'Proyecto Mock',
+  stage: ProjectStage.PROPUESTA,
+  status: ProjectStatus.EN_DESARROLLO,
+  originalState: 'EN_REVISION',
+  period: '2026-1',
+  directorId: 'usr-1',
+  directorName: 'Director Mock',
+  registrationDate: new Date(),
+  isArchived: false,
+  deadlineStatus: null,
+  ...overrides
+} as RawProjectData);
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('StatisticsChartDataService', () => {
   let service: StatisticsChartDataService;
 
-  // Usamos un signal real en el mock para probar la reactividad del computed
-  let mockFilteredDataSignal = signal<RawProjectData[]>([]);
+  // Usamos un signal estricto en el mock para probar la reactividad del computed
+  let mockFilteredDataSignal: WritableSignal<RawProjectData[]>;
 
   beforeEach(() => {
-    // Limpiamos el signal antes de cada prueba
-    mockFilteredDataSignal.set([]);
+    // 🔕 Silenciar consola para mantener terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // Limpiamos e inicializamos el signal antes de cada prueba
+    mockFilteredDataSignal = signal<RawProjectData[]>([]);
 
     const mockStateService = {
       filteredData: mockFilteredDataSignal
@@ -37,6 +62,11 @@ describe('StatisticsChartDataService', () => {
     });
 
     service = TestBed.inject(StatisticsChartDataService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola
   });
 
   it('debería inyectarse correctamente', () => {
@@ -58,13 +88,13 @@ describe('StatisticsChartDataService', () => {
       const status1 = STATUS_CHART_ORDER[0];
       const status2 = STATUS_CHART_ORDER[1];
 
-      // Insertamos 3 proyectos del status1 y 1 del status2
-      const mockData = [
-        { status: status1 },
-        { status: status1 },
-        { status: status1 },
-        { status: status2 }
-      ] as unknown as RawProjectData[];
+      // Insertamos 3 proyectos del status1 y 1 del status2 usando el factory puro
+      const mockData: RawProjectData[] = [
+        createMockRawProjectData({ status: status1 }),
+        createMockRawProjectData({ status: status1 }),
+        createMockRawProjectData({ status: status1 }),
+        createMockRawProjectData({ status: status2 })
+      ];
 
       mockFilteredDataSignal.set(mockData);
 
@@ -97,12 +127,12 @@ describe('StatisticsChartDataService', () => {
       const stage1 = STAGE_CHART_ORDER[0];
       const stage2 = STAGE_CHART_ORDER[1];
 
-      // Insertamos 2 proyectos de la fase 1
-      const mockData = [
-        { stage: stage1 },
-        { stage: stage1 },
-        { stage: stage2 } // Ignoramos este si queremos solo medir la longitud correcta
-      ] as unknown as RawProjectData[];
+      // Insertamos 2 proyectos de la fase 1 y 1 de la fase 2 usando el factory
+      const mockData: RawProjectData[] = [
+        createMockRawProjectData({ stage: stage1 }),
+        createMockRawProjectData({ stage: stage1 }),
+        createMockRawProjectData({ stage: stage2 })
+      ];
 
       mockFilteredDataSignal.set(mockData);
 
@@ -123,7 +153,7 @@ describe('StatisticsChartDataService', () => {
 
       // Mutamos el estado (simulando una acción del usuario en el componente)
       mockFilteredDataSignal.set([
-        { stage: stage1 } as unknown as RawProjectData
+        createMockRawProjectData({ stage: stage1 })
       ]);
 
       // El computed se actualiza instantáneamente

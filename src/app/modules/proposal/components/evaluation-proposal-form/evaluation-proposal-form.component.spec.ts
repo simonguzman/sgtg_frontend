@@ -9,7 +9,7 @@ describe('EvaluationProposalFormComponent', () => {
   let component: EvaluationProposalFormComponent;
   let fixture: ComponentFixture<EvaluationProposalFormComponent>;
   let formServiceMock: {
-    evaluationForm: any; // Se inyecta un FormGroup real, no requiere mockeo de funciones internas del form
+    evaluationForm: any;
     resolveOriginalDocument: jest.Mock;
     resolveCurrentDocument: jest.Mock;
     formatUploadDate: jest.Mock;
@@ -22,10 +22,7 @@ describe('EvaluationProposalFormComponent', () => {
   };
   let formBuilder: FormBuilder;
 
-  // Creamos un archivo File real simulado para las pruebas
   const mockFile = new File(['dummy content'], 'documento.pdf', { type: 'application/pdf' });
-
-  // SOLUCIÓN AL ERROR TS2352: Usamos "as unknown as Tipo" para mocks incompletos
   const mockAuthors = [{ id: 'stu-1' }] as unknown as User[];
 
   const mockProposal = {
@@ -42,15 +39,17 @@ describe('EvaluationProposalFormComponent', () => {
   } as unknown as Proposal;
 
   beforeEach(async () => {
+    // Silenciar errores y advertencias de la consola para mantener limpios los logs
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     formBuilder = new FormBuilder();
 
-    // Creamos un FormGroup real para que el HTML del componente pueda interactuar con él
     const mockEvaluationForm = formBuilder.group({
       result: ['', Validators.required],
       comments: ['', Validators.required]
     });
 
-    // Construimos el mock del servicio con funciones tipadas de Jest
     formServiceMock = {
       evaluationForm: mockEvaluationForm,
       resolveOriginalDocument: jest.fn(),
@@ -79,14 +78,13 @@ describe('EvaluationProposalFormComponent', () => {
     fixture = TestBed.createComponent(EvaluationProposalFormComponent);
     component = fixture.componentInstance;
 
-    // Seteamos el signal input requerido ANTES del primer detectChanges
     fixture.componentRef.setInput('proposal', mockProposal);
     fixture.detectChanges();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks();
+    jest.restoreAllMocks(); // Restaura console.error y console.warn a su estado original
   });
 
   describe('Inicialización y Getters', () => {
@@ -105,11 +103,9 @@ describe('EvaluationProposalFormComponent', () => {
     it('debería calcular isFileInvalid correctamente', () => {
       expect(component.isFileInvalid).toBeFalsy();
 
-      // Enviamos el formulario pero sin archivo
       component.formSubmitted.set(true);
       expect(component.isFileInvalid).toBeTruthy();
 
-      // Agregamos archivo real
       component.signedFile.set({ name: 'formatoA.pdf', file: mockFile });
       expect(component.isFileInvalid).toBeFalsy();
     });
@@ -212,7 +208,6 @@ describe('EvaluationProposalFormComponent', () => {
       component.confirmEvaluation();
 
       expect(component.modalState().confirm).toBeFalsy();
-      // Validamos que se envíe el objeto File real en lugar del string
       expect(emitSpy).toHaveBeenCalledWith({
         result: 'No aprobado',
         comments: 'Falta revisión',

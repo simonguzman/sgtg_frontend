@@ -5,31 +5,39 @@ import { EventBusService } from './event-bus.service';
 import { AppEvent } from '../../interfaces/app-event.interface';
 import { AppEventType } from '../../enums/app-event-type.enum';
 
-// Factory para generar mocks limpios y tipados
-function createMockAppEvent(overrides: Partial<AppEvent> = {}): AppEvent {
-  return {
-    type: AppEventType.PROPOSAL_CREATED,
-    targetUserIds: ['user-1'],
-    payload: { id: 'entity-1' },
-    ...overrides
-  } as AppEvent;
-}
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown', 'as') ─────
+
+const createMockAppEvent = (overrides: Partial<AppEvent> = {}): AppEvent => ({
+  type: AppEventType.PROPOSAL_CREATED,
+  targetUserIds: ['user-1'],
+  payload: { id: 'entity-1' },
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('EventBusService', () => {
   let service: EventBusService;
   let subscriptions: Subscription[] = [];
 
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener terminal limpia ante cualquier advertencia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     TestBed.configureTestingModule({
       providers: [EventBusService]
     });
     service = TestBed.inject(EventBusService);
   });
 
-  // Limpieza de suscripciones para evitar memory leaks en Jest
+  // Limpieza de suscripciones y espías para evitar memory leaks en Jest
   afterEach(() => {
     subscriptions.forEach(sub => sub.unsubscribe());
     subscriptions = [];
+
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización', () => {

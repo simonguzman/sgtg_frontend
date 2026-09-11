@@ -1,94 +1,124 @@
+// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ThesisWorkDetailsPageComponent } from './thesis-work-details-page.component';
-import { ThesisWorkDetailsFacadeService } from './services/thesis-work-details-facade.service';
-import { signal, WritableSignal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal, WritableSignal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 
-// Definimos una interfaz local para el Mock, evitando usar 'any' en la señal de detalles.
-interface MockThesisWorkDetails {
-  title: string;
-  description: string;
-  modality: string;
-  state: string;
-  participants: {
-    authors: string;
-    director: string;
-    codirector?: string | null;
-    advisor?: string | null;
-  };
-  mainDocument?: {
-    name: string;
-    description: string;
-  } | null;
+// 2. Componente a probar
+import { ThesisWorkDetailsPageComponent } from './thesis-work-details-page.component';
+
+// 3. Servicios y Modelos
+import { ThesisWorkDetailsFacadeService } from './services/thesis-work-details-facade.service';
+import { ThesisWorkDetailsView } from './models/thesis-work-details-page.model';
+
+// Importación Basekit para override
+import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+
+// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown' ni casteos dobles) ──
+
+interface MockThesisWorkDetailsFacadeService {
+  isLoading: WritableSignal<boolean>;
+  details: WritableSignal<ThesisWorkDetailsView | null>;
+  loadThesisWorkDetails: jest.Mock<void, [string]>;
+  handleMissingId: jest.Mock<void, []>;
+  goBack: jest.Mock<void, []>;
+  downloadDocument: jest.Mock<Promise<void>, []>;
 }
+
+interface MockRouter {
+  // Acepta la ruta y un objeto opcional de extras (ej: relativeTo)
+  navigate: jest.Mock<Promise<boolean>, [any[], any?]>;
+}
+
+interface MockRouteNode {
+  snapshot: { paramMap: { get: jest.Mock<string | null, [string]> } };
+  parent: MockRouteNode | null;
+}
+
+// ── Mocks de Componentes Standalone (Strict-Init) ─────────────────────────────
+
+@Component({ selector: 'app-button-component', standalone: true, template: '' })
+class MockButtonComponent {
+  @Input() label = '';
+  @Input() variant = '';
+  @Output() onClick = new EventEmitter<void>();
+}
+
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
+
+const createMockThesisWorkDetailsView = (overrides: Partial<ThesisWorkDetailsView> = {}): ThesisWorkDetailsView => ({
+  id: 'tw-123',
+  title: 'Título Base',
+  description: 'Descripción Base',
+  modality: 'Modalidad Base',
+  state: 'ACTIVO',
+  participants: {
+    authors: 'Autor Base',
+    director: 'Director Base',
+    // codirector y advisor son opcionales en tu interfaz, los omitimos por defecto
+  },
+  mainDocument: null,
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('ThesisWorkDetailsPageComponent', () => {
   let component: ThesisWorkDetailsPageComponent;
   let fixture: ComponentFixture<ThesisWorkDetailsPageComponent>;
 
-  // Tipado estricto para los espías, exponiendo las señales como WritableSignals para mutarlas en las pruebas
-  let facadeSpy: {
-    isLoading: WritableSignal<boolean>;
-    details: WritableSignal<MockThesisWorkDetails | null>;
-    loadThesisWorkDetails: jest.Mock;
-    handleMissingId: jest.Mock;
-    goBack: jest.Mock;
-    downloadDocument: jest.Mock;
-  };
-
-  let routerSpy: { navigate: jest.Mock };
-
-  let routeSpy: {
-    snapshot: { paramMap: { get: jest.Mock } };
-    parent: { snapshot: { paramMap: { get: jest.Mock } } };
-  };
-
-  // Base mock para evitar errores de "undefined" en el HTML al evaluar propiedades anidadas
-  const defaultMockDetails: MockThesisWorkDetails = {
-    title: 'Título Base',
-    description: 'Descripción Base',
-    modality: 'Modalidad Base',
-    state: 'ACTIVO',
-    participants: {
-      authors: 'Autor Base',
-      director: 'Director Base'
-    }
-  };
+  // Tipado estricto para los espías
+  let facadeMock: MockThesisWorkDetailsFacadeService;
+  let routerMock: MockRouter;
+  let routeMock: MockRouteNode;
 
   beforeEach(async () => {
+    // 🔕 Silenciador preventivo global de consola
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // Inicializamos las señales reactivas para el mock
-    facadeSpy = {
+    facadeMock = {
       isLoading: signal(false),
-      details: signal<MockThesisWorkDetails | null>(null),
+      details: signal<ThesisWorkDetailsView | null>(null),
       loadThesisWorkDetails: jest.fn(),
       handleMissingId: jest.fn(),
       goBack: jest.fn(),
-      downloadDocument: jest.fn()
+      downloadDocument: jest.fn().mockResolvedValue(undefined)
     };
 
-    routerSpy = { navigate: jest.fn() };
+    routerMock = {
+      navigate: jest.fn().mockResolvedValue(true)
+    };
 
-    routeSpy = {
+    // Estructura recursiva segura de rutas, emulando ActivatedRoute
+    routeMock = {
       snapshot: { paramMap: { get: jest.fn().mockReturnValue('tw-123') } },
-      parent: { snapshot: { paramMap: { get: jest.fn() } } }
+      parent: { snapshot: { paramMap: { get: jest.fn() } }, parent: null }
     };
 
     await TestBed.configureTestingModule({
       imports: [ThesisWorkDetailsPageComponent],
       providers: [
-        { provide: ThesisWorkDetailsFacadeService, useValue: facadeSpy as unknown as ThesisWorkDetailsFacadeService },
-        { provide: Router, useValue: routerSpy as unknown as Router },
-        { provide: ActivatedRoute, useValue: routeSpy as unknown as ActivatedRoute }
+        // Proveemos directamente los objetos que satisfacen las interfaces, ¡sin usar "as unknown"!
+        { provide: ThesisWorkDetailsFacadeService, useValue: facadeMock },
+        { provide: Router, useValue: routerMock },
+        { provide: ActivatedRoute, useValue: routeMock }
       ]
-    }).compileComponents();
+    })
+    .overrideComponent(ThesisWorkDetailsPageComponent, {
+      remove: { imports: [ButtonComponent] },
+      add: { imports: [MockButtonComponent] }
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(ThesisWorkDetailsPageComponent);
     component = fixture.componentInstance;
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.clearAllMocks(); // Limpiamos cruces entre pruebas
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización (ngOnInit)', () => {
@@ -97,41 +127,49 @@ describe('ThesisWorkDetailsPageComponent', () => {
     });
 
     it('debe cargar los detalles si se proporciona un ID en la ruta directa', () => {
+      // Act
       fixture.detectChanges(); // Dispara ngOnInit
 
-      expect(routeSpy.snapshot.paramMap.get).toHaveBeenCalledWith('id');
-      expect(facadeSpy.loadThesisWorkDetails).toHaveBeenCalledWith('tw-123');
+      // Assert
+      expect(routeMock.snapshot.paramMap.get).toHaveBeenCalledWith('id');
+      expect(facadeMock.loadThesisWorkDetails).toHaveBeenCalledWith('tw-123');
     });
 
     it('debe buscar el ID en el padre si no está en la ruta actual', () => {
-      routeSpy.snapshot.paramMap.get.mockReturnValue(null);
-      routeSpy.parent.snapshot.paramMap.get.mockReturnValue('parent-id-456');
+      // Arrange
+      routeMock.snapshot.paramMap.get.mockReturnValue(null);
+      routeMock.parent!.snapshot.paramMap.get.mockReturnValue('parent-id-456');
 
+      // Act
       fixture.detectChanges();
 
-      expect(facadeSpy.loadThesisWorkDetails).toHaveBeenCalledWith('parent-id-456');
+      // Assert
+      expect(facadeMock.loadThesisWorkDetails).toHaveBeenCalledWith('parent-id-456');
     });
 
     it('debe manejar la ausencia de ID delegando al facade y abortando la carga', () => {
-      routeSpy.snapshot.paramMap.get.mockReturnValue(null);
-      routeSpy.parent.snapshot.paramMap.get.mockReturnValue(null);
+      // Arrange
+      routeMock.snapshot.paramMap.get.mockReturnValue(null);
+      routeMock.parent!.snapshot.paramMap.get.mockReturnValue(null);
 
+      // Act
       fixture.detectChanges();
 
-      expect(facadeSpy.handleMissingId).toHaveBeenCalled();
-      expect(facadeSpy.loadThesisWorkDetails).not.toHaveBeenCalled();
+      // Assert
+      expect(facadeMock.handleMissingId).toHaveBeenCalled();
+      expect(facadeMock.loadThesisWorkDetails).not.toHaveBeenCalled();
     });
   });
 
   describe('Interacciones y renderizado del DOM (Template)', () => {
     beforeEach(() => {
-      // Configuramos el componente inicial para estas pruebas
+      // Configuramos el componente inicial para estas pruebas (ngOnInit se ejecuta)
       fixture.detectChanges();
     });
 
     it('debe mostrar el mensaje de carga cuando isLoading es verdadero', () => {
       // Act
-      facadeSpy.isLoading.set(true);
+      facadeMock.isLoading.set(true);
       fixture.detectChanges();
 
       // Assert
@@ -141,22 +179,21 @@ describe('ThesisWorkDetailsPageComponent', () => {
     });
 
     it('debe renderizar la información estructural y participantes cuando existen detalles', () => {
-      // Arrange
-      const mockDetails: MockThesisWorkDetails = {
-        ...defaultMockDetails,
+      // Arrange usando la fábrica
+      const mockDetails = createMockThesisWorkDetailsView({
         title: 'Tesis de Inteligencia Artificial',
         description: 'Análisis de datos',
         participants: {
           authors: 'Juan Pérez',
           director: 'Dr. Smith'
         }
-      };
+      });
 
       // Act
-      facadeSpy.details.set(mockDetails);
+      facadeMock.details.set(mockDetails);
       fixture.detectChanges();
 
-      // Assert: Título general del trabajo
+      // Assert: Título general del trabajo (los labels son Título, Descripción, etc.)
       const informationBlocks = fixture.debugElement.queryAll(By.css('.information-block p'));
       expect(informationBlocks[0].nativeElement.textContent.trim()).toBe('Tesis de Inteligencia Artificial');
       expect(informationBlocks[1].nativeElement.textContent.trim()).toBe('Análisis de datos');
@@ -167,18 +204,41 @@ describe('ThesisWorkDetailsPageComponent', () => {
       expect(participantsText).toContain('Dr. Smith');
     });
 
+    it('debe mostrar codirector y asesor únicamente si están presentes', () => {
+      // Arrange usando la fábrica
+      const mockDetails = createMockThesisWorkDetailsView({
+        participants: {
+          authors: 'Juan Pérez',
+          director: 'Dr. Smith',
+          codirector: 'Dra. López',
+          advisor: 'Lic. Gómez'
+        }
+      });
+
+      // Act
+      facadeMock.details.set(mockDetails);
+      fixture.detectChanges();
+
+      // Assert
+      const participantsText = fixture.debugElement.query(By.css('.space-y-2')).nativeElement.textContent;
+      expect(participantsText).toContain('Codirector:');
+      expect(participantsText).toContain('Dra. López');
+      expect(participantsText).toContain('Asesor:');
+      expect(participantsText).toContain('Lic. Gómez');
+    });
+
     it('debe llamar a facade.goBack() al hacer clic en el botón Regresar', () => {
       // Act
       const backButton = fixture.debugElement.query(By.css('button'));
       backButton.triggerEventHandler('click', null);
 
       // Assert
-      expect(facadeSpy.goBack).toHaveBeenCalled();
+      expect(facadeMock.goBack).toHaveBeenCalled();
     });
 
     it('debe emitir la navegación correcta al hacer clic en "Evaluaciones realizadas"', () => {
-      // Arrange: Proveemos el objeto base completo para que el HTML no se rompa al renderizar
-      facadeSpy.details.set({ ...defaultMockDetails });
+      // Arrange
+      facadeMock.details.set(createMockThesisWorkDetailsView());
       fixture.detectChanges();
 
       const evaluationButton = fixture.debugElement.query(
@@ -189,18 +249,17 @@ describe('ThesisWorkDetailsPageComponent', () => {
       evaluationButton.triggerEventHandler('onClick', null);
 
       // Assert
-      expect(routerSpy.navigate).toHaveBeenCalledWith(
+      expect(routerMock.navigate).toHaveBeenCalledWith(
         ['evaluations_performed'],
-        { relativeTo: routeSpy }
+        { relativeTo: routeMock } // Navegación relativa exacta
       );
     });
 
     it('debe llamar a facade.downloadDocument() al hacer clic en Descargar', () => {
-      // Arrange: Proveemos el objeto base completo sumando el mainDocument
-      facadeSpy.details.set({
-        ...defaultMockDetails,
-        mainDocument: { name: 'archivo.pdf', description: 'Desc' }
-      });
+      // Arrange
+      facadeMock.details.set(createMockThesisWorkDetailsView({
+        mainDocument: { name: 'archivo.pdf', url: 'http://test.com/archivo.pdf', description: 'Desc' }
+      }));
       fixture.detectChanges();
 
       const downloadButton = fixture.debugElement.query(
@@ -211,7 +270,7 @@ describe('ThesisWorkDetailsPageComponent', () => {
       downloadButton.triggerEventHandler('onClick', null);
 
       // Assert
-      expect(facadeSpy.downloadDocument).toHaveBeenCalled();
+      expect(facadeMock.downloadDocument).toHaveBeenCalled();
     });
   });
 });

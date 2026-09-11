@@ -41,8 +41,8 @@ export const SustentationTabConfig: TabConfiguration<SustentationTableRow> = {
     {
       field: 'acciones', header: 'Acciones', type: 'actions', width: '20%',
       actions: [
-        { action: 'view_sustentation_details', label: 'Ver Detalles', variant: 'primary', disabled: false },
-        { action: 'evaluate_sustentation', label: 'Evaluar Sustentación', icon: 'gavel', variant: 'primary', disabled: false }
+        { action: 'view_sustentation_details', label: 'Ver detalles', icon: 'visibility', variant: 'primary', disabled: false },
+        { action: 'evaluate_sustentation', label: 'Evaluar sustentación', icon: 'gavel', variant: 'primary', disabled: false }
       ]
     }
   ],

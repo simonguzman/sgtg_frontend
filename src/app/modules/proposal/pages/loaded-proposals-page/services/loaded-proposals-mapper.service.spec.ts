@@ -7,6 +7,10 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 describe('LoadedProposalsMapperService', () => {
   let service: LoadedProposalsMapperService;
 
+  // Espías para silenciar la consola
+  let consoleErrorSpy: jest.SpyInstance;
+  let consoleWarnSpy: jest.SpyInstance;
+
   // Mock base completo: sin usar Partial ni aserciones de tipo (as FileDocument)
   // De esta manera, si la interfaz FileDocument cambia en el futuro,
   // TypeScript nos obligará a actualizar el mock, manteniendo la seguridad.
@@ -20,10 +24,20 @@ describe('LoadedProposalsMapperService', () => {
   };
 
   beforeEach(() => {
+    // Silenciamos la consola para evitar ruido en los tests
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     TestBed.configureTestingModule({
       providers: [LoadedProposalsMapperService]
     });
     service = TestBed.inject(LoadedProposalsMapperService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 
   it('debe crearse correctamente', () => {

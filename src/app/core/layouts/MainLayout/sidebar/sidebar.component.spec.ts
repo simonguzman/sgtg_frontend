@@ -1,17 +1,19 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { SidebarComponent } from './sidebar.component';
-import { AuthService } from '../../../services/auth/auth.service';
 import { provideRouter } from '@angular/router';
 import { signal, WritableSignal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 
+import { SidebarComponent } from './sidebar.component';
+import { AuthService } from '../../../services/auth/auth.service';
 // Importamos el enum directamente para tipar estrictamente nuestro mock
-import { UserRoleType } from '../../../enums/user-role-type.enum';
+import { UserRoleType } from '../../../../core/enums/user-role-type.enum'; // Ajusta la ruta a tu estructura real si es diferente
 
 // Definimos una interfaz estricta para nuestro mock, sin usar 'any'
 interface MockAuthService {
   hasAnyRole: jest.Mock<boolean, [UserRoleType[]]>;
 }
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('SidebarComponent', () => {
   let component: SidebarComponent;
@@ -24,6 +26,10 @@ describe('SidebarComponent', () => {
   let activeRolesSignal: WritableSignal<UserRoleType[]>;
 
   beforeEach(async () => {
+    // 🔕 Silenciar consola para mantener terminal limpia ante warnings del Router en JSDOM
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // Inicializamos al usuario sin roles (por defecto)
     activeRolesSignal = signal([]);
 
@@ -38,7 +44,7 @@ describe('SidebarComponent', () => {
     await TestBed.configureTestingModule({
       imports: [SidebarComponent],
       providers: [
-        provideRouter([]), // Proveemos el enrutador para [routerLink]
+        provideRouter([]), // Proveemos el enrutador para que [routerLink] no falle
         { provide: AuthService, useValue: mockAuthService }
       ]
     }).compileComponents();
@@ -46,6 +52,11 @@ describe('SidebarComponent', () => {
     fixture = TestBed.createComponent(SidebarComponent);
     component = fixture.componentInstance;
     fixture.detectChanges(); // Ejecuta el primer renderizado y evalúa el computed
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización y Lógica Reactiva (Computed)', () => {
@@ -109,17 +120,20 @@ describe('SidebarComponent', () => {
       const anchorElements = fixture.debugElement.queryAll(By.css('a.menu-link'));
       expect(anchorElements).toHaveLength(2);
 
-      const firstItem = anchorElements[0].nativeElement;
+      const firstItem = anchorElements[0].nativeElement as HTMLElement;
 
       // Verificamos atributos del enrutador nativo
       expect(firstItem.getAttribute('href')).toBe('/notifications');
 
-      // Verificamos el contenido visual (icono y texto)
+      // Verificamos el contenido visual (icono y texto) con encadenamiento opcional para prevenir crash
       const iconSpan = firstItem.querySelector('.material-symbols-outlined');
       const textSpan = firstItem.querySelector('.font-display');
 
-      expect(iconSpan.textContent.trim()).toBe('inbox');
-      expect(textSpan.textContent.trim()).toBe('Bandeja de entrada');
+      expect(iconSpan).toBeTruthy();
+      expect(iconSpan?.textContent?.trim()).toBe('inbox');
+
+      expect(textSpan).toBeTruthy();
+      expect(textSpan?.textContent?.trim()).toBe('Bandeja de entrada');
     });
   });
 });

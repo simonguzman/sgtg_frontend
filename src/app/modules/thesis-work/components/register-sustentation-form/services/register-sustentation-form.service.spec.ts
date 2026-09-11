@@ -1,26 +1,119 @@
+// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
 import { FormBuilder } from '@angular/forms';
+
+// 2. Servicio a probar
 import { RegisterSustentationFormService } from './register-sustentation-form.service';
+
+// 3. Dependencias (Servicios)
 import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
 import { ThesisFinalDeliveryDocumentResolverService } from '../../../services/thesis-final-delivery-document-resolver.service';
+
+// 4. Interfaces y Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { stateList } from '../../../../../core/enums/state.enum';
+import { IdentificationType } from '../../../../users/enum/identification-type.enum';
+import { UserState } from '../../../../users/enum/user-state.enum';
+import { Modality } from '../../../../proposal/enums/modality.enum';
 
-// Tipado estricto parcial para evitar 'any' o casteos excesivos con 'unknown'
-type MockUserService = { users: jest.Mock };
+// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown', 'Partial') ──────────
+
+interface MockUserService {
+  users: jest.Mock<User[], []>;
+}
+
+interface MockNotificationService {
+  show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
+}
+
+interface MockParticipantsFormatterService {
+  getStudentNames: jest.Mock<string, [ThesisWork]>;
+  getDirectorName: jest.Mock<string, [ThesisWork]>;
+  getCodirectorName: jest.Mock<string, [ThesisWork]>;
+  getAdvisorName: jest.Mock<string, [ThesisWork]>;
+}
+
+interface MockDocumentResolverService {
+  resolveLatestPazYSalvoDocument: jest.Mock<FileDocument | null, [ThesisWork]>;
+  resolveLatestFinalDeliveryDocument: jest.Mock<FileDocument | null, [ThesisWork, string]>;
+}
+
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'u-default',
+  idType: IdentificationType.CC,
+  idNumber: 123456789,
+  firstName: 'Juan',
+  secondName: '',
+  lastName: 'Perez',
+  secondLastName: '',
+  codeNumber: 1234567890,
+  email: 'juan@test.com',
+  password: 'hash',
+  state: UserState.active,
+  roles: [],
+  ...overrides
+});
+
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
+  const baseUser = createMockUser();
+
+  // Usamos una estructura base completa para evitar errores de undefined en los tests
+  const baseThesis: ThesisWork = {
+    thesisWorkId: 'mock-thesis-123',
+    preliminaryDraftId: 'draft-1',
+    documents: [],
+    evaluations: [],
+    specialRequests: [],
+    state: stateList.EN_DESARROLLO,
+    createdDate: new Date(),
+    preliminaryDraftData: {
+      preliminaryDraftId: 'draft-1',
+      proposalId: 'p-1',
+      state: stateList.APROBADO,
+      createdData: new Date(),
+      evaluations: [],
+      documents: [],
+      proposalData: {
+        id: 'p-1',
+        title: 'Título Mock',
+        description: 'Desc',
+        modality: Modality.TI,
+        authors: [baseUser],
+        director: baseUser,
+        state: stateList.APROBADO,
+        createdAt: new Date(),
+        documents: [],
+        evaluations: []
+      }
+    }
+  };
+  return { ...baseThesis, ...overrides };
+};
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('RegisterSustentationFormService', () => {
   let service: RegisterSustentationFormService;
+
+  // Mocks tipados estrictamente
   let userServiceMock: MockUserService;
-  let notificationMock: jest.Mocked<Partial<NotificationService>>;
-  let participantsFormatterMock: jest.Mocked<Partial<ThesisParticipantsFormatterService>>;
-  let documentResolverMock: jest.Mocked<Partial<ThesisFinalDeliveryDocumentResolverService>>;
+  let notificationMock: MockNotificationService;
+  let participantsFormatterMock: MockParticipantsFormatterService;
+  let documentResolverMock: MockDocumentResolverService;
 
   beforeEach(() => {
+    // 🔕 Silenciar consola como medida preventiva
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     userServiceMock = {
       users: jest.fn()
     };
@@ -57,6 +150,7 @@ describe('RegisterSustentationFormService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización del Formulario', () => {
@@ -69,39 +163,50 @@ describe('RegisterSustentationFormService', () => {
     });
   });
 
-  describe('getEligibleJurors', () => {
-    const mockThesisWork = {
-      preliminaryDraftData: {
-        proposalData: {
-          director: { id: 'director1' },
-          codirector: { id: 'codirector1' },
-          advisor: { id: 'advisor1' },
-          // Probamos ambas ramas lógicas: string y objeto User
-          authors: ['student1', { id: 'student2' } as User]
-        },
-        evaluations: [{ evaluatorId: 'evaluator1' }]
-      }
-    } as ThesisWork;
-
-    const mockUsers: Partial<User>[] = [
-      { id: 'valid1', roles: [UserRoleType.DOCENTE] },
-      { id: 'valid2', roles: [UserRoleType.DOCENTE] },
-      { id: 'director1', roles: [UserRoleType.DOCENTE] }, // Excluido: director
-      { id: 'evaluator1', roles: [UserRoleType.DOCENTE] }, // Excluido: evaluador
-      { id: 'student1', roles: [UserRoleType.ESTUDIANTE] }, // Excluido: autor (string) y no es docente
-      { id: 'student2', roles: [UserRoleType.DOCENTE] }, // Excluido: autor (objeto)
-      { id: 'conflict1', roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] } // Excluido: rol conflictivo
+  describe('Cálculo de Jurados Elegibles (getEligibleJurors)', () => {
+    // Generamos usuarios reales (legales para TS) mediante la fábrica
+    const mockUsers: User[] = [
+      createMockUser({ id: 'valid1', roles: [UserRoleType.DOCENTE] }),
+      createMockUser({ id: 'valid2', roles: [UserRoleType.DOCENTE] }),
+      createMockUser({ id: 'director1', roles: [UserRoleType.DOCENTE] }), // Excluido: director
+      createMockUser({ id: 'evaluator1', roles: [UserRoleType.DOCENTE] }), // Excluido: evaluador
+      createMockUser({ id: 'student1', roles: [UserRoleType.ESTUDIANTE] }), // Excluido: no es docente
+      createMockUser({ id: 'student2', roles: [UserRoleType.DOCENTE] }), // Excluido: autor
+      createMockUser({ id: 'conflict1', roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] }) // Excluido: rol conflictivo
     ];
 
-    it('debería retornar un array vacío si no hay datos del anteproyecto', () => {
-      userServiceMock.users.mockReturnValue(mockUsers as User[]);
-      const result = service.getEligibleJurors({} as ThesisWork);
+    it('debería retornar un array vacío si no hay datos del anteproyecto o propuesta', () => {
+      userServiceMock.users.mockReturnValue(mockUsers);
+
+      // Creamos una tesis vaciando explícitamente sus datos con casteo seguro a undefined
+      const incompleteThesis = createMockThesisWork();
+      incompleteThesis.preliminaryDraftData.proposalData = undefined as any;
+
+      const result = service.getEligibleJurors(incompleteThesis);
       expect(result).toEqual([]);
     });
 
-    it('debería filtrar correctamente los usuarios aptos para ser jurados', () => {
-      userServiceMock.users.mockReturnValue(mockUsers as User[]);
-      const result = service.getEligibleJurors(mockThesisWork);
+    it('debería filtrar correctamente los usuarios aptos para ser jurados basándose en los conflictos', () => {
+      userServiceMock.users.mockReturnValue(mockUsers);
+
+      // Construimos una tesis con el escenario completo de conflictos
+      const thesisWithConflicts = createMockThesisWork();
+      thesisWithConflicts.preliminaryDraftData.proposalData.director = createMockUser({ id: 'director1' });
+      thesisWithConflicts.preliminaryDraftData.proposalData.codirector = createMockUser({ id: 'codirector1' });
+      thesisWithConflicts.preliminaryDraftData.proposalData.advisor = createMockUser({ id: 'advisor1' });
+
+      // 🔥 FIX: Pasamos estrictamente objetos User válidos para cumplir con User[]
+      thesisWithConflicts.preliminaryDraftData.proposalData.authors = [
+        createMockUser({ id: 'student1' }),
+        createMockUser({ id: 'student2' })
+      ];
+
+      // Evaluaciones previas (Solo requiere el evaluatorId)
+      thesisWithConflicts.preliminaryDraftData.evaluations = [
+        { evaluatorId: 'evaluator1' } as any
+      ];
+
+      const result = service.getEligibleJurors(thesisWithConflicts);
 
       // Solo valid1 y valid2 deberían pasar todos los filtros
       expect(result).toHaveLength(2);
@@ -111,10 +216,10 @@ describe('RegisterSustentationFormService', () => {
 
   describe('Formateo de nombres (getMemberFullName)', () => {
     it('debería concatenar correctamente los nombres ignorando nulos o vacíos', () => {
-      const user = { firstName: 'Juan', lastName: 'Perez' } as User;
+      const user = createMockUser({ firstName: 'Juan', secondName: '', lastName: 'Perez', secondLastName: '' });
       expect(service.getMemberFullName(user)).toBe('Juan Perez');
 
-      const fullUser = { firstName: 'Ana', secondName: 'Maria', lastName: 'Lopez', secondLastName: 'Cruz' } as User;
+      const fullUser = createMockUser({ firstName: 'Ana', secondName: 'Maria', lastName: 'Lopez', secondLastName: 'Cruz' });
       expect(service.getMemberFullName(fullUser)).toBe('Ana Maria Lopez Cruz');
     });
 
@@ -124,7 +229,7 @@ describe('RegisterSustentationFormService', () => {
   });
 
   describe('Delegaciones al ParticipantsFormatter', () => {
-    const mockWork = {} as ThesisWork;
+    const mockWork = createMockThesisWork();
 
     it('debería delegar getStudentNames', () => {
       service.getStudentNames(mockWork);
@@ -148,7 +253,7 @@ describe('RegisterSustentationFormService', () => {
   });
 
   describe('Resolución de Documentos (getExistingDocument)', () => {
-    const mockWork = {} as ThesisWork;
+    const mockWork = createMockThesisWork();
 
     it('debería resolver el documento FORMATO_G desde Paz y Salvo', () => {
       service.getExistingDocument(mockWork, 'FORMATO_G');

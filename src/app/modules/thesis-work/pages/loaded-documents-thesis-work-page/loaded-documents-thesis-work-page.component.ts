@@ -276,13 +276,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   }
 
   downloadDocumentByName(fileName: string): void {
-    // ← void: downloadDocumentByName() del facade ahora es async.
-    void this.facade.downloadDocumentByName(
-      fileName,
-      this.activeTab(),
-      this.selectedAdvance(),
-      this.currentThesisWork()
-    );
+    void this.facade.downloadDocumentByName(fileName, this.selectedAdvance());
   }
 
   // ← Eliminado el método local: era una copia exacta del helper ensureDate

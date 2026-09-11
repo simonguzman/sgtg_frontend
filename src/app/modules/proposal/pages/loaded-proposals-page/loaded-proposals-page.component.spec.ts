@@ -11,12 +11,20 @@ describe('LoadedProposalsPageComponent', () => {
   let component: LoadedProposalsPageComponent;
   let fixture: ComponentFixture<LoadedProposalsPageComponent>;
 
+  // Espías para silenciar la consola
+  let consoleErrorSpy: jest.SpyInstance;
+  let consoleWarnSpy: jest.SpyInstance;
+
   // Mocks estrictamente tipados sin usar 'any'
   let mockRouter: jest.Mocked<Router>;
   let mockRoute: unknown; // Usamos unknown como puente seguro para la estructura compleja de ActivatedRoute
   let mockFacade: jest.Mocked<LoadedProposalsFacadeService>;
 
   beforeEach(async () => {
+    // Silenciamos la consola para evitar ruido en los tests
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockRouter = {
       navigate: jest.fn(),
     } as unknown as jest.Mocked<Router>;
@@ -62,6 +70,8 @@ describe('LoadedProposalsPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 
   describe('Inicialización', () => {

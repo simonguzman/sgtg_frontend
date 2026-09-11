@@ -11,6 +11,7 @@ import { LoadedDocumentsPreliminaryDraftPageComponent } from './pages/loaded-doc
 import { ReviewPreliminaryDraftPageComponent } from './pages/review-preliminary-draft-page/review-preliminary-draft-page.component';
 import { ReviewPresentationsFacultyCouncilPageComponent } from './pages/review-presentations-faculty-council-page/review-presentations-faculty-council-page.component';
 import { AssignEvaluatorsPageComponent } from './pages/assign-evaluators-page/assign-evaluators-page.component';
+import { preliminaryDraftOwnershipGuard } from '../../core/guards/preliminary-draft-ownership.guard';
 
 export const preliminaryDraftRoutes: Routes = [
   {
@@ -64,6 +65,7 @@ export const preliminaryDraftRoutes: Routes = [
       },
       {
         path: 'details/:id',
+        canActivate: [preliminaryDraftOwnershipGuard],
         data: { breadcrumb: 'Información del anteproyecto' },
         children:[
           {

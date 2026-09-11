@@ -1,35 +1,77 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 import { EvaluationModalComponent } from './evaluation-modal.component';
-import { StateComponent } from '../../state/state.component';
-import { ButtonComponent } from '../../button-component/button-component.component';
 import { stateList } from '../../../../core/enums/state.enum';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
+
+// ── Componentes Originales a Remover (Shallow Testing) ───────────────────────
+import { StateComponent } from '../../state/state.component';
+import { ButtonComponent } from '../../button-component/button-component.component';
+
+// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
+
+@Component({ selector: 'app-state', standalone: true, template: '' })
+class MockStateComponent {
+  @Input() state?: stateList;
+  @Input() label?: string;
+}
+
+@Component({ selector: 'app-button-component', standalone: true, template: '' })
+class MockButtonComponent {
+  @Input() label?: string;
+  @Input() variant: 'primary' | 'secondary' = 'primary';
+  @Output() onClick = new EventEmitter<void>();
+}
+
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown', 'as') ─────
+
+const createMockFormattedDocument = (overrides: Partial<FormattedDocument> = {}): FormattedDocument => ({
+  name: 'documento-defecto.pdf',
+  url: 'http://archivos.com/doc.pdf',
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('EvaluationModalComponent', () => {
   let component: EvaluationModalComponent;
   let fixture: ComponentFixture<EvaluationModalComponent>;
 
-  // Dataset simulado con tipado estricto (FormattedDocument[])
+  // Dataset simulado tipado estrictamente gracias a la fábrica
   const mockDocuments: FormattedDocument[] = [
-    { name: 'proyecto-final.pdf' } as FormattedDocument,
-    { name: 'anexo-rubrica.pdf' } as FormattedDocument
+    createMockFormattedDocument({ name: 'proyecto-final.pdf' }),
+    createMockFormattedDocument({ name: 'anexo-rubrica.pdf' })
   ];
 
   beforeEach(async () => {
+    // 🔕 Silenciar consola para mantener terminal limpia ante warnings de PrimeNG en JSDOM
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     await TestBed.configureTestingModule({
       imports: [EvaluationModalComponent],
       providers: [provideNoopAnimations()]
-    }).compileComponents();
+    })
+    .overrideComponent(EvaluationModalComponent, {
+      remove: {
+        imports: [StateComponent, ButtonComponent]
+      },
+      add: {
+        imports: [MockStateComponent, MockButtonComponent]
+      }
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(EvaluationModalComponent);
     component = fixture.componentInstance;
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización y Renderizado Básico', () => {
@@ -38,10 +80,11 @@ describe('EvaluationModalComponent', () => {
     });
 
     it('debería renderizar la información del evaluado y del evaluador cuando el modal está abierto', () => {
-      component.name = 'Juan Pérez';
-      component.role = 'Evaluador Principal';
-      component.evaluationDate = new Date('2026-05-15T00:00:00');
-      component.isOpen = true;
+      // Uso de la API moderna de Angular
+      fixture.componentRef.setInput('name', 'Juan Pérez');
+      fixture.componentRef.setInput('role', 'Evaluador Principal');
+      fixture.componentRef.setInput('evaluationDate', new Date('2026-05-15T00:00:00'));
+      fixture.componentRef.setInput('isOpen', true);
       fixture.detectChanges();
 
       const textContent = fixture.nativeElement.textContent;
@@ -52,28 +95,30 @@ describe('EvaluationModalComponent', () => {
   });
 
   describe('Manejo de Estado y Comentarios', () => {
-    it('debería renderizar el componente StateComponent cuando existe un estado definido', () => {
-      component.state = stateList.APROBADO;
-      component.isOpen = true;
+    it('debería renderizar el componente MockStateComponent cuando existe un estado definido', () => {
+      fixture.componentRef.setInput('state', stateList.APROBADO);
+      fixture.componentRef.setInput('isOpen', true);
       fixture.detectChanges();
 
-      const stateDebugElement = fixture.debugElement.query(By.directive(StateComponent));
+      const stateDebugElement = fixture.debugElement.query(By.directive(MockStateComponent));
       expect(stateDebugElement).toBeTruthy();
-      expect(stateDebugElement.componentInstance.state).toBe(stateList.APROBADO);
+
+      const stateInstance = stateDebugElement.componentInstance as MockStateComponent;
+      expect(stateInstance.state).toBe(stateList.APROBADO);
     });
 
-    it('NO debería renderizar el componente StateComponent si state es undefined', () => {
-      component.state = undefined;
-      component.isOpen = true;
+    it('NO debería renderizar el componente MockStateComponent si state es undefined', () => {
+      fixture.componentRef.setInput('state', undefined);
+      fixture.componentRef.setInput('isOpen', true);
       fixture.detectChanges();
 
-      const stateDebugElement = fixture.debugElement.query(By.directive(StateComponent));
+      const stateDebugElement = fixture.debugElement.query(By.directive(MockStateComponent));
       expect(stateDebugElement).toBeNull();
     });
 
     it('debería mostrar los comentarios provistos en la evaluación', () => {
-      component.comments = 'Excelente cumplimiento de requisitos.';
-      component.isOpen = true;
+      fixture.componentRef.setInput('comments', 'Excelente cumplimiento de requisitos.');
+      fixture.componentRef.setInput('isOpen', true);
       fixture.detectChanges();
 
       const textContent = fixture.nativeElement.textContent;
@@ -81,8 +126,8 @@ describe('EvaluationModalComponent', () => {
     });
 
     it('debería mostrar el mensaje por defecto cuando no existen comentarios registrados', () => {
-      component.comments = '';
-      component.isOpen = true;
+      fixture.componentRef.setInput('comments', '');
+      fixture.componentRef.setInput('isOpen', true);
       fixture.detectChanges();
 
       const textContent = fixture.nativeElement.textContent;
@@ -92,21 +137,22 @@ describe('EvaluationModalComponent', () => {
 
   describe('Sección de Archivos Adjuntos', () => {
     it('debería listar los documentos adjuntos y renderizar un botón de descarga por cada uno', () => {
-      component.documents = mockDocuments;
-      component.isOpen = true;
+      fixture.componentRef.setInput('documents', mockDocuments);
+      fixture.componentRef.setInput('isOpen', true);
       fixture.detectChanges();
 
       const textContent = fixture.nativeElement.textContent;
       expect(textContent).toContain('proyecto-final.pdf');
       expect(textContent).toContain('anexo-rubrica.pdf');
 
-      const buttonElements = fixture.debugElement.queryAll(By.directive(ButtonComponent));
+      // Buscar por el Mock del botón
+      const buttonElements = fixture.debugElement.queryAll(By.directive(MockButtonComponent));
       expect(buttonElements.length).toBe(mockDocuments.length);
     });
 
     it('debería mostrar un mensaje indicando que no hay archivos cuando el arreglo esté vacío', () => {
-      component.documents = [];
-      component.isOpen = true;
+      fixture.componentRef.setInput('documents', []);
+      fixture.componentRef.setInput('isOpen', true);
       fixture.detectChanges();
 
       const textContent = fixture.nativeElement.textContent;
@@ -117,15 +163,16 @@ describe('EvaluationModalComponent', () => {
   describe('Emisión de Eventos (Outputs)', () => {
     it('debería emitir onDownloadFile con el documento exacto al presionar el botón de Descargar', () => {
       const spyDownload = jest.spyOn(component.onDownloadFile, 'emit');
-      component.documents = mockDocuments;
-      component.isOpen = true;
+
+      fixture.componentRef.setInput('documents', mockDocuments);
+      fixture.componentRef.setInput('isOpen', true);
       fixture.detectChanges();
 
-      const buttons = fixture.debugElement.queryAll(By.directive(ButtonComponent));
-      const firstDownloadButton = buttons[0];
-      expect(firstDownloadButton).toBeTruthy();
+      // Encontrar el botón mock y simular su emisión nativa
+      const buttons = fixture.debugElement.queryAll(By.directive(MockButtonComponent));
+      const firstDownloadButtonInstance = buttons[0].componentInstance as MockButtonComponent;
 
-      firstDownloadButton.triggerEventHandler('onClick', null);
+      firstDownloadButtonInstance.onClick.emit();
 
       expect(spyDownload).toHaveBeenCalledTimes(1);
       expect(spyDownload).toHaveBeenCalledWith(mockDocuments[0]);

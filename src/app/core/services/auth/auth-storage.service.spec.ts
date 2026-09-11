@@ -1,17 +1,45 @@
 import { TestBed } from '@angular/core/testing';
+
 import { AuthStorageService } from './auth-storage.service';
 import { User } from '../../../modules/users/interfaces/user.interface';
 import { UserRoleType } from '../../enums/user-role-type.enum';
+import { UserState } from '../../../modules/users/enum/user-state.enum';
+
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => {
+  // Definimos un usuario base estricto que cumpla con la interfaz User real
+  const baseUser: User = {
+    id: '1',
+    idType: 'CC',
+    idNumber: 1000000000,
+    firstName: 'Simón',
+    secondName: '',
+    lastName: 'Guzmán',
+    secondLastName: 'Anaya',
+    codeNumber: 1234567890,
+    email: 'test@test.com',
+    password: '123',
+    state: UserState.active,
+    roles: [UserRoleType.ESTUDIANTE] // Usamos un rol válido del Enum
+  };
+
+  return { ...baseUser, ...overrides } as User;
+};
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('AuthStorageService', () => {
   let service: AuthStorageService;
-  const mockUser = {
-    id: '1',
-    email: 'test@test.com',
-    roles: ['admin'] as unknown as UserRoleType[]
-  } as unknown as User;
+
+  // Creamos el mock usando la fábrica, cero casteos desconocidos
+  const mockUser = createMockUser({ email: 'test@test.com' });
 
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener la terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // Limpiamos el localStorage antes de cada prueba para evitar contaminación
     localStorage.clear();
 
@@ -20,9 +48,15 @@ describe('AuthStorageService', () => {
     });
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
+  });
+
   describe('Inicialización y getStoredSession', () => {
     it('debe inicializar con null si no hay sesión en localStorage', () => {
       service = TestBed.inject(AuthStorageService);
+
       expect(service.currentUser()).toBeNull();
       expect(service.isAuthenticated()).toBeFalsy();
     });
@@ -33,10 +67,11 @@ describe('AuthStorageService', () => {
 
       expect(service.currentUser()).toEqual(mockUser);
       expect(service.isAuthenticated()).toBeTruthy();
-      expect(service.userRoles()).toEqual(['admin']);
+      expect(service.userRoles()).toEqual(mockUser.roles);
     });
 
     it('debe limpiar el localStorage y retornar null si la sesión está corrupta', () => {
+      // Este test cubre la rama del catch{} internamente
       localStorage.setItem('sgtg_session', '{ invalid json }');
       service = TestBed.inject(AuthStorageService);
 
@@ -58,7 +93,8 @@ describe('AuthStorageService', () => {
     });
 
     it('debe actualizar el usuario correctamente (updateUser)', () => {
-      const updatedUser = { ...mockUser, email: 'new@test.com' } as User;
+      // Reemplazamos el "as User" por un tipado directo
+      const updatedUser: User = { ...mockUser, email: 'new@test.com' };
 
       service.updateUser(updatedUser);
 

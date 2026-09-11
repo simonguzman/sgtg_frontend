@@ -5,6 +5,7 @@ import { PazYSalvoPayload } from '../../interfaces/paz-y-salvo-playload.interfac
 import { RegisterPazYSalvoFacadeService } from './services/register-paz-y-salvo-facade.service';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { RegisterPazYSalvoFormComponent } from '../../components/register-paz-y-salvo-form/register-paz-y-salvo-form.component';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 
 @Component({
   selector: 'app-register-paz-y-salvo-page',
@@ -61,6 +62,10 @@ export class RegisterPazYSalvoPageComponent implements OnInit {
       () => { this.isSubmitting.set(false); this.goBack(); },
       () => { this.isSubmitting.set(false); }
     );
+  }
+
+  downloadDocument(doc: FileDocument): void {
+    void this.facade.downloadDocument(doc);
   }
 
   goBack(): void {

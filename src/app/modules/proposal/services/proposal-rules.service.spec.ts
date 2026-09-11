@@ -14,6 +14,11 @@ describe('ProposalRulesService', () => {
   let mockUserService: Partial<UserService>;
 
   beforeEach(() => {
+    // 1. Espías para silenciar la consola
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     mockStorageService = {
       getProposalsListSnapshot: jest.fn().mockReturnValue([])
     };
@@ -36,7 +41,8 @@ describe('ProposalRulesService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    // 2. Restauramos todos los espías y mocks originales al terminar cada prueba
+    jest.restoreAllMocks();
   });
 
   describe('validateProposalRules', () => {

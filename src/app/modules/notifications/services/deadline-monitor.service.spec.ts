@@ -10,15 +10,55 @@ import { EventBusService } from '../../../core/services/eventbus/event-bus.servi
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
+import { NotificationType } from '../../../shared/components/notifications/models/notification.model';
 
-// Importamos las interfaces correctas
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
 import { PreliminaryDraft } from '../../preliminary-draft/interfaces/preliminary-draft.interface';
 import { ThesisWork } from '../../thesis-work/interfaces/thesis-work.interface';
 import { User } from '../../users/interfaces/user.interface';
-import { InboxMessage } from '../interfaces/inbox-message.interface'; // Ajusta la ruta real de tu InboxMessage
+import { InboxMessage } from '../interfaces/inbox-message.interface';
 
 import * as thesisParticipantsHelper from '../../thesis-work/helpers/thesis-participants.helper';
+
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-default',
+  roles: [],
+  ...overrides
+} as User);
+
+const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
+  id: 'prop-default',
+  title: 'Default Title',
+  state: stateList.EN_REVISION,
+  ...overrides
+} as Proposal);
+
+const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
+  preliminaryDraftId: 'draft-default',
+  state: stateList.EN_REVISION,
+  ...overrides
+} as PreliminaryDraft);
+
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => ({
+  thesisWorkId: 'thesis-default',
+  state: stateList.EN_DESARROLLO,
+  ...overrides
+} as ThesisWork);
+
+const createMockInboxMessage = (overrides: Partial<InboxMessage> = {}): InboxMessage => ({
+  id: 'msg-default',
+  userId: 'user-default',
+  type: NotificationType.INFO,
+  title: 'Título por defecto',
+  message: 'Cuerpo por defecto',
+  date: new Date(),
+  status: 'no leido',
+  ...overrides
+} as InboxMessage);
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('DeadlineMonitorService', () => {
   let service: DeadlineMonitorService;
@@ -34,6 +74,11 @@ describe('DeadlineMonitorService', () => {
   const FIXED_TODAY = new Date('2026-08-10T12:00:00.000Z');
 
   beforeEach(() => {
+    // 🔕 Silenciar consola para mantener terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // Congelamos el tiempo para pruebas deterministas
     jest.useFakeTimers();
     jest.setSystemTime(FIXED_TODAY.getTime());
 
@@ -62,23 +107,28 @@ describe('DeadlineMonitorService', () => {
     const eventBus = TestBed.inject(EventBusService);
     eventBusSpy = jest.spyOn(eventBus, 'emit');
 
-    // Usamos 'as unknown as User' para evitar llenar propiedades como password, codeNumber, etc.
-    mockUsers.set([{ id: 'comite-1', roles: [UserRoleType.COMITE] } as unknown as User]);
+    // 🔹 REFACTOR: Usamos la fábrica en lugar de casteos inseguros
+    mockUsers.set([
+      createMockUser({ id: 'comite-1', roles: [UserRoleType.COMITE] })
+    ]);
   });
 
   afterEach(() => {
     jest.useRealTimers();
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('checkProposalDeadlines', () => {
     it('debe emitir alerta de VENCIDO si los días restantes son menores a 0', () => {
-      mockProposals.set([{
-        id: 'prop-1',
-        title: 'Propuesta A',
-        state: stateList.EN_REVISION,
-        evaluationDeadline: new Date('2026-08-09T10:00:00.000Z') // Usamos objeto Date como exige la interfaz
-      } as unknown as Proposal]);
+      mockProposals.set([
+        createMockProposal({
+          id: 'prop-1',
+          title: 'Propuesta A',
+          state: stateList.EN_REVISION,
+          evaluationDeadline: new Date('2026-08-09T10:00:00.000Z')
+        })
+      ]);
 
       service.checkDeadlines();
 
@@ -94,12 +144,14 @@ describe('DeadlineMonitorService', () => {
     });
 
     it('debe emitir alerta de RECORDATORIO si los días restantes son <= 3 y >= 0', () => {
-      mockProposals.set([{
-        id: 'prop-2',
-        title: 'Propuesta B',
-        state: stateList.EN_REVISION,
-        evaluationDeadline: new Date('2026-08-12T10:00:00.000Z')
-      } as unknown as Proposal]);
+      mockProposals.set([
+        createMockProposal({
+          id: 'prop-2',
+          title: 'Propuesta B',
+          state: stateList.EN_REVISION,
+          evaluationDeadline: new Date('2026-08-12T10:00:00.000Z')
+        })
+      ]);
 
       service.checkDeadlines();
 
@@ -111,13 +163,18 @@ describe('DeadlineMonitorService', () => {
 
   describe('checkPreliminaryDraftDeadlines', () => {
     it('debe emitir alerta y notificar a los evaluadores del anteproyecto', () => {
-      mockDrafts.set([{
-        preliminaryDraftId: 'draft-1',
-        state: stateList.EN_REVISION,
-        evaluationDeadline: new Date('2026-08-09T10:00:00.000Z'),
-        proposalData: { title: 'Anteproyecto Título' } as Proposal,
-        evaluators: [{ id: 'eval-1' } as User, { id: 'eval-2' } as User]
-      } as unknown as PreliminaryDraft]);
+      mockDrafts.set([
+        createMockPreliminaryDraft({
+          preliminaryDraftId: 'draft-1',
+          state: stateList.EN_REVISION,
+          evaluationDeadline: new Date('2026-08-09T10:00:00.000Z'),
+          proposalData: createMockProposal({ title: 'Anteproyecto Título' }),
+          evaluators: [
+            createMockUser({ id: 'eval-1' }),
+            createMockUser({ id: 'eval-2' })
+          ]
+        })
+      ]);
 
       service.checkDeadlines();
 
@@ -138,14 +195,16 @@ describe('DeadlineMonitorService', () => {
       const helperSpy = jest.spyOn(thesisParticipantsHelper, 'collectParticipantIds')
         .mockReturnValue(['thesis-user-1', 'thesis-user-2']);
 
-      mockThesis.set([{
-        thesisWorkId: 'thesis-1',
-        state: stateList.EN_DESARROLLO,
-        preliminaryDraftData: {
-          maximumDeliveryDate: new Date('2026-08-25T10:00:00.000Z'),
-          proposalData: { title: 'Tesis de Prueba' } as Proposal
-        } as PreliminaryDraft
-      } as unknown as ThesisWork]);
+      mockThesis.set([
+        createMockThesisWork({
+          thesisWorkId: 'thesis-1',
+          state: stateList.EN_DESARROLLO,
+          preliminaryDraftData: createMockPreliminaryDraft({
+            maximumDeliveryDate: new Date('2026-08-25T10:00:00.000Z'),
+            proposalData: createMockProposal({ title: 'Tesis de Prueba' })
+          })
+        })
+      ]);
 
       service.checkDeadlines();
 
@@ -162,17 +221,21 @@ describe('DeadlineMonitorService', () => {
 
   describe('Lógica genérica (triggerIfUnique)', () => {
     it('NO debe emitir evento si la notificación ya existe en el inbox', () => {
-      mockProposals.set([{
-        id: 'prop-already-notified',
-        title: 'Propuesta Notificada',
-        state: stateList.EN_REVISION,
-        evaluationDeadline: new Date('2026-08-09T10:00:00.000Z')
-      } as unknown as Proposal]);
+      mockProposals.set([
+        createMockProposal({
+          id: 'prop-already-notified',
+          title: 'Propuesta Notificada',
+          state: stateList.EN_REVISION,
+          evaluationDeadline: new Date('2026-08-09T10:00:00.000Z')
+        })
+      ]);
 
-      mockMessages.set([{
-        title: 'Plazo Vencido',
-        actionUrl: '/some/path/prop-already-notified/details'
-      } as unknown as InboxMessage]);
+      mockMessages.set([
+        createMockInboxMessage({
+          title: 'Plazo Vencido',
+          actionUrl: '/some/path/prop-already-notified/details'
+        })
+      ]);
 
       service.checkDeadlines();
 

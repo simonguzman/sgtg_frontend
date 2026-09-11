@@ -1,10 +1,9 @@
-/* tslint:disable:no-unused-variable */
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { By } from '@angular/platform-browser';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 
 import { UserEditPageComponent } from './user-edit-page.component';
 import { UserFormFacadeService } from '../services/user-form-facade.service';
@@ -15,13 +14,15 @@ import { IdentificationType } from '../../enum/identification-type.enum';
 import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { UserState } from '../../enum/user-state.enum';
 
-@Component({ selector: 'app-user-form', standalone: true, template: '<div>Mock Form</div>' })
+// ── Componentes Mocks (Shallow Testing) ──────────────────────────────────────
+
+@Component({ selector: 'app-user-form', standalone: true, template: '' })
 class MockUserFormComponent {
   @Input() user!: User;
   @Output() onSubmit = new EventEmitter<User>();
 }
 
-@Component({ selector: 'app-confirmation-action-modal', standalone: true, template: '<div>Mock Modal</div>' })
+@Component({ selector: 'app-confirmation-action-modal', standalone: true, template: '' })
 class MockConfirmationActionModalComponent {
   @Input() isOpen = false;
   @Input() description = '';
@@ -29,47 +30,64 @@ class MockConfirmationActionModalComponent {
   @Output() confirm = new EventEmitter<void>();
 }
 
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: '123',
+  idType: IdentificationType.CC,
+  idNumber: 987654,
+  firstName: 'Test',
+  secondName: '',
+  lastName: 'User',
+  secondLastName: 'Perez',
+  email: 'test@edit.com',
+  roles: [UserRoleType.ADMINISTRADOR],
+  password: 'password123',
+  codeNumber: 101,
+  state: UserState.active,
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('Component: UserEditPageComponent', () => {
   let component: UserEditPageComponent;
   let fixture: ComponentFixture<UserEditPageComponent>;
 
+  // Tipado estricto de dependencias simuladas
   let mockFacade: {
-    getUserById: jest.Mock;
-    handleNotFound: jest.Mock;
-    updateUser: jest.Mock;
+    getUserById: jest.Mock<Observable<User | undefined>, [string]>;
+    handleNotFound: jest.Mock<void, [string?]>;
+    updateUser: jest.Mock<void, [string, User, () => void, () => void]>;
   };
+
   let mockLocation: {
-    back: jest.Mock;
+    back: jest.Mock<void, []>;
   };
+
   let mockActivatedRoute: {
     snapshot: {
       paramMap: {
-        get: jest.Mock;
+        get: jest.Mock<string | null, [string]>;
       };
     };
   };
 
-  const mockUser: User = {
-    id: '123',
-    idType: IdentificationType.CC,
-    idNumber: 987654,
-    firstName: 'Test',
-    lastName: 'User',
-    secondLastName: 'Perez',
-    email: 'test@edit.com',
-    roles: [UserRoleType.ADMINISTRADOR],
-    password: 'password123',
-    codeNumber: 101,
-    state: UserState.active
-  };
-
   beforeEach(async () => {
+    // 🔕 Silenciar consola para mantener terminal limpia ante RxJS throwError
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockFacade = {
-      getUserById: jest.fn().mockReturnValue(of(mockUser)),
+      getUserById: jest.fn().mockReturnValue(of(createMockUser())),
       handleNotFound: jest.fn(),
       updateUser: jest.fn()
     };
-    mockLocation = { back: jest.fn() };
+
+    mockLocation = {
+      back: jest.fn()
+    };
+
     mockActivatedRoute = {
       snapshot: { paramMap: { get: jest.fn().mockReturnValue('123') } }
     };
@@ -99,6 +117,7 @@ describe('Component: UserEditPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   it('debería crearse correctamente', () => {
@@ -107,11 +126,11 @@ describe('Component: UserEditPageComponent', () => {
 
   describe('Inicialización y Carga de Datos (ngOnInit)', () => {
     it('debería extraer el ID, consultar al facade y actualizar userToEdit', () => {
-      fixture.detectChanges();
+      fixture.detectChanges(); // Ejecuta ngOnInit
 
       expect(mockActivatedRoute.snapshot.paramMap.get).toHaveBeenCalledWith('id');
       expect(mockFacade.getUserById).toHaveBeenCalledWith('123');
-      expect(component.userToEdit()).toEqual(mockUser);
+      expect(component.userToEdit()).toEqual(createMockUser());
     });
 
     it('debería invocar handleNotFound si no hay ID en la ruta', () => {
@@ -123,7 +142,8 @@ describe('Component: UserEditPageComponent', () => {
     });
 
     it('debería invocar handleNotFound si el servicio retorna undefined/null', () => {
-      mockFacade.getUserById.mockReturnValue(of(null));
+      // Usamos el tipado para emitir undefined y emular qué pasaría si no se encuentra en BD
+      mockFacade.getUserById.mockReturnValue(of(undefined));
       fixture.detectChanges();
 
       expect(mockFacade.handleNotFound).toHaveBeenCalledWith();
@@ -139,11 +159,11 @@ describe('Component: UserEditPageComponent', () => {
 
   describe('Flujo de Edición y Modal', () => {
     beforeEach(() => {
-      fixture.detectChanges();
+      fixture.detectChanges(); // Dispara ngOnInit para cargar el usuario y mockUser
     });
 
     it('debería interceptar la actualización (handleUpdate) y abrir el modal', () => {
-      const updatedUser = { ...mockUser, firstName: 'Cambiado' };
+      const updatedUser = createMockUser({ firstName: 'Cambiado' });
 
       component.handleUpdate(updatedUser);
 
@@ -166,7 +186,7 @@ describe('Component: UserEditPageComponent', () => {
     });
 
     it('debería llamar a facade.updateUser al confirmar y proveer los callbacks correctos', () => {
-      const updatedUser = { ...mockUser, firstName: 'Cambiado' };
+      const updatedUser = createMockUser({ firstName: 'Cambiado' });
 
       component.handleUpdate(updatedUser);
       component.confirmUpdate();
@@ -189,7 +209,8 @@ describe('Component: UserEditPageComponent', () => {
     });
 
     it('debería renderizar el formulario al completar la carga de datos', () => {
-      fixture.detectChanges();
+      fixture.detectChanges(); // El mockFacade retornará un usuario en este punto
+
       const loadingState = fixture.debugElement.query(By.css('.animate-spin'));
       const mockForm = fixture.debugElement.query(By.directive(MockUserFormComponent));
 

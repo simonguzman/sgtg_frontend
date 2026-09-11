@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { of, throwError } from 'rxjs';
-import { signal } from '@angular/core';
+import { signal, WritableSignal } from '@angular/core';
 
 import { PreliminaryDraftEditPageService } from './preliminary-draft-edit-page.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
@@ -12,30 +12,73 @@ import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interfac
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { User } from '../../../../users/interfaces/user.interface';
+import { stateList } from '../../../../../core/enums/state.enum';
+
+// 🔹 REFACTOR: Fábricas para generar datos limpios y tipados sin usar 'as unknown'
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-1',
+  roles: [],
+  ...overrides
+} as User);
+
+type ProposalData = NonNullable<PreliminaryDraft['proposalData']>;
+const createMockProposalData = (overrides: Partial<ProposalData> = {}): ProposalData => ({
+  id: 'prop-1',
+  title: 'Test Title',
+  director: createMockUser(),
+  ...overrides
+} as ProposalData);
+
+const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => {
+  const base: Partial<PreliminaryDraft> = {
+    preliminaryDraftId: 'draft-123',
+    state: stateList.EN_REVISION,
+    proposalData: createMockProposalData(),
+    ...overrides
+  };
+  return base as PreliminaryDraft;
+};
+
 
 describe('PreliminaryDraftEditPageService', () => {
   let service: PreliminaryDraftEditPageService;
 
-  let mockRoute: Partial<ActivatedRoute>;
-  let mockRouter: jest.Mocked<Partial<Router>>;
-  let mockLocation: jest.Mocked<Partial<Location>>;
-  let mockPreliminaryDraftService: jest.Mocked<Partial<PreliminaryDraftService>>;
-  let mockNotificationService: jest.Mocked<Partial<NotificationService>>;
-  let mockAuthService: jest.Mocked<Partial<AuthService>>;
+  // 🔹 REFACTOR: Mocks tipados estructuralmente
+  let mockRouteParamMapGet: jest.Mock;
+  let mockRouter: { navigate: jest.Mock };
+  let mockLocation: { back: jest.Mock };
+  let mockPreliminaryDraftService: {
+    getPreliminaryDraftById: jest.Mock;
+    updatePreliminaryDraft: jest.Mock;
+  };
+  let mockNotificationService: { show: jest.Mock };
+  let mockAuthService: {
+    currentUser: WritableSignal<User | null>;
+    hasAnyRole: jest.Mock;
+  };
 
   beforeEach(() => {
-    mockRoute = {
-      snapshot: { paramMap: { get: jest.fn().mockReturnValue('draft-123') } } as any
+    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    mockRouteParamMapGet = jest.fn().mockReturnValue('draft-123');
+    const mockRoute = {
+      snapshot: { paramMap: { get: mockRouteParamMapGet } }
     };
+
     mockRouter = { navigate: jest.fn() };
     mockLocation = { back: jest.fn() };
+
     mockPreliminaryDraftService = {
       getPreliminaryDraftById: jest.fn(),
       updatePreliminaryDraft: jest.fn()
     };
+
     mockNotificationService = { show: jest.fn() };
+
     mockAuthService = {
-      currentUser: signal({ id: 'user-1' } as User),
+      currentUser: signal(createMockUser({ id: 'user-1' })),
       hasAnyRole: jest.fn()
     };
 
@@ -54,9 +97,14 @@ describe('PreliminaryDraftEditPageService', () => {
     service = TestBed.inject(PreliminaryDraftEditPageService);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones originales de la consola
+  });
+
   describe('init y loadPreliminaryDraftData', () => {
     it('debería redirigir si no hay un ID en la ruta', () => {
-      (mockRoute.snapshot!.paramMap.get as jest.Mock).mockReturnValue(null);
+      mockRouteParamMapGet.mockReturnValue(null);
 
       service.init();
 
@@ -64,13 +112,12 @@ describe('PreliminaryDraftEditPageService', () => {
     });
 
     it('debería setear la data si el usuario es el dueño (Director)', () => {
-      const mockDraft = {
-        preliminaryDraftId: 'draft-123',
-        proposalData: { director: { id: 'user-1' } }
-      } as unknown as PreliminaryDraft;
+      const mockDraft = createMockDraft({
+        proposalData: createMockProposalData({ director: createMockUser({ id: 'user-1' }) })
+      });
 
-      (mockPreliminaryDraftService.getPreliminaryDraftById as jest.Mock).mockReturnValue(of(mockDraft));
-      (mockAuthService.hasAnyRole as jest.Mock).mockReturnValue(false); // No es admin
+      mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
+      mockAuthService.hasAnyRole.mockReturnValue(false); // No es admin
 
       service.init();
 
@@ -78,13 +125,12 @@ describe('PreliminaryDraftEditPageService', () => {
     });
 
     it('debería setear la data si el usuario es ADMIN (incluso si no es el dueño)', () => {
-      const mockDraft = {
-        preliminaryDraftId: 'draft-123',
-        proposalData: { director: { id: 'other-user' } }
-      } as unknown as PreliminaryDraft;
+      const mockDraft = createMockDraft({
+        proposalData: createMockProposalData({ director: createMockUser({ id: 'other-user' }) })
+      });
 
-      (mockPreliminaryDraftService.getPreliminaryDraftById as jest.Mock).mockReturnValue(of(mockDraft));
-      (mockAuthService.hasAnyRole as jest.Mock).mockReturnValue(true); // ES admin
+      mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
+      mockAuthService.hasAnyRole.mockReturnValue(true); // ES admin
 
       service.init();
 
@@ -92,12 +138,12 @@ describe('PreliminaryDraftEditPageService', () => {
     });
 
     it('debería redirigir y mostrar error si el usuario NO es dueño ni ADMIN', () => {
-      const mockDraft = {
-        proposalData: { director: { id: 'other-user' } }
-      } as unknown as PreliminaryDraft;
+      const mockDraft = createMockDraft({
+        proposalData: createMockProposalData({ director: createMockUser({ id: 'other-user' }) })
+      });
 
-      (mockPreliminaryDraftService.getPreliminaryDraftById as jest.Mock).mockReturnValue(of(mockDraft));
-      (mockAuthService.hasAnyRole as jest.Mock).mockReturnValue(false);
+      mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
+      mockAuthService.hasAnyRole.mockReturnValue(false);
 
       service.init();
 
@@ -108,7 +154,7 @@ describe('PreliminaryDraftEditPageService', () => {
     });
 
     it('debería manejar el error de carga de API', () => {
-      (mockPreliminaryDraftService.getPreliminaryDraftById as jest.Mock).mockReturnValue(throwError(() => new Error('Error')));
+      mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(throwError(() => new Error('Error')));
 
       service.init();
 
@@ -119,15 +165,21 @@ describe('PreliminaryDraftEditPageService', () => {
   });
 
   describe('Flujo de Actualización', () => {
-    const mockDraft = { preliminaryDraftId: 'draft-123' } as unknown as PreliminaryDraft;
+    let mockDraft: PreliminaryDraft;
 
     beforeEach(() => {
-      // Forzamos el signal de lectura para las pruebas de actualización
-      (service as any).preliminaryDraftToEdit = signal(mockDraft);
+      // 🔹 REFACTOR: En lugar de forzar '(service as any).preliminaryDraftToEdit = signal...'
+      // Llenamos el estado ejecutando el flujo natural de inicialización del componente.
+      mockDraft = createMockDraft({ preliminaryDraftId: 'draft-123' });
+
+      mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
+      mockAuthService.hasAnyRole.mockReturnValue(true); // Garantizamos permisos
+
+      service.init(); // Esto puebla la señal `preliminaryDraftToEdit` correctamente
     });
 
     it('debería manejar el modal de confirmación', () => {
-      const updatedData = { ...mockDraft, proposalId: '999' } as unknown as PreliminaryDraft;
+      const updatedData = createMockDraft({ preliminaryDraftId: 'draft-123', proposalId: '999' });
 
       service.handleUpdate(updatedData);
 
@@ -140,7 +192,7 @@ describe('PreliminaryDraftEditPageService', () => {
     });
 
     it('debería procesar la actualización correctamente', () => {
-      (mockPreliminaryDraftService.updatePreliminaryDraft as jest.Mock).mockReturnValue(of({}));
+      mockPreliminaryDraftService.updatePreliminaryDraft.mockReturnValue(of({}));
       service.handleUpdate(mockDraft);
 
       service.confirmUpdate();
@@ -154,7 +206,7 @@ describe('PreliminaryDraftEditPageService', () => {
     });
 
     it('debería manejar el error de actualización', () => {
-      (mockPreliminaryDraftService.updatePreliminaryDraft as jest.Mock).mockReturnValue(throwError(() => new Error('Error')));
+      mockPreliminaryDraftService.updatePreliminaryDraft.mockReturnValue(throwError(() => new Error('Error')));
       service.handleUpdate(mockDraft);
 
       service.confirmUpdate();

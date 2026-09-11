@@ -139,47 +139,43 @@
 
     <section class="mt-2">
       <h3 class="font-display font-semibold text-primary text-size-header-title mb-6 border-b pb-2">Archivos adjuntos</h3>
-
       @if (!attachedFile.hasFile) {
         <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-6">
           No ha sido cargado ningún archivo, para realizar el registro de la propuesta de grado debe cargar el formato de propuesta (Formato A) para poder continuar con el proceso.
         </div>
       }
-
       <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm"
-             [class.border-[#777680]]="!isFieldInvalid('document')"
-             [class.border-[#ED7D31]]="isFieldInvalid('document')"
-             [class.border-l-4]="attachedFile.hasFile"
-             [class.border-l-state-approved]="attachedFile.hasFile">
-
+            [class.border-[#777680]]="!isFileFieldInvalid"
+            [class.border-[#ED7D31]]="isFileFieldInvalid"
+            [class.border-l-4]="attachedFile.hasFile"
+            [class.border-l-state-approved]="attachedFile.hasFile">
           <div class="flex items-center gap-3">
             <span class="material-symbols-outlined text-4xl"
                   [class.text-state-approved]="attachedFile.hasFile"
-                  [class.text-[#ED7D31]]="isFieldInvalid('document')"
-                  [class.text-[#777680]]="!attachedFile.hasFile && !isFieldInvalid('document')">
+                  [class.text-[#ED7D31]]="isFileFieldInvalid"
+                  [class.text-[#777680]]="!attachedFile.hasFile && !isFileFieldInvalid">
               {{ attachedFile.hasFile ? 'task' : 'picture_as_pdf' }}
             </span>
             <div class="flex flex-col">
               <span class="text-size-body font-bold"
                     [class.text-primary]="attachedFile.hasFile"
-                    [class.text-[#ED7D31]]="isFieldInvalid('document')">
+                    [class.text-[#ED7D31]]="isFileFieldInvalid">
                 {{ attachedFile.name || 'Formato de propuesta (Formato A)' }}
               </span>
               <span class="text-size-role-footer text-[#777680]">Documento de la propuesta (Obligatorio)</span>
-              @if (isFieldInvalid('document')) {
+              @if (isFileFieldInvalid) {
                 <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span>
               }
             </div>
           </div>
-
           @if (attachedFile.hasFile) {
-            <button type="button" (click)="removeFile()" class="text-[#777680] hover:text-[#DB141C]">
+            <button type="button" (click)="removeFile()" class=" text-[#777680] hover:text-[#DB141C]">
               <span class="material-symbols-outlined">delete</span>
             </button>
           } @else {
             <app-button-component
-              label="Cargar propuesta(Formato A)"
+              label="Cargar propuesta (Formato A)"
               variant="secondary"
               type="button"
               (onClick)="uploadModalOpen = true">
@@ -187,7 +183,6 @@
           }
         </div>
       </div>
-
       <div class="flex gap-4 justify-end mt-10">
         <app-button-component
           [label]="isEditMode ? 'Actualizar propuesta' : 'Registrar propuesta'"

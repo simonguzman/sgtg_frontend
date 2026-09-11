@@ -1,59 +1,200 @@
 // 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { SimpleChange } from '@angular/core';
+import { SimpleChange, Component, Input, Output, EventEmitter } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
 // 2. Componente a probar
 import { EvaluateAdvanceFormComponent } from './evaluate-advance-form.component';
-
-// 3. Servicios (Provistos por el componente)
 import { EvaluateAdvanceFormService } from './services/evaluate-advance-form.service';
 
-// 4. Interfaces y Enums
+// 3. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { Advance } from '../../interfaces/advance.interface';
-import { AdvanceEvaluationResult } from '../../interfaces/advance-playload.interface';
+import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playload.interface';
+import { User } from '../../../users/interfaces/user.interface';
+import { stateList } from '../../../../core/enums/state.enum';
+import { IdentificationType } from '../../../users/enum/identification-type.enum';
+import { UserState } from '../../../users/enum/user-state.enum';
+import { Modality } from '../../../proposal/enums/modality.enum';
+import { DocumentType } from '../../../../core/enums/document-type.enum';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+
+// 4. Componentes Reales para hacer Override
+import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
+import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+
+// ── Mocks de Componentes Hijos (Standalone y Strict-Init) ────────────────────
+
+@Component({ selector: 'app-button-component', template: '', standalone: true })
+class MockButtonComponent {
+  @Input() label = '';
+  @Input() variant = '';
+  @Input() type = 'button';
+  @Input() disabled = false;
+  @Output() onClick = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-file-upload-modal', template: '', standalone: true })
+class MockFileUploadModalComponent {
+  @Input() isOpen = false;
+  @Input() description = '';
+  @Output() onFileUploaded = new EventEmitter<{ fileName: string; file: File }>();
+  @Output() onClose = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-info-banner', template: '', standalone: true })
+class MockInfoBannerComponent {
+  @Input() title = '';
+}
+
+// ── Tipos Seguros para los Mocks (Cero 'any', 'unknown') ─────────────────────
+
+interface MockEvaluateAdvanceFormService {
+  evaluationForm: FormGroup;
+  getStudentNames: jest.Mock<string, [ThesisWork]>;
+  getDirectorName: jest.Mock<string, [ThesisWork]>;
+  getCodirectorName: jest.Mock<string, [ThesisWork]>;
+  getAdvisorName: jest.Mock<string, [ThesisWork]>;
+}
+
+// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
+
+const createMockUser = (overrides: Partial<User> = {}): User => {
+  const base: Partial<User> = {
+    id: 'user-123',
+    idType: IdentificationType.CC,
+    idNumber: 123456789,
+    firstName: 'Estudiante',
+    secondName: '',
+    lastName: 'Prueba',
+    secondLastName: '',
+    codeNumber: 1234567890,
+    email: 'test@test.com',
+    password: 'hash',
+    state: UserState.active,
+    roles: [],
+    ...overrides
+  };
+  return base as User;
+};
+
+const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
+  const baseUser = createMockUser();
+  const baseThesis: Partial<ThesisWork> = {
+    thesisWorkId: 'mock-id-123',
+    preliminaryDraftId: 'draft-1',
+    documents: [],
+    evaluations: [],
+    specialRequests: [],
+    state: stateList.EN_DESARROLLO,
+    createdDate: new Date(),
+    // FIX: Utilizamos un Utility Type (NonNullable) para mapear exactamente
+    // las interfaces sin usar `any` ni tener que importar dependencias circulares.
+    preliminaryDraftData: {
+      preliminaryDraftId: 'draft-1',
+      proposalId: 'prop-1',
+      state: stateList.APROBADO,
+      createdData: new Date(),
+      evaluators: [],
+      evaluations: [],
+      documents: [],
+      proposalData: {
+        id: 'prop-1',
+        title: 'Título',
+        description: 'Desc',
+        modality: Modality.TI,
+        authors: [baseUser],
+        director: baseUser,
+        state: stateList.APROBADO,
+        createdAt: new Date(),
+        documents: [],
+        evaluations: []
+      } as NonNullable<ThesisWork['preliminaryDraftData']>['proposalData']
+    } as NonNullable<ThesisWork['preliminaryDraftData']>
+  };
+  return { ...baseThesis, ...overrides } as ThesisWork;
+};
+
+const createMockAdvance = (overrides: Partial<Advance> = {}): Advance => {
+  const document: FileDocument = {
+    id: '1',
+    name: 'doc1.pdf',
+    url: 'url1',
+    type: DocumentType.AVANCE,
+    uploadDate: new Date(),
+    status: stateList.EN_REVISION
+  };
+
+  const base: Partial<Advance> = {
+    id: 'adv-1',
+    title: 'Avance 1',
+    comments: 'Comentario estudiante',
+    uploadDate: new Date(),
+    studentId: 'user-123',
+    status: stateList.EN_REVISION,
+    documents: [document],
+    ...overrides
+  };
+  return base as Advance;
+};
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('EvaluateAdvanceFormComponent', () => {
   let component: EvaluateAdvanceFormComponent;
   let fixture: ComponentFixture<EvaluateAdvanceFormComponent>;
-  let formService: EvaluateAdvanceFormService;
+  let formServiceSpy: MockEvaluateAdvanceFormService;
 
-  // Data base mínima y estricta (sin 'any') para que el template no falle
-  const mockThesisWork = {
-    state: 'Desarrollo',
-    preliminaryDraftData: {
-      proposalData: {
-        title: 'Titulo',
-        description: 'Desc',
-        modality: 'Trabajo de grado'
-      }
-    }
-  } as unknown as ThesisWork;
-
-  const mockAdvanceData = {
-    title: 'Avance 1',
-    comments: 'Comentario estudiante',
-    documents: [
-      { id: '1', name: 'doc1.pdf', url: 'url1', type: 'AVANCE', uploadDate: '2024-01-01' }
-    ]
-  } as unknown as Advance;
+  const mockThesisWork = createMockThesisWork();
+  const mockAdvanceData = createMockAdvance();
 
   beforeEach(async () => {
+    // 🔕 Silenciador preventivo global de consola
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    // Inicializamos un formulario reactivo real para el mock.
+    // FIX: Usamos fb.control con el tipado exacto para aceptar `undefined` y simular un form vacío.
+    const fb = new FormBuilder();
+    const mockForm = fb.group({
+      result: fb.control<AdvanceEvaluationResult | undefined>(undefined, Validators.required),
+      comments: fb.control<string>('', Validators.required)
+    });
+
+    // Construcción estricta del Mock Service
+    formServiceSpy = {
+      evaluationForm: mockForm,
+      getStudentNames: jest.fn().mockReturnValue('Estudiante Prueba'),
+      getDirectorName: jest.fn().mockReturnValue('Director Prueba'),
+      getCodirectorName: jest.fn().mockReturnValue('Codirector Prueba'),
+      getAdvisorName: jest.fn().mockReturnValue('Asesor Prueba')
+    };
+
     await TestBed.configureTestingModule({
-      imports: [EvaluateAdvanceFormComponent] // Componente Standalone
-    }).compileComponents();
+      imports: [EvaluateAdvanceFormComponent, ReactiveFormsModule]
+    })
+    .overrideComponent(EvaluateAdvanceFormComponent, {
+      remove: {
+        imports: [ButtonComponent, FileUploadModalComponent, InfoBannerComponent],
+        providers: [EvaluateAdvanceFormService]
+      },
+      add: {
+        imports: [MockButtonComponent, MockFileUploadModalComponent, MockInfoBannerComponent],
+        providers: [{ provide: EvaluateAdvanceFormService, useValue: formServiceSpy }]
+      }
+    })
+    .compileComponents();
 
     fixture = TestBed.createComponent(EvaluateAdvanceFormComponent);
     component = fixture.componentInstance;
 
-    // Arrange: Inyectamos el servicio que se provee a nivel de componente
-    formService = fixture.debugElement.injector.get(EvaluateAdvanceFormService);
+    // Asignación de Inputs requeridos ANTES de detectar cambios
+    fixture.componentRef.setInput('thesisWork', mockThesisWork);
+    fixture.componentRef.setInput('advanceData', mockAdvanceData);
 
-    // Arrange: Asignación de Inputs requeridos
-    component.thesisWork = mockThesisWork;
-    component.advanceData = mockAdvanceData;
-
-    // Arrange: Espiamos los event emitters
+    // Espiamos los event emitters
     jest.spyOn(component.onSaveEvaluation, 'emit');
     jest.spyOn(component.onDownloadAdvance, 'emit');
 
@@ -62,121 +203,101 @@ describe('EvaluateAdvanceFormComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('Getters y Estado Inicial', () => {
     it('debe calcular isReadOnly correctamente basado en los inputs de evaluación', () => {
-      // Assert: Estado por defecto
       expect(component.isReadOnly).toBe(false);
 
-      // Act & Assert: Mutamos alreadyEvaluated
-      component.alreadyEvaluated = true;
+      fixture.componentRef.setInput('alreadyEvaluated', true);
       expect(component.isReadOnly).toBe(true);
 
-      // Act & Assert: Mutamos isFullyEvaluated
-      component.alreadyEvaluated = false;
-      component.isFullyEvaluated = true;
+      fixture.componentRef.setInput('alreadyEvaluated', false);
+      fixture.componentRef.setInput('isFullyEvaluated', true);
       expect(component.isReadOnly).toBe(true);
     });
 
     it('debe retornar la lista de documentos de avance de forma segura', () => {
-      // Act
       const docs = component.advanceDocuments;
 
-      // Assert
-      expect(docs.length).toBe(1);
+      expect(docs).toHaveLength(1);
       expect(docs[0].name).toBe('doc1.pdf');
     });
 
-    it('debe retornar una lista vacía si documents no existe o es nulo', () => {
-      // Arrange
-      component.advanceData = {} as unknown as Advance;
-
-      // Act & Assert
+    it('debe retornar una lista vacía si documents viene vacío', () => {
+      fixture.componentRef.setInput('advanceData', createMockAdvance({ documents: [] }));
       expect(component.advanceDocuments).toEqual([]);
     });
   });
 
   describe('Ciclo de vida (ngOnChanges)', () => {
     it('debe deshabilitar el formulario si el estado cambia a read-only (alreadyEvaluated = true)', () => {
-      // Arrange
-      component.alreadyEvaluated = true;
+      fixture.componentRef.setInput('alreadyEvaluated', true);
+
       const changes = {
         alreadyEvaluated: new SimpleChange(false, true, false)
       };
 
-      // Act
       component.ngOnChanges(changes);
 
-      // Assert
       expect(component.evaluationForm.disabled).toBe(true);
     });
 
     it('debe habilitar el formulario si el estado cambia a editable', () => {
-      // Arrange
-      component.alreadyEvaluated = false;
-      component.isFullyEvaluated = false;
+      fixture.componentRef.setInput('alreadyEvaluated', false);
+      fixture.componentRef.setInput('isFullyEvaluated', false);
       component.evaluationForm.disable(); // Forzamos estado deshabilitado inicial
 
       const changes = {
         isFullyEvaluated: new SimpleChange(true, false, false)
       };
 
-      // Act
       component.ngOnChanges(changes);
 
-      // Assert
       expect(component.evaluationForm.enabled).toBe(true);
     });
   });
 
   describe('Manejo de Archivos (Retroalimentación vía Signals)', () => {
     it('debe agregar un archivo al Signal al disparar handleFeedbackUploaded y cerrar el modal', () => {
-      // Arrange
       const mockFile = new File([''], 'test.pdf');
       const payload = { fileName: 'test.pdf', file: mockFile };
       component.isFeedbackModalOpen.set(true);
 
-      // Act
       component.handleFeedbackUploaded(payload);
 
-      // Assert
       expect(component.uploadedFeedbackFiles()).toEqual([payload]);
       expect(component.isFeedbackModalOpen()).toBe(false);
     });
 
     it('debe eliminar un archivo del Signal basado en su índice (removeFeedbackFile)', () => {
-      // Arrange
       const mockFile = new File([''], 'test.pdf');
       component.uploadedFeedbackFiles.set([
         { fileName: 'f1.pdf', file: mockFile },
         { fileName: 'f2.pdf', file: mockFile }
       ]);
 
-      // Act
       component.removeFeedbackFile(0);
 
-      // Assert
-      expect(component.uploadedFeedbackFiles().length).toBe(1);
+      expect(component.uploadedFeedbackFiles()).toHaveLength(1);
       expect(component.uploadedFeedbackFiles()[0].fileName).toBe('f2.pdf');
     });
   });
 
   describe('Validación y Envío (submit)', () => {
     it('debe marcar el formulario como touched y no emitir si el formulario es inválido', () => {
-      // Arrange: Por defecto el campo comments está vacío (inválido)
+      // FIX: Utilizamos `undefined` en lugar de `null` para cumplir con el tipado estricto
+      component.evaluationForm.patchValue({ result: undefined, comments: '' });
 
-      // Act
       component.submit();
 
-      // Assert
       expect(component.evaluationForm.touched).toBe(true);
       expect(component.isFieldInvalid('comments')).toBe(true);
       expect(component.onSaveEvaluation.emit).not.toHaveBeenCalled();
     });
 
     it('debe emitir el payload formateado correctamente si el formulario es válido', () => {
-      // Arrange
       const mockFile = new File([''], 'retro.pdf');
       component.uploadedFeedbackFiles.set([{ fileName: 'retro.pdf', file: mockFile }]);
 
@@ -185,31 +306,37 @@ describe('EvaluateAdvanceFormComponent', () => {
         comments: 'Excelente avance, todo en orden.'
       });
 
-      // Act
       component.submit();
 
-      // Assert
       expect(component.onSaveEvaluation.emit).toHaveBeenCalledWith({
         formValues: {
           result: AdvanceEvaluationResult.EVALUADO,
           comments: 'Excelente avance, todo en orden.'
         },
-        files: [mockFile] // Asegura que mapeó correctamente desestructurando el { fileName, file }
+        files: [mockFile]
       });
     });
   });
 
   describe('Delegación al FormService (Proxies)', () => {
     it('debe llamar al servicio para obtener los nombres de estudiantes', () => {
-      // Arrange
-      jest.spyOn(formService, 'getStudentNames').mockReturnValue('Estudiante Prueba');
+      expect(component.getStudentNames()).toBe('Estudiante Prueba');
+      expect(formServiceSpy.getStudentNames).toHaveBeenCalledWith(mockThesisWork);
+    });
 
-      // Act
-      const result = component.getStudentNames();
+    it('debe llamar al servicio para obtener el nombre del director', () => {
+      expect(component.getDirectorName()).toBe('Director Prueba');
+      expect(formServiceSpy.getDirectorName).toHaveBeenCalledWith(mockThesisWork);
+    });
 
-      // Assert
-      expect(result).toBe('Estudiante Prueba');
-      expect(formService.getStudentNames).toHaveBeenCalledWith(mockThesisWork);
+    it('debe llamar al servicio para obtener el nombre del codirector', () => {
+      expect(component.getCodirectorName()).toBe('Codirector Prueba');
+      expect(formServiceSpy.getCodirectorName).toHaveBeenCalledWith(mockThesisWork);
+    });
+
+    it('debe llamar al servicio para obtener el nombre del asesor', () => {
+      expect(component.getAdvisorName()).toBe('Asesor Prueba');
+      expect(formServiceSpy.getAdvisorName).toHaveBeenCalledWith(mockThesisWork);
     });
   });
 });

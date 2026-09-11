@@ -22,6 +22,11 @@ describe('ProposalDetailsFacadeService', () => {
   const mockUser = { firstName: 'Juan', lastName: 'Perez' } as unknown as User;
 
   beforeEach(() => {
+    // 1. Espías para silenciar la consola globalmente en todas las pruebas
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     // 2. Inicialización de mocks
     mockProposalService = {
       getProposalByIdMock: jest.fn(),
@@ -51,6 +56,11 @@ describe('ProposalDetailsFacadeService', () => {
     });
 
     service = TestBed.inject(ProposalDetailsFacadeService);
+  });
+
+  afterEach(() => {
+    // 3. Restauramos todos los espías y mocks originales al terminar cada prueba
+    jest.restoreAllMocks();
   });
 
   it('debe crearse correctamente', () => {
@@ -94,7 +104,7 @@ describe('ProposalDetailsFacadeService', () => {
       const onSuccessMock = jest.fn();
       const onNotFoundMock = jest.fn();
       const onErrorMock = jest.fn();
-      jest.spyOn(console, 'error').mockImplementation(() => {}); // Ocultar error de consola
+      // Ya no hace falta el espía local aquí porque está en el beforeEach
 
       service.load('1', onSuccessMock, onNotFoundMock, onErrorMock);
 

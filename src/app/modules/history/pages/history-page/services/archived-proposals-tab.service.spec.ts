@@ -11,46 +11,53 @@ import { ARCHIVED_ALLOWED_ACTIONS } from '../models/archived-tab-columns.model';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
 
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
-function createMockUser(overrides: Partial<User> = {}): User {
-  return {
-    id: 'user-default',
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john@example.com',
-    ...overrides
-  } as User;
-}
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any' y 'unknown') ──────────
 
-function createMockProposal(overrides: Partial<Proposal> = {}): Proposal {
-  return {
-    id: 'prop-1',
-    title: 'Propuesta de Prueba',
-    modality: 'Trabajo de investigación',
-    description: 'Descripción de prueba',
-    state: 'EN_REVISION',
-    isArchived: true,
-    authors: [createMockUser()],
-    evaluations: [],
-    ...overrides
-  } as Proposal;
-}
+const createMockUser = (overrides: Partial<User> = {}): User => ({
+  id: 'user-default',
+  firstName: 'John',
+  lastName: 'Doe',
+  email: 'john@example.com',
+  roles: [],
+  ...overrides
+} as User);
+
+const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
+  id: 'prop-1',
+  title: 'Propuesta de Prueba',
+  modality: Modality.TI, // Usamos directamente el enum
+  description: 'Descripción de prueba',
+  state: stateList.EN_REVISION,
+  isArchived: true,
+  director: createMockUser(),
+  authors: [createMockUser()],
+  evaluations: [],
+  createdAt: new Date(),
+  documents: [],
+  ...overrides
+} as Proposal);
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('ArchivedProposalsTabService', () => {
   let service: ArchivedProposalsTabService;
 
-  // Mocks de dependencias
+  // 🔹 REFACTOR: Tipado estricto de las dependencias
   let mockProposalService: { allProposals: WritableSignal<Proposal[]> };
-  let mockUserService: jest.Mocked<UserService>;
+  let mockUserService: { getAuthorsNames: jest.Mock<string, [User[] | undefined]> };
 
   beforeEach(() => {
+    // 🔕 Silenciar los console.error y console.warn para mantener limpia la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockProposalService = {
       allProposals: signal<Proposal[]>([])
     };
 
     mockUserService = {
-      getAuthorsNames: jest.fn().mockReturnValue('Autores Mockeados'),
-    } as unknown as jest.Mocked<UserService>;
+      getAuthorsNames: jest.fn().mockReturnValue('Autores Mockeados')
+    };
 
     TestBed.configureTestingModule({
       providers: [
@@ -65,6 +72,7 @@ describe('ArchivedProposalsTabService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola
   });
 
   describe('Configuración Básica', () => {
@@ -134,10 +142,16 @@ describe('ArchivedProposalsTabService', () => {
         title: undefined,
         modality: undefined,
         description: undefined,
-        authors: [createMockUser({ id: 'user-123' })]
+        authors: [], // Arreglo vacío para simular falta de autores
+        director: createMockUser({ id: 'user-123' }) // <-- FIX: Le damos acceso siendo el director para que no sea filtrada
       });
 
       mockProposalService.allProposals.set([fullProposal, emptyProposal]);
+
+      // Simulamos que para la propuesta vacía, getAuthorsNames retorne falso/vacío
+      mockUserService.getAuthorsNames.mockImplementation((authors) => {
+        return authors && authors.length > 0 ? 'Autores Mockeados' : '';
+      });
 
       const context = createContext('user-123');
       const data = service.getTableData(context);
@@ -146,10 +160,10 @@ describe('ArchivedProposalsTabService', () => {
       expect(data[0]).toEqual(expect.objectContaining({
         id: 'arch-1',
         title: 'Propuesta Completa',
-        modality: Modality.TI,             // <-- CORRECCIÓN: Usar el Enum
+        modality: Modality.TI,
         authors: 'Autores Mockeados',
         description: 'Descripción completa',
-        state: stateList.EN_REVISION,      // <-- CORRECCIÓN: Usar el Enum
+        state: stateList.EN_REVISION,
         allowedActions: ARCHIVED_ALLOWED_ACTIONS
       }));
       expect(data[0]).toHaveProperty('deadlineStatus');
@@ -159,11 +173,12 @@ describe('ArchivedProposalsTabService', () => {
         id: 'arch-empty',
         title: 'Sin título',
         modality: 'No definida',
+        authors: 'Sin asignar', // Retornado exitosamente gracias a la función espía
         description: 'Sin descripción'
       }));
     });
 
-    it('debería aplicar el fallback "Sin asignar" cuando getAuthorsNames retorna un valor vacío', () => {
+    it('debería aplicar el fallback "Sin asignar" cuando getAuthorsNames retorna un valor vacío directamente', () => {
       const proposalSinAutores = createMockProposal({
         id: 'arch-no-authors',
         authors: [createMockUser({ id: 'user-123' })]

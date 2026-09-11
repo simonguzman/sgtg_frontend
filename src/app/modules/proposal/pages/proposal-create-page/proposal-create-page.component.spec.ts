@@ -36,6 +36,11 @@ describe('ProposalCreatePageComponent', () => {
   const mockProposal = { title: 'Test Proposal' } as Proposal;
 
   beforeEach(async () => {
+    // 1. Espías para silenciar la consola globalmente en todas las pruebas
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     mockLocation = {
       back: jest.fn(),
     };
@@ -69,8 +74,9 @@ describe('ProposalCreatePageComponent', () => {
   });
 
   afterEach(() => {
-    // 5. Garantizamos la limpieza de los espías entre tests
-    jest.clearAllMocks();
+    // 5. Garantizamos la limpieza y restauración de los espías entre tests
+    // Se usa restoreAllMocks en lugar de clearAllMocks para que limpie los spyOn de la consola
+    jest.restoreAllMocks();
   });
 
   it('debe crearse correctamente', () => {

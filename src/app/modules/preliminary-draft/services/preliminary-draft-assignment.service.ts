@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { delay, Observable, of, tap } from 'rxjs';
+import { delay, first, Observable, of, tap } from 'rxjs';
 import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
@@ -50,7 +50,13 @@ export class PreliminaryDraftAssignmentService {
     return of(undefined).pipe(
       delay(800),
       tap(() => {
-        evaluatorsIds.forEach(id => this.userService.addRoleToUser(id, UserRoleType.EVALUADOR));
+        // ← FIX: mismo bug — forEach descartaba el Observable sin suscribirse.
+        // Es la causa raíz de "los evaluadores no quedan con el rol asignado".
+        evaluatorsIds.forEach(id =>
+          this.userService.addRoleToUser(id, UserRoleType.EVALUADOR)
+            .pipe(first())
+            .subscribe()
+        );
 
         const evaluatorUsers = evaluatorsIds
           .map(id => this.userService.users().find(user => user.id === id))

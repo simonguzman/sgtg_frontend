@@ -2,17 +2,31 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { SearchableSelectComponent, SelectOption } from './searchable-select.component';
 
+// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
+
+const createMockSelectOption = (overrides: Partial<SelectOption> = {}): SelectOption => ({
+  id: '1',
+  label: 'Default Option',
+  ...overrides
+});
+
+// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+
 describe('SearchableSelectComponent', () => {
   let component: SearchableSelectComponent;
   let fixture: ComponentFixture<SearchableSelectComponent>;
 
   const mockOptions: SelectOption[] = [
-    { id: '1', label: 'Angular' },
-    { id: '2', label: 'React' },
-    { id: '3', label: 'Vue' }
+    createMockSelectOption({ id: '1', label: 'Angular' }),
+    createMockSelectOption({ id: '2', label: 'React' }),
+    createMockSelectOption({ id: '3', label: 'Vue' })
   ];
 
   beforeEach(async () => {
+    // 🔕 Silenciar consola para mantener terminal limpia ante advertencias o errores de renderizado
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     await TestBed.configureTestingModule({
       imports: [SearchableSelectComponent]
     }).compileComponents();
@@ -20,10 +34,16 @@ describe('SearchableSelectComponent', () => {
     fixture = TestBed.createComponent(SearchableSelectComponent);
     component = fixture.componentInstance;
 
+    // Configuración de los Inputs mediante la API de Signals de Angular
     fixture.componentRef.setInput('options', mockOptions);
     fixture.componentRef.setInput('placeholder', 'Seleccione un framework');
 
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar la consola y los espías
   });
 
   describe('Inicialización y Renderizado', () => {
@@ -58,6 +78,7 @@ describe('SearchableSelectComponent', () => {
       component.isOpen.set(true);
       fixture.detectChanges();
 
+      // Simulamos clic en el documento, fuera del elemento referenciado por ElementRef
       document.dispatchEvent(new MouseEvent('click'));
       fixture.detectChanges();
 
@@ -123,6 +144,7 @@ describe('SearchableSelectComponent', () => {
 
       const clearBtn = fixture.debugElement.query(By.css('span[title="Limpiar selección"]')).nativeElement;
 
+      // Creamos el evento y lo espiamos nativamente
       const clickEvent = new MouseEvent('click');
       jest.spyOn(clickEvent, 'stopPropagation');
 

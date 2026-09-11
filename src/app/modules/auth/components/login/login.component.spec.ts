@@ -1,10 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { Component, Input } from '@angular/core';
+
 import { LoginComponent } from './login.component';
 import { LoginFacadeService } from './services/login-facade.service';
+
+// ── Componentes Originales a Remover ─────────────────────────────────────────
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 
+// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
 @Component({
   selector: 'app-button-component',
   standalone: true,
@@ -21,13 +25,17 @@ describe('LoginComponent', () => {
   let component: LoginComponent;
   let fixture: ComponentFixture<LoginComponent>;
 
-  // ── Tipado estricto del Facade ─────────────────────────────────────────────
+  // ── Tipado estricto del Facade (Zero 'any', 'unknown') ─────────────────────
   let facadeMock: {
     checkAlreadyAuthenticated: jest.Mock<void, []>;
     login: jest.Mock<void, [{ email: string; password: string }, () => void, () => void]>;
   };
 
   beforeEach(async () => {
+    // 🔕 Silenciar consola para mantener terminal limpia
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     // Inicializamos con jest.fn()
     facadeMock = {
       checkAlreadyAuthenticated: jest.fn(),
@@ -53,6 +61,7 @@ describe('LoginComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola y formularios
   });
 
   it('debe crearse correctamente', () => {
@@ -116,7 +125,7 @@ describe('LoginComponent', () => {
 
       expect(facadeMock.login).toHaveBeenCalled();
 
-      // Gracias al tipado, calledArgs ya no es "any", tiene la estructura exacta de los argumentos
+      // Gracias al tipado estricto, calledArgs conserva la estructura exacta
       const calledArgs = facadeMock.login.mock.calls[0];
       expect(calledArgs[0]).toEqual({
         email: 'test@unicauca.edu.co',

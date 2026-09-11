@@ -9,6 +9,10 @@ describe('DescriptionModalComponent', () => {
   let fixture: ComponentFixture<DescriptionModalComponent>;
 
   beforeEach(async () => {
+    // 🔕 Silenciar consola para mantener terminal limpia ante warnings de PrimeNG en JSDOM
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     await TestBed.configureTestingModule({
       imports: [DescriptionModalComponent],
       providers: [provideNoopAnimations()]
@@ -20,7 +24,8 @@ describe('DescriptionModalComponent', () => {
 
   // Limpiamos los espías después de cada prueba para evitar filtrado de estados
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   describe('Inicialización y Renderizado Básico', () => {
@@ -29,9 +34,10 @@ describe('DescriptionModalComponent', () => {
     });
 
     it('debería renderizar el título y la descripción correctamente cuando el modal está abierto', () => {
-      component.titleDescription = 'Título de Prueba';
-      component.description = 'Esta es una descripción detallada de prueba para validar el renderizado.';
-      component.isOpen = true;
+      // Uso de la API moderna de Angular para inyectar Inputs
+      fixture.componentRef.setInput('titleDescription', 'Título de Prueba');
+      fixture.componentRef.setInput('description', 'Esta es una descripción detallada de prueba para validar el renderizado.');
+      fixture.componentRef.setInput('isOpen', true);
       fixture.detectChanges();
 
       const dialogElement = fixture.debugElement.query(By.css('p-dialog'));
@@ -46,7 +52,9 @@ describe('DescriptionModalComponent', () => {
   describe('Emisión de Eventos (Outputs)', () => {
     it('debería emitir onClose al cerrarse el p-dialog (evento onHide)', () => {
       const emitSpy = jest.spyOn(component.onClose, 'emit');
-      component.isOpen = true;
+
+      // Inyección estricta del Input
+      fixture.componentRef.setInput('isOpen', true);
       fixture.detectChanges();
 
       const dialog = fixture.debugElement.query(By.css('p-dialog'));

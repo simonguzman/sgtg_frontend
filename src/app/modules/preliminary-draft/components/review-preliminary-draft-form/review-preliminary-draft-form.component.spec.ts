@@ -1,34 +1,85 @@
+// 1. Angular Core & Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormGroup, FormControl } from '@angular/forms';
-import { signal, WritableSignal } from '@angular/core';
+import { signal, WritableSignal, Component, Input, Output, EventEmitter } from '@angular/core';
 
+// 2. Component, Service & Models
 import { ReviewPreliminaryDraftFormComponent } from './review-preliminary-draft-form.component';
 import { ReviewPreliminaryDraftFormFacadeService } from './services/review-preliminary-draft-form-facade.service';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { PendingReviewData } from '../../interfaces/review-preliminary-draft-payload.interface';
+
+// 3. Core Enums & Interfaces
 import { stateList } from '../../../../core/enums/state.enum';
 import { User } from '../../../users/interfaces/user.interface';
 import { Proposal } from '../../../proposal/interfaces/proposal.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../core/enums/document-type.enum';
 
-// Factory estricto para objetos User
+// 4. Componentes Originales (Para el override)
+import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
+import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+
+// 🔹 REFACTOR: Mocks de Componentes Hijos para aislar el contenedor del DOM y lógica externa
+@Component({ selector: 'app-button-component', standalone: true, template: '<button (click)="onClick.emit()">{{label}}</button>' })
+class MockButtonComponent {
+  @Input() label = '';
+  @Input() variant = '';
+  @Input() disabled = false;
+  @Input() type = 'button';
+  @Output() onClick = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-file-upload-modal', standalone: true, template: '<div>Mock Modal</div>' })
+class MockFileUploadModalComponent {
+  @Input() isOpen = false;
+  @Input() description = '';
+  @Output() onFileUploaded = new EventEmitter<{ fileName: string; file: File }>();
+  @Output() onClose = new EventEmitter<void>();
+}
+
+@Component({ selector: 'app-info-banner', standalone: true, template: '<div>Mock Banner <ng-content></ng-content></div>' })
+class MockInfoBannerComponent {
+  @Input() title = '';
+}
+
+// 🔹 REFACTOR: Interfaz estricta para el Facade sin usar 'any'
+interface MockFacadeService {
+  preliminaryDraft: WritableSignal<PreliminaryDraft | null>;
+  isReadOnly: WritableSignal<boolean>;
+  documentUploadDate: WritableSignal<string>;
+  getStudentNames: jest.Mock<string, []>;
+  getDirectorName: jest.Mock<string, []>;
+  getCodirectorName: jest.Mock<string, []>;
+  getAdvisorName: jest.Mock<string, []>;
+  evaluationForm: FormGroup;
+  isFieldInvalid: jest.Mock<boolean, [string]>;
+  currentDocument: WritableSignal<FileDocument | null>;
+  uploadedSignedFile: WritableSignal<{ fileName: string; file: File } | null>;
+  uploadedAnnotatedFile: WritableSignal<{ fileName: string; file: File } | null>;
+  isUploadModalOpen: WritableSignal<boolean>;
+  isAnnotatedUploadModalOpen: WritableSignal<boolean>;
+  handleFileUploaded: jest.Mock<void, [{ fileName: string; file: File }]>;
+  handleAnnotatedFileUploaded: jest.Mock<void, [{ fileName: string; file: File }]>;
+  validateAndGetPayload: jest.Mock<PendingReviewData | null, []>;
+}
+
+// 🔹 REFACTOR: Fábricas estrictas para generar objetos sin 'unknown'
 const createMockUser = (overrides?: Partial<User>): User => ({
   id: 'user-1',
-  name: 'Usuario',
+  firstName: 'Usuario',
   lastName: 'Prueba',
   email: 'usuario@unicauca.edu.co',
+  roles: [],
   ...overrides
 } as User);
 
-// Factory estricto para Proposal
 const createMockProposal = (overrides?: Partial<Proposal>): Proposal => ({
   id: 'prop-1',
   title: 'Sistema de Gestión Hospitalaria',
   description: 'Descripción del proyecto',
-  // Usamos el indexed type de Proposal para asegurar compatibilidad con Modality
   modality: 'Trabajo de Grado' as Proposal['modality'],
-  // Fix: authors debe ser un arreglo de objetos User[], no strings
   authors: [createMockUser({ id: 'user-1' })],
   director: createMockUser({ id: 'dir-1', firstName: 'Director', lastName: 'Uno' }),
   codirector: createMockUser({ id: 'codir-1', firstName: 'Codirector', lastName: 'Dos' }),
@@ -38,9 +89,8 @@ const createMockProposal = (overrides?: Partial<Proposal>): Proposal => ({
   documents: [],
   evaluations: [],
   ...overrides
-});
+} as Proposal);
 
-// Factory estricto para PreliminaryDraft
 const createMockPreliminaryDraft = (overrides?: Partial<PreliminaryDraft>): PreliminaryDraft => ({
   preliminaryDraftId: 'draft-1',
   proposalId: 'prop-1',
@@ -48,40 +98,24 @@ const createMockPreliminaryDraft = (overrides?: Partial<PreliminaryDraft>): Prel
   documents: [],
   proposalData: createMockProposal(),
   evaluators: [],
-  // Fix: se añade evaluations para cumplir la firma obligatoria Evaluation[]
   evaluations: [],
   createdData: new Date(),
+  isArchived: false,
   ...overrides
-});
+} as PreliminaryDraft);
 
 describe('ReviewPreliminaryDraftFormComponent', () => {
   let component: ReviewPreliminaryDraftFormComponent;
   let fixture: ComponentFixture<ReviewPreliminaryDraftFormComponent>;
-
-  // Tipo estricto para el Facade Mock
-  let mockFacade: {
-    preliminaryDraft: WritableSignal<PreliminaryDraft | null>;
-    isReadOnly: WritableSignal<boolean>;
-    documentUploadDate: WritableSignal<string>;
-    getStudentNames: jest.Mock;
-    getDirectorName: jest.Mock;
-    getCodirectorName: jest.Mock;
-    getAdvisorName: jest.Mock;
-    evaluationForm: FormGroup;
-    isFieldInvalid: jest.Mock;
-    currentDocument: WritableSignal<FileDocument | null>;
-    uploadedSignedFile: WritableSignal<{ fileName: string; file: File } | null>;
-    uploadedAnnotatedFile: WritableSignal<{ fileName: string; file: File } | null>;
-    isUploadModalOpen: WritableSignal<boolean>;
-    isAnnotatedUploadModalOpen: WritableSignal<boolean>;
-    handleFileUploaded: jest.Mock;
-    handleAnnotatedFileUploaded: jest.Mock;
-    validateAndGetPayload: jest.Mock;
-  };
+  let mockFacade: MockFacadeService;
 
   const mockDraft = createMockPreliminaryDraft();
 
   beforeEach(async () => {
+    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     mockFacade = {
       preliminaryDraft: signal<PreliminaryDraft | null>(null),
       isReadOnly: signal<boolean>(false),
@@ -108,10 +142,17 @@ describe('ReviewPreliminaryDraftFormComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [ReviewPreliminaryDraftFormComponent, ReactiveFormsModule]
+      imports: [ReviewPreliminaryDraftFormComponent]
     })
     .overrideComponent(ReviewPreliminaryDraftFormComponent, {
-      set: {
+      remove: {
+        // Removemos los componentes reales y el servicio original
+        imports: [ButtonComponent, FileUploadModalComponent, InfoBannerComponent],
+        providers: [ReviewPreliminaryDraftFormFacadeService]
+      },
+      add: {
+        // Inyectamos nuestros mocks aislados
+        imports: [MockButtonComponent, MockFileUploadModalComponent, MockInfoBannerComponent],
         providers: [{ provide: ReviewPreliminaryDraftFormFacadeService, useValue: mockFacade }]
       }
     })
@@ -120,12 +161,14 @@ describe('ReviewPreliminaryDraftFormComponent', () => {
     fixture = TestBed.createComponent(ReviewPreliminaryDraftFormComponent);
     component = fixture.componentInstance;
 
+    // Asignación de la señal de entrada requerida
     fixture.componentRef.setInput('preliminaryDraft', mockDraft);
     fixture.detectChanges();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
   });
 
   it('debería crear el componente', () => {

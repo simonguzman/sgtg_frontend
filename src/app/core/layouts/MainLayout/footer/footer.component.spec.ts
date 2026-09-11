@@ -1,6 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FooterComponent } from './footer.component';
-// 1. Importamos la metadata extraída
 import { APP_VERSION, getCurrentYear } from '../../../utils/app-metadata-utils';
 
 describe('FooterComponent', () => {
@@ -8,6 +7,10 @@ describe('FooterComponent', () => {
   let fixture: ComponentFixture<FooterComponent>;
 
   beforeEach(async () => {
+    // 🔕 Silenciar consola como medida preventiva y estándar en todos los tests
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     await TestBed.configureTestingModule({
       imports: [FooterComponent]
     }).compileComponents();
@@ -17,13 +20,18 @@ describe('FooterComponent', () => {
     fixture.detectChanges();
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks(); // 🧹 Restaurar consola
+  });
+
   describe('Inicialización', () => {
     it('debería crearse correctamente', () => {
       expect(component).toBeTruthy();
     });
 
     it('debería tener el año actual y la versión configurada leyendo desde utils', () => {
-      // 2. Comparamos contra la utilidad importada, no contra valores quemados
+      // Acceso mediante notación de corchetes para propiedades protected
       expect(component['currentYear']).toBe(getCurrentYear());
       expect(component['version']).toBe(APP_VERSION);
     });
@@ -31,10 +39,10 @@ describe('FooterComponent', () => {
 
   describe('Renderizado del DOM', () => {
     it('debería mostrar el año actual en la primera sección del footer', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      // 3. Usamos la utilidad para la aserción en el DOM
+      const compiled = fixture.nativeElement;
       const expectedYear = getCurrentYear();
 
+      // Inferencia nativa del DOM, sin casteos
       const footerText = compiled.querySelector('.footer-inner > div:first-child')?.textContent;
 
       expect(footerText).toContain(expectedYear.toString());
@@ -42,22 +50,21 @@ describe('FooterComponent', () => {
     });
 
     it('debería mostrar la versión correcta en la segunda sección del footer', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-
+      const compiled = fixture.nativeElement;
       const footerText = compiled.querySelector('.footer-inner > div:last-child')?.textContent;
 
-      // 4. Usamos APP_VERSION importada
       expect(footerText).toContain(`Versión ${APP_VERSION}`);
       expect(footerText).toContain('División de Tecnologías de la Información y las Comunicaciones');
     });
 
     it('debería contener un enlace válido para soporte técnico', () => {
-      const compiled = fixture.nativeElement as HTMLElement;
-      const supportLink = compiled.querySelector('.footer-link') as HTMLAnchorElement;
+      const compiled = fixture.nativeElement;
+      // Eliminamos el cast 'as HTMLAnchorElement' aprovechando el encadenamiento opcional
+      const supportLink = compiled.querySelector('.footer-link');
 
       expect(supportLink).toBeTruthy();
-      expect(supportLink.textContent?.trim()).toBe('Soporte técnico');
-      expect(supportLink.getAttribute('href')).toBe('#');
+      expect(supportLink?.textContent?.trim()).toBe('Soporte técnico');
+      expect(supportLink?.getAttribute('href')).toBe('#');
     });
   });
 });

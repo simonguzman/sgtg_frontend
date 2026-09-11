@@ -16,21 +16,23 @@ import { AppEventType } from '../../../core/enums/app-event-type.enum';
 describe('ProposalApiService', () => {
   let service: ProposalApiService;
 
-  // 1. Reemplazamos los 'any' por las clases originales envueltas en jest.Mocked
   let mockStorageService: jest.Mocked<ProposalStorageService>;
   let mockRulesService: jest.Mocked<ProposalRulesService>;
   let mockUserService: jest.Mocked<UserService>;
   let mockEventBusService: jest.Mocked<EventBusService>;
 
   beforeEach(() => {
-    // Sobrescribir crypto para evitar IDs aleatorios que rompan los tests
-    Object.defineProperty(window, 'crypto', {
-      value: { randomUUID: jest.fn().mockReturnValue('mocked-uuid') }
-    });
+    // 1. Espías de consola para evitar ruido visual en la terminal
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    // 2. Inicializamos los mocks haciendo un cast 'as unknown as...'
-    // Esto evita errores por propiedades privadas omitidas, pero mantiene el tipado
-    // estricto para las firmas de los métodos que sí estamos mockeando.
+    // Mejora: Mockeamos crypto con un formato UUID válido para satisfacer a TypeScript
+    if (!window.crypto) {
+      (window as any).crypto = {};
+    }
+    jest.spyOn(window.crypto, 'randomUUID').mockReturnValue('00000000-0000-0000-0000-000000000000');
+
     mockStorageService = {
       getById: jest.fn(),
       updateProposals: jest.fn(),
@@ -65,7 +67,9 @@ describe('ProposalApiService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    // 2. Reemplazamos clearAllMocks por restoreAllMocks para destruir los espías
+    // y restaurar cualquier objeto (como console o window.crypto) a su estado natural
+    jest.restoreAllMocks();
   });
 
   it('debería crearse correctamente', () => {
@@ -105,7 +109,7 @@ describe('ProposalApiService', () => {
 
       // Verificamos la creación
       expect(resultProp).toBeDefined();
-      expect(resultProp?.id).toBe('mocked-uuid');
+      expect(resultProp?.id).toBe('00000000-0000-0000-0000-000000000000');
       expect(resultProp?.state).toBe(stateList.EN_REVISION);
       expect(mockStorageService.updateProposals).toHaveBeenCalled();
 
@@ -117,7 +121,7 @@ describe('ProposalApiService', () => {
       expect(mockEventBusService.emit).toHaveBeenCalledWith(
         expect.objectContaining({
           type: AppEventType.PROPOSAL_CREATED,
-          payload: { proposalId: 'mocked-uuid', proposalTitle: 'Nueva Propuesta' }
+          payload: { proposalId: '00000000-0000-0000-0000-000000000000', proposalTitle: 'Nueva Propuesta' }
         })
       );
 
@@ -177,9 +181,6 @@ describe('ProposalApiService', () => {
     it('debería remover el rol si el usuario ya no está vinculado a otra propuesta', fakeAsync(() => {
       const proposalToDelete = { id: '1', codirector: { id: 'co-1' } } as Proposal;
 
-      // Hacemos que el mock simule el flujo temporal:
-      // 1ra vez: Retorna la lista con la propuesta (para encontrarla e iniciar el borrado).
-      // 2da vez: Retorna una lista vacía (simulando que ya se filtró/borró y validando que el usuario quedó libre).
       mockStorageService.getProposalsListSnapshot
         .mockReturnValueOnce([proposalToDelete])
         .mockReturnValueOnce([]);
@@ -192,7 +193,6 @@ describe('ProposalApiService', () => {
       expect(result).toBe(true);
       expect(mockStorageService.updateProposals).toHaveBeenCalled();
 
-      // Ahora la validación pasará correctamente porque el usuario ya no aparece en el snapshot
       expect(mockUserService.removeRoleFromUser).toHaveBeenCalledWith('co-1', UserRoleType.CODIRECTOR);
     }));
 
@@ -200,7 +200,6 @@ describe('ProposalApiService', () => {
       const proposalToDelete = { id: '1', codirector: { id: 'co-1' } } as Proposal;
       const otherProposal = { id: '2', codirector: { id: 'co-1' } } as Proposal;
 
-      // Existen dos propuestas vinculadas al mismo codirector
       mockStorageService.getProposalsListSnapshot.mockReturnValue([proposalToDelete, otherProposal]);
 
       let result = false;
@@ -209,7 +208,6 @@ describe('ProposalApiService', () => {
       tick(1000);
 
       expect(result).toBe(true);
-      // NO se debe remover el rol porque 'co-1' sigue en la propuesta '2'
       expect(mockUserService.removeRoleFromUser).not.toHaveBeenCalled();
     }));
   });
