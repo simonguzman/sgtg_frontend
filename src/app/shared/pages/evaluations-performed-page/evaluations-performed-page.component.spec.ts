@@ -158,7 +158,7 @@ describe('EvaluationsPerformedPageComponent', () => {
       const evaluations = component['evaluationsWithPermissions']();
 
       expect(mockFacade.getMappedEvaluations).toHaveBeenCalledWith('prop-123', '/history/proposal/123');
-      expect(evaluations.length).toBe(1);
+      expect(evaluations).toHaveLength(1);
       expect(evaluations[0].evaluatorName).toBe('Dra. María');
     });
 

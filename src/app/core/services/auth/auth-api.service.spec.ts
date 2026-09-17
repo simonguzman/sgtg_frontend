@@ -1,6 +1,7 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { signal, WritableSignal } from '@angular/core';
+import { of } from 'rxjs'; // <-- FIX 1: Importamos 'of' de rxjs
 
 import { AuthApiService } from './auth-api.service';
 import { AuthStorageService } from './auth-storage.service';
@@ -21,7 +22,8 @@ interface MockAuthStorageService {
 
 interface MockUserService {
   users: WritableSignal<User[]>;
-  updateUserPasswordMock: jest.Mock<void, [string, string]>;
+  // <-- FIX 2: Actualizamos el tipo para que refleje que devuelve un Observable (o any para simplificar el mock de void)
+  updateUserPasswordMock: jest.Mock<any, [string, string]>;
 }
 
 // ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
@@ -78,7 +80,8 @@ describe('AuthApiService', () => {
 
     mockUserService = {
       users: signal([validUser, inactiveUser]),
-      updateUserPasswordMock: jest.fn()
+      // <-- FIX 3: Instruimos al mock para que devuelva un observable vacío
+      updateUserPasswordMock: jest.fn().mockReturnValue(of(undefined))
     };
 
     mockRouter = { navigate: jest.fn() };

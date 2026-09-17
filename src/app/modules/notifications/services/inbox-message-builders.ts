@@ -54,7 +54,7 @@ export const INBOX_MESSAGE_BUILDERS: Record<AppEventType, InboxMessageBuilder> =
     type: NotificationType.INFO,
     title: 'Correcciones de propuesta subidas',
     message: `El director ha subido un nuevo documento con correcciones para la propuesta: "${ctx.proposalTitle}"`,
-    actionUrl: `/proposal/details/${ctx.proposalId}`
+    actionUrl: `/proposal/details/${ctx.proposalId}/loaded_proposals`
   }),
 
   [AppEventType.PROPOSAL_DEADLINE_WARNING]: (ctx) => ({
@@ -189,7 +189,7 @@ export const INBOX_MESSAGE_BUILDERS: Record<AppEventType, InboxMessageBuilder> =
     type: NotificationType.INFO,
     title: 'Nueva Solicitud Especial',
     message: `Se ha radicado una solicitud de tipo [${ctx.payload.type || 'General'}] para el trabajo de grado: "${ctx.thesisTitle}"`,
-    actionUrl: `/thesis-work/details/${ctx.thesisId}`
+    actionUrl: `/thesis-work/details/${ctx.thesisId}/loaded_documents`
   }),
 
   [AppEventType.SPECIAL_REQUEST_RESOLVED]: (ctx) => ({
@@ -197,7 +197,7 @@ export const INBOX_MESSAGE_BUILDERS: Record<AppEventType, InboxMessageBuilder> =
     type: NotificationType.CONFIRMATION,
     title: 'Resolución de Solicitud Especial',
     message: `El comité ha respondido a la solicitud especial de "${ctx.thesisTitle}". Estado: ${ctx.payload.status}`,
-    actionUrl: `/thesis-work/details/${ctx.thesisId}`
+    actionUrl: `/thesis-work/details/${ctx.thesisId}/loaded_documents`
   }),
 
   [AppEventType.THESIS_PAZ_Y_SALVO_REGISTERED]: (ctx) => ({

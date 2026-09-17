@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { delay, Observable, of, tap } from 'rxjs';
+import { delay, map, Observable, of, tap } from 'rxjs'; // <-- FIX: Importamos 'map'
 import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
@@ -21,16 +21,17 @@ export class PreliminaryDraftApiService {
   public createPreliminaryDraft(preliminaryDraft: PreliminaryDraft): Observable<PreliminaryDraft> {
     return of(preliminaryDraft).pipe(
       delay(1000),
-      tap(newDraft => {
+      map(newDraft => { // <-- FIX: Cambiamos 'tap' por 'map' para poder transformar el objeto devuelto
         const preliminaryDraftToSave: PreliminaryDraft = {
           ...newDraft,
-          preliminaryDraftId: crypto.randomUUID(),
+          preliminaryDraftId: crypto.randomUUID(), // Aquí se genera el ID
           evaluations: newDraft.evaluations || [],
           documents:   newDraft.documents   || [],
           createdData: new Date(),
           state:       newDraft.state       || stateList.EN_REVISION
         };
 
+        // Guardamos en el storage
         this.storage.addDraft(preliminaryDraftToSave);
 
         const notifyUserIds: string[] = [];
@@ -59,6 +60,9 @@ export class PreliminaryDraftApiService {
             preliminaryDraftTitle: proposal?.title || ''
           }
         });
+
+        // <-- FIX: Retornamos el objeto procesado para que el suscriptor (el test) reciba el ID generado
+        return preliminaryDraftToSave;
       })
     );
   }

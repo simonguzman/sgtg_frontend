@@ -74,20 +74,39 @@ export class ProposalStorageService {
     });
   }
 
+  // ← FIX: getInitialData() puede lanzar (getMockUser lanza si el usuario
+  // mock no existe). Antes, si eso pasaba DENTRO del catch, escapaba sin
+  // que nada lo protegiera — convertía hydrateFromIndexedDb() en una
+  // promesa rechazada, y como el constructor la dispara con `void`
+  // (fire-and-forget), un rechazo no manejado crashea el proceso en
+  // Node 15+, no solo falla un test.
   private async hydrateFromIndexedDb(): Promise<void> {
     try {
       const stored = await this.dbStore.get<Proposal[]>(STORE_KEY);
       if (stored && stored.length > 0) {
         this._proposalsList.set(stored);
-      } else {
-        const migrated = this.migrateFromLegacyLocalStorage();
-        this._proposalsList.set(migrated ?? this.getInitialData());
+        return;
       }
+      const migrated = this.migrateFromLegacyLocalStorage();
+      this._proposalsList.set(migrated ?? this.safeInitialData());
     } catch (error) {
       console.error('Error leyendo propuestas de IndexedDB', error);
-      this._proposalsList.set(this.getInitialData());
+      this._proposalsList.set(this.safeInitialData());
     } finally {
       this.hydrated.set(true);
+    }
+  }
+
+  // ← NUEVO: getInitialData() ya no se llama directamente en ningún lado.
+  // Este wrapper garantiza que hydrateFromIndexedDb() NUNCA rechace su
+  // promesa — en el peor caso, arranca con un arreglo vacío en vez de
+  // tumbar el proceso.
+  private safeInitialData(): Proposal[] {
+    try {
+      return this.getInitialData();
+    } catch (error) {
+      console.error('Error construyendo datos iniciales de propuestas (usuarios mock no disponibles)', error);
+      return [];
     }
   }
 

@@ -53,7 +53,9 @@ export class AuthApiService {
     // automáticamente el narrowing tras optional chain, de ahí el uso de !.
     const updatedUser = { ...user!, password: newPassword };
     this.storage.updateUser(updatedUser);
-    this.userService.updateUserPasswordMock(user!.id, newPassword);
+
+    // ¡Añadimos la suscripción para que el Observable frío se ejecute!
+    this.userService.updateUserPasswordMock(user!.id, newPassword).subscribe();
 
     return of({ success: true, message: 'Contraseña actualizada exitosamente.' })
       .pipe(delay(1500));

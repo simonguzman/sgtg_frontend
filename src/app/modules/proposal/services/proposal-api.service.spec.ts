@@ -44,8 +44,9 @@ describe('ProposalApiService', () => {
     } as unknown as jest.Mocked<ProposalRulesService>;
 
     mockUserService = {
-      addRoleToUser: jest.fn(),
-      removeRoleFromUser: jest.fn(),
+      // ← FIX: Ahora devolvemos of(undefined) para que el .pipe(first()).subscribe() del servicio no falle
+      addRoleToUser: jest.fn().mockReturnValue(of(undefined)),
+      removeRoleFromUser: jest.fn().mockReturnValue(of(undefined)),
       users: signal([{ id: 'comite-1', roles: [UserRoleType.COMITE] }])
     } as unknown as jest.Mocked<UserService>;
 

@@ -7,8 +7,7 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
-import { Advance } from '../../../interfaces/advance.interface';
-import { ThesisWork } from '../../../interfaces/thesis-work.interface';
+import { Advance } from '../../../interfaces/advance.interface';;
 import { formatThesisDate } from '../../../helpers/thesis-date.helper';
 import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
 

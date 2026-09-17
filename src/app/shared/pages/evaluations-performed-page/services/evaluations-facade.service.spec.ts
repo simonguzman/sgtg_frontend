@@ -133,7 +133,7 @@ describe('EvaluationsFacadeService', () => {
       const result = service.getMappedEvaluations('draft-1', '/history/preliminary-draft/draft-1');
 
       expect(mockMapperService.processDraftEvaluations).toHaveBeenCalledWith(mockDraft);
-      expect(result.length).toBe(3);
+      expect(result).toHaveLength(3);
       expect(result[0].date).toEqual(new Date('2023-05-01T10:00:00Z'));
     });
 
@@ -145,7 +145,7 @@ describe('EvaluationsFacadeService', () => {
       const result = service.getMappedEvaluations('thesis-1', '/history/thesis/thesis-1');
 
       expect(mockMapperService.processThesisEvaluations).toHaveBeenCalledWith(mockThesis);
-      expect(result.length).toBe(3);
+      expect(result).toHaveLength(3);
     });
 
     it('debería retornar un arreglo vacío si la URL no coincide con ninguna entidad', () => {

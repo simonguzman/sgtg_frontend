@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { delay, Observable, of, tap } from 'rxjs';
+import { delay, first, Observable, of, tap } from 'rxjs';
 
 import { ProposalStorageService } from './proposal-storage.service';
 import { ProposalRulesService } from './proposal-rules.service';
@@ -44,9 +44,21 @@ export class ProposalApiService {
       tap(onSaved => {
         this.storage.updateProposals(currentProposal => [onSaved, ...currentProposal]);
 
-        if (onSaved.director) this.userService.addRoleToUser(onSaved.director.id, UserRoleType.DIRECTOR);
-        if (onSaved.codirector) this.userService.addRoleToUser(onSaved.codirector.id, UserRoleType.CODIRECTOR);
-        if (onSaved.advisor) this.userService.addRoleToUser(onSaved.advisor.id, UserRoleType.ASESOR);
+        // ← FIX: cuarta aparición del mismo bug ya corregido en
+        // ProposalFormService, PreliminaryDraftAssignmentService y
+        // ThesisWorkSustentationService — Observable frío nunca
+        // suscrito, así que el tap() interno de UserApiService.addRoleToUser
+        // nunca llegaba a ejecutarse. Confirmado como causa real del
+        // assert que fallaba en tu test de integración.
+        if (onSaved.director) {
+          this.userService.addRoleToUser(onSaved.director.id, UserRoleType.DIRECTOR).pipe(first()).subscribe();
+        }
+        if (onSaved.codirector) {
+          this.userService.addRoleToUser(onSaved.codirector.id, UserRoleType.CODIRECTOR).pipe(first()).subscribe();
+        }
+        if (onSaved.advisor) {
+          this.userService.addRoleToUser(onSaved.advisor.id, UserRoleType.ASESOR).pipe(first()).subscribe();
+        }
 
         const notifyUserIds = new Set<string>();
         onSaved.authors?.forEach(author => { if (author?.id) notifyUserIds.add(author.id); });
@@ -79,6 +91,11 @@ export class ProposalApiService {
     return of(updatedProposal).pipe(
       delay(1000),
       tap((savedProposal) => {
+        // ⚠️ No tengo ProposalRulesService.handleRoleExchange en esta
+        // conversación — no puedo confirmar si internamente suscribe
+        // correctamente cualquier Observable de rol que dispare. Dado el
+        // historial (4 apariciones del mismo bug en 4 archivos distintos),
+        // vale la pena que me lo pases para revisarlo con el mismo rigor.
         this.rulesService.handleRoleExchange(oldProposal.codirector?.id, changes.codirector?.id, UserRoleType.CODIRECTOR, id);
         this.rulesService.handleRoleExchange(oldProposal.advisor?.id, changes.advisor?.id, UserRoleType.ASESOR, id);
 
@@ -109,7 +126,12 @@ export class ProposalApiService {
             );
 
             if (!isStillLinked) {
-              this.userService.removeRoleFromUser(userId, role);
+              // ← FIX: quinto caso, en la dirección de "quitar rol" —
+              // distinto de removeRolesFromUsersMock (plural), que sí
+              // estaba bien suscrito en todos los usos que revisé antes.
+              // Este removeRoleFromUser (singular) nunca lo había visto
+              // hasta que compartiste este archivo.
+              this.userService.removeRoleFromUser(userId, role).pipe(first()).subscribe();
             }
           }
         });

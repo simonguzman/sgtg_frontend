@@ -1,3 +1,4 @@
+// src/app/modules/proposal/services/proposal-rules.service.ts
 import { inject, Injectable } from '@angular/core';
 import { ProposalStorageService } from './proposal-storage.service';
 import { UserService } from '../../users/services/user.service';
@@ -11,10 +12,6 @@ export class ProposalRulesService {
   private readonly storage = inject(ProposalStorageService);
   private readonly userService = inject(UserService);
 
-  /**
-   * Valida restricciones de negocio críticas: Coherencia de roles docentes
-   * y un máximo estricto de 2 propuestas activas por estudiante.
-   */
   validateProposalRules(proposal: Partial<Proposal>): string | null {
     if (proposal.director?.id && proposal.director.id === proposal.codirector?.id) {
       return 'Un docente no puede ser Director y Codirector simultáneamente.';
@@ -35,10 +32,6 @@ export class ProposalRulesService {
     return null;
   }
 
-  /**
-   * Administra de forma automática el ciclo de vida de los roles institucionales de los docentes.
-   * Si un docente es desvinculado y no tiene otros proyectos con ese rol, se le remueve el privilegio.
-   */
   handleRoleExchange(
     oldId: string | undefined,
     newId: string | undefined,
@@ -47,7 +40,11 @@ export class ProposalRulesService {
   ): void {
     if (oldId === newId) return;
 
-    if (newId) this.userService.addRoleToUser(newId, role);
+    // ← FIX: Suscripción limpia sin .pipe(first()) para evitar bloqueos
+    // por EmptyError en los observables fríos anidados.
+    if (newId) {
+      this.userService.addRoleToUser(newId, role).subscribe();
+    }
 
     if (oldId) {
       const isStillLinked = this.storage.getProposalsListSnapshot().some(proposal =>
@@ -58,7 +55,7 @@ export class ProposalRulesService {
       );
 
       if (!isStillLinked) {
-        this.userService.removeRoleFromUser(oldId, role);
+        this.userService.removeRoleFromUser(oldId, role).subscribe();
       }
     }
   }

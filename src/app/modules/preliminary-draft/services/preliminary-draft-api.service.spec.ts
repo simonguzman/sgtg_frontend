@@ -124,7 +124,12 @@ describe('PreliminaryDraftApiService', () => {
 
       tick(1000);
 
-      expect(resultDraft).toEqual(newDraftPayload);
+      // <-- FIX: Ahora verificamos que el objeto retornado tenga las propiedades inyectadas por el map()
+      expect(resultDraft?.preliminaryDraftId).toBe('mocked-uuid');
+      expect(resultDraft?.state).toBe(stateList.EN_REVISION);
+      expect(resultDraft?.proposalData).toEqual(newDraftPayload.proposalData);
+      expect(resultDraft?.evaluations).toEqual([]);
+      expect(resultDraft?.documents).toEqual([]);
 
       expect(storageSpy.addDraft).toHaveBeenCalledWith(
         expect.objectContaining({

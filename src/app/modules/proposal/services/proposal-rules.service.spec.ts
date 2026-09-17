@@ -1,4 +1,6 @@
+// src/app/modules/proposal/services/proposal-rules.service.spec.ts
 import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs'; // <-- FIX: Importamos 'of' para los observables simulados
 
 import { ProposalRulesService } from './proposal-rules.service';
 import { ProposalStorageService } from './proposal-storage.service';
@@ -25,8 +27,9 @@ describe('ProposalRulesService', () => {
 
     mockUserService = {
       getUserFullName: jest.fn().mockReturnValue('Juan Perez'),
-      addRoleToUser: jest.fn(),
-      removeRoleFromUser: jest.fn()
+      // <-- FIX: Ahora devuelven un Observable para que el .subscribe() del servicio funcione
+      addRoleToUser: jest.fn().mockReturnValue(of(undefined)),
+      removeRoleFromUser: jest.fn().mockReturnValue(of(undefined))
     };
 
     TestBed.configureTestingModule({
