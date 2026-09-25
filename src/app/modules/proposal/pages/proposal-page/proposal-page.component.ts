@@ -15,7 +15,7 @@ import { PROPOSAL_COLUMNS, ProposalTableRow } from './models/proposal-page.model
 export class ProposalPageComponent {
   private readonly router = inject(Router);
   protected readonly facade = inject(ProposalFacadeService);
-  protected readonly columns      = PROPOSAL_COLUMNS;
+  protected readonly columns = PROPOSAL_COLUMNS;
   protected readonly filterFields = ['title', 'modality', 'state', 'deadlineStatus', 'hiddenParticipants'];
 
   descriptionModal = { show: false, title: '', content: '' };
