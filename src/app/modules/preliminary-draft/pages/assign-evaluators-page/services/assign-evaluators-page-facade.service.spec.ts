@@ -1,7 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
-
 import { AssignEvaluatorsPageFacadeService } from './assign-evaluators-page-facade.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
@@ -9,7 +8,6 @@ import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interfac
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { stateList } from '../../../../../core/enums/state.enum';
 
-// 🔹 REFACTOR: Fábricas para generar entidades limpias sin usar 'as unknown'
 const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
   preliminaryDraftId: 'draft-123',
   proposalId: 'prop-1',
@@ -23,7 +21,6 @@ const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): 
 describe('AssignEvaluatorsPageFacadeService', () => {
   let facade: AssignEvaluatorsPageFacadeService;
 
-  // 🔹 REFACTOR: Mocks estrictos sin Partial ni Any
   let mockRouteParamMapGet: jest.Mock;
   let mockRouteParentParamMapGet: jest.Mock;
   let mockRouter: { navigate: jest.Mock };
@@ -34,7 +31,6 @@ describe('AssignEvaluatorsPageFacadeService', () => {
   let mockNotificationService: { show: jest.Mock };
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para mantener limpia la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -74,7 +70,7 @@ describe('AssignEvaluatorsPageFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola original
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización y Carga de Datos (init)', () => {
@@ -131,7 +127,6 @@ describe('AssignEvaluatorsPageFacadeService', () => {
     const mockDraft = createMockPreliminaryDraft();
 
     beforeEach(() => {
-      // 🔹 REFACTOR: Inicializamos el componente correctamente en lugar de forzar la señal
       mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
       facade.init();
     });
@@ -144,7 +139,7 @@ describe('AssignEvaluatorsPageFacadeService', () => {
     });
 
     it('debería limpiar el estado al cancelar la asignación', () => {
-      facade.handleAssign(evaluators); // Abrimos primero
+      facade.handleAssign(evaluators);
       facade.cancelAssignment();
 
       expect(facade.confirmState().isOpen).toBeFalsy();

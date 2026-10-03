@@ -8,7 +8,6 @@ import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { User } from '../../users/interfaces/user.interface';
 
-// 1. Tipado estricto para los mocks de servicios dependientes (Sin any)
 type MockThesisWorkStorageService = {
   updateWork: jest.Mock<void, [string, (w: ThesisWork) => ThesisWork]>;
 };
@@ -22,7 +21,6 @@ describe('ThesisWorkEvaluationService', () => {
   let storageMock: MockThesisWorkStorageService;
   let eventBusMock: MockEventBusService;
 
-  // 2. Factory helper para construir objetos de prueba completos y fuertemente tipados
   const createMockThesisWork = (overrides?: Partial<ThesisWork>): ThesisWork => ({
     id: 'thesis-123',
     state: stateList.EN_DESARROLLO,

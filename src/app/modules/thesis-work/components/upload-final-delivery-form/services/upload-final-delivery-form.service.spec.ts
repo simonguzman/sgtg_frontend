@@ -1,14 +1,7 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
-
-// 2. Servicio a probar
 import { UploadFinalDeliveryFormService } from './upload-final-delivery-form.service';
-
-// 3. Dependencias (Servicios)
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
-
-// 4. Interfaces y Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { User } from '../../../../users/interfaces/user.interface';
@@ -16,8 +9,6 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
-
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
 
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
@@ -29,8 +20,6 @@ interface MockParticipantsService {
   getCodirectorName: jest.Mock<string, [ThesisWork]>;
   getAdvisorName: jest.Mock<string, [ThesisWork]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -82,21 +71,16 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('UploadFinalDeliveryFormService', () => {
   let service: UploadFinalDeliveryFormService;
 
-  // Espías tipados estrictamente
   let notificationSpy: MockNotificationService;
   let formatterSpy: MockParticipantsService;
 
   beforeEach(() => {
-    // 🔕 Silenciar consola para mantener la terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Arrange: Configuración de espías limpios
     notificationSpy = {
       show: jest.fn()
     };
@@ -121,57 +105,44 @@ describe('UploadFinalDeliveryFormService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Delegación de Formato de Participantes', () => {
-    // Arrange general usando la fábrica en lugar de castings inseguros
     const mockThesis = createMockThesisWork();
 
     it('debe delegar getStudentNames al formatter', () => {
-      // Arrange
       formatterSpy.getStudentNames.mockReturnValue('Estudiante 1');
 
-      // Act
       const result = service.getStudentNames(mockThesis);
 
-      // Assert
       expect(result).toBe('Estudiante 1');
       expect(formatterSpy.getStudentNames).toHaveBeenCalledWith(mockThesis);
     });
 
     it('debe delegar getDirectorName al formatter', () => {
-      // Arrange
       formatterSpy.getDirectorName.mockReturnValue('Director 1');
 
-      // Act
       const result = service.getDirectorName(mockThesis);
 
-      // Assert
       expect(result).toBe('Director 1');
       expect(formatterSpy.getDirectorName).toHaveBeenCalledWith(mockThesis);
     });
 
     it('debe delegar getCodirectorName al formatter', () => {
-      // Arrange
       formatterSpy.getCodirectorName.mockReturnValue('Codirector 1');
 
-      // Act
       const result = service.getCodirectorName(mockThesis);
 
-      // Assert
       expect(result).toBe('Codirector 1');
       expect(formatterSpy.getCodirectorName).toHaveBeenCalledWith(mockThesis);
     });
 
     it('debe delegar getAdvisorName al formatter', () => {
-      // Arrange
       formatterSpy.getAdvisorName.mockReturnValue('Asesor 1');
 
-      // Act
       const result = service.getAdvisorName(mockThesis);
 
-      // Assert
       expect(result).toBe('Asesor 1');
       expect(formatterSpy.getAdvisorName).toHaveBeenCalledWith(mockThesis);
     });
@@ -179,13 +150,10 @@ describe('UploadFinalDeliveryFormService', () => {
 
   describe('Notificaciones', () => {
     it('debe lanzar la notificación de archivo adjunto con el nombre correcto', () => {
-      // Arrange
       const fileName = 'mi_archivo.pdf';
 
-      // Act
       service.notifyFileAttached(fileName);
 
-      // Assert: Se evalúa el objeto completo para mayor robustez
       expect(notificationSpy.show).toHaveBeenCalledWith({
         title: 'Archivo adjunto',
         message: `El documento ${fileName} se ha adjuntado correctamente.`,
@@ -194,10 +162,8 @@ describe('UploadFinalDeliveryFormService', () => {
     });
 
     it('debe lanzar la notificación de error por documentos faltantes con el mensaje exacto', () => {
-      // Act
       service.notifyMissingDocuments();
 
-      // Assert: Se evalúa el objeto completo para asegurar que el mensaje no se modifique accidentalmente
       expect(notificationSpy.show).toHaveBeenCalledWith({
         title: 'Documentos faltantes',
         message: 'Debe adjuntar obligatoriamente la Monografía, el Formato_E y los Anexos para poder continuar.',

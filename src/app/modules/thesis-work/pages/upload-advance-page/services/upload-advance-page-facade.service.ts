@@ -12,7 +12,7 @@ import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
 
 @Injectable({ providedIn: 'root' })
 export class UploadAdvancePageFacadeService {
-  private readonly thesisWorkService   = inject(ThesisWorkService);
+  private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
 
   public loadThesisWork(
@@ -38,19 +38,6 @@ export class UploadAdvancePageFacadeService {
       });
   }
 
-  /**
-   * ← FIX CENTRAL: antes `url: 'url-pendiente-de-carga-s3'` — un
-   * placeholder literal, no una URL real. Mismo bug que ya corregimos en
-   * Propuestas/Anteproyecto, aquí con un string no vacío en vez de `''`,
-   * lo que hacía que ni siquiera la validación `!url?.trim()` de
-   * FileDownloadService lo detectara antes de intentar la descarga.
-   *
-   * uploadDate se mantiene como new Date().toISOString() — NO se cambia
-   * a formatDisplayDate(): ThesisWorkAdvanceService reconstruye este
-   * valor con `new Date(document.uploadDate)` para poblar
-   * Advance.uploadDate, y un ISO string es parseo estándar fiable en
-   * cualquier motor JS, a diferencia del formato "DD - MM - YYYY".
-   */
   public async processAdvance(
     thesisId: string,
     userId: string,
@@ -84,7 +71,6 @@ export class UploadAdvancePageFacadeService {
       return;
     }
 
-    // ← first() agregado: faltaba en esta suscripción.
     forkJoin(
       documentsToUpload.map(document =>
         this.thesisWorkService.uploadDocumentMock(thesisId, document, advanceMeta)

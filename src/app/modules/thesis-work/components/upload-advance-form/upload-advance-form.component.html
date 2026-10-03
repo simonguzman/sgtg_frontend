@@ -12,41 +12,41 @@
 
       <div class="flex flex-col gap-4">
 
-        <ng-template #readOnlyField let-label="label" let-value="value" let-isState="isState" let-isTextArea="isTextArea">
+        <ng-template #readOnlyField let-id="id" let-label="label" let-value="value" let-isState="isState" let-isTextArea="isTextArea">
           <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-primary text-size-section">{{ label }}</span>
+            <label [for]="id" class="font-display font-semibold text-primary text-size-section">{{ label }}</label>
             @if (isTextArea) {
-              <textarea [value]="value || 'Sin descripción disponible'" disabled rows="4"
+              <textarea [id]="id" [value]="value || 'Sin descripción disponible'" disabled rows="4"
                         class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body resize-none"></textarea>
             } @else {
-              <input type="text" [value]="value" disabled
+              <input [id]="id" type="text" [value]="value" disabled
                      class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body"
                      [class.font-medium]="isState" [class.capitalize]="isState">
             }
           </div>
         </ng-template>
 
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Título', value: thesisWork.preliminaryDraftData.proposalData.title }"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoTitle', label: 'Título', value: thesisWork.preliminaryDraftData.proposalData.title }"></ng-container>
 
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Descripción', value: thesisWork.preliminaryDraftData.proposalData.description, isTextArea: true }"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoDescription', label: 'Descripción', value: thesisWork.preliminaryDraftData.proposalData.description, isTextArea: true }"></ng-container>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Modalidad', value: thesisWork.preliminaryDraftData.proposalData.modality }"></ng-container>
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estudiante', value: getStudentNames() }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoModality', label: 'Modalidad', value: thesisWork.preliminaryDraftData.proposalData.modality }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoStudent', label: 'Estudiante', value: getStudentNames() }"></ng-container>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Director', value: getDirectorName() }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoDirector', label: 'Director', value: getDirectorName() }"></ng-container>
           @if (getCodirectorName()) {
-            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Codirector', value: getCodirectorName() }"></ng-container>
+            <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoCodirector', label: 'Codirector', value: getCodirectorName() }"></ng-container>
           }
         </div>
 
         @if (getAdvisorName()) {
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Asesor', value: getAdvisorName() }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoAdvisor', label: 'Asesor', value: getAdvisorName() }"></ng-container>
         }
 
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estado', value: thesisWork.state, isState: true }"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoState', label: 'Estado', value: thesisWork.state, isState: true }"></ng-container>
 
       </div>
     </section>
@@ -59,8 +59,8 @@
       <div class="flex flex-col gap-6">
 
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Título del avance <span class="text-[#ED7D31]">*</span></span>
-          <input type="text" formControlName="title"
+          <label for="advanceTitle" class="font-display font-semibold text-primary text-size-section">Título del avance <span class="text-[#ED7D31]">*</span></label>
+          <input id="advanceTitle" type="text" formControlName="title"
                  class="font-sans font-normal text-size-body p-3 border rounded-md bg-white w-full focus:outline-none focus:ring-1 transition-all"
                  placeholder="Ej: Avance(3)_Capitulo_1_y_2"
                  [ngClass]="{
@@ -73,8 +73,8 @@
         </div>
 
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Comentarios o descripción <span class="text-[#ED7D31]">*</span></span>
-          <textarea formControlName="comments" rows="5"
+          <label for="advanceComments" class="font-display font-semibold text-primary text-size-section">Comentarios o descripción <span class="text-[#ED7D31]">*</span></label>
+          <textarea id="advanceComments" formControlName="comments" rows="5"
                     class="font-sans font-normal text-size-body p-3 border rounded-md bg-white w-full focus:outline-none focus:ring-1 transition-all resize-none"
                     placeholder="Describa brevemente los puntos a evaluar en este avance..."
                     [ngClass]="{

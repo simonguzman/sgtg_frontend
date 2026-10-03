@@ -1,11 +1,9 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
-
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
-
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';

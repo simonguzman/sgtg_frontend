@@ -1,10 +1,5 @@
 import { ArchivedBaseProposal } from '../interfaces/archived-base-proposal.interface';
 
-/**
- * Determina si un usuario puede ver un registro archivado. Centraliza la
- * lógica (isAuthor || isDirector || isCodirector || isAdvisor) que estaba
- * duplicada de forma idéntica en los 3 archivos archived-*.tab.ts.
- */
 export function hasArchiveAccess(
   proposal: ArchivedBaseProposal | undefined,
   userId: string | undefined,
@@ -12,8 +7,6 @@ export function hasArchiveAccess(
 ): boolean {
   if (hasGlobalAccess) return true;
 
-  // FIX: Agregamos !userId. Evita el bug donde (undefined === undefined)
-  // le de acceso a un usuario sin ID si la propuesta no tiene codirector/asesor.
   if (!proposal || !userId) return false;
 
   const isAuthor = proposal.authors?.some(author =>

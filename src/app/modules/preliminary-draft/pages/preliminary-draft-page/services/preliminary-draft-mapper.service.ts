@@ -17,7 +17,6 @@ export class PreliminaryDraftMapperService {
     currentUserId: string | undefined
   ): PreliminaryDraftTableRow {
     return {
-      // SOLUCIÓN AL ERROR TS(2322): Garantizamos que siempre sea un string
       id: preliminaryDraft.preliminaryDraftId || '',
       title: preliminaryDraft.proposalData?.title || 'Sin título',
       modality: preliminaryDraft.proposalData?.modality || 'No definida',
@@ -83,7 +82,6 @@ export class PreliminaryDraftMapperService {
   private getEvaluationsStatusLabel(currentRoundEvaluations: Evaluation[]): string {
     if (currentRoundEvaluations.length === 0) return '';
 
-    // SOLUCIÓN TS(2367): Comparamos contra el miembro del enum en lugar de un string literal
     const hasDelayed = currentRoundEvaluations.some(
       evaluation => evaluation.deadlineStatus === EvaluationDeadlineStatus.DELAYED
     );

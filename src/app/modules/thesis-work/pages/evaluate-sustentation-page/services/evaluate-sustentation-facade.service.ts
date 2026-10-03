@@ -7,11 +7,9 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { SustentationEvaluationPayload } from '../../../components/evaluate-sustentation-form/evaluate-sustentation-form.component';
 
-// Reemplaza el if/else if de la página original por un lookup declarativo —
-// mismo patrón usado en TAB_MODAL_HEADERS del módulo de documentos cargados.
 const VERDICT_NOTIFICATION_CONFIG: Partial<Record<stateList, { title: string; type: NotificationType }>> = {
   [stateList.NO_APROBADO]: { title: 'Sustentación No Aprobada', type: NotificationType.ERROR },
-  [stateList.APLAZADO]:    { title: 'Sustentación Aplazada',    type: NotificationType.INFO }
+  [stateList.APLAZADO]: { title: 'Sustentación Aplazada', type: NotificationType.INFO }
 };
 const DEFAULT_VERDICT_NOTIFICATION = { title: 'Sustentación Evaluada', type: NotificationType.CONFIRMATION };
 
@@ -21,14 +19,14 @@ export class EvaluateSustentationFacadeService {
   private readonly notificationService = inject(NotificationService);
 
   public loadThesisWork(
-    id:        string,
-    onSuccess: (work: ThesisWork) => void,
-    onError:   () => void
+    id: string,
+    onSuccess: (thesisWork: ThesisWork) => void,
+    onError: () => void
   ): void {
     this.thesisWorkService.getThesisWorkByIdMock(id)
       .pipe(first())
       .subscribe({
-        next:  (data) => data ? onSuccess(data) : onError(),
+        next: (data) => data ? onSuccess(data) : onError(),
         error: () => {
           this.showNotification('Error de carga', 'No se pudo recuperar la información del proyecto.', NotificationType.ERROR);
           onError();
@@ -37,11 +35,11 @@ export class EvaluateSustentationFacadeService {
   }
 
   public processEvaluation(
-    thesisId:  string,
-    payload:   SustentationEvaluationPayload,
-    file:      File,
+    thesisId: string,
+    payload: SustentationEvaluationPayload,
+    file: File,
     onSuccess: () => void,
-    onError:   () => void
+    onError: () => void
   ): void {
     this.thesisWorkService.registerSustentationVerdictMock(thesisId, payload, file)
       .pipe(first())

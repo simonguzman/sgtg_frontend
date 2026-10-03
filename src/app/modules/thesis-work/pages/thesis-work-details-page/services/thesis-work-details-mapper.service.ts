@@ -8,38 +8,39 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 export class ThesisWorkDetailsMapperService {
   private readonly userService = inject(UserService);
 
-  public mapToView(work: ThesisWork): ThesisWorkDetailsView {
-    const proposal = work.preliminaryDraftData?.proposalData;
+  public mapToView(thesisWork: ThesisWork): ThesisWorkDetailsView {
+    const proposal = thesisWork.preliminaryDraftData?.proposalData;
 
     return {
-      id: work.thesisWorkId || '',
+      id: thesisWork.thesisWorkId || '',
       title: proposal?.title || 'Sin título',
       description: proposal?.description || 'Sin descripción disponible.',
       modality: proposal?.modality || 'No definida',
-      state: work.state,
+      state: thesisWork.state,
       participants: {
         authors: this.userService.getAuthorsNames(proposal?.authors),
         director: this.userService.getUserFullName(proposal?.director?.id),
         codirector: proposal?.codirector ? this.userService.getUserFullName(proposal.codirector.id) : undefined,
         advisor: proposal?.advisor ? this.userService.getUserFullName(proposal.advisor.id) : undefined,
       },
-      mainDocument: this.extractMainDocument(work)
+      mainDocument: this.extractMainDocument(thesisWork)
     };
   }
 
-  private extractMainDocument(work: ThesisWork): { name: string; url: string; description: string } | null {
-    const preliminaryDraft = work.preliminaryDraftData;
+  private extractMainDocument(thesisWork: ThesisWork): { name: string; url: string; description: string } | null {
+    const preliminaryDraft = thesisWork.preliminaryDraftData;
     if (!preliminaryDraft) return null;
 
     const defaultDescription = 'Resolución original del anteproyecto aprobado';
     const evaluations = preliminaryDraft.evaluations || [];
 
-    // 1. Buscar en evaluaciones del consejo (Prioridad Alta)
-    const consejoEvaluations = evaluations.filter(e => e.evaluatorRole?.toUpperCase().includes('CONSEJO'));
-    if (consejoEvaluations.length > 0) {
-      const lastConsejoEval = consejoEvaluations[consejoEvaluations.length - 1];
-      if (lastConsejoEval.signedDocuments && lastConsejoEval.signedDocuments.length > 0) {
-        const resolutionDoc = lastConsejoEval.signedDocuments[lastConsejoEval.signedDocuments.length - 1];
+    const consejoEvaluations = evaluations.filter(evaluation => evaluation.evaluatorRole?.toUpperCase().includes('CONSEJO'));
+    const lastConsejoEval = consejoEvaluations.at(-1);
+
+    if (lastConsejoEval?.signedDocuments?.length) {
+      const resolutionDoc = lastConsejoEval.signedDocuments.at(-1);
+
+      if (resolutionDoc) {
         return {
           name: resolutionDoc.name,
           url: resolutionDoc.url,
@@ -48,8 +49,7 @@ export class ThesisWorkDetailsMapperService {
       }
     }
 
-    // 2. Buscar en documentos del anteproyecto (Prioridad Media)
-    const resolutionInDraft = (preliminaryDraft.documents || []).find(doc => doc.type === DocumentType.RESOLUCION);
+    const resolutionInDraft = (preliminaryDraft.documents || []).find(document => document.type === DocumentType.RESOLUCION);
     if (resolutionInDraft) {
       return {
         name: resolutionInDraft.name,
@@ -58,9 +58,8 @@ export class ThesisWorkDetailsMapperService {
       };
     }
 
-    // 3. Buscar en documentos directos del trabajo (Prioridad Baja)
-    const directDocs = work.documents || [];
-    const finalDoc = directDocs.find(doc => doc.type === DocumentType.RESOLUCION);
+    const directDocs = thesisWork.documents || [];
+    const finalDoc = directDocs.find(document => document.type === DocumentType.RESOLUCION);
 
     return finalDoc ? {
       name: finalDoc.name,

@@ -1,10 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { Component, EventEmitter, Input, Output, signal, WritableSignal } from '@angular/core';
-
 import { UsersPageComponent } from './users-page.component';
 import { UsersFacadeService } from './services/users-facade.service';
-
 import { TableButton, Column } from '../../../../shared/components/table-component/table-component.component';
 import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { UserRole } from '../../../../core/models/user-role';
@@ -12,13 +10,9 @@ import { User } from '../../interfaces/user.interface';
 import { UserState } from '../../enum/user-state.enum';
 import { UserTableRow } from './models/users-page.model';
 import { IdentificationType } from '../../enum/identification-type.enum';
-
-// ── Componentes Originales a Remover (Shallow Testing) ───────────────────────
 import { TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { RolesModalComponent } from '../../../../shared/components/modals/roles/roles-modal/roles-modal.component';
-
-// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
 
 @Component({ selector: 'app-table-component', standalone: true, template: '' })
 class MockTableComponent {
@@ -47,8 +41,6 @@ class MockConfirmationActionModalComponent {
   @Output() onClose = new EventEmitter<void>();
   @Output() confirm = new EventEmitter<void>();
 }
-
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: '123',
@@ -82,13 +74,9 @@ const createMockUserRole = (overrides: Partial<UserRole> = {}): UserRole => ({
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('Component: UsersPageComponent', () => {
   let component: UsersPageComponent;
   let fixture: ComponentFixture<UsersPageComponent>;
-
-  // Tipado estricto de las dependencias simuladas
   let mockRouter: {
     navigate: jest.Mock<Promise<boolean>, [string[]]>;
   };
@@ -101,7 +89,6 @@ describe('Component: UsersPageComponent', () => {
   };
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola para mantener terminal limpia de advertencias
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -110,7 +97,6 @@ describe('Component: UsersPageComponent', () => {
     };
 
     mockFacade = {
-      // Las computed properties de Angular devuelven Signals, así que usamos uno
       usersTableData: signal([createMockUserTableRow()]),
       updateRoles: jest.fn(),
       findUserById: jest.fn().mockReturnValue(createMockUser()),
@@ -141,7 +127,7 @@ describe('Component: UsersPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   it('debería crearse correctamente', () => {
@@ -151,18 +137,14 @@ describe('Component: UsersPageComponent', () => {
   describe('Eventos de la Tabla (Routing)', () => {
     it('debería navegar a la creación de usuario al emitir "Crear usuarios"', () => {
       const mockButton: TableButton = { label: 'Crear usuarios', variant: 'primary', action: 'create' };
-
       component.handleHeaderButton(mockButton);
-
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/users/create']);
     });
 
     it('no debería hacer nada si la fila no tiene un id de usuario válido', () => {
       const invalidUser = createMockUser({ id: undefined });
       const invalidRow = createMockUserTableRow({ originalData: invalidUser });
-
       component.handleTableAction({ action: 'ver', row: invalidRow });
-
       expect(mockRouter.navigate).not.toHaveBeenCalled();
     });
 
@@ -180,20 +162,16 @@ describe('Component: UsersPageComponent', () => {
   describe('Flujo de Asignación de Roles', () => {
     it('debería preparar el modal de roles al emitir "ver roles asignados"', () => {
       component.handleTableAction({ action: 'ver roles asignados', row: createMockUserTableRow() });
-
       expect(component.idUserForRoles).toBe('123');
       expect(component.selectedUser).toBe('Juan Pérez');
       expect(component.showRolesModal).toBe(true);
-
-      const docenteRole = component.rolesUser.find(r => r.type === UserRoleType.DOCENTE);
+      const docenteRole = component.rolesUser.find(role => role.type === UserRoleType.DOCENTE);
       expect(docenteRole?.assigned).toBe(true);
     });
 
     it('debería guardar roles pendientes y abrir confirmación al ejecutar handleSaveRoles', () => {
       const pending: UserRole[] = [createMockUserRole({ type: UserRoleType.ADMINISTRADOR, assigned: true })];
-
       component.handleSaveRoles(pending);
-
       expect(component.showRolesModal).toBe(false);
       expect(component.showConfirmation).toBe(true);
     });
@@ -211,18 +189,12 @@ describe('Component: UsersPageComponent', () => {
         createMockUserRole({ type: UserRoleType.ADMINISTRADOR, assigned: false })
       ];
       component.handleSaveRoles(updatedRoles);
-
       component.confirmChanges();
-
-      // Extraemos los argumentos de la llamada al mock
       const updateCall = mockFacade.updateRoles.mock.calls[0];
       expect(updateCall[0]).toBe('123'); // ID del usuario
-      expect(updateCall[1]).toEqual([UserRoleType.DOCENTE]); // Solo los roles marcados como assigned: true
-
-      // Simulamos la ejecución del callback onSuccess()
+      expect(updateCall[1]).toEqual([UserRoleType.DOCENTE]);
       const successCallback = updateCall[2];
       successCallback();
-
       expect(component.showConfirmation).toBe(false);
       expect(component.idUserForRoles).toBeNull();
     });
@@ -231,7 +203,6 @@ describe('Component: UsersPageComponent', () => {
   describe('Flujo de Habilitar / Deshabilitar Usuario (Soft Delete)', () => {
     it('debería preparar el modal de deshabilitación con el mensaje correcto para usuarios activos', () => {
       component.handleTableAction({ action: 'eliminar', row: createMockUserTableRow() });
-
       expect(component.idUserToDisabled).toBe('123');
       expect(component.showDisabledConfirmation).toBe(true);
       expect(component.confirmationMessage).toContain('deshabilitar');
@@ -240,7 +211,6 @@ describe('Component: UsersPageComponent', () => {
     it('debería preparar el modal de habilitación con el mensaje correcto para usuarios inactivos', () => {
       const inactiveRow = createMockUserTableRow({ estado: 'Inactivo' });
       component.handleTableAction({ action: 'activar', row: inactiveRow });
-
       expect(component.idUserToDisabled).toBe('123');
       expect(component.showDisabledConfirmation).toBe(true);
       expect(component.confirmationMessage).toContain('habilitar nuevamente');
@@ -254,17 +224,11 @@ describe('Component: UsersPageComponent', () => {
 
     it('debería delegar al facade y limpiar el estado al confirmar el cambio de estado', () => {
       component.idUserToDisabled = '123';
-
       component.confirmSoftDelete();
-
       const toggleCall = mockFacade.toggleUserStatus.mock.calls[0];
       expect(toggleCall[0]).toBe('123');
-      expect(toggleCall[1]).toBe(false); // isEnabling es falso porque el usuario original mockeado está activo
-
-      // Simulamos la ejecución del callback onSuccess()
-      const successCallback = toggleCall[2];
+      expect(toggleCall[1]).toBe(false);      const successCallback = toggleCall[2];
       successCallback();
-
       expect(component.showDisabledConfirmation).toBe(false);
       expect(component.idUserToDisabled).toBeNull();
     });

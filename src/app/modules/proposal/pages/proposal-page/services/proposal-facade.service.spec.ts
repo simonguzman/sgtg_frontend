@@ -19,7 +19,6 @@ describe('ProposalFacadeService', () => {
   let mockMapperService: { mapProposalToTable: jest.Mock };
 
   beforeEach(() => {
-    // 1. Espías para silenciar la consola y evitar el ruido de los throwError
     jest.spyOn(console, 'log').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -54,7 +53,6 @@ describe('ProposalFacadeService', () => {
   });
 
   afterEach(() => {
-    // 2. Restauramos todos los espías para mantener limpio el entorno de pruebas
     jest.restoreAllMocks();
   });
 
@@ -64,7 +62,7 @@ describe('ProposalFacadeService', () => {
 
       const tableData = service.proposalsTableData();
 
-      expect(tableData.length).toBe(1);
+      expect(tableData).toHaveLength(1);
       expect(tableData[0].title).toBe('Mapped');
       expect(mockMapperService.mapProposalToTable).toHaveBeenCalled();
     });
@@ -73,14 +71,14 @@ describe('ProposalFacadeService', () => {
       mockAuthService.hasAnyRole.mockReturnValue(true);
 
       const buttons = service.headerButtons();
-      expect(buttons.some(b => b.label === 'Registrar propuesta')).toBeTruthy();
+      expect(buttons.some(button => button.label === 'Registrar propuesta')).toBeTruthy();
     });
 
     it('headerButtons NO debe incluir "Registrar propuesta" si no tiene permisos', () => {
       mockAuthService.hasAnyRole.mockReturnValue(false);
 
       const buttons = service.headerButtons();
-      expect(buttons.some(b => b.label === 'Registrar propuesta')).toBeFalsy();
+      expect(buttons.some(button => button.label === 'Registrar propuesta')).toBeFalsy();
     });
   });
 

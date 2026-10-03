@@ -12,11 +12,8 @@ import { SustentationDetailsFacadeService } from './services/sustentation-detail
   imports: [ButtonComponent, DatePipe, LowerCasePipe]
 })
 export class SustentationDetailsPageComponent implements OnInit {
-  // ← private: ninguno de los dos se referencia en el template
-  // (solo goBack() y navigateToCorrectedDocuments() los usan internamente).
   private readonly route  = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  // ← protected: mismo criterio usado en el resto de páginas del módulo.
   protected readonly facade = inject(SustentationDetailsFacadeService);
 
   ngOnInit(): void {
@@ -32,8 +29,6 @@ export class SustentationDetailsPageComponent implements OnInit {
     this.facade.loadDetails(thesisWorkId, sustentationId);
   }
 
-  // ← Fix: import a nivel de módulo en vez de `import('@angular/router')...`
-  // inline — más idiomático.
   private extractThesisIdFromRoute(): string | null {
     let currentSnapshot: ActivatedRouteSnapshot | null = this.route.snapshot;
     while (currentSnapshot) {

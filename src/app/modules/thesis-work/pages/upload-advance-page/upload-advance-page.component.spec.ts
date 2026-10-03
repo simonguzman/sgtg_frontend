@@ -1,16 +1,9 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, Router, ParamMap } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { signal, WritableSignal, Component, Input, Output, EventEmitter } from '@angular/core';
-
-// 2. Componentes a probar
 import { UploadAdvancePageComponent } from './upload-advance-page.component';
-
-// 3. Servicios y Facades
 import { UploadAdvancePageFacadeService } from './services/upload-advance-page-facade.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
-
-// 4. Interfaces y Modelos
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { UploadAdvancePayload } from '../../interfaces/advance-playload.interface';
 import { User } from '../../../users/interfaces/user.interface';
@@ -18,12 +11,8 @@ import { stateList } from '../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
 import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
-
-// Importamos los componentes reales para removerlos en el override
 import { UploadAdvanceFormComponent } from '../../components/upload-advance-form/upload-advance-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
-
-// ── Mocks de Componentes Hijos (Standalone) ──────────────────────────────────
 
 @Component({ selector: 'app-upload-advance-form', template: '', standalone: true })
 class MockUploadAdvanceFormComponent {
@@ -41,8 +30,6 @@ class MockConfirmationActionModalComponent {
   @Output() confirm = new EventEmitter<void>();
 }
 
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
-
 interface MockUploadAdvancePageFacadeService {
   loadThesisWork: jest.Mock<void, [string, (t: ThesisWork) => void, () => void]>;
   processAdvance: jest.Mock<Promise<void>, [string, string, UploadAdvancePayload, () => void, () => void]>;
@@ -53,13 +40,10 @@ interface MockAuthService {
   currentUser: WritableSignal<User | null>;
 }
 
-// Interfaz adaptada para simular el árbol de rutas sin usar 'any'
 interface MockRouteNode {
   snapshot: { paramMap: { get: jest.Mock<string | null, [string]> } };
   parent: MockRouteNode | null;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-123',
@@ -117,18 +101,14 @@ const createMockPayload = (): UploadAdvancePayload => ({
   files: []
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('UploadAdvancePageComponent', () => {
   let component: UploadAdvancePageComponent;
   let fixture: ComponentFixture<UploadAdvancePageComponent>;
 
-  // Espías
   let routerSpy: Pick<Router, 'navigate'>;
   let facadeSpy: MockUploadAdvancePageFacadeService;
   let authSpy: MockAuthService;
 
-  // Mocks de utilidades
   let parentParamMapGetSpy: jest.Mock;
   let mockActivatedRoute: MockRouteNode;
 
@@ -137,11 +117,9 @@ describe('UploadAdvancePageComponent', () => {
   const mockPayload = createMockPayload();
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola para mantener la terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Inicializamos el espía de la ruta para simular la búsqueda del ID
     parentParamMapGetSpy = jest.fn().mockReturnValue('thesis-123');
 
     mockActivatedRoute = {
@@ -169,7 +147,6 @@ describe('UploadAdvancePageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [UploadAdvancePageComponent],
       providers: [
-        // El proveedor acepta el mock estructurado compatible con el uso real del componente
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
         { provide: Router, useValue: routerSpy },
         { provide: UploadAdvancePageFacadeService, useValue: facadeSpy },
@@ -188,30 +165,25 @@ describe('UploadAdvancePageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización (ngOnInit)', () => {
     it('debe buscar el id en la jerarquía de rutas y llamar al facade para cargar el trabajo', () => {
-      // Act
-      fixture.detectChanges(); // Dispara ngOnInit
+      fixture.detectChanges();
 
-      // Assert
       expect(facadeSpy.loadThesisWork).toHaveBeenCalledWith(
         'thesis-123',
-        expect.any(Function), // Success callback
-        expect.any(Function)  // Error callback
+        expect.any(Function),
+        expect.any(Function)
       );
     });
 
     it('debe mostrar error y regresar si no se encuentra ningún ID en la jerarquía', () => {
-      // Arrange: Simulamos que no se encontró ningún parámetro 'id'
       parentParamMapGetSpy.mockReturnValue(null);
 
-      // Act
       fixture.detectChanges();
 
-      // Assert
       expect(facadeSpy.showNavigationError).toHaveBeenCalled();
       expect(routerSpy.navigate).toHaveBeenCalledWith(
         ['loaded_documents'],
@@ -220,32 +192,25 @@ describe('UploadAdvancePageComponent', () => {
     });
 
     it('debe setear thesisWorkState al ejecutarse el callback de éxito', () => {
-      // Arrange
       facadeSpy.loadThesisWork.mockImplementation((id, onSuccess) => onSuccess(mockThesis));
 
-      // Act
       fixture.detectChanges();
 
-      // Assert
       expect(component.thesisWorkState()).toEqual(mockThesis);
     });
   });
 
   describe('Interacciones con la Interfaz', () => {
     it('handleSaveRequest debe guardar el payload pendiente y abrir el modal de confirmación', () => {
-      // Act
       component.handleSaveRequest(mockPayload);
 
-      // Assert
       expect(component.pendingAdvanceData()).toEqual(mockPayload);
       expect(component.isConfirmModalOpen()).toBe(true);
     });
 
     it('navigateBack debe usar el router para volver a loaded_documents', () => {
-      // Act
       component.navigateBack();
 
-      // Assert
       expect(routerSpy.navigate).toHaveBeenCalledWith(
         ['loaded_documents'],
         { relativeTo: mockActivatedRoute.parent }
@@ -255,28 +220,22 @@ describe('UploadAdvancePageComponent', () => {
 
   describe('Procesamiento Final (processAdvance)', () => {
     beforeEach(() => {
-      // Pre-configuramos un estado inicial válido para ejecutar processAdvance
       component.thesisWorkState.set(mockThesis);
       component.pendingAdvanceData.set(mockPayload);
       component.isConfirmModalOpen.set(true);
     });
 
     it('debe abortar la ejecución si falta el payload, el trabajo de grado o el usuario', () => {
-      // Arrange
       component.pendingAdvanceData.set(null);
 
-      // Act
       component.processAdvance();
 
-      // Assert
       expect(facadeSpy.processAdvance).not.toHaveBeenCalled();
     });
 
     it('debe activar el estado isSaving y llamar al facade con los parámetros correctos', () => {
-      // Act
       component.processAdvance();
 
-      // Assert
       expect(component.isSaving()).toBe(true);
       expect(facadeSpy.processAdvance).toHaveBeenCalledWith(
         mockThesis.thesisWorkId,
@@ -288,33 +247,26 @@ describe('UploadAdvancePageComponent', () => {
     });
 
     it('debe limpiar estados y redirigir cuando el guardado es exitoso', () => {
-      // Arrange: Simulamos que processAdvance devuelve una promesa resuelta
-      // y ejecuta inmediatamente el callback onSuccess
       facadeSpy.processAdvance.mockImplementation((_tId, _uId, _data, onSuccess): Promise<void> => {
         onSuccess();
         return Promise.resolve();
       });
 
-      // Act
       component.processAdvance();
 
-      // Assert
       expect(component.isSaving()).toBe(false);
       expect(component.isConfirmModalOpen()).toBe(false);
       expect(routerSpy.navigate).toHaveBeenCalled();
     });
 
     it('debe limpiar estados pero NO redirigir cuando ocurre un error en el guardado', () => {
-      // Arrange: Ejecuta el callback onError
       facadeSpy.processAdvance.mockImplementation((_tId, _uId, _data, _onSuccess, onError): Promise<void> => {
         onError();
         return Promise.resolve();
       });
 
-      // Act
       component.processAdvance();
 
-      // Assert
       expect(component.isSaving()).toBe(false);
       expect(component.isConfirmModalOpen()).toBe(false);
       expect(routerSpy.navigate).not.toHaveBeenCalled();

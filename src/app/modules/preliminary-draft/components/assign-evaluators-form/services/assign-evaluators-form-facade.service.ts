@@ -1,12 +1,10 @@
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
 import { User } from '../../../../users/interfaces/user.interface';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
-
 import { UserService } from '../../../../users/services/user.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
@@ -20,11 +18,9 @@ export class AssignEvaluatorsFormFacadeService {
   private readonly notificationService = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
 
-  // Estado reactivo
   readonly preliminaryDraft = signal<PreliminaryDraft | null>(null);
   private readonly firstEvaluatorSelectedId = signal<string>('');
 
-  // Formulario
   readonly form = this.fb.group({
     evaluator1: ['', Validators.required],
     evaluator2: ['', Validators.required]
@@ -34,7 +30,6 @@ export class AssignEvaluatorsFormFacadeService {
     this.setupFormSubscriptions();
   }
 
-  // Computados para las opciones de los selectores
   private readonly availableEvaluators = computed(() => {
     const allUsers = this.userService.users();
     const currentPreliminaryDraft = this.preliminaryDraft();
@@ -82,7 +77,6 @@ export class AssignEvaluatorsFormFacadeService {
     }))
   );
 
-  // Lógica de validación cruzada del formulario
   private setupFormSubscriptions(): void {
     this.form.get('evaluator1')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -95,7 +89,6 @@ export class AssignEvaluatorsFormFacadeService {
       });
   }
 
-  // Helpers para la vista
   getMemberFullName(user: User | undefined): string {
     if (!user) return 'No asignado';
     return [user.firstName, user.secondName, user.lastName, user.secondLastName]
@@ -117,7 +110,6 @@ export class AssignEvaluatorsFormFacadeService {
     return !!(control?.valid && control?.touched);
   }
 
-  // Método que procesa el submit y retorna el payload (o null si es inválido)
   validateAndGetPayload(): { ev1: string, ev2: string } | null {
     this.form.markAllAsTouched();
 

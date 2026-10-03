@@ -28,14 +28,9 @@ export class EvaluationProposalFormComponent {
 
   proposal = input.required<Proposal>();
   onDownloadOriginal = output<void>();
-  // ← FIX: antes emitía { result, comments, signedFileName: string } —
-  // el File real se descartaba en handleFileUploaded(), un nivel más
-  // abajo. Ahora reutiliza SaveProposalEvaluationEvent, que exige el
-  // File real.
   onSaveEvaluation = output<SaveProposalEvaluationEvent>();
   onGoBack = output<void>();
 
-  // ← Ahora guarda también el File real, no solo su nombre.
   readonly signedFile = signal<{ name: string; file: File } | null>(null);
   readonly formSubmitted = signal<boolean>(false);
   readonly modalState = signal({ upload: false, confirm: false });
@@ -77,7 +72,6 @@ export class EvaluationProposalFormComponent {
   }
 
   handleFileUploaded(event: { fileName: string; file: File }): void {
-    // ← FIX: antes solo `{ name: event.fileName }`.
     this.signedFile.set({ name: event.fileName, file: event.file });
     this.setUploadModal(false);
     this.formService.notifyFileUploaded();
@@ -112,7 +106,6 @@ export class EvaluationProposalFormComponent {
     this.onSaveEvaluation.emit({
       result: result!,
       comments: comments!,
-      // ← FIX CENTRAL: file real, no el nombre.
       file: this.signedFile()!.file
     });
   }

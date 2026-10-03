@@ -1,15 +1,8 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
-
-// 2. Servicio a probar
 import { RegisterPazYSalvoFormService } from './register-paz-y-salvo-form.service';
-
-// 3. Dependencias (Servicios)
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
 import { ThesisFinalDeliveryDocumentResolverService } from '../../../services/thesis-final-delivery-document-resolver.service';
-
-// 4. Interfaces y Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
@@ -19,8 +12,6 @@ import { IdentificationType } from '../../../../users/enum/identification-type.e
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
-
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown', 'DeepPartial') ────────
 
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
@@ -36,8 +27,6 @@ interface MockParticipantsService {
 interface MockDocumentResolverService {
   resolveLatestFinalDeliveryDocument: jest.Mock<FileDocument | null, [ThesisWork, string]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -98,25 +87,19 @@ const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocu
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('RegisterPazYSalvoFormService', () => {
   let service: RegisterPazYSalvoFormService;
 
-  // Tipados estrictos
   let notificationMock: MockNotificationService;
   let participantsMock: MockParticipantsService;
   let documentResolverMock: MockDocumentResolverService;
 
-  // Datos de prueba generados por fábrica
   const mockThesisWork = createMockThesisWork();
 
   beforeEach(() => {
-    // 🔕 Silenciar consola como medida preventiva
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Arrange: Inicialización limpia de mocks
     notificationMock = {
       show: jest.fn()
     };
@@ -146,7 +129,7 @@ describe('RegisterPazYSalvoFormService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   it('debería crearse correctamente', () => {
@@ -155,13 +138,11 @@ describe('RegisterPazYSalvoFormService', () => {
 
   describe('Delegación de participantes', () => {
     it('debería obtener nombres delegando al formateador', () => {
-      // Act
       const student = service.getStudentNames(mockThesisWork);
       const director = service.getDirectorName(mockThesisWork);
       const codirector = service.getCodirectorName(mockThesisWork);
       const advisor = service.getAdvisorName(mockThesisWork);
 
-      // Assert
       expect(student).toBe('Estudiante 1');
       expect(director).toBe('Director 1');
       expect(codirector).toBe('Codirector 1');
@@ -176,34 +157,26 @@ describe('RegisterPazYSalvoFormService', () => {
 
   describe('Resolución de Documentos (getExistingDocument)', () => {
     it('debería resolver MONOGRAFIA correctamente delegando en el resolver', () => {
-      // Arrange
       const mockDoc = createMockFileDocument();
       documentResolverMock.resolveLatestFinalDeliveryDocument.mockReturnValue(mockDoc);
 
-      // Act
       const result = service.getExistingDocument(mockThesisWork, 'monografia');
 
-      // Assert
       expect(result).toEqual(mockDoc);
       expect(documentResolverMock.resolveLatestFinalDeliveryDocument).toHaveBeenCalledWith(mockThesisWork, 'MONOGRAFIA');
     });
 
     it('debería normalizar FORMATO a FORMATO_E y resolverlo', () => {
-      // Arrange
       documentResolverMock.resolveLatestFinalDeliveryDocument.mockReturnValue(null);
 
-      // Act
       service.getExistingDocument(mockThesisWork, 'formato');
 
-      // Assert
       expect(documentResolverMock.resolveLatestFinalDeliveryDocument).toHaveBeenCalledWith(mockThesisWork, 'FORMATO_E');
     });
 
     it('debería retornar null para un tipo de documento no válido sin llamar al resolver', () => {
-      // Act
       const result = service.getExistingDocument(mockThesisWork, 'INVALIDO');
 
-      // Assert
       expect(result).toBeNull();
       expect(documentResolverMock.resolveLatestFinalDeliveryDocument).not.toHaveBeenCalled();
     });
@@ -211,10 +184,8 @@ describe('RegisterPazYSalvoFormService', () => {
 
   describe('Sistema de Notificaciones', () => {
     it('notifyFileAttached() debería emitir una notificación de tipo INFO', () => {
-      // Act
       service.notifyFileAttached('archivo.pdf');
 
-      // Assert
       expect(notificationMock.show).toHaveBeenCalledWith({
         title: 'Archivo adjunto',
         message: 'El documento archivo.pdf se ha adjuntado correctamente.',
@@ -223,10 +194,8 @@ describe('RegisterPazYSalvoFormService', () => {
     });
 
     it('notifyMissingEvaluations() debería emitir notificación estricta de ERROR por falta de evaluación', () => {
-      // Act
       service.notifyMissingEvaluations();
 
-      // Assert (Validación estricta de todo el objeto)
       expect(notificationMock.show).toHaveBeenCalledWith({
         title: 'Faltan evaluaciones',
         message: 'Debe marcar si cumple o no cumple en ambas revisiones (Académica y Financiera).',
@@ -235,10 +204,8 @@ describe('RegisterPazYSalvoFormService', () => {
     });
 
     it('notifyMissingDocument() debería emitir notificación estricta de ERROR por falta de documento', () => {
-      // Act
       service.notifyMissingDocument();
 
-      // Assert (Validación estricta de todo el objeto)
       expect(notificationMock.show).toHaveBeenCalledWith({
         title: 'Documento faltante',
         message: 'Debe adjuntar obligatoriamente el Formato de Paz y Salvo firmado.',

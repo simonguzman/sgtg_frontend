@@ -9,55 +9,55 @@
 
     <div class="flex flex-col gap-4">
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Título</span>
-        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
+        <label for="infoTitle" class="font-display font-semibold text-primary text-size-section">Título</label>
+        <input id="infoTitle" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Descripción</span>
-        <textarea [value]="thesisWork.preliminaryDraftData.proposalData.description || 'Sin descripción disponible'" disabled rows="4"
+        <label for="infoDescription" class="font-display font-semibold text-primary text-size-section">Descripción</label>
+        <textarea id="infoDescription" [value]="thesisWork.preliminaryDraftData.proposalData.description || 'Sin descripción disponible'" disabled rows="4"
                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full resize-none font-sans"></textarea>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</span>
-          <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
+          <label for="infoModality" class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</label>
+          <input id="infoModality" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
 
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Estudiante</span>
-          <input type="text" [value]="getStudentNames()" disabled
+          <label for="infoStudent" class="font-display font-semibold text-primary text-size-section">Estudiante</label>
+          <input id="infoStudent" type="text" [value]="getStudentNames()" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
 
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Director</span>
-          <input type="text" [value]="getDirectorName()" disabled
+          <label for="infoDirector" class="font-display font-semibold text-primary text-size-section">Director</label>
+          <input id="infoDirector" type="text" [value]="getDirectorName()" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
 
         @if (getCodirectorName()) {
           <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
-            <input type="text" [value]="getCodirectorName()" disabled
+            <label for="infoCodirector" class="font-display font-semibold text-primary text-size-section">Codirector</label>
+            <input id="infoCodirector" type="text" [value]="getCodirectorName()" disabled
                    class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
           </div>
         }
 
         @if (getAdvisorName()) {
           <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
-            <input type="text" [value]="getAdvisorName()" disabled
+            <label for="infoAdvisor" class="font-display font-semibold text-primary text-size-section">Asesor</label>
+            <input id="infoAdvisor" type="text" [value]="getAdvisorName()" disabled
                    class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
           </div>
         }
 
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Estado</span>
-          <input type="text" [value]="thesisWork.state || 'En desarrollo'" disabled
+          <label for="infoState" class="font-display font-semibold text-primary text-size-section">Estado</label>
+          <input id="infoState" type="text" [value]="thesisWork.state || 'En desarrollo'" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
         </div>
       </div>
@@ -88,8 +88,8 @@
       @if(isSubmitAttempted() && academicApproved() === null) { <p class="text-size-role-footer text-textbox-alert mb-2">Seleccione una opción</p> }
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Comentarios</span>
-        <textarea rows="3" class="p-3 border border-gray-200 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
+        <label for="academicComments" class="font-display font-semibold text-primary text-size-section">Comentarios</label>
+        <textarea id="academicComments" rows="3" class="p-3 border border-gray-200 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
                   placeholder="Ingrese los comentarios y observaciones sobre la evaluación del paz y salvo si lo considera necesario"
                   (input)="onAcademicCommentsChange($event)"></textarea>
       </div>
@@ -117,8 +117,8 @@
       @if(isSubmitAttempted() && financialApproved() === null) { <p class="text-size-role-footer text-textbox-alert mb-2">Seleccione una opción</p> }
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Comentarios</span>
-        <textarea rows="3" class="p-3 border border-gray-200 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
+        <label for="financialComments" class="font-display font-semibold text-primary text-size-section">Comentarios</label>
+        <textarea id="financialComments" rows="3" class="p-3 border border-gray-200 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
                   placeholder="Ingrese los comentarios y observaciones sobre la evaluación del paz y salvo si lo considera necesario"
                   (input)="onFinancialCommentsChange($event)"></textarea>
       </div>

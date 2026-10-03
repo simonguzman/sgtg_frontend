@@ -1,7 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-
 import { UserFormComponent } from './user-form.component';
 import { User } from '../../interfaces/user.interface';
 import { IdentificationType } from '../../enum/identification-type.enum';
@@ -10,12 +9,8 @@ import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { UserRole } from '../../../../core/models/user-role';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-
-// ── Componentes Originales a Remover (Shallow Testing) ───────────────────────
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { RolesSelectionModalComponent } from '../../../../shared/components/modals/roles/roles-selection-modal/roles-selection-modal.component';
-
-// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
 
 @Component({ selector: 'app-button-component', standalone: true, template: '' })
 class MockButtonComponent {
@@ -31,8 +26,6 @@ class MockRolesSelectionModalComponent {
   @Output() isOpenChange = new EventEmitter<boolean>();
   @Output() onSaved = new EventEmitter<UserRole[]>();
 }
-
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: '11111111-1111-1111-1111-111111111111',
@@ -56,19 +49,14 @@ const createMockUserRole = (overrides: Partial<UserRole> = {}): UserRole => ({
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('UserFormComponent', () => {
   let component: UserFormComponent;
   let fixture: ComponentFixture<UserFormComponent>;
-
-  // Tipado estricto del servicio mockeado
   let mockNotificationService: {
     show: jest.Mock<void, [any]>;
   };
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola para mantener terminal limpia de advertencias
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -83,7 +71,6 @@ describe('UserFormComponent', () => {
       ]
     })
     .overrideComponent(UserFormComponent, {
-      // Reemplazamos los componentes pesados de UI por nuestros Mocks ligeros
       remove: { imports: [ButtonComponent, RolesSelectionModalComponent] },
       add: { imports: [MockButtonComponent, MockRolesSelectionModalComponent] }
     })
@@ -91,12 +78,12 @@ describe('UserFormComponent', () => {
 
     fixture = TestBed.createComponent(UserFormComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges(); // Ejecuta el primer ciclo (y los effects iniciales)
+    fixture.detectChanges();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola y espías
+    jest.restoreAllMocks();
   });
 
   it('debería crearse correctamente', () => {
@@ -116,10 +103,9 @@ describe('UserFormComponent', () => {
 
     it('debería validar la longitud mínima de la contraseña', () => {
       const passwordControl = component.userForm.get('password');
-      passwordControl?.setValue('12345'); // 5 caracteres
+      passwordControl?.setValue('12345');
       expect(passwordControl?.hasError('minlength')).toBeTruthy();
-
-      passwordControl?.setValue('123456'); // 6 caracteres
+      passwordControl?.setValue('123456');
       expect(passwordControl?.hasError('minlength')).toBeFalsy();
     });
   });
@@ -132,12 +118,8 @@ describe('UserFormComponent', () => {
         email: 'juan@test.com',
         roles: [UserRoleType.ADMINISTRADOR]
       });
-
-      // Alimentamos el input basado en signals
       fixture.componentRef.setInput('user', mockUser);
-      // Obligamos al framework a correr el Change Detection, lo que a su vez dispara el effect()
       fixture.detectChanges();
-
       expect(component.isEditMode).toBeTruthy();
       expect(component.userForm.get('firstName')?.value).toBe('Juan');
       expect(component.userForm.get('email')?.value).toBe('juan@test.com');
@@ -145,27 +127,21 @@ describe('UserFormComponent', () => {
 
     it('debería cambiar la validación de contraseña según el modo (crear vs editar)', () => {
       const passwordControl = component.userForm.get('password');
-
-      // Modo Crear
       fixture.componentRef.setInput('user', null);
-      fixture.detectChanges(); // Dispara el effect
+      fixture.detectChanges();
       passwordControl?.setValue('');
       expect(passwordControl?.hasError('required')).toBeTruthy();
-
-      // Modo Editar
       fixture.componentRef.setInput('user', createMockUser({ id: '123', firstName: 'Test' }));
-      fixture.detectChanges(); // Dispara el effect
+      fixture.detectChanges();
       passwordControl?.setValue('');
-      expect(passwordControl?.hasError('required')).toBeFalsy(); // En edición no es obligatoria
+      expect(passwordControl?.hasError('required')).toBeFalsy();
     });
   });
 
   describe('Lógica del Submit', () => {
     it('NO debería emitir onSubmit y DEBERÍA mostrar notificación si el form es inválido', () => {
       const emitSpy = jest.spyOn(component.onSubmit, 'emit');
-
       component.submit();
-
       expect(emitSpy).not.toHaveBeenCalled();
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
         title: 'Formulario incorrecto',
@@ -177,10 +153,8 @@ describe('UserFormComponent', () => {
 
     it('DEBERÍA emitir onSubmit si el formulario es válido', () => {
       const emitSpy = jest.spyOn(component.onSubmit, 'emit');
-
-      // Simulamos que el usuario llenó todos los campos correctamente
       component.userForm.patchValue({
-        idType: IdentificationType.CC, // O 'CC' dependiendo de tu validator
+        idType: IdentificationType.CC,
         idNumber: 123456,
         firstName: 'Ana',
         secondName: '',
@@ -190,10 +164,8 @@ describe('UserFormComponent', () => {
         roles: [UserRoleType.ESTUDIANTE],
         email: 'ana@universidad.edu.co',
         password: 'password123'
-      });
-
+      })
       component.submit();
-
       expect(component.userForm.valid).toBeTruthy();
       expect(emitSpy).toHaveBeenCalledWith(expect.objectContaining({
         firstName: 'Ana',
@@ -213,21 +185,17 @@ describe('UserFormComponent', () => {
     it('debería abrir el modal y preparar los roles actuales', () => {
       component.userForm.controls.roles.setValue([UserRoleType.DIRECTOR]);
       component.openRolesModal();
-
       expect(component.isRolesModalOpen).toBeTruthy();
-      const teacherRole = component.currentRolesForModal.find(r => r.type === UserRoleType.DIRECTOR);
+      const teacherRole = component.currentRolesForModal.find(role => role.type === UserRoleType.DIRECTOR);
       expect(teacherRole?.assigned).toBeTruthy();
     });
 
     it('debería guardar los roles actualizados desde el modal', () => {
-      // Usamos la fábrica para generar los objetos estrictos que envía el modal
       const mockUpdatedRoles: UserRole[] = [
         createMockUserRole({ type: UserRoleType.ADMINISTRADOR, assigned: true }),
         createMockUserRole({ type: UserRoleType.ESTUDIANTE, assigned: false })
       ];
-
       component.handleRolesSaved(mockUpdatedRoles);
-
       expect(component.isRolesModalOpen).toBeFalsy();
       expect(component.userForm.get('roles')?.value).toEqual([UserRoleType.ADMINISTRADOR]);
     });

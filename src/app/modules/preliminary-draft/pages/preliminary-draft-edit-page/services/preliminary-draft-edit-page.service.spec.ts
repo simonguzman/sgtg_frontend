@@ -3,7 +3,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { of, throwError } from 'rxjs';
 import { signal, WritableSignal } from '@angular/core';
-
 import { PreliminaryDraftEditPageService } from './preliminary-draft-edit-page.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
@@ -14,7 +13,6 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { User } from '../../../../users/interfaces/user.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 
-// 🔹 REFACTOR: Fábricas para generar datos limpios y tipados sin usar 'as unknown'
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
   roles: [],
@@ -39,11 +37,9 @@ const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): Preliminary
   return base as PreliminaryDraft;
 };
 
-
 describe('PreliminaryDraftEditPageService', () => {
   let service: PreliminaryDraftEditPageService;
 
-  // 🔹 REFACTOR: Mocks tipados estructuralmente
   let mockRouteParamMapGet: jest.Mock;
   let mockRouter: { navigate: jest.Mock };
   let mockLocation: { back: jest.Mock };
@@ -58,7 +54,6 @@ describe('PreliminaryDraftEditPageService', () => {
   };
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -99,7 +94,7 @@ describe('PreliminaryDraftEditPageService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones originales de la consola
+    jest.restoreAllMocks();
   });
 
   describe('init y loadPreliminaryDraftData', () => {
@@ -117,7 +112,7 @@ describe('PreliminaryDraftEditPageService', () => {
       });
 
       mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
-      mockAuthService.hasAnyRole.mockReturnValue(false); // No es admin
+      mockAuthService.hasAnyRole.mockReturnValue(false);
 
       service.init();
 
@@ -130,7 +125,7 @@ describe('PreliminaryDraftEditPageService', () => {
       });
 
       mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
-      mockAuthService.hasAnyRole.mockReturnValue(true); // ES admin
+      mockAuthService.hasAnyRole.mockReturnValue(true);
 
       service.init();
 
@@ -168,14 +163,12 @@ describe('PreliminaryDraftEditPageService', () => {
     let mockDraft: PreliminaryDraft;
 
     beforeEach(() => {
-      // 🔹 REFACTOR: En lugar de forzar '(service as any).preliminaryDraftToEdit = signal...'
-      // Llenamos el estado ejecutando el flujo natural de inicialización del componente.
       mockDraft = createMockDraft({ preliminaryDraftId: 'draft-123' });
 
       mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
-      mockAuthService.hasAnyRole.mockReturnValue(true); // Garantizamos permisos
+      mockAuthService.hasAnyRole.mockReturnValue(true);
 
-      service.init(); // Esto puebla la señal `preliminaryDraftToEdit` correctamente
+      service.init();
     });
 
     it('debería manejar el modal de confirmación', () => {

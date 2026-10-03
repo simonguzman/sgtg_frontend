@@ -1,31 +1,20 @@
 <div class="flex h-screen">
-  <!-- Sidebar -->
   <app-sidebar />
 
-  <!-- Main Content -->
   <div class="flex flex-col flex-1">
-    <!-- Header -->
     <app-header />
 
-    <!-- Page Content -->
     <main class="flex-1 overflow-y-auto bg-gray-50 p-6">
 
-      <!-- Componente de Breadcrumb Automático -->
-      <!-- Este componente reemplaza el nav manual y gestiona Inicio > Propuestas > Crear -->
       <app-breadcrumb />
 
-      <!-- Título de página dinámico -->
-      <!-- Se actualiza automáticamente desde el TS mediante el evento NavigationEnd -->
       <h2 class="text-title-section font-display font-bold mb-6 border-b-4 border-[#DB141C] text-primary pb-2 inline-block">
         {{ currentPageTitle() }}
       </h2>
 
-      <!-- Contenido dinámico -->
-      <!-- Aquí se renderizan ProposalPageComponent o ProposalCreatePageComponent -->
       <router-outlet />
     </main>
 
-    <!-- Footer -->
     <app-footer />
   </div>
 </div>

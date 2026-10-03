@@ -1,10 +1,6 @@
 import { collectParticipantIds } from './thesis-participants.helper';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
 
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
-
-// Utilizamos la fábrica para centralizar el casteo as Proposal, manteniendo
-// los bloques de las pruebas 100% limpios de 'any' o 'unknown'.
 const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
   id: 'prop-1',
   title: 'Propuesta Base',
@@ -15,20 +11,13 @@ const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
   ...overrides
 } as Proposal);
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('Thesis Participants Helper', () => {
   beforeEach(() => {
-    // 🔕 Silenciador preventivo de consola
-    // Aunque es una función pura, la protegemos en caso de que en un futuro
-    // se le agreguen logs de advertencia por datos corruptos.
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    // 🧹 Restauramos la consola utilizando mockRestore() para no interferir
-    // con posibles configuraciones globales de Jest.
     jest.spyOn(console, 'error').mockRestore();
     jest.spyOn(console, 'warn').mockRestore();
   });

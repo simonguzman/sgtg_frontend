@@ -2,7 +2,6 @@ import { TestBed, fakeAsync, tick, flushMicrotasks } from '@angular/core/testing
 import { signal, WritableSignal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 
-// 1. MOCKEAR LAS FUNCIONES EXTERNAS ANTES DE IMPORTAR EL SERVICIO
 jest.mock('../../../core/utils/file-reader.utils', () => ({
   readFileAsDataUrl: jest.fn()
 }));
@@ -16,14 +15,11 @@ jest.mock('../helpers/thesis-participants.helper', () => ({
 import { readFileAsDataUrl } from '../../../core/utils/file-reader.utils';
 import { formatThesisDate } from '../helpers/thesis-date.helper';
 import { collectParticipantIds } from '../helpers/thesis-participants.helper';
-
-// Importamos SustentationVeredict para tipar correctamente los payloads
 import { ThesisWorkSustentationService, SustentationVeredict } from './thesis-work-sustentation.service';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
-
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
@@ -35,8 +31,6 @@ import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
 import { PreliminaryDraft } from '../../preliminary-draft/interfaces/preliminary-draft.interface';
-
-// ── Mocks Estrictos de Servicios ─────────────────────────────────────────────
 
 interface MockUserService {
   addRoleToUser: jest.Mock;
@@ -55,8 +49,6 @@ interface MockThesisWorkStorageService {
 interface MockEventBusService {
   emit: jest.Mock;
 }
-
-// ── Funciones Fábrica fuertemente tipadas (Adiós "any") ──────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -94,8 +86,6 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   ...overrides
 } as ThesisWork);
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('ThesisWorkSustentationService', () => {
   let service: ThesisWorkSustentationService;
 
@@ -108,7 +98,6 @@ describe('ThesisWorkSustentationService', () => {
   let mutableMockThesis: ThesisWork;
 
   beforeEach(() => {
-    // 🔕 Silenciar ruidos en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -152,7 +141,6 @@ describe('ThesisWorkSustentationService', () => {
 
     service = TestBed.inject(ThesisWorkSustentationService);
 
-    // Configuración base de mocks globales
     (readFileAsDataUrl as jest.Mock).mockResolvedValue('data:application/pdf;base64,mockFile');
     (formatThesisDate as jest.Mock).mockReturnValue('2026-08-19');
     (collectParticipantIds as jest.Mock).mockReturnValue(['student-1']);
@@ -174,8 +162,6 @@ describe('ThesisWorkSustentationService', () => {
         location: 'Auditorio'
       };
 
-      // FIX: Puenteamos el agujero negro de native async/await en Zone.js
-      // espiando estrictamente el método interno sin usar "any".
       interface FileDocumentMock {
         id: string;
         name: string;
@@ -205,7 +191,6 @@ describe('ThesisWorkSustentationService', () => {
         error: (err) => { throw err; }
       });
 
-      // El tick procesará instantáneamente el flujo RxJS ahora que la promesa no se pierde
       flushMicrotasks();
       tick(1000);
 

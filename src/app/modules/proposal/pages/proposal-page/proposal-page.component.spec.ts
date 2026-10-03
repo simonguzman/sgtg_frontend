@@ -4,16 +4,11 @@ import { Router } from '@angular/router';
 import { Component, Input, Output, EventEmitter, signal } from '@angular/core';
 import { ProposalFacadeService } from './services/proposal-facade.service';
 import { ProposalTableRow } from './models/proposal-page.model';
-
-// Importar interfaces del table-component
 import { TableButton, Column, TableRow } from '../../../../shared/components/table-component/table-component.component';
-
-// 1. Importar componentes reales para removerlos
 import { TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { DescriptionModalComponent } from '../../../../shared/components/modals/description-modal/description-modal.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 
-// 2. Mocks de componentes standalone (Ahora SIN anys)
 @Component({ selector: 'app-table-component', standalone: true, template: '' })
 class MockTableComponent {
   @Input() value: TableRow[] = [];
@@ -46,8 +41,6 @@ describe('ProposalPageComponent', () => {
   let component: ProposalPageComponent;
   let fixture: ComponentFixture<ProposalPageComponent>;
   let mockRouter: { navigate: jest.Mock };
-
-  // 🚀 ADIÓS ANY: Tipamos correctamente la fachada mockeada
   let mockFacade: {
     proposalsTableData: ReturnType<typeof signal<ProposalTableRow[]>>;
     headerButtons: ReturnType<typeof signal<TableButton[]>>;
@@ -63,7 +56,6 @@ describe('ProposalPageComponent', () => {
   } as ProposalTableRow;
 
   beforeEach(async () => {
-    // 1. Espías para silenciar la consola
     jest.spyOn(console, 'log').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -95,7 +87,6 @@ describe('ProposalPageComponent', () => {
   });
 
   afterEach(() => {
-    // 2. Restauramos todos los espías y mocks originales al terminar cada prueba
     jest.restoreAllMocks();
   });
 
@@ -130,7 +121,6 @@ describe('ProposalPageComponent', () => {
 
   describe('handleHeaderButton', () => {
     it('debe navegar a crear propuesta', () => {
-      // 🚀 SOLUCIÓN: Agregamos variant: 'primary'
       component.handleHeaderButton({ label: 'Registrar propuesta', icon: '', action: '', variant: 'primary' });
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/proposal/create']);
     });

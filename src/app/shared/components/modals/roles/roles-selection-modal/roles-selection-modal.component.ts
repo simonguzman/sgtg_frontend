@@ -5,7 +5,6 @@ import { DialogModule } from 'primeng/dialog';
 import { CommonModule } from '@angular/common';
 import { ButtonComponent } from '../../../button-component/button-component.component';
 
-
 @Component({
   selector: 'app-roles-selection-modal',
   imports: [DialogModule, CommonModule, ButtonComponent],
@@ -29,7 +28,6 @@ export class RolesSelectionModalComponent implements OnChanges {
   }
 
   initializeRoles() {
-    // Si no hay roles previos, cargamos todos los disponibles del Enum
     if (!this.roles || this.roles.length === 0) {
       this.editableRoles = Object.values(UserRoleType).map(role => ({
         type: role,

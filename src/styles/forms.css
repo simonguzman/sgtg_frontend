@@ -1,0 +1,80 @@
+/* ==========================================================================
+   CONTENEDORES INFORMATIVOS (Glassmorphism)
+   ========================================================================== */
+
+.information-block {
+  background-color: rgba(234, 240, 251, 0.9) !important;
+  border:           1px solid rgba(101, 183, 65, 0.24) !important;
+  box-shadow:       0px 4px 4px 0px rgba(0, 0, 0, 0.25) !important;
+  backdrop-filter:  blur(4px);
+}
+
+/* ==========================================================================
+   ELEMENTOS DE FORMULARIO E INPUTS
+   Usadas en los formularios de Propuesta, Anteproyecto y Trabajo de Grado.
+   ========================================================================== */
+
+.return-arrow-option {
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-size: var(--text-size-section);
+  font-weight: var(--font-semibold-weight);
+}
+.title-textbox {
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-size: var(--text-size-section);
+  font-weight: var(--font-semibold-weight);
+}
+.text-textbox {
+  color: #777680;
+  font-family: var(--font-sans);
+  font-size: var(--text-size-body);
+  font-weight: var(--font-regular-weight);
+}
+.text-textbox.ng-invalid.ng-touched {
+  border-color: #ED7D31 !important;
+}
+.text-textbox-alert {
+  color: #ED7D31;
+  font-family: var(--font-sans);
+  font-size: var(--text-size-role-footer);
+  font-weight: var(--font-regular-weight);
+}
+.add-circle {
+  color: #777680;
+  font-size: var(--text-size-section);
+}
+.custom-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  cursor: pointer;
+}
+.select-arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: transform 0.3s ease;
+  pointer-events: none;
+  color: #6b7280;
+  font-size: 12px !important;
+}
+.custom-select:focus ~ .select-arrow {
+  transform: translateY(-50%) rotate(90deg);
+}
+.success-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-primary);
+  font-size: 16px !important;
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+  pointer-events: none;
+}
+.input-success {
+  border-color: var(--color-primary) !important;
+  padding-right: 40px !important;
+}

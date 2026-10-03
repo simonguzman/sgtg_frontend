@@ -1,13 +1,6 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
-
-// 2. Servicio a probar
 import { ThesisWorkDetailsMapperService } from './thesis-work-details-mapper.service';
-
-// 3. Dependencias
 import { UserService } from '../../../../users/services/user.service';
-
-// 4. Interfaces, Enums y Modelos
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
@@ -16,14 +9,10 @@ import { IdentificationType } from '../../../../users/enum/identification-type.e
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown' ni casteos dobles) ──
-
 interface MockUserService {
   getAuthorsNames: jest.Mock<string, [User[] | undefined]>;
   getUserFullName: jest.Mock<string, [string | undefined]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -77,20 +66,15 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('ThesisWorkDetailsMapperService', () => {
   let service: ThesisWorkDetailsMapperService;
 
-  // Interface Mock estricta
   let userServiceSpy: MockUserService;
 
   beforeEach(() => {
-    // 🔕 Silenciador preventivo global de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Inicialización del mock respetando firmas estrictas
     userServiceSpy = {
       getAuthorsNames: jest.fn(),
       getUserFullName: jest.fn()
@@ -107,29 +91,25 @@ describe('ThesisWorkDetailsMapperService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks(); // Limpia los espías
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('mapToView() - Mapeo general', () => {
     it('debe mapear correctamente un trabajo de grado con datos completos', () => {
-      // Arrange
       userServiceSpy.getAuthorsNames.mockReturnValue('Autor Mokeado');
       userServiceSpy.getUserFullName
         .mockReturnValueOnce('Director Mokeado')
         .mockReturnValueOnce('Codirector Mokeado')
         .mockReturnValueOnce('Asesor Mokeado');
 
-      // Usamos la fábrica y sobrescribimos solo lo necesario
       const mockWork = createMockThesisWork();
       mockWork.state = stateList.EN_DESARROLLO;
       mockWork.preliminaryDraftData!.proposalData.codirector = createMockUser({ id: 'cd1' });
       mockWork.preliminaryDraftData!.proposalData.advisor = createMockUser({ id: 'ad1' });
 
-      // Act
       const result = service.mapToView(mockWork);
 
-      // Assert
       expect(result.id).toBe('tw-1');
       expect(result.title).toBe('Tesis IA');
       expect(result.state).toBe(stateList.EN_DESARROLLO);
@@ -141,16 +121,13 @@ describe('ThesisWorkDetailsMapperService', () => {
     });
 
     it('debe usar valores por defecto cuando faltan datos (Null Object Pattern behavior)', () => {
-      // Arrange
       const emptyWork = createMockThesisWork({
         thesisWorkId: '',
         preliminaryDraftData: undefined
       });
 
-      // Act
       const result = service.mapToView(emptyWork);
 
-      // Assert
       expect(result.id).toBe('');
       expect(result.title).toBe('Sin título');
       expect(result.description).toBe('Sin descripción disponible.');
@@ -163,10 +140,8 @@ describe('ThesisWorkDetailsMapperService', () => {
     const defaultDescription = 'Resolución original del anteproyecto aprobado';
 
     it('debe extraer el documento de las evaluaciones del consejo (Prioridad 1)', () => {
-      // Arrange
       const mockWork = createMockThesisWork();
 
-      // Evaluation con todas las propiedades requeridas
       mockWork.preliminaryDraftData!.evaluations = [
         {
           id: 'eval-1',
@@ -193,10 +168,8 @@ describe('ThesisWorkDetailsMapperService', () => {
         }
       ];
 
-      // Act
       const result = service.mapToView(mockWork);
 
-      // Assert
       expect(result.mainDocument).toEqual({
         name: 'resolucion_consejo.pdf',
         url: 'http://url.com/res.pdf',
@@ -205,10 +178,8 @@ describe('ThesisWorkDetailsMapperService', () => {
     });
 
     it('debe extraer el documento desde los documentos del anteproyecto (Prioridad 2)', () => {
-      // Arrange
       const mockWork = createMockThesisWork();
 
-      // Evaluation con todas las propiedades requeridas
       mockWork.preliminaryDraftData!.evaluations = [
         {
           id: 'eval-1',
@@ -233,10 +204,8 @@ describe('ThesisWorkDetailsMapperService', () => {
         }
       ];
 
-      // Act
       const result = service.mapToView(mockWork);
 
-      // Assert
       expect(result.mainDocument).toEqual({
         name: 'Res Anteproyecto',
         url: 'http://url.com/anteproyecto.pdf',
@@ -245,7 +214,6 @@ describe('ThesisWorkDetailsMapperService', () => {
     });
 
     it('debe extraer el documento desde los documentos directos del trabajo (Prioridad 3)', () => {
-      // Arrange
       const mockWork = createMockThesisWork();
 
       mockWork.preliminaryDraftData!.evaluations = [];
@@ -261,10 +229,8 @@ describe('ThesisWorkDetailsMapperService', () => {
         }
       ];
 
-      // Act
       const result = service.mapToView(mockWork);
 
-      // Assert
       expect(result.mainDocument).toEqual({
         name: 'Res Trabajo',
         url: 'http://url.com/trabajo.pdf',
@@ -273,17 +239,14 @@ describe('ThesisWorkDetailsMapperService', () => {
     });
 
     it('debe devolver null si no se encuentra ningún documento de resolución en ninguna parte', () => {
-      // Arrange
       const mockWork = createMockThesisWork();
 
       mockWork.preliminaryDraftData!.evaluations = [];
       mockWork.preliminaryDraftData!.documents = [];
       mockWork.documents = [];
 
-      // Act
       const result = service.mapToView(mockWork);
 
-      // Assert
       expect(result.mainDocument).toBeNull();
     });
   });

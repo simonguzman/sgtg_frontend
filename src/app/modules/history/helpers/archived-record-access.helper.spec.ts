@@ -2,9 +2,6 @@ import { hasArchiveAccess } from './archived-record-access.helper';
 import { ArchivedBaseProposal } from '../interfaces/archived-base-proposal.interface';
 import { User } from '../../users/interfaces/user.interface';
 
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
-
-// Reemplazamos SimpleUserRef por un factory que devuelve estrictamente un 'User'
 const createMockUser = (id: string, overrides: Partial<User> = {}): User => ({
   id,
   firstName: 'Nombre',
@@ -19,12 +16,9 @@ const createMockProposal = (overrides: Partial<ArchivedBaseProposal> = {}): Arch
   ...overrides
 } as ArchivedBaseProposal);
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('Helper: hasArchiveAccess', () => {
 
   beforeEach(() => {
-    // 🔕 Silenciar consola para mantener terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
@@ -88,7 +82,7 @@ describe('Helper: hasArchiveAccess', () => {
 
     it('debería retornar true si el usuario es uno de los Autores (evaluado por ID en formato string)', () => {
       const proposal = createMockProposal({
-        authors: ['other-user', userId] // Simulando el caso donde authors guarda strings puros
+        authors: ['other-user', userId]
       });
       expect(hasArchiveAccess(proposal, userId, false)).toBe(true);
     });

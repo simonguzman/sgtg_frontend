@@ -1,10 +1,5 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
-
-// 2. Servicio a probar
 import { ThesisWorkDetailsModalResolverService } from './thesis-work-details-modal-resolver.service';
-
-// 3. Interfaces y Enums
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { Advance } from '../../../interfaces/advance.interface';
 import { SpecialRequest } from '../../../interfaces/special-request.interface';
@@ -17,17 +12,13 @@ import { IdentificationType } from '../../../../users/enum/identification-type.e
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
 
-// ── Mapeo de Mocks Globales (Hoisted por Jest) ──────────────────────────────
 jest.mock('../../../helpers/thesis-date.helper', () => ({
   formatThesisDate: jest.fn()
 }));
 import { formatThesisDate } from '../../../helpers/thesis-date.helper';
 
-// ── Tipos Seguros Extraídos Dinámicamente (Cero dependencias externas extra) ──
 type FinalDeliveryItem = NonNullable<ThesisWork['finalDeliveries']>[number];
 type PazYSalvoItem = NonNullable<ThesisWork['pazYSalvos']>[number];
-
-// ── Funciones Fábrica fuertemente tipadas (CERO 'any' ni 'as Type') ─────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -72,7 +63,7 @@ const createMockFinalDelivery = (overrides: Partial<FinalDeliveryItem> = {}): Fi
   status: stateList.EN_REVISION,
   monograph: createMockFileDocument({ id: 'm-1', name: 'monograph' }),
   formatE: createMockFileDocument({ id: 'fe-1', name: 'formatE' }),
-  annexes: undefined, // Anexos opcionales por defecto
+  annexes: undefined,
   ...overrides
 });
 
@@ -143,13 +134,10 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   };
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('ThesisWorkDetailsModalResolverService', () => {
   let service: ThesisWorkDetailsModalResolverService;
 
   beforeEach(() => {
-    // 🔕 Silenciador preventivo global de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -161,7 +149,7 @@ describe('ThesisWorkDetailsModalResolverService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('resolve() (Switch principal)', () => {
@@ -173,21 +161,18 @@ describe('ThesisWorkDetailsModalResolverService', () => {
 
   describe('resolveAdvance', () => {
     it('debe resolver un AVANCE correctamente si lo encuentra', () => {
-      // Arrange
       const advance = createMockAdvance({ id: 'adv-1', title: 'Avance Especial' });
       const thesis = createMockThesisWork({ advances: [advance] });
 
-      // Act
       const result = service.resolve('adv-1', 'AVANCES', thesis);
 
-      // Assert
       expect(result?.title).toBe('Avance Especial');
     });
 
     it('debe retornar null si no encuentra el avance o el array no existe/está vacío', () => {
       const emptyThesis = createMockThesisWork({ advances: [] });
       const undefinedThesis = createMockThesisWork();
-      undefinedThesis.advances = undefined; // Simulamos ausencia de la propiedad
+      undefinedThesis.advances = undefined;
 
       expect(service.resolve('adv-999', 'AVANCES', emptyThesis)).toBeNull();
       expect(service.resolve('adv-1', 'AVANCES', undefinedThesis)).toBeNull();
@@ -196,7 +181,6 @@ describe('ThesisWorkDetailsModalResolverService', () => {
 
   describe('resolveDelivery', () => {
     it('debe resolver una ENTREGA FINAL con anexos y su estado original intacto', () => {
-      // Arrange
       const delivery = createMockFinalDelivery({
         id: 'del-1',
         status: stateList.APROBADO,
@@ -204,30 +188,25 @@ describe('ThesisWorkDetailsModalResolverService', () => {
       });
       const thesis = createMockThesisWork({ finalDeliveries: [delivery] });
 
-      // Act
       const result = service.resolve('del-1', 'ENTREGA FINAL', thesis);
 
-      // Assert
       expect(result?.id).toBe('del-1');
       expect(result?.status).toBe(stateList.APROBADO);
-      expect(result?.documents?.length).toBe(3); // Monografía, formato E y Anexos
+      expect(result?.documents?.length).toBe(3);
     });
 
     it('debe resolver una ENTREGA FINAL sin anexos y aplicar estado por defecto EN_REVISION si no tiene', () => {
-      // Arrange
       const delivery = createMockFinalDelivery({
         id: 'del-2',
-        status: undefined, // Sin estado
-        annexes: undefined // Sin anexos
+        status: undefined,
+        annexes: undefined
       });
       const thesis = createMockThesisWork({ finalDeliveries: [delivery] });
 
-      // Act
       const result = service.resolve('del-2', 'ENTREGA FINAL', thesis);
 
-      // Assert
-      expect(result?.documents?.length).toBe(2); // Solo Monografía y formato E
-      expect(result?.status).toBe(stateList.EN_REVISION); // Fallback aplicado
+      expect(result?.documents?.length).toBe(2);
+      expect(result?.status).toBe(stateList.EN_REVISION);
     });
 
     it('debe retornar null si no encuentra la entrega final', () => {
@@ -238,7 +217,6 @@ describe('ThesisWorkDetailsModalResolverService', () => {
 
   describe('resolvePazYSalvo', () => {
     it('debe resolver PAZ Y SALVO aprobados y con comentarios académicos', () => {
-      // Arrange
       const pys = createMockPazYSalvo({
         academicApproved: true,
         academicComments: 'Todo excelente',
@@ -247,18 +225,15 @@ describe('ThesisWorkDetailsModalResolverService', () => {
       });
       const thesis = createMockThesisWork({ pazYSalvos: [pys] });
 
-      // Act
       const result = service.resolve('doc-pys', 'PAZ Y SALVO', thesis);
 
-      // Assert
       expect(result?.comments).toContain('Aprobación Académica: ✅ Sí');
       expect(result?.comments).toContain('Obs: Todo excelente');
       expect(result?.comments).toContain('Aprobación Financiera: ✅ Sí');
-      expect(result?.status).toBe(stateList.EN_REVISION); // Fallback natural del componente
+      expect(result?.status).toBe(stateList.EN_REVISION);
     });
 
     it('debe resolver PAZ Y SALVO no aprobados y con comentarios financieros', () => {
-      // Arrange
       const pys = createMockPazYSalvo({
         academicApproved: false,
         financialApproved: false,
@@ -267,10 +242,8 @@ describe('ThesisWorkDetailsModalResolverService', () => {
       });
       const thesis = createMockThesisWork({ pazYSalvos: [pys] });
 
-      // Act
       const result = service.resolve('doc-pys-2', 'PAZ Y SALVO', thesis);
 
-      // Assert
       expect(result?.comments).toContain('Aprobación Académica: ❌ No');
       expect(result?.comments).toContain('Aprobación Financiera: ❌ No');
       expect(result?.comments).toContain('Obs: Falta pago matrícula');
@@ -285,28 +258,22 @@ describe('ThesisWorkDetailsModalResolverService', () => {
 
   describe('resolveCorrespondence', () => {
     it('debe resolver CORRESPONDENCIA respetando su estado original', () => {
-      // Arrange
       const doc = createMockFileDocument({ id: 'doc-1', status: stateList.EN_REVISION });
       const thesis = createMockThesisWork({ documents: [doc] });
 
-      // Act
       const result = service.resolve('doc-1', 'CORRESPONDENCIA', thesis);
 
-      // Assert
       expect(result?.title).toBe('Resolución / Correspondencia Final Oficial');
       expect(result?.status).toBe(stateList.EN_REVISION);
     });
 
     it('debe resolver CORRESPONDENCIA aplicando estado por defecto APROBADO', () => {
-      // Arrange
       const doc = createMockFileDocument({ id: 'doc-2', status: undefined });
       const thesis = createMockThesisWork({ documents: [doc] });
 
-      // Act
       const result = service.resolve('doc-2', 'CORRESPONDENCIA', thesis);
 
-      // Assert
-      expect(result?.status).toBe(stateList.APROBADO); // Fallback
+      expect(result?.status).toBe(stateList.APROBADO);
     });
 
     it('debe retornar null si no encuentra la correspondencia', () => {
@@ -317,7 +284,6 @@ describe('ThesisWorkDetailsModalResolverService', () => {
 
   describe('resolveSpecialRequest', () => {
     it('debe resolver SOLICITUDES con todos los detalles incluyendo grantedDeadline formateado', () => {
-      // Arrange
       (formatThesisDate as jest.Mock).mockReturnValue('27 - 07 - 2026');
 
       const request = createMockSpecialRequest({
@@ -332,10 +298,8 @@ describe('ThesisWorkDetailsModalResolverService', () => {
       });
       const thesis = createMockThesisWork({ specialRequests: [request] });
 
-      // Act
       const result = service.resolve('req-1', 'SOLICITUDES', thesis);
 
-      // Assert
       expect(result?.title).toBe(SpecialRequestType.PRORROGA);
       expect(result?.studentId).toBe('dir-1');
       expect(result?.comments).toContain('Motivos de salud');
@@ -344,7 +308,6 @@ describe('ThesisWorkDetailsModalResolverService', () => {
     });
 
     it('debe resolver SOLICITUDES solo con la descripción básica (sin resolución ni fecha)', () => {
-      // Arrange
       const request = createMockSpecialRequest({
         id: 'req-2',
         description: 'Solo descripción sin respuesta aún',
@@ -352,10 +315,8 @@ describe('ThesisWorkDetailsModalResolverService', () => {
       });
       const thesis = createMockThesisWork({ specialRequests: [request] });
 
-      // Act
       const result = service.resolve('req-2', 'SOLICITUDES', thesis);
 
-      // Assert
       expect(result?.comments).toBe('Solo descripción sin respuesta aún');
       expect(result?.comments).not.toContain('Resolución del comité');
       expect(result?.comments).not.toContain('Fecha concedida');

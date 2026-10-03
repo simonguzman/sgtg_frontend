@@ -1,21 +1,14 @@
-// 1. Angular Core & Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { By } from '@angular/platform-browser';
-
-// 2. Componentes y Servicios a Probar
 import { UploadAdvanceFormComponent } from './upload-advance-form.component';
 import { UploadAdvanceFormService } from './services/upload-advance-form.service';
-
-// 3. Interfaces y Enums Compartidos
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
 import { UserState } from '../../../users/enum/user-state.enum';
 import { User } from '../../../users/interfaces/user.interface';
 import { Modality } from '../../../proposal/enums/modality.enum';
-
-// ── Tipos Seguros para los Mocks (Zero 'any') ───────────────────────────────
 
 interface MockUploadAdvanceFormService {
   advanceForm: FormGroup;
@@ -26,8 +19,6 @@ interface MockUploadAdvanceFormService {
   notifyIncompleteForm: jest.Mock<void, []>;
   notifyMissingFiles: jest.Mock<void, []>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
   const baseUser: User = {
@@ -78,8 +69,6 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides } as ThesisWork;
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('UploadAdvanceFormComponent', () => {
   let component: UploadAdvanceFormComponent;
   let fixture: ComponentFixture<UploadAdvanceFormComponent>;
@@ -88,18 +77,15 @@ describe('UploadAdvanceFormComponent', () => {
   const mockThesisWork = createMockThesisWork();
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola como medida preventiva, estándar del proyecto
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Inicializamos un formulario real para el mock.
     const fb = new FormBuilder();
     const mockForm = fb.nonNullable.group({
       title: ['', Validators.required],
       comments: ['', Validators.required]
     });
 
-    // Construcción estricta del Mock Service
     formServiceSpy = {
       advanceForm: mockForm,
       getStudentNames: jest.fn().mockReturnValue('Ana López'),
@@ -121,14 +107,13 @@ describe('UploadAdvanceFormComponent', () => {
     fixture = TestBed.createComponent(UploadAdvanceFormComponent);
     component = fixture.componentInstance;
 
-    // Asignamos el @Input requerido ANTES de detectar cambios (esencial en Angular >= 16)
     fixture.componentRef.setInput('thesisWork', mockThesisWork);
     fixture.detectChanges();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización', () => {
@@ -140,20 +125,10 @@ describe('UploadAdvanceFormComponent', () => {
       const disabledInputs = fixture.debugElement.queryAll(By.css('input[disabled]'));
       const disabledTextarea = fixture.debugElement.query(By.css('textarea[disabled]'));
 
-      // Utilizamos encadenamiento opcional por seguridad en el DOM
-      // disabledInputs[0] -> Título
       expect(disabledInputs[0]?.nativeElement?.value).toBe('Título de Prueba del Avance');
-
-      // disabledTextarea -> Descripción
       expect(disabledTextarea?.nativeElement?.value).toBe('Descripción detallada de prueba');
-
-      // disabledInputs[1] -> Modalidad
       expect(disabledInputs[1]?.nativeElement?.value).toBe(mockThesisWork.preliminaryDraftData.proposalData.modality);
-
-      // disabledInputs[2] -> Estudiante
       expect(disabledInputs[2]?.nativeElement?.value).toBe('Ana López');
-
-      // disabledInputs[3] -> Director
       expect(disabledInputs[3]?.nativeElement?.value).toBe('Director Test');
     });
   });
@@ -193,10 +168,10 @@ describe('UploadAdvanceFormComponent', () => {
       const file2 = { fileName: '2.pdf', file: new File([], '2.pdf') };
 
       component.uploadedFiles.set([file1, file2]);
-      component.removeFile(0); // Eliminamos el primero
+      component.removeFile(0);
 
       expect(component.uploadedFiles()).toHaveLength(1);
-      expect(component.uploadedFiles()[0].fileName).toBe('2.pdf'); // Debe quedar el segundo
+      expect(component.uploadedFiles()[0].fileName).toBe('2.pdf');
     });
   });
 
@@ -204,7 +179,6 @@ describe('UploadAdvanceFormComponent', () => {
     it('debería bloquear el envío, marcar campos como tocados y notificar si el formulario es inválido', () => {
       jest.spyOn(component.onSaveAdvance, 'emit');
 
-      // Hacemos el formulario inválido
       component.advanceForm.controls['title'].setValue('');
 
       component.submit();
@@ -217,9 +191,7 @@ describe('UploadAdvanceFormComponent', () => {
     it('debería bloquear el envío y notificar si no hay archivos cargados', () => {
       jest.spyOn(component.onSaveAdvance, 'emit');
 
-      // Hacemos el formulario válido
       component.advanceForm.setValue({ title: 'Avance 1', comments: 'Todo bien' });
-      // Nos aseguramos de que el signal de archivos esté vacío
       component.uploadedFiles.set([]);
 
       component.submit();
@@ -232,19 +204,16 @@ describe('UploadAdvanceFormComponent', () => {
       jest.spyOn(component.onSaveAdvance, 'emit');
       const mockFile = new File([], 'avance_final.pdf');
 
-      // Estado válido: formulario lleno y archivo cargado
       component.advanceForm.setValue({ title: 'Avance Final', comments: 'Revisar capítulo 3' });
       component.uploadedFiles.set([{ fileName: 'avance_final.pdf', file: mockFile }]);
 
       component.submit();
 
-      // Validación estricta del @Output
       expect(component.onSaveAdvance.emit).toHaveBeenCalledWith({
         formValues: { title: 'Avance Final', comments: 'Revisar capítulo 3' },
         files: [mockFile]
       });
 
-      // Asegurar que las notificaciones de error NO fueron llamadas
       expect(formServiceSpy.notifyIncompleteForm).not.toHaveBeenCalled();
       expect(formServiceSpy.notifyMissingFiles).not.toHaveBeenCalled();
     });

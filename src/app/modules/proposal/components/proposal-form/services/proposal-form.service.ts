@@ -1,11 +1,9 @@
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
 import { UserService } from '../../../../users/services/user.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { ProposalService } from '../../../services/proposal.service';
-
 import { Proposal } from '../../../interfaces/proposal.interface';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { SelectOption } from '../../../../../shared/components/searchable-select/searchable-select.component';
@@ -137,8 +135,6 @@ export class ProposalFormService {
     if (!currentDirector) return null;
 
     if (raw.codirector) {
-      // ← FIX: Observable creado pero nunca suscrito — el rol nunca se
-      // agregaba porque el código dentro de addRoleToUser() jamás corría.
       this.userService.addRoleToUser(raw.codirector, UserRoleType.CODIRECTOR)
         .pipe(first())
         .subscribe();

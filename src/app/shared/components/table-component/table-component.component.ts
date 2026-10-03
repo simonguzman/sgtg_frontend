@@ -28,11 +28,11 @@ export interface Column{
   type?: 'text' | 'state' | 'actions';
   actions?: ActionButton[];
   width ?: string;
-  filterable?: boolean; // 🚀 NUEVO: Propiedad opcional para activar el filtro
+  filterable?: boolean;
 }
 
 export type TableRow = {
-  [key: string]: any; // Permitir cualquier propiedad dinámica
+  [key: string]: any;
   allowedActions?: string[];
 };
 
@@ -49,20 +49,20 @@ export type TableRow = {
   templateUrl: './table-component.component.html',
   styleUrl: './table-component.component.css'
 })
-export class TableComponent {
+
+export class TableComponent<T extends TableRow = TableRow> {
 
   protected Array = Array;
 
-  @Input() value: TableRow[] = [];
+  @Input() value: T[] = [];
   @Input() columns: Column[] = [];
   @Input() rows: number = 5;
-  @Input() paginator : boolean = false;
+  @Input() paginator: boolean = false;
   @Input() headerButtons?: TableButton[];
   @Input() emptyMessage: string = 'No hay datos registrados en el sistema';
-
   @Input() filterFields: string[] = [];
 
-  @Output() actionClick = new EventEmitter<{ action: string; row:any }>();
+  @Output() actionClick = new EventEmitter<{ action: string; row: T }>();
   @Output() headerButtonClick = new EventEmitter<TableButton>();
 
   get getFilterFields(): string[] {

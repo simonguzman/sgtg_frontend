@@ -1,7 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { signal } from '@angular/core';
-
 import { LoadedProposalsPageComponent } from './loaded-proposals-page.component';
 import { LoadedProposalsFacadeService } from './services/loaded-proposals-facade.service';
 import { DocumentTableRow } from './models/loaded-proposals-page.model';
@@ -10,25 +9,18 @@ import { TableButton } from '../../../../shared/components/table-component/table
 describe('LoadedProposalsPageComponent', () => {
   let component: LoadedProposalsPageComponent;
   let fixture: ComponentFixture<LoadedProposalsPageComponent>;
-
-  // Espías para silenciar la consola
   let consoleErrorSpy: jest.SpyInstance;
   let consoleWarnSpy: jest.SpyInstance;
-
-  // Mocks estrictamente tipados sin usar 'any'
   let mockRouter: jest.Mocked<Router>;
-  let mockRoute: unknown; // Usamos unknown como puente seguro para la estructura compleja de ActivatedRoute
+  let mockRoute: unknown;
   let mockFacade: jest.Mocked<LoadedProposalsFacadeService>;
 
   beforeEach(async () => {
-    // Silenciamos la consola para evitar ruido en los tests
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
     mockRouter = {
       navigate: jest.fn(),
     } as unknown as jest.Mocked<Router>;
-
     mockRoute = {
       parent: {
         snapshot: {
@@ -38,7 +30,6 @@ describe('LoadedProposalsPageComponent', () => {
         }
       }
     };
-
     mockFacade = {
       buildDocumentsTableData: jest.fn().mockReturnValue([]),
       buildHeaderButtons: jest.fn().mockReturnValue([]),
@@ -55,16 +46,10 @@ describe('LoadedProposalsPageComponent', () => {
         { provide: ActivatedRoute, useValue: mockRoute },
         { provide: LoadedProposalsFacadeService, useValue: mockFacade }
       ]
-    })
-    // Para simplificar las pruebas unitarias del componente principal y no
-    // depender de los hijos standalone, podemos sobreescribir el template
-    // o simplemente dejar que Angular construya el shallow tree.
-    .compileComponents();
+    }).compileComponents();
 
     fixture = TestBed.createComponent(LoadedProposalsPageComponent);
     component = fixture.componentInstance;
-
-    // Forzamos la detección de cambios para ejecutar ngOnInit
     fixture.detectChanges();
   });
 
@@ -81,10 +66,8 @@ describe('LoadedProposalsPageComponent', () => {
     });
 
     it('debería delegar al facade la construcción de datos de la tabla y botones', () => {
-      // Al ser computed, leemos su valor para forzar la ejecución
       component.documentsTableData();
       component.headerButtons();
-
       expect(mockFacade.buildDocumentsTableData).toHaveBeenCalledWith('prop-123');
       expect(mockFacade.buildHeaderButtons).toHaveBeenCalledWith('prop-123');
     });
@@ -95,24 +78,19 @@ describe('LoadedProposalsPageComponent', () => {
 
     it('debería notificar y detener la ejecución si la acción no está permitida', () => {
       component.handleTableAction({ action: 'download', row: mockRow });
-
       expect(mockFacade.showRestrictedActionNotification).toHaveBeenCalled();
       expect(mockFacade.handleDownload).not.toHaveBeenCalled();
     });
 
     it('debería delegar a handleDownload si la acción es "download" y está permitida', () => {
       const allowedRow = { ...mockRow, allowedActions: ['download'] } as DocumentTableRow;
-
       component.handleTableAction({ action: 'download', row: allowedRow });
-
       expect(mockFacade.handleDownload).toHaveBeenCalledWith(allowedRow);
     });
 
     it('debería navegar a evaluate_proposal si la acción es "evaluate" y está permitida', () => {
       const allowedRow = { ...mockRow, allowedActions: ['evaluate'] } as DocumentTableRow;
-
       component.handleTableAction({ action: 'evaluate', row: allowedRow });
-
       expect(mockRouter.navigate).toHaveBeenCalledWith(['evaluate_proposal'], { relativeTo: mockRoute });
     });
   });
@@ -120,24 +98,19 @@ describe('LoadedProposalsPageComponent', () => {
   describe('Método: handleHeaderButton', () => {
     it('debería ignorar la acción si no es "upload_correction"', () => {
       component.handleHeaderButton({ action: 'otra_accion' } as TableButton);
-
       expect(mockFacade.canUpload).not.toHaveBeenCalled();
       expect(component.fileModalOpen()).toBe(false);
     });
 
     it('debería detenerse si no tiene permisos para cargar (canUpload = false)', () => {
       mockFacade.canUpload.mockReturnValue(false);
-
       component.handleHeaderButton({ action: 'upload_correction' } as TableButton);
-
       expect(component.fileModalOpen()).toBe(false);
     });
 
     it('debería abrir el modal de archivos si la acción es correcta y tiene permisos', () => {
       mockFacade.canUpload.mockReturnValue(true);
-
       component.handleHeaderButton({ action: 'upload_correction' } as TableButton);
-
       expect(component.fileModalOpen()).toBe(true);
     });
   });
@@ -146,11 +119,8 @@ describe('LoadedProposalsPageComponent', () => {
     const mockFileData = { fileName: 'test.pdf', file: new File([], 'test.pdf') };
 
     it('onFileSelected debería establecer el estado de carga y cambiar de modal', () => {
-      // Simular estado previo
       component.fileModalOpen.set(true);
-
       component.onFileSelected(mockFileData);
-
       expect(component.uploadState()).toEqual(mockFileData);
       expect(component.fileModalOpen()).toBe(false);
       expect(component.confirmModalOpen()).toBe(true);
@@ -159,42 +129,31 @@ describe('LoadedProposalsPageComponent', () => {
     it('cancelUpload debería cerrar el modal de confirmación y limpiar el estado', () => {
       component.uploadState.set(mockFileData);
       component.confirmModalOpen.set(true);
-
       component.cancelUpload();
-
       expect(component.confirmModalOpen()).toBe(false);
       expect(component.uploadState()).toBeNull();
     });
 
     it('confirmUpload no debería hacer nada si no hay archivo seleccionado', () => {
-      component.uploadState.set(null); // Sin archivo
-
+      component.uploadState.set(null);
       component.confirmUpload();
-
       expect(mockFacade.upload).not.toHaveBeenCalled();
     });
 
     it('confirmUpload debería llamar al facade y manejar el callback onSuccess correctamente', () => {
-      // Preparamos el estado
       component.uploadState.set(mockFileData);
       component.confirmModalOpen.set(true);
-
-      // Simulamos que el Facade invoca el onSuccess (tercer argumento) inmediatamente
       mockFacade.upload.mockImplementation((id, fileData, onSuccess, onError) => {
         onSuccess();
         return Promise.resolve();
       });
-
       component.confirmUpload();
-
       expect(mockFacade.upload).toHaveBeenCalledWith(
         'prop-123',
         mockFileData,
-        expect.any(Function), // Callback onSuccess
-        expect.any(Function)  // Callback onError
+        expect.any(Function),
+        expect.any(Function)
       );
-
-      // Verificamos que el callback limpió todo correctamente
       expect(component.confirmModalOpen()).toBe(false);
       expect(component.uploadState()).toBeNull();
     });
@@ -203,7 +162,6 @@ describe('LoadedProposalsPageComponent', () => {
   describe('Navegación', () => {
     it('goBack debería navegar un nivel arriba en la ruta', () => {
       component.goBack();
-
       expect(mockRouter.navigate).toHaveBeenCalledWith(['../'], { relativeTo: mockRoute });
     });
   });

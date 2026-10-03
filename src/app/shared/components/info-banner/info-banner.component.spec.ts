@@ -3,8 +3,6 @@ import { By } from '@angular/platform-browser';
 import { Component } from '@angular/core';
 import { InfoBannerComponent } from './info-banner.component';
 
-// ── Componente Host auxiliar (Wrapper) para probar el <ng-content> ──────────
-
 @Component({
   standalone: true,
   imports: [InfoBannerComponent],
@@ -19,19 +17,16 @@ class TestHostComponent {
   testIcon = 'warning';
 }
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('InfoBannerComponent', () => {
 
   beforeEach(() => {
-    // 🔕 Silenciar consola para mantener terminal limpia ante cualquier posible advertencia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola para no afectar otros tests
+    jest.restoreAllMocks();
   });
 
   describe('Pruebas Aisladas (Signal Inputs)', () => {
@@ -45,9 +40,6 @@ describe('InfoBannerComponent', () => {
 
       fixture = TestBed.createComponent(InfoBannerComponent);
       component = fixture.componentInstance;
-
-      // Como 'title' es un signal input.required(), debemos inicializarlo OBLIGATORIAMENTE
-      // con componentRef.setInput() ANTES del primer fixture.detectChanges()
       fixture.componentRef.setInput('title', 'Título Inicial');
       fixture.detectChanges();
     });
@@ -57,10 +49,8 @@ describe('InfoBannerComponent', () => {
     });
 
     it('debería mostrar el título proporcionado a través del signal', () => {
-      // Simulamos el cambio del input usando la API de signals de Angular
       fixture.componentRef.setInput('title', 'Atención Requerida');
       fixture.detectChanges();
-
       const titleElement = fixture.debugElement.query(By.css('h3'));
       expect(titleElement).toBeTruthy();
       expect(titleElement.nativeElement.textContent.trim()).toBe('Atención Requerida');
@@ -87,7 +77,7 @@ describe('InfoBannerComponent', () => {
 
     beforeEach(async () => {
       await TestBed.configureTestingModule({
-        imports: [TestHostComponent] // Importamos el componente de prueba
+        imports: [TestHostComponent]
       }).compileComponents();
 
       hostFixture = TestBed.createComponent(TestHostComponent);
@@ -95,13 +85,10 @@ describe('InfoBannerComponent', () => {
     });
 
     it('debería renderizar el contenido proyectado dentro de app-info-banner', () => {
-      // Buscamos el elemento que proyectamos desde el HostComponent
       const projectedElement = hostFixture.debugElement.query(By.css('.projected-content'));
-
       expect(projectedElement).toBeTruthy();
       expect(projectedElement.nativeElement.textContent.trim()).toBe('Este es un mensaje proyectado de prueba');
 
-      // Validamos estructuralmente que el contenido sí se incrustó en el <p> que contiene el ng-content
       const bannerParagraphContainer = hostFixture.debugElement.query(By.css('.bg-blue-50 p'));
       expect(bannerParagraphContainer.nativeElement.contains(projectedElement.nativeElement)).toBeTruthy();
     });

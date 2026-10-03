@@ -16,20 +16,19 @@ type SpecialRequestVerdict = stateList.APROBADO | stateList.NO_APROBADO;
   imports: [EvaluateSpecialRequestFormComponent, ConfirmationActionModalComponent]
 })
 export class EvaluateSpecialRequestPageComponent implements OnInit {
-  private readonly route  = inject(ActivatedRoute);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly facade = inject(EvaluateSpecialRequestFacadeService);
 
-  readonly thesisWorkState     = signal<ThesisWork | null>(null);
+  readonly thesisWorkState = signal<ThesisWork | null>(null);
   readonly specialRequestState = signal<SpecialRequest | null>(null);
-  readonly isConfirmModalOpen  = signal(false);
-  readonly isSubmitting        = signal(false);
-  // ← Fix: any → tipo concreto alineado con evaluateSpecialRequestMock
+  readonly isConfirmModalOpen = signal(false);
+  readonly isSubmitting = signal(false);
   readonly pendingData = signal<{ status: SpecialRequestVerdict; resolutionDetails: string; grantedDeadline?: Date } | null>(null);
 
   ngOnInit(): void {
     const requestId = this.route.snapshot.paramMap.get('requestId');
-    let thesisId    = this.route.snapshot.paramMap.get('id');
+    let thesisId = this.route.snapshot.paramMap.get('id');
     let currentRoute = this.route.parent;
     while (!thesisId && currentRoute) {
       thesisId = currentRoute.snapshot.paramMap.get('id');
@@ -44,8 +43,8 @@ export class EvaluateSpecialRequestPageComponent implements OnInit {
 
     this.facade.loadThesisWorkAndRequest(
       thesisId, requestId,
-      (work, request) => {
-        this.thesisWorkState.set(work);
+      (thesisWork, request) => {
+        this.thesisWorkState.set(thesisWork);
         this.specialRequestState.set(request);
       },
       () => this.goBack()
@@ -58,9 +57,9 @@ export class EvaluateSpecialRequestPageComponent implements OnInit {
   }
 
   processSpecialRequestEvaluation(): void {
-    const data     = this.pendingData();
+    const data = this.pendingData();
     const thesisId = this.thesisWorkState()?.thesisWorkId;
-    const reqId    = this.specialRequestState()?.id;
+    const reqId = this.specialRequestState()?.id;
     if (!data || !thesisId || !reqId) return;
 
     this.isSubmitting.set(true);

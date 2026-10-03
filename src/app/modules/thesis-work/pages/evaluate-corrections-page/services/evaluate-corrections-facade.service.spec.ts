@@ -1,15 +1,8 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
 import { of, throwError, Observable } from 'rxjs';
-
-// 2. Servicio a probar
 import { EvaluateCorrectionsFacadeService } from './evaluate-corrections-facade.service';
-
-// 3. Dependencias (Servicios)
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
-
-// 4. Interfaces y Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
@@ -19,8 +12,6 @@ import { IdentificationType } from '../../../../users/enum/identification-type.e
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
 
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown', 'DeepPartial') ─────────
-
 interface MockThesisWorkService {
   getThesisWorkByIdMock: jest.Mock<Observable<ThesisWork | undefined>, [string]>;
   evaluateCorrectedDocumentsMock: jest.Mock<Observable<void>, [string, Omit<Evaluation, 'id' | 'date'>, File]>;
@@ -29,8 +20,6 @@ interface MockThesisWorkService {
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -93,21 +82,16 @@ const createMockEvaluationPayload = (overrides: Partial<Omit<Evaluation, 'id' | 
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('EvaluateCorrectionsFacadeService', () => {
   let service: EvaluateCorrectionsFacadeService;
 
-  // Interfaces Mocks estrictas
   let thesisWorkServiceMock: MockThesisWorkService;
   let notificationServiceMock: MockNotificationService;
 
   beforeEach(() => {
-    // 🔕 Silenciar consola preventivamente
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Mocks definidos estructuralmente, sin as DeepPartial
     thesisWorkServiceMock = {
       getThesisWorkByIdMock: jest.fn(),
       evaluateCorrectedDocumentsMock: jest.fn(),
@@ -128,25 +112,21 @@ describe('EvaluateCorrectionsFacadeService', () => {
     service = TestBed.inject(EvaluateCorrectionsFacadeService);
   });
 
-  // Limpieza vital para aislar los Spies
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('loadThesisWork', () => {
     it('debería ejecutar onSuccess cuando se encuentre el proyecto de grado', () => {
-      // Arrange
       const mockData = createMockThesisWork({ thesisWorkId: 't1' });
       thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(of(mockData));
 
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
 
-      // Act
       service.loadThesisWork('t1', onSuccessSpy, onErrorSpy);
 
-      // Assert
       expect(thesisWorkServiceMock.getThesisWorkByIdMock).toHaveBeenCalledWith('t1');
       expect(onSuccessSpy).toHaveBeenCalledWith(mockData);
       expect(onErrorSpy).not.toHaveBeenCalled();
@@ -154,20 +134,16 @@ describe('EvaluateCorrectionsFacadeService', () => {
     });
 
     it('debería ejecutar onError y mostrar notificación si no se encuentra data', () => {
-      // Arrange
       thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(of(undefined));
 
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
 
-      // Act
       service.loadThesisWork('t1', onSuccessSpy, onErrorSpy);
 
-      // Assert
       expect(onSuccessSpy).not.toHaveBeenCalled();
       expect(onErrorSpy).toHaveBeenCalled();
 
-      // Asserts de strings exactos en lugar de objectContaining
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
         title: 'No encontrado',
         message: 'El proyecto de grado solicitado no existe en la base de datos.',
@@ -176,16 +152,13 @@ describe('EvaluateCorrectionsFacadeService', () => {
     });
 
     it('debería ejecutar onError y mostrar notificación de error si hay fallo de red', () => {
-      // Arrange
       thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('Network error')));
 
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
 
-      // Act
       service.loadThesisWork('t1', onSuccessSpy, onErrorSpy);
 
-      // Assert
       expect(onSuccessSpy).not.toHaveBeenCalled();
       expect(onErrorSpy).toHaveBeenCalled();
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
@@ -201,16 +174,13 @@ describe('EvaluateCorrectionsFacadeService', () => {
     const mockFile = new File([''], 'test.pdf');
 
     it('debería ejecutar onSuccess y notificar confirmación al guardar exitosamente', () => {
-      // Arrange
       thesisWorkServiceMock.evaluateCorrectedDocumentsMock.mockReturnValue(of(void 0));
 
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
 
-      // Act
       service.saveEvaluation('t1', mockEvaluation, mockFile, onSuccessSpy, onErrorSpy);
 
-      // Assert
       expect(thesisWorkServiceMock.evaluateCorrectedDocumentsMock).toHaveBeenCalledWith('t1', mockEvaluation, mockFile);
       expect(onSuccessSpy).toHaveBeenCalled();
       expect(onErrorSpy).not.toHaveBeenCalled();
@@ -222,16 +192,13 @@ describe('EvaluateCorrectionsFacadeService', () => {
     });
 
     it('debería ejecutar onError y notificar fallo si hay error al guardar', () => {
-      // Arrange
       thesisWorkServiceMock.evaluateCorrectedDocumentsMock.mockReturnValue(throwError(() => new Error('Save error')));
 
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
 
-      // Act
       service.saveEvaluation('t1', mockEvaluation, mockFile, onSuccessSpy, onErrorSpy);
 
-      // Assert
       expect(onSuccessSpy).not.toHaveBeenCalled();
       expect(onErrorSpy).toHaveBeenCalled();
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
@@ -244,10 +211,8 @@ describe('EvaluateCorrectionsFacadeService', () => {
 
   describe('showNavigationError', () => {
     it('debería mostrar una notificación de error de navegación', () => {
-      // Act
       service.showNavigationError();
 
-      // Assert
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
         title: 'Error de navegación',
         message: 'No se pudo mapear la información técnica del trabajo de grado.',

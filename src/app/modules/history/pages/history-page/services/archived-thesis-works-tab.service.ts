@@ -19,29 +19,20 @@ export class ArchivedThesisWorksTabService implements HistoryTabConfiguration {
   getTableData(context: HistoryEvaluationContext): Record<string, unknown>[] {
     const userId = context.currentUser?.id;
     const allArchived = this.thesisWorkService.allThesisWorks().filter(t => t.isArchived === true);
-    const allowedWorks = allArchived.filter((work: ThesisWork) =>
-      hasArchiveAccess(work.preliminaryDraftData?.proposalData, userId, context.hasGlobalAccess)
+    const allowedThesisWorks = allArchived.filter((thesisWork: ThesisWork) =>
+      hasArchiveAccess(thesisWork.preliminaryDraftData?.proposalData, userId, context.hasGlobalAccess)
     );
 
-    return allowedWorks.map((work: ThesisWork) => {
-      const proposal = work.preliminaryDraftData?.proposalData;
-      const maxDeliveryDate = work.preliminaryDraftData?.maximumDeliveryDate;
+    return allowedThesisWorks.map((thesisWork: ThesisWork) => {
+      const proposal = thesisWork.preliminaryDraftData?.proposalData;
+      const maxDeliveryDate = thesisWork.preliminaryDraftData?.maximumDeliveryDate;
       return {
-        id: work.thesisWorkId,
+        id: thesisWork.thesisWorkId,
         title: proposal?.title || 'Sin título',
         modality: proposal?.modality || 'No definida',
         authors: this.userService.getAuthorsNames(proposal?.authors) || 'Sin asignar',
         description: proposal?.description || 'Sin descripción',
-        state: work.state,
-        // ← FIX: antes 'Finalizado' estático. El encabezado ya decía
-        // "Plazo Máximo" (no "Plazo Evaluación" como sus dos hermanas),
-        // así que el dato correcto es la fecha máxima de entrega real,
-        // no un label de evaluación calculado. Confirmado contra
-        // ThesisWorkPageMapperService.formatMaxDeliveryDate: este campo
-        // siempre llega como Date real (viene de un p-datepicker), nunca
-        // como el string "DD - MM - YYYY" — parseDisplayDate lo deja
-        // pasar sin tocarlo en ese caso, formatDisplayDate solo se
-        // encarga de la conversión final a texto.
+        state: thesisWork.state,
         maxDeliveryDate: maxDeliveryDate
           ? formatDisplayDate(parseDisplayDate(maxDeliveryDate))
           : 'Sin fecha límite',

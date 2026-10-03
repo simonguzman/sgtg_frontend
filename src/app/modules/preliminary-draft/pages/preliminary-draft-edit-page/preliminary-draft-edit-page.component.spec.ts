@@ -1,22 +1,13 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, EventEmitter, Input, Output, signal, WritableSignal } from '@angular/core';
 import { By } from '@angular/platform-browser';
-
-// 2. Componente a probar y Servicios
 import { PreliminaryDraftEditPageComponent } from './preliminary-draft-edit-page.component';
 import { PreliminaryDraftEditPageService } from './services/preliminary-draft-edit-page.service';
-
-// 3. Interfaces y Enums
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { stateList } from '../../../../core/enums/state.enum';
-
-// Importaciones de los componentes reales para el override
 import { PreliminaryDraftFormComponent } from '../../components/preliminary-draft-form/preliminary-draft-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
-
-// ── Tipos Seguros para los Mocks (Cero 'any', 'unknown') ─────────────────────
 
 interface MockPreliminaryDraftEditPageService {
   init: jest.Mock<void, []>;
@@ -27,8 +18,6 @@ interface MockPreliminaryDraftEditPageService {
   preliminaryDraftToEdit: WritableSignal<PreliminaryDraft | null>;
   confirmState: WritableSignal<{ isOpen: boolean; pendingData: PreliminaryDraft | null; isProcessing: boolean }>;
 }
-
-// ── Mocks de Componentes Hijos (Standalone y Strict-Init) ────────────────────
 
 @Component({ selector: 'app-preliminary-draft-form', standalone: true, template: '' })
 class MockPreliminaryDraftFormComponent {
@@ -49,8 +38,6 @@ class MockInfoBannerComponent {
   @Input() title = '';
 }
 
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
-
 const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => {
   const base: Partial<PreliminaryDraft> = {
     preliminaryDraftId: 'draft-123',
@@ -63,17 +50,13 @@ const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): Preliminary
   return { ...base, ...overrides } as PreliminaryDraft;
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('PreliminaryDraftEditPageComponent', () => {
   let component: PreliminaryDraftEditPageComponent;
   let fixture: ComponentFixture<PreliminaryDraftEditPageComponent>;
 
-  // Mocks tipados estrictamente
   let mockPageService: MockPreliminaryDraftEditPageService;
 
   beforeEach(async () => {
-    // 🔕 Silenciar los console.error y console.warn para mantener la terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -97,11 +80,9 @@ describe('PreliminaryDraftEditPageComponent', () => {
     })
     .overrideComponent(PreliminaryDraftEditPageComponent, {
       remove: {
-        // Removemos los componentes reales para aislar el DOM
         imports: [PreliminaryDraftFormComponent, ConfirmationActionModalComponent, InfoBannerComponent]
       },
       add: {
-        // Proveemos los mocks ligeros y nuestro servicio mockeado
         imports: [MockPreliminaryDraftFormComponent, MockConfirmationActionModalComponent, MockInfoBannerComponent],
         providers: [{ provide: PreliminaryDraftEditPageService, useValue: mockPageService }]
       }
@@ -114,7 +95,7 @@ describe('PreliminaryDraftEditPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización (ngOnInit)', () => {
@@ -151,7 +132,6 @@ describe('PreliminaryDraftEditPageComponent', () => {
       expect(spinner).toBeNull();
       expect(formEl).toBeTruthy();
 
-      // Validamos que el binding @Input asigne los datos correctos
       expect(formEl.componentInstance.preliminaryDraft).toEqual(draft);
     });
   });
@@ -185,13 +165,11 @@ describe('PreliminaryDraftEditPageComponent', () => {
     });
 
     it('debería reaccionar al cambio de estado de isOpen desde el signal confirmState', () => {
-      // Modificamos el Signal
       mockPageService.confirmState.set({ isOpen: true, pendingData: null, isProcessing: false });
       fixture.detectChanges();
 
       const modalEl = fixture.debugElement.query(By.directive(MockConfirmationActionModalComponent));
 
-      // Verificamos que el @Input [isOpen] haya reaccionado
       expect(modalEl.componentInstance.isOpen).toBe(true);
     });
 

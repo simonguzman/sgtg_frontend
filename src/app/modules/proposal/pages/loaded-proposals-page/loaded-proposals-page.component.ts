@@ -13,7 +13,7 @@ import { DOCUMENTS_COLUMNS, DocumentTableRow } from './models/loaded-proposals-p
   styleUrls: ['./loaded-proposals-page.component.css']
 })
 export class LoadedProposalsPageComponent implements OnInit {
-  private readonly route  = inject(ActivatedRoute);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly facade = inject(LoadedProposalsFacadeService);
 
@@ -37,17 +37,12 @@ export class LoadedProposalsPageComponent implements OnInit {
   }
 
   handleTableAction(event: { action: string; row: DocumentTableRow }): void {
-    // ← NUEVO: antes retornaba en silencio si la acción no estaba
-    // permitida — ahora notifica, igual que el resto de páginas con tabla.
     if (!event.row.allowedActions.includes(event.action)) {
       this.facade.showRestrictedActionNotification();
       return;
     }
     switch (event.action) {
       case 'download':
-        // ← handleDownload ahora es async; `void` marca explícitamente
-        // que no se espera el resultado aquí — el facade ya maneja
-        // éxito/error mediante sus propias notificaciones.
         void this.facade.handleDownload(event.row);
         break;
       case 'evaluate':
@@ -56,9 +51,6 @@ export class LoadedProposalsPageComponent implements OnInit {
     }
   }
 
-  // ← FIX: ahora recibe el botón y verifica su `action`. Antes ignoraba
-  // el evento por completo — funcionaba solo porque nunca había más de
-  // un botón posible.
   handleHeaderButton(button: TableButton): void {
     if (button.action !== 'upload_correction') return;
     if (!this.facade.canUpload(this.proposalId())) return;
@@ -76,9 +68,6 @@ export class LoadedProposalsPageComponent implements OnInit {
     const id = this.proposalId();
     if (!fileData || !id) return;
 
-    // ← void explícito: mismo patrón ya usado con handleDownload. La
-    // fachada maneja éxito/error internamente vía los callbacks
-    // onSuccess/onError, así que no hace falta await aquí.
     void this.facade.upload(
       id,
       fileData,
@@ -86,7 +75,7 @@ export class LoadedProposalsPageComponent implements OnInit {
         this.confirmModalOpen.set(false);
         this.uploadState.set(null);
       },
-      () => { /* la fachada ya notificó el error */ }
+      () => { }
     );
   }
 

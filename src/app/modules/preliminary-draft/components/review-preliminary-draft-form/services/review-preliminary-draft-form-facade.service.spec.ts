@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import { FormBuilder } from '@angular/forms';
-
 import { ReviewPreliminaryDraftFormFacadeService } from './review-preliminary-draft-form-facade.service';
 import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
@@ -12,7 +11,6 @@ import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 
-// 🔹 REFACTOR: Fábricas de Datos (Factories) para generar entidades estrictas sin 'unknown' ni 'any'
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
   firstName: 'Nombre',
@@ -65,7 +63,6 @@ const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): 
 describe('ReviewPreliminaryDraftFormFacadeService', () => {
   let facade: ReviewPreliminaryDraftFormFacadeService;
 
-  // 🔹 REFACTOR: Tipado estricto para los servicios mockeados
   let mockUserService: {
     getAuthorsNames: jest.Mock;
     getUserFullName: jest.Mock;
@@ -78,7 +75,6 @@ describe('ReviewPreliminaryDraftFormFacadeService', () => {
   const mockDraft = createMockPreliminaryDraft();
 
   beforeEach(() => {
-    // 🔕 Silenciar consola para mantener la terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -105,7 +101,7 @@ describe('ReviewPreliminaryDraftFormFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restauramos la consola
+    jest.restoreAllMocks();
   });
 
   it('debería crearse correctamente el servicio facade', () => {
@@ -152,7 +148,6 @@ describe('ReviewPreliminaryDraftFormFacadeService', () => {
 
     it('debería obtener los nombres completos de los estudiantes/autores', () => {
       expect(facade.getStudentNames()).toBe('Estudiante 1, Estudiante 2');
-      // El facade mapea los autores y le pasa el array al servicio
       expect(mockUserService.getAuthorsNames).toHaveBeenCalled();
     });
 
@@ -164,10 +159,8 @@ describe('ReviewPreliminaryDraftFormFacadeService', () => {
     });
 
     it('debería retornar cadena vacía si faltan roles o datos de la propuesta', () => {
-      // 1. Sobrescribir el mock para que retorne vacío en esta prueba
       mockUserService.getAuthorsNames.mockReturnValue('');
 
-      // 2. Setear la señal con el mock sin autores ni roles de forma limpia
       facade.preliminaryDraft.set(createMockPreliminaryDraft({
         proposalData: createMockProposal({
           authors: [],
@@ -177,7 +170,6 @@ describe('ReviewPreliminaryDraftFormFacadeService', () => {
         })
       }));
 
-      // 3. Afirmaciones
       expect(facade.getStudentNames()).toBe('');
       expect(facade.getDirectorName()).toBe('');
       expect(facade.getCodirectorName()).toBe('');

@@ -24,7 +24,6 @@ export class ThesisWorkDetailsPageComponent implements OnInit {
     this.facade.loadThesisWorkDetails(thesisWorkId);
   }
 
-  // Mantenemos la navegación relativa en el componente ya que depende estrictamente de su `ActivatedRoute`
   navigateTo(path: string): void {
     this.router.navigate([path], { relativeTo: this.route });
   }

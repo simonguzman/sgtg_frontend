@@ -1,26 +1,17 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { By } from '@angular/platform-browser';
-
-// 2. Componente a probar
 import { UploadFinalDeliveryFormComponent, UploadedFile } from './upload-final-delivery-form.component';
 import { UploadFinalDeliveryFormService } from './services/upload-final-delivery-form.service';
-
-// 3. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { User } from '../../../users/interfaces/user.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
 import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
-
-// 4. Componentes Reales para hacer Override
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
-
-// ── Mocks de Componentes Hijos (Standalone) ──────────────────────────────────
 
 @Component({ selector: 'app-button-component', template: '', standalone: true })
 class MockButtonComponent {
@@ -44,8 +35,6 @@ class MockInfoBannerComponent {
   @Input() title = '';
 }
 
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown', 'DeepPartial') ────────
-
 interface MockUploadFinalDeliveryFormService {
   getStudentNames: jest.Mock<string, [ThesisWork]>;
   getDirectorName: jest.Mock<string, [ThesisWork]>;
@@ -54,8 +43,6 @@ interface MockUploadFinalDeliveryFormService {
   notifyFileAttached: jest.Mock<void, [string]>;
   notifyMissingDocuments: jest.Mock<void, []>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -107,24 +94,18 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('UploadFinalDeliveryFormComponent', () => {
   let component: UploadFinalDeliveryFormComponent;
   let fixture: ComponentFixture<UploadFinalDeliveryFormComponent>;
 
-  // Tipado estricto sin usar Partial
   let formServiceSpy: MockUploadFinalDeliveryFormService;
 
-  // Mock estructurado generado por fábrica
   const mockThesisWork = createMockThesisWork();
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola como medida preventiva
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Arrange: Inicialización limpia de mocks
     formServiceSpy = {
       getStudentNames: jest.fn().mockReturnValue('Estudiante'),
       getDirectorName: jest.fn().mockReturnValue('Director'),
@@ -140,11 +121,11 @@ describe('UploadFinalDeliveryFormComponent', () => {
     .overrideComponent(UploadFinalDeliveryFormComponent, {
       remove: {
         imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent],
-        providers: [UploadFinalDeliveryFormService] // Removemos el proveedor real
+        providers: [UploadFinalDeliveryFormService]
       },
       add: {
         imports: [MockFileUploadModalComponent, MockButtonComponent, MockInfoBannerComponent],
-        providers: [{ provide: UploadFinalDeliveryFormService, useValue: formServiceSpy }] // Inyectamos mock
+        providers: [{ provide: UploadFinalDeliveryFormService, useValue: formServiceSpy }]
       }
     })
     .compileComponents();
@@ -152,14 +133,13 @@ describe('UploadFinalDeliveryFormComponent', () => {
     fixture = TestBed.createComponent(UploadFinalDeliveryFormComponent);
     component = fixture.componentInstance;
 
-    // Asignación segura con SetInput nativo
     fixture.componentRef.setInput('thesisWork', mockThesisWork);
     fixture.detectChanges();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización y Estado Inicial', () => {
@@ -266,16 +246,12 @@ describe('UploadFinalDeliveryFormComponent', () => {
     });
 
     it('debe pasar la propiedad disabled al botón de guardar si isSubmitting es true', () => {
-      // Arrange
       fixture.componentRef.setInput('isSubmitting', true);
       fixture.detectChanges();
 
-      // Act
-      // Usamos By.directive para obtener robustez en lugar de selectores de atributos que podrían fallar
       const buttons = fixture.debugElement.queryAll(By.directive(MockButtonComponent));
       const saveButton = buttons.find(b => b.componentInstance.label === 'Guardar');
 
-      // Assert
       expect(saveButton).toBeTruthy();
       expect(saveButton!.componentInstance.disabled).toBe(true);
     });

@@ -1,7 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
-
 import { ReviewPreliminaryDraftPageFacadeService, PendingReviewData } from './review-preliminary-draft-page-facade.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
@@ -14,20 +13,17 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 
-// Hacemos mock de la función utilitaria para no leer archivos reales en las pruebas
 jest.mock('../../../../../core/utils/file-reader.utils', () => ({
   readFileAsDataUrl: jest.fn().mockResolvedValue('data:application/pdf;base64,mock-data-url')
 }));
 
 import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
 
-// Asignamos un alias tipado para evitar usar 'as jest.Mock' dentro de las pruebas
 const mockReadFileAsDataUrl = readFileAsDataUrl as jest.MockedFunction<typeof readFileAsDataUrl>;
 
 describe('ReviewPreliminaryDraftPageFacadeService', () => {
   let service: ReviewPreliminaryDraftPageFacadeService;
 
-  // 🔹 REFACTOR: Mocks estrictamente tipados estructuralmente
   let preliminaryDraftServiceMock: {
     getPreliminaryDraftById: jest.Mock;
     addEvaluation: jest.Mock;
@@ -40,7 +36,6 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
   let routeParamMapGetMock: jest.Mock;
   let parentRouteParamMapGetMock: jest.Mock;
 
-  // 🔹 REFACTOR: Fábricas para generar entidades válidas sin 'as unknown'
   const createMockUser = (overrides: Partial<User> = {}): User => ({
     id: 'u1',
     firstName: 'Juan',
@@ -66,7 +61,6 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
   } as PreliminaryDraft);
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -118,13 +112,12 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
 
     service = TestBed.inject(ReviewPreliminaryDraftPageFacadeService);
 
-    // Restaurar implementaciones del mock global por si alguna prueba la pisa
     mockReadFileAsDataUrl.mockResolvedValue('data:application/pdf;base64,mock-data-url');
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   it('debería crearse correctamente', () => {
@@ -154,7 +147,7 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     });
 
     it('debería denegar el acceso y redirigir si el usuario no es evaluador', () => {
-      authServiceMock.currentUser.mockReturnValue(createMockUser({ id: 'u2' })); // Usuario distinto al evaluador
+      authServiceMock.currentUser.mockReturnValue(createMockUser({ id: 'u2' }));
       preliminaryDraftServiceMock.getPreliminaryDraftById.mockReturnValue(of(createMockDraft()));
 
       service.init();
@@ -206,7 +199,7 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     const mockAnnotatedFile = new File([''], 'anotaciones.pdf', { type: 'application/pdf' });
 
     it('debería detenerse y notificar si faltan datos en el estado', async () => {
-      service.pendingReviewData.set(null); // Estado incompleto
+      service.pendingReviewData.set(null);
       await service.processEvaluation();
 
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
@@ -223,12 +216,11 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
         file: mockFile
       });
 
-      // Simulamos que la Promesa de lectura falla
       mockReadFileAsDataUrl.mockRejectedValueOnce(new Error('File access error'));
 
       await service.processEvaluation();
 
-      expect(console.error).toHaveBeenCalled(); // Validamos que el log se ejecutó (está silenciado)
+      expect(console.error).toHaveBeenCalled();
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
         type: NotificationType.ERROR,
         title: 'Error al leer el archivo'
@@ -332,7 +324,7 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
 
       await service.downloadCurrentDocument();
 
-      expect(console.error).toHaveBeenCalled(); // Validamos que el log se ejecutó (está silenciado)
+      expect(console.error).toHaveBeenCalled();
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
         type: NotificationType.INFO,
         title: 'Error de descarga'

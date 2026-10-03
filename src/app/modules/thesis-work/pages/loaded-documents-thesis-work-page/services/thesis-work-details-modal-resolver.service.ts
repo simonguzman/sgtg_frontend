@@ -11,17 +11,17 @@ export class ThesisWorkDetailsModalResolverService {
 
   public resolve(rowId: string, activeTab: string, thesis: ThesisWork): Advance | null {
     switch (activeTab) {
-      case 'AVANCES':         return this.resolveAdvance(rowId, thesis);
-      case 'ENTREGA FINAL':   return this.resolveDelivery(rowId, thesis);
-      case 'PAZ Y SALVO':     return this.resolvePazYSalvo(rowId, thesis);
+      case 'AVANCES': return this.resolveAdvance(rowId, thesis);
+      case 'ENTREGA FINAL': return this.resolveDelivery(rowId, thesis);
+      case 'PAZ Y SALVO': return this.resolvePazYSalvo(rowId, thesis);
       case 'CORRESPONDENCIA': return this.resolveCorrespondence(rowId, thesis);
-      case 'SOLICITUDES':     return this.resolveSpecialRequest(rowId, thesis);
-      default:                return null;
+      case 'SOLICITUDES': return this.resolveSpecialRequest(rowId, thesis);
+      default: return null;
     }
   }
 
   private resolveAdvance(rowId: string, thesis: ThesisWork): Advance | null {
-    return thesis.advances?.find(a => a.id === rowId) ?? null;
+    return thesis.advances?.find(advance => advance.id === rowId) ?? null;
   }
 
   private resolveDelivery(rowId: string, thesis: ThesisWork): Advance | null {
@@ -63,39 +63,37 @@ export class ThesisWorkDetailsModalResolverService {
   }
 
   private resolveCorrespondence(rowId: string, thesis: ThesisWork): Advance | null {
-    const doc = thesis.documents?.find(d => d.id === rowId);
-    if (!doc) return null;
+    const document = thesis.documents?.find(document => document.id === rowId);
+    if (!document) return null;
 
     return {
-      id: doc.id,
+      id: document.id,
       title: 'Resolución / Correspondencia Final Oficial',
       comments: 'Documento oficial cargado por el Jurado Evaluador (Formato_H) que ratifica y da por terminado formalmente el proceso del trabajo de grado.',
-      uploadDate: doc.uploadDate,
+      uploadDate: document.uploadDate,
       studentId: '',
-      status: doc.status ?? stateList.APROBADO,
-      documents: [doc]
+      status: document.status ?? stateList.APROBADO,
+      documents: [document]
     };
   }
 
   private resolveSpecialRequest(rowId: string, thesis: ThesisWork): Advance | null {
-    const req = thesis.specialRequests?.find((r: SpecialRequest) => r.id === rowId);
-    if (!req) return null;
+    const request = thesis.specialRequests?.find((r: SpecialRequest) => r.id === rowId);
+    if (!request) return null;
 
-    const parts: string[] = [req.description];
-    if (req.resolutionDetails) parts.push(`Resolución del comité: ${req.resolutionDetails}`);
-    if (req.grantedDeadline) {
-      // ← Delegado a formatThesisDate: unifica el formato con el resto del
-      // módulo (antes "27/07/2026", ahora "27 - 07 - 2026" como todo lo demás).
-      parts.push(`Fecha concedida: ${formatThesisDate(new Date(req.grantedDeadline))}`);
+    const parts: string[] = [request.description];
+    if (request.resolutionDetails) parts.push(`Resolución del comité: ${request.resolutionDetails}`);
+    if (request.grantedDeadline) {
+      parts.push(`Fecha concedida: ${formatThesisDate(new Date(request.grantedDeadline))}`);
     }
 
     return {
-      id: req.id,
-      title: req.requestType,
+      id: request.id,
+      title: request.requestType,
       comments: parts.join('\n\n'),
-      uploadDate: req.requestDate,
-      studentId: req.directorId,
-      status: req.status,
+      uploadDate: request.requestDate,
+      studentId: request.directorId,
+      status: request.status,
       documents: []
     };
   }

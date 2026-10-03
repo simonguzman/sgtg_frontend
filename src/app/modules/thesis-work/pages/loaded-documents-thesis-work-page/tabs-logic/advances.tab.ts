@@ -49,7 +49,7 @@ export const AdvancesTabConfig: TabConfiguration<AdvanceTableRow> = {
     const isLatestAdvancePending = latestAdvance?.status === stateList.EN_REVISION;
 
     const hasFinalDelivery = thesis.documents?.some(
-      (doc: FileDocument) => doc.type === DocumentType.FORMATO_E
+      (document: FileDocument) => document.type === DocumentType.FORMATO_E
     ) ?? false;
 
     const isSuspendedOrCanceled = thesis.state === stateList.SUSPENDIDO || thesis.state === stateList.CANCELADO;
@@ -69,36 +69,37 @@ export const AdvancesTabConfig: TabConfiguration<AdvanceTableRow> = {
     const hasFinalDelivery = context.hasFinalDelivery ?? false;
     const isArchived = context.isArchived ?? false;
 
-    return activeAdvances.map((adv: Advance): AdvanceTableRow => {
-      // Usamos Set para evitar cualquier acción duplicada accidentalmente
+    return activeAdvances.map((advance: Advance): AdvanceTableRow => {
       const allowedActions = new Set<string>(['view-details']);
 
       const evaluationsForThisAdvance: Evaluation[] = context.thesisWork?.evaluations?.filter(
-        (ev: Evaluation) => ev.advanceId === adv.id
+        (evaluation: Evaluation) => evaluation.advanceId === advance.id
       ) || [];
 
       const alreadyEvaluated = evaluationsForThisAdvance.some(
-        ev => ev.evaluatorId === context.currentUser?.id
+        evaluation => evaluation.evaluatorId === context.currentUser?.id
       );
       const isAssignedEvaluator = context.isDirector || context.isCodirector || context.isAdvisor || context.isAdmin;
 
-      if (!isArchived && isAssignedEvaluator && !alreadyEvaluated && !hasFinalDelivery && adv.status !== stateList.EVALUADO) {
+      if (!isArchived && isAssignedEvaluator && !alreadyEvaluated && !hasFinalDelivery && advance.status !== stateList.EVALUADO) {
         allowedActions.add('evaluate-advance');
       }
 
-      const dateStr = adv.uploadDate
-        ? formatThesisDate(typeof adv.uploadDate === 'string' ? new Date(adv.uploadDate) : adv.uploadDate)
-        : 'Sin fecha';
+      let dateStr = 'Sin fecha';
+      if (advance.uploadDate) {
+        const parsedDate = typeof advance.uploadDate === 'string' ? new Date(advance.uploadDate) : advance.uploadDate;
+        dateStr = formatThesisDate(parsedDate);
+      }
 
       return {
-        id: adv.id,
-        name: adv.title,
-        comments: adv.comments,
+        id: advance.id,
+        name: advance.title,
+        comments: advance.comments,
         uploadDate: dateStr,
-        status: adv.status,
-        documents: adv.documents || [],
-        url: adv.documents?.[0]?.url || '',
-        allowedActions: Array.from(allowedActions) // Convertimos el Set de nuevo a Array
+        status: advance.status,
+        documents: advance.documents || [],
+        url: advance.documents?.[0]?.url || '',
+        allowedActions: Array.from(allowedActions)
       };
     });
   },

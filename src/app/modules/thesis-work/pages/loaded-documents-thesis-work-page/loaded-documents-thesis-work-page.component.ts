@@ -43,18 +43,15 @@ import {
   ]
 })
 export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy {
-  private readonly route              = inject(ActivatedRoute);
-  private readonly router             = inject(Router);
-  private readonly thesisWorkService  = inject(ThesisWorkService);
-  private readonly authService        = inject(AuthService);
-  private readonly breadcrumbService  = inject(BreadcrumbService);
-  private readonly titleService       = inject(Title);
-  // ← UserService reemplazado: corrige el mismo bug encontrado en
-  // CorrectedDocumentsFacadeService — director/codirector/asesor se leían
-  // del objeto User embebido en proposalData en vez de buscarlos por ID.
-  private readonly participants       = inject(ThesisParticipantsFormatterService);
-  protected readonly facade           = inject(LoadedDocumentsThesisWorkFacadeService);
-  private readonly modalResolver      = inject(ThesisWorkDetailsModalResolverService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly thesisWorkService = inject(ThesisWorkService);
+  private readonly authService = inject(AuthService);
+  private readonly breadcrumbService = inject(BreadcrumbService);
+  private readonly titleService = inject(Title);
+  private readonly participants = inject(ThesisParticipantsFormatterService);
+  protected readonly facade = inject(LoadedDocumentsThesisWorkFacadeService);
+  private readonly modalResolver = inject(ThesisWorkDetailsModalResolverService);
 
   protected readonly tabsConfig = THESIS_TABS_CONFIG;
 
@@ -67,17 +64,17 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     'SOLICITUDES':     SpecialRequestTabConfig
   };
 
-  readonly activeTab          = signal<string>('AVANCES');
-  readonly thesisWorkId       = signal<string | null>(null);
-  readonly isUploadModalOpen  = signal(false);
+  readonly activeTab = signal<string>('AVANCES');
+  readonly thesisWorkId = signal<string | null>(null);
+  readonly isUploadModalOpen = signal(false);
   readonly isConfirmModalOpen = signal(false);
-  readonly uploadContext      = signal<{ fileName: string; file: File } | null>(null);
+  readonly uploadContext = signal<{ fileName: string; file: File } | null>(null);
   readonly isDetailsModalOpen = signal(false);
-  readonly selectedAdvance    = signal<Advance | null>(null);
+  readonly selectedAdvance = signal<Advance | null>(null);
 
   constructor() {
     effect(() => {
-      const tabLabel = this.tabsConfig.find(t => t.value === this.activeTab())?.label ?? 'Documentos';
+      const tabLabel = this.tabsConfig.find(tab => tab.value === this.activeTab())?.label ?? 'Documentos';
       setTimeout(() => {
         this.breadcrumbService.setDynamicBreadcrumb(tabLabel);
         this.breadcrumbService.setDynamicTitle(`Trabajo de Grado - ${tabLabel}`);
@@ -104,7 +101,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
 
   private readonly currentThesisWork = computed(() => {
     const id = this.thesisWorkId();
-    return id ? this.thesisWorkService.allThesisWorks().find(w => w.thesisWorkId === id) : null;
+    return id ? this.thesisWorkService.allThesisWorks().find(thesisWork => thesisWork.thesisWorkId === id) : null;
   });
 
   readonly currentStrategy = computed<TabConfiguration<any>>(() =>
@@ -113,7 +110,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
 
   readonly evaluationContext = computed<ThesisEvaluationContext>(() => {
     const thesis  = this.currentThesisWork();
-    const user    = this.authService.currentUser();
+    const user = this.authService.currentUser();
     const isAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
 
     const baseContext: ThesisEvaluationContext = {
@@ -121,14 +118,14 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       currentUser: user,
       isAdmin,
       isDecanatura: this.authService.hasAnyRole([UserRoleType.DECANATURA]),
-      isConsejo:    this.authService.hasAnyRole([UserRoleType.CONSEJO]),
+      isConsejo: this.authService.hasAnyRole([UserRoleType.CONSEJO]),
       isStudent: thesis?.preliminaryDraftData?.proposalData?.authors?.some(
         (author: { id?: string } | string) =>
           (typeof author === 'string' ? author : author.id) === user?.id
       ) ?? false,
-      isDirector:   thesis?.preliminaryDraftData?.proposalData?.director?.id   === user?.id,
+      isDirector: thesis?.preliminaryDraftData?.proposalData?.director?.id   === user?.id,
       isCodirector: thesis?.preliminaryDraftData?.proposalData?.codirector?.id === user?.id,
-      isAdvisor:    thesis?.preliminaryDraftData?.proposalData?.advisor?.id     === user?.id,
+      isAdvisor: thesis?.preliminaryDraftData?.proposalData?.advisor?.id     === user?.id,
       isJuror: thesis?.sustentations?.[0]?.assignedJurors?.some(
         (juror: User) => juror.id === user?.id
       ) ?? false,
@@ -140,12 +137,12 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     return this.currentStrategy().enrichEvaluationContext(baseContext);
   });
 
-  readonly currentColumns       = computed(() => this.currentStrategy().columns);
+  readonly currentColumns = computed(() => this.currentStrategy().columns);
   readonly currentHeaderButtons = computed(() => this.currentStrategy().getHeaderButtons(this.evaluationContext()));
 
   readonly currentTableData = computed(() => {
     const context = this.evaluationContext();
-    const thesis  = context.thesisWork;
+    const thesis = context.thesisWork;
     if (!thesis) return [];
     const docs = this.activeTab() === 'AVANCES' ? [] : (thesis.documents ?? []);
     return this.currentStrategy().getTableData(docs, context);
@@ -155,9 +152,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     this.selectedAdvance()?.documents?.map((d: FileDocument) => d.name) ?? []
   );
 
-  // ← Los 4 computed ahora delegan en ThesisParticipantsFormatterService,
-  // corrigiendo la lectura desde el objeto User embebido (potencialmente
-  // desactualizado) a una búsqueda fresca por ID.
   readonly studentName = computed<string>(() =>
     this.participants.getStudentNames(this.evaluationContext().thesisWork)
   );
@@ -197,7 +191,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
 
   handleTableAction(event: { action: string; row: Record<string, unknown> }): void {
     const rowAllowedActions = event.row['allowedActions'] as string[] | undefined;
-    const rowId             = event.row['id'] as string;
+    const rowId = event.row['id'] as string;
 
     if (rowAllowedActions && !rowAllowedActions.includes(event.action)) {
       this.facade.showRestrictedActionNotification();
@@ -208,7 +202,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       case 'download': {
         const url  = typeof event.row['url']  === 'string' ? event.row['url']  : '';
         const name = typeof event.row['name'] === 'string' ? event.row['name'] : 'documento_sin_titulo';
-        // ← void: downloadDocument() del facade ahora es async.
         void this.facade.downloadDocument({ url, name } as FileDocument);
         break;
       }
@@ -244,14 +237,12 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     const thesisId = this.thesisWorkId();
     const docType  = this.currentStrategy().modalConfig.uploadDocumentType;
     if (!fileData || !thesisId || !docType) return;
-    // ← void: uploadDocument() del facade ahora es async (lee el File real
-    // antes de construir el documento, fix de hace dos turnos).
     void this.facade.uploadDocument(
       thesisId,
       fileData,
       docType,
       () => this.cancelUpload(),
-      () => { /* fachada ya notificó el error */ }
+      () => { }
     );
   }
 
@@ -279,10 +270,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     void this.facade.downloadDocumentByName(fileName, this.selectedAdvance());
   }
 
-  // ← Eliminado el método local: era una copia exacta del helper ensureDate
-  // ya extraído en helpers/thesis-date.helper.ts (mismo que usa
-  // CorrectedDocumentsPageComponent). Cierra la duplicación pendiente
-  // señalada hace varios turnos.
   ensureDate = ensureDate;
 
   goBack(): void {

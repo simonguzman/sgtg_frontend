@@ -4,14 +4,6 @@ export interface SidebarMenuItem {
   label: string;
   icon: string;
   routerLink: string;
-  /**
-   * Roles permitidos para ver este ítem. Si se omite, el ítem es visible
-   * para cualquier usuario autenticado, sin importar su rol — usado para
-   * secciones personales como la bandeja de entrada o el historial, que
-   * no están ligadas a un rol específico. Evita tener que enumerar
-   * manualmente los 12 valores de UserRoleType (y mantener esa lista
-   * sincronizada cada vez que se agregue un rol nuevo al enum).
-   */
   roles?: UserRoleType[];
 }
 
@@ -20,7 +12,6 @@ export const SIDEBAR_MENU_ITEMS: SidebarMenuItem[] = [
     label: 'Bandeja de entrada',
     routerLink: '/notifications',
     icon: 'inbox'
-    // Sin roles: visible para cualquier usuario con sesión activa.
   },
   {
     label: 'Usuarios',
@@ -65,6 +56,5 @@ export const SIDEBAR_MENU_ITEMS: SidebarMenuItem[] = [
     label: 'Historial',
     routerLink: '/history',
     icon: 'history'
-    // Sin roles: visible para cualquier usuario con sesión activa.
   }
 ];

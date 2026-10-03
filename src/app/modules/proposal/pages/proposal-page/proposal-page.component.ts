@@ -19,7 +19,7 @@ export class ProposalPageComponent {
   protected readonly filterFields = ['title', 'modality', 'state', 'deadlineStatus', 'hiddenParticipants'];
 
   descriptionModal = { show: false, title: '', content: '' };
-  deleteState      = { show: false, id: null as string | null, title: '', loading: false };
+  deleteState = { show: false, id: null as string | null, title: '', loading: false };
 
   handleTableAction(event: { action: string; row: ProposalTableRow }): void {
     if (!event.row.allowedActions.includes(event.action)) {

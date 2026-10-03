@@ -1,20 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { signal, WritableSignal } from '@angular/core';
-
 import { PreliminaryDraftService } from './preliminary-draft.service';
 import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
 import { PreliminaryDraftApiService } from './preliminary-draft-api.service';
 import { PreliminaryDraftAssignmentService } from './preliminary-draft-assignment.service';
 import { PreliminaryDraftDocumentService } from './preliminary-draft-document.service';
-
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { stateList } from '../../../core/enums/state.enum';
 
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 function createMockDraft(overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft {
   return {
     preliminaryDraftId: 'draft-default-id',
@@ -54,7 +51,6 @@ function createMockDocument(overrides: Partial<FileDocument> = {}): FileDocument
 describe('PreliminaryDraftService (Facade)', () => {
   let service: PreliminaryDraftService;
 
-  // 🔹 REFACTOR: Definimos la estructura exacta de los espías sin usar 'unknown'
   let mockStorageService: {
     preliminaryDrafts: WritableSignal<PreliminaryDraft[]>;
     allPreliminaryDrafts: WritableSignal<PreliminaryDraft[]>;
@@ -80,17 +76,14 @@ describe('PreliminaryDraftService (Facade)', () => {
   };
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Configuración limpia de Signals
     mockStorageService = {
       preliminaryDrafts: signal<PreliminaryDraft[]>([]),
       allPreliminaryDrafts: signal<PreliminaryDraft[]>([])
     };
 
-    // Mocks de servicios puramente estructurales (sin as unknown)
     mockApiService = {
       getPreliminaryDraftById: jest.fn(),
       createPreliminaryDraft: jest.fn(),
@@ -113,7 +106,6 @@ describe('PreliminaryDraftService (Facade)', () => {
     TestBed.configureTestingModule({
       providers: [
         PreliminaryDraftService,
-        // 🔹 REFACTOR: Asignaciones directas y limpias
         { provide: PreliminaryDraftStorageService, useValue: mockStorageService },
         { provide: PreliminaryDraftApiService, useValue: mockApiService },
         { provide: PreliminaryDraftAssignmentService, useValue: mockAssignmentService },
@@ -126,7 +118,7 @@ describe('PreliminaryDraftService (Facade)', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones originales de la consola
+    jest.restoreAllMocks();
   });
 
   it('debería crearse correctamente', () => {
@@ -135,7 +127,6 @@ describe('PreliminaryDraftService (Facade)', () => {
 
   describe('Estado Reactivo (Signals)', () => {
     it('debería exponer las señales del StorageService correctamente', () => {
-      // Verificamos que la referencia en memoria sea exactamente la misma
       expect(service.preliminaryDrafts).toBe(mockStorageService.preliminaryDrafts);
       expect(service.allPreliminaryDrafts).toBe(mockStorageService.allPreliminaryDrafts);
     });

@@ -21,7 +21,6 @@ export class StatisticsPageComponent {
   protected readonly doughnutOptions = DOUGHNUT_CHART_OPTIONS;
   protected readonly barOptions = BAR_CHART_OPTIONS;
   protected readonly archiveOptions = ARCHIVE_STATUS_OPTIONS;
-  // ← NUEVO
   protected readonly deadlineFilterOptions = DEADLINE_FILTER_OPTIONS;
 
   onStageChange(stage: ProjectStage | null): void {
@@ -40,7 +39,6 @@ export class StatisticsPageComponent {
     this.facade.updateFilters({ archiveStatus });
   }
 
-  // ← NUEVO
   onDeadlineFilterChange(deadlineFilter: DeadlineFilterValue): void {
     this.facade.updateFilters({ deadlineFilter });
   }

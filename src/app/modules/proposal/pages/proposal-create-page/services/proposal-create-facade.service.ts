@@ -8,14 +8,10 @@ import { Proposal } from '../../../interfaces/proposal.interface';
 
 @Injectable({ providedIn: 'root' })
 export class ProposalCreateFacadeService {
-  private readonly proposalService     = inject(ProposalService);
+  private readonly proposalService = inject(ProposalService);
   private readonly notificationService = inject(NotificationService);
-  private readonly router              = inject(Router);
+  private readonly router = inject(Router);
 
-  /**
-   * Valida las reglas de negocio antes de abrir el modal de confirmación.
-   * Devuelve true si el payload es válido, false si hay un error (y notifica).
-   */
   public validate(proposal: Proposal): boolean {
     const error = this.proposalService.validateProposalRules(proposal);
     if (error) {
@@ -25,14 +21,10 @@ export class ProposalCreateFacadeService {
     return true;
   }
 
-  /**
-   * Ejecuta la creación con notificaciones integradas.
-   * El componente solo reacciona limpiando su estado o mostrando el error.
-   */
   public save(
     proposal: Proposal,
     onSuccess: () => void,
-    onError:   () => void
+    onError: () => void
   ): void {
     this.showNotification(
       'Procesando registro',

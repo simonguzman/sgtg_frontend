@@ -49,13 +49,6 @@ export class LoadedProposalsFacadeService {
     const isFullyApproved = proposal.state === stateList.APROBADO;
 
     return [{
-      // ← NUEVO: antes el botón no tenía `action`. Con un solo botón
-      // posible funcionaba porque handleHeaderButton() ignoraba el
-      // evento por completo — pero si algún día se agrega un segundo
-      // botón de cabecera, ambos dispararían el mismo flujo de carga sin
-      // distinción. Se agrega para que el handler pueda verificar cuál
-      // botón fue el que se presionó (mismo patrón que
-      // ThesisWorkPageComponent.handleHeaderButton).
       action: 'upload_correction',
       label: 'Cargar propuesta corregida',
       variant: 'primary',
@@ -76,11 +69,6 @@ export class LoadedProposalsFacadeService {
     return true;
   }
 
-  // ← FIX CENTRAL: el servicio ya se llamaba, pero de forma "fire and
-  // forget" — sin await ni try/catch. FileDownloadService.download() es
-  // async desde el refactor de hace unos turnos; este método no seguía
-  // ese contrato. Mismo patrón que aplicamos en
-  // DownloadableFormatsFacadeService.downloadFormat().
   public async handleDownload(document: DocumentTableRow): Promise<void> {
     if (!document.url?.trim()) {
       this.showNotification('Archivo no disponible', 'Ruta no válida.', NotificationType.ERROR);
@@ -92,20 +80,11 @@ export class LoadedProposalsFacadeService {
     try {
       await this.downloadService.download(document.url, `${document.name}.pdf`);
     } catch (err) {
-      // Con la implementación actual de FileDownloadService, este catch
-      // es efectivamente inalcanzable (el servicio ya maneja y notifica
-      // sus propios errores internamente sin relanzarlos) — se conserva
-      // como salvaguarda ante un cambio futuro en ese contrato, no porque
-      // hoy se espere que se ejecute.
       console.error(`Error al descargar el documento ${document.name}:`, err);
       this.showNotification('Error de descarga', `No se pudo descargar ${document.name}. Intente más tarde.`, NotificationType.ERROR);
     }
   }
 
-  // ← NUEVO: antes, si la acción no estaba permitida, handleTableAction
-  // simplemente retornaba en silencio, sin avisar al usuario. Todas las
-  // demás páginas con tabla del proyecto (ThesisWork, History,
-  // CorrectedDocuments...) notifican con este mismo método.
   public showRestrictedActionNotification(): void {
     this.showNotification(
       'Acción no permitida',
@@ -114,9 +93,6 @@ export class LoadedProposalsFacadeService {
     );
   }
 
-  // ← upload() pasa de void a async: necesita esperar la lectura del
-  // archivo (FileReader es asíncrono) antes de poder construir el
-  // FileDocument con su url ya resuelta.
   public async upload(
     proposalId: string,
     fileData: { fileName: string; file: File },
@@ -138,17 +114,6 @@ export class LoadedProposalsFacadeService {
     const newDoc: FileDocument = {
       id: crypto.randomUUID(),
       name: fileData.fileName.replace('.pdf', ''),
-      // ← FIX definitivo: Data URL (base64) en vez de Blob URL. El string
-      // resultante contiene el archivo completo — sobrevive un refresh de
-      // página y la serialización a JSON.stringify/localStorage sin
-      // depender de ninguna referencia en memoria que el navegador pueda
-      // invalidar. Trade-off consciente: el string ocupa ~33% más que el
-      // tamaño real del PDF (overhead de base64), y localStorage tiene un
-      // límite típico de 5-10MB por origen — para PDFs de corrección de
-      // propuesta (documentos de texto, normalmente unos cientos de KB)
-      // esto no debería ser un problema práctico en un prototipo, pero si
-      // en algún momento se suben archivos grandes de forma recurrente,
-      // este límite sí se puede alcanzar.
       url: fileUrl,
       uploadDate: formatDisplayDate(new Date()),
       type: DocumentType.CORRECCION,

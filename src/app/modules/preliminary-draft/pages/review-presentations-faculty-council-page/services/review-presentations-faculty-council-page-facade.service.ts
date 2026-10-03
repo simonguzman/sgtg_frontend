@@ -36,8 +36,6 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
     const preliminaryDraft = this.preliminaryDraftState();
     if (!preliminaryDraft?.documents) return null;
 
-    // ← FIX: 'Anteproyecto'/'Correccion' → enum, mismo patrón ya aplicado
-    // en el resto del módulo.
     const revisionHistoryVersion = [...preliminaryDraft.documents]
       .filter((document) => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION)
       .sort((a, b) => parseDisplayDate(b.uploadDate).getTime() - parseDisplayDate(a.uploadDate).getTime());
@@ -53,19 +51,9 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
 
     const visibleDocumentsForCouncil = preliminaryDraft.documents.filter((document) => {
       const isLatestIterationBase = document.id === activeRevisionId;
-      // ← FIX: antes `fileRef === document.id || fileRef === document.name`
-      // — comparación de igualdad estricta entre un string y un objeto,
-      // que dejó de poder ser verdadera desde que signedDocuments pasó de
-      // string[] a FormattedDocument[]. Ahora compara la url real del
-      // documento firmado contra la url del documento del anteproyecto.
       const isLinkedEvaluationOutput = linkedEvaluationFileRefs.some(
         (fileRef) => fileRef.url === document.url
       );
-      // ← FIX: 'Propuesta'/'Anexos' → enum. DocumentType.PROPUESTA y
-      // DocumentType.ANEXOS asumidos por convención (mismo patrón que
-      // ANTEPROYECTO/CORRECCION/FORMATO_B/FORMATO_C ya confirmados en el
-      // enum real). Verifica que ambos nombres existan tal cual — si
-      // difieren, dime los correctos y ajusto solo esta línea.
       const isPermanentReference = [
         DocumentType.PROPUESTA,
         DocumentType.FORMATO_B,
@@ -105,21 +93,6 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
     this.isConfirmModalOpen.set(true);
   }
 
-  // ← FIX CENTRAL: antes construía resolutionDoc con url: '' y luego
-  // signedDocuments: [resolutionDoc.name] — un string[], que ya no
-  // compila contra Evaluation.signedDocuments (FormattedDocument[]).
-  // Ahora es async: lee el File real vía readFileAsDataUrl antes de
-  // construir tanto el FileDocument de la resolución como el
-  // FormattedDocument que se adjunta a la evaluación — ambos apuntan al
-  // mismo contenido real, no a una URL vacía ni a un nombre suelto.
-  //
-  // Nota: data.formValues.result ya es stateList estricto desde el fix
-  // de CouncilEvaluationFormValues — el === 'Aprobado' original comparaba
-  // un stateList contra un string literal, lo cual technically funciona
-  // porque stateList.APROBADO === 'Aprobado' en tiempo de ejecución (los
-  // enums de string de TS son sus propios valores), pero es frágil ante
-  // un futuro rename del enum. Se cambia a comparar contra stateList.APROBADO
-  // directamente, más seguro y explícito.
   async processCouncilDecision(): Promise<void> {
     const data = this.pendingData();
     const preliminaryDraft = this.preliminaryDraftState();
@@ -162,8 +135,6 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
       veredict: finalState,
       observations: data.formValues.comments || 'Sin observaciones adicionales.',
       date: new Date(),
-      // ← FIX: antes [resolutionDoc.name] (string[]). Ahora un
-      // FormattedDocument real con el mismo contenido que resolutionDoc.
       signedDocuments: [{ name: resolutionDoc.name, url: resolutionFileUrl }]
     };
 
@@ -185,11 +156,6 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
       });
   }
 
-  // ← Firma relajada: FileDocument → FormattedDocument | FileDocument.
-  // El HTML del formulario ahora emite FormattedDocument en varios de
-  // los botones "Descargar" (signedProposalDocument, evaluationFiles) —
-  // este método solo lee .name/.url, así que acepta cualquiera de los
-  // dos sin necesitar overloads.
   downloadFile(document: FormattedDocument | FileDocument): void {
     if (document?.url) {
       this.downloadService.download(document.url, document.name);
@@ -221,9 +187,7 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
   private showValidationErrorNotification(): void {
     this.notification.show({ title: 'Error de validación', message: 'Faltan datos críticos para procesar la resolución.', type: NotificationType.ERROR });
   }
-  // ← NUEVO: antes no podía fallar porque no leía ningún archivo de
-  // forma asíncrona. Ahora que processCouncilDecision() sí lo hace,
-  // necesita su propio aviso, distinto del error de red genérico.
+
   private showFileReadErrorNotification(): void {
     this.notification.show({ title: 'Error al leer el archivo', message: 'No se pudo procesar el documento de resolución adjuntado.', type: NotificationType.ERROR });
   }

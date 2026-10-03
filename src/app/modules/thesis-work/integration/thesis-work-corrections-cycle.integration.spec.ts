@@ -1,9 +1,7 @@
-// src/app/modules/thesis-work/integration/thesis-work-corrections-cycle.integration.spec.ts
 import 'fake-indexeddb/auto';
 import { TestBed } from '@angular/core/testing';
 import { Injector } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
-
 import { RegisterCorrectedDocumentsFacadeService } from '../pages/register-corrected-documents-page/services/register-corrected-documents-facade.service';
 import { EvaluateCorrectionsFacadeService } from '../pages/evaluate-corrections-page/services/evaluate-corrections-facade.service';
 import { ThesisWorkService } from '../services/thesis-work.service';
@@ -22,7 +20,6 @@ import { UserApiService } from '../../users/services/user-api.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
-
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { User } from '../../users/interfaces/user.interface';
 import { stateList } from '../../../core/enums/state.enum';
@@ -33,12 +30,16 @@ import { PreliminaryDraft } from '../../preliminary-draft/interfaces/preliminary
 import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
 
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+}
+
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-default', idType: IdentificationType.CC, idNumber: 123456789,
-  firstName: 'Nombre', lastName: 'Apellido', secondLastName: '',
+  firstName: 'Nombre', secondName: '', lastName: 'Apellido', secondLastName: '',
   codeNumber: 1234567890, email: 'test@test.com', password: 'hash',
   state: UserState.active, roles: [], ...overrides
-});
+} as User);
 
 describe('Integración [Trabajo de Grado]: Ciclo de Correcciones — subida y evaluación por jurado', () => {
   let uploadFacade: RegisterCorrectedDocumentsFacadeService;
@@ -49,30 +50,46 @@ describe('Integración [Trabajo de Grado]: Ciclo de Correcciones — subida y ev
   const jurorId = 'juror-corr-cycle-1';
   const directorId = 'dir-corr-cycle-1';
 
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
   function seedThesisWork(): ThesisWork {
     const director = createMockUser({ id: directorId, firstName: 'Director' });
     const juror = createMockUser({ id: jurorId, firstName: 'Jurado' });
-    const proposal: Proposal = {
+
+    const proposalPartial: Partial<Proposal> = {
       id: 'prop-corr-cycle-1', title: 'Tesis con correcciones', description: 'desc', modality: Modality.TI,
       authors: [], director, state: stateList.APROBADO, createdAt: new Date(),
       documents: [], evaluations: [], isArchived: false
     };
-    const draft: PreliminaryDraft = {
-      preliminaryDraftId: 'draft-corr-cycle-1', proposalId: proposal.id!, proposalData: proposal,
+    const proposal = proposalPartial as Proposal;
+
+    const draftPartial: Partial<PreliminaryDraft> = {
+      preliminaryDraftId: 'draft-corr-cycle-1', proposalId: proposal.id, proposalData: proposal,
       evaluators: [], evaluations: [], documents: [],
       state: stateList.APROBADO, createdData: new Date(), isArchived: false
     };
-    return {
-      thesisWorkId: thesisId, preliminaryDraftId: draft.preliminaryDraftId!, preliminaryDraftData: draft,
+    const draft = draftPartial as PreliminaryDraft;
+
+    const thesisWorkPartial: Partial<ThesisWork> = {
+      thesisWorkId: thesisId, preliminaryDraftId: draft.preliminaryDraftId, preliminaryDraftData: draft,
       createdDate: new Date(), state: stateList.APLAZADO,
       advances: [], evaluations: [], finalDeliveries: [], documents: [],
       sustentations: [{ id: 'sust-corr-cycle-1', assignedJurors: [juror], verdicts: [] }],
       pazYSalvos: [], specialRequests: [], isArchived: false
     };
+    return thesisWorkPartial as ThesisWork;
   }
 
   beforeEach(async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.clearAllMocks();
+    localStorage.clear();
 
     TestBed.configureTestingModule({
       providers: [
@@ -84,7 +101,7 @@ describe('Integración [Trabajo de Grado]: Ciclo de Correcciones — subida y ev
         PreliminaryDraftStorageService, ProposalStorageService,
         UserService, UserStorageService, UserApiService,
         EventBusService,
-        { provide: AuthService, useValue: { currentUser: () => ({ id: jurorId }), hasAnyRole: () => false } },
+        { provide: AuthService, useValue: { currentUser: () => createMockUser({ id: jurorId }), hasAnyRole: () => false } },
         { provide: NotificationService, useValue: { show: jest.fn() } }
       ]
     });
@@ -95,28 +112,39 @@ describe('Integración [Trabajo de Grado]: Ciclo de Correcciones — subida y ev
     const injector = TestBed.inject(Injector);
     await waitForHydration(thesisStorage.isHydrated, injector);
 
-    thesisStorage['_thesisWorksList'].set([seedThesisWork()]);
+    if ('updateThesisWorks' in thesisStorage) {
+      (thesisStorage as unknown as { updateThesisWorks: (cb: () => ThesisWork[]) => void }).updateThesisWorks(() => [seedThesisWork()]);
+    } else {
+      const storageAsRecord = thesisStorage as Record<string, any>;
+      if (storageAsRecord['_thesisWorksList']) {
+        storageAsRecord['_thesisWorksList'].set([seedThesisWork()]);
+      }
+    }
   });
 
   it('debe registrar la corrección subida y luego la evaluación aprobatoria, con signedDocuments como FormattedDocument[]', async () => {
     const monograph = new File(['contenido monografía'], 'monografia-corregida.pdf', { type: 'application/pdf' });
     const annexes = new File(['contenido anexos'], 'anexos-corregidos.pdf', { type: 'application/pdf' });
 
-    await new Promise<void>(resolve => {
-      uploadFacade.processCorrectedDocuments(thesisId, { monograph, annexes }, () => resolve(), () => resolve());
+    await new Promise<void>((resolve, reject) => {
+      uploadFacade.processCorrectedDocuments(
+        thesisId,
+        { monograph, annexes },
+        () => resolve(),
+        () => reject(new Error('Fallo en processCorrectedDocuments'))
+      );
     });
 
     const afterUpload = thesisStorage.allThesisWorks().find(w => w.thesisWorkId === thesisId);
     expect(afterUpload?.state).toBe(stateList.EN_REVISION);
     expect(afterUpload?.correctedDeliveries).toHaveLength(1);
-    // A diferencia de los avances, las correcciones SÍ se reflejan en
-    // documents[] plano además de en correctedDeliveries[].
+
     expect(afterUpload?.documents.some(d => d.type === DocumentType.CORRECCION)).toBe(true);
     expect(afterUpload?.correctedDeliveries?.[0].monograph.url).toMatch(/^data:/);
 
     const formatoG = new File(['contenido acta'], 'formato-g.pdf', { type: 'application/pdf' });
 
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve, reject) => {
       evaluateFacade.saveEvaluation(
         thesisId,
         {
@@ -130,14 +158,12 @@ describe('Integración [Trabajo de Grado]: Ciclo de Correcciones — subida y ev
         },
         formatoG,
         () => resolve(),
-        () => resolve()
+        () => reject(new Error('Fallo en saveEvaluation'))
       );
     });
 
     const afterEvaluation = thesisStorage.allThesisWorks().find(w => w.thesisWorkId === thesisId);
 
-    // El estado final tras aprobar correcciones es APROBADO_CON_OBSERVACIONES,
-    // no simplemente APROBADO — regla de negocio específica de esta rama.
     expect(afterEvaluation?.state).toBe(stateList.APROBADO_CON_OBSERVACIONES);
     expect(afterEvaluation?.correctedDeliveries?.[0].status).toBe(stateList.APROBADO);
     expect(afterEvaluation?.correctedDeliveries?.[0].monograph.status).toBe(stateList.APROBADO);
@@ -147,9 +173,6 @@ describe('Integración [Trabajo de Grado]: Ciclo de Correcciones — subida y ev
     expect(verdicts?.[0].jurorId).toBe(jurorId);
     expect(verdicts?.[0].veredict).toBe(stateList.APROBADO);
 
-    // CRÍTICO: la evaluación se guarda con signedDocuments como
-    // FormattedDocument[] real — no el antiguo string[] que rompía la
-    // interfaz Evaluation.
     const newEvaluation = afterEvaluation?.evaluations[0];
     expect(newEvaluation?.signedDocuments).toHaveLength(1);
     expect(newEvaluation?.signedDocuments?.[0].name).toBe('formato-g.pdf');
@@ -160,14 +183,19 @@ describe('Integración [Trabajo de Grado]: Ciclo de Correcciones — subida y ev
     const monograph = new File(['contenido'], 'monografia.pdf', { type: 'application/pdf' });
     const annexes = new File(['contenido'], 'anexos.pdf', { type: 'application/pdf' });
 
-    await new Promise<void>(resolve => {
-      uploadFacade.processCorrectedDocuments(thesisId, { monograph, annexes }, () => resolve(), () => resolve());
+    await new Promise<void>((resolve, reject) => {
+      uploadFacade.processCorrectedDocuments(
+        thesisId,
+        { monograph, annexes },
+        () => resolve(),
+        () => reject(new Error('Fallo subiendo documentos'))
+      );
     });
 
     const afterUpload = thesisStorage.allThesisWorks().find(w => w.thesisWorkId === thesisId);
     const formatoG = new File(['contenido'], 'formato-g-rechazo.pdf', { type: 'application/pdf' });
 
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve, reject) => {
       evaluateFacade.saveEvaluation(
         thesisId,
         {
@@ -181,7 +209,7 @@ describe('Integración [Trabajo de Grado]: Ciclo de Correcciones — subida y ev
         },
         formatoG,
         () => resolve(),
-        () => resolve()
+        () => reject(new Error('Fallo en evaluación de rechazo'))
       );
     });
 

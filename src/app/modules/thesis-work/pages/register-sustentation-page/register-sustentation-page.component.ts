@@ -16,12 +16,10 @@ export class RegisterSustentationPageComponent implements OnInit {
   private readonly router = inject(Router);
   protected readonly facade = inject(RegisterSustentationFacadeService);
 
-  // ← teachersState y la inyección de UserService fueron eliminados: nunca se
-  // usaban en el template ni se pasaban al formulario — era código muerto.
-  readonly thesisWorkState    = signal<ThesisWork | null>(null);
+  readonly thesisWorkState = signal<ThesisWork | null>(null);
   readonly isConfirmModalOpen = signal<boolean>(false);
-  readonly isSubmitting       = signal<boolean>(false);
-  readonly pendingData        = signal<{ payload: SustentationFormPayload; file: File } | null>(null);
+  readonly isSubmitting = signal<boolean>(false);
+  readonly pendingData = signal<{ payload: SustentationFormPayload; file: File } | null>(null);
 
   ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
@@ -35,8 +33,8 @@ export class RegisterSustentationPageComponent implements OnInit {
 
     this.facade.loadThesisWork(
       id,
-      (work) => this.thesisWorkState.set(work),
-      ()     => this.goBack()
+      (thesisWork) => this.thesisWorkState.set(thesisWork),
+      () => this.goBack()
     );
   }
 
@@ -46,7 +44,7 @@ export class RegisterSustentationPageComponent implements OnInit {
   }
 
   processSustentacion(): void {
-    const data     = this.pendingData();
+    const data = this.pendingData();
     const thesisId = this.thesisWorkState()?.thesisWorkId;
     if (!data || !thesisId) return;
 

@@ -8,17 +8,15 @@ import { SpecialRequestType } from '../../../enums/special-request-type.enum';
 
 @Injectable()
 export class RegisterSpecialRequestFormService {
-  private readonly fb                  = inject(FormBuilder);
+  private readonly fb = inject(FormBuilder);
   private readonly notificationService = inject(NotificationService);
-  private readonly participants        = inject(ThesisParticipantsFormatterService);
+  private readonly participants = inject(ThesisParticipantsFormatterService);
 
   public readonly requestOptions = Object.values(SpecialRequestType);
 
-  // Mantenemos el nonNullable para evitar validaciones de null en el submit.
-  // El casteo a SpecialRequestType | '' es correcto para iniciar un select estricto vacío.
   public readonly form = this.fb.nonNullable.group({
     requestType: ['' as SpecialRequestType | '', [Validators.required]],
-    comments:    ['', [Validators.required]]
+    comments: ['', [Validators.required]]
   });
 
   public getStudentNames(thesisWork: ThesisWork): string {
@@ -39,9 +37,9 @@ export class RegisterSpecialRequestFormService {
 
   public notifyIncompleteForm(): void {
     this.notificationService.show({
-      title:   'Formulario incompleto',
+      title: 'Formulario incompleto',
       message: 'Por favor, seleccione un tipo de solicitud e incluya la justificación requerida.',
-      type:    NotificationType.ERROR
+      type: NotificationType.ERROR
     });
   }
 }

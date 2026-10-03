@@ -10,40 +10,40 @@
 
     <div class="flex flex-col gap-4">
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Título</span>
-        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
+        <label for="infoTitle" class="font-display font-semibold text-primary text-size-section">Título</label>
+        <input id="infoTitle" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Descripción</span>
-        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
+        <label for="infoDescription" class="font-display font-semibold text-primary text-size-section">Descripción</label>
+        <input id="infoDescription" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</span>
-        <input type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
+        <label for="infoModality" class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</label>
+        <input id="infoModality" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Estudiante</span>
-        <input type="text" [value]="getStudentNames()" disabled
+        <label for="infoStudent" class="font-display font-semibold text-primary text-size-section">Estudiante</label>
+        <input id="infoStudent" type="text" [value]="getStudentNames()" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Director</span>
-          <input type="text" [value]="getDirectorName()" disabled
+          <label for="infoDirector" class="font-display font-semibold text-primary text-size-section">Director</label>
+          <input id="infoDirector" type="text" [value]="getDirectorName()" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
 
         @if (getCodirectorName()) {
           <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
-            <input type="text" [value]="getCodirectorName()" disabled
+            <label for="infoCodirector" class="font-display font-semibold text-primary text-size-section">Codirector</label>
+            <input id="infoCodirector" type="text" [value]="getCodirectorName()" disabled
                    class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
           </div>
         }
@@ -51,15 +51,15 @@
 
       @if (getAdvisorName()) {
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
-          <input type="text" [value]="getAdvisorName()" disabled
+          <label for="infoAdvisor" class="font-display font-semibold text-primary text-size-section">Asesor</label>
+          <input id="infoAdvisor" type="text" [value]="getAdvisorName()" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
       }
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Jurados Asignados</span>
-        <input type="text" [value]="getAssignedJurors()" disabled
+        <label for="infoJurors" class="font-display font-semibold text-primary text-size-section">Jurados Asignados</label>
+        <input id="infoJurors" type="text" [value]="getAssignedJurors()" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
     </div>
@@ -73,20 +73,20 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Fecha</span>
-        <input type="text" [value]="(currentSustentation?.sustentationDate | date:'dd/MM/yyyy') || 'No programada'" disabled
+        <label for="progDate" class="font-display font-semibold text-primary text-size-section">Fecha</label>
+        <input id="progDate" type="text" [value]="(currentSustentation?.sustentationDate | date:'dd/MM/yyyy') || 'No programada'" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Hora</span>
-        <input type="text" [value]="(currentSustentation?.sustentationDate | date:'shortTime') || 'No programada'" disabled
+        <label for="progTime" class="font-display font-semibold text-primary text-size-section">Hora</label>
+        <input id="progTime" type="text" [value]="(currentSustentation?.sustentationDate | date:'shortTime') || 'No programada'" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Lugar / Aula / Enlace</span>
-        <input type="text" [value]="currentSustentation?.location || 'No definido'" disabled
+        <label for="progLocation" class="font-display font-semibold text-primary text-size-section">Lugar / Aula / Enlace</label>
+        <input id="progLocation" type="text" [value]="currentSustentation?.location || 'No definido'" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
     </div>
@@ -138,14 +138,13 @@
         </app-button-component>
       </div>
 
-      <!-- ✅ NUEVO: Formato E de programación (solo si existe) -->
       @if (currentSustentation?.formatEDocument) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
           <div class="flex items-center gap-3 overflow-hidden">
             <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
             <div class="flex flex-col overflow-hidden">
               <span class="text-size-body font-bold text-primary truncate">
-                {{ currentSustentation?.formatEDocument?.name || 'Formato_E_Programacion.pdf' }}
+                {{ currentSustentation.formatEDocument.name || 'Formato_E_Programacion.pdf' }}
               </span>
               <span class="text-size-role-footer text-[#777680]">Formato E • Documento de programación avalado por el consejo</span>
             </div>
@@ -153,7 +152,7 @@
           <app-button-component
             label="Descargar"
             variant="primary"
-            (onClick)="downloadDocument(currentSustentation?.formatEDocument)">
+            (onClick)="downloadDocument(currentSustentation.formatEDocument)">
           </app-button-component>
         </div>
       }
@@ -176,7 +175,6 @@
         Seleccione el resultado definitivo de la sustentación del trabajo de grado acordado por el cuerpo de jurados. Adicionalmente, registre los comentarios u observaciones obligatorias/recomendadas según corresponda.
       </div>
 
-      <!-- ✅ CAMBIO: Opciones de veredicto centradas -->
       <div class="flex flex-wrap justify-center gap-6 mb-4">
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
@@ -209,8 +207,8 @@
 
       <!-- Observaciones -->
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Observaciones y comentarios descriptivos</span>
-        <textarea rows="4"
+        <label for="observations" class="font-display font-semibold text-primary text-size-section">Observaciones y comentarios descriptivos</label>
+        <textarea id="observations" rows="4"
                   class="p-3 border border-gray-200 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
                   placeholder="Ingrese el desglose detallado de las razones del veredicto o los ajustes exigidos al estudiante..."
                   (input)="onObservationsChange($event)"></textarea>

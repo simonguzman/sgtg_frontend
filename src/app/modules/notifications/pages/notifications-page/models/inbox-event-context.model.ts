@@ -1,12 +1,3 @@
-/**
- * Forma flexible del payload que llega a través del EventBus.
- * Cada tipo de evento pone campos distintos (título, id, veredicto, etc.)
- * — este interface documenta los campos conocidos que el procesador de
- * la bandeja realmente lee. El índice `[key: string]: unknown` se agrega
- * porque no se tiene visibilidad del tipo real de AppEvent.payload (usado
- * de forma laxa en ~15 emit() distintos a través de todo el proyecto);
- * sin él, el cast desde el payload crudo del evento sería más frágil.
- */
 export interface InboxEventPayload {
   title?: string;
   proposalTitle?: string;

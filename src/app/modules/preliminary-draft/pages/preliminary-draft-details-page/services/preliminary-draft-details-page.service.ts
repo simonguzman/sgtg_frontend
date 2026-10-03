@@ -1,11 +1,9 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
-
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { User } from '../../../../users/interfaces/user.interface';
@@ -25,7 +23,6 @@ export class PreliminaryDraftDetailsPageService {
   readonly mainDocument = computed(() => {
     const currentPreliminaryDraft = this.preliminaryDraftDetails();
     if (!currentPreliminaryDraft) return null;
-    // ← FIX: 'Anteproyecto' → DocumentType.ANTEPROYECTO
     return currentPreliminaryDraft.documents.find(document => document.type === DocumentType.ANTEPROYECTO)
           || currentPreliminaryDraft.documents[0]
           || null;

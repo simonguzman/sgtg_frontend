@@ -21,9 +21,6 @@ export class ReviewPreliminaryDraftFormComponent {
   preliminaryDraft = input.required<PreliminaryDraft>();
   isSubmitting = input<boolean>(false);
 
-  // ← FIX: antes EventEmitter<{ formValues: any; ... }>. Ahora reutiliza
-  // PendingReviewData, la misma interfaz que
-  // ReviewPreliminaryDraftPageFacadeService.handleRequestConfirmation ya exige.
   @Output() onSaveEvaluation = new EventEmitter<PendingReviewData>();
   @Output() onDownloadPreliminaryDraft = new EventEmitter<void>();
 

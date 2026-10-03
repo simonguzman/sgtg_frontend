@@ -60,10 +60,6 @@ export class ProposalFormComponent {
   get isEditMode(): boolean { return !!this.proposal(); }
   get form() { return this.formService.form; }
   get showAdvisorField(): boolean { return this.form.get('modality')?.value === 'Practica profesional'; }
-
-  // ← FIX: se elimina `!this.isEditMode` — el documento es obligatorio en
-  // ambos modos. Antes, quitar el archivo en edición nunca activaba esta
-  // condición, así que la alerta visual jamás aparecía.
   get isFileFieldInvalid(): boolean {
     return this.isSubmitAttempted() && !this.attachedFile.hasFile;
   }
@@ -99,9 +95,7 @@ export class ProposalFormComponent {
       this.notificationService.show({ title: 'Formulario incorrecto', message: 'Diligencie todos los campos obligatorios.', type: NotificationType.ERROR });
       return;
     }
-    // ← FIX: se elimina `!this.isEditMode &&` — antes esta guarda solo
-    // bloqueaba el envío en creación. Quitar el documento en edición y
-    // enviar pasaba de largo por aquí sin ningún aviso.
+
     if (!this.attachedFile.hasFile) {
       this.notificationService.show({ title: 'Archivo requerido', message: 'Debe adjuntar el formato de propuesta.', type: NotificationType.ERROR });
       return;
@@ -124,15 +118,7 @@ export class ProposalFormComponent {
     this.onSubmit.emit(payload);
   }
 
-  // ← FIX CENTRAL: antes, en modo edición, esta función devolvía
-  // `this.proposal()?.documents` sin mirar attachedFile en absoluto —
-  // ignoraba por completo si el usuario había quitado o reemplazado el
-  // archivo en la UI. Ahora distingue explícitamente los 3 estados
-  // reales posibles.
   private async mapDocuments(): Promise<FileDocument[]> {
-    // Caso 1: hay un File real (creación, o reemplazo del documento en
-    // edición vía handleFileUploaded) — se lee y se construye un
-    // documento nuevo.
     if (this.attachedFile.hasFile && this.attachedFile.file) {
       const fileUrl = await readFileAsDataUrl(this.attachedFile.file);
       return [{
@@ -144,15 +130,9 @@ export class ProposalFormComponent {
         status: stateList.EN_REVISION
       }];
     }
-    // Caso 2: edición, el usuario no tocó el archivo (sigue marcado como
-    // presente pero sin un File nuevo que leer — es el estado inicial al
-    // abrir el formulario) — se conserva el documento original.
     if (this.isEditMode && this.attachedFile.hasFile) {
       return this.proposal()?.documents ?? [];
     }
-    // Caso 3: sin archivo. submit() ya bloquea este estado antes de
-    // llegar aquí — se conserva como salvaguarda, sin reutilizar nada
-    // en silencio si algún día se llama a este método por otra vía.
     return [];
   }
 }

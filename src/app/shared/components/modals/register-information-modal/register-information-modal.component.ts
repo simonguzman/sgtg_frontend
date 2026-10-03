@@ -15,8 +15,8 @@ import { stateList } from '../../../../core/enums/state.enum';
 export class RegisterInformationModalComponent  {
   protected stateList = stateList;
 
-  @Input() modalHeader: string = 'Detalles de la entrega'; // Título en la barra azul
-  @Input() subTitle: string = 'Información del trabajo de grado'; // Título de la sección
+  @Input() modalHeader: string = 'Detalles de la entrega';
+  @Input() subTitle: string = 'Información del trabajo de grado';
   @Input() isOpen: boolean = false;
   @Input() title: string = '';
   @Input() comments: string = '';

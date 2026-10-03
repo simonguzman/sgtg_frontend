@@ -9,7 +9,7 @@
 }
 
 .footer-inner {
-  padding: 10px 24px; /* Alineado con p-6 del main */
+  padding: 10px 24px;
   text-align: center;
   font-size: var(--text-size-role-footer);
   color: #6b7280;

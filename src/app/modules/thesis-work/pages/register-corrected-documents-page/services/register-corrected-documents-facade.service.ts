@@ -12,7 +12,7 @@ export class RegisterCorrectedDocumentsFacadeService {
 
   public loadThesisWork(
     id: string,
-    onSuccess: (work: ThesisWork) => void,
+    onSuccess: (thesisWork: ThesisWork) => void,
     onError: () => void
   ): void {
     this.thesisWorkService.getThesisWorkByIdMock(id).pipe(first()).subscribe({

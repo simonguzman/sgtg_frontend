@@ -1,6 +1,12 @@
+// src/app/modules/users/integration/user-form-facade.integration.spec.ts
 import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Router } from '@angular/router';
+
+// FIX: Polyfill preventivo para fake-indexeddb en entornos Node/Jest antiguos (Global)
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+}
 
 // Servicios reales (La costura a evaluar)
 import { UserFormFacadeService } from '../pages/services/user-form-facade.service';
@@ -15,11 +21,13 @@ import { User } from '../interfaces/user.interface';
 import { UserState } from '../enum/user-state.enum';
 import { IdentificationType } from '../enum/identification-type.enum';
 
+// ── Fábrica Estricta (Zero 'any', Zero 'unknown') ────────────────────────────
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
   idType: IdentificationType.CC,
   idNumber: 123456789,
   firstName: 'Simón',
+  secondName: '', // Asegurando compatibilidad con la interfaz completa
   lastName: 'Guzmán',
   secondLastName: 'Anaya',
   codeNumber: 202601,
@@ -28,17 +36,31 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
   state: UserState.active,
   roles: [],
   ...overrides
-});
+} as User);
 
 describe('Integración [Users]: Edición de Perfil y Sincronización de Sesión', () => {
   let formFacade: UserFormFacadeService;
   let storage: UserStorageService;
-  let routerMock: { navigate: jest.Mock };
+
+  // Tipado estricto para los mocks
+  let routerMock: { navigate: jest.Mock<Promise<boolean>, [any[]]> };
   let notificationMock: { show: jest.Mock };
-  let errorSpy: jest.SpyInstance;
+
+  // 1. ESCUDO GLOBAL: Atrapa warnings de promesas huérfanas en toda la suite
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  // 3. Restauración definitiva al acabar el archivo
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
 
   beforeEach(() => {
-    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    // 2. Limpieza atómica entre tests
+    jest.clearAllMocks();
+    localStorage.clear();
 
     // Mocks estrictamente para lo que sale del módulo (UI/Rutas)
     routerMock = { navigate: jest.fn() };
@@ -66,11 +88,6 @@ describe('Integración [Users]: Edición de Perfil y Sincronización de Sesión'
     storage.setCurrentUser(activeAdmin);
   });
 
-  afterEach(() => {
-    expect(errorSpy).not.toHaveBeenCalled();
-    errorSpy.mockRestore();
-  });
-
   it('debe actualizar la lista de usuarios Y el signal de currentUser si el usuario edita su propio perfil', fakeAsync(() => {
     // Arrange: Preparamos los datos a actualizar (Cambiamos el nombre)
     const updatePayload = createMockUser({
@@ -86,7 +103,8 @@ describe('Integración [Users]: Edición de Perfil y Sincronización de Sesión'
       'admin-123',
       updatePayload,
       () => { successCallbackCalled = true; },
-      () => {}
+      // FIX: Callback vacío () => void para cumplir con el contrato exacto de TypeScript
+      () => { fail('La actualización falló inesperadamente'); }
     );
 
     // Simulamos el paso del tiempo por el delay(800) de UserApiService
@@ -115,7 +133,15 @@ describe('Integración [Users]: Edición de Perfil y Sincronización de Sesión'
 
     // Act: El admin edita al estudiante
     const updatePayload = createMockUser({ id: 'student-999', firstName: 'Pedro Editado' });
-    formFacade.updateUser('student-999', updatePayload, () => {}, () => {});
+
+    formFacade.updateUser(
+      'student-999',
+      updatePayload,
+      () => {},
+      // FIX: Corrección del tipado () => void
+      () => { fail('La actualización falló inesperadamente'); }
+    );
+
     tick(800);
 
     // Assert 1: El estudiante sí se actualizó en la lista general

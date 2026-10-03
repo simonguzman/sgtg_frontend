@@ -36,7 +36,6 @@ export class EvaluateAdvanceFormComponent implements OnChanges {
   get isReadOnly(): boolean { return this.alreadyEvaluated || this.isFullyEvaluated; }
   get advanceDocuments() { return this.advanceData.documents ?? []; }
 
-  // ← Simplificados, mismo patrón que UploadAdvanceFormComponent
   getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }
   getDirectorName(): string { return this.formService.getDirectorName(this.thesisWork); }
   getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }

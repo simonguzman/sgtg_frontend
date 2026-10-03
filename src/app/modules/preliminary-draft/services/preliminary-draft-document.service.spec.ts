@@ -1,11 +1,9 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
-
 import { PreliminaryDraftDocumentService } from './preliminary-draft-document.service';
 import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
-
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
@@ -20,12 +18,10 @@ import { Proposal } from '../../proposal/interfaces/proposal.interface';
 describe('PreliminaryDraftDocumentService', () => {
   let service: PreliminaryDraftDocumentService;
 
-  // 🔹 REFACTOR: Spies tipados sin 'unknown'
   let mockStorageService: { updateDraft: jest.Mock };
-  let mockUserService: { users: WritableSignal<User[]> }; // Tipado estricto a User[]
+  let mockUserService: { users: WritableSignal<User[]> };
   let mockEventBusService: { emit: jest.Mock };
 
-  // 🔹 REFACTOR: Fábricas para generar entidades válidas sin 'as any' o 'as unknown'
   const createMockUser = (overrides: Partial<User> = {}): User => ({
     id: 'default-user', roles: [], ...overrides
   } as User);
@@ -52,7 +48,6 @@ describe('PreliminaryDraftDocumentService', () => {
   } as PreliminaryDraft);
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -74,7 +69,6 @@ describe('PreliminaryDraftDocumentService', () => {
     TestBed.configureTestingModule({
       providers: [
         PreliminaryDraftDocumentService,
-        // 🔹 REFACTOR: Asignaciones directas sin casteo forzado a 'unknown'
         { provide: PreliminaryDraftStorageService, useValue: mockStorageService },
         { provide: UserService, useValue: mockUserService },
         { provide: EventBusService, useValue: mockEventBusService }
@@ -86,7 +80,7 @@ describe('PreliminaryDraftDocumentService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones originales de la consola
+    jest.restoreAllMocks();
   });
 
   it('debería crearse correctamente', () => {

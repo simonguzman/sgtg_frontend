@@ -2,21 +2,12 @@ import { Routes } from '@angular/router';
 import { HistoryPageComponent } from './pages/history-page/history-page.component';
 import { roleGuard } from '../../core/guards/role.guard';
 import { UserRoleType } from '../../core/enums/user-role-type.enum';
-
-// --- Imports de Propuestas ---
 import { ProposalDetailsPageComponent } from '../proposal/pages/proposal-details-page/proposal-details-page.component';
 import { LoadedProposalsPageComponent } from '../proposal/pages/loaded-proposals-page/loaded-proposals-page.component';
 import { EvaluationProposalPageComponent } from '../proposal/pages/evaluation-proposal-page/evaluation-proposal-page.component';
-
-// --- Imports de Compartidos ---
 import { EvaluationsPerformedPageComponent } from '../../shared/pages/evaluations-performed-page/evaluations-performed-page.component';
-
-// --- Imports de Anteproyectos ---
 import { PreliminaryDraftDetailsPageComponent } from '../preliminary-draft/pages/preliminary-draft-details-page/preliminary-draft-details-page.component';
 import { LoadedDocumentsPreliminaryDraftPageComponent } from '../preliminary-draft/pages/loaded-documets-preliminary-draft-page/loaded-documents-preliminary-draft-page.component';
-// Nota: Se omiten rutas de asignación y revisión activa porque es historial
-
-// --- Imports de Trabajos de Grado (NUEVOS) ---
 import { ThesisWorkDetailsPageComponent } from '../thesis-work/pages/thesis-work-details-page/thesis-work-details-page.component';
 import { LoadedDocumentsThesisWorkPageComponent } from '../thesis-work/pages/loaded-documents-thesis-work-page/loaded-documents-thesis-work-page.component';
 import { SustentationDetailsPageComponent } from '../thesis-work/pages/sustentation-details-page/sustentation-details-page.component';
@@ -35,12 +26,11 @@ const ALL_ROLES = [
   UserRoleType.JEFE_DEP,
   UserRoleType.EVALUADOR,
   UserRoleType.CONSEJO,
-  UserRoleType.JURADO // Asegurado de que Jurado esté aquí por si acceden al historial de sus evaluaciones
+  UserRoleType.JURADO
 ];
 
 export const historyRoutes: Routes = [
   {
-    // Ruta base: /history
     path: '',
     data: { breadcrumb: 'Historial' },
     children: [
@@ -111,7 +101,6 @@ export const historyRoutes: Routes = [
         data: { breadcrumb: 'Anteproyectos Archivados' },
         children: [
           {
-            // Wrapper intermedio para el breadcrumb individual
             path: '',
             data: { breadcrumb: 'Detalle del anteproyecto archivado' },
             children: [
@@ -123,7 +112,6 @@ export const historyRoutes: Routes = [
                 data: { breadcrumb: null, roles: ALL_ROLES }
               },
               {
-                // Reutiliza el mismo componente compartido
                 path: 'evaluations_performed',
                 component: EvaluationsPerformedPageComponent,
                 canActivate: [roleGuard],
@@ -174,7 +162,6 @@ export const historyRoutes: Routes = [
                 title: 'Evaluaciones realizadas',
                 data: { breadcrumb: 'Evaluaciones realizadas', roles: ALL_ROLES }
               },
-              // 👇 SOLUCIÓN: Ruta aplanada sin 'children'
               {
                 path: 'loaded_documents',
                 component: LoadedDocumentsThesisWorkPageComponent,
@@ -190,7 +177,6 @@ export const historyRoutes: Routes = [
                 data: { breadcrumb: 'Detalles de la sustentación', roles: ALL_ROLES }
               },
               {
-                // Implementación aplanada siguiendo la solución que tenías en thesisWorkRoutes
                 path: 'corrected_documents',
                 component: CorrectedDocumentsPageComponent,
                 canActivate: [roleGuard],
@@ -201,7 +187,6 @@ export const historyRoutes: Routes = [
           }
         ]
       }
-
     ]
   }
 ];

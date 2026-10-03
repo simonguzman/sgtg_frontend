@@ -1,14 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { PreliminaryDraftService } from '../../preliminary-draft/services/preliminary-draft.service';
 import { PreliminaryDraftStorageService } from '../../preliminary-draft/services/preliminary-draft-storage.service';
 import { ProposalStorageService } from '../../proposal/services/proposal-storage.service';
 import { IndexedDbListStoreService } from '../../../core/services/persistence/indexed-db-list-store.service';
-
 import { stateList } from '../../../core/enums/state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { User } from '../../users/interfaces/user.interface';
@@ -20,16 +18,13 @@ import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
 import { Modality } from '../../proposal/enums/modality.enum';
 
-// ── Utilidad para drenar Promesas Nativas en Jest ────────────────────────────
 const flushPromises = () => new Promise(resolve => setTimeout(resolve, 0));
 
-// ── Mocks Estrictos de Servicios ─────────────────────────────────────────────
 interface MockIndexedDbStore {
   get: jest.Mock<Promise<unknown>, [string]>;
   set: jest.Mock<Promise<void>, [string, unknown]>;
 }
 
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
   idType: IdentificationType.CC,
@@ -84,8 +79,6 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   preliminaryDraftData: createMockPreliminaryDraft(),
   ...overrides
 } as ThesisWork);
-
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('ThesisWorkStorageService', () => {
   let service: ThesisWorkStorageService;
@@ -167,10 +160,8 @@ describe('ThesisWorkStorageService', () => {
 
       service = TestBed.inject(ThesisWorkStorageService);
 
-      // Chequeo síncrono justo tras inyectar
       expect(service.isHydrated()).toBeFalsy();
 
-      // Pausa para que el Event Loop procese el async/await de hydrateFromIndexedDb
       await flushPromises();
 
       expect(dbStoreSpy.get).toHaveBeenCalledWith('thesisWorks');
@@ -219,17 +210,16 @@ describe('ThesisWorkStorageService', () => {
     beforeEach(async () => {
       dbStoreSpy.get.mockResolvedValue([]);
       service = TestBed.inject(ThesisWorkStorageService);
-      await flushPromises(); // Aseguramos hidratación antes de probar efectos
+      await flushPromises();
     });
 
     it('debería guardar en IndexedDB cuando se actualiza la lista', async () => {
       const mockWork = createMockThesisWork({ thesisWorkId: 'test-save' });
 
-      // Mutamos la señal interna para disparar el efecto
       (service as any)['_thesisWorksList'].set([mockWork]);
 
       TestBed.flushEffects();
-      await flushPromises(); // Esperamos a que la promesa del .set() se resuelva silenciosamente
+      await flushPromises();
 
       expect(dbStoreSpy.set).toHaveBeenCalledWith('thesisWorks', [mockWork]);
     });
@@ -380,8 +370,6 @@ describe('ThesisWorkStorageService', () => {
       service = TestBed.inject(ThesisWorkStorageService);
       await flushPromises();
 
-      // En lugar de pelear con fakeAsync y el delay(500),
-      // firstValueFrom extrae el primer valor del observable de forma nativa asíncrona.
       const result = await firstValueFrom(service.getById('work-async'));
 
       expect(result).toBeDefined();

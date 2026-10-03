@@ -1,15 +1,8 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
-
-// 2. Servicio a probar
 import { RegisterCorrespondenceFormService } from './register-correspondence-form.service';
-
-// 3. Dependencias (Servicios)
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
-
-// 4. Interfaces y Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
@@ -19,8 +12,6 @@ import { SustentationRegistry } from '../../../interfaces/sustentation-registry.
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
-
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown', 'DeepPartial') ─────────
 
 interface MockFileDownloadService {
   download: jest.Mock<Promise<void>, [string, string]>;
@@ -38,8 +29,6 @@ interface MockParticipantsFormatterService {
   getMemberName: jest.Mock<string, [string | undefined]>;
   getAssignedJurors: jest.Mock<string, [SustentationRegistry | undefined]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -110,25 +99,19 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-// Se importa el enum stateList para que la fábrica compile correctamente
 import { stateList } from '../../../../../core/enums/state.enum';
-
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('RegisterCorrespondenceFormService', () => {
   let service: RegisterCorrespondenceFormService;
 
-  // Interfaces Mocks estrictas
   let fileDownloadServiceMock: MockFileDownloadService;
   let notificationServiceMock: MockNotificationService;
   let participantsMock: MockParticipantsFormatterService;
 
   beforeEach(() => {
-    // 🔕 Silenciar consola como medida preventiva y global
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Inicialización de mocks completamente Type-Safe
     fileDownloadServiceMock = {
       download: jest.fn().mockResolvedValue(undefined),
     };
@@ -159,14 +142,13 @@ describe('RegisterCorrespondenceFormService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks(); // Limpieza vital
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('Delegación de Nombres (Participants)', () => {
     it('debería retornar "Sin estudiantes asignados" si no hay authors', () => {
       const mockThesis = createMockThesisWork();
-      // Mutación segura usando JS nativo para probar la rama 'falsy' sin TypeScript errors ni 'as any'
       Object.defineProperty(mockThesis.preliminaryDraftData.proposalData, 'authors', { value: undefined });
 
       expect(service.getStudentNames(mockThesis)).toBe('Sin estudiantes asignados');
@@ -174,7 +156,7 @@ describe('RegisterCorrespondenceFormService', () => {
     });
 
     it('debería delegar los nombres de estudiantes si existen authors', () => {
-      const mockThesis = createMockThesisWork(); // La fábrica incluye authors por defecto
+      const mockThesis = createMockThesisWork();
       participantsMock.getStudentNames.mockReturnValue('Estudiante Prueba');
 
       expect(service.getStudentNames(mockThesis)).toBe('Estudiante Prueba');
@@ -202,7 +184,6 @@ describe('RegisterCorrespondenceFormService', () => {
 
       service.getAssignedJurors(mockThesis);
 
-      // Validamos que le pase correctamente la posición [0]
       expect(participantsMock.getAssignedJurors).toHaveBeenCalledWith(mockThesis.sustentations![0]);
     });
   });
@@ -221,7 +202,6 @@ describe('RegisterCorrespondenceFormService', () => {
     it('debería encontrar Paz y Salvo usando enum o string legacy', () => {
       const docsEnum = [createMockFileDocument({ id: '1', type: DocumentType.PAZ_Y_SALVO })];
 
-      // Simular data legacy corrompida de base de datos sin romper tipado
       const legacyDoc = createMockFileDocument({ id: '2' });
       Object.defineProperty(legacyDoc, 'type', { value: 'Formato F' });
       const docsLegacy = [legacyDoc];
@@ -239,16 +219,15 @@ describe('RegisterCorrespondenceFormService', () => {
         legacyCorrectionDoc
       ];
 
-      expect(service.findFormatoG(docsBoth)?.id).toBe('2'); // Prioriza corrección (Legacy string)
+      expect(service.findFormatoG(docsBoth)?.id).toBe('2');
 
       const docsOnlyG = [createMockFileDocument({ id: '1', type: DocumentType.FORMATO_G })];
-      expect(service.findFormatoG(docsOnlyG)?.id).toBe('1'); // Cae al G
+      expect(service.findFormatoG(docsOnlyG)?.id).toBe('1');
     });
   });
 
   describe('Manejo de Descargas y Validaciones', () => {
     it('debería notificar error si el documento no tiene URL', async () => {
-      // Configuramos URL vacía (falsy) de forma estrictamente tipada
       const mockDoc = createMockFileDocument({ url: '' });
 
       await service.downloadDocument(mockDoc);
@@ -270,13 +249,11 @@ describe('RegisterCorrespondenceFormService', () => {
     });
 
     it('debería manejar y notificar el error si la descarga falla (catch block)', async () => {
-      // Simulamos que el servicio HTTP falla
       fileDownloadServiceMock.download.mockRejectedValue(new Error('Network error'));
       const mockDoc = createMockFileDocument({ url: 'http://doc.pdf', name: 'Doc' });
 
       await service.downloadDocument(mockDoc);
 
-      // Asserts exactos: validamos que el logger haya atrapado el error sin escupirlo
       expect(console.error).toHaveBeenCalledWith('Error al descargar el documento Doc:', expect.any(Error));
 
       expect(notificationServiceMock.show).toHaveBeenCalledWith({

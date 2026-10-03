@@ -5,7 +5,6 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 import { Modality } from '../../../../proposal/enums/modality.enum';
 
-// 🔹 REFACTOR: Fábricas para generar datos limpios y tipados sin usar 'as unknown'
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-default-id',
   firstName: 'Nombre',
@@ -14,8 +13,6 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
   ...overrides
 } as User);
 
-// El tipado parcial en la declaración permite que no tengamos que llenar
-// toda la interfaz gigantesca, mientras evitamos el error de superposición en el casteo.
 const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => {
   const base: Partial<PreliminaryDraft> = {
     preliminaryDraftId: 'draft-default-id',
@@ -29,7 +26,6 @@ const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): Preliminary
   return base as PreliminaryDraft;
 };
 
-// Como proposalData es otra interfaz compleja, conviene tener su propia fábrica
 type ProposalData = NonNullable<PreliminaryDraft['proposalData']>;
 const createMockProposalData = (overrides: Partial<ProposalData> = {}): ProposalData => ({
   id: 'prop-default-id',
@@ -48,7 +44,6 @@ describe('PreliminaryDraftMapperService', () => {
   let service: PreliminaryDraftMapperService;
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -59,11 +54,10 @@ describe('PreliminaryDraftMapperService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones originales de la consola
+    jest.restoreAllMocks();
   });
 
   it('debería mapear correctamente un PreliminaryDraft a PreliminaryDraftTableRow', () => {
-    // Uso limpio de fábricas sin casteos oscuros
     const mockDraft = createMockDraft({
       preliminaryDraftId: '123',
       state: stateList.EN_REVISION,
@@ -78,7 +72,7 @@ describe('PreliminaryDraftMapperService', () => {
 
     expect(result.id).toBe('123');
     expect(result.title).toBe('Test Title');
-    expect(result.modality).toBe(Modality.TI); // Ahora devuelve el enum en lugar de un string arbitrario
+    expect(result.modality).toBe(Modality.TI);
     expect(result.description).toBe('Test Desc');
     expect(result.state).toBe(stateList.EN_REVISION);
   });
@@ -86,8 +80,6 @@ describe('PreliminaryDraftMapperService', () => {
   it('debería calcular las acciones permitidas correctamente para un Administrador', () => {
     const mockDraft = createMockDraft({ state: stateList.EN_REVISION });
 
-    // isAdmin = true, hasFullAccessRole = true
-    // Nota: Como estamos probando un método privado, TypeScript requiere que ignoremos el encapsulamiento
     // @ts-expect-error Acceso intencional a método privado para testing de caja blanca
     const allowed = service.calculateAllowedActions(mockDraft, true, true, 'admin-1');
 
@@ -102,7 +94,6 @@ describe('PreliminaryDraftMapperService', () => {
       })
     });
 
-    // Usuario 'user-x' no es admin ni autor
     // @ts-expect-error Acceso intencional a método privado para testing de caja blanca
     const allowed = service.calculateAllowedActions(mockDraft, false, false, 'user-x');
 

@@ -4,7 +4,6 @@ import { Proposal } from '../../../interfaces/proposal.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 
-// Hacemos un mock parcial de date-utils para controlar el tiempo en las pruebas
 jest.mock('../../../../../core/utils/date-utils', () => ({
   getRemainingBusinessDays: jest.fn()
 }));
@@ -25,7 +24,6 @@ describe('ProposalMapperService', () => {
   } as unknown as Proposal;
 
   beforeEach(() => {
-    // 1. Espías para silenciar la consola
     jest.spyOn(console, 'log').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -38,7 +36,6 @@ describe('ProposalMapperService', () => {
   });
 
   afterEach(() => {
-    // 2. Restauramos todos los espías y mocks originales al terminar cada prueba
     jest.restoreAllMocks();
   });
 

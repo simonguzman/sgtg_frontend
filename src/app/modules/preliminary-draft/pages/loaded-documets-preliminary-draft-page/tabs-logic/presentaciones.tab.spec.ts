@@ -8,7 +8,6 @@ import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interfac
 import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 
-// 🔹 REFACTOR: Fábricas de Datos (Factories) para generar entidades sin usar 'any' ni 'unknown'
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u1',
   firstName: 'Juan',
@@ -64,14 +63,11 @@ describe('PresentacionesTabConfig', () => {
   let mockPreliminaryDraftService: { calculateDocumentStatus: jest.Mock };
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // 1. Configuración del contexto base usando la fábrica limpia
     mockContext = createMockContext();
 
-    // 2. Mock estricto del servicio
     mockPreliminaryDraftService = {
       calculateDocumentStatus: jest.fn().mockReturnValue(stateList.APROBADO)
     };
@@ -79,7 +75,7 @@ describe('PresentacionesTabConfig', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('getTableData', () => {
@@ -140,7 +136,6 @@ describe('PresentacionesTabConfig', () => {
       );
 
       expect(result[0].status).toBe(stateList.APROBADO);
-      // No debería permitir evaluar porque el estado general ya es aprobado, no EN_REVISION
       expect(result[0].allowedActions).not.toContain('evaluate-presentation');
     });
   });
@@ -148,7 +143,7 @@ describe('PresentacionesTabConfig', () => {
   describe('getHeaderButtons', () => {
     it('debería retornar un arreglo vacío si el proyecto está archivado', () => {
       mockContext.preliminaryDraft.isArchived = true;
-      mockContext.isJefe = true; // Incluso si es Jefe, si está archivado no muestra botones
+      mockContext.isJefe = true;
 
       const result = PresentacionesTabConfig.getHeaderButtons(
         mockContext,
@@ -173,7 +168,6 @@ describe('PresentacionesTabConfig', () => {
     it('debería retornar el botón deshabilitado si el anteproyecto base NO está APROBADO', () => {
       mockContext.isJefe = true;
 
-      // El documento de anteproyecto existe pero el servicio calcula que está En Revisión
       mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.EN_REVISION);
       mockContext.preliminaryDraft.documents = [
         createMockDocument({ id: 'doc-anteproyecto-1', type: DocumentType.ANTEPROYECTO })
@@ -192,15 +186,12 @@ describe('PresentacionesTabConfig', () => {
     it('debería retornar el botón deshabilitado si ya hay una presentación pendiente de revisión (sin evaluaciones)', () => {
       mockContext.isJefe = true;
 
-      // Anteproyecto está Aprobado
       mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.APROBADO);
 
-      // Tenemos el anteproyecto y una presentación reciente cargada
       mockContext.preliminaryDraft.documents = [
         createMockDocument({ id: 'doc-anteproyecto-1', type: DocumentType.ANTEPROYECTO }),
         createMockDocument({ id: 'doc-presentacion-1', type: DocumentType.FORMATO_C })
       ];
-      // Aún no hay evaluaciones para la presentación, por ende sigue "En Revisión"
       mockContext.preliminaryDraft.evaluations = [];
 
       const result = PresentacionesTabConfig.getHeaderButtons(
@@ -214,7 +205,7 @@ describe('PresentacionesTabConfig', () => {
 
     it('debería retornar el botón deshabilitado si el Anteproyecto en general ya tiene un estado final (APROBADO o NO_APROBADO)', () => {
       mockContext.isJefe = true;
-      mockContext.preliminaryDraft.state = stateList.APROBADO; // Proceso finalizado
+      mockContext.preliminaryDraft.state = stateList.APROBADO;
       mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.APROBADO);
 
       const result = PresentacionesTabConfig.getHeaderButtons(
@@ -228,11 +219,10 @@ describe('PresentacionesTabConfig', () => {
 
     it('debería retornar el botón habilitado para el Jefe si el anteproyecto está aprobado, no está finalizado globalmente, y no hay presentaciones pendientes', () => {
       mockContext.isJefe = true;
-      mockContext.preliminaryDraft.state = stateList.EN_REVISION; // El proceso global sigue abierto
+      mockContext.preliminaryDraft.state = stateList.EN_REVISION;
 
       mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.APROBADO);
 
-      // Existe el anteproyecto base
       mockContext.preliminaryDraft.documents = [
         createMockDocument({ id: 'doc-anteproyecto-1', type: DocumentType.ANTEPROYECTO })
       ];

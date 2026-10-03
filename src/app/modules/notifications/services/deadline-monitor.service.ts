@@ -10,8 +10,6 @@ import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { PreliminaryDraft } from '../../preliminary-draft/interfaces/preliminary-draft.interface';
 import { ThesisWorkService } from '../../thesis-work/services/thesis-work.service';
 import { ThesisWork } from '../../thesis-work/interfaces/thesis-work.interface';
-// ← User eliminado: solo se usaba en la implementación manual de
-// getThesisStakeholders, ahora delegada a collectParticipantIds.
 import { collectParticipantIds } from '../../thesis-work/helpers/thesis-participants.helper';
 
 @Injectable({
@@ -39,7 +37,7 @@ export class DeadlineMonitorService {
 
   private checkProposalDeadlines(today: Date): void {
     const activeProposals = this.proposalService.proposals()
-      .filter(p => p.state === stateList.EN_REVISION && p.evaluationDeadline);
+      .filter(proposal => proposal.state === stateList.EN_REVISION && proposal.evaluationDeadline);
 
     activeProposals.forEach(proposal => {
       const deadline = new Date(proposal.evaluationDeadline!);
@@ -56,27 +54,27 @@ export class DeadlineMonitorService {
   }
 
   private checkPreliminaryDraftDeadlines(today: Date): void {
-    const activeDrafts = this.preliminaryDraftService.preliminaryDrafts()
-      .filter(d => d.state === stateList.EN_REVISION && d.evaluationDeadline);
+    const activePreliminaryDrafts = this.preliminaryDraftService.preliminaryDrafts()
+      .filter(preliminaryDraft => preliminaryDraft.state === stateList.EN_REVISION && preliminaryDraft.evaluationDeadline);
 
-    activeDrafts.forEach(draft => {
-      const deadline = new Date(draft.evaluationDeadline!);
+    activePreliminaryDrafts.forEach(preliminaryDraft => {
+      const deadline = new Date(preliminaryDraft.evaluationDeadline!);
       deadline.setHours(0, 0, 0, 0);
       const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      const targetUserIds = this.getPreliminaryDraftStakeholders(draft);
-      const title = draft.proposalData?.title || 'Anteproyecto sin título';
+      const targetUserIds = this.getPreliminaryDraftStakeholders(preliminaryDraft);
+      const title = preliminaryDraft.proposalData?.title || 'Anteproyecto sin título';
 
       if (daysLeft < 0) {
-        this.triggerIfUnique(draft.preliminaryDraftId!, title, targetUserIds, AppEventType.PRELIMINARY_DRAFT_DEADLINE_EXPIRED, 'Plazo de Anteproyecto Vencido', undefined, 'preliminaryDraftId', 'preliminaryDraftTitle');
+        this.triggerIfUnique(preliminaryDraft.preliminaryDraftId!, title, targetUserIds, AppEventType.PRELIMINARY_DRAFT_DEADLINE_EXPIRED, 'Plazo de Anteproyecto Vencido', undefined, 'preliminaryDraftId', 'preliminaryDraftTitle');
       } else if (daysLeft <= this.WARNING_DAYS_THRESHOLD) {
-        this.triggerIfUnique(draft.preliminaryDraftId!, title, targetUserIds, AppEventType.PRELIMINARY_DRAFT_DEADLINE_WARNING, 'Recordatorio de Evaluación de Anteproyecto', daysLeft, 'preliminaryDraftId', 'preliminaryDraftTitle');
+        this.triggerIfUnique(preliminaryDraft.preliminaryDraftId!, title, targetUserIds, AppEventType.PRELIMINARY_DRAFT_DEADLINE_WARNING, 'Recordatorio de Evaluación de Anteproyecto', daysLeft, 'preliminaryDraftId', 'preliminaryDraftTitle');
       }
     });
   }
 
   private checkThesisDeadlines(today: Date): void {
     const activeThesis = this.thesisWorkService.thesisWorks()
-      .filter(t => t.state === stateList.EN_DESARROLLO && t.preliminaryDraftData?.maximumDeliveryDate);
+      .filter(thesisWork => thesisWork.state === stateList.EN_DESARROLLO && thesisWork.preliminaryDraftData?.maximumDeliveryDate);
 
     activeThesis.forEach(thesis => {
       const deadline = new Date(thesis.preliminaryDraftData!.maximumDeliveryDate!);
@@ -129,10 +127,6 @@ export class DeadlineMonitorService {
     if (!draft.evaluators) return [];
     return [...new Set(draft.evaluators.map(evaluator => evaluator.id))];
   }
-
-  // ← Simplificado: antes reimplementaba manualmente (con forEach + tipado
-  // User) exactamente la misma lógica que collectParticipantIds ya centraliza
-  // en el módulo de trabajo de grado — autores + director + codirector + asesor.
   private getThesisStakeholders(thesis: ThesisWork): string[] {
     const proposal = thesis.preliminaryDraftData?.proposalData;
     return [...new Set(collectParticipantIds(proposal))];

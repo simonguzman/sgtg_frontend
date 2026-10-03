@@ -16,7 +16,6 @@ export class EvaluationsFacadeService {
   private readonly proposalService = inject(ProposalService);
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
   private readonly thesisWorkService = inject(ThesisWorkService);
-  // ← Nuevas dependencias: antes vivían directo en el componente.
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
@@ -39,13 +38,6 @@ export class EvaluationsFacadeService {
     );
   }
 
-  // ← NUEVO: movido desde el componente + mismo patrón async/try-catch
-  // que ya aplicamos en LoadedProposalsFacadeService y
-  // LoadedDocumentsPreliminaryDraftFacadeService. Este cambio por sí
-  // solo NO resuelve el "descarga algo pero no abre" — eso depende de
-  // que la URL guardada sea real, y eso se decide upstream, no aquí.
-  // Lo que sí corrige es que antes el error de descarga (si
-  // downloadService alguna vez lo propaga) se perdía silenciosamente.
   public async handleDownload(document: FormattedDocument): Promise<void> {
     if (!document.url?.trim()) {
       this.showNotification('Error', 'No se pudo localizar el documento.', NotificationType.ERROR);

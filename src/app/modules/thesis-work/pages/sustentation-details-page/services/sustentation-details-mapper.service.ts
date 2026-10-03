@@ -18,18 +18,15 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class SustentationDetailsMapperService {
-  // Se conserva: mapVerdicts necesita getUserFullName(jurorId) directo —
-  // jurados de veredictos individuales, caso que el formateador compartido
-  // no cubre (su getAssignedJurors trabaja sobre la sustentación completa).
-  private readonly userService      = inject(UserService);
-  private readonly participants     = inject(ThesisParticipantsFormatterService);
+  private readonly userService = inject(UserService);
+  private readonly participants = inject(ThesisParticipantsFormatterService);
   private readonly documentResolver = inject(ThesisFinalDeliveryDocumentResolverService);
 
-  public mapToView(work: ThesisWork, sustentationId: string): SustentationDetailsView | null {
-    const sustentation = work.sustentations?.find((s: SustentationRegistry) => s.id === sustentationId);
+  public mapToView(thesisWork: ThesisWork, sustentationId: string): SustentationDetailsView | null {
+    const sustentation = thesisWork.sustentations?.find((s: SustentationRegistry) => s.id === sustentationId);
     if (!sustentation) return null;
 
-    const proposal    = work.preliminaryDraftData.proposalData;
+    const proposal = thesisWork.preliminaryDraftData.proposalData;
     const adminStatus = sustentation.status;
     const isPostponed = adminStatus === SustentationStatus.APLAZADA;
 
@@ -37,42 +34,34 @@ export class SustentationDetailsMapperService {
       title: proposal.title || 'Sin título',
       description: proposal.description || 'Sin descripción',
       modality: proposal.modality || 'No definida',
-      state: work.state,
-      // ← Fix: se elimina el cast `as any` (innecesario — User[] ya es
-      // asignable a (string | User)[]) y el fallback `|| 'No asignados'`
-      // muerto (getAuthorsNames nunca retorna vacío).
-      authors: this.participants.getStudentNames(work),
-      // ← Delegados al formateador compartido — este mapper YA hacía lookup
-      // por ID correctamente (a diferencia de otros lugares del módulo),
-      // así que aquí el cambio es puro DRY, sin corrección de comportamiento.
-      director: this.participants.getDirectorName(work),
-      codirector: this.participants.getCodirectorName(work) || undefined,
-      advisor: this.participants.getAdvisorName(work) || undefined,
+      state: thesisWork.state,
+      authors: this.participants.getStudentNames(thesisWork),
+      director: this.participants.getDirectorName(thesisWork),
+      codirector: this.participants.getCodirectorName(thesisWork) || undefined,
+      advisor: this.participants.getAdvisorName(thesisWork) || undefined,
       assignedJurors: this.participants.getAssignedJurors(sustentation),
       sustentationDate: sustentation.sustentationDate || null,
       location: sustentation.location || 'No definido',
       administrativeStatus: adminStatus || 'No definido',
       isAdministrativelyPostponed: isPostponed,
       isAdministrativelyCanceled: adminStatus === SustentationStatus.CANCELADA,
-      postponementReason: isPostponed ? this.getPostponementReason(work.specialRequests) : null,
-      approvedSpecialRequests: this.getApprovedSpecialRequests(work.specialRequests),
-      // ← Delegados al resolver compartido: elimina la tercera copia de la
-      // lógica "ordenar finalDeliveries por fecha desc, tomar el más reciente".
-      monograph: this.extractDocument(work, 'MONOGRAFIA'),
-      annexes: this.extractDocument(work, 'ANEXOS'),
+      postponementReason: isPostponed ? this.getPostponementReason(thesisWork.specialRequests) : null,
+      approvedSpecialRequests: this.getApprovedSpecialRequests(thesisWork.specialRequests),
+      monograph: this.extractDocument(thesisWork, 'MONOGRAFIA'),
+      annexes: this.extractDocument(thesisWork, 'ANEXOS'),
       formatEDocument: sustentation.formatEDocument ? {
         name: sustentation.formatEDocument.name || 'Formato_E.pdf',
         url: sustentation.formatEDocument.url,
         description: 'Formato E • Documento de programación avalado por el consejo'
       } : null,
       verdicts: this.mapVerdicts(sustentation.verdicts),
-      showCorrectedDocumentsButton: this.shouldShowCorrectedDocs(work, sustentation)
+      showCorrectedDocumentsButton: this.shouldShowCorrectedDocs(thesisWork, sustentation)
     };
   }
 
   private getPostponementReason(requests: SpecialRequest[] = []): SpecialRequestView | null {
     const reprogramming = requests
-      .filter(req => req.requestType === SpecialRequestType.NUEVA_SUSTENTACION && req.status === stateList.APROBADO)
+      .filter(request => request.requestType === SpecialRequestType.NUEVA_SUSTENTACION && request.status === stateList.APROBADO)
       .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
 
     if (!reprogramming.length) return null;
@@ -86,36 +75,36 @@ export class SustentationDetailsMapperService {
 
   private getApprovedSpecialRequests(requests: SpecialRequest[] = []): SpecialRequestView[] {
     return requests
-      .filter(req => req.status === stateList.APROBADO)
+      .filter(request => request.status === stateList.APROBADO)
       .sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime())
-      .map(req => ({
-        type: req.requestType,
-        description: req.description,
-        resolutionDetails: req.resolutionDetails
+      .map(request => ({
+        type: request.requestType,
+        description: request.description,
+        resolutionDetails: request.resolutionDetails
       }));
   }
 
-  private extractDocument(work: ThesisWork, type: 'MONOGRAFIA' | 'ANEXOS'): SustentationDocumentView | null {
-    const doc = this.documentResolver.resolveLatestFinalDeliveryDocument(work, type);
-    if (!doc) return null;
+  private extractDocument(thesisWork: ThesisWork, type: 'MONOGRAFIA' | 'ANEXOS'): SustentationDocumentView | null {
+    const document = this.documentResolver.resolveLatestFinalDeliveryDocument(thesisWork, type);
+    if (!document) return null;
 
     return {
-      name: doc.name || (type === 'MONOGRAFIA' ? 'Monografía.pdf' : 'Anexos.zip'),
-      url: doc.url,
+      name: document.name || (type === 'MONOGRAFIA' ? 'Monografía.pdf' : 'Anexos.zip'),
+      url: document.url,
       description: type === 'MONOGRAFIA' ? 'Monografía • Cargado en entrega final' : 'Anexos • Cargado en entrega final'
     };
   }
 
   private mapVerdicts(verdicts: JurorVerdict[] = []): JurorVerdictView[] {
-    return verdicts.map(v => ({
-      jurorName: this.userService.getUserFullName(v.jurorId),
-      evaluationDate: v.evaluationDate,
-      verdict: v.veredict,
-      observations: v.observations || 'Sin observaciones adicionales.',
-      statusColorClass: this.getVerdictColor(v.veredict),
-      attachedDocument: v.attachedDocument ? {
-        name: v.attachedDocument.name || 'Acta_Sustentacion.pdf',
-        url: v.attachedDocument.url,
+    return verdicts.map(jurorVerdict => ({
+      jurorName: this.userService.getUserFullName(jurorVerdict.jurorId),
+      evaluationDate: jurorVerdict.evaluationDate,
+      verdict: jurorVerdict.veredict,
+      observations: jurorVerdict.observations || 'Sin observaciones adicionales.',
+      statusColorClass: this.getVerdictColor(jurorVerdict.veredict),
+      attachedDocument: jurorVerdict.attachedDocument ? {
+        name: jurorVerdict.attachedDocument.name || 'Acta_Sustentacion.pdf',
+        url: jurorVerdict.attachedDocument.url,
         description: 'Acta firmada y cargada por este calificador'
       } : null
     }));
@@ -136,9 +125,9 @@ export class SustentationDetailsMapperService {
     }
   }
 
-  private shouldShowCorrectedDocs(work: ThesisWork, sustentation: SustentationRegistry): boolean {
+  private shouldShowCorrectedDocs(thesisWork: ThesisWork, sustentation: SustentationRegistry): boolean {
     const hadObservaciones = sustentation.verdicts?.some((v: JurorVerdict) => v.veredict === stateList.APROBADO_CON_OBSERVACIONES);
-    const hasDeliveries = (work.correctedDeliveries?.length ?? 0) > 0;
+    const hasDeliveries = (thesisWork.correctedDeliveries?.length ?? 0) > 0;
     return !!hadObservaciones || hasDeliveries;
   }
 }

@@ -7,54 +7,54 @@
 
     <div class="flex flex-col gap-4 pl-4">
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Título</span>
-        <input id="" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
+        <label for="infoTitle" class="font-display font-semibold text-primary text-size-section">Título</label>
+        <input id="infoTitle" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
                class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Descripciòn</span>
-        <input id="" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
+        <label for="infoDescription" class="font-display font-semibold text-primary text-size-section">Descripción</label>
+        <input id="infoDescription" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</span>
-        <input id="" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
+        <label for="infoModality" class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</label>
+        <input id="infoModality" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
                class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Estudiante</span>
-        <input id="" type="text" [value]="getStudentNames()" disabled
+        <label for="infoStudent" class="font-display font-semibold text-primary text-size-section">Estudiante</label>
+        <input id="infoStudent" type="text" [value]="getStudentNames()" disabled
                class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Director</span>
-        <input id="" type="text" [value]="getDirectorName()" disabled
+        <label for="infoDirector" class="font-display font-semibold text-primary text-size-section">Director</label>
+        <input id="infoDirector" type="text" [value]="getDirectorName()" disabled
                class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       @if (getCodirectorName()) {
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
-          <input id="" type="text" [value]="getCodirectorName()" disabled
+          <label for="infoCodirector" class="font-display font-semibold text-primary text-size-section">Codirector</label>
+          <input id="infoCodirector" type="text" [value]="getCodirectorName()" disabled
                  class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
       }
 
       @if (getAdvisorName()) {
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
-          <input id="" type="text" [value]="getAdvisorName()" disabled
+          <label for="infoAdvisor" class="font-display font-semibold text-primary text-size-section">Asesor</label>
+          <input id="infoAdvisor" type="text" [value]="getAdvisorName()" disabled
                  class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
       }
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Estado</span>
-        <input id="" type="text" [value]="thesisWork.state" disabled
+        <label for="infoState" class="font-display font-semibold text-primary text-size-section">Estado</label>
+        <input id="infoState" type="text" [value]="thesisWork.state" disabled
                class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
       </div>
     </div>
@@ -65,14 +65,14 @@
 
     <div class="flex flex-col gap-6 pl-4">
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Solicitud especial</span>
-        <input id="" type="text" [value]="getRequestType()" disabled
+        <label for="reqType" class="font-display font-semibold text-primary text-size-section">Solicitud especial</label>
+        <input id="reqType" type="text" [value]="getRequestType()" disabled
                class="information-block p-3 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-sans text-sm">
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Comentarios</span>
-        <textarea id="" rows="4" disabled
+        <label for="reqComments" class="font-display font-semibold text-primary text-size-section">Comentarios</label>
+        <textarea id="reqComments" rows="4" disabled
           class="p-3 border border-gray-200 rounded-md w-full bg-gray-50 cursor-not-allowed font-sans text-sm text-[#777680] resize-none">{{ specialRequest.description }}</textarea>
       </div>
     </div>
@@ -86,26 +86,27 @@
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="verdictSelected() === states.APROBADO" (change)="verdictSelected.set(states.APROBADO)">
-          <span class="text-sm font-medium text-[#777680]">Cumple con los requisitos</span>
+          <span class="text-size-body font-medium text-[#777680]">Cumple con los requisitos</span>
         </label>
 
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="verdictSelected() === states.NO_APROBADO" (change)="verdictSelected.set(states.NO_APROBADO)">
-          <span class="text-sm font-medium text-[#777680]">No cumple con los requisitos</span>
+          <span class="text-size-body font-medium text-[#777680]">No cumple con los requisitos</span>
         </label>
       </div>
 
       @if(isSubmitAttempted() && verdictSelected() === null) {
-        <p class="text-xs text-red-500 mb-4 text-center">Debe seleccionar un resultado para proceder</p>
+        <p class="text-size-role-footer text-red-500 mb-4 text-center">Debe seleccionar un resultado para proceder</p>
       }
 
       @if (requiresNewDeadline()) {
         <div class="flex flex-col gap-1 max-w-md mx-auto w-full bg-blue-50/50 p-6 rounded-xl border border-blue-100 transition-all shadow-sm mb-6">
-          <span class="font-display font-semibold text-size-section text-primary mb-2 flex items-center gap-1">
+          <label for="newDeadline" class="font-display font-semibold text-size-section text-primary mb-2 flex items-center gap-1">
             Asignar nueva fecha límite de entrega <span class="text-[#ED7D31]">*</span>
-          </span>
+          </label>
           <p-datepicker
+            inputId="newDeadline"
             [ngModel]="grantedDeadline()"
             (ngModelChange)="grantedDeadline.set($event)"
             [showIcon]="true"
@@ -120,8 +121,8 @@
       }
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Comentarios</span>
-        <textarea id="" rows="4" class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm font-sans resize-none"
+        <label for="evalComments" class="font-display font-semibold text-primary text-size-section">Comentarios</label>
+        <textarea id="evalComments" rows="4" class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm font-sans resize-none"
                   placeholder="Ingrese los comentarios y observaciones sobre la evaluación si lo considera necesario"
                   (input)="onObservationsChange($event)"></textarea>
       </div>

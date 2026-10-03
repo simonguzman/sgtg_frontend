@@ -9,14 +9,10 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 
 @Injectable()
 export class RegisterCorrespondenceFormService {
-  private readonly downloadService     = inject(FileDownloadService);
+  private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
-  private readonly participants        = inject(ThesisParticipantsFormatterService);
+  private readonly participants = inject(ThesisParticipantsFormatterService);
 
-  // Se conserva el chequeo original de 'authors' antes de delegar, porque este
-  // componente en particular mostraba un mensaje distinto ('Sin estudiantes
-  // asignados') cuando el arreglo era undefined — el resto de participantes
-  // sí delega completamente en el formateador compartido.
   getStudentNames(thesisWork: ThesisWork): string {
     const authors = thesisWork.preliminaryDraftData?.proposalData?.authors;
     return authors ? this.participants.getStudentNames(thesisWork) : 'Sin estudiantes asignados';
@@ -30,45 +26,25 @@ export class RegisterCorrespondenceFormService {
     return this.participants.getAssignedJurors(thesisWork.sustentations?.[0]);
   }
 
-  /**
-   * Resuelve el Formato_E de la entrega final.
-   * Se eliminó la comparación redundante `doc.type === 'Formato_E' as any`:
-   * DocumentType.FORMATO_E ya vale exactamente 'Formato_E', así que la
-   * segunda mitad comparaba el mismo valor dos veces sin cobertura extra.
-   */
   findFormatoE(documents: FileDocument[]): FileDocument | undefined {
-    return documents.find(doc => doc.type === DocumentType.FORMATO_E);
+    return documents.find(document => document.type === DocumentType.FORMATO_E);
   }
 
-  /**
-   * Resuelve el documento de Paz y Salvo. Se conserva el chequeo contra el
-   * string legacy 'Formato F' (con espacio, distinto del valor real del enum
-   * 'Paz_y_salvo') por si existen registros antiguos con ese literal — solo
-   * se acota el cast de `any` a `string`.
-   */
   findFormatoF(documents: FileDocument[]): FileDocument | undefined {
-    return documents.find(doc =>
-      doc.type === DocumentType.PAZ_Y_SALVO || (doc.type as string) === 'Formato F'
+    return documents.find(document =>
+      document.type === DocumentType.PAZ_Y_SALVO || (document.type as string) === 'Formato F'
     );
   }
 
-  /**
-   * Prioriza el acta de la evaluación de correcciones; si no existe, cae al
-   * Formato_G original de la sustentación. Se conserva el chequeo contra
-   * 'CORRECCION' en mayúsculas (distinto del valor real 'Correccion') por
-   * compatibilidad legacy. Se eliminó la comparación redundante 'Formato_G'
-   * (idéntica al valor del enum).
-   */
   findFormatoG(documents: FileDocument[]): FileDocument | undefined {
-    const correctionDoc = documents.find(doc =>
-      doc.type === DocumentType.CORRECCION || (doc.type as string) === 'CORRECCION'
+    const correctionDoc = documents.find(document =>
+      document.type === DocumentType.CORRECCION || (document.type as string) === 'CORRECCION'
     );
-    return correctionDoc ?? documents.find(doc => doc.type === DocumentType.FORMATO_G);
+    return correctionDoc ?? documents.find(document => document.type === DocumentType.FORMATO_G);
   }
 
-  // ← FIX: async + try/catch, mismo patrón que el resto del proyecto.
-  async downloadDocument(doc: FileDocument | undefined | null): Promise<void> {
-    if (!doc?.url) {
+  async downloadDocument(document: FileDocument | undefined | null): Promise<void> {
+    if (!document?.url) {
       this.notificationService.show({
         title: 'Archivo no disponible',
         message: 'El documento solicitado no cuenta con una URL válida.',
@@ -77,12 +53,12 @@ export class RegisterCorrespondenceFormService {
       return;
     }
     try {
-      await this.downloadService.download(doc.url, doc.name);
+      await this.downloadService.download(document.url, document.name);
     } catch (err) {
-      console.error(`Error al descargar el documento ${doc.name}:`, err);
+      console.error(`Error al descargar el documento ${document.name}:`, err);
       this.notificationService.show({
         title: 'Error de descarga',
-        message: `No se pudo descargar ${doc.name}. Intente más tarde.`,
+        message: `No se pudo descargar ${document.name}. Intente más tarde.`,
         type: NotificationType.ERROR
       });
     }

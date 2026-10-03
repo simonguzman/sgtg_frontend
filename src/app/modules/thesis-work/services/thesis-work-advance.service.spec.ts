@@ -10,17 +10,14 @@ import { CreateAdvanceRequest } from '../interfaces/advance-playload.interface';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { User } from '../../users/interfaces/user.interface';
 
-// Extraemos el tipo exacto para evitar importar interfaces no necesarias
 type PreliminaryDraftData = NonNullable<ThesisWork['preliminaryDraftData']>;
 
 describe('ThesisWorkAdvanceService', () => {
   let service: ThesisWorkAdvanceService;
 
-  // Tipado estricto para los espías
   let storageSpy: { updateWork: jest.Mock };
   let eventBusSpy: { emit: jest.Mock };
 
-  // Mocks de documentos estructurados
   const mockAvanceDocument: FileDocument = {
     id: 'doc-avance-1',
     name: 'Primer_Avance.pdf',
@@ -48,9 +45,8 @@ describe('ThesisWorkAdvanceService', () => {
     status: stateList.EN_REVISION,
   };
 
-  // Corrección: Aplicamos el cast parcial estricto también al objeto anidado
   const mockThesisWork = {
-    id: 'thesis-123', // Propiedad base requerida por el servicio refactorizado
+    id: 'thesis-123',
     thesisWorkId: 'thesis-123',
     state: stateList.EN_DESARROLLO,
     documents: [],
@@ -61,7 +57,7 @@ describe('ThesisWorkAdvanceService', () => {
         authors: [{ id: 'author-1' } as Partial<User> as User],
         director: { id: 'director-1' } as Partial<User> as User,
       },
-    } as Partial<PreliminaryDraftData> as PreliminaryDraftData, // Cast anidado estricto
+    } as Partial<PreliminaryDraftData> as PreliminaryDraftData,
   } as Partial<ThesisWork> as ThesisWork;
 
   beforeEach(() => {

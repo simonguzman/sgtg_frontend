@@ -1,12 +1,7 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-
-// 2. Componente a probar
 import { RegisterPazYSalvoFormComponent } from './register-paz-y-salvo-form.component';
 import { RegisterPazYSalvoFormService } from './services/register-paz-y-salvo-form.service';
-
-// 3. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { PazYSalvoPayload } from '../../interfaces/paz-y-salvo-playload.interface';
@@ -16,13 +11,9 @@ import { IdentificationType } from '../../../users/enum/identification-type.enum
 import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
 import { DocumentType } from '../../../../core/enums/document-type.enum';
-
-// 4. Componentes Reales para hacer Override
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
-
-// ── Mocks de Componentes Hijos (Standalone y Strict-Init) ────────────────────
 
 @Component({ selector: 'app-button-component', template: '', standalone: true })
 class MockButtonComponent {
@@ -46,8 +37,6 @@ class MockInfoBannerComponent {
   @Input() title = '';
 }
 
-// ── Tipos Seguros para los Mocks (Cero 'any', 'unknown') ─────────────────────
-
 interface MockRegisterPazYSalvoFormService {
   getStudentNames: jest.Mock<string, [ThesisWork]>;
   getDirectorName: jest.Mock<string, [ThesisWork]>;
@@ -58,8 +47,6 @@ interface MockRegisterPazYSalvoFormService {
   notifyMissingEvaluations: jest.Mock<void, []>;
   notifyMissingDocument: jest.Mock<void, []>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => {
   const base: Partial<User> = {
@@ -128,8 +115,6 @@ const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocu
   return base as FileDocument;
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('RegisterPazYSalvoFormComponent', () => {
   let component: RegisterPazYSalvoFormComponent;
   let fixture: ComponentFixture<RegisterPazYSalvoFormComponent>;
@@ -138,12 +123,10 @@ describe('RegisterPazYSalvoFormComponent', () => {
   const mockThesisWork = createMockThesisWork();
 
   beforeEach(async () => {
-    // 🔕 Silenciador preventivo global de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'log').mockImplementation(() => {});
 
-    // Arrange: Inicialización limpia de mocks
     mockFormService = {
       getStudentNames: jest.fn().mockReturnValue('Estudiante'),
       getDirectorName: jest.fn().mockReturnValue('Director'),
@@ -173,14 +156,13 @@ describe('RegisterPazYSalvoFormComponent', () => {
     fixture = TestBed.createComponent(RegisterPazYSalvoFormComponent);
     component = fixture.componentInstance;
 
-    // Asignación estricta del Input requerido (Modern Angular)
     fixture.componentRef.setInput('thesisWork', mockThesisWork);
     fixture.detectChanges();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   it('debería crearse correctamente', () => {
@@ -215,16 +197,13 @@ describe('RegisterPazYSalvoFormComponent', () => {
 
   describe('Actualización de signals (Comentarios)', () => {
     it('debería actualizar academicComments mediante el evento input sin usar castings inseguros', () => {
-      // Arrange: Simular evento real del DOM conservando tipado estricto
       const textArea = document.createElement('textarea');
       textArea.value = 'Comentario académico';
       const mockEvent = new Event('input');
       Object.defineProperty(mockEvent, 'target', { writable: false, value: textArea });
 
-      // Act
       component.onAcademicCommentsChange(mockEvent);
 
-      // Assert
       expect(component.academicComments()).toBe('Comentario académico');
     });
 
@@ -234,10 +213,8 @@ describe('RegisterPazYSalvoFormComponent', () => {
       const mockEvent = new Event('input');
       Object.defineProperty(mockEvent, 'target', { writable: false, value: textArea });
 
-      // Act
       component.onFinancialCommentsChange(mockEvent);
 
-      // Assert
       expect(component.financialComments()).toBe('Comentario financiero');
     });
   });
@@ -246,10 +223,8 @@ describe('RegisterPazYSalvoFormComponent', () => {
     it('handleFileUploaded() debería setear el signal, cerrar el modal y notificar al servicio', () => {
       const mockFileEvent = { fileName: 'test.pdf', file: new File([''], 'test.pdf') };
 
-      // Act
       component.handleFileUploaded(mockFileEvent);
 
-      // Assert
       expect(component.uploadedFormat()).toEqual(mockFileEvent);
       expect(component.isModalOpen()).toBe(false);
       expect(mockFormService.notifyFileAttached).toHaveBeenCalledWith('test.pdf');
@@ -258,10 +233,8 @@ describe('RegisterPazYSalvoFormComponent', () => {
     it('removeFile() debería limpiar el signal uploadedFormat', () => {
       component.uploadedFormat.set({ fileName: 'test.pdf', file: new File([''], 'test.pdf') });
 
-      // Act
       component.removeFile();
 
-      // Assert
       expect(component.uploadedFormat()).toBeNull();
     });
 
@@ -269,20 +242,16 @@ describe('RegisterPazYSalvoFormComponent', () => {
       jest.spyOn(component.onDownloadFile, 'emit');
       const mockDoc = createMockFileDocument();
 
-      // Act
       component.downloadDocument(mockDoc);
 
-      // Assert
       expect(component.onDownloadFile.emit).toHaveBeenCalledWith(mockDoc);
     });
 
     it('downloadDocument() NO debería emitir si el documento es nulo', () => {
       jest.spyOn(component.onDownloadFile, 'emit');
 
-      // Act
       component.downloadDocument(null);
 
-      // Assert
       expect(component.onDownloadFile.emit).not.toHaveBeenCalled();
     });
   });
@@ -292,10 +261,8 @@ describe('RegisterPazYSalvoFormComponent', () => {
       component.academicApproved.set(null);
       component.financialApproved.set(true);
 
-      // Act
       component.submit();
 
-      // Assert
       expect(component.isSubmitAttempted()).toBe(true);
       expect(mockFormService.notifyMissingEvaluations).toHaveBeenCalled();
       expect(mockFormService.notifyMissingDocument).not.toHaveBeenCalled();
@@ -306,10 +273,8 @@ describe('RegisterPazYSalvoFormComponent', () => {
       component.financialApproved.set(false);
       component.uploadedFormat.set(null);
 
-      // Act
       component.submit();
 
-      // Assert
       expect(mockFormService.notifyMissingEvaluations).not.toHaveBeenCalled();
       expect(mockFormService.notifyMissingDocument).toHaveBeenCalled();
     });
@@ -324,10 +289,8 @@ describe('RegisterPazYSalvoFormComponent', () => {
       component.financialComments.set('Falta pago');
       component.uploadedFormat.set({ fileName: 'test.pdf', file: mockFile });
 
-      // Act
       component.submit();
 
-      // Assert
       expect(component.onSave.emit).toHaveBeenCalledWith({
         payload: {
           academicApproved: true,

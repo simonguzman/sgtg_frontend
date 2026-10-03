@@ -1,27 +1,16 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-
-// 2. Componente a probar
 import { RegisterCorrectedDocumentsPageComponent } from './register-corrected-documents-page.component';
-
-// 3. Servicios y Facades
 import { RegisterCorrectedDocumentsFacadeService } from './services/register-corrected-documents-facade.service';
-
-// 4. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { User } from '../../../users/interfaces/user.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
 import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
-
-// Importamos los componentes reales para removerlos en el override
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { RegisterCorrectedDocumentFormComponent } from '../../components/register-corrected-document-form/register-corrected-document-form.component';
-
-// ── Mocks de Componentes Hijos (Standalone) ──────────────────────────────────
 
 @Component({ selector: 'app-confirmation-action-modal', template: '', standalone: true })
 class MockConfirmationActionModalComponent {
@@ -39,8 +28,6 @@ class MockRegisterCorrectedDocumentFormComponent {
   @Output() onGoBack = new EventEmitter<void>();
 }
 
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
-
 interface MockRouteNode {
   snapshot: { paramMap: { get: jest.Mock<string | null, [string]> } };
   parent: MockRouteNode | null;
@@ -55,8 +42,6 @@ interface MockRegisterCorrectedDocumentsFacadeService {
   processCorrectedDocuments: jest.Mock<void, [string, { monograph: File; annexes: File }, () => void, () => void]>;
   showNavigationError: jest.Mock<void, []>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -108,13 +93,10 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('RegisterCorrectedDocumentsPageComponent', () => {
   let component: RegisterCorrectedDocumentsPageComponent;
   let fixture: ComponentFixture<RegisterCorrectedDocumentsPageComponent>;
 
-  // Interfaces estrictas
   let facadeMock: MockRegisterCorrectedDocumentsFacadeService;
   let routerMock: MockRouter;
   let activatedRouteMock: MockRouteNode;
@@ -122,11 +104,9 @@ describe('RegisterCorrectedDocumentsPageComponent', () => {
   const mockWork = createMockThesisWork({ thesisWorkId: '123' });
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola como medida preventiva
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Mocks definidos estructuralmente sin as unknown
     facadeMock = {
       loadThesisWork: jest.fn(),
       processCorrectedDocuments: jest.fn(),
@@ -172,18 +152,15 @@ describe('RegisterCorrectedDocumentsPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('ngOnInit y Navegación', () => {
     it('debería buscar el ID recursivamente y cargar la información de la tesis', () => {
-      // Arrange
       facadeMock.loadThesisWork.mockImplementation((id, onSuccess) => onSuccess(mockWork));
 
-      // Act
-      fixture.detectChanges(); // Dispara ngOnInit
+      fixture.detectChanges();
 
-      // Assert
       expect(facadeMock.loadThesisWork).toHaveBeenCalledWith(
         '123',
         expect.any(Function),
@@ -193,24 +170,19 @@ describe('RegisterCorrectedDocumentsPageComponent', () => {
     });
 
     it('debería mostrar error de navegación y retroceder si no encuentra ID', () => {
-      // Arrange
       activatedRouteMock.parent = null;
       const goBackSpy = jest.spyOn(component, 'goBack');
 
-      // Act
       fixture.detectChanges();
 
-      // Assert
       expect(facadeMock.showNavigationError).toHaveBeenCalled();
       expect(goBackSpy).toHaveBeenCalled();
       expect(facadeMock.loadThesisWork).not.toHaveBeenCalled();
     });
 
     it('debería navegar hacia atrás correctamente en goBack', () => {
-      // Act
       component.goBack();
 
-      // Assert
       expect(routerMock.navigate).toHaveBeenCalledWith(['../'], { relativeTo: activatedRouteMock });
     });
   });
@@ -219,43 +191,34 @@ describe('RegisterCorrectedDocumentsPageComponent', () => {
     const mockFiles = { monograph: new File([''], 'mono.pdf'), annexes: new File([''], 'anexos.zip') };
 
     beforeEach(() => {
-      // Configuramos el estado inicial válido para estas pruebas
       component.thesisWorkState.set(mockWork);
     });
 
     it('debería guardar los archivos temporalmente y abrir el modal', () => {
-      // Act
       component.handleRequestConfirmation(mockFiles);
 
-      // Assert
       expect(component.pendingFilesData()).toEqual(mockFiles);
       expect(component.isConfirmModalOpen()).toBe(true);
     });
 
     it('debería no hacer nada si faltan archivos o ID del proyecto', () => {
-      // Arrange
       component.pendingFilesData.set(null);
 
-      // Act
       component.processCorrectedDocuments();
 
-      // Assert
       expect(facadeMock.processCorrectedDocuments).not.toHaveBeenCalled();
       expect(component.isSubmitting()).toBe(false);
     });
 
     it('debería procesar documentos exitosamente, cerrar modal y retroceder', () => {
-      // Arrange
       component.pendingFilesData.set(mockFiles);
       component.isConfirmModalOpen.set(true);
       const goBackSpy = jest.spyOn(component, 'goBack');
 
       facadeMock.processCorrectedDocuments.mockImplementation((id, files, onSuccess) => onSuccess());
 
-      // Act
       component.processCorrectedDocuments();
 
-      // Assert
       expect(component.isConfirmModalOpen()).toBe(false);
       expect(component.isSubmitting()).toBe(false);
       expect(facadeMock.processCorrectedDocuments).toHaveBeenCalledWith(
@@ -268,17 +231,14 @@ describe('RegisterCorrectedDocumentsPageComponent', () => {
     });
 
     it('debería manejar el error de guardado bajando la bandera de envío sin retroceder', () => {
-      // Arrange
       component.pendingFilesData.set(mockFiles);
       component.isConfirmModalOpen.set(true);
       const goBackSpy = jest.spyOn(component, 'goBack');
 
       facadeMock.processCorrectedDocuments.mockImplementation((id, files, onSuccess, onError) => onError());
 
-      // Act
       component.processCorrectedDocuments();
 
-      // Assert
       expect(component.isConfirmModalOpen()).toBe(false);
       expect(component.isSubmitting()).toBe(false);
       expect(goBackSpy).not.toHaveBeenCalled();

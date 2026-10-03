@@ -50,11 +50,6 @@ export class PreliminaryDraftFormService {
     return this.availableProposals().find(proposal => proposal.id === id) || null;
   });
 
-  // ← FIX: antes leía signedDocuments?.[0] con un chequeo manual
-  // `typeof fileName === 'string'` para soportar TANTO el esquema viejo
-  // (string[]) COMO un hipotético objeto. Con Evaluation.signedDocuments
-  // ya tipado estrictamente como FormattedDocument[], el documento llega
-  // completo — solo hay que leerlo, sin gimnasia de tipos.
   readonly proposalEvaluationDocument = computed<FormattedDocument | null>(() => {
     const proposal = this.selectedProposal();
     if (!proposal?.evaluations?.length) return null;

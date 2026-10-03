@@ -1,12 +1,9 @@
-// src/app/modules/preliminary-draft/integration/preliminary-draft-historical-access.integration.spec.ts
 import 'fake-indexeddb/auto';
 import { TestBed } from '@angular/core/testing';
 import { Injector } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
-
 import { PreliminaryDraftStorageService } from '../services/preliminary-draft-storage.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
-
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
 import { User } from '../../users/interfaces/user.interface';
@@ -15,12 +12,16 @@ import { Modality } from '../../proposal/enums/modality.enum';
 import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
 
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+}
+
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-default', idType: IdentificationType.CC, idNumber: 123456789,
   firstName: 'Nombre', lastName: 'Apellido', secondLastName: '',
   codeNumber: 1234567890, email: 'test@test.com', password: 'hash',
   state: UserState.active, roles: [], ...overrides
-});
+} as User);
 
 describe('Integración [Anteproyectos]: Visibilidad para evaluadores históricos (hasEvaluation por evaluatorId)', () => {
   let draftStorage: PreliminaryDraftStorageService;
@@ -30,11 +31,25 @@ describe('Integración [Anteproyectos]: Visibilidad para evaluadores históricos
   const newEvaluatorId = 'evaluator-new-1';
   const outsiderId = 'outsider-1';
 
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+  });
+
   async function setupAsUser(userId: string) {
     TestBed.configureTestingModule({
       providers: [
         PreliminaryDraftStorageService,
-        { provide: AuthService, useValue: { currentUser: () => ({ id: userId }), hasAnyRole: () => false } }
+        { provide: AuthService, useValue: { currentUser: () => createMockUser({ id: userId }), hasAnyRole: () => false } }
       ]
     });
     const storage = TestBed.inject(PreliminaryDraftStorageService);
@@ -52,11 +67,7 @@ describe('Integración [Anteproyectos]: Visibilidad para evaluadores históricos
     };
     return {
       preliminaryDraftId: draftId, proposalId: proposal.id!, proposalData: proposal,
-      // Solo el evaluador NUEVO está en evaluators[] — el viejo fue
-      // reemplazado en una segunda ronda de asignación (assignReviewersMock
-      // reemplaza el arreglo completo, no lo acumula).
       evaluators: [createMockUser({ id: newEvaluatorId, firstName: 'Nuevo' })],
-      // Pero su evaluación ORIGINAL sigue en el historial.
       evaluations: [{
         id: 'eval-old-1', proposalId: proposal.id!, documentId: 'doc-v1',
         evaluatorId: oldEvaluatorId, evaluatorName: 'Evaluador Viejo',

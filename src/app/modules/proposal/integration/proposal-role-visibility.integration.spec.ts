@@ -1,14 +1,11 @@
-// src/app/modules/proposal/integration/proposal-role-visibility.integration.spec.ts
 import 'fake-indexeddb/auto';
 import { TestBed } from '@angular/core/testing';
 import { Injector } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
-
 import { ProposalStorageService } from '../services/proposal-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { UserStorageService } from '../../users/services/user-storage.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
-
 import { Proposal } from '../interfaces/proposal.interface';
 import { User } from '../../users/interfaces/user.interface';
 import { stateList } from '../../../core/enums/state.enum';
@@ -16,29 +13,48 @@ import { Modality } from '../enums/modality.enum';
 import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
 
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+}
+
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-default', idType: IdentificationType.CC, idNumber: 123456789,
-  firstName: 'Nombre', lastName: 'Apellido', secondLastName: '',
+  firstName: 'Nombre', secondName: '', lastName: 'Apellido', secondLastName: '',
   codeNumber: 1234567890, email: 'test@test.com', password: 'hash',
   state: UserState.active, roles: [], ...overrides
-});
+} as User);
 
 describe('Integración [Proposal]: Visibilidad por rol — señal proposals() filtrada', () => {
   let proposalStorage: ProposalStorageService;
 
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+  });
+
   function buildProposal(id: string, director: User, isArchived = false): Proposal {
-    return {
+    const proposalPartial: Partial<Proposal> = {
       id, title: `Propuesta ${id}`, description: 'desc', modality: Modality.TI,
       authors: [], director, state: stateList.EN_REVISION, createdAt: new Date(),
       documents: [], evaluations: [], isArchived
     };
+    return proposalPartial as Proposal;
   }
 
   it('un rol privilegiado (Comité) ve TODAS las propuestas activas, sin importar participación', async () => {
     TestBed.configureTestingModule({
       providers: [
         ProposalStorageService, UserService, UserStorageService,
-        { provide: AuthService, useValue: { currentUser: () => ({ id: 'comite-1' }), hasAnyRole: () => true } }
+        { provide: AuthService, useValue: { currentUser: () => createMockUser({ id: 'comite-1' }), hasAnyRole: () => true } }
       ]
     });
     proposalStorage = TestBed.inject(ProposalStorageService);
@@ -58,7 +74,7 @@ describe('Integración [Proposal]: Visibilidad por rol — señal proposals() fi
     TestBed.configureTestingModule({
       providers: [
         ProposalStorageService, UserService, UserStorageService,
-        { provide: AuthService, useValue: { currentUser: () => ({ id: ownDirectorId }), hasAnyRole: () => false } }
+        { provide: AuthService, useValue: { currentUser: () => createMockUser({ id: ownDirectorId }), hasAnyRole: () => false } }
       ]
     });
     proposalStorage = TestBed.inject(ProposalStorageService);
@@ -78,7 +94,7 @@ describe('Integración [Proposal]: Visibilidad por rol — señal proposals() fi
     TestBed.configureTestingModule({
       providers: [
         ProposalStorageService, UserService, UserStorageService,
-        { provide: AuthService, useValue: { currentUser: () => ({ id: 'consejo-1' }), hasAnyRole: () => true } }
+        { provide: AuthService, useValue: { currentUser: () => createMockUser({ id: 'consejo-1' }), hasAnyRole: () => true } }
       ]
     });
     proposalStorage = TestBed.inject(ProposalStorageService);

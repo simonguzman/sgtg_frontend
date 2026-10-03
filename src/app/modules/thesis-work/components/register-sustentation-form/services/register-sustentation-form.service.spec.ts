@@ -1,17 +1,10 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
 import { FormBuilder } from '@angular/forms';
-
-// 2. Servicio a probar
 import { RegisterSustentationFormService } from './register-sustentation-form.service';
-
-// 3. Dependencias (Servicios)
 import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
 import { ThesisFinalDeliveryDocumentResolverService } from '../../../services/thesis-final-delivery-document-resolver.service';
-
-// 4. Interfaces y Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { User } from '../../../../users/interfaces/user.interface';
@@ -21,8 +14,6 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
-
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown', 'Partial') ──────────
 
 interface MockUserService {
   users: jest.Mock<User[], []>;
@@ -44,8 +35,6 @@ interface MockDocumentResolverService {
   resolveLatestFinalDeliveryDocument: jest.Mock<FileDocument | null, [ThesisWork, string]>;
 }
 
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
-
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-default',
   idType: IdentificationType.CC,
@@ -65,7 +54,6 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
 const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
   const baseUser = createMockUser();
 
-  // Usamos una estructura base completa para evitar errores de undefined en los tests
   const baseThesis: ThesisWork = {
     thesisWorkId: 'mock-thesis-123',
     preliminaryDraftId: 'draft-1',
@@ -98,19 +86,15 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('RegisterSustentationFormService', () => {
   let service: RegisterSustentationFormService;
 
-  // Mocks tipados estrictamente
   let userServiceMock: MockUserService;
   let notificationMock: MockNotificationService;
   let participantsFormatterMock: MockParticipantsFormatterService;
   let documentResolverMock: MockDocumentResolverService;
 
   beforeEach(() => {
-    // 🔕 Silenciar consola como medida preventiva
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -150,7 +134,7 @@ describe('RegisterSustentationFormService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización del Formulario', () => {
@@ -164,21 +148,19 @@ describe('RegisterSustentationFormService', () => {
   });
 
   describe('Cálculo de Jurados Elegibles (getEligibleJurors)', () => {
-    // Generamos usuarios reales (legales para TS) mediante la fábrica
     const mockUsers: User[] = [
       createMockUser({ id: 'valid1', roles: [UserRoleType.DOCENTE] }),
       createMockUser({ id: 'valid2', roles: [UserRoleType.DOCENTE] }),
-      createMockUser({ id: 'director1', roles: [UserRoleType.DOCENTE] }), // Excluido: director
-      createMockUser({ id: 'evaluator1', roles: [UserRoleType.DOCENTE] }), // Excluido: evaluador
-      createMockUser({ id: 'student1', roles: [UserRoleType.ESTUDIANTE] }), // Excluido: no es docente
-      createMockUser({ id: 'student2', roles: [UserRoleType.DOCENTE] }), // Excluido: autor
-      createMockUser({ id: 'conflict1', roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] }) // Excluido: rol conflictivo
+      createMockUser({ id: 'director1', roles: [UserRoleType.DOCENTE] }),
+      createMockUser({ id: 'evaluator1', roles: [UserRoleType.DOCENTE] }),
+      createMockUser({ id: 'student1', roles: [UserRoleType.ESTUDIANTE] }),
+      createMockUser({ id: 'student2', roles: [UserRoleType.DOCENTE] }),
+      createMockUser({ id: 'conflict1', roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] })
     ];
 
     it('debería retornar un array vacío si no hay datos del anteproyecto o propuesta', () => {
       userServiceMock.users.mockReturnValue(mockUsers);
 
-      // Creamos una tesis vaciando explícitamente sus datos con casteo seguro a undefined
       const incompleteThesis = createMockThesisWork();
       incompleteThesis.preliminaryDraftData.proposalData = undefined as any;
 
@@ -189,26 +171,22 @@ describe('RegisterSustentationFormService', () => {
     it('debería filtrar correctamente los usuarios aptos para ser jurados basándose en los conflictos', () => {
       userServiceMock.users.mockReturnValue(mockUsers);
 
-      // Construimos una tesis con el escenario completo de conflictos
       const thesisWithConflicts = createMockThesisWork();
       thesisWithConflicts.preliminaryDraftData.proposalData.director = createMockUser({ id: 'director1' });
       thesisWithConflicts.preliminaryDraftData.proposalData.codirector = createMockUser({ id: 'codirector1' });
       thesisWithConflicts.preliminaryDraftData.proposalData.advisor = createMockUser({ id: 'advisor1' });
 
-      // 🔥 FIX: Pasamos estrictamente objetos User válidos para cumplir con User[]
       thesisWithConflicts.preliminaryDraftData.proposalData.authors = [
         createMockUser({ id: 'student1' }),
         createMockUser({ id: 'student2' })
       ];
 
-      // Evaluaciones previas (Solo requiere el evaluatorId)
       thesisWithConflicts.preliminaryDraftData.evaluations = [
         { evaluatorId: 'evaluator1' } as any
       ];
 
       const result = service.getEligibleJurors(thesisWithConflicts);
 
-      // Solo valid1 y valid2 deberían pasar todos los filtros
       expect(result).toHaveLength(2);
       expect(result.map(u => u.id)).toEqual(['valid1', 'valid2']);
     });

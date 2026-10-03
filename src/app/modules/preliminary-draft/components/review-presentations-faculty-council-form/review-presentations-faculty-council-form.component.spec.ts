@@ -1,32 +1,22 @@
-// 1. Angular Core & Testing
 import { ComponentRef, WritableSignal, signal, Component, Input, Output, EventEmitter } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
-
-// 2. Core Enums & Interfaces
 import { stateList } from '../../../../core/enums/state.enum';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
-
-// 3. Shared Modules Enums & Interfaces
 import { Modality } from '../../../proposal/enums/modality.enum';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
 import { UserState } from '../../../users/enum/user-state.enum';
 import { User } from '../../../users/interfaces/user.interface';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { Proposal } from '../../../proposal/interfaces/proposal.interface';
-
-// 4. Component, Service & Models
 import { SaveEvaluationPayload } from './models/council-evaluation.model';
 import { ReviewPresentationsFacultyCouncilFormComponent } from './review-presentations-faculty-council-form.component';
 import { ReviewPresentationsFacultyCouncilFormFacadeService } from './services/review-presentations-faculty-council-form-facade.service';
-
-// 5. Original Components for Override
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 
-// 🔹 REFACTOR: Mocks de Componentes Hijos para aislar el test del DOM y lógica externa
 @Component({ selector: 'app-button-component', standalone: true, template: '<button (click)="onClick.emit()">{{label}}</button>' })
 class MockButtonComponent {
   @Input() label = '';
@@ -49,7 +39,6 @@ class MockInfoBannerComponent {
   @Input() title = '';
 }
 
-// 🔹 REFACTOR: Interfaz estricta para el Facade sin el uso de 'any'
 interface MockFacadeService {
   preliminaryDraft: WritableSignal<PreliminaryDraft | null>;
   uploadedSignedFile: WritableSignal<{ fileName: string; file: File } | null>;
@@ -71,7 +60,6 @@ interface MockFacadeService {
   getAdvisorName: jest.Mock<string, []>;
 }
 
-// 🔹 REFACTOR: Fábricas de Datos (Factories)
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'usr-101',
   idType: IdentificationType.CC,
@@ -127,7 +115,6 @@ describe('ReviewPresentationsFacultyCouncilFormComponent', () => {
   };
 
   beforeEach(async () => {
-    // 🔕 Silenciar los console.error y console.warn
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -162,7 +149,7 @@ describe('ReviewPresentationsFacultyCouncilFormComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ReviewPresentationsFacultyCouncilFormComponent],
       providers: [
-        provideNoopAnimations() // <-- FIX: Provee el módulo vacío de animaciones para los tests de PrimeNG
+        provideNoopAnimations()
       ]
     })
     .overrideComponent(ReviewPresentationsFacultyCouncilFormComponent, {
@@ -181,7 +168,6 @@ describe('ReviewPresentationsFacultyCouncilFormComponent', () => {
     component = fixture.componentInstance;
     componentRef = fixture.componentRef;
 
-    // Asignación de la señal de entrada requerida (input.required)
     componentRef.setInput('preliminaryDraft', mockDraftData);
   });
 

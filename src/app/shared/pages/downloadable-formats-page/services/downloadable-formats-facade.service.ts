@@ -22,23 +22,6 @@ export class DownloadableFormatsFacadeService {
       `Iniciando la descarga del ${formatCode}. Revise su carpeta de descargas.`,
       NotificationType.INFO
     );
-
-    // ← useBlob: true (antes false). Estos son archivos estáticos de tu
-    // propio origen (assets/formatos/) — caso ideal para el modo blob:
-    // sin problema de CORS (mismo origen), tamaño modesto, y sobre todo
-    // sí detecta un 404 real vía HttpClient.
-    //
-    // IMPORTANTE, corrigiendo mi propio comentario anterior sobre este
-    // catch: no lo restauro con try/catch aquí, porque FileDownloadService
-    // YA captura y notifica internamente cualquier error del modo blob
-    // (turno de hace varios mensajes) — y NO relanza ese error. La
-    // promesa de download() siempre se resuelve, nunca se rechaza, así
-    // que un try/catch en este punto seguiría siendo inalcanzable, ahora
-    // por una razón distinta a la original. El aviso de "no se pudo
-    // descargar" que verá el usuario si falta un archivo lo emite
-    // FileDownloadService directamente (mensaje genérico, no el
-    // específico de este facade) — pero el efecto práctico que
-    // necesitas ya queda cubierto: error visible en vez de silencio.
     await this.downloadService.download(format.url, `${formatCode}.pdf`, true);
   }
 

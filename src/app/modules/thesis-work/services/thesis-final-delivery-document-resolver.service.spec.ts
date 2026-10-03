@@ -8,14 +8,12 @@ import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../core/enums/document-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 
-// Utilidad de TypeScript para inferir los tipos anidados sin necesidad de importar sus interfaces directamente
 type FinalDelivery = NonNullable<ThesisWork['finalDeliveries']>[number];
 type PazYSalvo = NonNullable<ThesisWork['pazYSalvos']>[number];
 
 describe('ThesisFinalDeliveryDocumentResolverService', () => {
   let service: ThesisFinalDeliveryDocumentResolverService;
 
-  // Mocks estables y fuertemente tipados
   const mockMonographOld: FileDocument = {
     id: 'doc-mono-1',
     name: 'Monografia_v1.pdf',
@@ -94,7 +92,7 @@ describe('ThesisFinalDeliveryDocumentResolverService', () => {
         finalDeliveries: [
           {
             id: 'fd-1',
-            uploadDate: '10 - 01 - 2026', // <-- Usando el string exacto que espera parseDisplayDate
+            uploadDate: '10 - 01 - 2026',
             monograph: mockMonographOld,
             formatE: mockFormatoE,
             status: stateList.EN_REVISION

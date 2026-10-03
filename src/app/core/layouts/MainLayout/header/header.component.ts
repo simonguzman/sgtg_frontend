@@ -11,7 +11,6 @@ import { InboxService } from '../../../../modules/notifications/services/inbox.s
 
 @Component({
   selector: 'app-header',
-  // ← CommonModule eliminado: el template solo usa @if nativo.
   imports: [AvatarModule, MenuModule, ConfirmationActionModalComponent, ChangePasswordModalComponent],
   templateUrl: './header.component.html',
   styleUrl: './header.component.css',
@@ -22,29 +21,19 @@ export class HeaderComponent {
   private readonly userService = inject(UserService);
   private readonly router = inject(Router);
 
-  // @ViewChild con `!` es aquí el patrón correcto (no el mismo caso que
-  // LoginComponent): la referencia solo existe después de que la vista se
-  // inicializa, no hay forma idiomática de evitarlo con un ViewChild.
   @ViewChild('menu') menu!: Menu;
 
-  // ← Convertidos a signal(): mismo patrón que isConfirmModalOpen,
-  // isUploadModalOpen, etc. en el resto del proyecto.
   readonly isMenuOpen = signal(false);
   readonly isLogoutModal = signal(false);
   readonly isChangePasswordModal = signal(false);
 
   protected readonly userAvatar = 'assets/images/avatar-default.png';
 
-  // ← FIX: eliminada la reimplementación manual con regex. El comentario
-  // original decía que reutilizaba UserFormatterService pero no lo hacía.
   protected readonly userFullName = computed<string>(() => {
     const user = this.authService.currentUser();
     return user ? this.userService.formatFullName(user) : 'Invitado';
   });
 
-  // ← NUEVO: con un solo rol el resultado es idéntico al binding anterior
-  // ({{ currentUser()?.roles }} mostraba "Administrador" en tu captura).
-  // Con varios roles, evita el "Director,Jurado" pegado sin espacio.
   protected readonly userRoleLabel = computed<string>(() => {
     const roles = this.authService.currentUser()?.roles;
     return roles && roles.length > 0 ? roles.join(' / ') : '';
@@ -92,7 +81,4 @@ export class HeaderComponent {
   closeChangePasswordModal(): void {
     this.isChangePasswordModal.set(false);
   }
-
-  // ← closeMenu() eliminado: verificado contra el template completo, no
-  // se llama desde ningún binding — era código muerto.
 }

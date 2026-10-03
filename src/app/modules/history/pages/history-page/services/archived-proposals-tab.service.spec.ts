@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
-
 import { ArchivedProposalsTabService } from './archived-proposals-tab.service';
 import { ProposalService } from '../../../../proposal/services/proposal.service';
 import { UserService } from '../../../../users/services/user.service';
@@ -10,8 +9,6 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { ARCHIVED_ALLOWED_ACTIONS } from '../models/archived-tab-columns.model';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
-
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any' y 'unknown') ──────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-default',
@@ -25,7 +22,7 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
 const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
   id: 'prop-1',
   title: 'Propuesta de Prueba',
-  modality: Modality.TI, // Usamos directamente el enum
+  modality: Modality.TI,
   description: 'Descripción de prueba',
   state: stateList.EN_REVISION,
   isArchived: true,
@@ -37,17 +34,12 @@ const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
   ...overrides
 } as Proposal);
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('ArchivedProposalsTabService', () => {
   let service: ArchivedProposalsTabService;
-
-  // 🔹 REFACTOR: Tipado estricto de las dependencias
   let mockProposalService: { allProposals: WritableSignal<Proposal[]> };
   let mockUserService: { getAuthorsNames: jest.Mock<string, [User[] | undefined]> };
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para mantener limpia la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -72,7 +64,7 @@ describe('ArchivedProposalsTabService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola
+    jest.restoreAllMocks();
   });
 
   describe('Configuración Básica', () => {
@@ -99,12 +91,9 @@ describe('ArchivedProposalsTabService', () => {
     it('debería excluir las propuestas que NO están archivadas (isArchived = false)', () => {
       const activeProposal = createMockProposal({ id: 'act-1', isArchived: false });
       const archivedProposal = createMockProposal({ id: 'arch-1', isArchived: true });
-
       mockProposalService.allProposals.set([activeProposal, archivedProposal]);
-
       const context = createContext('user-default');
       const data = service.getTableData(context);
-
       expect(data).toHaveLength(1);
       expect(data[0]['id']).toBe('arch-1');
     });
@@ -118,12 +107,9 @@ describe('ArchivedProposalsTabService', () => {
         id: 'arch-2',
         authors: [createMockUser({ id: 'user-other' })]
       });
-
       mockProposalService.allProposals.set([proposalPropia, proposalAjena]);
-
       const context = createContext('user-admin', true);
       const data = service.getTableData(context);
-
       expect(data).toHaveLength(2);
     });
 
@@ -142,21 +128,15 @@ describe('ArchivedProposalsTabService', () => {
         title: undefined,
         modality: undefined,
         description: undefined,
-        authors: [], // Arreglo vacío para simular falta de autores
-        director: createMockUser({ id: 'user-123' }) // <-- FIX: Le damos acceso siendo el director para que no sea filtrada
+        authors: [],
+        director: createMockUser({ id: 'user-123' })
       });
-
       mockProposalService.allProposals.set([fullProposal, emptyProposal]);
-
-      // Simulamos que para la propuesta vacía, getAuthorsNames retorne falso/vacío
       mockUserService.getAuthorsNames.mockImplementation((authors) => {
         return authors && authors.length > 0 ? 'Autores Mockeados' : '';
       });
-
       const context = createContext('user-123');
       const data = service.getTableData(context);
-
-      // Verificación de propuesta completa
       expect(data[0]).toEqual(expect.objectContaining({
         id: 'arch-1',
         title: 'Propuesta Completa',
@@ -167,13 +147,11 @@ describe('ArchivedProposalsTabService', () => {
         allowedActions: ARCHIVED_ALLOWED_ACTIONS
       }));
       expect(data[0]).toHaveProperty('deadlineStatus');
-
-      // Verificación de Fallbacks por defecto
       expect(data[1]).toEqual(expect.objectContaining({
         id: 'arch-empty',
         title: 'Sin título',
         modality: 'No definida',
-        authors: 'Sin asignar', // Retornado exitosamente gracias a la función espía
+        authors: 'Sin asignar',
         description: 'Sin descripción'
       }));
     });
@@ -186,10 +164,8 @@ describe('ArchivedProposalsTabService', () => {
 
       mockProposalService.allProposals.set([proposalSinAutores]);
       mockUserService.getAuthorsNames.mockReturnValue('');
-
       const context = createContext('user-123');
       const data = service.getTableData(context);
-
       expect(data[0]['authors']).toBe('Sin asignar');
     });
   });

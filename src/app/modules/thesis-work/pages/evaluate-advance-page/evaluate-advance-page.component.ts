@@ -65,7 +65,6 @@ export class EvaluateAdvancePageComponent implements OnInit {
     const advance = this.currentAdvance();
     const user = this.authService.currentUser();
     if (!data || !thesisWork || !advance || !user) return;
-    // ← void: saveEvaluation() ahora es async.
     void this.facade.saveEvaluation(
       thesisWork, advance, user, data,
       () => {
@@ -76,8 +75,8 @@ export class EvaluateAdvancePageComponent implements OnInit {
     );
   }
 
-  downloadCurrentAdvance(doc: FileDocument): void {
-    void this.facade.downloadAdvance(doc);
+  downloadCurrentAdvance(document: FileDocument): void {
+    void this.facade.downloadAdvance(document);
   }
 
   navigateBack(): void {

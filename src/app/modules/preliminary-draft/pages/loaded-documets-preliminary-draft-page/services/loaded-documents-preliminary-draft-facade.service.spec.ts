@@ -3,7 +3,6 @@ import { signal, WritableSignal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { of, throwError } from 'rxjs';
-
 import { LoadedDocumentsPreliminaryDraftFacadeService } from './loaded-documents-preliminary-draft-facade.service';
 import { LoadedDocumentsPreliminaryDraftMapperService } from './loaded-documents-preliminary-draft-mapper.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
@@ -17,7 +16,6 @@ import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interfac
 import { User } from '../../../../users/interfaces/user.interface';
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 
-// 🔹 REFACTOR: Fábricas para generar entidades limpias sin usar 'any' ni 'unknown'
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
   roles: [],
@@ -52,7 +50,6 @@ const createMockTableButton = (overrides: Partial<TableButton> = {}): TableButto
 describe('LoadedDocumentsPreliminaryDraftFacadeService', () => {
   let facade: LoadedDocumentsPreliminaryDraftFacadeService;
 
-  // 🔹 REFACTOR: Mocks con tipado estructural estricto para evitar Partial y any
   let mockRouter: { navigate: jest.Mock };
   let mockDraftService: {
     allPreliminaryDrafts: WritableSignal<PreliminaryDraft[]>;
@@ -78,7 +75,6 @@ describe('LoadedDocumentsPreliminaryDraftFacadeService', () => {
   };
 
   beforeEach(() => {
-    // 🔕 SILENCIAR LA CONSOLA PARA QUITAR EL RUIDO EN LAS PRUEBAS DE ERROR
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -112,7 +108,6 @@ describe('LoadedDocumentsPreliminaryDraftFacadeService', () => {
       getConfirmModalDescription: jest.fn()
     };
 
-    // Tipado estricto sin usar 'as unknown as ActivatedRoute'
     const mockParamMap = { get: jest.fn().mockReturnValue('draft-123') };
     const mockRoute = {
       snapshot: { paramMap: mockParamMap },
@@ -138,7 +133,6 @@ describe('LoadedDocumentsPreliminaryDraftFacadeService', () => {
   });
 
   afterEach(() => {
-    // 🧹 OBLIGATORIO: Usar restoreAllMocks en lugar de clearAllMocks para devolver la consola a la normalidad
     jest.restoreAllMocks();
   });
 
@@ -198,7 +192,6 @@ describe('LoadedDocumentsPreliminaryDraftFacadeService', () => {
 
       await facade.confirmUpload();
 
-      // Validamos que el flujo se cortó y nunca llamó al backend
       expect(mockDraftService.uploadDocument).not.toHaveBeenCalled();
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
     });
@@ -210,14 +203,11 @@ describe('LoadedDocumentsPreliminaryDraftFacadeService', () => {
       const newDoc = createMockDocument();
       mockMapperService.buildNewDocumentRecord.mockResolvedValue(newDoc);
 
-      // Simulamos que el backend arroja un error
       mockDraftService.uploadDocument.mockReturnValue(throwError(() => new Error('Network error')));
 
       await facade.confirmUpload();
 
-      // Validamos que el backend sí intentó ser llamado
       expect(mockDraftService.uploadDocument).toHaveBeenCalled();
-      // Validamos que el servicio de notificaciones disparó un mensaje de tipo 'error'
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
     });
   });
@@ -267,7 +257,7 @@ describe('LoadedDocumentsPreliminaryDraftFacadeService', () => {
 
     it('debería mostrar error si se intenta descargar pero no existe una URL válida', () => {
       const mockRow: FileDocument & { allowedActions?: string[] } = {
-        ...createMockDocument({ name: 'documento', url: '' }), // URL inválida
+        ...createMockDocument({ name: 'documento', url: '' }),
         allowedActions: ['download']
       };
 

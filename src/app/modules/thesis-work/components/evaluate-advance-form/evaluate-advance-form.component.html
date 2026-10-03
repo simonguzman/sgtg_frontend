@@ -14,41 +14,41 @@
 
       <div class="flex flex-col gap-4">
 
-        <ng-template #readOnlyField let-label="label" let-value="value" let-isState="isState" let-isTextArea="isTextArea">
+        <ng-template #readOnlyField let-id="id" let-label="label" let-value="value" let-isState="isState" let-isTextArea="isTextArea">
           <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-primary text-size-section">{{ label }}</span>
+            <label [for]="id" class="font-display font-semibold text-primary text-size-section">{{ label }}</label>
             @if (isTextArea) {
-              <textarea [value]="value || 'Sin descripción disponible'" disabled rows="4"
+              <textarea [id]="id" [value]="value || 'Sin descripción disponible'" disabled rows="4"
                         class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 w-full cursor-not-allowed font-sans text-size-body resize-none"></textarea>
             } @else {
-              <input type="text" [value]="value" disabled
+              <input [id]="id" type="text" [value]="value" disabled
                      class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 w-full cursor-not-allowed font-sans text-size-body"
                      [class.font-medium]="isState" [class.capitalize]="isState">
             }
           </div>
         </ng-template>
 
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Título', value: thesisWork.preliminaryDraftData.proposalData.title }"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoTitle', label: 'Título', value: thesisWork.preliminaryDraftData.proposalData.title }"></ng-container>
 
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Descripción', value: thesisWork.preliminaryDraftData.proposalData.description, isTextArea: true }"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoDescription', label: 'Descripción', value: thesisWork.preliminaryDraftData.proposalData.description, isTextArea: true }"></ng-container>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Modalidad', value: thesisWork.preliminaryDraftData.proposalData.modality }"></ng-container>
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estudiante', value: getStudentNames() }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoModality', label: 'Modalidad', value: thesisWork.preliminaryDraftData.proposalData.modality }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoStudent', label: 'Estudiante', value: getStudentNames() }"></ng-container>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Director', value: getDirectorName() }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoDirector', label: 'Director', value: getDirectorName() }"></ng-container>
           @if (getCodirectorName()) {
-            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Codirector', value: getCodirectorName() }"></ng-container>
+            <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoCodirector', label: 'Codirector', value: getCodirectorName() }"></ng-container>
           }
         </div>
 
         @if (getAdvisorName()) {
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Asesor', value: getAdvisorName() }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoAdvisor', label: 'Asesor', value: getAdvisorName() }"></ng-container>
         }
 
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estado del proyecto', value: thesisWork.state, isState: true }"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoState', label: 'Estado del proyecto', value: thesisWork.state, isState: true }"></ng-container>
 
       </div>
     </section>
@@ -60,14 +60,14 @@
 
       <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Nombre del avance</span>
-          <input type="text" [value]="advanceData.title || ''" disabled
+          <label for="advanceTitle" class="font-display font-semibold text-primary text-size-section">Nombre del avance</label>
+          <input id="advanceTitle" type="text" [value]="advanceData.title || ''" disabled
                  class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-sans text-size-body">
         </div>
 
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Comentarios del estudiante</span>
-          <textarea rows="4" [value]="advanceData.comments || ''" disabled
+          <label for="advanceComments" class="font-display font-semibold text-primary text-size-section">Comentarios del estudiante</label>
+          <textarea id="advanceComments" rows="4" [value]="advanceData.comments || ''" disabled
                     class="information-block p-3 border border-gray-200 rounded-md w-full bg-gray-50 text-[#777680] cursor-not-allowed font-sans resize-none text-size-body"></textarea>
         </div>
 
@@ -117,11 +117,11 @@
         </div>
 
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-size-section title-textbox">
+          <label for="evaluationComments" class="font-display font-semibold text-size-section title-textbox">
             Comentarios <span class="text-[#ED7D31]">*</span>
-          </span>
+          </label>
 
-          <textarea formControlName="comments" rows="4"
+          <textarea id="evaluationComments" formControlName="comments" rows="4"
                     class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 font-sans resize-none"
                     [ngClass]="{
                       'bg-gray-50': isReadOnly,

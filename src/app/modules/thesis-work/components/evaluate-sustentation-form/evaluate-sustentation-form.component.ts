@@ -29,14 +29,14 @@ export class EvaluateSustentationFormComponent {
 
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
-  @Output() onSave         = new EventEmitter<{ payload: SustentationEvaluationPayload; file: File }>();
-  @Output() onBack         = new EventEmitter<void>();
+  @Output() onSave = new EventEmitter<{ payload: SustentationEvaluationPayload; file: File }>();
+  @Output() onBack = new EventEmitter<void>();
   @Output() onDownloadFile = new EventEmitter<FileDocument>();
 
-  readonly verdictSelected   = signal<SustentationVeredict | null>(null);
-  readonly observations      = signal<string>('');
-  readonly uploadedFormat    = signal<{ fileName: string; file: File } | null>(null);
-  readonly isModalOpen       = signal<boolean>(false);
+  readonly verdictSelected = signal<SustentationVeredict | null>(null);
+  readonly observations = signal<string>('');
+  readonly uploadedFormat = signal<{ fileName: string; file: File } | null>(null);
+  readonly isModalOpen = signal<boolean>(false);
   readonly isSubmitAttempted = signal<boolean>(false);
 
   get states(): typeof stateList { return stateList; }
@@ -45,7 +45,6 @@ export class EvaluateSustentationFormComponent {
     return this.thesisWork?.sustentations?.[0] ?? null;
   }
 
-  // ← Simplificados: delegan directo al servicio con el ThesisWork completo
   getStudentNames(): string   { return this.formService.getStudentNames(this.thesisWork); }
   getDirectorName(): string   { return this.formService.getDirectorName(this.thesisWork); }
   getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
@@ -56,8 +55,8 @@ export class EvaluateSustentationFormComponent {
     return this.formService.getExistingDocument(this.thesisWork, type);
   }
 
-  downloadDocument(doc: FileDocument | null | undefined): void {
-    if (doc) this.onDownloadFile.emit(doc);
+  downloadDocument(document: FileDocument | null | undefined): void {
+    if (document) this.onDownloadFile.emit(document);
   }
 
   onObservationsChange(event: Event): void {
@@ -74,7 +73,7 @@ export class EvaluateSustentationFormComponent {
 
   submit(): void {
     this.isSubmitAttempted.set(true);
-    const verdict  = this.verdictSelected();
+    const verdict = this.verdictSelected();
     const fileData = this.uploadedFormat();
 
     if (!verdict) { this.formService.notifyMissingVerdict(); return; }

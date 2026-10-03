@@ -1,7 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { of, throwError } from 'rxjs';
-
 import { PreliminaryDraftFacadeService } from './preliminary-draft-facade.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
@@ -12,7 +11,6 @@ import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interfac
 import { User } from '../../../../users/interfaces/user.interface';
 import { PreliminaryDraftTableRow } from '../models/preliminary-draft-page.model';
 
-// 🔹 REFACTOR: Fábricas para generar datos limpios y tipados
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
   roles: [],
@@ -22,7 +20,6 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
 const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
   preliminaryDraftId: '1',
   isArchived: false,
-  // Tipado estricto accediendo a la propiedad real de la interfaz
   proposalData: { createdAt: new Date() } as PreliminaryDraft['proposalData'],
   ...overrides
 } as PreliminaryDraft);
@@ -41,7 +38,6 @@ const createMockTableRow = (overrides: Partial<PreliminaryDraftTableRow> = {}): 
 describe('PreliminaryDraftFacadeService', () => {
   let service: PreliminaryDraftFacadeService;
 
-  // 🔹 REFACTOR: Tipados estrictos estructurales sin 'Partial'
   let mockPreliminaryDraftService: {
     preliminaryDrafts: WritableSignal<PreliminaryDraft[]>;
     deleteDraft: jest.Mock;
@@ -61,7 +57,6 @@ describe('PreliminaryDraftFacadeService', () => {
   };
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -86,7 +81,6 @@ describe('PreliminaryDraftFacadeService', () => {
     TestBed.configureTestingModule({
       providers: [
         PreliminaryDraftFacadeService,
-        // Asignación limpia sin usar 'as unknown as Type'
         { provide: PreliminaryDraftService, useValue: mockPreliminaryDraftService },
         { provide: AuthService, useValue: mockAuthService },
         { provide: NotificationService, useValue: mockNotificationService },
@@ -99,7 +93,7 @@ describe('PreliminaryDraftFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones originales de la consola
+    jest.restoreAllMocks();
   });
 
   describe('Señal Computada: tableData', () => {
@@ -155,7 +149,6 @@ describe('PreliminaryDraftFacadeService', () => {
 
       service.deleteDraft('1', onSuccess, onError);
 
-      // Verificamos que se haya notificado el error
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: NotificationType.ERROR }));
       expect(onError).toHaveBeenCalled();
       expect(onSuccess).not.toHaveBeenCalled();

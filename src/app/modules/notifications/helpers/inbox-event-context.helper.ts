@@ -1,11 +1,5 @@
 import { InboxEventContext, InboxEventPayload } from '../pages/notifications-page/models/inbox-event-context.model';
 
-/**
- * Extrae título e ID del nivel correcto del payload, sin importar de qué
- * evento venga (propuesta, anteproyecto o trabajo de grado). Se centraliza
- * aquí porque este bloque de fallbacks anidados era la parte menos legible
- * del procesador original — separarlo permite testearlo de forma aislada.
- */
 export function extractInboxEventContext(payload: InboxEventPayload): InboxEventContext {
   const proposalTitle =
     payload.title ||
@@ -20,9 +14,6 @@ export function extractInboxEventContext(payload: InboxEventPayload): InboxEvent
     payload.draftTitle ||
     (proposalTitle !== 'Propuesta sin título' ? proposalTitle : 'Anteproyecto sin título');
 
-  // ← FIX: se elimina `payload?.thesisTitle ||` duplicado — aparecía dos
-  // veces en el original. La segunda ocurrencia era código muerto
-  // inalcanzable (si la primera evaluó falsy, la segunda también lo hace).
   const thesisTitle =
     payload.thesisTitle ||
     payload.preliminaryDraftData?.proposalData?.title ||

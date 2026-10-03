@@ -33,7 +33,7 @@ export const CorrespondenceTabConfig: TabConfiguration<CorrespondenceTableRow> =
     if (!thesis) return baseContext;
 
     const hasCorrespondence = thesis.documents?.some(
-      (doc: FileDocument) => doc.type === DocumentType.FORMATO_H
+      (document: FileDocument) => document.type === DocumentType.FORMATO_H
     ) ?? false;
 
     return { ...baseContext, hasCorrespondence };
@@ -43,16 +43,16 @@ export const CorrespondenceTabConfig: TabConfiguration<CorrespondenceTableRow> =
     if (!documents) return [];
 
     const correspondenceDocs = documents.filter(
-      (doc: FileDocument) => doc.type === DocumentType.FORMATO_H
+      (document: FileDocument) => document.type === DocumentType.FORMATO_H
     );
 
-    return correspondenceDocs.map((doc): CorrespondenceTableRow => ({
-      id: doc.id,
-      name: doc.name,
-      date: doc.uploadDate || 'Sin fecha',
-      status: doc.status || stateList.APROBADO,
+    return correspondenceDocs.map((document): CorrespondenceTableRow => ({
+      id: document.id,
+      name: document.name,
+      date: document.uploadDate || 'Sin fecha',
+      status: document.status || stateList.APROBADO,
       allowedActions: ['view-details'],
-      url: doc.url
+      url: document.url
     }));
   },
 

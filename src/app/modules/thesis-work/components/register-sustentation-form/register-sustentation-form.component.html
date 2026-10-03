@@ -12,30 +12,30 @@
       </h3>
 
       <div class="flex flex-col gap-4">
-        <ng-template #readOnlyField let-label="label" let-value="value">
+        <ng-template #readOnlyField let-id="id" let-label="label" let-value="value">
           <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-primary text-size-section">
+            <label [for]="id" class="font-display font-semibold text-primary text-size-section">
               {{ label }}
-            </span>
-            <input type="text" [value]="value || ''" disabled
+            </label>
+            <input [id]="id" type="text" [value]="value || ''" disabled
                    class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
           </div>
         </ng-template>
 
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Título', value: thesisWork().preliminaryDraftData.proposalData.title }"></ng-container>
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Descripción', value: thesisWork().preliminaryDraftData.proposalData.description}"></ng-container>
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Modalidad del trabajo de grado', value: thesisWork().preliminaryDraftData.proposalData.modality }"></ng-container>
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estudiante', value: getStudentNames() }"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'thesisTitle', label: 'Título', value: thesisWork().preliminaryDraftData.proposalData.title }"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'thesisDescription', label: 'Descripción', value: thesisWork().preliminaryDraftData.proposalData.description}"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'thesisModality', label: 'Modalidad del trabajo de grado', value: thesisWork().preliminaryDraftData.proposalData.modality }"></ng-container>
+        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'thesisStudent', label: 'Estudiante', value: getStudentNames() }"></ng-container>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Director', value: getDirectorName() }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'thesisDirector', label: 'Director', value: getDirectorName() }"></ng-container>
           @if (thesisWork().preliminaryDraftData.proposalData.codirector) {
-            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Codirector', value: getCodirectorName() }"></ng-container>
+            <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'thesisCodirector', label: 'Codirector', value: getCodirectorName() }"></ng-container>
           }
         </div>
 
         @if (thesisWork().preliminaryDraftData.proposalData.advisor) {
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Asesor', value: getAdvisorName() }"></ng-container>
+          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'thesisAdvisor', label: 'Asesor', value: getAdvisorName() }"></ng-container>
         }
       </div>
     </section>
@@ -52,11 +52,12 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
           <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-size-section text-primary">
+            <label for="sustentationDate" class="font-display font-semibold text-size-section text-primary">
               Fecha y Hora de la Sustentación <span class="text-[#ED7D31]">*</span>
-            </span>
+            </label>
 
             <p-datepicker
+              inputId="sustentationDate"
               formControlName="sustentationDate"
               [showTime]="true"
               hourFormat="12"
@@ -71,10 +72,10 @@
           </div>
 
           <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-size-section text-primary">
+            <label for="location" class="font-display font-semibold text-size-section text-primary">
               Lugar / Aula / Enlace <span class="text-[#ED7D31]">*</span>
-            </span>
-            <input type="text" formControlName="location" placeholder="Ej. Auditorio Principal o Enlace de Teams"
+            </label>
+            <input id="location" type="text" formControlName="location" placeholder="Ej. Auditorio Principal o Enlace de Teams"
                    class="text-size-body p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary bg-white"
                    [class.border-[#ED7D31]]="isFieldInvalid('location')"
                    [class.bg-orange-50]="isFieldInvalid('location')"
@@ -89,9 +90,9 @@
 
           <!-- AQUI INICIAN LOS CAMBIOS: Primer Jurado -->
           <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-size-section text-primary">
+            <label for="juror1" class="font-display font-semibold text-size-section text-primary">
               Primer Jurado (Docente) <span class="text-[#ED7D31]">*</span>
-            </span>
+            </label>
             <div class="relative flex items-center w-full">
               <app-searchable-select
                 id="juror1"
@@ -110,9 +111,9 @@
 
           <!-- AQUI INICIAN LOS CAMBIOS: Segundo Jurado -->
           <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-size-section text-primary">
+            <label for="juror2" class="font-display font-semibold text-size-section text-primary">
               Segundo Jurado (Docente) <span class="text-[#ED7D31]">*</span>
-            </span>
+            </label>
             <div class="relative flex items-center w-full">
               <app-searchable-select
                 id="juror2"

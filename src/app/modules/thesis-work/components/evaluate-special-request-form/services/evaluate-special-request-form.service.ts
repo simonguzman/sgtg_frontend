@@ -7,26 +7,26 @@ import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 @Injectable()
 export class EvaluateSpecialRequestFormService {
   private readonly notificationService = inject(NotificationService);
-  private readonly participants        = inject(ThesisParticipantsFormatterService);
+  private readonly participants = inject(ThesisParticipantsFormatterService);
 
-  getStudentNames(thesisWork: ThesisWork): string   { return this.participants.getStudentNames(thesisWork); }
-  getDirectorName(thesisWork: ThesisWork): string   { return this.participants.getDirectorName(thesisWork); }
+  getStudentNames(thesisWork: ThesisWork): string { return this.participants.getStudentNames(thesisWork); }
+  getDirectorName(thesisWork: ThesisWork): string { return this.participants.getDirectorName(thesisWork); }
   getCodirectorName(thesisWork: ThesisWork): string { return this.participants.getCodirectorName(thesisWork); }
-  getAdvisorName(thesisWork: ThesisWork): string     { return this.participants.getAdvisorName(thesisWork); }
+  getAdvisorName(thesisWork: ThesisWork): string { return this.participants.getAdvisorName(thesisWork); }
 
   notifyMissingVerdict(): void {
     this.notificationService.show({
-      title:   'Falta calificación',
+      title: 'Falta calificación',
       message: 'Debe seleccionar si la solicitud cumple o no con los requisitos.',
-      type:    NotificationType.ERROR
+      type: NotificationType.ERROR
     });
   }
 
   notifyMissingDeadline(): void {
     this.notificationService.show({
-      title:   'Fecha requerida',
+      title: 'Fecha requerida',
       message: 'Debe asignar la nueva fecha límite de entrega para autorizar la solicitud.',
-      type:    NotificationType.ERROR
+      type: NotificationType.ERROR
     });
   }
 }

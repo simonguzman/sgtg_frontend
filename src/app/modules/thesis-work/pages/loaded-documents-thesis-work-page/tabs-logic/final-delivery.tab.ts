@@ -16,11 +16,6 @@ interface FinalDeliveryTableRow {
 }
 
 export const FinalDeliveryTabConfig: TabConfiguration<FinalDeliveryTableRow> = {
-  // ← FIX: antes decía 'FORMATO_E', que no coincide con la clave real
-  // ('ENTREGA FINAL') que usa tabStrategies en el componente principal.
-  // Hoy este campo no se lee en ningún lado, así que era inofensivo — pero
-  // queda alineado por si algún día se reconstruye tabStrategies a partir
-  // de un arreglo de configs usando este campo como clave.
   tabValue: 'ENTREGA FINAL',
   headerActionRoute: 'register_final_delivery',
   columns: [
@@ -53,15 +48,13 @@ export const FinalDeliveryTabConfig: TabConfiguration<FinalDeliveryTableRow> = {
     const isThesisNoAprobado = context.thesisWork?.state === stateList.NO_APROBADO;
 
     return deliveries.map((delivery: FinalDelivery): FinalDeliveryTableRow => {
-      // ← Reemplaza la reimplementación inline de formatThesisDate.
-      // Nota: si uploadDate ya llega como string, se propaga tal cual sin
-      // reformatear (igual que hacía el código original); solo se llama
-      // formatThesisDate cuando es un objeto Date real.
-      const formattedDate = !delivery.uploadDate
-        ? 'Sin fecha'
-        : typeof delivery.uploadDate === 'string'
+      let formattedDate = 'Sin fecha';
+
+      if (delivery.uploadDate) {
+        formattedDate = typeof delivery.uploadDate === 'string'
           ? delivery.uploadDate
           : formatThesisDate(delivery.uploadDate);
+      }
 
       const currentStatus = isThesisNoAprobado
         ? stateList.NO_APROBADO
@@ -82,7 +75,6 @@ export const FinalDeliveryTabConfig: TabConfiguration<FinalDeliveryTableRow> = {
     if (context.isArchived) return [];
     const buttons: TableButton[] = [];
     const thesis = context.thesisWork;
-    // ← Antes: context['hasFinalDelivery'] as boolean ?? false
     const hasFinalDelivery = context.hasFinalDelivery ?? false;
     const isSuspendedOrCanceled = context.isSuspendedOrCanceled ?? false;
     const isNotApproved = thesis?.state === stateList.NO_APROBADO;

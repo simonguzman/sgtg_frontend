@@ -2,7 +2,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { signal, WritableSignal, Component, Input, Output, EventEmitter } from '@angular/core';
-
 import { HistoryPageComponent } from './history-page.component';
 import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
@@ -12,13 +11,9 @@ import { ArchivedThesisWorksTabService } from './services/archived-thesis-works-
 import { HISTORY_DETAIL_ROUTES } from './models/history-page.model';
 import { User } from '../../../users/interfaces/user.interface';
 import { HistoryEvaluationContext } from '../../interfaces/history-evaluation-context.interface';
-
-// ── Componentes Originales a Remover ─────────────────────────────────────────
 import { TabsComponent } from '../../../../shared/components/tabs/tabs.component';
 import { TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { DescriptionModalComponent } from '../../../../shared/components/modals/description-modal/description-modal.component';
-
-// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
 
 @Component({ selector: 'app-tabs', standalone: true, template: '' })
 class MockTabsComponent {
@@ -44,8 +39,6 @@ class MockDescriptionModalComponent {
   @Output() onClose = new EventEmitter<void>();
 }
 
-// ── Tipados Estrictos para Mocks (Zero 'any' o 'unknown') ────────────────────
-
 interface MockHistoryTabConfiguration {
   tabValue: string;
   columns: Array<{ field: string; header: string }>;
@@ -55,8 +48,6 @@ interface MockHistoryTabConfiguration {
 describe('HistoryPageComponent', () => {
   let component: HistoryPageComponent;
   let fixture: ComponentFixture<HistoryPageComponent>;
-
-  // Dependencias core con interfaces estrictas
   let mockRouter: { navigate: jest.Mock };
   let mockRoute: Partial<ActivatedRoute>;
   let mockTitleService: { setTitle: jest.Mock };
@@ -72,18 +63,16 @@ describe('HistoryPageComponent', () => {
     hasAnyRole: jest.Mock<boolean, [string[]]>;
   };
 
-  // Mocks de estrategias
   let mockProposalsTab: MockHistoryTabConfiguration;
-  let mockDraftsTab: MockHistoryTabConfiguration;
+  let mockPreliminaryDraftsTab: MockHistoryTabConfiguration;
   let mockThesisWorksTab: MockHistoryTabConfiguration;
 
   beforeEach(async () => {
-    // 🔕 Silenciar los console.error y console.warn
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     mockRouter = { navigate: jest.fn() };
-    mockRoute = {}; // Referencia vacía suficiente para relativeTo
+    mockRoute = {};
     mockTitleService = { setTitle: jest.fn() };
 
     mockBreadcrumbService = {
@@ -99,14 +88,13 @@ describe('HistoryPageComponent', () => {
       hasAnyRole: jest.fn().mockReturnValue(true),
     };
 
-    // Mocks de estrategias de pestañas (Polimorfismo)
     mockProposalsTab = {
       tabValue: 'PROPUESTAS',
       columns: [{ field: 'id', header: 'ID' }],
       getTableData: jest.fn().mockReturnValue([{ id: 'prop-1' }]),
     };
 
-    mockDraftsTab = {
+    mockPreliminaryDraftsTab = {
       tabValue: 'ANTEPROYECTOS',
       columns: [{ field: 'title', header: 'Título' }],
       getTableData: jest.fn().mockReturnValue([{ id: 'draft-1' }]),
@@ -127,7 +115,7 @@ describe('HistoryPageComponent', () => {
         { provide: BreadcrumbService, useValue: mockBreadcrumbService },
         { provide: AuthService, useValue: mockAuthService },
         { provide: ArchivedProposalsTabService, useValue: mockProposalsTab },
-        { provide: ArchivedPreliminaryDraftsTabService, useValue: mockDraftsTab },
+        { provide: ArchivedPreliminaryDraftsTabService, useValue: mockPreliminaryDraftsTab },
         { provide: ArchivedThesisWorksTabService, useValue: mockThesisWorksTab },
       ],
     })
@@ -147,7 +135,7 @@ describe('HistoryPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización y Signals Computed', () => {
@@ -157,7 +145,6 @@ describe('HistoryPageComponent', () => {
 
     it('debería calcular el evaluationContext correctamente basándose en los roles del usuario', () => {
       const context = component.evaluationContext();
-
       expect(context.currentUser?.id).toBe('user-1');
       expect(context.hasGlobalAccess).toBe(true);
       expect(mockAuthService.hasAnyRole).toHaveBeenCalledWith([
@@ -177,29 +164,21 @@ describe('HistoryPageComponent', () => {
 
     it('debería reevaluar dinámicamente las columnas y datos al cambiar de pestaña', () => {
       component.activeTab.set('ANTEPROYECTOS');
-
-      expect(component.currentColumns()).toEqual(mockDraftsTab.columns);
+      expect(component.currentColumns()).toEqual(mockPreliminaryDraftsTab.columns);
       expect(component.currentTableData()).toEqual([{ id: 'draft-1' }]);
-      expect(mockDraftsTab.getTableData).toHaveBeenCalledWith(component.evaluationContext());
+      expect(mockPreliminaryDraftsTab.getTableData).toHaveBeenCalledWith(component.evaluationContext());
     });
   });
 
   describe('Effects: Title y Breadcrumbs', () => {
-    // FIX CENTRAL: Eliminado fakeAsync. Usamos async/await + fixture.whenStable()
-    // Esto previene que el zone.js atrape el effect de los Signals de forma errática.
     it('debería actualizar el breadcrumb y title dinámicamente usando effect y setTimeout', async () => {
-      fixture.detectChanges(); // Ejecuta el primer effect al inicializar
-      await fixture.whenStable(); // Espera a que se vacíe la cola asíncrona real
-
-      // Limpiamos las llamadas de inicialización
+      fixture.detectChanges();
+      await fixture.whenStable();
       mockBreadcrumbService.setDynamicBreadcrumb.mockClear();
       mockBreadcrumbService.setDynamicTitle.mockClear();
-
-      // Cambio de estado reactivo
       component.activeTab.set('ANTEPROYECTOS');
-      fixture.detectChanges(); // Dispara la reactividad del effect
-      await fixture.whenStable(); // Resuelve el nuevo setTimeout
-
+      fixture.detectChanges();
+      await fixture.whenStable();
       expect(mockBreadcrumbService.setDynamicBreadcrumb).toHaveBeenCalled();
       expect(mockBreadcrumbService.setDynamicTitle).toHaveBeenCalled();
     });
@@ -219,7 +198,6 @@ describe('HistoryPageComponent', () => {
 
     it('debería abrir el modal descriptivo con la información correcta en acción "ver descripcion"', () => {
       component.handleTableAction({ action: 'ver descripcion', row: mockRow });
-
       const modalState = component.descriptionModal();
       expect(modalState.show).toBe(true);
       expect(modalState.content).toBe('Descripción de prueba');
@@ -227,7 +205,6 @@ describe('HistoryPageComponent', () => {
 
     it('debería proveer un texto por defecto si el registro no tiene descripción', () => {
       component.handleTableAction({ action: 'ver descripcion', row: { id: 'reg-456' } });
-
       const modalState = component.descriptionModal();
       expect(modalState.content).toBe('No hay descripción disponible para este registro.');
     });
@@ -235,9 +212,7 @@ describe('HistoryPageComponent', () => {
     it('debería navegar correctamente utilizando el mapa de rutas al ejecutar "ver"', () => {
       component.activeTab.set('PROPUESTAS');
       const expectedRouteSegment = HISTORY_DETAIL_ROUTES['PROPUESTAS'];
-
       component.handleTableAction({ action: 'ver', row: mockRow });
-
       expect(mockRouter.navigate).toHaveBeenCalledWith(
         [expectedRouteSegment, 'registro-123'],
         { relativeTo: mockRoute }
@@ -245,10 +220,7 @@ describe('HistoryPageComponent', () => {
     });
 
     it('debería emitir un warning en consola si la acción no está manejada en el switch', () => {
-      // Como ya silenciamos el console.warn en el beforeEach,
-      // simplemente afirmamos que el espía haya sido llamado.
       component.handleTableAction({ action: 'accion_desconocida', row: mockRow });
-
       expect(mockRouter.navigate).not.toHaveBeenCalled();
       expect(console.warn).toHaveBeenCalledWith('Acción no manejada en historial: accion_desconocida');
     });

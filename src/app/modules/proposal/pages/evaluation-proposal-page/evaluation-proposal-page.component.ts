@@ -12,7 +12,7 @@ import { EvaluationProposalFormComponent } from '../../components/evaluation-pro
   templateUrl: './evaluation-proposal-page.component.html'
 })
 export class EvaluationProposalPageComponent implements OnInit {
-  private readonly route    = inject(ActivatedRoute);
+  private readonly route = inject(ActivatedRoute);
   private readonly location = inject(Location);
   protected readonly facade = inject(EvaluationProposalFacadeService);
 
@@ -30,19 +30,11 @@ export class EvaluationProposalPageComponent implements OnInit {
     );
   }
 
-  // ← void agregado: downloadOriginalDocument() ahora es async (fix del
-  // turno anterior). Mismo patrón de "void explícito" ya usado en el
-  // resto de páginas — el facade maneja éxito/error con sus propias
-  // notificaciones, aquí no hace falta esperar el resultado.
   downloadOriginalDocument(): void {
     const proposal = this.proposal();
     if (proposal) void this.facade.downloadOriginalDocument(proposal);
   }
 
-  // ← FIX CENTRAL: la firma cambia de { result, comments, signedFileName }
-  // a SaveProposalEvaluationEvent ({ result, comments, file: File }).
-  // Sin este cambio el proyecto simplemente no compila — el facade ya
-  // exige un File real desde el turno anterior.
   handleSaveEvaluation(event: SaveProposalEvaluationEvent): void {
     const proposal = this.proposal();
     if (!proposal) return;

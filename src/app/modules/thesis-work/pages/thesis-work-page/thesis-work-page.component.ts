@@ -20,8 +20,6 @@ export class ThesisWorkPageComponent {
   protected readonly columns = THESIS_WORK_COLUMNS;
   protected readonly filterFields = ['title', 'modality', 'state', 'maxDeliveryDate', 'hiddenParticipants'];
 
-  // ← Fix: de objetos planos mutables a signal(), mismo patrón aplicado
-  // en ProposalPageComponent hace varios turnos.
   readonly descriptionModal = signal({ show: false, title: '', content: '' });
   readonly reactivateState  = signal({ show: false, id: null as string | null, loading: false });
 

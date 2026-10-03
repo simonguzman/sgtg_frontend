@@ -1,8 +1,5 @@
-// 1. Angular y Configuración
 import { FinalDeliveryTabConfig } from './final-delivery.tab';
 import { ThesisEvaluationContext } from './tab-config.interface';
-
-// 2. Interfaces y Enums
 import { stateList } from '../../../../../core/enums/state.enum';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
@@ -12,14 +9,11 @@ import { IdentificationType } from '../../../../users/enum/identification-type.e
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { FinalDelivery } from '../../../interfaces/final-delivery.interface';
 import { Modality } from '../../../../proposal/enums/modality.enum';
+import { formatThesisDate } from '../../../helpers/thesis-date.helper';
 
-// ── Mapeo de Mocks Globales (Hoisted por Jest) ──────────────────────────────
 jest.mock('../../../helpers/thesis-date.helper', () => ({
   formatThesisDate: jest.fn().mockReturnValue('15/08/2026')
 }));
-import { formatThesisDate } from '../../../helpers/thesis-date.helper';
-
-// ── Funciones Fábrica fuertemente tipadas (Cero 'any') ───────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -59,7 +53,6 @@ const createMockFinalDelivery = (overrides: Partial<FinalDelivery> = {}): FinalD
 const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
   const baseUser = createMockUser();
 
-  // Construcción estricta para evitar el 'as any'
   const mockDraftData: NonNullable<ThesisWork['preliminaryDraftData']> = {
     preliminaryDraftId: 'draft-1',
     proposalId: 'prop-1',
@@ -92,7 +85,7 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
     sustentations: [],
     advances: [],
     finalDeliveries: [],
-    pazYSalvos: [], // Agregado para homogeneidad con las otras fábricas
+    pazYSalvos: [],
     state: stateList.EN_DESARROLLO,
     createdDate: new Date(),
     isArchived: false,
@@ -118,25 +111,21 @@ const createMockEvaluationContext = (overrides: Partial<ThesisEvaluationContext>
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('FinalDeliveryTabConfig', () => {
   let baseContext: ThesisEvaluationContext;
 
   beforeEach(() => {
-    // 🔕 Silenciador preventivo global de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'log').mockImplementation(() => {});
 
     jest.clearAllMocks();
 
-    // Contexto base restaurado antes de cada prueba mediante la fábrica
     baseContext = createMockEvaluationContext();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Propiedades Estáticas y Configuración', () => {
@@ -217,7 +206,7 @@ describe('FinalDeliveryTabConfig', () => {
 
       expect(rows).toHaveLength(1);
       expect(rows[0].name).toBe('Entrega Final - Monografía Final');
-      expect(rows[0].uploadDate).toBe('15/08/2026'); // Valor del mock de formatThesisDate
+      expect(rows[0].uploadDate).toBe('15/08/2026');
       expect(formatThesisDate).toHaveBeenCalledWith(dateObj);
       expect(rows[0].status).toBe(stateList.APROBADO);
     });
@@ -228,7 +217,6 @@ describe('FinalDeliveryTabConfig', () => {
         status: stateList.EN_REVISION
       });
 
-      // Simulación segura para probar resiliencia en runtime sin romper el compilador TS
       mockDelivery.uploadDate = '2026-08-01' as unknown as Date;
 
       baseContext.thesisWork = createMockThesisWork({ finalDeliveries: [mockDelivery] });
@@ -242,9 +230,9 @@ describe('FinalDeliveryTabConfig', () => {
     it('debe asignar "Sin fecha" si uploadDate es falsy y manejar fallbacks de nombres', () => {
       const mockDelivery = createMockFinalDelivery({
         id: 'delivery-3',
-        uploadDate: undefined, // Ausencia intencional
-        monograph: undefined,  // Ausencia intencional para fallback de nombre
-        status: undefined      // Ausencia intencional para fallback de status
+        uploadDate: undefined,
+        monograph: undefined,
+        status: undefined
       });
 
       baseContext.thesisWork = createMockThesisWork({ finalDeliveries: [mockDelivery] });
@@ -252,14 +240,14 @@ describe('FinalDeliveryTabConfig', () => {
       const rows = FinalDeliveryTabConfig.getTableData(dummyDocs, baseContext);
 
       expect(rows[0].uploadDate).toBe('Sin fecha');
-      expect(rows[0].name).toBe('Entrega Final - Documentación'); // Valida el fallback del nombre
-      expect(rows[0].status).toBe(stateList.EN_REVISION); // Valida el estado fallback
+      expect(rows[0].name).toBe('Entrega Final - Documentación');
+      expect(rows[0].status).toBe(stateList.EN_REVISION);
     });
 
     it('debe forzar el estado de la fila a NO_APROBADO si la tesis completa está en estado NO_APROBADO', () => {
       const mockDelivery = createMockFinalDelivery({
         id: 'delivery-4',
-        status: stateList.APROBADO // Debería ser sobreescrito por el estado general de la tesis
+        status: stateList.APROBADO
       });
 
       baseContext.thesisWork = createMockThesisWork({
@@ -276,7 +264,7 @@ describe('FinalDeliveryTabConfig', () => {
   describe('getHeaderButtons', () => {
     it('debe retornar array vacío si la tesis está archivada, independientemente del rol', () => {
       baseContext.isArchived = true;
-      baseContext.isDirector = true; // Intentamos forzar con un rol autorizado
+      baseContext.isDirector = true;
 
       const buttons = FinalDeliveryTabConfig.getHeaderButtons(baseContext);
 
@@ -286,7 +274,7 @@ describe('FinalDeliveryTabConfig', () => {
     it('debe retornar array vacío si el usuario no es Director ni Admin', () => {
       baseContext.isDirector = false;
       baseContext.isAdmin = false;
-      baseContext.isStudent = true; // Rol no autorizado para este botón
+      baseContext.isStudent = true;
 
       const buttons = FinalDeliveryTabConfig.getHeaderButtons(baseContext);
 

@@ -1,15 +1,8 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
 import { of, throwError, Observable } from 'rxjs';
-
-// 2. Servicio a probar
 import { UploadFinalDeliveryFacadeService } from './upload-final-delivery-facade.service';
-
-// 3. Dependencias (Servicios)
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
-
-// 4. Interfaces y Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { User } from '../../../../users/interfaces/user.interface';
@@ -17,8 +10,6 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
-
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown', 'DeepPartial') ────────
 
 interface MockThesisWorkService {
   getThesisWorkByIdMock: jest.Mock<Observable<ThesisWork | null>, [string]>;
@@ -28,8 +19,6 @@ interface MockThesisWorkService {
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -81,24 +70,18 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('UploadFinalDeliveryFacadeService', () => {
   let service: UploadFinalDeliveryFacadeService;
 
-  // Tipado estricto de espías sin usar casteos 'unknown'
   let thesisWorkServiceSpy: MockThesisWorkService;
   let notificationServiceSpy: MockNotificationService;
 
-  // Fábrica en lugar de DeepPartial
   const mockThesis = createMockThesisWork({ thesisWorkId: 'thesis-123' });
 
   beforeEach(() => {
-    // 🔕 Silenciar consola como medida preventiva
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Arrange general: Inicialización de espías estrictos
     thesisWorkServiceSpy = {
       getThesisWorkByIdMock: jest.fn(),
       uploadFinalDeliveryMock: jest.fn()
@@ -121,35 +104,29 @@ describe('UploadFinalDeliveryFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Carga de Trabajo de Grado (loadThesisWork)', () => {
     it('debe ejecutar onSuccess cuando se encuentra la tesis', () => {
-      // Arrange
       thesisWorkServiceSpy.getThesisWorkByIdMock.mockReturnValue(of(mockThesis));
       const onSuccessSpy = jest.fn();
       const onNotFoundSpy = jest.fn();
 
-      // Act
       service.loadThesisWork('thesis-123', onSuccessSpy, onNotFoundSpy);
 
-      // Assert
       expect(thesisWorkServiceSpy.getThesisWorkByIdMock).toHaveBeenCalledWith('thesis-123');
       expect(onSuccessSpy).toHaveBeenCalledWith(mockThesis);
       expect(onNotFoundSpy).not.toHaveBeenCalled();
     });
 
     it('debe notificar "No encontrado" y ejecutar onNotFound si los datos son nulos/indefinidos', () => {
-      // Arrange
       thesisWorkServiceSpy.getThesisWorkByIdMock.mockReturnValue(of(null));
       const onSuccessSpy = jest.fn();
       const onNotFoundSpy = jest.fn();
 
-      // Act
       service.loadThesisWork('invalid-id', onSuccessSpy, onNotFoundSpy);
 
-      // Assert
       expect(onNotFoundSpy).toHaveBeenCalled();
       expect(onSuccessSpy).not.toHaveBeenCalled();
       expect(notificationServiceSpy.show).toHaveBeenCalledWith({
@@ -160,15 +137,12 @@ describe('UploadFinalDeliveryFacadeService', () => {
     });
 
     it('debe notificar "Error de conexión" y ejecutar onNotFound en caso de error HTTP/Observable', () => {
-      // Arrange
       thesisWorkServiceSpy.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('Net Error')));
       const onSuccessSpy = jest.fn();
       const onNotFoundSpy = jest.fn();
 
-      // Act
       service.loadThesisWork('thesis-123', onSuccessSpy, onNotFoundSpy);
 
-      // Assert
       expect(onNotFoundSpy).toHaveBeenCalled();
       expect(onSuccessSpy).not.toHaveBeenCalled();
       expect(notificationServiceSpy.show).toHaveBeenCalledWith({
@@ -187,15 +161,12 @@ describe('UploadFinalDeliveryFacadeService', () => {
     };
 
     it('debe notificar éxito y llamar a onSuccess cuando se guarda la entrega correctamente', () => {
-      // Arrange
       thesisWorkServiceSpy.uploadFinalDeliveryMock.mockReturnValue(of(void 0));
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
 
-      // Act
       service.processFinalDelivery('thesis-123', mockFiles, onSuccessSpy, onErrorSpy);
 
-      // Assert
       expect(thesisWorkServiceSpy.uploadFinalDeliveryMock).toHaveBeenCalledWith(
         'thesis-123',
         mockFiles.monograph,
@@ -212,15 +183,12 @@ describe('UploadFinalDeliveryFacadeService', () => {
     });
 
     it('debe notificar error y llamar a onError si falla la carga de la entrega', () => {
-      // Arrange
       thesisWorkServiceSpy.uploadFinalDeliveryMock.mockReturnValue(throwError(() => new Error('Error de servidor')));
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
 
-      // Act
       service.processFinalDelivery('thesis-123', mockFiles, onSuccessSpy, onErrorSpy);
 
-      // Assert
       expect(onErrorSpy).toHaveBeenCalled();
       expect(onSuccessSpy).not.toHaveBeenCalled();
       expect(notificationServiceSpy.show).toHaveBeenCalledWith({
@@ -233,10 +201,8 @@ describe('UploadFinalDeliveryFacadeService', () => {
 
   describe('Errores de Navegación (showNavigationError)', () => {
     it('debe mostrar la notificación con título "Error de navegación" y el mensaje correcto', () => {
-      // Act
       service.showNavigationError();
 
-      // Assert
       expect(notificationServiceSpy.show).toHaveBeenCalledWith({
         title: 'Error de navegación',
         message: 'No se pudo identificar el identificador del trabajo de grado.',

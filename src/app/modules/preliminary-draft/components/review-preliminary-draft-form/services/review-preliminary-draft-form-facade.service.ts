@@ -7,12 +7,6 @@ import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { PendingReviewData } from '../../../interfaces/review-preliminary-draft-payload.interface';
 
-// Mismo patrón que RESULT_TO_STATE en EvaluationProposalFacadeService: el
-// FormBuilder (sin .nonNullable, igual que EvaluationProposalFormService)
-// devuelve `result` como string | null, sin relación estática con
-// stateList. Este mapeo es lo que convierte ese string suelto en un
-// valor de enum real, en vez de forzarlo con un cast o dejarlo pasar
-// como any.
 const RESULT_TO_STATE: Record<string, stateList> = {
   'Aprobado': stateList.APROBADO,
   'No aprobado': stateList.NO_APROBADO
@@ -30,9 +24,6 @@ export class ReviewPreliminaryDraftFormFacadeService {
   readonly isUploadModalOpen = signal(false);
   readonly isAnnotatedUploadModalOpen = signal(false);
 
-  // ← `document: [null]` eliminado: control muerto — nunca se leía ni se
-  // asignaba en ningún punto de este facade ni del componente. El File
-  // real siempre viajó por los signals uploadedSignedFile/uploadedAnnotatedFile.
   readonly evaluationForm = this.fb.group({
     result: ['', Validators.required],
     comments: ['', Validators.required]
@@ -92,11 +83,6 @@ export class ReviewPreliminaryDraftFormFacadeService {
     return !!(control?.invalid && control?.touched);
   }
 
-  // ← FIX CENTRAL: antes `{ formValues: any; ... }` — el `any` dejaba
-  // pasar `result` como string crudo hasta el facade de página, que lo
-  // asignaba directo a Evaluation.veredict sin ninguna verificación.
-  // Ahora devuelve PendingReviewData tal cual, con result ya mapeado a
-  // un valor real de stateList.
   validateAndGetPayload(): PendingReviewData | null {
     const fileData = this.uploadedSignedFile();
     const annotatedData = this.uploadedAnnotatedFile();
@@ -110,9 +96,6 @@ export class ReviewPreliminaryDraftFormFacadeService {
     const raw = this.evaluationForm.getRawValue();
     const mappedResult = RESULT_TO_STATE[raw.result ?? ''];
     if (!mappedResult) {
-      // Defensivo: no debería alcanzarse con los 2 radio buttons fijos
-      // del template, pero evita enviar un veredicto sin sentido si en
-      // el futuro se agrega una opción sin actualizar este mapeo.
       this.showValidationErrorNotification(false);
       return null;
     }
@@ -140,19 +123,19 @@ export class ReviewPreliminaryDraftFormFacadeService {
   private parseDate(dateValue: string | Date | null | undefined): Date | null {
     if (!dateValue) return null;
     if (dateValue instanceof Date) {
-      return isNaN(dateValue.getTime()) ? null : dateValue;
+      return Number.isNaN(dateValue.getTime()) ? null : dateValue;
     }
     if (typeof dateValue === 'string') {
       const cleanDateStr = dateValue.replace(/\s+/g, '');
       const standardDate = new Date(cleanDateStr);
-      if (!isNaN(standardDate.getTime())) return standardDate;
+      if (!Number.isNaN(standardDate.getTime())) return standardDate;
       const parts = cleanDateStr.split('-');
       if (parts.length === 3) {
         const day = +parts[0];
         const month = +parts[1] - 1;
         const year = +parts[2];
         const manualDate = new Date(year, month, day);
-        if (!isNaN(manualDate.getTime())) return manualDate;
+        if (!Number.isNaN(manualDate.getTime())) return manualDate;
       }
     }
     return null;

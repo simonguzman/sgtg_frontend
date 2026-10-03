@@ -1,13 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { FormBuilder } from '@angular/forms';
 import { signal, WritableSignal } from '@angular/core';
-
 import { PreliminaryDraftFormService } from './preliminary-draft-form.service';
 import { ProposalService } from '../../../../proposal/services/proposal.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { UserService } from '../../../../users/services/user.service';
-
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
@@ -17,7 +15,6 @@ import { FileDocument } from '../../../../../core/interfaces/file-document.inter
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 
-// 🔹 REFACTOR: Funciones Helper (Factories) estrictas para crear mocks sin usar 'any' ni 'unknown'
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u1',
   firstName: 'Juan',
@@ -68,7 +65,6 @@ const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): 
 describe('PreliminaryDraftFormService', () => {
   let service: PreliminaryDraftFormService;
 
-  // 🔹 REFACTOR: Interfaces estrictas para los mocks en lugar de Partial<Service>
   let mockProposalService: { proposals: WritableSignal<Proposal[]> };
   let mockAuthService: { currentUser: WritableSignal<User | null> };
   let mockPreliminaryDraftService: { preliminaryDrafts: WritableSignal<PreliminaryDraft[]> };
@@ -79,7 +75,6 @@ describe('PreliminaryDraftFormService', () => {
   let draftsSignal: WritableSignal<PreliminaryDraft[]>;
 
   beforeEach(() => {
-    // 🔕 Silenciar consola para mantener la terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -108,7 +103,7 @@ describe('PreliminaryDraftFormService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('setupDynamicLogic y selectedProposal', () => {

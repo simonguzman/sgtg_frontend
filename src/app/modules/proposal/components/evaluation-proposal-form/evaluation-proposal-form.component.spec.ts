@@ -21,10 +21,8 @@ describe('EvaluationProposalFormComponent', () => {
     notifyMissingFile: jest.Mock;
   };
   let formBuilder: FormBuilder;
-
   const mockFile = new File(['dummy content'], 'documento.pdf', { type: 'application/pdf' });
   const mockAuthors = [{ id: 'stu-1' }] as unknown as User[];
-
   const mockProposal = {
     id: 'prop-123',
     title: 'Sistema de Gestión',
@@ -37,19 +35,14 @@ describe('EvaluationProposalFormComponent', () => {
     advisor: { id: 'adv-1' },
     documents: []
   } as unknown as Proposal;
-
   beforeEach(async () => {
-    // Silenciar errores y advertencias de la consola para mantener limpios los logs
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-
     formBuilder = new FormBuilder();
-
     const mockEvaluationForm = formBuilder.group({
       result: ['', Validators.required],
       comments: ['', Validators.required]
     });
-
     formServiceMock = {
       evaluationForm: mockEvaluationForm,
       resolveOriginalDocument: jest.fn(),
@@ -62,7 +55,6 @@ describe('EvaluationProposalFormComponent', () => {
       notifyInvalidForm: jest.fn(),
       notifyMissingFile: jest.fn(),
     };
-
     await TestBed.configureTestingModule({
       imports: [EvaluationProposalFormComponent]
     })
@@ -74,139 +66,103 @@ describe('EvaluationProposalFormComponent', () => {
       }
     })
     .compileComponents();
-
     fixture = TestBed.createComponent(EvaluationProposalFormComponent);
     component = fixture.componentInstance;
-
     fixture.componentRef.setInput('proposal', mockProposal);
     fixture.detectChanges();
   });
-
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // Restaura console.error y console.warn a su estado original
+    jest.restoreAllMocks();
   });
-
   describe('Inicialización y Getters', () => {
     it('debería crearse correctamente', () => {
       expect(component).toBeTruthy();
     });
-
     it('debería consultar el documento original y actual a través del servicio', () => {
       const orig = component.originalDocument;
       const curr = component.currentDocument;
-
       expect(formServiceMock.resolveOriginalDocument).toHaveBeenCalledWith(mockProposal);
       expect(formServiceMock.resolveCurrentDocument).toHaveBeenCalledWith(mockProposal);
     });
-
     it('debería calcular isFileInvalid correctamente', () => {
       expect(component.isFileInvalid).toBeFalsy();
-
       component.formSubmitted.set(true);
       expect(component.isFileInvalid).toBeTruthy();
-
       component.signedFile.set({ name: 'formatoA.pdf', file: mockFile });
       expect(component.isFileInvalid).toBeFalsy();
     });
   });
-
   describe('Delegación de Nombres (UI)', () => {
     it('debería obtener nombres de estudiantes desde el servicio', () => {
       formServiceMock.getStudentNames.mockReturnValue('Juan y Maria');
       const result = component.getStudentNames(mockProposal.authors);
-
       expect(result).toBe('Juan y Maria');
       expect(formServiceMock.getStudentNames).toHaveBeenCalledWith(mockProposal.authors);
     });
-
     it('debería obtener el nombre del director', () => {
       formServiceMock.getMemberName.mockReturnValue('Dr. Perez');
       const result = component.getDirectorName('dir-1');
-
       expect(result).toBe('Dr. Perez');
       expect(formServiceMock.getMemberName).toHaveBeenCalledWith('dir-1');
     });
-
     it('debería manejar codirector y asesor opcionales', () => {
       expect(component.getCodirectorName(undefined)).toBe('');
       expect(component.getAdvisorName(undefined)).toBe('');
-
       formServiceMock.getMemberName.mockReturnValue('Dra. Gomez');
       expect(component.getCodirectorName('codir-1')).toBe('Dra. Gomez');
     });
   });
-
   describe('Gestión de Archivos y Modales', () => {
     it('debería abrir y cerrar el modal de carga', () => {
       component.setUploadModal(true);
       expect(component.modalState().upload).toBeTruthy();
-
       component.setUploadModal(false);
       expect(component.modalState().upload).toBeFalsy();
     });
-
     it('debería manejar handleFileUploaded guardando el objeto File real', () => {
       component.setUploadModal(true);
-
       component.handleFileUploaded({ fileName: 'evaluacion_firmada.pdf', file: mockFile });
-
       expect(component.signedFile()).toEqual({ name: 'evaluacion_firmada.pdf', file: mockFile });
       expect(component.modalState().upload).toBeFalsy();
       expect(formServiceMock.notifyFileUploaded).toHaveBeenCalledTimes(1);
     });
-
     it('debería manejar removeSignedFile correctamente', () => {
       component.signedFile.set({ name: 'archivo.pdf', file: mockFile });
-
       component.removeSignedFile();
-
       expect(component.signedFile()).toBeNull();
       expect(formServiceMock.notifyFileRemoved).toHaveBeenCalledTimes(1);
     });
   });
-
   describe('Flujo de Envío de Evaluación', () => {
     it('debería bloquear el envío y notificar si el formulario es inválido', () => {
       component.evaluationForm.patchValue({ result: '', comments: '' });
-
       component.initiateEvaluationSubmit();
-
       expect(component.formSubmitted()).toBeTruthy();
       expect(formServiceMock.notifyInvalidForm).toHaveBeenCalledTimes(1);
       expect(component.modalState().confirm).toBeFalsy();
     });
-
     it('debería bloquear el envío y notificar si falta el archivo firmado', () => {
       component.evaluationForm.patchValue({ result: 'Aprobado', comments: 'Todo bien' });
       component.signedFile.set(null);
-
       component.initiateEvaluationSubmit();
-
       expect(formServiceMock.notifyMissingFile).toHaveBeenCalledTimes(1);
       expect(component.modalState().confirm).toBeFalsy();
     });
-
     it('debería abrir el modal de confirmación si el form es válido y tiene archivo', () => {
       component.evaluationForm.patchValue({ result: 'Aprobado', comments: 'Excelente' });
       component.signedFile.set({ name: 'documento.pdf', file: mockFile });
-
       component.initiateEvaluationSubmit();
-
       expect(component.modalState().confirm).toBeTruthy();
       expect(formServiceMock.notifyInvalidForm).not.toHaveBeenCalled();
       expect(formServiceMock.notifyMissingFile).not.toHaveBeenCalled();
     });
-
     it('debería emitir onSaveEvaluation con el objeto File real al confirmar y cerrar el modal', () => {
       const emitSpy = jest.spyOn(component.onSaveEvaluation, 'emit');
-
       component.evaluationForm.patchValue({ result: 'No aprobado', comments: 'Falta revisión' });
       component.signedFile.set({ name: 'veredicto.pdf', file: mockFile });
-
       component.setConfirmModal(true);
       component.confirmEvaluation();
-
       expect(component.modalState().confirm).toBeFalsy();
       expect(emitSpy).toHaveBeenCalledWith({
         result: 'No aprobado',
@@ -214,21 +170,18 @@ describe('EvaluationProposalFormComponent', () => {
         file: mockFile
       });
     });
-
     it('debería cerrar el modal al cancelar', () => {
       component.setConfirmModal(true);
       component.cancelEvaluation();
       expect(component.modalState().confirm).toBeFalsy();
     });
   });
-
   describe('Emisión de Eventos Simples (Outputs)', () => {
     it('debería emitir onGoBack', () => {
       const emitSpy = jest.spyOn(component.onGoBack, 'emit');
       component.goBack();
       expect(emitSpy).toHaveBeenCalledTimes(1);
     });
-
     it('debería emitir onDownloadOriginal', () => {
       const emitSpy = jest.spyOn(component.onDownloadOriginal, 'emit');
       component.downloadOriginalDocument();

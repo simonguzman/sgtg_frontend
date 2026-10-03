@@ -1,10 +1,6 @@
 import { ProjectStatus } from '../enum/projectStatus.enum';
 import { ProjectStage } from '../enum/projectStage.enum';
 
-// IMPORTANTE: el orden de STATUS_CHART_LABELS debe coincidir exactamente
-// con STATUS_CHART_ORDER — StatisticsChartDataService construye el
-// arreglo `data` recorriendo STATUS_CHART_ORDER, así que la posición N de
-// ambos describe el mismo segmento de la dona.
 export const STATUS_CHART_LABELS: string[] = [
   'Aprobados', 'Aprobados c/ Obs.', 'No Aprobados', 'En Revisión',
   'En Desarrollo', 'Aplazados', 'Suspendidos', 'Cancelados'

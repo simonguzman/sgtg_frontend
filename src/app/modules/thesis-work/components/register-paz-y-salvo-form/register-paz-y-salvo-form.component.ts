@@ -6,8 +6,6 @@ import { RegisterPazYSalvoFormService } from './services/register-paz-y-salvo-fo
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { PazYSalvoPayload } from '../../interfaces/paz-y-salvo-playload.interface';
-// ← stateList eliminado: solo se usaba dentro de getExistingDocument,
-// que ahora vive en el servicio (y ya no lo necesita, delega al resolver).
 
 @Component({
   selector: 'app-register-paz-y-salvo-form',
@@ -21,23 +19,22 @@ export class RegisterPazYSalvoFormComponent {
 
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
-  @Output() onSave         = new EventEmitter<{ payload: PazYSalvoPayload; file: File }>();
-  @Output() onGoBack       = new EventEmitter<void>();
+  @Output() onSave = new EventEmitter<{ payload: PazYSalvoPayload; file: File }>();
+  @Output() onGoBack = new EventEmitter<void>();
   @Output() onDownloadFile = new EventEmitter<FileDocument>();
 
-  readonly academicApproved  = signal<boolean | null>(null);
-  readonly academicComments  = signal<string>('');
+  readonly academicApproved = signal<boolean | null>(null);
+  readonly academicComments = signal<string>('');
   readonly financialApproved = signal<boolean | null>(null);
   readonly financialComments = signal<string>('');
-  readonly uploadedFormat    = signal<{ fileName: string; file: File } | null>(null);
-  readonly isModalOpen       = signal(false);
+  readonly uploadedFormat = signal<{ fileName: string; file: File } | null>(null);
+  readonly isModalOpen = signal(false);
   readonly isSubmitAttempted = signal(false);
 
-  // ← Simplificados: delegan directo al servicio, sin extracción manual de IDs
-  getStudentNames(): string   { return this.formService.getStudentNames(this.thesisWork); }
-  getDirectorName(): string   { return this.formService.getDirectorName(this.thesisWork); }
+  getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }
+  getDirectorName(): string { return this.formService.getDirectorName(this.thesisWork); }
   getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
-  getAdvisorName(): string    { return this.formService.getAdvisorName(this.thesisWork); }
+  getAdvisorName(): string { return this.formService.getAdvisorName(this.thesisWork); }
 
   onAcademicCommentsChange(event: Event): void {
     this.academicComments.set((event.target as HTMLTextAreaElement).value);
@@ -46,9 +43,6 @@ export class RegisterPazYSalvoFormComponent {
     this.financialComments.set((event.target as HTMLTextAreaElement).value);
   }
 
-  // ← Simplificado: de ~20 líneas de lógica de resolución a una sola
-  // delegación. La lógica real vive ahora en el servicio, reutilizando
-  // ThesisFinalDeliveryDocumentResolverService.
   getExistingDocument(type: string): FileDocument | null {
     return this.formService.getExistingDocument(this.thesisWork, type);
   }
@@ -61,13 +55,13 @@ export class RegisterPazYSalvoFormComponent {
 
   removeFile(): void { this.uploadedFormat.set(null); }
 
-  downloadDocument(doc: FileDocument | null): void {
-    if (doc) this.onDownloadFile.emit(doc);
+  downloadDocument(document: FileDocument | null): void {
+    if (document) this.onDownloadFile.emit(document);
   }
 
   submit(): void {
     this.isSubmitAttempted.set(true);
-    const acApp  = this.academicApproved();
+    const acApp = this.academicApproved();
     const finApp = this.financialApproved();
 
     if (acApp === null || finApp === null) {

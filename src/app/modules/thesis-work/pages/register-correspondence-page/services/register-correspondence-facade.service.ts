@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { first, switchMap, catchError } from 'rxjs/operators';
-import { from, EMPTY, throwError } from 'rxjs';
+import { from, EMPTY } from 'rxjs';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
@@ -40,23 +40,22 @@ export class RegisterCorrespondenceFacadeService {
     onSuccess: () => void,
     onError: () => void
   ): void {
-    // Convertimos la promesa de lectura de archivo en un Observable
     from(readFileAsDataUrl(file)).pipe(
       first(),
       catchError((err: unknown) => {
         console.error('Error leyendo el archivo de correspondencia:', err);
         this.showNotification('Error al leer el archivo', 'No se pudo procesar el documento seleccionado.', NotificationType.ERROR);
         onError();
-        return EMPTY; // Detiene el flujo sin lanzar una excepción no manejada
+        return EMPTY;
       }),
       switchMap((fileUrl: string) => {
         const finalCorrespondenceDoc: FileDocument = {
-          id:         crypto.randomUUID(),
-          name:       file.name.replace('.pdf', ''),
-          url:        fileUrl,
+          id: crypto.randomUUID(),
+          name: file.name.replace('.pdf', ''),
+          url: fileUrl,
           uploadDate: formatThesisDate(),
-          type:       DocumentType.FORMATO_H,
-          status:     stateList.APROBADO
+          type: DocumentType.FORMATO_H,
+          status: stateList.APROBADO
         };
 
         return this.thesisWorkService.registerCorrespondenceDocumentMock(thesisWorkId, finalCorrespondenceDoc).pipe(

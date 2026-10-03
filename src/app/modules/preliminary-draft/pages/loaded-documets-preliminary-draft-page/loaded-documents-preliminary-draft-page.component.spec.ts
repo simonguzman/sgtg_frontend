@@ -1,20 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal, WritableSignal, Component, Input, Output, EventEmitter } from '@angular/core';
 import { By } from '@angular/platform-browser';
-
 import { LoadedDocumentsPreliminaryDraftPageComponent } from './loaded-documents-preliminary-draft-page.component';
 import { LoadedDocumentsPreliminaryDraftFacadeService } from './services/loaded-documents-preliminary-draft-facade.service';
 import { LoadedDocumentsPreliminaryDraftMapperService } from './services/loaded-documents-preliminary-draft-mapper.service';
-
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
-// 🔹 CORRECCIÓN: Importamos 'Column' en lugar del erróneo 'TableColumn'
 import { TableComponent, TableButton, Column } from '../../../../shared/components/table-component/table-component.component';
 import { TabsComponent } from '../../../../shared/components/tabs/tabs.component';
 import { UploadContext } from './models/loaded-documents-preliminary-draft-page.model';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 
-// 🔹 REFACTOR: Mocks de Componentes Hijos para aislar el contenedor
 @Component({ selector: 'app-tabs', standalone: true, template: '<div>Mock Tabs</div>' })
 class MockTabsComponent {
   @Input() tabs: Array<{ id: string; label: string }> = [];
@@ -25,7 +21,6 @@ class MockTabsComponent {
 @Component({ selector: 'app-table-component', standalone: true, template: '<div>Mock Table</div>' })
 class MockTableComponent {
   @Input() value: FileDocument[] = [];
-  // 🔹 REFACTOR: Tipado estricto restaurado
   @Input() columns: Column[] = [];
   @Input() paginator = true;
   @Input() headerButtons: TableButton[] = [];
@@ -51,14 +46,12 @@ class MockConfirmationActionModalComponent {
   @Output() onClose = new EventEmitter<void>();
 }
 
-// 🔹 REFACTOR: Tipado estricto para el Facade (sin 'unknown' ni 'any')
 interface MockFacade {
   init: jest.Mock;
   destroy: jest.Mock;
   goBack: jest.Mock;
   tabs: Array<{ id: string; label: string }>;
   currentTableData: WritableSignal<FileDocument[]>;
-  // 🔹 REFACTOR: Tipado estricto restaurado aquí también
   currentColumns: WritableSignal<Column[]>;
   currentHeaderButtons: WritableSignal<TableButton[]>;
   emptyMessage: WritableSignal<string>;
@@ -81,18 +74,16 @@ describe('LoadedDocumentsPreliminaryDraftPageComponent', () => {
   let mockFacade: MockFacade;
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola para mantener la terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Usamos Signals reales de Angular para simular el comportamiento reactivo exacto
     mockFacade = {
       init: jest.fn(),
       destroy: jest.fn(),
       goBack: jest.fn(),
       tabs: [{ id: 'ANTEPROYECTOS', label: 'Anteproyectos' }],
       currentTableData: signal([]),
-      currentColumns: signal([]), // Ahora respeta la interfaz Column[]
+      currentColumns: signal([]),
       currentHeaderButtons: signal([]),
       emptyMessage: signal('Empty message'),
       uploadModalDescription: signal('Upload description'),
@@ -113,12 +104,10 @@ describe('LoadedDocumentsPreliminaryDraftPageComponent', () => {
     })
     .overrideComponent(LoadedDocumentsPreliminaryDraftPageComponent, {
       remove: {
-        // Quitamos los componentes hijos reales y proveedores locales originales
         imports: [FileUploadModalComponent, ConfirmationActionModalComponent, TableComponent, TabsComponent],
         providers: [LoadedDocumentsPreliminaryDraftFacadeService, LoadedDocumentsPreliminaryDraftMapperService]
       },
       add: {
-        // Insertamos los mocks
         imports: [MockFileUploadModalComponent, MockConfirmationActionModalComponent, MockTableComponent, MockTabsComponent],
         providers: [{ provide: LoadedDocumentsPreliminaryDraftFacadeService, useValue: mockFacade }]
       }
@@ -128,13 +117,12 @@ describe('LoadedDocumentsPreliminaryDraftPageComponent', () => {
     fixture = TestBed.createComponent(LoadedDocumentsPreliminaryDraftPageComponent);
     component = fixture.componentInstance;
 
-    // Dispara ngOnInit
     fixture.detectChanges();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restauramos la consola
+    jest.restoreAllMocks();
   });
 
   describe('Ciclo de vida (Lifecycle)', () => {
@@ -159,7 +147,6 @@ describe('LoadedDocumentsPreliminaryDraftPageComponent', () => {
     it('debería enlazar correctamente los eventos de app-tabs', () => {
       const tabsComponent = fixture.debugElement.query(By.directive(MockTabsComponent));
 
-      // Simulamos la emisión del evento (tabChange)
       tabsComponent.componentInstance.tabChange.emit('PRESENTACIONES');
 
       expect(mockFacade.activeTab()).toBe('PRESENTACIONES');

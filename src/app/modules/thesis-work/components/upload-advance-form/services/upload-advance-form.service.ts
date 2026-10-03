@@ -12,7 +12,7 @@ export class UploadAdvanceFormService {
   private readonly participants = inject(ThesisParticipantsFormatterService);
 
   readonly advanceForm = this.fb.nonNullable.group({
-    title:    ['', Validators.required],
+    title: ['', Validators.required],
     comments: ['', Validators.required]
   });
 

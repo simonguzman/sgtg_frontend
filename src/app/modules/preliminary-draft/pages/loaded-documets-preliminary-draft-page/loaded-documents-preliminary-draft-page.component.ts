@@ -15,8 +15,6 @@ import { LoadedDocumentsPreliminaryDraftMapperService } from './services/loaded-
   providers: [LoadedDocumentsPreliminaryDraftFacadeService, LoadedDocumentsPreliminaryDraftMapperService]
 })
 export class LoadedDocumentsPreliminaryDraftPageComponent implements OnInit, OnDestroy {
-  // ← public → protected: el template accede igual (protected basta para
-  // bindings), consistente con el resto de páginas del proyecto.
   protected readonly facade = inject(LoadedDocumentsPreliminaryDraftFacadeService);
 
   ngOnInit(): void {

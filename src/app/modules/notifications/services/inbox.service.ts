@@ -11,10 +11,8 @@ export class InboxService {
   private readonly inboxState = inject(InboxStateService);
   private readonly authService = inject(AuthService);
 
-  // Inyectado estratégicamente para activar la escucha del Bus de eventos globales
   private readonly eventProcessor = inject(InboxEventProcessorService);
 
-  // Selector computado reactivo filtrado para el usuario activo
   public readonly messages = computed<InboxMessage[]>(() => {
     const currentUser = this.authService.currentUser();
     if (!currentUser) return [];

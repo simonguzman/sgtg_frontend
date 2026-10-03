@@ -3,7 +3,6 @@ import { signal, WritableSignal } from '@angular/core';
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
-
 import { ReviewPreliminaryDraftPageComponent } from './review-preliminary-draft-page.component';
 import { ReviewPreliminaryDraftPageFacadeService, PendingReviewData } from './services/review-preliminary-draft-page-facade.service';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
@@ -11,8 +10,6 @@ import { ReviewPreliminaryDraftFormComponent } from '../../components/review-pre
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { stateList } from '../../../../core/enums/state.enum';
 
-// 🔹 REFACTOR: Fábricas de datos para generar entidades limpias sin usar 'as unknown'
-// NOTA: Se corrigió 'proposal' a 'proposalData' para coincidir con la interfaz real de PreliminaryDraft
 const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
   preliminaryDraftId: '123',
   proposalId: 'prop-1',
@@ -27,7 +24,6 @@ const createMockPendingData = (overrides: Partial<PendingReviewData> = {}): Pend
   file: new File([''], 'evaluacion.pdf', { type: 'application/pdf' }),
   ...overrides
 } as PendingReviewData);
-
 
 @Component({
   selector: 'app-review-preliminary-draft-form',
@@ -52,12 +48,10 @@ class MockConfirmationModalComponent {
   @Output() confirm = new EventEmitter<void>();
 }
 
-
 describe('ReviewPreliminaryDraftPageComponent', () => {
   let component: ReviewPreliminaryDraftPageComponent;
   let fixture: ComponentFixture<ReviewPreliminaryDraftPageComponent>;
 
-  // Interfaz estricta para el mock del facade (sin usar 'any')
   let facadeMock: {
     preliminaryDraftState: WritableSignal<PreliminaryDraft | null>;
     isConfirmModalOpen: WritableSignal<boolean>;
@@ -70,11 +64,9 @@ describe('ReviewPreliminaryDraftPageComponent', () => {
   };
 
   beforeEach(async () => {
-    // 🔕 Silenciar los console.error y console.warn
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Inicialización del mock con tipado estricto
     facadeMock = {
       preliminaryDraftState: signal<PreliminaryDraft | null>(null),
       isConfirmModalOpen: signal<boolean>(false),
@@ -99,11 +91,9 @@ describe('ReviewPreliminaryDraftPageComponent', () => {
     })
     .overrideComponent(ReviewPreliminaryDraftPageComponent, {
       remove: {
-        // Removemos los componentes reales para aislar la prueba
         imports: [ReviewPreliminaryDraftFormComponent, ConfirmationActionModalComponent]
       },
       add: {
-        // Añadimos nuestros Mocks y el provider del Facade
         imports: [MockReviewFormComponent, MockConfirmationModalComponent],
         providers: [
           { provide: ReviewPreliminaryDraftPageFacadeService, useValue: facadeMock }
@@ -117,7 +107,7 @@ describe('ReviewPreliminaryDraftPageComponent', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones originales de la consola
+    jest.restoreAllMocks();
   });
 
   it('debería crearse correctamente', () => {
@@ -144,7 +134,6 @@ describe('ReviewPreliminaryDraftPageComponent', () => {
 
     const formEl = fixture.debugElement.query(By.directive(MockReviewFormComponent));
     expect(formEl).toBeTruthy();
-    // Validamos que el Input se esté pasando correctamente
     expect(formEl.componentInstance.preliminaryDraft).toEqual(draft);
   });
 
@@ -197,13 +186,12 @@ describe('ReviewPreliminaryDraftPageComponent', () => {
     });
 
     it('debería setear isConfirmModalOpen a false cuando el modal emite onClose', () => {
-      facadeMock.isConfirmModalOpen.set(true); // Simulamos que está abierto
+      facadeMock.isConfirmModalOpen.set(true);
       fixture.detectChanges();
 
       const modalDebugEl = fixture.debugElement.query(By.directive(MockConfirmationModalComponent));
       const modalComponent: MockConfirmationModalComponent = modalDebugEl.componentInstance;
 
-      // Desencadenamos el evento de cierre
       modalComponent.onClose.emit();
 
       expect(facadeMock.isConfirmModalOpen()).toBe(false);

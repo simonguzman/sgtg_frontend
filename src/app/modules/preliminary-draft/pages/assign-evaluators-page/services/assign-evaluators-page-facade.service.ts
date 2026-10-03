@@ -1,6 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
@@ -98,7 +97,6 @@ export class AssignEvaluatorsPageFacadeService {
     this.router.navigate(['../'], { relativeTo: this.route });
   }
 
-  // Notificaciones privadas
   private showProcessingNotification(): void {
     this.notificationService.show({
       title: 'Procesando asignación',

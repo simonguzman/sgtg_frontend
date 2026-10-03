@@ -2,7 +2,6 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { of, throwError } from 'rxjs';
-
 import { PreliminaryDraftCreatePageService } from './preliminary-draft-create-page.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
@@ -12,7 +11,6 @@ import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interfac
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { stateList } from '../../../../../core/enums/state.enum';
 
-// 🔹 REFACTOR: Fábricas para generar datos estructurados y evitar 'as unknown'
 type ProposalData = NonNullable<PreliminaryDraft['proposalData']>;
 
 const createMockProposalData = (overrides: Partial<ProposalData> = {}): ProposalData => ({
@@ -40,7 +38,6 @@ const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): 
 describe('PreliminaryDraftCreatePageService', () => {
   let service: PreliminaryDraftCreatePageService;
 
-  // 🔹 REFACTOR: Tipado ultra estricto y limpio (sin Pick complejo)
   let mockPreliminaryDraftService: { createPreliminaryDraft: jest.Mock };
   let mockNotificationService: { show: jest.Mock };
   let mockAuthService: { hasAnyRole: jest.Mock };
@@ -48,11 +45,9 @@ describe('PreliminaryDraftCreatePageService', () => {
   let mockLocation: { back: jest.Mock };
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Inicialización de los Mocks
     mockPreliminaryDraftService = {
       createPreliminaryDraft: jest.fn()
     };
@@ -89,7 +84,7 @@ describe('PreliminaryDraftCreatePageService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('checkAccess', () => {
@@ -131,8 +126,8 @@ describe('PreliminaryDraftCreatePageService', () => {
     });
 
     it('debería cerrar el modal y limpiar la data al cancelar', () => {
-      service.openConfirmation(mockDraft); // Abrimos primero
-      service.cancelCreation(); // Cancelamos
+      service.openConfirmation(mockDraft);
+      service.cancelCreation();
 
       const state = service.confirmState();
       expect(state.isOpen).toBeFalsy();
@@ -141,11 +136,9 @@ describe('PreliminaryDraftCreatePageService', () => {
     });
 
     it('no debería ejecutar la creación si no hay datos pendientes o ya está procesando', () => {
-      // Intento 1: Sin data pendiente
       service.confirmCreation();
       expect(mockPreliminaryDraftService.createPreliminaryDraft).not.toHaveBeenCalled();
 
-      // Intento 2: Con data, pero marcando isProcessing como true
       service.confirmState.set({ isOpen: true, pendingData: mockDraft, isProcessing: true });
       service.confirmCreation();
       expect(mockPreliminaryDraftService.createPreliminaryDraft).not.toHaveBeenCalled();
@@ -157,7 +150,6 @@ describe('PreliminaryDraftCreatePageService', () => {
       service.openConfirmation(mockDraft);
       service.confirmCreation();
 
-      // Validar notificaciones e interacciones
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ type: NotificationType.INFO, title: 'Procesando solicitud' })
       );
@@ -167,7 +159,6 @@ describe('PreliminaryDraftCreatePageService', () => {
       );
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/preliminary-draft']);
 
-      // Validar restablecimiento de estado
       const state = service.confirmState();
       expect(state.isOpen).toBeFalsy();
       expect(state.isProcessing).toBeFalsy();
@@ -180,13 +171,11 @@ describe('PreliminaryDraftCreatePageService', () => {
       service.openConfirmation(mockDraft);
       service.confirmCreation();
 
-      // 🔹 REFACTOR: Validar el manejo de errores y que se imprimió el error (está silenciado)
       expect(console.error).toHaveBeenCalled();
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ type: NotificationType.ERROR, title: 'Error de registro' })
       );
 
-      // El estado debe cerrar el modal y apagar el modo de carga, pero mantener la data
       const state = service.confirmState();
       expect(state.isOpen).toBeFalsy();
       expect(state.isProcessing).toBeFalsy();

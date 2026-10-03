@@ -1,16 +1,14 @@
 /**
- * Metadata institucional compartida entre los dos footers del proyecto
- * (FooterComponent del layout principal y AuthFooterComponent del layout
- * de autenticación). Antes cada uno calculaba currentYear/version por su
- * cuenta con la misma lógica exacta — visible ahora que existe una segunda
- * instancia idéntica, no evidente cuando solo había un footer.
- *
- * Se ubica en core/utils (no en un servicio inyectable) porque ninguno de
- * los dos valores depende de estado de Angular ni de inyección — mismo
- * criterio que date-utils.ts ya existente en esta carpeta.
+ * Versión actual de la aplicación.
+ * Utilizada como metadato institucional en los componentes de la interfaz.
  */
 export const APP_VERSION = '1.0.0';
 
+/**
+ * Obtiene el año actual basado en la fecha del sistema local.
+ *
+ * @returns El año actual en formato de cuatro dígitos (YYYY).
+ */
 export function getCurrentYear(): number {
   return new Date().getFullYear();
 }

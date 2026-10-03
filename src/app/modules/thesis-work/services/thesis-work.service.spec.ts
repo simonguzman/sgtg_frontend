@@ -1,7 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, Signal } from '@angular/core';
 import { of } from 'rxjs';
-
 import { ThesisWorkService } from './thesis-work.service';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { ThesisWorkApiService } from './thesis-work-api.service';
@@ -10,7 +9,6 @@ import { ThesisWorkDeliveryService } from './thesis-work-delivery.service';
 import { ThesisWorkEvaluationService } from './thesis-work-evaluation.service';
 import { ThesisWorkSpecialRequestService } from './thesis-work-special-request.service';
 import { ThesisWorkSustentationService, SustentationVeredict } from './thesis-work-sustentation.service';
-
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
@@ -22,15 +20,11 @@ import { SpecialRequestType } from '../enums/special-request-type.enum';
 import { SustentationFormData } from '../interfaces/sustentation-form-data.interface';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 
-// ── Mocks Estrictos de Servicios ─────────────────────────────────────────────
-
 interface MockThesisWorkStorageService {
   thesisWorks: Signal<ThesisWork[]>;
   allThesisWorks: Signal<ThesisWork[]>;
   isHydrated: Signal<boolean>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas (Adiós "any" y aserciones) ─────────
 
 const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
   id: 'doc-1',
@@ -69,8 +63,6 @@ const createMockSustentationFormData = (overrides: Partial<SustentationFormData>
   ...overrides
 } as SustentationFormData);
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('ThesisWorkService (Facade)', () => {
   let service: ThesisWorkService;
 
@@ -83,7 +75,6 @@ describe('ThesisWorkService (Facade)', () => {
   let sustentationMock: jest.Mocked<Partial<ThesisWorkSustentationService>>;
 
   beforeEach(() => {
-    // 🔕 Silenciar consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 

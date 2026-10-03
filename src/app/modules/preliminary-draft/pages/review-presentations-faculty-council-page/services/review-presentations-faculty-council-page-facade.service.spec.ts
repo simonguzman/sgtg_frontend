@@ -1,12 +1,7 @@
-// 1. Angular Core & Testing
 import { signal, WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-
-// 2. RxJS
 import { of, throwError } from 'rxjs';
-
-// 3. Core Enums, Interfaces & Utils
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
@@ -14,8 +9,6 @@ import { FormattedDocument } from '../../../../../core/interfaces/formatted-docu
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
-
-// 4. Shared Modules & Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
@@ -24,24 +17,19 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { UserService } from '../../../../users/services/user.service';
 import { Modality } from '../../../../proposal/enums/modality.enum';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
-
-// 5. Component, Service & Models
 import { SaveEvaluationPayload } from '../../../components/review-presentations-faculty-council-form/models/council-evaluation.model';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { ReviewPresentationsFacultyCouncilPageFacadeService } from './review-presentations-faculty-council-page-facade.service';
 
-// Hacemos mock de la utilidad de lectura de archivos
 jest.mock('../../../../../core/utils/file-reader.utils', () => ({
   readFileAsDataUrl: jest.fn().mockResolvedValue('data:application/pdf;base64,mockFileContent')
 }));
 
-// Asignamos un alias tipado para la función mockeada globalmente
 const mockReadFileAsDataUrl = readFileAsDataUrl as jest.MockedFunction<typeof readFileAsDataUrl>;
 
 describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
   let facade: ReviewPresentationsFacultyCouncilPageFacadeService;
 
-  // 🔹 REFACTOR: Mocks tipados estructuralmente sin 'Partial' ni 'unknown'
   let mockPreliminaryDraftService: {
     getPreliminaryDraftById: jest.Mock;
     uploadCouncilResolution: jest.Mock;
@@ -56,7 +44,6 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
   let mockDownloadService: { download: jest.Mock };
   let mockRouter: { navigate: jest.Mock };
 
-  // Mocks Tipados Estrictamente
   const mockUser: User = {
     id: 'user-1',
     idType: IdentificationType.CC,
@@ -127,7 +114,6 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
   };
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -162,11 +148,11 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
     });
 
     facade = TestBed.inject(ReviewPresentationsFacultyCouncilPageFacadeService);
-    jest.clearAllMocks(); // Limpia el historial de los mocks entre tests
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks(); // 🧹 Restaura las implementaciones originales de la consola
+    jest.restoreAllMocks();
   });
 
   describe('Carga de Datos (loadData)', () => {
@@ -177,7 +163,6 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
     });
 
     it('debería mostrar notificación INFO si la petición es exitosa pero no retorna datos', () => {
-      // 🔹 REFACTOR: Llamado directo sin necesidad de casteo 'as jest.Mock'
       mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(null));
       facade.loadData();
 
@@ -235,7 +220,6 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
     });
 
     it('debería mostrar notificación de error si falla la lectura del archivo', async () => {
-      // 🔹 REFACTOR: Eliminado el consoleSpy local, la consola ya está silenciada globalmente
       mockReadFileAsDataUrl.mockRejectedValueOnce(new Error('Read failed'));
       facade.preliminaryDraftState.set(mockDraft);
       facade.pendingData.set(mockPayload);

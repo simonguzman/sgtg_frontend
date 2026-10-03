@@ -38,7 +38,6 @@ export class PreliminaryDraftFormComponent {
       const currentPreliminaryDraft = this.preliminaryDraft();
       if (currentPreliminaryDraft) {
         this.formService.initForEdit(currentPreliminaryDraft);
-        // ← FIX: 'Anteproyecto' string literal → DocumentType.ANTEPROYECTO
         const mainDoc = currentPreliminaryDraft.documents.find(preliminaryDraft => preliminaryDraft.type === DocumentType.ANTEPROYECTO);
         this.attachedFile = { hasFile: !!mainDoc, name: mainDoc?.name ?? null, file: null };
         if (mainDoc) this.form.get('document')?.setValue(mainDoc);
@@ -79,9 +78,6 @@ export class PreliminaryDraftFormComponent {
     this.notificationService.show({ title: 'Archivo removido', message: 'Se ha quitado el documento adjunto.', type: NotificationType.INFO });
   }
 
-  // ← async: submit() necesita leer el File real antes de construir el
-  // documento completo. Las dos validaciones síncronas de arriba siguen
-  // ejecutándose ANTES del primer await — sin cambio de comportamiento ahí.
   async submit(): Promise<void> {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
@@ -103,9 +99,6 @@ export class PreliminaryDraftFormComponent {
     this.onSave.emit(payload);
   }
 
-  // ← FIX CENTRAL: antes `url: ''` hardcodeado, ignorando attachedFile.file
-  // — mismo bug ya corregido en el Formato A de Propuestas, esta vez en
-  // el documento base del anteproyecto.
   private async mapDocuments(): Promise<FileDocument[]> {
     const existingDocument = this.preliminaryDraft()?.documents.find(d => d.type === DocumentType.ANTEPROYECTO);
 

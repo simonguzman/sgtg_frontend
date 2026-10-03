@@ -1,7 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { FormBuilder } from '@angular/forms';
 import { signal } from '@angular/core';
-
 import { ReviewPresentationsFacultyCouncilFormFacadeService } from './review-presentations-faculty-council-form-facade.service';
 import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
@@ -14,7 +13,6 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 
-// 🔹 REFACTOR: Fábricas de Datos (Factories) para generar entidades estrictas sin 'unknown' ni 'any'
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
   firstName: 'Nombre',
@@ -71,12 +69,10 @@ const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): Preliminary
 describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
   let facade: ReviewPresentationsFacultyCouncilFormFacadeService;
 
-  // 🔹 REFACTOR: Tipado estricto para los mocks de servicios
   let mockUserService: { getAuthorsNames: jest.Mock; getUserFullName: jest.Mock };
   let mockNotificationService: { show: jest.Mock };
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -103,7 +99,7 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Estados Computados (Computed Signals)', () => {
@@ -137,8 +133,7 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
 
     it('documentUploadDate debería formatear correctamente la fecha del primer documento', () => {
       const uploadDateStr = facade.documentUploadDate();
-      // Ya que hemos seteado el mock de fecha explícitamente a 2026-07-23
-      expect(uploadDateStr).toMatch(/23.*7.*2026|23\/7\/2026|23\/07\/2026/); // Expresión regular flexible para los formatos locales (es-ES)
+      expect(uploadDateStr).toMatch(/23.*7.*2026|23\/7\/2026|23\/07\/2026/);
     });
   });
 
@@ -156,8 +151,8 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
     });
 
     it('NO debería requerir maximumDeliveryDate si el result NO es "Aprobado"', () => {
-      facade.evaluationForm.patchValue({ result: 'Aprobado' }); // Seteamos uno
-      facade.evaluationForm.patchValue({ result: 'No aprobado' }); // Cambiamos al otro
+      facade.evaluationForm.patchValue({ result: 'Aprobado' });
+      facade.evaluationForm.patchValue({ result: 'No aprobado' });
 
       const dateControl = facade.evaluationForm.get('maximumDeliveryDate');
       expect(dateControl?.valid).toBeTruthy();
@@ -165,10 +160,8 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
     });
 
     it('debería deshabilitar el formulario si isReadOnly es true', () => {
-      // Recreamos el caso de solo lectura
       facade.preliminaryDraft.set(createMockDraft({ state: stateList.APROBADO }));
 
-      // Reinicializamos los efectos
       facade.initFormEffects();
 
       expect(facade.isReadOnly()).toBeTruthy();
@@ -185,7 +178,6 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
       expect(facade.getStudentNames()).toBe('Estudiante 1, Estudiante 2');
       expect(facade.getDirectorName()).toBe('Nombre de dir-1');
 
-      // Al no enviar codirector ni asesor en el mock por defecto, deben devolver cadena vacía
       expect(facade.getCodirectorName()).toBe('');
       expect(facade.getAdvisorName()).toBe('');
     });

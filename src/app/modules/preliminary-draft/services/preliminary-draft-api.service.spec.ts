@@ -1,12 +1,10 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { of } from 'rxjs';
-
 import { PreliminaryDraftApiService } from './preliminary-draft-api.service';
 import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
-
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
@@ -15,7 +13,6 @@ import { AppEventType } from '../../../core/enums/app-event-type.enum';
 describe('PreliminaryDraftApiService', () => {
   let service: PreliminaryDraftApiService;
 
-  // 🔹 REFACTOR: Tipado estricto estructural (ya no usaremos 'as unknown' en los providers)
   let storageSpy: {
     getById: jest.Mock;
     addDraft: jest.Mock;
@@ -31,7 +28,6 @@ describe('PreliminaryDraftApiService', () => {
     emit: jest.Mock;
   };
 
-  // 🔹 REFACTOR: Función constructora para crear objetos PreliminaryDraft válidos
   const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
     preliminaryDraftId: '1',
     state: stateList.EN_REVISION,
@@ -42,7 +38,6 @@ describe('PreliminaryDraftApiService', () => {
   } as PreliminaryDraft);
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -69,7 +64,6 @@ describe('PreliminaryDraftApiService', () => {
     TestBed.configureTestingModule({
       providers: [
         PreliminaryDraftApiService,
-        // 🔹 REFACTOR: Asignación directa limpia. TypeScript acepta la estructura.
         { provide: PreliminaryDraftStorageService, useValue: storageSpy },
         { provide: UserService, useValue: userSpy },
         { provide: EventBusService, useValue: eventBusSpy }
@@ -81,7 +75,7 @@ describe('PreliminaryDraftApiService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones de la consola
+    jest.restoreAllMocks();
   });
 
   it('debería crearse correctamente', () => {
@@ -103,9 +97,6 @@ describe('PreliminaryDraftApiService', () => {
 
   describe('createPreliminaryDraft', () => {
     it('debería crear el anteproyecto, guardar en storage y emitir notificaciones con delay', fakeAsync(() => {
-
-      // 🔹 REFACTOR: Eliminado el `as any`. Usamos directamente un casteo al tipo real de
-      // proposalData aprovechando la utilidad NonNullable.
       const newDraftPayload = createMockDraft({
         proposalData: {
           title: 'Título de Prueba',
@@ -124,7 +115,6 @@ describe('PreliminaryDraftApiService', () => {
 
       tick(1000);
 
-      // <-- FIX: Ahora verificamos que el objeto retornado tenga las propiedades inyectadas por el map()
       expect(resultDraft?.preliminaryDraftId).toBe('mocked-uuid');
       expect(resultDraft?.state).toBe(stateList.EN_REVISION);
       expect(resultDraft?.proposalData).toEqual(newDraftPayload.proposalData);

@@ -1,11 +1,13 @@
-// src/app/core/services/breadcrumb/integration/breadcrumb-router.integration.spec.ts
+import 'fake-indexeddb/auto';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter, Routes } from '@angular/router';
 import { Title } from '@angular/platform-browser';
-
 import { BreadcrumbService } from '../breadcrumb.service';
 
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+}
 @Component({ template: '', standalone: true })
 class DummyComponent {}
 
@@ -25,7 +27,18 @@ describe('Integración [Core]: BreadcrumbService con Router real y navegación r
   let router: Router;
   let breadcrumbService: BreadcrumbService;
 
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
   beforeEach(() => {
+    jest.clearAllMocks();
+
     TestBed.configureTestingModule({
       providers: [
         provideRouter(testRoutes),
@@ -39,7 +52,6 @@ describe('Integración [Core]: BreadcrumbService con Router real y navegación r
 
   it('debe construir el trail real recorriendo el árbol de rutas anidado tras una navegación real', async () => {
     await router.navigateByUrl('/modulo/detalle/123');
-
     expect(breadcrumbService.breadcrumbs()).toEqual([
       { label: 'Inicio', url: '/' },
       { label: 'Módulo de Prueba', url: '/modulo' },
@@ -50,16 +62,13 @@ describe('Integración [Core]: BreadcrumbService con Router real y navegación r
   it('debe recalcular reactivamente al navegar a una ruta sin breadcrumb declarado', async () => {
     await router.navigateByUrl('/modulo/detalle/123');
     expect(breadcrumbService.breadcrumbs()).toHaveLength(3);
-
     await router.navigateByUrl('/sin-breadcrumb');
-
     expect(breadcrumbService.breadcrumbs()).toEqual([{ label: 'Inicio', url: '/' }]);
   });
 
   it('setDynamicBreadcrumb debe anexarse al trail real construido por la navegación, no reemplazarlo', async () => {
     await router.navigateByUrl('/modulo/detalle/123');
     breadcrumbService.setDynamicBreadcrumb('Evaluando');
-
     expect(breadcrumbService.breadcrumbs()).toEqual([
       { label: 'Inicio', url: '/' },
       { label: 'Módulo de Prueba', url: '/modulo' },
@@ -69,18 +78,9 @@ describe('Integración [Core]: BreadcrumbService con Router real y navegación r
   });
 
   it('documenta que dynamicLabel NO se limpia solo al navegar — confirma por qué cada página debe llamar clearDynamicBreadcrumb() en ngOnDestroy', async () => {
-    // dynamicLabel es un signal completamente independiente de
-    // routerStateSnapshot — nada en el propio servicio lo resetea al
-    // cambiar de ruta. Esto es justo lo que hace necesario el patrón que
-    // ya usan todos los componentes de página revisados en esta
-    // conversación: limpiar manualmente en ngOnDestroy(). Si este test
-    // llegara a fallar, sería una señal de que ese patrón manual ya no es
-    // necesario — no que algo se rompió.
     await router.navigateByUrl('/modulo/detalle/123');
     breadcrumbService.setDynamicBreadcrumb('Contexto anterior');
-
     await router.navigateByUrl('/sin-breadcrumb');
-
     const trail = breadcrumbService.breadcrumbs();
     expect(trail.some(item => item.label === 'Contexto anterior')).toBe(true);
   });

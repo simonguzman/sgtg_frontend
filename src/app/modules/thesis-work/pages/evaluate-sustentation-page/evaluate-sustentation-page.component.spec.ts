@@ -1,15 +1,8 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-
-// 2. Componente a probar
 import { EvaluateSustentationPageComponent } from './evaluate-sustentation-page.component';
-
-// 3. Servicios y Facades
 import { EvaluateSustentationFacadeService } from './services/evaluate-sustentation-facade.service';
-
-// 4. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SustentationEvaluationPayload } from '../../components/evaluate-sustentation-form/evaluate-sustentation-form.component';
 import { User } from '../../../users/interfaces/user.interface';
@@ -17,12 +10,8 @@ import { stateList } from '../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
 import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
-
-// Importamos los componentes reales para removerlos en el override
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { EvaluateSustentationFormComponent } from '../../components/evaluate-sustentation-form/evaluate-sustentation-form.component';
-
-// ── Mocks de Componentes Hijos (Standalone) ──────────────────────────────────
 
 @Component({ selector: 'app-confirmation-action-modal', template: '', standalone: true })
 class MockConfirmationActionModalComponent {
@@ -40,8 +29,6 @@ class MockEvaluateSustentationFormComponent {
   @Output() onBack = new EventEmitter<void>();
 }
 
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
-
 interface MockRouteNode {
   snapshot: { paramMap: { get: jest.Mock<string | null, [string]> } };
   parent: MockRouteNode | null;
@@ -55,8 +42,6 @@ interface MockEvaluateSustentationFacadeService {
   loadThesisWork: jest.Mock<void, [string, (work: ThesisWork) => void, () => void]>;
   processEvaluation: jest.Mock<void, [string, SustentationEvaluationPayload, File, () => void, () => void]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -77,7 +62,7 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
 const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
   const baseUser = createMockUser();
   const baseThesis: ThesisWork = {
-    thesisWorkId: 'mock-thesis-123', // Estructura actualizada
+    thesisWorkId: 'mock-thesis-123',
     preliminaryDraftId: 'draft-1',
     documents: [],
     evaluations: [],
@@ -117,13 +102,10 @@ const createMockEvaluationPayload = (overrides: Partial<SustentationEvaluationPa
   } as SustentationEvaluationPayload;
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('EvaluateSustentationPageComponent', () => {
   let component: EvaluateSustentationPageComponent;
   let fixture: ComponentFixture<EvaluateSustentationPageComponent>;
 
-  // Interfaces estrictas
   let facadeMock: MockEvaluateSustentationFacadeService;
   let routerMock: MockRouter;
   let activatedRouteMock: MockRouteNode;
@@ -131,11 +113,9 @@ describe('EvaluateSustentationPageComponent', () => {
   const mockWork = createMockThesisWork({ thesisWorkId: '123' });
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola como medida preventiva
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Mocks inicializados cumpliendo 100% sus interfaces
     facadeMock = {
       loadThesisWork: jest.fn(),
       processEvaluation: jest.fn()
@@ -145,7 +125,6 @@ describe('EvaluateSustentationPageComponent', () => {
       navigate: jest.fn()
     };
 
-    // Estructura recursiva para simular el ActivatedRoute sin 'any'
     activatedRouteMock = {
       snapshot: { paramMap: { get: jest.fn().mockReturnValue(null) } },
       parent: {
@@ -178,18 +157,15 @@ describe('EvaluateSustentationPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('ngOnInit y Navegación', () => {
     it('debería buscar el ID en la ruta anidada y cargar la tesis', () => {
-      // Arrange
       facadeMock.loadThesisWork.mockImplementation((id, onSuccess) => onSuccess(mockWork));
 
-      // Act
-      fixture.detectChanges(); // Dispara ngOnInit
+      fixture.detectChanges();
 
-      // Assert
       expect(facadeMock.loadThesisWork).toHaveBeenCalledWith(
         '123',
         expect.any(Function),
@@ -199,23 +175,18 @@ describe('EvaluateSustentationPageComponent', () => {
     });
 
     it('debería regresar si no encuentra el ID en la ruta o sus padres', () => {
-      // Arrange
       activatedRouteMock.parent!.snapshot.paramMap.get.mockReturnValue(null);
       const goBackSpy = jest.spyOn(component, 'goBack');
 
-      // Act
       fixture.detectChanges();
 
-      // Assert
       expect(goBackSpy).toHaveBeenCalled();
       expect(facadeMock.loadThesisWork).not.toHaveBeenCalled();
     });
 
     it('debería navegar a loaded_documents al llamar a goBack', () => {
-      // Act
       component.goBack();
 
-      // Assert
       expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: activatedRouteMock.parent });
     });
   });
@@ -227,44 +198,34 @@ describe('EvaluateSustentationPageComponent', () => {
     };
 
     beforeEach(() => {
-      // Configuramos un estado legal previo al envío
       component.thesisWorkState.set(mockWork);
     });
 
     it('debería almacenar datos temporales y abrir el modal en handleSaveTriggered', () => {
-      // Act
       component.handleSaveTriggered(mockData);
 
-      // Assert
       expect(component.pendingData()).toEqual(mockData);
       expect(component.isConfirmModalOpen()).toBe(true);
     });
 
     it('debería detenerse temprano si no hay datos pendientes o thesisId', () => {
-      // Arrange
       component.pendingData.set(null);
 
-      // Act
       component.processSustentationEvaluation();
 
-      // Assert
       expect(facadeMock.processEvaluation).not.toHaveBeenCalled();
-      expect(component.isSubmitting()).toBe(false); // Nunca inició
+      expect(component.isSubmitting()).toBe(false);
     });
 
     it('debería procesar la sustentación, resetear indicadores y ejecutar onSuccess', () => {
-      // Arrange
       component.pendingData.set(mockData);
       component.isConfirmModalOpen.set(true);
       const goBackSpy = jest.spyOn(component, 'goBack');
 
-      // Simulamos éxito
       facadeMock.processEvaluation.mockImplementation((id, payload, file, onSuccess) => onSuccess());
 
-      // Act
       component.processSustentationEvaluation();
 
-      // Assert
       expect(component.isSubmitting()).toBe(false);
       expect(component.isConfirmModalOpen()).toBe(false);
       expect(facadeMock.processEvaluation).toHaveBeenCalledWith(
@@ -278,21 +239,17 @@ describe('EvaluateSustentationPageComponent', () => {
     });
 
     it('debería procesar la sustentación y mantener al usuario en pantalla si falla', () => {
-      // Arrange
       component.pendingData.set(mockData);
       component.isConfirmModalOpen.set(true);
       const goBackSpy = jest.spyOn(component, 'goBack');
 
-      // Simulamos error
       facadeMock.processEvaluation.mockImplementation((id, payload, file, onSuccess, onError) => onError());
 
-      // Act
       component.processSustentationEvaluation();
 
-      // Assert
       expect(component.isSubmitting()).toBe(false);
-      expect(component.isConfirmModalOpen()).toBe(false); // Modal sí se cierra, porque cerró antes del request asíncrono real
-      expect(goBackSpy).not.toHaveBeenCalled(); // No debe regresar si falló
+      expect(component.isConfirmModalOpen()).toBe(false);
+      expect(goBackSpy).not.toHaveBeenCalled();
     });
   });
 });

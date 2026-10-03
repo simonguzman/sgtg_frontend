@@ -1,6 +1,5 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
-
 import { ArchivedThesisWorksTabService } from './archived-thesis-works-tab.service';
 import { ThesisWorkService } from '../../../../thesis-work/services/thesis-work.service';
 import { UserService } from '../../../../users/services/user.service';
@@ -12,8 +11,6 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { ARCHIVED_ALLOWED_ACTIONS } from '../models/archived-tab-columns.model';
 import { Modality } from '../../../../proposal/enums/modality.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
-
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown' y 'never') ──
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-default',
@@ -53,24 +50,18 @@ const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): 
 
 const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => ({
   thesisWorkId: 'tw-1',
-  // Extraemos el tipo exacto de 'state' de la interfaz para evitar usar 'never'
   state: 'FINALIZADO' as ThesisWork['state'],
   isArchived: true,
   preliminaryDraftData: createMockPreliminaryDraft(),
   ...overrides
 } as ThesisWork);
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('ArchivedThesisWorksTabService', () => {
   let service: ArchivedThesisWorksTabService;
-
-  // 🔹 REFACTOR: Tipado estricto de dependencias
   let mockThesisWorkService: { allThesisWorks: WritableSignal<ThesisWork[]> };
   let mockUserService: { getAuthorsNames: jest.Mock<string, [User[] | undefined]> };
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para mantener limpia la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -95,7 +86,7 @@ describe('ArchivedThesisWorksTabService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola
+    jest.restoreAllMocks();
   });
 
   describe('Configuración Básica', () => {
@@ -120,56 +111,48 @@ describe('ArchivedThesisWorksTabService', () => {
     });
 
     it('debería excluir los trabajos de grado que NO están archivados (isArchived = false)', () => {
-      // Usamos el anidamiento limpio de los factories para evitar el DeepPartialMock
-      const activeWork = createMockThesisWork({
+      const activeThesisWork = createMockThesisWork({
         thesisWorkId: 'tw-active-1',
         isArchived: false,
         preliminaryDraftData: createMockPreliminaryDraft({
           proposalData: createMockProposal({ authors: [createMockUser({ id: 'user-123' })] })
         })
       });
-
-      const archivedWork = createMockThesisWork({
+      const archivedThesisWork = createMockThesisWork({
         thesisWorkId: 'tw-arch-1',
         isArchived: true,
         preliminaryDraftData: createMockPreliminaryDraft({
           proposalData: createMockProposal({ authors: [createMockUser({ id: 'user-123' })] })
         })
       });
-
-      mockThesisWorkService.allThesisWorks.set([activeWork, archivedWork]);
-
-      const context = createContext('user-123'); // Acceso global es false
+      mockThesisWorkService.allThesisWorks.set([activeThesisWork, archivedThesisWork]);
+      const context = createContext('user-123');
       const data = service.getTableData(context);
-
       expect(data).toHaveLength(1);
       expect(data[0]['id']).toBe('tw-arch-1');
     });
 
     it('debería retornar TODOS los trabajos archivados si el contexto tiene acceso global', () => {
-      const workPropio = createMockThesisWork({
+      const thesisWorkPropio = createMockThesisWork({
         thesisWorkId: 'tw-arch-1',
         preliminaryDraftData: createMockPreliminaryDraft({
           proposalData: createMockProposal({ authors: [createMockUser({ id: 'user-admin' })] })
         })
       });
-      const workAjeno = createMockThesisWork({
+      const thesisWorkAjeno = createMockThesisWork({
         thesisWorkId: 'tw-arch-2',
         preliminaryDraftData: createMockPreliminaryDraft({
           proposalData: createMockProposal({ authors: [createMockUser({ id: 'user-other' })] })
         })
       });
-
-      mockThesisWorkService.allThesisWorks.set([workPropio, workAjeno]);
-
+      mockThesisWorkService.allThesisWorks.set([thesisWorkPropio, thesisWorkAjeno]);
       const context = createContext('user-admin', true);
       const data = service.getTableData(context);
-
       expect(data).toHaveLength(2);
     });
 
     it('debería mapear correctamente las columnas y procesar la fecha máxima de entrega dinámicamente', () => {
-      const fullWork = createMockThesisWork({
+      const fullThesisWork = createMockThesisWork({
         thesisWorkId: 'tw-arch-1',
         state: 'FINALIZADO' as ThesisWork['state'],
         preliminaryDraftData: createMockPreliminaryDraft({
@@ -183,7 +166,7 @@ describe('ArchivedThesisWorksTabService', () => {
         })
       });
 
-      const emptyWork = createMockThesisWork({
+      const emptyThesisWork = createMockThesisWork({
         thesisWorkId: 'tw-arch-3',
         state: 'CANCELADO' as ThesisWork['state'],
         preliminaryDraftData: createMockPreliminaryDraft({
@@ -193,22 +176,16 @@ describe('ArchivedThesisWorksTabService', () => {
             modality: undefined,
             description: undefined,
             authors: [],
-            director: createMockUser({ id: 'user-123' }) // <-- FIX: Le damos acceso siendo el director para que no sea filtrada
+            director: createMockUser({ id: 'user-123' })
           })
         })
       });
-
-      mockThesisWorkService.allThesisWorks.set([fullWork, emptyWork]);
-
-      // Simulamos que para el trabajo vacío, getAuthorsNames retorne falso/vacío
+      mockThesisWorkService.allThesisWorks.set([fullThesisWork, emptyThesisWork]);
       mockUserService.getAuthorsNames.mockImplementation((authors) => {
         return authors && authors.length > 0 ? 'Autores Mockeados' : '';
       });
-
       const context = createContext('user-123');
       const data = service.getTableData(context);
-
-      // Verificación del caso feliz (Full Work)
       expect(data[0]).toEqual(expect.objectContaining({
         id: 'tw-arch-1',
         title: 'Sistema de Gestión Tesis',
@@ -218,18 +195,14 @@ describe('ArchivedThesisWorksTabService', () => {
         state: 'FINALIZADO',
         allowedActions: ARCHIVED_ALLOWED_ACTIONS,
       }));
-
-      // Comprobamos la generación del string para la fecha formateada
       expect(typeof data[0]['maxDeliveryDate']).toBe('string');
       expect(data[0]['maxDeliveryDate']).not.toBe('Sin fecha límite');
-
-      // Verificación de Fallbacks (Tu Fix trabajando de fondo)
       expect(data[1]).toEqual(expect.objectContaining({
         id: 'tw-arch-3',
         title: 'Sin título',
         modality: 'No definida',
         description: 'Sin descripción',
-        maxDeliveryDate: 'Sin fecha límite', // Test del Fallback de Fecha
+        maxDeliveryDate: 'Sin fecha límite',
       }));
     });
   });

@@ -19,19 +19,10 @@ export class EvaluationProposalFormService {
     comments: ['', Validators.required]
   });
 
-  /**
-   * Devuelve el primer documento cargado (el original de la propuesta).
-   * Se usa solo para la sección de descarga — no depende de la fecha.
-   */
   resolveOriginalDocument(proposal: Proposal): FileDocument | null {
     return proposal?.documents?.[0] ?? null;
   }
 
-  /**
-   * Devuelve el documento más reciente evaluable (Propuesta o Corrección).
-   * Se usa para mostrar la fecha de carga vigente en el formulario.
-   * Usa enum DocumentType en vez de strings literales para type-safety.
-   */
   resolveCurrentDocument(proposal: Proposal): FileDocument | null {
     const evaluable = (proposal?.documents ?? []).filter(document =>
       document.type === DocumentType.PROPUESTA || document.type === DocumentType.CORRECCION
@@ -48,10 +39,6 @@ export class EvaluationProposalFormService {
       ? document.uploadDate.toLocaleDateString('es-ES')
       : String(document.uploadDate);
   }
-
-  // ── Formateo de nombres ──────────────────────────────────────────────────
-  // Delegan en UserService, que ya encapsula la lógica de formateo.
-  // El componente original duplicaba esa lógica en getStudentNames().
 
   getStudentNames(authors: User[] | undefined): string {
     return this.userService.getAuthorsNames(authors);

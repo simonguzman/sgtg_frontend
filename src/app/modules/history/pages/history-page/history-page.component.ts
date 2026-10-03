@@ -20,8 +20,7 @@ import { HISTORY_TABS_CONFIG, HISTORY_DETAIL_ROUTES } from './models/history-pag
   styleUrls: ['./history-page.component.css'],
   imports: [TabsComponent, TableComponent, DescriptionModalComponent]
 })
-// ← OnInit eliminado: ngOnInit(): void {} estaba vacío — implementar la
-// interfaz solo para un método sin cuerpo es ruido puro.
+
 export class HistoryPageComponent implements OnDestroy {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -29,19 +28,15 @@ export class HistoryPageComponent implements OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly breadcrumbService = inject(BreadcrumbService);
 
-  // ← Las 3 estrategias ahora son servicios inyectables en vez de
-  // constantes planas — ProposalService/UserService ya no se inyectan
-  // aquí solo para reenviarlos por el context; cada servicio de tab
-  // resuelve sus propias dependencias.
   private readonly proposalsTab = inject(ArchivedProposalsTabService);
-  private readonly draftsTab = inject(ArchivedPreliminaryDraftsTabService);
+  private readonly preliminaryDraftsTab = inject(ArchivedPreliminaryDraftsTabService);
   private readonly thesisWorksTab = inject(ArchivedThesisWorksTabService);
 
   protected readonly tabsConfig = HISTORY_TABS_CONFIG;
 
   private readonly tabStrategies: Record<string, HistoryTabConfiguration> = {
     'PROPUESTAS': this.proposalsTab,
-    'ANTEPROYECTOS': this.draftsTab,
+    'ANTEPROYECTOS': this.preliminaryDraftsTab,
     'TRABAJOS': this.thesisWorksTab
   };
 
@@ -98,7 +93,6 @@ export class HistoryPageComponent implements OnDestroy {
         break;
       case 'view-details':
       case 'ver': {
-        // ← Antes: 3 if/else if comparando activeTab() como string.
         const routeSegment = HISTORY_DETAIL_ROUTES[this.activeTab()];
         if (routeSegment) {
           this.router.navigate([routeSegment, rowId], { relativeTo: this.route });

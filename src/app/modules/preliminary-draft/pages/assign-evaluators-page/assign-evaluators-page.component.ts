@@ -1,7 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
-
 import { AssignEvaluatorsPageFacadeService } from './services/assign-evaluators-page-facade.service';
-
 import { AssignEvaluatorsFormComponent } from "../../components/assign-evaluators-form/assign-evaluators-form.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 

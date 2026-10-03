@@ -1,21 +1,14 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap, ParamMap } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { Component, Input, Output, EventEmitter, signal, WritableSignal } from '@angular/core';
-
-// 2. Componente a probar
 import { LoadedDocumentsThesisWorkPageComponent } from './loaded-documents-thesis-work-page.component';
-
-// 3. Servicios y Facades
 import { ThesisWorkService } from '../../services/thesis-work.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
 import { ThesisParticipantsFormatterService } from '../../services/thesis-participants-formatter.service';
 import { LoadedDocumentsThesisWorkFacadeService } from './services/loaded-documents-thesis-work-facade.service';
 import { ThesisWorkDetailsModalResolverService } from './services/thesis-work-details-modal-resolver.service';
-
-// 4. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { User } from '../../../users/interfaces/user.interface';
 import { Advance } from '../../interfaces/advance.interface';
@@ -25,15 +18,11 @@ import { stateList } from '../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
 import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
-
-// Importaciones de los componentes reales para removerlos en el override
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
 import { TableComponent, TableButton } from '../../../../shared/components/table-component/table-component.component';
 import { TabsComponent } from '../../../../shared/components/tabs/tabs.component';
-
-// ── Mocks de Componentes Hijos (Standalone y Strict-Init) ────────────────────
 
 @Component({ selector: 'app-table-component', template: '', standalone: true })
 class MockTableComponent {
@@ -89,8 +78,6 @@ class MockRegisterInformationModalComponent {
   @Output() onDownloadFile = new EventEmitter<string>();
 }
 
-// ── Tipos Estructurales Seguros para Mocks Recursivos y Espías ──────────────
-
 type DeepPartialActivatedRoute = {
   snapshot: { paramMap: ParamMap };
   firstChild?: DeepPartialActivatedRoute | null;
@@ -104,8 +91,6 @@ interface MockLoadedDocumentsFacade {
   showRestrictedActionNotification: jest.Mock;
   showNotFoundError: jest.Mock;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -139,7 +124,6 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
     state: stateList.EN_DESARROLLO,
     createdDate: new Date(),
     isArchived: false,
-    // FIX: Reemplazamos el "any" por el casteo estricto anidado
     preliminaryDraftData: {
       preliminaryDraftId: 'draft-1',
       proposalId: 'prop-1',
@@ -176,8 +160,6 @@ const createMockAdvance = (overrides: Partial<Advance> = {}): Advance => ({
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('LoadedDocumentsThesisWorkPageComponent', () => {
   let component: LoadedDocumentsThesisWorkPageComponent;
   let fixture: ComponentFixture<LoadedDocumentsThesisWorkPageComponent>;
@@ -198,7 +180,6 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
   let originalAdvancesStrategy: TabConfiguration<unknown>;
 
   beforeEach(async () => {
-    // 🔕 Silenciador preventivo global de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -206,7 +187,6 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
     routerSpy = { navigate: jest.fn() };
 
     facadeSpy = {
-      // Simulamos la ejecución síncrona del callback de éxito
       uploadDocument: jest.fn((id, file, type, onSuccess, _onError) => onSuccess()),
       downloadDocument: jest.fn().mockResolvedValue(undefined),
       downloadDocumentByName: jest.fn().mockResolvedValue(undefined),
@@ -237,7 +217,6 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
       getAdvisorName: jest.fn().mockReturnValue(undefined)
     };
 
-    // Estructura limpia y tipada que simula el árbol de ActivatedRoute
     routeMock = {
       snapshot: { paramMap: convertToParamMap({}) },
       firstChild: {
@@ -290,19 +269,16 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
     fixture = TestBed.createComponent(LoadedDocumentsThesisWorkPageComponent);
     component = fixture.componentInstance;
 
-    // Almacenamos la estrategia original para restaurarla
-    // FIX: Tipado estricto `unknown` en vez de `any`
     originalAdvancesStrategy = component['tabStrategies']['AVANCES'] as TabConfiguration<unknown>;
 
     fixture.detectChanges();
   });
 
   afterEach(() => {
-    // Restablecemos la estrategia original
     component['tabStrategies']['AVANCES'] = originalAdvancesStrategy;
 
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización y Ciclo de Vida', () => {
@@ -378,7 +354,6 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
         headerActionRoute: undefined
       } as TabConfiguration<unknown>;
 
-      // Forzar la reevaluación
       component.activeTab.set('OTRA_PESTAÑA');
       fixture.detectChanges();
       component.activeTab.set('AVANCES');
@@ -479,7 +454,6 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
 
       component.downloadDocumentByName('mi_archivo.pdf');
 
-      // FIX: Alineado estrictamente con lo que recibe el componente en su firma real: (fileName, advance)
       expect(facadeSpy.downloadDocumentByName).toHaveBeenCalledWith(
         'mi_archivo.pdf',
         mockAdvance
@@ -506,13 +480,13 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
         'id-from-child',
         fileData,
         DocumentType.AVANCE,
-        expect.any(Function), // onSuccess callback
-        expect.any(Function)  // onError callback
+        expect.any(Function),
+        expect.any(Function)
       );
     });
 
     it('confirmUpload debe retornar tempranamente si falta el fileData, el thesisId o el docType', () => {
-      component.uploadContext.set(null); // Provocar null intencionalmente
+      component.uploadContext.set(null);
       component.confirmUpload();
 
       expect(facadeSpy.uploadDocument).not.toHaveBeenCalled();

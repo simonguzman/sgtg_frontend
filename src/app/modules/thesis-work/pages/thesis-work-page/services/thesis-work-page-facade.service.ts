@@ -20,11 +20,6 @@ export class ThesisWorkPageFacadeService {
   public readonly tableData = computed<ThesisWorkTableRow[]>(() => {
     const currentUser = this.authService.currentUser();
     const isAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
-    // ← NUEVO: separado de hasFullAccessRole a propósito. hasFullAccessRole
-    // incluye DECANATURA, que según thesis-work.routes.ts (evaluate_special_request:
-    // [ADMINISTRADOR, CONSEJO]) no tiene permiso para resolver solicitudes
-    // especiales — reutilizar ese flag habría abierto "reactivar" también a
-    // Decanatura, un rol sin autoridad real sobre esta acción.
     const isConsejo = this.authService.hasAnyRole([UserRoleType.CONSEJO]);
     const hasFullAccessRole = this.authService.hasAnyRole([
       UserRoleType.ADMINISTRADOR,

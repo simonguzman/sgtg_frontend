@@ -41,9 +41,6 @@ export class EvaluationsMapperService {
     const allDocuments = thesisWork.documents || [];
     const allEvaluations = thesisWork.evaluations || [];
 
-    // ← Simplificado: ya no reimplementa la búsqueda de nombre amigable
-    // por su cuenta — delega a resolveDocumentDisplayName, el mismo
-    // helper que ahora también usa formatEvaluationsForTable.
     const parseSignedDocs = (
       docs: (string | FileDocument | FormattedDocument)[] | undefined,
       fallbackName: string
@@ -99,7 +96,7 @@ export class EvaluationsMapperService {
     const specialRequestsEvaluations: RawEvaluationData[] = (thesisWork.specialRequests || [])
       .filter((request: SpecialRequest) => request.status !== stateList.EN_REVISION)
       .map((request: SpecialRequest) => {
-        const formattedType = request.requestType.replace(/_/g, ' ').toLowerCase();
+        const formattedType = request.requestType.replaceAll('_', ' ').toLowerCase();
         const capitalizedType = formattedType.charAt(0).toUpperCase() + formattedType.slice(1);
         const historicalEvaluatorId = request.evaluatorId || 'consejo-facultad';
         return {
@@ -155,13 +152,6 @@ export class EvaluationsMapperService {
       let docsForModal: FormattedDocument[] = [];
       if (evaluation.signedDocuments?.length) {
         docsForModal = evaluation.signedDocuments.map(document => {
-          // ← FIX: antes, un string crudo se usaba tal cual como nombre
-          // Y como url ({ name: document, url: document }) — si el
-          // string era una ruta tipo "uploads/x.pdf", el modal mostraba
-          // esa ruta como "nombre del archivo" en vez de algo legible.
-          // Ahora intenta resolver el nombre real buscando en
-          // globalDocuments; si no encuentra coincidencia, cae al mismo
-          // comportamiento de antes (sin regresión).
           if (typeof document === 'string') {
             return { name: this.resolveDocumentDisplayName(document, globalDocuments, document), url: document };
           }
@@ -186,16 +176,6 @@ export class EvaluationsMapperService {
     });
   }
 
-  // ← NUEVO: extraído de la lógica que ya existía duplicada dentro de
-  // parseSignedDocs (solo se aplicaba a evaluaciones de Trabajo de
-  // Grado). Ahora la comparten Propuestas, Anteproyecto y Trabajo de
-  // Grado por igual.
-  //
-  // Nota honesta: busca por coincidencia exacta de `url`, asumiendo que
-  // el string crudo ES una url. Si en algún punto del código ese string
-  // en realidad guarda un nombre de archivo (no una url), esta búsqueda
-  // no encontrará coincidencia y simplemente caerá al fallback —mismo
-  // comportamiento que existía antes de este fix, nunca peor.
   private resolveDocumentDisplayName(
     rawValue: string,
     documents: FileDocument[],

@@ -32,12 +32,6 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
 
   readonly tabs = LOADED_DOCUMENTS_TABS;
 
-  // ← Claves del Record ahora usan el enum en vez de repetir los string
-  // literals. Sigue tipado Record<string, ...> (no Record<LoadedDocumentsTabType, ...>)
-  // a propósito: activeTab más abajo debe seguir siendo signal<string>
-  // porque <app-tabs> emite un string genérico en (tabChange) — mismo
-  // razonamiento ya documentado en downloadable-formats-page.model.ts
-  // para este mismo patrón de tabs en otro módulo.
   private readonly tabStrategies: Record<string, PreliminaryDraftTabConfiguration> = {
     [LoadedDocumentsTabType.ANTEPROYECTOS]: AnteproyectosTabConfig,
     [LoadedDocumentsTabType.PRESENTACIONES]: PresentacionesTabConfig
@@ -55,12 +49,6 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
       const tabLabel = tab === LoadedDocumentsTabType.ANTEPROYECTOS
         ? 'Anteproyectos'
         : 'Presentaciones al consejo de facultad';
-      // Nota: setDynamicTitle ya actualiza internamente el título del
-      // navegador desde el refactor de BreadcrumbService de hace varios
-      // turnos — la llamada a titleService.setTitle() de abajo quedó
-      // redundante (mismo string escrito dos veces), pero no rota. No la
-      // toco porque no es parte de este pedido; queda como candidata a
-      // limpieza si en algún momento quieres simplificarlo.
       this.breadcrumbService.setDynamicBreadcrumb(tabLabel);
       this.breadcrumbService.setDynamicTitle(`Documentos cargados - ${tabLabel}`);
       this.titleService.setTitle(`Documentos cargados - ${tabLabel}`);
@@ -90,20 +78,11 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
       isAdmin: this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]),
       isJefe: this.authService.hasAnyRole([UserRoleType.JEFE_DEP]),
       isDirector: preliminaryDraft?.proposalData?.director?.id === user?.id,
-      isAssignedEvaluator: preliminaryDraft?.evaluators?.some((ev: { id: string }) => ev.id === user?.id) ?? false,
+      isAssignedEvaluator: preliminaryDraft?.evaluators?.some((evaluation: { id: string }) => evaluation.id === user?.id) ?? false,
       isConsejoMember: this.authService.hasAnyRole([UserRoleType.CONSEJO]),
       totalEvaluatorsCount: preliminaryDraft?.evaluators?.length || 0,
-      // ← FIX: 'Anteproyecto'/'Correccion' → DocumentType.ANTEPROYECTO/
-      // DocumentType.CORRECCION. DocumentType.CORRECCION está confirmado
-      // (se usa un poco más abajo en modalConfig.uploadDocumentType de
-      // AnteproyectosTabConfig). DocumentType.ANTEPROYECTO lo asumo por
-      // convención del enum — todo lo demás en el proyecto (AVANCE,
-      // FORMATO_E, FORMATO_C, FORMATO_G, PAZ_Y_SALVO) es un valor de
-      // este mismo enum, nunca un string suelto. Verifica que el nombre
-      // exacto coincida en tu document-type.enum.ts real; si difiere,
-      // dime el nombre correcto y lo ajusto.
-      latestAnteproyectoId: documents.find(d => d.type === DocumentType.ANTEPROYECTO || d.type === DocumentType.CORRECCION)?.id,
-      latestPresentacionId: documents.find(d => d.type === DocumentType.FORMATO_C)?.id
+      latestAnteproyectoId: documents.find(document => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION)?.id,
+      latestPresentacionId: documents.find(document => document.type === DocumentType.FORMATO_C)?.id
     };
     return this.currentStrategy().enrichEvaluationContext(baseContext);
   });
@@ -156,9 +135,6 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     }
     switch (event.action) {
       case 'download':
-        // ← handleDownload ahora es async; void marca explícitamente que
-        // no se espera el resultado aquí — ya maneja éxito/error con
-        // sus propias notificaciones.
         void this.handleDownload(event.row);
         break;
       case 'evaluate':
@@ -176,11 +152,6 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     this.isConfirmModalOpen.set(true);
   }
 
-  // ← FIX CENTRAL: antes solo pasaba selectedFileData.fileName al
-  // mapper — selectedFileData.file (el archivo real) se descartaba sin
-  // usarse, y el mapper hardcodeaba url: ''. Mismo bug exacto que en
-  // Propuestas: cualquier corrección de anteproyecto subida desde esta
-  // página quedaba con una URL vacía, imposible de descargar después.
   async confirmUpload(): Promise<void> {
     const selectedFileData = this.uploadContext();
     const preliminaryDraft = this.currentPreliminaryDraft();
@@ -201,8 +172,6 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
       return;
     }
 
-    // ← first() agregado: faltaba en esta suscripción — el único punto
-    // de este módulo sin esa protección contra memory leaks.
     this.preliminaryDraftService.uploadDocument(preliminaryDraft.preliminaryDraftId, newDocumentRecord)
       .pipe(first())
       .subscribe({
@@ -226,10 +195,6 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     this.router.navigate(['../'], { relativeTo: this.route });
   }
 
-  // ← FIX: antes era "fire and forget" — sin await ni try/catch, mismo
-  // problema corregido en LoadedProposalsFacadeService. Se agrega
-  // también "Descarga iniciada" para igualar el comportamiento que
-  // Propuestas ya tenía.
   private async handleDownload(document: FileDocument): Promise<void> {
     if (!document.url?.trim()) {
       this.showNotification('Error de descarga', 'No existe una URL válida para este documento.', NotificationType.ERROR);
@@ -258,10 +223,6 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     this.showNotification('Error de carga', 'No se pudo completar la subida del archivo. Por favor, intente de nuevo.', NotificationType.ERROR);
   }
 
-  // ← NUEVO: con la construcción síncrona previa, leer el archivo no
-  // podía fallar de esta forma. Ahora que buildNewDocumentRecord es
-  // async (FileReader), sí puede fallar (archivo corrupto, permisos) y
-  // necesita su propio aviso, distinto del error de red de "Error de carga".
   private showErrorReadingFileNotification(): void {
     this.showNotification('Error al leer el archivo', 'No se pudo procesar el archivo seleccionado. Intente con otro archivo.', NotificationType.ERROR);
   }
@@ -270,10 +231,6 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     this.showNotification('Acción no permitida', 'No tiene los permisos requeridos o el estado actual del documento no permite esta acción.', NotificationType.ERROR);
   }
 
-  // ← NUEVO: los 6 métodos de arriba antes repetían this.notificationService.show({...})
-  // de forma inline cada uno — mismo patrón de helper compartido que usa
-  // el resto de facades del proyecto (LoadedProposalsFacadeService,
-  // LoadedDocumentsThesisWorkFacadeService, etc.).
   private showNotification(title: string, message: string, type: NotificationType): void {
     this.notificationService.show({ title, message, type });
   }

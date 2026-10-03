@@ -63,8 +63,6 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
     this.preliminaryDraft()?.documents.find((document) => document.type === DocumentType.FORMATO_C)
   );
 
-  // ← FIX (re-aplicado): antes solo {name, evaluator} — sin url el botón
-  // "Descargar" de este documento no tiene nada real que descargar.
   readonly evaluationFiles = computed<EvaluatorSignedDocumentView[]>(() =>
     this.preliminaryDraft()?.evaluations.filter((evaluation) => evaluation.veredict === stateList.APROBADO)
       .map((evaluation) => {
@@ -111,9 +109,6 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
     this.isUploadModalOpen.set(false);
   }
 
-  // ← FIX (re-aplicado): `as CouncilEvaluationFormValues` era un cast
-  // ciego. Con el modelo ya estricto (result: stateList), un string
-  // crudo del radio button no encaja sin este mapeo explícito.
   validateAndGetPayload(): SaveEvaluationPayload | null {
     const fileData = this.uploadedSignedFile();
     if (this.evaluationForm.invalid || !fileData) {
@@ -172,11 +167,11 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
     if (rawDate instanceof Date) return rawDate.toLocaleDateString('es-ES');
     const cleanDateStr = rawDate.replace(/\s+/g, '');
     const standardDate = new Date(cleanDateStr);
-    if (!isNaN(standardDate.getTime())) return standardDate.toLocaleDateString('es-ES');
+    if (!Number.isNaN(standardDate.getTime())) return standardDate.toLocaleDateString('es-ES');
     const parts = cleanDateStr.split('-');
     if (parts.length === 3) {
       const manualDate = new Date(+parts[2], +parts[1] - 1, +parts[0]);
-      if (!isNaN(manualDate.getTime())) return manualDate.toLocaleDateString('es-ES');
+      if (!Number.isNaN(manualDate.getTime())) return manualDate.toLocaleDateString('es-ES');
     }
     return 'Fecha inválida';
   }

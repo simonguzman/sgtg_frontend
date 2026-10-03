@@ -1,23 +1,14 @@
-// 1. Angular y Testing
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-
-// 2. Servicio a probar
 import { SustentationDetailsFacadeService } from './sustentation-details-facade.service';
-
-// 3. Dependencias
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { SustentationDetailsMapperService } from './sustentation-details-mapper.service';
-
-// 4. Interfaces y Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { SustentationDetailsView } from '../models/sustentation-details.model';
 import { stateList } from '../../../../../core/enums/state.enum';
-
-// ── Interfaces Estrictas para Spies ──────────────────────────────────────────
 
 interface MockThesisWorkService {
   getThesisWorkByIdMock: jest.Mock;
@@ -35,8 +26,6 @@ interface MockNotificationService {
   show: jest.Mock;
 }
 
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
-
 const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => ({
   thesisWorkId: 'tw-1',
   preliminaryDraftId: 'draft-1',
@@ -50,7 +39,7 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   pazYSalvos: [],
   state: stateList.EN_DESARROLLO,
   createdDate: new Date(),
-  preliminaryDraftData: {} as any, // Irrelevante para el alcance del Facade de detalles
+  preliminaryDraftData: {} as any,
   ...overrides
 });
 
@@ -79,8 +68,6 @@ const createMockSustentationDetailsView = (overrides: Partial<SustentationDetail
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('SustentationDetailsFacadeService', () => {
   let service: SustentationDetailsFacadeService;
 
@@ -90,7 +77,6 @@ describe('SustentationDetailsFacadeService', () => {
   let notificationSpy: MockNotificationService;
 
   beforeEach(() => {
-    // 🔕 Silenciador preventivo global de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -114,7 +100,7 @@ describe('SustentationDetailsFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar la consola
+    jest.restoreAllMocks();
   });
 
   describe('loadDetails', () => {
@@ -140,7 +126,7 @@ describe('SustentationDetailsFacadeService', () => {
       const mockThesisWork = createMockThesisWork();
 
       thesisWorkSpy.getThesisWorkByIdMock.mockReturnValue(of(mockThesisWork));
-      mapperSpy.mapToView.mockReturnValue(null); // Simulamos que no encontró la sustentación
+      mapperSpy.mapToView.mockReturnValue(null);
 
       service.loadDetails(thesisId, sustentationId);
 
@@ -180,7 +166,7 @@ describe('SustentationDetailsFacadeService', () => {
       });
 
       expect(service.isLoading()).toBe(false);
-      expect(service.viewData()).toBeNull(); // Se mantiene nulo si falla
+      expect(service.viewData()).toBeNull();
     });
   });
 

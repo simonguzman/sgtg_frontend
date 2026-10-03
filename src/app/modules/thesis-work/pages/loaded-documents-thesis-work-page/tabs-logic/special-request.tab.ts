@@ -35,7 +35,7 @@ export const SpecialRequestTabConfig: TabConfiguration<SpecialRequestTableRow> =
 
     const verdictsList: JurorVerdict[] = thesis.sustentations?.[0]?.verdicts || [];
     const isSustentationEvaluated = verdictsList.length > 0;
-    const lastVerdict = isSustentationEvaluated ? verdictsList[verdictsList.length - 1].veredict : null;
+    const lastVerdict = verdictsList.at(-1)?.veredict ?? null;
     const isSustentationFinalized = isSustentationEvaluated && lastVerdict !== stateList.APLAZADO;
 
     return { ...baseContext, isSustentationFinalized };
@@ -43,24 +43,24 @@ export const SpecialRequestTabConfig: TabConfiguration<SpecialRequestTableRow> =
 
   getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): SpecialRequestTableRow[] => {
     const thesis = context.thesisWork;
-    if (!thesis || !thesis.specialRequests) return [];
+    if (!thesis?.specialRequests) return [];
 
     const isConsejo = context.isConsejo;
     const isArchived = context.isArchived ?? false;
 
-    return thesis.specialRequests.map((req: SpecialRequest): SpecialRequestTableRow => {
-      const dateStr = req.requestDate ? new Date(req.requestDate).toLocaleDateString('es-ES') : 'Sin fecha';
+    return thesis.specialRequests.map((request: SpecialRequest): SpecialRequestTableRow => {
+      const dateStr = request.requestDate ? new Date(request.requestDate).toLocaleDateString('es-ES') : 'Sin fecha';
       const allowedActions: string[] = ['view-details'];
 
-      if (!isArchived && isConsejo && req.status === stateList.EN_REVISION) {
+      if (!isArchived && isConsejo && request.status === stateList.EN_REVISION) {
         allowedActions.push('evaluate_special_request');
       }
 
       return {
-        id: req.id,
-        description: req.description,
+        id: request.id,
+        description: request.description,
         date: dateStr,
-        status: req.status,
+        status: request.status,
         allowedActions
       };
     });

@@ -8,7 +8,7 @@ export interface StatisticsFilters {
   period: string | null;
   directorId: string | null;
   archiveStatus: 'ACTIVE' | 'ARCHIVED' | 'ALL';
-  deadlineFilter: DeadlineFilterValue; // ← NUEVO
+  deadlineFilter: DeadlineFilterValue;
 }
 
 export const DEADLINE_FILTER_OPTIONS: { label: string; value: DeadlineFilterValue }[] = [

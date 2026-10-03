@@ -6,7 +6,6 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { SpecialRequestType } from '../../../enums/special-request-type.enum';
 
-// Interfaz extraída para mantener el código limpio y fuertemente tipado
 export interface SpecialRequestPayload {
   requestType: SpecialRequestType;
   comments: string;
@@ -14,12 +13,12 @@ export interface SpecialRequestPayload {
 
 @Injectable({ providedIn: 'root' })
 export class RegisterSpecialRequestFacadeService {
-  private readonly thesisWorkService   = inject(ThesisWorkService);
+  private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
 
   public loadThesisWork(
     id: string,
-    onSuccess: (work: ThesisWork) => void,
+    onSuccess: (thesisWork: ThesisWork) => void,
     onNotFound: () => void,
     onError: () => void
   ): void {
@@ -48,7 +47,6 @@ export class RegisterSpecialRequestFacadeService {
     onSuccess: () => void,
     onError: () => void
   ): void {
-    // Al extender ...data, aseguramos que cumpla con el payload que espera el servicio backend
     this.thesisWorkService.createSpecialRequestMock({ ...data, thesisId })
       .pipe(first())
       .subscribe({

@@ -1,27 +1,19 @@
-// 1. Angular Core & Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormGroup, FormControl } from '@angular/forms';
 import { signal, WritableSignal, Component, Input, Output, EventEmitter } from '@angular/core';
-
-// 2. Component, Service & Models
 import { ReviewPreliminaryDraftFormComponent } from './review-preliminary-draft-form.component';
 import { ReviewPreliminaryDraftFormFacadeService } from './services/review-preliminary-draft-form-facade.service';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { PendingReviewData } from '../../interfaces/review-preliminary-draft-payload.interface';
-
-// 3. Core Enums & Interfaces
 import { stateList } from '../../../../core/enums/state.enum';
 import { User } from '../../../users/interfaces/user.interface';
 import { Proposal } from '../../../proposal/interfaces/proposal.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../core/enums/document-type.enum';
-
-// 4. Componentes Originales (Para el override)
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 
-// 🔹 REFACTOR: Mocks de Componentes Hijos para aislar el contenedor del DOM y lógica externa
 @Component({ selector: 'app-button-component', standalone: true, template: '<button (click)="onClick.emit()">{{label}}</button>' })
 class MockButtonComponent {
   @Input() label = '';
@@ -44,7 +36,6 @@ class MockInfoBannerComponent {
   @Input() title = '';
 }
 
-// 🔹 REFACTOR: Interfaz estricta para el Facade sin usar 'any'
 interface MockFacadeService {
   preliminaryDraft: WritableSignal<PreliminaryDraft | null>;
   isReadOnly: WritableSignal<boolean>;
@@ -65,7 +56,6 @@ interface MockFacadeService {
   validateAndGetPayload: jest.Mock<PendingReviewData | null, []>;
 }
 
-// 🔹 REFACTOR: Fábricas estrictas para generar objetos sin 'unknown'
 const createMockUser = (overrides?: Partial<User>): User => ({
   id: 'user-1',
   firstName: 'Usuario',
@@ -112,7 +102,6 @@ describe('ReviewPreliminaryDraftFormComponent', () => {
   const mockDraft = createMockPreliminaryDraft();
 
   beforeEach(async () => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -146,12 +135,10 @@ describe('ReviewPreliminaryDraftFormComponent', () => {
     })
     .overrideComponent(ReviewPreliminaryDraftFormComponent, {
       remove: {
-        // Removemos los componentes reales y el servicio original
         imports: [ButtonComponent, FileUploadModalComponent, InfoBannerComponent],
         providers: [ReviewPreliminaryDraftFormFacadeService]
       },
       add: {
-        // Inyectamos nuestros mocks aislados
         imports: [MockButtonComponent, MockFileUploadModalComponent, MockInfoBannerComponent],
         providers: [{ provide: ReviewPreliminaryDraftFormFacadeService, useValue: mockFacade }]
       }
@@ -161,14 +148,13 @@ describe('ReviewPreliminaryDraftFormComponent', () => {
     fixture = TestBed.createComponent(ReviewPreliminaryDraftFormComponent);
     component = fixture.componentInstance;
 
-    // Asignación de la señal de entrada requerida
     fixture.componentRef.setInput('preliminaryDraft', mockDraft);
     fixture.detectChanges();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   it('debería crear el componente', () => {

@@ -13,8 +13,6 @@ import { SaveEvaluationPayload } from './models/council-evaluation.model';
 @Component({
   selector: 'app-review-presentations-faculty-council-form',
   standalone: true,
-  // ← CommonModule → NgTemplateOutlet: única directiva realmente usada
-  // (*ngTemplateOutlet), mismo patrón aplicado al resto del proyecto.
   imports: [NgTemplateOutlet, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, DatePicker],
   providers: [ReviewPresentationsFacultyCouncilFormFacadeService],
   templateUrl: './review-presentations-faculty-council-form.component.html',
@@ -25,12 +23,6 @@ export class ReviewPresentationsFacultyCouncilFormComponent implements OnInit {
   preliminaryDraft = input.required<PreliminaryDraft>();
   isSubmitting = input<boolean>(false);
   onSaveEvaluation = output<SaveEvaluationPayload>();
-
-  // ← FIX: antes output<FileDocument>(). signedProposalDocument() y ahora
-  // evaluationFiles() son FormattedDocument — sin id/type/status/uploadDate.
-  // FormattedDocument funciona en ambas direcciones: un FileDocument real
-  // (approvedPreliminaryDraftDocument, presentationDocument) sigue siendo
-  // válido aquí porque estructuralmente ya trae name+url de sobra.
   onDownloadFile = output<FormattedDocument>();
 
   constructor() {

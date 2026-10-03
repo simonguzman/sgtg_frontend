@@ -1,15 +1,8 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-
-// 2. Componente a probar
 import { EvaluateCorrectionsPageComponent } from './evaluate-corrections-page.component';
-
-// 3. Servicios y Facades
 import { EvaluateCorrectionsFacadeService } from './services/evaluate-corrections-facade.service';
-
-// 4. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../../core/enums/state.enum';
@@ -17,12 +10,8 @@ import { User } from '../../../users/interfaces/user.interface';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
 import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
-
-// Importaciones para Override
 import { EvaluateCorrectionsFormComponent } from '../../components/evaluate-corrections-form/evaluate-corrections-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
-
-// ── Mocks de Componentes Hijos (Standalone y Strict-Init) ────────────────────
 
 @Component({ selector: 'app-evaluate-corrections-form', template: '', standalone: true })
 class MockEvaluateCorrectionsFormComponent {
@@ -40,8 +29,6 @@ class MockConfirmationActionModalComponent {
   @Output() confirm = new EventEmitter<void>();
 }
 
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown', 'DeepPartial') ─────────
-
 interface MockRouteNode {
   snapshot: { paramMap: { get: jest.Mock<string | null, [string]> } };
   parent: MockRouteNode | null;
@@ -56,8 +43,6 @@ interface MockEvaluateCorrectionsFacadeService {
   saveEvaluation: jest.Mock<void, [string, Omit<Evaluation, 'id' | 'date'>, File, () => void, () => void]>;
   showNavigationError: jest.Mock<void, []>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -120,13 +105,10 @@ const createMockEvaluationPayload = (overrides: Partial<Omit<Evaluation, 'id' | 
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('EvaluateCorrectionsPageComponent', () => {
   let component: EvaluateCorrectionsPageComponent;
   let fixture: ComponentFixture<EvaluateCorrectionsPageComponent>;
 
-  // Interfaces Mocks estrictas
   let facadeMock: MockEvaluateCorrectionsFacadeService;
   let routerMock: MockRouter;
   let activatedRouteMock: MockRouteNode;
@@ -134,11 +116,9 @@ describe('EvaluateCorrectionsPageComponent', () => {
   const mockWork = createMockThesisWork({ thesisWorkId: '123' });
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola preventivamente
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Mocks definidos estructuralmente, sin as DeepPartial
     facadeMock = {
       loadThesisWork: jest.fn(),
       saveEvaluation: jest.fn(),
@@ -149,7 +129,6 @@ describe('EvaluateCorrectionsPageComponent', () => {
       navigate: jest.fn(),
     };
 
-    // Estructura recursiva para ActivatedRoute lista para ser mutada limpiamente en cada test
     activatedRouteMock = {
       snapshot: { paramMap: { get: jest.fn().mockReturnValue(null) } },
       parent: {
@@ -181,19 +160,16 @@ describe('EvaluateCorrectionsPageComponent', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks(); // Prevenir contaminación cruzada
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('ngOnInit e Inicialización de Ruta', () => {
     it('debería extraer el id de la ruta actual y llamar a loadThesisWork', () => {
-      // Arrange (Modificamos el mock dinámicamente antes del detectChanges)
       activatedRouteMock.snapshot.paramMap.get.mockReturnValue('456');
 
-      // Act
       fixture.detectChanges();
 
-      // Assert
       expect(facadeMock.loadThesisWork).toHaveBeenCalledWith(
         '456',
         expect.any(Function),
@@ -202,12 +178,8 @@ describe('EvaluateCorrectionsPageComponent', () => {
     });
 
     it('debería extraer el id del padre si no está en la ruta actual', () => {
-      // Arrange (La configuración por defecto del beforeEach ya hace esto)
-
-      // Act
       fixture.detectChanges();
 
-      // Assert
       expect(facadeMock.loadThesisWork).toHaveBeenCalledWith(
         '123',
         expect.any(Function),
@@ -216,56 +188,45 @@ describe('EvaluateCorrectionsPageComponent', () => {
     });
 
     it('debería mostrar error de navegación y regresar si no hay id en el árbol de rutas', () => {
-      // Arrange (Ruta actual nula y padre nulo)
       activatedRouteMock.snapshot.paramMap.get.mockReturnValue(null);
       activatedRouteMock.parent!.snapshot.paramMap.get.mockReturnValue(null);
 
-      // Act
       fixture.detectChanges();
 
-      // Assert
       expect(facadeMock.showNavigationError).toHaveBeenCalled();
       expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], expect.any(Object));
       expect(facadeMock.loadThesisWork).not.toHaveBeenCalled();
     });
 
     it('debería setear la tesis en state cuando loadThesisWork retorna éxito', () => {
-      // Arrange
       facadeMock.loadThesisWork.mockImplementation((id, onSuccess) => onSuccess(mockWork));
 
-      // Act
       fixture.detectChanges();
 
-      // Assert
       expect(component.thesisWorkState()).toEqual(mockWork);
     });
   });
 
   describe('Acciones de Flujo de UI', () => {
     beforeEach(() => {
-      fixture.detectChanges(); // Inicia el componente
+      fixture.detectChanges();
     });
 
     it('handleOpenConfirmation debería guardar la evaluación pendiente y abrir el modal', () => {
-      // Arrange
       const mockEvent = {
         evaluation: createMockEvaluationPayload(),
         file: new File([''], 'test.pdf')
       };
 
-      // Act
       component.handleOpenConfirmation(mockEvent);
 
-      // Assert
       expect(component.pendingEvaluationData()).toEqual(mockEvent);
       expect(component.isConfirmModalOpen()).toBe(true);
     });
 
     it('goBack debería navegar hacia loaded_documents con la ruta padre relativa', () => {
-      // Act
       component.goBack();
 
-      // Assert
       expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: activatedRouteMock.parent });
     });
   });
@@ -277,33 +238,26 @@ describe('EvaluateCorrectionsPageComponent', () => {
     };
 
     beforeEach(() => {
-      fixture.detectChanges(); // Inicia el componente
-      component.thesisWorkState.set(mockWork); // Asienta estado base válido
+      fixture.detectChanges();
+      component.thesisWorkState.set(mockWork);
     });
 
     it('no debería hacer nada si no hay data pendiente o id de tesis', () => {
-      // Arrange
       component.pendingEvaluationData.set(null);
 
-      // Act
       component.executeEvaluationSave();
 
-      // Assert
       expect(component.isSubmitting()).toBe(false);
       expect(facadeMock.saveEvaluation).not.toHaveBeenCalled();
     });
 
     it('debería manejar el flujo de éxito de guardado, apagar loading y retroceder', () => {
-      // Arrange
-      component.handleOpenConfirmation(mockEvent); // Setea pending data y abre modal
+      component.handleOpenConfirmation(mockEvent);
 
-      // Simulamos la respuesta exitosa inyectando la ejecución del callback
       facadeMock.saveEvaluation.mockImplementation((id, evalData, file, onSuccess) => onSuccess());
 
-      // Act
       component.executeEvaluationSave();
 
-      // Assert
       expect(component.isSubmitting()).toBe(false);
       expect(component.isConfirmModalOpen()).toBe(false);
       expect(facadeMock.saveEvaluation).toHaveBeenCalledWith(
@@ -317,17 +271,13 @@ describe('EvaluateCorrectionsPageComponent', () => {
     });
 
     it('debería manejar el flujo de error de guardado bajando la bandera de envío sin retroceder', () => {
-      // Arrange
       component.pendingEvaluationData.set(mockEvent);
       component.isConfirmModalOpen.set(true);
 
-      // Simulamos la respuesta fallida inyectando la ejecución del callback
       facadeMock.saveEvaluation.mockImplementation((id, evalData, file, onSuccess, onError) => onError());
 
-      // Act
       component.executeEvaluationSave();
 
-      // Assert
       expect(component.isSubmitting()).toBe(false);
       expect(component.isConfirmModalOpen()).toBe(false);
       expect(routerMock.navigate).not.toHaveBeenCalled();

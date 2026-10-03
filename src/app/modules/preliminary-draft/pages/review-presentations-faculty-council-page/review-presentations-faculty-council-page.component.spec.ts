@@ -1,26 +1,18 @@
-// 1. Angular Core & Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { By } from '@angular/platform-browser';
-import { provideNoopAnimations } from '@angular/platform-browser/animations'; // Previene error NG05105 de hijos
-
-// 2. Core Enums & Interfaces
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { stateList } from '../../../../core/enums/state.enum';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
-
-// 3. Shared Modules Enums & Interfaces
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
 import { UserState } from '../../../users/enum/user-state.enum';
 import { User } from '.././../../users/interfaces/user.interface';
 import { Modality } from '../../../proposal/enums/modality.enum';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
-
-// 4. Component, Service & Models
 import { SaveEvaluationPayload } from '../../components/review-presentations-faculty-council-form/models/council-evaluation.model';
 import { ReviewPresentationsFacultyCouncilPageComponent } from './review-presentations-faculty-council-page.component';
 import { ReviewPresentationsFacultyCouncilPageFacadeService } from './services/review-presentations-faculty-council-page-facade.service';
 
-// Interfaz para el mock del facade (sin usar 'any')
 interface MockPageFacadeService {
   filteredPreliminaryDraft: WritableSignal<PreliminaryDraft | null>;
   isConfirmModalOpen: WritableSignal<boolean>;
@@ -31,7 +23,6 @@ interface MockPageFacadeService {
   downloadFile: jest.Mock<void, [FormattedDocument]>;
 }
 
-// 🔹 REFACTOR: Fábricas para generar datos limpios por cada test, evitando mutaciones cruzadas
 const createMockUser = (): User => ({
   id: 'user-1',
   idType: IdentificationType.CC,
@@ -88,7 +79,6 @@ describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
   let mockFacade: MockPageFacadeService;
 
   beforeEach(async () => {
-    // 🔕 Silenciar los console.error y console.warn para mantener limpia la consola de pruebas
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -105,7 +95,7 @@ describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ReviewPresentationsFacultyCouncilPageComponent],
       providers: [
-        provideNoopAnimations() // Evita errores de animaciones de componentes hijos (Material/PrimeNG)
+        provideNoopAnimations()
       ]
     })
     .overrideComponent(ReviewPresentationsFacultyCouncilPageComponent, {
@@ -122,7 +112,7 @@ describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización y navegación', () => {
@@ -145,7 +135,6 @@ describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
 
   describe('Interacciones con Componentes Hijos desde la Vista (Template Bindings)', () => {
     beforeEach(() => {
-      // Configuramos el draft para que se renderice el @if de la vista
       mockFacade.filteredPreliminaryDraft.set(createMockDraft());
       fixture.detectChanges();
     });
@@ -154,7 +143,6 @@ describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
       const formComponentDE = fixture.debugElement.query(By.css('app-review-presentations-faculty-council-form'));
 
       const payload = createMockPayload();
-      // Simulamos que el componente hijo emite el evento desde el HTML
       formComponentDE.triggerEventHandler('onSaveEvaluation', payload);
 
       expect(mockFacade.handleRequestConfirmation).toHaveBeenCalledWith(payload);

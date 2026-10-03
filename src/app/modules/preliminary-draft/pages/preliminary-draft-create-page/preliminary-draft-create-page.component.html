@@ -10,12 +10,10 @@
   </button>
 </div>
 
-<!-- Formulario hijo. Enlazamos la salida onSave con el método openConfirmation del servicio -->
 <app-preliminary-draft-form
   (onSave)="pageService.openConfirmation($event)">
 </app-preliminary-draft-form>
 
-<!-- Modal de confirmación gestionado 100% por el servicio -->
 <app-confirmation-action-modal
   [isOpen]="pageService.confirmState().isOpen"
   description="¿Está seguro de registrar este anteproyecto? Verifique que el documento adjunto corresponda a la propuesta seleccionada."

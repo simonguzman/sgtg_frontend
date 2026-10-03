@@ -9,8 +9,6 @@ export const THESIS_TABS_CONFIG: TabItem[] = [
   { label: 'Solicitudes especiales', value: 'SOLICITUDES'     },
 ];
 
-// Sustituye los if-else de modalDetailsHeader y modalDetailsSubtitle en el componente.
-// Un Record elimina la lógica imperativa y centraliza el dato en un único lugar.
 export const TAB_MODAL_HEADERS: Record<string, string> = {
   'AVANCES':         'Detalles del avance',
   'ENTREGA FINAL':   'Detalles de la Entrega Final',

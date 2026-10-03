@@ -3,15 +3,13 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { By } from '@angular/platform-browser';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Tooltip } from 'primeng/tooltip';
+import { Table } from 'primeng/table';
 
 import { Column, TableButton, TableComponent, TableRow } from './table-component.component';
 
-// ── Componentes Originales a Remover (Shallow Testing) ───────────────────────
 import { ButtonComponent } from '../button-component/button-component.component';
 import { StateComponent } from '../state/state.component';
 import { EmptyStateComponent } from '../empty-state/empty-state.component';
-
-// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
 
 @Component({ selector: 'app-button-component', standalone: true, template: '' })
 class MockButtonComponent {
@@ -32,8 +30,6 @@ class MockStateComponent {
 class MockEmptyStateComponent {
   @Input() message = '';
 }
-
-// ── Mocks de Configuración ──────────────────────────────────────────────────
 
 const COLUMNS_TEXT: Column[] = [
   { field: 'nombre', header: 'Nombre', type: 'text', width: '50%' },
@@ -63,8 +59,6 @@ const ROWS: TableRow[] = [
   { nombre: 'Vanessa Agredo', correo: 'vanessaagredo@unicauca.edu.co', estado: 'En revisión' },
 ];
 
-// ── Función Auxiliar Moderna ────────────────────────────────────────────────
-
 async function mountTable(
   columns: Column[],
   value: TableRow[] = ROWS,
@@ -86,13 +80,19 @@ async function mountTable(
   return { fixture, component };
 }
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('TableComponent', () => {
-  beforeEach(async () => {
-    // 🔕 Silenciar consola para mantener terminal limpia
+
+  beforeAll(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
 
     await TestBed.configureTestingModule({
       imports: [TableComponent],
@@ -109,11 +109,6 @@ describe('TableComponent', () => {
     .compileComponents();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
-  });
-
   describe('Renderizado e Inicialización', () => {
     it('debería crearse correctamente', async () => {
       const { component } = await mountTable(COLUMNS_TEXT);
@@ -122,41 +117,35 @@ describe('TableComponent', () => {
 
     it('debería renderizar los encabezados definidos en las columnas', async () => {
       const { fixture } = await mountTable(COLUMNS_TEXT);
-      const headers = fixture.nativeElement.querySelectorAll('th');
-
+      const headers = fixture.nativeElement.querySelectorAll('th') as NodeListOf<HTMLTableCellElement>;
       expect(headers).toHaveLength(COLUMNS_TEXT.length);
-      expect(headers[0].textContent.trim()).toBe('Nombre');
-      expect(headers[1].textContent.trim()).toBe('Correo');
+      expect(headers[0].textContent?.trim()).toBe('Nombre');
+      expect(headers[1].textContent?.trim()).toBe('Correo');
     });
 
     it('debería aplicar el width definido en las columnas', async () => {
       const { fixture } = await mountTable(COLUMNS_TEXT);
-      const headers = fixture.nativeElement.querySelectorAll('th');
-
+      const headers = fixture.nativeElement.querySelectorAll('th') as NodeListOf<HTMLTableCellElement>;
       expect(headers[0].style.width).toBe('50%');
     });
 
     it('debería respetar el input del paginator', async () => {
       const { fixture } = await mountTable(COLUMNS_TEXT, ROWS, { paginator: true });
-      const pTable = fixture.debugElement.query(By.css('p-table'));
-
-      expect(pTable.componentInstance.paginator).toBe(true);
+      const pTable = fixture.debugElement.query(By.css('p-table')).componentInstance as Table;
+      expect(pTable.paginator).toBe(true);
     });
   });
 
   describe('Estados Especiales de las Columnas', () => {
     it('debería mostrar el empty state cuando el value esté vacío', async () => {
       const { fixture } = await mountTable(COLUMNS_TEXT, []);
-      // Al usar el Mock, buscamos por la directiva en lugar de la clase o selector CSS
       const emptyState = fixture.debugElement.query(By.directive(MockEmptyStateComponent));
-
       expect(emptyState).toBeTruthy();
     });
 
     it('debería pasar correctamente el valor al componente de estado (app-state)', async () => {
       const { fixture } = await mountTable(COLUMNS_STATE);
       const states = fixture.debugElement.queryAll(By.directive(MockStateComponent));
-
       expect(states.length).toBeGreaterThan(0);
       expect(states[0].componentInstance.state).toBe('Aprobado');
     });
@@ -164,7 +153,6 @@ describe('TableComponent', () => {
     it('debería tener configurado el tooltip de PrimeNG en las celdas de texto', async () => {
       const { fixture } = await mountTable(COLUMNS_TEXT);
       const firstCell = fixture.debugElement.query(By.css('td span'));
-
       const tooltip = firstCell.injector.get(Tooltip);
       expect(tooltip.content).toBe(ROWS[0]['nombre']);
     });
@@ -174,8 +162,6 @@ describe('TableComponent', () => {
     it('debería emitir actionClick con la acción y la fila tipada correcta', async () => {
       const { fixture, component } = await mountTable(COLUMNS_ACTIONS);
       const spy = jest.spyOn(component.actionClick, 'emit');
-
-      // Buscamos directamente la instancia del componente simulado
       const buttons = fixture.debugElement.queryAll(By.directive(MockButtonComponent));
       buttons[0].componentInstance.onClick.emit();
 
@@ -185,21 +171,14 @@ describe('TableComponent', () => {
     });
 
     it('debería emitir headerButtonClick al hacer clic en un botón del encabezado', async () => {
-      // Tipado estricto
       const headerBtnMock: TableButton = { label: 'Nuevo', variant: 'primary' };
-
       const { fixture, component } = await mountTable(COLUMNS_TEXT, ROWS, {
         headerButtons: [headerBtnMock]
       });
-
       const spy = jest.spyOn(component.headerButtonClick, 'emit');
-
-      // Buscamos el MockButtonComponent y simulamos el output
       const btn = fixture.debugElement.query(By.directive(MockButtonComponent));
       expect(btn).not.toBeNull();
-
       btn.componentInstance.onClick.emit();
-
       expect(spy).toHaveBeenCalledWith(
         expect.objectContaining(headerBtnMock)
       );
@@ -207,13 +186,11 @@ describe('TableComponent', () => {
 
     it('debería delegar el evento al método globalFilter de la tabla al escribir en el buscador', async () => {
       const { fixture } = await mountTable(COLUMNS_TEXT);
-      const pTable = fixture.debugElement.query(By.css('p-table')).componentInstance;
+      const pTable = fixture.debugElement.query(By.css('p-table')).componentInstance as Table;
       const filterSpy = jest.spyOn(pTable, 'filterGlobal');
-
-      const input = fixture.nativeElement.querySelector('.table-search-input');
+      const input = fixture.nativeElement.querySelector('.table-search-input') as HTMLInputElement;
       input.value = 'Simón';
       input.dispatchEvent(new Event('input'));
-
       expect(filterSpy).toHaveBeenCalledWith('Simón', 'contains');
     });
   });

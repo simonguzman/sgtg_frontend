@@ -14,15 +14,14 @@ import { FileDocument } from '../../../../core/interfaces/file-document.interfac
   styleUrls: ['./register-paz-y-salvo-page.component.css']
 })
 export class RegisterPazYSalvoPageComponent implements OnInit {
-  private readonly route  = inject(ActivatedRoute);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly facade = inject(RegisterPazYSalvoFacadeService);
 
-  readonly thesisWorkState    = signal<ThesisWork | null>(null);
+  readonly thesisWorkState = signal<ThesisWork | null>(null);
   readonly isConfirmModalOpen = signal(false);
-  readonly isSubmitting       = signal(false);
-  // ← Fix: any → tipo concreto
-  readonly pendingData        = signal<{ payload: PazYSalvoPayload; file: File } | null>(null);
+  readonly isSubmitting = signal(false);
+  readonly pendingData = signal<{ payload: PazYSalvoPayload; file: File } | null>(null);
 
   ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
@@ -36,19 +35,18 @@ export class RegisterPazYSalvoPageComponent implements OnInit {
 
     this.facade.loadThesisWork(
       id,
-      (work) => this.thesisWorkState.set(work),
-      ()     => this.goBack()
+      (thesisWork) => this.thesisWorkState.set(thesisWork),
+      () => this.goBack()
     );
   }
 
-  // ← Fix: any → { payload: PazYSalvoPayload; file: File }
   handleRequestConfirmation(data: { payload: PazYSalvoPayload; file: File }): void {
     this.pendingData.set(data);
     this.isConfirmModalOpen.set(true);
   }
 
   processPazYSalvo(): void {
-    const data     = this.pendingData();
+    const data = this.pendingData();
     const thesisId = this.thesisWorkState()?.thesisWorkId;
     if (!data || !thesisId) return;
 
@@ -64,8 +62,8 @@ export class RegisterPazYSalvoPageComponent implements OnInit {
     );
   }
 
-  downloadDocument(doc: FileDocument): void {
-    void this.facade.downloadDocument(doc);
+  downloadDocument(document: FileDocument): void {
+    void this.facade.downloadDocument(document);
   }
 
   goBack(): void {

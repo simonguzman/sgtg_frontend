@@ -6,12 +6,6 @@ import { NotificationService } from '../../shared/components/notifications/servi
 import { NotificationType } from '../../shared/components/notifications/models/notification.model';
 import { resolveEntityForGuard } from '../helpers/resolve-entity-for-guard.helper';
 
-/**
- * Mismo criterio, aplicado a Trabajo de Grado. El hueco más amplio de los
- * 3: evaluate_advance permite [DIRECTOR, CODIRECTOR, ASESOR] de forma
- * genérica — sin este guard, cualquier director podía evaluar el avance
- * de un estudiante que no dirige.
- */
 export const thesisWorkOwnershipGuard: CanActivateFn = (route) => {
   const router = inject(Router);
   const authService = inject(AuthService);
@@ -26,11 +20,11 @@ export const thesisWorkOwnershipGuard: CanActivateFn = (route) => {
   return resolveEntityForGuard(
     thesisStorage.isHydrated,
     () => thesisStorage.allThesisWorks(),
-    work => work.thesisWorkId === id,
+    thesisWork => thesisWork.thesisWorkId === id,
     injector
-  ).then(work => {
-    if (!work) return true;
-    if (thesisStorage.canUserViewThesisWork(work, currentUser.id)) return true;
+  ).then(thesisWork => {
+    if (!thesisWork) return true;
+    if (thesisStorage.canUserViewThesisWork(thesisWork, currentUser.id)) return true;
 
     notificationService.show({
       title: 'Acceso restringido',

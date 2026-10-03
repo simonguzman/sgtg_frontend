@@ -190,7 +190,6 @@ export const thesisWorkRoutes: Routes = [
               roles: [UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
             }
           },
-          // SOLUCIÓN AL BREADCRUMB: Rutas aplanadas directamente para evitar herencias vacías
           {
             path: 'corrected_documents',
             component: CorrectedDocumentsPageComponent,

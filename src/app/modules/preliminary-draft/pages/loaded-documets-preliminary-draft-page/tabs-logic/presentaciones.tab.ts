@@ -23,7 +23,6 @@ export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
 
   enrichEvaluationContext: (baseContext: PreliminaryDraftEvaluationContext) => baseContext,
 
-  // Reemplazo de 'any' por PreliminaryDraftService
   getTableData: (documents: FileDocument[], context: PreliminaryDraftEvaluationContext, preliminaryDraftService: PreliminaryDraftService) => {
     const { preliminaryDraft, latestPresentacionId } = context;
     const filteredDocs = documents.filter(document => document.type === DocumentType.FORMATO_C);
@@ -33,7 +32,6 @@ export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
 
       let status = document.status || stateList.EN_REVISION;
 
-      // Tipado estricto inferido de preliminaryDraft.evaluations (Evaluation[])
       const documentEvaluations = (preliminaryDraft.evaluations || []).filter(evaluation => evaluation.documentId === document.id);
 
       if (documentEvaluations.length > 0) {
@@ -53,18 +51,15 @@ export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
     });
   },
 
-  // Reemplazo de 'any' por PreliminaryDraftService y tipado interno de callbacks
   getHeaderButtons: (context: PreliminaryDraftEvaluationContext, preliminaryDraftService: PreliminaryDraftService) => {
     if (context.preliminaryDraft.isArchived) return [];
     if (!context.isJefe && !context.isAdmin) return [];
 
-    // 1. Estado del anteproyecto más reciente (Tipado con FileDocument)
     const latestAnteproyecto = context.preliminaryDraft.documents?.find((d: FileDocument) => d.type !== DocumentType.FORMATO_C);
     const anteproyectoStatus = latestAnteproyecto
       ? preliminaryDraftService.calculateDocumentStatus(latestAnteproyecto.id, context.preliminaryDraft.evaluations || [], context.totalEvaluatorsCount)
       : null;
 
-    // 2. Verificar si la presentación más reciente sigue en revisión (Tipado con FileDocument y Evaluation)
     const latestPresentacion = context.preliminaryDraft.documents?.find((d: FileDocument) => d.id === context.latestPresentacionId);
     const presentacionTieneEvaluacion = latestPresentacion
       ? (context.preliminaryDraft.evaluations || []).some((ev: Evaluation) => ev.documentId === latestPresentacion.id)
@@ -72,10 +67,8 @@ export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
 
     const isPresentacionEnRevision = latestPresentacion && !presentacionTieneEvaluacion;
 
-    // 3. Verificar si el anteproyecto ya tiene un veredicto final del consejo
     const isPreliminaryDraftFinalized = [stateList.APROBADO, stateList.NO_APROBADO].includes(context.preliminaryDraft.state as stateList);
 
-    // 4. Lógica estricta de inhabilitación
     const isUploadDisabled = anteproyectoStatus !== stateList.APROBADO || isPresentacionEnRevision || isPreliminaryDraftFinalized;
 
     return [{

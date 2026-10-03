@@ -1,13 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { Observable, of, throwError } from 'rxjs';
-
-// Componentes y Servicios
 import { UploadAdvancePageFacadeService } from './upload-advance-page-facade.service';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
-
-// Interfaces y Enums
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { UploadAdvancePayload } from '../../../interfaces/advance-playload.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
@@ -17,12 +13,9 @@ import { IdentificationType } from '../../../../users/enum/identification-type.e
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
 
-// Mock de utilidades externas (FileReader)
 jest.mock('../../../../../core/utils/file-reader.utils', () => ({
   readFileAsDataUrl: jest.fn().mockResolvedValue('data:application/pdf;base64,mocked_base64_string')
 }));
-
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
 
 interface MockThesisWorkService {
   getThesisWorkByIdMock: jest.Mock<Observable<ThesisWork | undefined>, [string]>;
@@ -32,8 +25,6 @@ interface MockThesisWorkService {
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
   const baseUser: User = {
@@ -52,7 +43,7 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   };
 
   const baseThesis = {
-    id: '123', // Propiedad base archivable
+    id: '123',
     thesisWorkId: '123',
     preliminaryDraftId: 'draft-1',
     documents: [],
@@ -85,28 +76,23 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides } as ThesisWork;
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('UploadAdvancePageFacadeService', () => {
   let service: UploadAdvancePageFacadeService;
   let thesisWorkSpy: MockThesisWorkService;
   let notificationSpy: MockNotificationService;
 
   beforeAll(() => {
-    // Simulamos crypto.randomUUID de forma segura para entornos de prueba NodeJS/jsdom
     Object.defineProperty(globalThis, 'crypto', {
       value: { randomUUID: () => 'mock-uuid-1234' },
       writable: true,
-      configurable: true // Permite limpieza futura
+      configurable: true
     });
   });
 
   beforeEach(() => {
-    // 🔕 Silenciar consola como medida preventiva (clave para el catch del processAdvance)
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Inicialización de espías estrictamente tipados
     thesisWorkSpy = {
       getThesisWorkByIdMock: jest.fn(),
       uploadDocumentMock: jest.fn()
@@ -129,14 +115,13 @@ describe('UploadAdvancePageFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Carga de Trabajo de Grado (loadThesisWork)', () => {
     const onSuccessMock = jest.fn();
     const onNotFoundMock = jest.fn();
 
-    // Utilizamos nuestra fábrica pura en lugar del casteo sucio
     const mockThesis = createMockThesisWork();
 
     it('debe llamar a onSuccess si el trabajo de grado existe', () => {
@@ -185,13 +170,10 @@ describe('UploadAdvancePageFacadeService', () => {
     };
 
     it('debe procesar los archivos en paralelo y notificar éxito', async () => {
-      // Mockeamos el retorno del observable como exitoso
       thesisWorkSpy.uploadDocumentMock.mockReturnValue(of(void 0));
 
-      // IMPORTANTE: Al ser un método async/Promise, debemos usar await en el test
       await service.processAdvance('thesis-1', 'user-1', mockPayload, onSuccessMock, onErrorMock);
 
-      // Debe llamarse 2 veces porque hay 2 archivos en el payload
       expect(thesisWorkSpy.uploadDocumentMock).toHaveBeenCalledTimes(2);
       expect(onSuccessMock).toHaveBeenCalled();
       expect(onErrorMock).not.toHaveBeenCalled();
@@ -202,7 +184,6 @@ describe('UploadAdvancePageFacadeService', () => {
     });
 
     it('debe notificar error si alguna de las subidas falla en el forkJoin', async () => {
-      // Forzamos un fallo en la subida simulando un error HTTP
       thesisWorkSpy.uploadDocumentMock.mockReturnValue(throwError(() => new Error('S3 Error')));
 
       await service.processAdvance('thesis-1', 'user-1', mockPayload, onSuccessMock, onErrorMock);

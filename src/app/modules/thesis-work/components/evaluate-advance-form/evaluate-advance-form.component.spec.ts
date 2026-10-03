@@ -1,13 +1,8 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SimpleChange, Component, Input, Output, EventEmitter } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-
-// 2. Componente a probar
 import { EvaluateAdvanceFormComponent } from './evaluate-advance-form.component';
 import { EvaluateAdvanceFormService } from './services/evaluate-advance-form.service';
-
-// 3. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { Advance } from '../../interfaces/advance.interface';
 import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playload.interface';
@@ -18,13 +13,9 @@ import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
 import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
-
-// 4. Componentes Reales para hacer Override
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
-
-// ── Mocks de Componentes Hijos (Standalone y Strict-Init) ────────────────────
 
 @Component({ selector: 'app-button-component', template: '', standalone: true })
 class MockButtonComponent {
@@ -48,8 +39,6 @@ class MockInfoBannerComponent {
   @Input() title = '';
 }
 
-// ── Tipos Seguros para los Mocks (Cero 'any', 'unknown') ─────────────────────
-
 interface MockEvaluateAdvanceFormService {
   evaluationForm: FormGroup;
   getStudentNames: jest.Mock<string, [ThesisWork]>;
@@ -57,8 +46,6 @@ interface MockEvaluateAdvanceFormService {
   getCodirectorName: jest.Mock<string, [ThesisWork]>;
   getAdvisorName: jest.Mock<string, [ThesisWork]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => {
   const base: Partial<User> = {
@@ -89,8 +76,6 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
     specialRequests: [],
     state: stateList.EN_DESARROLLO,
     createdDate: new Date(),
-    // FIX: Utilizamos un Utility Type (NonNullable) para mapear exactamente
-    // las interfaces sin usar `any` ni tener que importar dependencias circulares.
     preliminaryDraftData: {
       preliminaryDraftId: 'draft-1',
       proposalId: 'prop-1',
@@ -139,8 +124,6 @@ const createMockAdvance = (overrides: Partial<Advance> = {}): Advance => {
   return base as Advance;
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('EvaluateAdvanceFormComponent', () => {
   let component: EvaluateAdvanceFormComponent;
   let fixture: ComponentFixture<EvaluateAdvanceFormComponent>;
@@ -150,20 +133,16 @@ describe('EvaluateAdvanceFormComponent', () => {
   const mockAdvanceData = createMockAdvance();
 
   beforeEach(async () => {
-    // 🔕 Silenciador preventivo global de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'log').mockImplementation(() => {});
 
-    // Inicializamos un formulario reactivo real para el mock.
-    // FIX: Usamos fb.control con el tipado exacto para aceptar `undefined` y simular un form vacío.
     const fb = new FormBuilder();
     const mockForm = fb.group({
       result: fb.control<AdvanceEvaluationResult | undefined>(undefined, Validators.required),
       comments: fb.control<string>('', Validators.required)
     });
 
-    // Construcción estricta del Mock Service
     formServiceSpy = {
       evaluationForm: mockForm,
       getStudentNames: jest.fn().mockReturnValue('Estudiante Prueba'),
@@ -190,11 +169,9 @@ describe('EvaluateAdvanceFormComponent', () => {
     fixture = TestBed.createComponent(EvaluateAdvanceFormComponent);
     component = fixture.componentInstance;
 
-    // Asignación de Inputs requeridos ANTES de detectar cambios
     fixture.componentRef.setInput('thesisWork', mockThesisWork);
     fixture.componentRef.setInput('advanceData', mockAdvanceData);
 
-    // Espiamos los event emitters
     jest.spyOn(component.onSaveEvaluation, 'emit');
     jest.spyOn(component.onDownloadAdvance, 'emit');
 
@@ -247,7 +224,7 @@ describe('EvaluateAdvanceFormComponent', () => {
     it('debe habilitar el formulario si el estado cambia a editable', () => {
       fixture.componentRef.setInput('alreadyEvaluated', false);
       fixture.componentRef.setInput('isFullyEvaluated', false);
-      component.evaluationForm.disable(); // Forzamos estado deshabilitado inicial
+      component.evaluationForm.disable();
 
       const changes = {
         isFullyEvaluated: new SimpleChange(true, false, false)
@@ -287,7 +264,6 @@ describe('EvaluateAdvanceFormComponent', () => {
 
   describe('Validación y Envío (submit)', () => {
     it('debe marcar el formulario como touched y no emitir si el formulario es inválido', () => {
-      // FIX: Utilizamos `undefined` en lugar de `null` para cumplir con el tipado estricto
       component.evaluationForm.patchValue({ result: undefined, comments: '' });
 
       component.submit();

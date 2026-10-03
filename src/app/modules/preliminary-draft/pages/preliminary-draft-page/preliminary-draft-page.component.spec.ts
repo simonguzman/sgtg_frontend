@@ -5,7 +5,6 @@ import { PreliminaryDraftFacadeService } from './services/preliminary-draft-faca
 import { PreliminaryDraftTableRow } from './models/preliminary-draft-page.model';
 import { TableButton } from '../../../../shared/components/table-component/table-component.component';
 
-// 🔹 REFACTOR: Fábricas para generar datos limpios y tipados
 const createMockTableRow = (overrides: Partial<PreliminaryDraftTableRow> = {}): PreliminaryDraftTableRow => ({
   id: '1',
   title: 'Test',
@@ -28,7 +27,6 @@ describe('PreliminaryDraftPageComponent', () => {
   let component: PreliminaryDraftPageComponent;
   let fixture: ComponentFixture<PreliminaryDraftPageComponent>;
 
-  // 🔹 REFACTOR: Tipado estructural para evitar 'any' y 'unknown'
   let mockRouter: { navigate: jest.Mock };
   let mockFacade: {
     tableData: jest.Mock;
@@ -38,7 +36,6 @@ describe('PreliminaryDraftPageComponent', () => {
   };
 
   beforeEach(async () => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -68,7 +65,7 @@ describe('PreliminaryDraftPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar las implementaciones originales de la consola
+    jest.restoreAllMocks();
   });
 
   it('debería crearse correctamente', () => {
@@ -135,8 +132,6 @@ describe('PreliminaryDraftPageComponent', () => {
     it('debería confirmar la eliminación llamando a la fachada y gestionar el éxito', () => {
       component.deleteState = { show: true, id: '1', title: 'Test', loading: false };
 
-      // 🔹 REFACTOR: Simulamos que el facade llama al callback de éxito (onSuccess)
-      // para validar que el componente limpia su estado correctamente.
       mockFacade.deleteDraft.mockImplementation((id: string, onSuccess: () => void) => {
         onSuccess();
       });
@@ -152,7 +147,6 @@ describe('PreliminaryDraftPageComponent', () => {
     it('debería gestionar el error restaurando el estado de loading', () => {
       component.deleteState = { show: true, id: '1', title: 'Test', loading: false };
 
-      // 🔹 REFACTOR: Simulamos que el facade llama al callback de error (onError)
       mockFacade.deleteDraft.mockImplementation((id: string, onSuccess: () => void, onError: () => void) => {
         onError();
       });
@@ -160,7 +154,7 @@ describe('PreliminaryDraftPageComponent', () => {
       component.confirmDelete();
 
       expect(component.deleteState.loading).toBe(false);
-      expect(component.deleteState.show).toBe(true); // El modal sigue abierto en caso de error
+      expect(component.deleteState.show).toBe(true);
     });
 
     it('no debería ejecutar la eliminación si ya está cargando o no hay ID', () => {

@@ -1,0 +1,181 @@
+/* ==========================================================================
+   PRIMENG — SISTEMA DE BOTONES
+   ========================================================================== */
+
+.p-button.custom-btn {
+  border-radius: var(--radius-pill);
+  font-family:   var(--font-sans);
+  font-size:     var(--text-size-body);
+  height:        var(--height-pill);
+  border:        none;
+}
+.custom-btn .p-button-label {
+  font-weight: var(--font-semibold-weight);
+}
+
+.btn-primary.p-button {
+  background-color: var(--color-primary);
+  color:            var(--color-text-white);
+  padding:          var(--padding-pill-y) var(--padding-pill-x);
+}
+.btn-primary.p-button:hover    { background-color: var(--color-primary-hover)    !important; }
+.btn-primary.p-button:active   { background-color: var(--color-primary-active)   !important; }
+.btn-primary.p-button:disabled {
+  background-color: var(--color-primary-disabled) !important;
+  color:            var(--color-text-disabled)    !important;
+}
+
+.btn-secondary.p-button {
+  background-color: var(--color-secondary);
+  color:            var(--color-text-blue);
+  border:           var(--secondary-border-width) solid var(--color-secondary-border-color) !important;
+  padding:          var(--padding-pill-y) var(--padding-pill-x);
+}
+.btn-secondary.p-button:hover {
+  background-color: var(--color-secondary-hover)  !important;
+  color:            var(--color-text-blue)         !important;
+}
+.btn-secondary.p-button:active {
+  background-color: var(--color-secondary-active) !important;
+  color:            var(--color-text-blue)         !important;
+}
+.btn-secondary.p-button:disabled {
+  background-color: var(--color-secondary-disabled)            !important;
+  color:            var(--color-text-disabled)                 !important;
+  border:           var(--secondary-border-width) solid var(--color-secondary-border-color-disabled) !important;
+}
+
+.btn-icon.p-button {
+  width:      var(--height-pill);
+  height:     var(--height-pill);
+  box-sizing: border-box;
+  padding:    0;
+}
+
+/* ==========================================================================
+   PRIMENG — TABLA, PAGINADOR Y FILTROS
+   ========================================================================== */
+
+.p-datatable .p-datatable-table {
+  table-layout: fixed !important;
+}
+.p-datatable th {
+  font-family:  var(--font-display);
+  font-size:    var(--text-size-section);
+  font-weight:  var(--font-semibold-weight);
+  color: var(--color-primary)!important;
+}
+.p-datatable td {
+  font-family:  var(--font-sans);
+  font-size:    var(--text-size-body);
+  font-weight:  var(--font-regular-weight);
+  color: #000000;
+}
+
+.p-paginator-page.p-paginator-page-selected {
+  background: var(--p-paginator-nav-button-selected-background) !important;
+  color:      var(--color-text-white);
+}
+.p-paginator-page.p-paginator-page-selected:hover  { background: #828AE3 !important; }
+.p-paginator-page.p-paginator-page-selected:active { background: #5056AC !important; }
+
+.p-columnfilter-overlay .p-columnfilter-buttonbar .p-button,
+.p-column-filter-overlay-menu .p-column-filter-buttons .p-button {
+  border-radius: var(--radius-pill) !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-size-body) !important;
+  height: var(--height-pill) !important;
+  padding: var(--padding-pill-y) var(--padding-pill-x) !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease !important;
+}
+.p-columnfilter-overlay .p-columnfilter-buttonbar .p-button:first-child,
+.p-column-filter-overlay-menu .p-column-filter-buttons .p-button:first-child {
+  background-color: var(--color-secondary) !important;
+  color: var(--color-text-blue) !important;
+  border: var(--secondary-border-width) solid var(--color-secondary-border-color) !important;
+}
+.p-columnfilter-overlay .p-columnfilter-buttonbar .p-button:first-child:hover,
+.p-column-filter-overlay-menu .p-column-filter-buttons .p-button:first-child:hover {
+  background-color: var(--color-secondary-hover) !important;
+  color: var(--color-text-blue) !important;
+  border-color: var(--color-secondary-border-color) !important;
+}
+.p-columnfilter-overlay .p-columnfilter-buttonbar .p-button:first-child:active,
+.p-column-filter-overlay-menu .p-column-filter-buttons .p-button:first-child:active {
+  background-color: var(--color-secondary-active) !important;
+  color: var(--color-text-blue) !important;
+}
+.p-columnfilter-overlay .p-columnfilter-buttonbar .p-button:last-child,
+.p-column-filter-overlay-menu .p-column-filter-buttons .p-button:last-child {
+  background-color: var(--color-primary) !important;
+  color: var(--color-text-white) !important;
+  border: none !important;
+}
+.p-columnfilter-overlay .p-columnfilter-buttonbar .p-button:last-child:hover,
+.p-column-filter-overlay-menu .p-column-filter-buttons .p-button:last-child:hover {
+  background-color: var(--color-primary-hover) !important;
+  color: var(--color-text-white) !important;
+}
+.p-columnfilter-overlay .p-columnfilter-buttonbar .p-button:last-child:active,
+.p-column-filter-overlay-menu .p-column-filter-buttons .p-button:last-child:active {
+  background-color: var(--color-primary-active) !important;
+  color: var(--color-text-white) !important;
+}
+
+.p-tooltip .p-tooltip-text {
+  border: 1px solid rgba(101, 183, 65, 0.24);
+}
+
+/* ==========================================================================
+   PRIMENG — MODALES Y TARJETAS
+   ========================================================================== */
+
+.custom-modal.p-dialog {
+  background-color: rgba(250, 250, 250, 0.9) !important;
+  border:           1px solid rgba(101, 183, 65, 0.24) !important;
+  box-shadow:       0px 4px 4px 0px rgba(0, 0, 0, 0.25) !important;
+  backdrop-filter:  blur(4px);
+}
+.custom-modal .p-dialog-header,
+.custom-modal .p-dialog-content,
+.custom-modal .p-dialog-footer {
+  background: transparent !important;
+  color:      var(--color-text-body, #777680) !important;
+}
+.p-dialog-mask {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}
+.p-dialog {
+  background-color: rgba(250, 250, 250, 0.9);
+  border: 1px solid rgba(101, 183, 65, 0.24);
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+  color: #777680;
+}
+
+.p-card {
+  background-color: rgba(250, 250, 250, 0.71);
+  border: 1px solid rgba(101, 183, 65, 0.24);
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+}
+
+/* ==========================================================================
+   PRIMENG — CALENDARIO (Datepicker)
+   ========================================================================== */
+
+.p-datepicker {
+  --p-datepicker-date-selected-background: var(--color-primary);
+  --p-datepicker-date-selected-color: var(--color-text-white);
+  --p-datepicker-date-hover-background: var(--color-primary-hover);
+  --p-datepicker-date-hover-color: var(--color-text-white);
+  --p-datepicker-today-background: var(--color-primary-active);
+  --p-datepicker-today-color: var(--color-text-white);
+  --p-datepicker-font-family: var(--font-sans);
+}
+.p-datepicker .p-inputtext:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 0, 102, 0.15) !important;
+}
+.p-datepicker .p-datepicker-header .p-datepicker-prev,
+.p-datepicker .p-datepicker-header .p-datepicker-next {
+  color: var(--color-primary);
+}

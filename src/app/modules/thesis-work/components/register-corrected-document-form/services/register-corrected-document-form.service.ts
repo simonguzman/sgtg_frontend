@@ -7,26 +7,26 @@ import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 @Injectable()
 export class RegisterCorrectedDocumentFormService {
   private readonly notificationService = inject(NotificationService);
-  private readonly participants        = inject(ThesisParticipantsFormatterService);
+  private readonly participants = inject(ThesisParticipantsFormatterService);
 
-  getStudentNames(thesisWork: ThesisWork): string   { return this.participants.getStudentNames(thesisWork); }
-  getDirectorName(thesisWork: ThesisWork): string   { return this.participants.getDirectorName(thesisWork); }
+  getStudentNames(thesisWork: ThesisWork): string { return this.participants.getStudentNames(thesisWork); }
+  getDirectorName(thesisWork: ThesisWork): string { return this.participants.getDirectorName(thesisWork); }
   getCodirectorName(thesisWork: ThesisWork): string { return this.participants.getCodirectorName(thesisWork); }
-  getAdvisorName(thesisWork: ThesisWork): string     { return this.participants.getAdvisorName(thesisWork); }
+  getAdvisorName(thesisWork: ThesisWork): string { return this.participants.getAdvisorName(thesisWork); }
 
   notifyFileAttached(fileName: string): void {
     this.notificationService.show({
-      title:   'Archivo adjunto',
+      title: 'Archivo adjunto',
       message: `El documento ${fileName} se ha adjuntado correctamente.`,
-      type:    NotificationType.INFO
+      type: NotificationType.INFO
     });
   }
 
   notifyMissingDocuments(): void {
     this.notificationService.show({
-      title:   'Documentos faltantes',
+      title: 'Documentos faltantes',
       message: 'Debe adjuntar obligatoriamente la Monografía corregida y los Anexos para continuar.',
-      type:    NotificationType.ERROR
+      type:NotificationType.ERROR
     });
   }
 }

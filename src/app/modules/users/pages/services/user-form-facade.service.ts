@@ -12,9 +12,6 @@ export class UserFormFacadeService {
   private readonly notificationService = inject(NotificationService);
   private readonly router = inject(Router);
 
-  // =====================================
-  // OBTENER USUARIO
-  // =====================================
   public getUserById(id: string): Observable<User | undefined> {
     return this.userService.getUserByIdMock(id);
   }
@@ -24,9 +21,6 @@ export class UserFormFacadeService {
     this.router.navigate(['/users']);
   }
 
-  // =====================================
-  // CREAR USUARIO
-  // =====================================
   public createUser(userData: User, onSuccess: () => void): void {
     this.showNotification('Procesando registro', 'Estamos procesando la información del usuario...', NotificationType.INFO);
 
@@ -43,9 +37,7 @@ export class UserFormFacadeService {
     });
   }
 
-  // =====================================
-  // ACTUALIZAR USUARIO (NUEVO)
-  // =====================================
+
   public updateUser(id: string, userData: User, onSuccess: () => void, onError: () => void): void {
     this.showNotification('Procesando actualización', 'Estamos procesando la actualización de la información del usuario...', NotificationType.INFO);
 

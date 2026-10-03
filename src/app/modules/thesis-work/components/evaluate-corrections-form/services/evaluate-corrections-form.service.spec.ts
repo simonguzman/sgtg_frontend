@@ -1,16 +1,9 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
-
-// 2. Servicio a probar
 import { EvaluateCorrectionsFormService } from './evaluate-corrections-form.service';
-
-// 3. Dependencias (Servicios)
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
-
-// 4. Interfaces y Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { CorrectedDelivery } from '../../../interfaces/corrected-delivery.interface';
@@ -22,8 +15,6 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
-
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown', 'DeepPartial') ─────────
 
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
@@ -44,8 +35,6 @@ interface MockParticipantsFormatterService {
   getAdvisorName: jest.Mock<string, [ThesisWork]>;
   getAssignedJurors: jest.Mock<string, [SustentationRegistry | undefined]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -116,7 +105,6 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-// 🔥 FIX: Actualizado rigurosamente a la interfaz CorrectedDelivery enviada
 const createMockCorrectedDelivery = (overrides: Partial<CorrectedDelivery> = {}): CorrectedDelivery => ({
   id: 'delivery-1',
   uploadDate: new Date(),
@@ -126,23 +114,18 @@ const createMockCorrectedDelivery = (overrides: Partial<CorrectedDelivery> = {})
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('EvaluateCorrectionsFormService', () => {
   let service: EvaluateCorrectionsFormService;
 
-  // Interfaces Mocks estrictas
   let notificationServiceMock: MockNotificationService;
   let fileDownloadServiceMock: MockFileDownloadService;
   let authServiceMock: MockAuthService;
   let participantsFormatterMock: MockParticipantsFormatterService;
 
   beforeEach(() => {
-    // 🔕 Silenciar consola como medida preventiva y global
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Mocks definidos estructuralmente, CERO casteos a "any" o "unknown"
     notificationServiceMock = {
       show: jest.fn()
     };
@@ -177,8 +160,8 @@ describe('EvaluateCorrectionsFormService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks(); // Prevenir fugas entre tests
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('Delegación a ThesisParticipantsFormatterService', () => {
@@ -207,7 +190,7 @@ describe('EvaluateCorrectionsFormService', () => {
   describe('Validaciones', () => {
     it('debería validar observaciones correctamente (mínimo 10 caracteres)', () => {
       expect(service.isObservationsValid('Corta')).toBe(false);
-      expect(service.isObservationsValid('   Vacía   ')).toBe(false); // Validando el trim() implícito
+      expect(service.isObservationsValid('    Vacía    ')).toBe(false);
       expect(service.isObservationsValid('Esta es una observación válida')).toBe(true);
     });
   });
@@ -237,7 +220,6 @@ describe('EvaluateCorrectionsFormService', () => {
       authServiceMock.currentUser.mockReturnValue(null);
 
       const mockThesisWithoutData = createMockThesisWork();
-      // 🔥 FIX: Mutación legal y estricta, vaciando el ID en lugar de inyectar 'undefined as any'
       mockThesisWithoutData.preliminaryDraftData.proposalData.id = '';
 
       const payload = service.buildEvaluationPayload(mockThesisWithoutData, stateList.NO_APROBADO, 'Falta info', []);
@@ -277,13 +259,11 @@ describe('EvaluateCorrectionsFormService', () => {
     });
 
     it('debería capturar la excepción y notificar el error si la descarga falla (catch block)', async () => {
-      // Simular error en el API de descarga
       fileDownloadServiceMock.download.mockRejectedValueOnce(new Error('Network error'));
       const mockDoc = createMockFileDocument({ url: 'http://test.com/doc.pdf', name: 'Documento' });
 
       await service.downloadDocument(mockDoc);
 
-      // Verificamos que se haya ejecutado el error en consola de manera controlada
       expect(console.error).toHaveBeenCalledWith(`Error al descargar el documento Documento:`, expect.any(Error));
 
       expect(notificationServiceMock.show).toHaveBeenCalledWith({

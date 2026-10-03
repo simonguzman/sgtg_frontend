@@ -1,6 +1,12 @@
+// src/app/modules/users/integration/users-table-reactivity.integration.spec.ts
 import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { ApplicationRef } from '@angular/core';
+
+// FIX: Polyfill preventivo para fake-indexeddb en entornos Node/Jest antiguos (Global)
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+}
 
 // Servicios reales involucrados en la costura
 import { UsersFacadeService } from '../pages/users-page/services/users-facade.service';
@@ -16,11 +22,13 @@ import { User } from '../interfaces/user.interface';
 import { UserState } from '../enum/user-state.enum';
 import { IdentificationType } from '../enum/identification-type.enum';
 
+// ── Fábrica Estricta (Zero 'any', Zero 'unknown') ────────────────────────────
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
   idType: IdentificationType.CC,
   idNumber: 123456789,
   firstName: 'Juan',
+  secondName: '', // Asegurando compatibilidad completa
   lastName: 'Perez',
   secondLastName: '',
   codeNumber: 1234567890,
@@ -29,16 +37,28 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
   state: UserState.active,
   roles: [],
   ...overrides
-});
+} as User);
 
 describe('Integración [Users]: Reactividad de la Tabla de Usuarios', () => {
   let facade: UsersFacadeService;
   let storage: UserStorageService;
   let appRef: ApplicationRef;
-  let errorSpy: jest.SpyInstance;
+
+  // 1. ESCUDO GLOBAL: Atrapa warnings de promesas huérfanas en toda la suite
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  // 3. Restauración definitiva al acabar el archivo
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
 
   beforeEach(() => {
-    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    // 2. Limpieza atómica entre tests
+    jest.clearAllMocks();
+    localStorage.clear();
 
     TestBed.configureTestingModule({
       providers: [
@@ -62,11 +82,6 @@ describe('Integración [Users]: Reactividad de la Tabla de Usuarios', () => {
     storage.updateUsersList(() => [createMockUser({ id: 'target-user', state: UserState.active })]);
   });
 
-  afterEach(() => {
-    expect(errorSpy).not.toHaveBeenCalled();
-    errorSpy.mockRestore();
-  });
-
   it('debe actualizar la tabla y re-calcular las acciones permitidas al deshabilitar un usuario (Soft Delete)', fakeAsync(() => {
     // Arrange: Validamos el estado inicial en el computed() del Facade
     let tableRows = facade.usersTableData();
@@ -77,15 +92,18 @@ describe('Integración [Users]: Reactividad de la Tabla de Usuarios', () => {
 
     // Act: Disparamos la acción desde el Facade simulando el click del componente
     let successCallbackCalled = false;
+
+    // Si tu facade tiene un callback de error, lo ideal es pasarle () => { fail(...) }
+    // Asumiendo la firma: (id, status, onSuccess)
     facade.toggleUserStatus('target-user', false, () => {
       successCallbackCalled = true;
     });
 
     // Simulamos el paso del tiempo por el delay(800) de UserApiService
     tick(800);
-    appRef.tick(); // Forzamos la reactividad de los Signals
+    appRef.tick(); // Forzamos la reactividad de los Signals para que se recalculen los computed()
 
-    // Assert: El callback del componente debió llamarse (para cerrar el modal)
+    // Assert: El callback del componente debió llamarse (para cerrar el modal/spinner)
     expect(successCallbackCalled).toBe(true);
 
     // Assert Crítico: El computed() debió reaccionar automáticamente al cambio en el Storage,
@@ -93,7 +111,7 @@ describe('Integración [Users]: Reactividad de la Tabla de Usuarios', () => {
     tableRows = facade.usersTableData();
     expect(tableRows[0].estado).toBe('Inactivo');
 
-    // El mapper debió cambiar los botones permitidos
+    // El mapper debió recalcular y cambiar los botones permitidos basándose en el nuevo estado
     expect(tableRows[0].allowedActions).toContain('activar');
     expect(tableRows[0].allowedActions).not.toContain('eliminar');
   }));

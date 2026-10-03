@@ -1,12 +1,7 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-
-// 2. Componente a probar
 import { EvaluateCorrectionsFormComponent } from './evaluate-corrections-form.component';
 import { EvaluateCorrectionsFormService } from './services/evaluate-corrections-form.service';
-
-// 3. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { CorrectedDelivery } from '../../interfaces/corrected-delivery.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
@@ -18,13 +13,9 @@ import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
 import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { SustentationRegistry } from '../../interfaces/sustentation-registry.interface';
-
-// 4. Componentes Reales para Override
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
-
-// ── Mocks de Componentes Hijos (Standalone y Strict-Init) ────────────────────
 
 @Component({ selector: 'app-file-upload-modal', template: '', standalone: true })
 class MockFileUploadModalComponent {
@@ -47,8 +38,6 @@ class MockInfoBannerComponent {
   @Input() title = '';
 }
 
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown', 'DeepPartial') ─────────
-
 interface MockEvaluateCorrectionsFormService {
   getStudentNames: jest.Mock<string, [ThesisWork]>;
   getDirectorName: jest.Mock<string, [ThesisWork]>;
@@ -63,8 +52,6 @@ interface MockEvaluateCorrectionsFormService {
   notifyInvalidObservations: jest.Mock<void, []>;
   notifyMissingFormatG: jest.Mock<void, []>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -145,24 +132,18 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('EvaluateCorrectionsFormComponent', () => {
   let component: EvaluateCorrectionsFormComponent;
   let fixture: ComponentFixture<EvaluateCorrectionsFormComponent>;
 
-  // Interface mock estricta
   let formServiceMock: MockEvaluateCorrectionsFormService;
 
-  // Fábrica de datos seguros
   const mockThesisWork = createMockThesisWork();
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola preventivamente
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Mocks definidos estructuralmente sin "as any"
     formServiceMock = {
       getStudentNames: jest.fn(),
       getDirectorName: jest.fn(),
@@ -196,14 +177,13 @@ describe('EvaluateCorrectionsFormComponent', () => {
     fixture = TestBed.createComponent(EvaluateCorrectionsFormComponent);
     component = fixture.componentInstance;
 
-    // Inyección de input segura
     fixture.componentRef.setInput('thesisWork', mockThesisWork);
     fixture.detectChanges();
   });
 
   afterEach(() => {
-    jest.clearAllMocks(); // Prevenir contaminación entre tests
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización y Signals', () => {
@@ -213,12 +193,10 @@ describe('EvaluateCorrectionsFormComponent', () => {
     });
 
     it('debería actualizar las observaciones en onObservationsChange de forma segura', () => {
-      // Mock de Evento y target HTML nativo (Sin 'as any')
       const textarea = document.createElement('textarea');
       textarea.value = 'Nuevas observaciones';
       const mockEvent = new Event('input');
 
-      // Asignación de target en JS nativo seguro para tests
       Object.defineProperty(mockEvent, 'target', { writable: false, value: textarea });
 
       component.onObservationsChange(mockEvent);

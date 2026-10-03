@@ -14,9 +14,6 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
 import { SaveProposalEvaluationEvent } from '../../../interfaces/evaluation-proposal-payload.interface';
 
-// Re-exportado para no romper a quienes ya importan este tipo desde el
-// facade (p. ej. EvaluationProposalPageComponent) — la definición real
-// ahora vive junto a Proposal.
 export type { SaveProposalEvaluationEvent };
 
 const RESULT_TO_STATE: Record<string, stateList> = {

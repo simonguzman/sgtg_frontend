@@ -13,8 +13,6 @@ import { FormattedDocument } from '../../../../core/interfaces/formatted-documen
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
 
-// ── Funciones Fábrica fuertemente tipadas ─────────────────────────────────────
-
 const createMockEvaluation = (overrides: Partial<Evaluation & { advanceId?: string; documentId?: string }> = {}): Evaluation => ({
   id: 'eval-1',
   evaluatorId: 'user-1',
@@ -31,7 +29,7 @@ const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocu
   name: 'Documento Base',
   url: 'http://default.pdf',
   type: DocumentType.FORMATO_B,
-  uploadDate: new Date(), // Requerido por la interfaz FileDocument
+  uploadDate: new Date(),
   ...overrides
 } as FileDocument);
 
@@ -52,7 +50,6 @@ const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): 
 
 const createMockSpecialRequest = (overrides: Partial<SpecialRequest> = {}): SpecialRequest => ({
   id: 'req-1',
-  // Casteamos de forma segura el Enum que no tenemos importado
   requestType: 'PRORROGA_TIEMPO' as unknown as NonNullable<SpecialRequest['requestType']>,
   status: stateList.EN_REVISION,
   requestDate: new Date(),
@@ -83,8 +80,6 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   ...overrides
 } as ThesisWork);
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('EvaluationsMapperService', () => {
   let service: EvaluationsMapperService;
 
@@ -93,7 +88,6 @@ describe('EvaluationsMapperService', () => {
   };
 
   beforeEach(() => {
-    // 🔕 Silenciadores globales
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -110,7 +104,6 @@ describe('EvaluationsMapperService', () => {
 
     service = TestBed.inject(EvaluationsMapperService);
 
-    // Mock seguro de crypto.randomUUID
     Object.defineProperty(global, 'crypto', {
       value: { randomUUID: () => 'mock-uuid-1234' },
       configurable: true
@@ -149,14 +142,14 @@ describe('EvaluationsMapperService', () => {
 
       const result = service.processProposalEvaluations(mockProposal);
 
-      expect(result.length).toBe(1);
+      expect(result).toHaveLength(1);
       expect(result[0].evaluatorName).toBe('Dr. Juan Pérez');
       expect(result[0].documentTargetName).toBe('Propuesta de Software');
       expect(result[0].veredict).toBe(stateList.APROBADO);
     });
   });
 
-  describe('processDraftEvaluations()', () => {
+  describe('processPreliminaryDraftEvaluations()', () => {
     it('debería mapear correctamente las evaluaciones de un Anteproyecto', () => {
       mockUserService.getUserFullName.mockReturnValue('');
 
@@ -180,7 +173,7 @@ describe('EvaluationsMapperService', () => {
 
       expect(result[0].evaluatorName).toBe('Evaluador Externo');
       expect(result[0].documentTargetName).toBe('Documento Principal');
-      expect(result[0].signedDocuments.length).toBe(1);
+      expect(result[0].signedDocuments).toHaveLength(1);
     });
   });
 
@@ -193,7 +186,6 @@ describe('EvaluationsMapperService', () => {
           createMockEvaluation({
             advanceId: 'adv-1',
             veredict: stateList.APROBADO,
-            // FIX: Casteamos el string a FormattedDocument para satisfacer la interfaz, aunque en runtime sea un string
             signedDocuments: ['http://url-cruda.pdf' as unknown as FormattedDocument]
           }),
           createMockEvaluation({
@@ -205,7 +197,7 @@ describe('EvaluationsMapperService', () => {
 
       const result = service.processThesisEvaluations(mockThesis);
 
-      expect(result.length).toBe(2);
+      expect(result).toHaveLength(2);
 
       expect(result[0].documentTargetName).toBe('Avance Capítulo 1');
       expect(result[0].signedDocuments[0].name).toBe('http://url-cruda.pdf');
@@ -225,12 +217,10 @@ describe('EvaluationsMapperService', () => {
               createMockJurorVerdict({
                 jurorId: 'juror-1',
                 veredict: stateList.APROBADO,
-                // FIX: Usamos createMockFileDocument en lugar de un objeto suelto
                 attachedDocument: createMockFileDocument({ name: 'Acta', url: 'url' })
               }),
               createMockJurorVerdict({
                 jurorId: 'juror-2',
-                // FIX: Usamos createMockFileDocument
                 attachedDocument: createMockFileDocument({ type: DocumentType.CORRECCION })
               })
             ]
@@ -240,7 +230,7 @@ describe('EvaluationsMapperService', () => {
 
       const result = service.processThesisEvaluations(mockThesis);
 
-      expect(result.length).toBe(1);
+      expect(result).toHaveLength(1);
       expect(result[0].id).toBe('verdict-juror-1-sust-1');
       expect(result[0].evaluatorRole).toBe('Jurado');
       expect(result[0].evaluatorName).toBe('Ana López');
@@ -264,7 +254,7 @@ describe('EvaluationsMapperService', () => {
 
       const result = service.processThesisEvaluations(mockThesis);
 
-      expect(result.length).toBe(1);
+      expect(result).toHaveLength(1);
       expect(result[0].evaluatorRole).toBe('Consejo');
       expect(result[0].evaluatorName).toBe('Consejo de Facultad');
       expect(result[0].documentTargetName).toBe('Solicitud Especial (Prorroga tiempo)');

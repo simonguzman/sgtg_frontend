@@ -8,8 +8,6 @@ import { INBOX_COLUMNS, InboxMessageTableRow, ModalActionType } from './../../mo
 @Component({
   selector: 'app-notifications-page',
   standalone: true,
-  // ← providers: [DatePipe] eliminado: ya no se inyecta, formatInboxDate
-  // es una función pura importada directamente por el mapper.
   imports: [TableComponent, ConfirmationActionModalComponent],
   templateUrl: './notifications-page.component.html',
   styleUrl: './notifications-page.component.css',
@@ -35,7 +33,6 @@ export class NotificationsPageComponent {
     return '';
   });
 
-  // ← Fix: row: any → InboxMessageTableRow
   handleTableAction(event: { action: string; row: InboxMessageTableRow }): void {
     if (event.action === 'ver_detalle') {
       this.facade.markAsRead(event.row.id);

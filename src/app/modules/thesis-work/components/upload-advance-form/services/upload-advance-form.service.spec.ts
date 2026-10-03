@@ -1,11 +1,6 @@
-// 1. Angular Core & Testing
 import { TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
-
-// 2. Service to Test
 import { UploadAdvanceFormService } from './upload-advance-form.service';
-
-// 3. Dependencies & Interfaces
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
@@ -15,8 +10,6 @@ import { IdentificationType } from '../../../../users/enum/identification-type.e
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
-
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
 
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
@@ -29,13 +22,6 @@ interface MockFormatterService {
   getAdvisorName: jest.Mock<string, [ThesisWork]>;
 }
 
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
-
-/**
- * Fábrica centralizada para crear ThesisWork.
- * Como este objeto es muy profundo, definimos la base y usamos el casteo
- * "as ThesisWork" en el punto de retorno, manteniendo los tests limpios.
- */
 const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
   const baseUser: User = {
     id: 'user-1',
@@ -52,7 +38,6 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
     roles: []
   };
 
-  // Armamos la estructura profunda basándonos en tu mock
   const baseThesis = {
     thesisWorkId: 'thesis-123',
     preliminaryDraftId: 'draft-1',
@@ -86,23 +71,18 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides } as ThesisWork;
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('UploadAdvanceFormService', () => {
   let service: UploadAdvanceFormService;
 
   let mockNotificationService: MockNotificationService;
   let mockFormatterService: MockFormatterService;
 
-  // Instanciamos el mock puro usando nuestra fábrica
   const mockThesis = createMockThesisWork();
 
   beforeEach(() => {
-    // 🔕 Silenciar consola como medida preventiva
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Inicialización estricta
     mockNotificationService = {
       show: jest.fn()
     };
@@ -128,7 +108,7 @@ describe('UploadAdvanceFormService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización y Validación del Formulario', () => {
@@ -140,20 +120,18 @@ describe('UploadAdvanceFormService', () => {
     });
 
     it('debería marcar el formulario como válido cuando se llenan los campos requeridos', () => {
-      // Act: Simulamos el ingreso de datos
       service.advanceForm.patchValue({
         title: 'Avance de Desarrollo',
         comments: 'Se completó el módulo de autenticación.'
       });
 
-      // Assert: Validamos que los Validators.required funcionen
       expect(service.advanceForm.valid).toBe(true);
     });
 
     it('debería mantener el formulario inválido si falta un campo (ej. comments)', () => {
       service.advanceForm.patchValue({
         title: 'Avance de Desarrollo',
-        comments: '' // Vacio a propósito
+        comments: ''
       });
 
       expect(service.advanceForm.valid).toBe(false);

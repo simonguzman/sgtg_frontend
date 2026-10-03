@@ -1,0 +1,26 @@
+.badge-state {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  border-radius:   var(--radius-pill);
+  height:          var(--height-pill);
+  padding:         var(--padding-pill-y) var(--padding-pill-x);
+  font-weight:     var(--font-regular-weight);
+  font-size:       var(--text-size-body);
+  color:           var(--color-text-white);
+  text-align:      center;
+  white-space:     normal;
+  max-width:       140px;
+  line-height:     1.2;
+  word-wrap:       break-word;
+}
+
+.state-aprobado               { background-color: var(--color-state-approved); }
+.state-aprobado-observaciones{ background-color: var(--color-state-approved-with-comments); }
+.state-no-aprobado           { background-color: var(--color-state-rejected); }
+.state-revision              { background-color: var(--color-state-under-review); }
+.state-evaluado              { background-color: var(--color-state-evaluated); }
+.state-desarrollo            { background-color: var(--color-state-in-development); }
+.state-aplazado               { background-color: var(--color-state-postponed); }
+.state-cancelado              { background-color: var(--color-state-cancelled); }
+.state-suspendido            { background-color: var(--color-state-suspended); }

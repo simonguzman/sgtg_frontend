@@ -8,51 +8,51 @@
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
     <div class="flex flex-col gap-4">
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Título</span>
-        <input type="text" [value]="thesisWork().preliminaryDraftData.proposalData.title || ''" disabled
+        <label for="infoTitle" class="font-display font-semibold text-primary text-size-section">Título</label>
+        <input id="infoTitle" type="text" [value]="thesisWork().preliminaryDraftData.proposalData.title || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Descripciòn</span>
-        <input type="text" [value]="thesisWork().preliminaryDraftData.proposalData.description" disabled
+        <label for="infoDescription" class="font-display font-semibold text-primary text-size-section">Descripción</label>
+        <input id="infoDescription" type="text" [value]="thesisWork().preliminaryDraftData.proposalData.description" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</span>
-          <input type="text" [value]="thesisWork().preliminaryDraftData.proposalData.modality || ''" disabled
+          <label for="infoModality" class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</label>
+          <input id="infoModality" type="text" [value]="thesisWork().preliminaryDraftData.proposalData.modality || ''" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Estudiante</span>
-          <input type="text" [value]="getStudentNames()" disabled
+          <label for="infoStudent" class="font-display font-semibold text-primary text-size-section">Estudiante</label>
+          <input id="infoStudent" type="text" [value]="getStudentNames()" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Director</span>
-          <input type="text" [value]="getDirectorName()" disabled
+          <label for="infoDirector" class="font-display font-semibold text-primary text-size-section">Director</label>
+          <input id="infoDirector" type="text" [value]="getDirectorName()" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
         @if (thesisWork().preliminaryDraftData.proposalData.codirector) {
           <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
-            <input type="text" [value]="getCodirectorName()" disabled
+            <label for="infoCodirector" class="font-display font-semibold text-primary text-size-section">Codirector</label>
+            <input id="infoCodirector" type="text" [value]="getCodirectorName()" disabled
                    class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
           </div>
         }
         @if (thesisWork().preliminaryDraftData.proposalData.advisor) {
           <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
-            <input type="text" [value]="getAdvisorName()" disabled
+            <label for="infoAdvisor" class="font-display font-semibold text-primary text-size-section">Asesor</label>
+            <input id="infoAdvisor" type="text" [value]="getAdvisorName()" disabled
                    class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
           </div>
         }
       </div>
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Estado Actual</span>
-        <input type="text" [value]="thesisWork().state" disabled
+        <label for="infoState" class="font-display font-semibold text-primary text-size-section">Estado Actual</label>
+        <input id="infoState" type="text" [value]="thesisWork().state" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
       </div>
     </div>
@@ -71,8 +71,8 @@
         </div>
       </div>
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Fecha de Sustentación</span>
-        <input type="text" [value]="(thesisWork().sustentations?.[0]?.sustentationDate | date:'dd / MM / yyyy') || 'Pendiente'" disabled
+        <label for="infoDate" class="font-display font-semibold text-primary text-size-section">Fecha de Sustentación</label>
+        <input id="infoDate" type="text" [value]="(thesisWork().sustentations?.[0]?.sustentationDate | date:'dd / MM / yyyy') || 'Pendiente'" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
     </div>

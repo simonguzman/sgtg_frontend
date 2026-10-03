@@ -22,7 +22,6 @@ export class RolesModalComponent {
 
   isEditing: boolean = false;
 
-  // Al abrir el modal principal, siempre empezamos en modo vista
   toggleEditing(value: boolean) {
     this.isEditing = value;
   }

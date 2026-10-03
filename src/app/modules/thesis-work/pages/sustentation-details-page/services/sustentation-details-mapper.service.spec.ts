@@ -1,15 +1,8 @@
-// 1. Angular y Testing
 import { TestBed } from '@angular/core/testing';
-
-// 2. Servicio a probar
 import { SustentationDetailsMapperService } from './sustentation-details-mapper.service';
-
-// 3. Dependencias
 import { UserService } from '../../../../users/services/user.service';
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
 import { ThesisFinalDeliveryDocumentResolverService } from '../../../services/thesis-final-delivery-document-resolver.service';
-
-// 4. Interfaces y Enums
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { SustentationStatus } from '../../../enums/sustentation-status.enum';
@@ -19,8 +12,6 @@ import { SpecialRequest } from '../../../interfaces/special-request.interface';
 import { JurorVerdict } from '../../../interfaces/juror-verdict.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
-
-// ── Interfaces Estrictas para Spies ──────────────────────────────────────────
 
 interface MockUserService {
   getUserFullName: jest.Mock;
@@ -37,8 +28,6 @@ interface MockThesisParticipantsFormatterService {
 interface MockThesisFinalDeliveryDocumentResolverService {
   resolveLatestFinalDeliveryDocument: jest.Mock;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
   id: 'doc-1',
@@ -94,7 +83,6 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   pazYSalvos: [],
   state: stateList.EN_DESARROLLO,
   createdDate: new Date(),
-  // Se proveen los datos esenciales anidados para que el mapper no falle
   preliminaryDraftData: {
     proposalData: {
       title: 'Tesis IA',
@@ -105,8 +93,6 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('SustentationDetailsMapperService', () => {
   let service: SustentationDetailsMapperService;
 
@@ -115,7 +101,6 @@ describe('SustentationDetailsMapperService', () => {
   let resolverSpy: MockThesisFinalDeliveryDocumentResolverService;
 
   beforeEach(() => {
-    // 🔕 Silenciador preventivo global de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -145,7 +130,7 @@ describe('SustentationDetailsMapperService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar la consola
+    jest.restoreAllMocks();
   });
 
   describe('mapToView', () => {
@@ -153,7 +138,6 @@ describe('SustentationDetailsMapperService', () => {
     let baseThesisWork: ThesisWork;
 
     beforeEach(() => {
-      // Configuramos respuestas por defecto para los espías en cada prueba
       participantsSpy.getStudentNames.mockReturnValue('Estudiante 1');
       participantsSpy.getDirectorName.mockReturnValue('Director 1');
       participantsSpy.getCodirectorName.mockReturnValue('Codirector 1');
@@ -232,11 +216,11 @@ describe('SustentationDetailsMapperService', () => {
       const result = service.mapToView(workWithVerdicts, sustentationId);
 
       expect(result?.verdicts.length).toBe(5);
-      expect(result?.verdicts[0].statusColorClass).toBe('border-l-green-500'); // APROBADO
-      expect(result?.verdicts[1].statusColorClass).toBe('border-l-red-500');   // NO_APROBADO
-      expect(result?.verdicts[2].statusColorClass).toBe('border-l-amber-500'); // CON OBSERVACIONES
-      expect(result?.verdicts[3].statusColorClass).toBe('border-l-orange-500');// APLAZADO
-      expect(result?.verdicts[4].statusColorClass).toBe('border-l-gray-300');  // Fallback default comprobado
+      expect(result?.verdicts[0].statusColorClass).toBe('border-l-green-500');
+      expect(result?.verdicts[1].statusColorClass).toBe('border-l-red-500');
+      expect(result?.verdicts[2].statusColorClass).toBe('border-l-amber-500');
+      expect(result?.verdicts[3].statusColorClass).toBe('border-l-orange-500');
+      expect(result?.verdicts[4].statusColorClass).toBe('border-l-gray-300');
     });
 
     it('debe evaluar correctamente si mostrar el botón de documentos corregidos cuando hay observaciones', () => {
@@ -248,7 +232,7 @@ describe('SustentationDetailsMapperService', () => {
 
       const workWithCorrections = createMockThesisWork({
         sustentations: [sustentationWithObs],
-        correctedDeliveries: [] // Sin entregas previas, pero hubo observaciones
+        correctedDeliveries: []
       });
 
       const result = service.mapToView(workWithCorrections, sustentationId);
@@ -258,7 +242,7 @@ describe('SustentationDetailsMapperService', () => {
     it('debe mostrar el botón de documentos corregidos si existen entregas previas (aunque no haya observaciones recientes)', () => {
       const sustentationSinObs = createMockSustentation({
         id: sustentationId,
-        verdicts: [createMockJurorVerdict({ veredict: stateList.APROBADO })] // Todo excelente
+        verdicts: [createMockJurorVerdict({ veredict: stateList.APROBADO })]
       });
 
       const workWithCorrections = createMockThesisWork({

@@ -1,17 +1,10 @@
-// 1. Angular Core & Testing
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-
-// 2. RxJS
 import { of, throwError } from 'rxjs';
-
-// 3. Core Enums & Interfaces
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
-
-// 4. Shared Modules & Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
@@ -19,13 +12,10 @@ import { UserState } from '../../../../users/enum/user-state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 import { UserService } from '../../../../users/services/user.service';
 import { Modality } from '../../../../proposal/enums/modality.enum';
-
-// 5. Service & Models
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { PreliminaryDraftDetailsPageService } from './preliminary-draft-details-page.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 
-// 🔹 REFACTOR: Funciones Fábrica para generar objetos limpios y evitar mutaciones cruzadas
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
   idType: IdentificationType.CC,
@@ -71,7 +61,6 @@ const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): Preliminary
   state: stateList.EN_REVISION,
   createdData: new Date(),
   evaluations: [],
-  // Por defecto, se incluye un Formato C (índice 0) y un Anteproyecto (índice 1) para probar el computado
   documents: [
     createMockDocument({ id: 'doc-2', type: DocumentType.FORMATO_C, name: 'formato_c.pdf' }),
     createMockDocument()
@@ -83,7 +72,6 @@ const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): Preliminary
 describe('PreliminaryDraftDetailsPageService', () => {
   let service: PreliminaryDraftDetailsPageService;
 
-  // 🔹 REFACTOR: Estructuras estrictamente tipadas para los Mocks (Sin usar 'any' ni casteos raros)
   let mockRouteParamMapGet: jest.Mock;
   let mockParentRouteParamMapGet: jest.Mock;
   let mockRouter: { navigate: jest.Mock; url: string };
@@ -93,7 +81,6 @@ describe('PreliminaryDraftDetailsPageService', () => {
   let mockDownloadService: { download: jest.Mock };
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -144,7 +131,7 @@ describe('PreliminaryDraftDetailsPageService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Método init()', () => {
@@ -188,7 +175,7 @@ describe('PreliminaryDraftDetailsPageService', () => {
 
       service.init();
 
-      expect(console.error).toHaveBeenCalled(); // Validamos que pasó por el catch que loggea
+      expect(console.error).toHaveBeenCalled();
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Error de servidor' })
       );
@@ -200,7 +187,6 @@ describe('PreliminaryDraftDetailsPageService', () => {
     it('debería obtener el documento tipo "Anteproyecto" (DocumentType.ANTEPROYECTO)', () => {
       service.preliminaryDraftDetails.set(createMockDraft());
 
-      // Aunque FORMATO_C está de primero en el mock array, debe encontrar ANTEPROYECTO
       expect(service.mainDocument()?.type).toBe(DocumentType.ANTEPROYECTO);
       expect(service.mainDocument()?.name).toBe('anteproyecto.pdf');
     });
@@ -261,7 +247,7 @@ describe('PreliminaryDraftDetailsPageService', () => {
   describe('Descarga de Documento (downloadDocument) - Flujo Asíncrono', () => {
     it('debería notificar y descargar correctamente si existe el documento principal', async () => {
       service.preliminaryDraftDetails.set(createMockDraft());
-      mockDownloadService.download.mockResolvedValue(undefined); // Mockeamos la promesa resuelta
+      mockDownloadService.download.mockResolvedValue(undefined);
 
       await service.downloadDocument();
 
@@ -288,13 +274,13 @@ describe('PreliminaryDraftDetailsPageService', () => {
 
     it('debería notificar error si la Promesa de FileDownloadService es rechazada', async () => {
       service.preliminaryDraftDetails.set(createMockDraft());
-      mockDownloadService.download.mockRejectedValue(new Error('Fallo de red')); // Promesa falla
+      mockDownloadService.download.mockRejectedValue(new Error('Fallo de red'));
 
       await service.downloadDocument();
 
-      expect(console.error).toHaveBeenCalled(); // Validamos que pasó por el console.error
+      expect(console.error).toHaveBeenCalled();
       expect(mockNotificationService.show).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Archivo no disponible', type: NotificationType.ERROR }) // catch block
+        expect.objectContaining({ title: 'Archivo no disponible', type: NotificationType.ERROR })
       );
     });
   });

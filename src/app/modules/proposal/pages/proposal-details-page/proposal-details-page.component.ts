@@ -11,12 +11,8 @@ import { ButtonComponent } from '../../../../shared/components/button-component/
   styleUrls: ['./proposal-details-page.component.css']
 })
 export class ProposalDetailsPageComponent implements OnInit {
-  // route sigue siendo necesario en el componente porque las dos
-  // navegaciones relativas (evaluations_performed / loaded_proposals)
-  // requieren { relativeTo: route }, que es específico del árbol de rutas
-  // de este componente y no puede resolverse desde la fachada.
   protected readonly route  = inject(ActivatedRoute);
-  private   readonly router = inject(Router);
+  private readonly router = inject(Router);
   protected readonly facade = inject(ProposalDetailsFacadeService);
 
   readonly proposal = signal<Proposal | null>(null);
@@ -33,13 +29,11 @@ export class ProposalDetailsPageComponent implements OnInit {
     this.facade.load(
       id,
       (data) => this.proposal.set(data),
-      ()     => this.facade.goBack(),
-      ()     => this.facade.goBack()
+      () => this.facade.goBack(),
+      () => this.facade.goBack()
     );
   }
 
-  // Métodos de navegación relativa: dependen de ActivatedRoute,
-  // por eso viven en el componente y no en la fachada.
   navigateToEvaluations(): void {
     this.router.navigate(['evaluations_performed'], { relativeTo: this.route });
   }

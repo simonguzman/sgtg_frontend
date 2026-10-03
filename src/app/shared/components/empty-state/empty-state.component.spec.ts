@@ -7,7 +7,6 @@ describe('EmptyStateComponent', () => {
   let fixture: ComponentFixture<EmptyStateComponent>;
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola para mantener terminal limpia ante cualquier posible advertencia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -17,14 +16,12 @@ describe('EmptyStateComponent', () => {
 
     fixture = TestBed.createComponent(EmptyStateComponent);
     component = fixture.componentInstance;
-
-    // Ejecutamos la detección de cambios inicial
     fixture.detectChanges();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Renderizado e Inicialización', () => {
@@ -42,11 +39,8 @@ describe('EmptyStateComponent', () => {
 
     it('debería mostrar el mensaje correcto cuando se le proporciona mediante @Input()', () => {
       const mockMessage = 'No hay presentaciones registradas para este anteproyecto';
-
-      // Uso de setInput (API moderna) en lugar de asignación directa de propiedad
       fixture.componentRef.setInput('message', mockMessage);
       fixture.detectChanges();
-
       const messageSpan = fixture.debugElement.query(By.css('.empty-state-message'));
       expect(messageSpan).toBeTruthy();
       expect(messageSpan.nativeElement.textContent.trim()).toBe(mockMessage);
@@ -55,14 +49,10 @@ describe('EmptyStateComponent', () => {
     it('debería actualizar el texto en la interfaz si la propiedad @Input() cambia', () => {
       fixture.componentRef.setInput('message', 'Cargando información...');
       fixture.detectChanges();
-
       let messageSpan = fixture.debugElement.query(By.css('.empty-state-message'));
       expect(messageSpan.nativeElement.textContent.trim()).toBe('Cargando información...');
-
-      // Cambiamos el valor en tiempo de ejecución
       fixture.componentRef.setInput('message', 'No se encontraron registros');
       fixture.detectChanges();
-
       messageSpan = fixture.debugElement.query(By.css('.empty-state-message'));
       expect(messageSpan.nativeElement.textContent.trim()).toBe('No se encontraron registros');
     });

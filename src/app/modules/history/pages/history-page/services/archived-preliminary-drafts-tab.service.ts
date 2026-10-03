@@ -11,7 +11,7 @@ import { ARCHIVED_ALLOWED_ACTIONS, buildArchivedTableColumns } from '../models/a
 
 @Injectable({ providedIn: 'root' })
 export class ArchivedPreliminaryDraftsTabService implements HistoryTabConfiguration {
-  private readonly draftService = inject(PreliminaryDraftService);
+  private readonly preliminaryDraftService = inject(PreliminaryDraftService);
   private readonly userService = inject(UserService);
 
   readonly tabValue = 'ANTEPROYECTOS';
@@ -19,36 +19,29 @@ export class ArchivedPreliminaryDraftsTabService implements HistoryTabConfigurat
 
   getTableData(context: HistoryEvaluationContext): Record<string, unknown>[] {
     const userId = context.currentUser?.id;
-    const allArchived = this.draftService.allPreliminaryDrafts().filter(d => d.isArchived === true);
-    const allowedDrafts = allArchived.filter((draft: PreliminaryDraft) =>
-      hasArchiveAccess(draft.proposalData, userId, context.hasGlobalAccess)
+    const allArchived = this.preliminaryDraftService.allPreliminaryDrafts().filter(preliminaryDraft => preliminaryDraft.isArchived === true);
+    const allowedPreliminaryDrafts = allArchived.filter((preliminaryDraft: PreliminaryDraft) =>
+      hasArchiveAccess(preliminaryDraft.proposalData, userId, context.hasGlobalAccess)
     );
 
-    return allowedDrafts.map((draft: PreliminaryDraft) => {
-      const proposal = draft.proposalData;
-      // ← FIX: antes draft.documents?.[0]?.id — asumía por índice que el
-      // documento más reciente era el anteproyecto/corrección. Como
-      // uploadDocumentMock hace unshift() para CUALQUIER tipo (incluido
-      // FORMATO_C), si la presentación al consejo se subió después de la
-      // última corrección, documents[0] pasaba a ser el FORMATO_C — un id
-      // que ninguna evaluación de evaluador referencia, dejando el label
-      // sin el sufijo "(EN_PLAZO/RETRASO)".
-      const latestAnteproyectoDocId = draft.documents?.find(
+    return allowedPreliminaryDrafts.map((preliminaryDraft: PreliminaryDraft) => {
+      const proposal = preliminaryDraft.proposalData;
+      const latestAnteproyectoDocId = preliminaryDraft.documents?.find(
         document => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION
       )?.id;
 
       return {
-        id: draft.preliminaryDraftId,
+        id: preliminaryDraft.preliminaryDraftId,
         title: proposal?.title || 'Sin título',
         modality: proposal?.modality || 'No definida',
         authors: this.userService.getAuthorsNames(proposal?.authors) || 'Sin asignar',
         description: proposal?.description || 'Sin descripción',
-        state: draft.state,
+        state: preliminaryDraft.state,
         deadlineStatus: getEvaluatorsDeadlineLabel({
-          state: draft.state,
-          evaluationDeadline: draft.evaluationDeadline,
-          evaluators: draft.evaluators,
-          evaluations: draft.evaluations,
+          state: preliminaryDraft.state,
+          evaluationDeadline: preliminaryDraft.evaluationDeadline,
+          evaluators: preliminaryDraft.evaluators,
+          evaluations: preliminaryDraft.evaluations,
           documentId: latestAnteproyectoDocId
         }),
         allowedActions: ARCHIVED_ALLOWED_ACTIONS

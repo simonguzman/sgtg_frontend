@@ -7,10 +7,11 @@
   [draggable]="false"
   [resizable]="false"
 >
+  <input type="file" #fileInput accept=".pdf" class="hidden" (change)="onFileSelected($event)" />
+
   @if (!uploadedFile) {
     <div class="text-center flex flex-col items-center justify-center p-4">
       <span class="material-symbols-outlined upload-icon text-primary mb-4">upload</span>
-      <input type="file" #fileInput accept=".pdf" class="hidden" (change)="onFileSelected($event)" />
       <div class="text-center cursor-pointer" (click)="fileInput.click()">
         <h3 class="font-display text-size-section font-semibold text-primary mb-2">
           {{ description }}

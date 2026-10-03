@@ -2,8 +2,6 @@ import { TestBed } from '@angular/core/testing';
 import { NotificationService } from './notification.service';
 import { Notification, NotificationType } from '../models/notification.model';
 
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
-
 const createMockNotificationInput = (overrides: Partial<Omit<Notification, 'id'>> = {}): Omit<Notification, 'id'> => ({
   title: 'Título por defecto',
   message: 'Mensaje por defecto',
@@ -11,24 +9,15 @@ const createMockNotificationInput = (overrides: Partial<Omit<Notification, 'id'>
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('NotificationService', () => {
   let service: NotificationService;
-
-  // UUID con formato válido (5 secciones separadas por guiones: 8-4-4-4-12)
   const mockDefaultUuid = '12345678-1234-1234-1234-123456789012';
   let cryptoSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    // 🔕 Silenciar consola para mantener terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    // Activamos temporizadores falsos para controlar el paso del tiempo en setTimeout
     jest.useFakeTimers();
-
-    // Mock seguro y tipado para crypto.randomUUID (Compatible con JSDOM / Node)
     if (!window.crypto) {
       Object.defineProperty(window, 'crypto', {
         value: { randomUUID: jest.fn().mockReturnValue(mockDefaultUuid) },
@@ -47,11 +36,10 @@ describe('NotificationService', () => {
   });
 
   afterEach(() => {
-    // Ejecuta los timers pendientes para evitar fugas de memoria en las pruebas
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaura console y window.crypto
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización', () => {
@@ -82,8 +70,6 @@ describe('NotificationService', () => {
 
     it('debería agregar las notificaciones al inicio de la lista (comportamiento LIFO)', () => {
       let counter = 1;
-
-      // Aseguramos que el UUID falso cumpla estructuralmente con los 36 caracteres
       cryptoSpy.mockImplementation(() => {
         const suffix = String(counter++).padStart(12, '0');
         return `00000000-0000-0000-0000-${suffix}`;
@@ -94,7 +80,7 @@ describe('NotificationService', () => {
 
       const list = service.notifications();
       expect(list).toHaveLength(2);
-      expect(list[0].title).toBe('Segunda'); // La última en entrar es la primera de la lista
+      expect(list[0].title).toBe('Segunda');
       expect(list[1].title).toBe('Primera');
     });
   });
@@ -105,7 +91,6 @@ describe('NotificationService', () => {
       expect(service.notifications()).toHaveLength(1);
 
       service.dismiss(mockDefaultUuid);
-
       expect(service.notifications()).toHaveLength(0);
     });
 
@@ -114,7 +99,6 @@ describe('NotificationService', () => {
       expect(service.notifications()).toHaveLength(1);
 
       service.dismiss('00000000-0000-0000-0000-999999999999');
-
       expect(service.notifications()).toHaveLength(1);
     });
   });
@@ -195,10 +179,10 @@ describe('NotificationService', () => {
       service.show(createMockNotificationInput({ type: NotificationType.ERROR }));
       expect(service.notifications()).toHaveLength(1);
 
-      jest.advanceTimersByTime(5000); // Mitad del tiempo
+      jest.advanceTimersByTime(5000);
       expect(service.notifications()).toHaveLength(1);
 
-      jest.advanceTimersByTime(5000); // Tiempo completo (10000)
+      jest.advanceTimersByTime(5000);
       expect(service.notifications()).toHaveLength(0);
     });
 
@@ -220,11 +204,9 @@ describe('NotificationService', () => {
         autoDismiss: false
       }));
       expect(service.notifications()).toHaveLength(1);
-
-      // Avanzamos el tiempo masivamente (ej. 30 segundos)
       jest.advanceTimersByTime(30000);
 
-      expect(service.notifications()).toHaveLength(1); // Debe seguir viva
+      expect(service.notifications()).toHaveLength(1);
     });
   });
 });

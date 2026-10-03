@@ -1,9 +1,6 @@
-// src/app/modules/preliminary-draft/integration/preliminary-draft-evaluation-cycle.integration.spec.ts
 import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, flush, tick } from '@angular/core/testing';
 import { ApplicationRef, Injector } from '@angular/core';
-
-// Servicios
 import { PreliminaryDraftService } from '../services/preliminary-draft.service';
 import { PreliminaryDraftStorageService } from '../services/preliminary-draft-storage.service';
 import { PreliminaryDraftAssignmentService } from '../services/preliminary-draft-assignment.service';
@@ -13,11 +10,7 @@ import { UserService } from '../../users/services/user.service';
 import { UserStorageService } from '../../users/services/user-storage.service';
 import { UserApiService } from '../../users/services/user-api.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
-
-// Helper de hidratación
 import { waitForHydration } from '../../../testing/wait-for-hydration';
-
-// Modelos y Enums
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
@@ -31,20 +24,16 @@ import { Proposal } from '../../proposal/interfaces/proposal.interface';
 import { Modality } from '../../proposal/enums/modality.enum';
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
 
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+}
+
 const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'user-1',
-  idType: IdentificationType.CC,
-  idNumber: 123456789,
-  firstName: 'Juan',
-  lastName: 'Perez',
-  secondLastName: '',
-  codeNumber: 1234567890,
-  email: 'juan@test.com',
-  password: 'hash',
-  state: UserState.active,
-  roles: [],
-  ...overrides
-});
+  id: 'user-1', idType: IdentificationType.CC, idNumber: 123456789,
+  firstName: 'Juan', secondName: '', lastName: 'Perez', secondLastName: '',
+  codeNumber: 1234567890, email: 'juan@test.com', password: 'hash',
+  state: UserState.active, roles: [], ...overrides
+} as User);
 
 describe('Integración [Anteproyectos]: Ciclo de Asignación y Evaluación', () => {
   let draftService: PreliminaryDraftService;
@@ -54,8 +43,17 @@ describe('Integración [Anteproyectos]: Ciclo de Asignación y Evaluación', () 
   let appRef: ApplicationRef;
   let injector: Injector;
 
-  beforeEach(async () => {
+  beforeAll(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
 
     TestBed.configureTestingModule({
       providers: [
@@ -80,16 +78,13 @@ describe('Integración [Anteproyectos]: Ciclo de Asignación y Evaluación', () 
 
     await waitForHydration(draftStorage.isHydrated, injector);
 
+    localStorage.clear();
     userStorage.updateUsersList(() => []);
 
     const drafts = draftStorage.allPreliminaryDrafts();
     drafts.forEach(d => {
       if (d.preliminaryDraftId) draftStorage.removeDraft(d.preliminaryDraftId);
     });
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
   });
 
   it('debe asignar evaluadores (otorgando el rol), registrar sus veredictos y calcular el estado final sin consenso', fakeAsync(() => {
@@ -99,15 +94,16 @@ describe('Integración [Anteproyectos]: Ciclo de Asignación y Evaluación', () 
 
     userStorage.updateUsersList(() => [evaluator1, evaluator2, director]);
 
-    const mockProposal: Proposal = {
+    const mockProposalPartial: Partial<Proposal> = {
       id: 'prop-100', title: 'IA en Agricultura', description: '', modality: Modality.TI,
       authors: [], director, state: stateList.APROBADO, createdAt: new Date(), documents: [], evaluations: []
     };
+    const mockProposal = mockProposalPartial as Proposal;
 
     const draftId = 'pd-100';
     const documentId = 'doc-100';
 
-    const initialDraft: PreliminaryDraft = {
+    const initialDraftPartial: Partial<PreliminaryDraft> = {
       preliminaryDraftId: draftId,
       proposalId: 'prop-100',
       proposalData: mockProposal,
@@ -120,13 +116,14 @@ describe('Integración [Anteproyectos]: Ciclo de Asignación y Evaluación', () 
       evaluations: [],
       evaluators: []
     };
+    const initialDraft = initialDraftPartial as PreliminaryDraft;
 
     draftStorage.addDraft(initialDraft);
     const eventBusSpy = jest.spyOn(eventBus, 'emit');
 
     draftService.assignReviewers(draftId, ['doc-ev-1', 'doc-ev-2']).subscribe();
 
-    tick(2000); // Aumentado para cubrir los retardos asíncronos del servicio real de usuarios
+    tick(2000);
     flush();
     appRef.tick();
 
@@ -178,7 +175,7 @@ describe('Integración [Anteproyectos]: Ciclo de Asignación y Evaluación', () 
 
     userStorage.updateUsersList(() => [student, director, codirector, validEvaluator1, validEvaluator2]);
 
-    const mockProposal: Proposal = {
+    const mockProposalPartial: Partial<Proposal> = {
       id: 'prop-fraud-test',
       title: 'Sistema de Detección de Fraudes',
       description: '',
@@ -191,6 +188,7 @@ describe('Integración [Anteproyectos]: Ciclo de Asignación y Evaluación', () 
       documents: [],
       evaluations: []
     };
+    const mockProposal = mockProposalPartial as Proposal;
 
     expect(draftService.validateReviewersRules(mockProposal, validEvaluator1.id, validEvaluator1.id)).toBeTruthy();
     expect(draftService.validateReviewersRules(mockProposal, director.id, validEvaluator1.id)).toBeTruthy();
@@ -208,7 +206,7 @@ describe('Integración [Anteproyectos]: Ciclo de Asignación y Evaluación', () 
     });
     userStorage.updateUsersList(() => [councilDirector]);
 
-    const proposalForConsejo: Proposal = {
+    const proposalForConsejoPartial: Partial<Proposal> = {
       id: 'prop-200',
       title: 'Test Final',
       description: 'Anteproyecto en etapa de resolución del consejo',
@@ -220,8 +218,9 @@ describe('Integración [Anteproyectos]: Ciclo de Asignación y Evaluación', () 
       documents: [],
       evaluations: []
     };
+    const proposalForConsejo = proposalForConsejoPartial as Proposal;
 
-    const initialDraft: PreliminaryDraft = {
+    const initialDraftPartial: Partial<PreliminaryDraft> = {
       preliminaryDraftId: draftId,
       proposalId: 'prop-200',
       proposalData: proposalForConsejo,
@@ -238,6 +237,7 @@ describe('Integración [Anteproyectos]: Ciclo de Asignación y Evaluación', () 
       evaluations: [],
       evaluators: []
     };
+    const initialDraft = initialDraftPartial as PreliminaryDraft;
 
     draftStorage.addDraft(initialDraft);
     const eventBusSpy = jest.spyOn(eventBus, 'emit');
@@ -298,10 +298,15 @@ describe('Integración [Anteproyectos]: Ciclo de Asignación y Evaluación', () 
 
     userStorage.updateUsersList(() => [student, evaluator]);
 
-    const initialDraft: PreliminaryDraft = {
+    const proposalDataPartial: Partial<Proposal> = {
+      id: 'prop-300', title: 'Reconocimiento de Patrones', authors: [student], modality: Modality.TI
+    };
+    const proposalData = proposalDataPartial as Proposal;
+
+    const initialDraftPartial: Partial<PreliminaryDraft> = {
       preliminaryDraftId: draftId,
       proposalId: 'prop-300',
-      proposalData: { id: 'prop-300', title: 'Reconocimiento de Patrones', authors: [student], modality: Modality.TI } as Proposal,
+      proposalData: proposalData,
       state: stateList.APROBADO_CON_OBSERVACIONES,
       createdData: new Date(),
       evaluationDeadline: undefined,
@@ -312,6 +317,7 @@ describe('Integración [Anteproyectos]: Ciclo de Asignación y Evaluación', () 
       }],
       evaluations: []
     };
+    const initialDraft = initialDraftPartial as PreliminaryDraft;
 
     draftStorage.addDraft(initialDraft);
     const eventBusSpy = jest.spyOn(eventBus, 'emit');

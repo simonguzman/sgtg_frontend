@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, NavigationExtras } from '@angular/router';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 import { DownloadableFormatsPageComponent } from './downloadable-formats-page.component';
@@ -9,11 +9,8 @@ import {
   DOWNLOADABLE_FORMATS_BY_CATEGORY
 } from './models/downloadable-formats-page.model';
 
-// ── Componentes Originales a Remover (Shallow Testing) ───────────────────────
 import { TabsComponent, TabItem } from './../../components/tabs/tabs.component';
 import { TableComponent, Column } from './../../components/table-component/table-component.component';
-
-// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
 
 @Component({ selector: 'app-tabs', standalone: true, template: '' })
 class MockTabsComponent {
@@ -31,8 +28,6 @@ class MockTableComponent {
   @Output() actionClick = new EventEmitter<{ action: string; row: DownloadableFormat }>();
 }
 
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
-
 const createMockDownloadableFormat = (overrides: Partial<DownloadableFormat> = {}): DownloadableFormat => ({
   id: 'ti-01',
   title: 'Formato de Prueba',
@@ -40,25 +35,21 @@ const createMockDownloadableFormat = (overrides: Partial<DownloadableFormat> = {
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('DownloadableFormatsPageComponent', () => {
   let component: DownloadableFormatsPageComponent;
   let fixture: ComponentFixture<DownloadableFormatsPageComponent>;
 
-  // Tipado estricto de Mocks (Zero-Any)
   let mockRouter: {
-    navigate: jest.Mock<Promise<boolean>, [string[], any?]>
+    navigate: jest.Mock<Promise<boolean>, [string[], NavigationExtras]>
   };
 
-  let mockActivatedRoute: Record<string, never>; // Objeto vacío tipado
+  let mockActivatedRoute: ActivatedRoute;
 
   let mockFacade: {
     downloadFormat: jest.Mock<Promise<void>, [DownloadableFormat]>
   };
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola para mantener terminal limpia de advertencias visuales
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -66,7 +57,7 @@ describe('DownloadableFormatsPageComponent', () => {
       navigate: jest.fn().mockResolvedValue(true)
     };
 
-    mockActivatedRoute = {};
+    mockActivatedRoute = {} as ActivatedRoute;
 
     mockFacade = {
       downloadFormat: jest.fn().mockResolvedValue(undefined)
@@ -97,7 +88,7 @@ describe('DownloadableFormatsPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   it('Debe crear el componente', () => {
@@ -106,7 +97,6 @@ describe('DownloadableFormatsPageComponent', () => {
 
   describe('Gestión de Pestañas (Tabs) y Formatos', () => {
     it('Debe iniciar con la pestaña TI activa por defecto', () => {
-      // Usamos notación de corchetes para acceder a propiedades protected en los tests
       expect(component['activeTab']()).toBe('TI');
     });
 
@@ -118,15 +108,13 @@ describe('DownloadableFormatsPageComponent', () => {
 
     it('Debe actualizar los formatos al cambiar la pestaña activa a PP', () => {
       component['activeTab'].set('PP');
-      fixture.detectChanges(); // Forzamos la actualización reactiva
-
+      fixture.detectChanges();
       const formats = component['currentFormats']();
       expect(formats).toEqual(DOWNLOADABLE_FORMATS_BY_CATEGORY['PP']);
     });
 
     it('Debe retornar un arreglo vacío si la pestaña (categoría) no existe', () => {
       component['activeTab'].set('INVALID_TAB');
-
       const formats = component['currentFormats']();
       expect(formats).toEqual([]);
     });
@@ -135,17 +123,13 @@ describe('DownloadableFormatsPageComponent', () => {
   describe('Acciones de la Tabla', () => {
     it('Debe delegar la acción "descargar" al Facade pasándole la fila completa', () => {
       const mockRow = createMockDownloadableFormat();
-
       component.handleTableAction({ action: 'descargar', row: mockRow });
-
       expect(mockFacade.downloadFormat).toHaveBeenCalledWith(mockRow);
     });
 
     it('No debe hacer nada (retorno temprano) si la acción NO es "descargar"', () => {
       const mockRow = createMockDownloadableFormat();
-
       component.handleTableAction({ action: 'ver_detalles', row: mockRow });
-
       expect(mockFacade.downloadFormat).not.toHaveBeenCalled();
     });
   });
@@ -153,7 +137,6 @@ describe('DownloadableFormatsPageComponent', () => {
   describe('Navegación', () => {
     it('Debe navegar hacia la ruta padre relativa al usar goBack()', () => {
       component.goBack();
-
       expect(mockRouter.navigate).toHaveBeenCalledWith(
         ['../'],
         { relativeTo: mockActivatedRoute }

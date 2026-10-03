@@ -22,14 +22,13 @@ export class RegisterSpecialRequestFormComponent {
 
   public readonly isSubmitAttempted = signal(false);
 
-  // Getters expuestos al template
-  get requestForm()    { return this.formService.form; }
+  get requestForm() { return this.formService.form; }
   get requestOptions() { return this.formService.requestOptions; }
 
-  getStudentNames(): string   { return this.formService.getStudentNames(this.thesisWork); }
-  getDirectorName(): string   { return this.formService.getDirectorName(this.thesisWork); }
+  getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }
+  getDirectorName(): string { return this.formService.getDirectorName(this.thesisWork); }
   getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
-  getAdvisorName(): string    { return this.formService.getAdvisorName(this.thesisWork); }
+  getAdvisorName(): string { return this.formService.getAdvisorName(this.thesisWork); }
 
   public isFieldInvalid(fieldName: string): boolean {
     const control = this.requestForm.get(fieldName);

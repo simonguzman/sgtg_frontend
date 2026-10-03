@@ -1,13 +1,8 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-
-// 2. Componente a probar e Interfaces
 import { RegisterSpecialRequestPageComponent, SpecialRequestData } from './register-special-request-page.component';
 import { RegisterSpecialRequestFacadeService } from './services/register-special-request-facade.service';
-
-// 3. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SpecialRequestType } from '../../enums/special-request-type.enum';
 import { stateList } from '../../../../core/enums/state.enum';
@@ -15,12 +10,8 @@ import { User } from '../../../users/interfaces/user.interface';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
 import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
-
-// Importaciones Reales para el Override
 import { RegisterSpecialRequestFormComponent } from '../../components/register-special-request-form/register-special-request-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
-
-// ── Tipos Seguros para los Mocks (Cero 'any', 'unknown') ──────────────────────
 
 interface MockRouteNode {
   snapshot: { paramMap: { get: jest.Mock<string | null, [string]> } };
@@ -36,8 +27,6 @@ interface MockFacadeService {
   processSaveRequest: jest.Mock<void, [string, SpecialRequestData, () => void, () => void]>;
 }
 
-// ── Mocks de Componentes Hijos (Strict-Init) ──────────────────────────────────
-
 @Component({ selector: 'app-register-special-request-form', standalone: true, template: '' })
 class MockRegisterSpecialRequestFormComponent {
   @Input({ required: true }) thesisWork!: ThesisWork;
@@ -52,8 +41,6 @@ class MockConfirmationActionModalComponent {
   @Output() onClose = new EventEmitter<void>();
   @Output() confirm = new EventEmitter<void>();
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -106,27 +93,21 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides } as ThesisWork;
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('RegisterSpecialRequestPageComponent', () => {
   let component: RegisterSpecialRequestPageComponent;
   let fixture: ComponentFixture<RegisterSpecialRequestPageComponent>;
 
-  // Interfaces Mocks estrictas
   let facadeMock: MockFacadeService;
   let routerMock: MockRouter;
   let routeMock: MockRouteNode;
 
-  // Fábrica de datos
   const mockThesisWork = createMockThesisWork();
 
   beforeEach(async () => {
-    // 🔕 Silenciador preventivo global de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'log').mockImplementation(() => {});
 
-    // Inicialización limpia respetando las firmas estrictas
     facadeMock = {
       loadThesisWork: jest.fn(),
       processSaveRequest: jest.fn()
@@ -136,7 +117,6 @@ describe('RegisterSpecialRequestPageComponent', () => {
       navigate: jest.fn().mockResolvedValue(true)
     };
 
-    // Estructura recursiva y segura para ActivatedRoute
     routeMock = {
       snapshot: { paramMap: { get: jest.fn().mockReturnValue('thesis-123') } },
       parent: {
@@ -168,32 +148,26 @@ describe('RegisterSpecialRequestPageComponent', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks(); // Evita fugas de estado
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('ngOnInit - Inicialización y Enrutamiento', () => {
     it('debería regresar (goBack) inmediatamente si no encuentra el ID de la tesis en la ruta', () => {
-      // Arrange: Simulamos que la ruta no trae el parámetro en ningún nivel
       routeMock.snapshot.paramMap.get.mockReturnValue(null);
       routeMock.parent!.snapshot.paramMap.get.mockReturnValue(null);
 
-      // Act
       fixture.detectChanges();
 
-      // Assert
       expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
       expect(facadeMock.loadThesisWork).not.toHaveBeenCalled();
     });
 
     it('debería cargar el trabajo de grado si hay ID en la ruta', () => {
-      // Arrange (Simula ejecución síncrona del callback de éxito inferido por TypeScript)
       facadeMock.loadThesisWork.mockImplementation((id, onSuccess) => onSuccess(mockThesisWork));
 
-      // Act
       fixture.detectChanges();
 
-      // Assert
       expect(facadeMock.loadThesisWork).toHaveBeenCalledWith(
         'thesis-123',
         expect.any(Function),
@@ -205,25 +179,19 @@ describe('RegisterSpecialRequestPageComponent', () => {
     });
 
     it('debería regresar si el trabajo no es encontrado (callback onNotFound)', () => {
-      // Arrange (Callback onNotFound)
       facadeMock.loadThesisWork.mockImplementation((id, onSuccess, onNotFound) => onNotFound());
 
-      // Act
       fixture.detectChanges();
 
-      // Assert
       expect(component.isLoading()).toBe(false);
       expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
     });
 
     it('debería quitar el estado de carga si ocurre un error en la petición (callback onError)', () => {
-      // Arrange (Callback onError)
       facadeMock.loadThesisWork.mockImplementation((id, onSuccess, onNotFound, onError) => onError());
 
-      // Act
       fixture.detectChanges();
 
-      // Assert
       expect(component.isLoading()).toBe(false);
       expect(component.thesisWorkData()).toBeUndefined();
     });
@@ -233,43 +201,33 @@ describe('RegisterSpecialRequestPageComponent', () => {
     let payload: SpecialRequestData;
 
     beforeEach(() => {
-      // Inicializamos un payload válido dinámico
       payload = { requestType: Object.values(SpecialRequestType)[0], comments: 'Prueba' };
 
-      // Arrancamos el componente en un estado válido (Data cargada)
       facadeMock.loadThesisWork.mockImplementation((id, onSuccess) => onSuccess(mockThesisWork));
       fixture.detectChanges();
     });
 
     it('handleRequestConfirmation debería abrir el modal y guardar los datos pendientes', () => {
-      // Act
       component.handleRequestConfirmation(payload);
 
-      // Assert
       expect(component.pendingData()).toEqual(payload);
       expect(component.isConfirmModalOpen()).toBe(true);
     });
 
     it('processSaveRequest no debería hacer nada si no hay data pendiente', () => {
-      // Arrange
       component.pendingData.set(null);
 
-      // Act
       component.processSaveRequest();
 
-      // Assert
       expect(facadeMock.processSaveRequest).not.toHaveBeenCalled();
     });
 
     it('processSaveRequest debería cerrar el modal y llamar al facade para guardar con éxito', () => {
-      // Arrange
       component.pendingData.set(payload);
       facadeMock.processSaveRequest.mockImplementation((id, data, onSuccess) => onSuccess());
 
-      // Act
       component.processSaveRequest();
 
-      // Assert (Estados inmediatos tras éxito)
       expect(component.isSubmitting()).toBe(false);
       expect(component.isConfirmModalOpen()).toBe(false);
       expect(facadeMock.processSaveRequest).toHaveBeenCalledWith(
@@ -282,14 +240,11 @@ describe('RegisterSpecialRequestPageComponent', () => {
     });
 
     it('processSaveRequest debería quitar estado isSubmitting pero no navegar si falla el guardado', () => {
-      // Arrange
       component.pendingData.set(payload);
       facadeMock.processSaveRequest.mockImplementation((id, data, onSuccess, onError) => onError());
 
-      // Act
       component.processSaveRequest();
 
-      // Assert
       expect(component.isSubmitting()).toBe(false);
       expect(routerMock.navigate).not.toHaveBeenCalled();
     });

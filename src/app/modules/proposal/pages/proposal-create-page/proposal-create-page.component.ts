@@ -16,7 +16,7 @@ export class ProposalCreatePageComponent {
   private readonly location = inject(Location);
   protected readonly facade = inject(ProposalCreateFacadeService);
 
-  readonly isModalOpen      = signal<boolean>(false);
+  readonly isModalOpen = signal<boolean>(false);
   readonly pendingProposal  = signal<Proposal | null>(null);
 
   handleCreateProposal(proposalData: Proposal): void {

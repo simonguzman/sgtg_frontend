@@ -1,24 +1,20 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Observable, of } from 'rxjs';
-
 import { ThesisWorkSpecialRequestService } from './thesis-work-special-request.service';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { UserService } from '../../users/services/user.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
-
 import { SpecialRequestType } from '../enums/special-request-type.enum';
 import { SustentationStatus } from '../enums/sustentation-status.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { User } from '../../users/interfaces/user.interface';
 import { SpecialRequest } from '../interfaces/special-request.interface';
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
 
-// 1. Tipado estricto para las dependencias mockeadas
 type MockThesisWorkStorageService = {
   updateWork: jest.Mock<void, [string, (w: ThesisWork) => ThesisWork]>;
 };
@@ -36,15 +32,12 @@ type MockAuthService = {
   currentUser: jest.Mock<User | null, []>;
 };
 
-// 2. Extracción de tipos anidados del dominio
 type PreliminaryDraftType = NonNullable<ThesisWork['preliminaryDraftData']>;
 type ProposalType = NonNullable<PreliminaryDraftType['proposalData']>;
 type SustentationType = NonNullable<ThesisWork['sustentations']>[number];
 
-// 3. Helper para Mocks: Evita errores de intersección estricta de TypeScript
 const asMock = <T>(data: Partial<T>): T => data as T;
 
-// Mock de la función helper externa
 jest.mock('../helpers/thesis-participants.helper', () => ({
   collectParticipantIds: jest.fn().mockReturnValue(['participant-1', 'participant-2'])
 }));

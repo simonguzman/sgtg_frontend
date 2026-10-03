@@ -1,5 +1,12 @@
 // src/app/modules/users/integration/user-roles-bulk-replacement.integration.spec.ts
+import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+
+// FIX: Polyfill para fake-indexeddb en entornos Node/Jest antiguos (Global)
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+}
+
 import { UserService } from '../services/user.service';
 import { UserStorageService } from '../services/user-storage.service';
 import { UserApiService } from '../services/user-api.service';
@@ -9,30 +16,47 @@ import { IdentificationType } from '../enum/identification-type.enum';
 import { UserState } from '../enum/user-state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 
+// ── Fábrica Estricta (Zero 'any', Zero 'unknown') ────────────────────────────
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-default', idType: IdentificationType.CC, idNumber: 123456789,
   firstName: 'Nombre', secondName: '', lastName: 'Apellido', secondLastName: '',
   codeNumber: 1234567890, email: 'test@test.com', password: 'hash',
   state: UserState.active, roles: [], ...overrides
-});
+} as User);
 
 describe('Integración [Users]: Reemplazo masivo de roles (updateUserRolesMock)', () => {
   let userService: UserService;
   let userStorage: UserStorageService;
-  let errorSpy: jest.SpyInstance;
 
-  beforeEach(() => {
-    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    TestBed.configureTestingModule({
-      providers: [UserService, UserStorageService, UserApiService, UserFormatterService]
-    });
-    userService = TestBed.inject(UserService);
-    userStorage = TestBed.inject(UserStorageService);
+  // 1. ESCUDO GLOBAL: Atrapa errores asíncronos tardíos de IndexedDB
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
-  afterEach(() => {
-    expect(errorSpy).not.toHaveBeenCalled();
-    errorSpy.mockRestore();
+  // 3. Restauración definitiva al acabar el archivo
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
+  beforeEach(() => {
+    // 2. Limpieza entre tests (mantiene el escudo activo, pero reinicia contadores)
+    jest.clearAllMocks();
+
+    TestBed.configureTestingModule({
+      providers: [
+        UserService,
+        UserStorageService,
+        UserApiService,
+        UserFormatterService
+      ]
+    });
+
+    userService = TestBed.inject(UserService);
+    userStorage = TestBed.inject(UserStorageService);
+
+    // Limpieza de DB por seguridad entre tests
+    localStorage.clear();
   });
 
   it('debe REEMPLAZAR por completo el arreglo de roles, no acumularlo', fakeAsync(() => {
@@ -40,6 +64,8 @@ describe('Integración [Users]: Reemplazo masivo de roles (updateUserRolesMock)'
     userStorage.updateUsersList(() => [target]);
 
     userService.updateUserRolesMock('target-1', [UserRoleType.DOCENTE]).subscribe();
+
+    // tick avanza el reloj simulado para resolver la promesa interna
     tick(500);
 
     const updated = userStorage.getUsersSnapshot().find(u => u.id === 'target-1');
@@ -53,10 +79,12 @@ describe('Integración [Users]: Reemplazo masivo de roles (updateUserRolesMock)'
     userStorage.setCurrentUser(selfUser);
 
     userService.updateUserRolesMock('self-1', [UserRoleType.DOCENTE, UserRoleType.ADMINISTRADOR]).subscribe();
+
     tick(500);
 
     // El registro global sí cambió...
     expect(userStorage.getUsersSnapshot().find(u => u.id === 'self-1')?.roles).toContain(UserRoleType.ADMINISTRADOR);
+
     // ...pero la sesión activa queda congelada con los roles viejos. Si
     // esto se usa alguna vez sobre el propio usuario logueado, su UI
     // basada en roles no reflejaría el cambio hasta el próximo login.

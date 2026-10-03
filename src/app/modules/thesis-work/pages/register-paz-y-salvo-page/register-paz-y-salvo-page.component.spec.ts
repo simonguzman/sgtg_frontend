@@ -1,15 +1,8 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-
-// 2. Componente a probar
 import { RegisterPazYSalvoPageComponent } from './register-paz-y-salvo-page.component';
-
-// 3. Servicios y Facades
 import { RegisterPazYSalvoFacadeService } from './services/register-paz-y-salvo-facade.service';
-
-// 4. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { PazYSalvoPayload } from '../../interfaces/paz-y-salvo-playload.interface';
 import { User } from '../../../users/interfaces/user.interface';
@@ -19,12 +12,8 @@ import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../core/enums/document-type.enum';
-
-// Importamos los componentes reales para removerlos en el override
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { RegisterPazYSalvoFormComponent } from '../../components/register-paz-y-salvo-form/register-paz-y-salvo-form.component';
-
-// ── Mocks de Componentes Hijos (Standalone y Strict-Init) ────────────────────
 
 @Component({ selector: 'app-register-paz-y-salvo-form', template: '', standalone: true })
 class MockRegisterPazYSalvoFormComponent {
@@ -33,7 +22,6 @@ class MockRegisterPazYSalvoFormComponent {
   @Output() onSave = new EventEmitter<{ payload: PazYSalvoPayload; file: File }>();
   @Output() onGoBack = new EventEmitter<void>();
 
-  // FIX: Agregado el Output faltante para el evento de descarga
   @Output() onDownloadFile = new EventEmitter<FileDocument>();
 }
 
@@ -44,8 +32,6 @@ class MockConfirmationActionModalComponent {
   @Output() onClose = new EventEmitter<void>();
   @Output() confirm = new EventEmitter<void>();
 }
-
-// ── Tipos Seguros para los Mocks (Cero 'any', 'unknown') ─────────────────────
 
 interface MockRouteNode {
   snapshot: { paramMap: { get: jest.Mock<string | null, [string]> } };
@@ -60,11 +46,8 @@ interface MockRegisterPazYSalvoFacadeService {
   loadThesisWork: jest.Mock<void, [string, (work: ThesisWork) => void, () => void]>;
   processPazYSalvo: jest.Mock<void, [string, PazYSalvoPayload, File, () => void, () => void]>;
 
-  // FIX: Añadida la firma para el mock del nuevo método
   downloadDocument: jest.Mock<Promise<void>, [FileDocument]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -130,13 +113,10 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides } as ThesisWork;
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('RegisterPazYSalvoPageComponent', () => {
   let component: RegisterPazYSalvoPageComponent;
   let fixture: ComponentFixture<RegisterPazYSalvoPageComponent>;
 
-  // Mocks tipados
   let facadeMock: MockRegisterPazYSalvoFacadeService;
   let routerMock: MockRouter;
   let routeMock: MockRouteNode;
@@ -144,11 +124,9 @@ describe('RegisterPazYSalvoPageComponent', () => {
   const mockWork = createMockThesisWork({ thesisWorkId: '123' });
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola como medida preventiva
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Arrange: Configuración de los parámetros de ruta jerárquicos
     routeMock = {
       snapshot: { paramMap: { get: jest.fn().mockReturnValue(null) } },
       parent: {
@@ -186,9 +164,8 @@ describe('RegisterPazYSalvoPageComponent', () => {
   });
 
   afterEach(() => {
-    // Limpia el estado de los mocks entre cada prueba para evitar falsos positivos
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización y Rutas (ngOnInit)', () => {
@@ -203,7 +180,6 @@ describe('RegisterPazYSalvoPageComponent', () => {
     });
 
     it('debería regresar si no encuentra un ID en toda la jerarquía de rutas', () => {
-      // Forzamos a que el padre también devuelva null
       routeMock.parent!.snapshot.paramMap.get.mockReturnValue(null);
 
       fixture.detectChanges();
@@ -264,7 +240,6 @@ describe('RegisterPazYSalvoPageComponent', () => {
     };
 
     beforeEach(() => {
-      // Arrange estado base para pruebas de submit
       component.thesisWorkState.set(mockWork);
       component.pendingData.set(mockData);
     });

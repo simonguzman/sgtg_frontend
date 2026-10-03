@@ -8,19 +8,16 @@ import { User } from '../../users/interfaces/user.interface';
 describe('ThesisParticipantsFormatterService', () => {
   let service: ThesisParticipantsFormatterService;
 
-  // Tipado explícito de los mocks para evitar el error TS(2339) y mantener 0 'any'
   let userServiceSpy: {
     getAuthorsNames: jest.Mock;
     getUserFullName: jest.Mock;
   };
 
-  // Mocks de datos estructurados rígidamente
   const mockAuthors = [
     { id: 'author-1' } as Partial<User> as User,
     { id: 'author-2' } as Partial<User> as User,
   ];
 
-  // Patrón 'Partial<T> as T' para simular estructuras profundas
   const mockThesisWork = {
     preliminaryDraftData: {
       proposalData: {
@@ -33,7 +30,6 @@ describe('ThesisParticipantsFormatterService', () => {
   } as Partial<ThesisWork> as ThesisWork;
 
   beforeEach(() => {
-    // Inicializamos las funciones simuladas
     userServiceSpy = {
       getAuthorsNames: jest.fn(),
       getUserFullName: jest.fn(),
@@ -150,7 +146,6 @@ describe('ThesisParticipantsFormatterService', () => {
         ],
       } as Partial<SustentationRegistry> as SustentationRegistry;
 
-      // Mockeamos la implementación para que responda dinámicamente según el ID
       userServiceSpy.getUserFullName.mockImplementation((id: string) => {
         if (id === 'juror-1') return 'Jurado Uno';
         if (id === 'juror-2') return 'Jurado Dos';

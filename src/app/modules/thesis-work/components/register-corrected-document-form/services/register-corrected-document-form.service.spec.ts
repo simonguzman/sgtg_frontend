@@ -1,14 +1,7 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
-
-// 2. Servicio a probar
 import { RegisterCorrectedDocumentFormService } from './register-corrected-document-form.service';
-
-// 3. Dependencias (Servicios)
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
-
-// 4. Interfaces y Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { User } from '../../../../users/interfaces/user.interface';
@@ -16,8 +9,6 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
-
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
 
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
@@ -29,8 +20,6 @@ interface MockParticipantsFormatterService {
   getCodirectorName: jest.Mock<string, [ThesisWork]>;
   getAdvisorName: jest.Mock<string, [ThesisWork]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -82,21 +71,16 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('RegisterCorrectedDocumentFormService', () => {
   let service: RegisterCorrectedDocumentFormService;
 
-  // Tipados estructurales exactos
   let notificationServiceMock: MockNotificationService;
   let participantsFormatterMock: MockParticipantsFormatterService;
 
   beforeEach(() => {
-    // 🔕 Silenciar consola como medida preventiva
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Mocks estrictos inicializados sin casteos
     notificationServiceMock = {
       show: jest.fn()
     };
@@ -119,14 +103,12 @@ describe('RegisterCorrectedDocumentFormService', () => {
     service = TestBed.inject(RegisterCorrectedDocumentFormService);
   });
 
-  // Limpieza vital para evitar fugas de memoria y contaminación entre tests
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Formateadores de nombres', () => {
-    // Objeto mock seguro generado por la fábrica
     const mockThesisWork = createMockThesisWork();
 
     it('debería delegar getStudentNames al participantsFormatter', () => {

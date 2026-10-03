@@ -1,15 +1,10 @@
-// 1. Angular Core, Testing y Formularios
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, Input, Output, EventEmitter, forwardRef } from '@angular/core';
 import { FormBuilder, Validators, FormGroup, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DatePicker } from 'primeng/datepicker';
-
-// 2. Componente a probar
 import { RegisterSustentationFormComponent, SustentationFormPayload } from './register-sustentation-form.component';
 import { RegisterSustentationFormService } from './services/register-sustentation-form.service';
-
-// 3. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { User } from '../../../users/interfaces/user.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
@@ -19,14 +14,10 @@ import { IdentificationType } from '../../../users/enum/identification-type.enum
 import { UserState } from '../../../users/enum/user-state.enum';
 import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { SelectOption } from '../../../../shared/components/searchable-select/searchable-select.component';
-
-// 4. Componentes Reales para Override
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 import { SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select.component';
-
-// ── Mocks de Componentes Hijos (Standalone) ──────────────────────────────────
 
 @Component({ selector: 'app-button-component', template: '', standalone: true })
 class MockButtonComponent {
@@ -84,8 +75,6 @@ class MockDatePickerComponent {
   registerOnTouched(fn: any): void {}
 }
 
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
-
 interface MockRegisterSustentationFormService {
   form: FormGroup;
   getEligibleJurors: jest.Mock<User[], [ThesisWork]>;
@@ -97,8 +86,6 @@ interface MockRegisterSustentationFormService {
   getExistingDocument: jest.Mock<FileDocument | null, [ThesisWork, string]>;
   notifyIncompleteForm: jest.Mock<void, []>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -159,8 +146,6 @@ const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocu
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('RegisterSustentationFormComponent', () => {
   let component: RegisterSustentationFormComponent;
   let fixture: ComponentFixture<RegisterSustentationFormComponent>;
@@ -175,13 +160,11 @@ describe('RegisterSustentationFormComponent', () => {
   ];
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola como medida preventiva
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     fb = new FormBuilder();
 
-    // Creamos el FormGroup reactivo exactamente igual al original
     const mockForm = fb.nonNullable.group({
       sustentationDate: ['', Validators.required],
       location: ['', Validators.required],
@@ -223,14 +206,13 @@ describe('RegisterSustentationFormComponent', () => {
     fixture = TestBed.createComponent(RegisterSustentationFormComponent);
     component = fixture.componentInstance;
 
-    // Asignación segura del Signal input requerido
     fixture.componentRef.setInput('thesisWork', mockThesisWork);
     fixture.detectChanges();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización y Signals (Signals & Computeds)', () => {
@@ -242,20 +224,16 @@ describe('RegisterSustentationFormComponent', () => {
     });
 
     it('debería limpiar juror2 si se selecciona en juror1 el mismo ID y filtrar juror2Options', () => {
-      // Configuramos un estado inicial
       component.form.get('juror2')?.setValue('j2');
 
-      // Simulamos la selección del jurado 2 en el selector del jurado 1
       component.form.get('juror1')?.setValue('j2');
       fixture.detectChanges();
 
-      // El jurado 2 debió ser reseteado
       expect(component.form.get('juror2')?.value).toBe('');
 
-      // juror2Options ya no debería incluir al 'j2'
       const j2Options = component.juror2Options();
       expect(j2Options.find(opt => opt.id === 'j2')).toBeUndefined();
-      expect(j2Options).toHaveLength(2); // Quedan j1 y j3
+      expect(j2Options).toHaveLength(2);
     });
 
     it('debería retornar el nombre por defecto para uploadedFileName si no hay archivo', () => {
@@ -311,10 +289,10 @@ describe('RegisterSustentationFormComponent', () => {
       const control = component.form.get('location');
       control?.setValue('Auditorio Principal');
 
-      expect(component.isFieldValid('location')).toBe(false); // Válido pero no tocado/enviado
+      expect(component.isFieldValid('location')).toBe(false);
 
       control?.markAsTouched();
-      expect(component.isFieldValid('location')).toBe(true); // Válido y tocado
+      expect(component.isFieldValid('location')).toBe(true);
     });
   });
 
@@ -322,11 +300,9 @@ describe('RegisterSustentationFormComponent', () => {
     it('debería emitir onDownloadFile solo si el documento no es nulo', () => {
       const emitSpy = jest.spyOn(component.onDownloadFile, 'emit');
 
-      // Caso nulo
       component.downloadDocument(null);
       expect(emitSpy).not.toHaveBeenCalled();
 
-      // Caso exitoso
       const mockDoc = createMockFileDocument({ id: 'doc1', name: 'archivo.pdf' });
       component.downloadDocument(mockDoc);
       expect(emitSpy).toHaveBeenCalledWith(mockDoc);
@@ -359,7 +335,7 @@ describe('RegisterSustentationFormComponent', () => {
         juror1: 'j1',
         juror2: 'j2'
       });
-      component.uploadedFormatE.set(null); // Sin archivo
+      component.uploadedFormatE.set(null);
 
       component.submit();
 

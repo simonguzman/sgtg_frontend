@@ -1,16 +1,9 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
 import { of, throwError, Observable } from 'rxjs';
-
-// 2. Servicio a probar
 import { LoadedDocumentsThesisWorkFacadeService } from './loaded-documents-thesis-work-facade.service';
-
-// 3. Dependencias
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
-
-// 4. Interfaces, Enums y Utilidades
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
@@ -21,8 +14,8 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
+import { formatThesisDate } from '../../../helpers/thesis-date.helper';
 
-// ── Mapeo de Mocks Globales (Hoisted por Jest) ──────────────────────────────
 jest.mock('../../../../../core/utils/file-reader.utils', () => ({
   readFileAsDataUrl: jest.fn()
 }));
@@ -31,9 +24,6 @@ import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
 jest.mock('../../../helpers/thesis-date.helper', () => ({
   formatThesisDate: jest.fn().mockReturnValue('10 - 10 - 2026')
 }));
-import { formatThesisDate } from '../../../helpers/thesis-date.helper';
-
-// ── Tipos Seguros para los Mocks (Cero 'any', 'unknown' ni casteos dobles) ──
 
 interface MockThesisWorkService {
   uploadDocumentMock: jest.Mock<Observable<void>, [string, FileDocument]>;
@@ -46,8 +36,6 @@ interface MockFileDownloadService {
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -82,7 +70,7 @@ const createMockAdvance = (overrides: Partial<Advance> = {}): Advance => ({
   uploadDate: new Date(),
   studentId: 'student-1',
   status: stateList.EN_REVISION,
-  documents: [], // Array de FileDocument
+  documents: [],
   ...overrides
 });
 
@@ -127,8 +115,6 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides } as ThesisWork;
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('LoadedDocumentsThesisWorkFacadeService', () => {
   let service: LoadedDocumentsThesisWorkFacadeService;
 
@@ -137,7 +123,6 @@ describe('LoadedDocumentsThesisWorkFacadeService', () => {
   let notificationSpy: MockNotificationService;
 
   beforeEach(() => {
-    // 🔕 Silenciador preventivo global de consola para pruebas asíncronas
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -156,7 +141,6 @@ describe('LoadedDocumentsThesisWorkFacadeService', () => {
 
     service = TestBed.inject(LoadedDocumentsThesisWorkFacadeService);
 
-    // Mock para crypto.randomUUID
     const mockUUID = '12345678-1234-1234-1234-123456789abc' as `${string}-${string}-${string}-${string}-${string}`;
 
     if (!global.crypto) {
@@ -306,21 +290,16 @@ describe('LoadedDocumentsThesisWorkFacadeService', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------------
-  // ESTA ES LA SUITE QUE FALLABA POR TENER FIRMA VIEJA EN TU ENTORNO LOCAL
-  // ---------------------------------------------------------------------------------
   describe('downloadDocumentByName', () => {
     const advanceDoc = createMockFileDocument({ name: 'doc-avance', url: 'http://avance.com' });
     const mockAdvance = createMockAdvance({ documents: [advanceDoc] });
 
     it('debe buscar y descargar el documento en selectedAdvance si existe', async () => {
-      // FIX: Solo pasamos 2 parámetros, tal como exige el Facade actual
       await service.downloadDocumentByName('doc-avance', mockAdvance);
       expect(downloadSpy.download).toHaveBeenCalledWith('http://avance.com', 'doc-avance.pdf');
     });
 
     it('debe manejar de forma segura si el documento solicitado no existe en el avance (fallback a url vacía)', async () => {
-      // FIX: Solo pasamos 2 parámetros
       await service.downloadDocumentByName('archivo-fantasma', mockAdvance);
 
       expect(notificationSpy.show).toHaveBeenCalledWith(expect.objectContaining({
@@ -331,7 +310,6 @@ describe('LoadedDocumentsThesisWorkFacadeService', () => {
     });
 
     it('debe ser resiliente y no arrojar excepciones (null pointer) si selectedAdvance viene nulo', async () => {
-      // FIX: Solo pasamos 2 parámetros
       await service.downloadDocumentByName('doc', null);
 
       expect(notificationSpy.show).toHaveBeenCalledWith(expect.objectContaining({
@@ -341,7 +319,6 @@ describe('LoadedDocumentsThesisWorkFacadeService', () => {
       expect(downloadSpy.download).not.toHaveBeenCalled();
     });
   });
-  // ---------------------------------------------------------------------------------
 
   describe('Notificaciones genéricas', () => {
     it('showRestrictedActionNotification debe emitir un ERROR detallado', () => {

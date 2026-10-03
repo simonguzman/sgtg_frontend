@@ -1,10 +1,8 @@
-// src/app/modules/thesis-work/integration/thesis-work-suspension-lifecycle.integration.spec.ts
 import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, flush } from '@angular/core/testing';
 import { Injector, signal, WritableSignal } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
 import { of } from 'rxjs';
-
 import { ThesisWorkPageFacadeService } from '../pages/thesis-work-page/services/thesis-work-page-facade.service';
 import { ThesisWorkPageMapperService } from '../pages/thesis-work-page/services/thesis-work-page-mapper.service';
 import { ThesisWorkService } from '../services/thesis-work.service';
@@ -23,7 +21,6 @@ import { UserApiService } from '../../users/services/user-api.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
-
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { SpecialRequest } from '../interfaces/special-request.interface';
 import { User } from '../../users/interfaces/user.interface';
@@ -36,11 +33,16 @@ import { Modality } from '../../proposal/enums/modality.enum';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
 import { PreliminaryDraft } from '../../preliminary-draft/interfaces/preliminary-draft.interface';
 
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+}
+
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-default',
   idType: IdentificationType.CC,
   idNumber: 123456789,
   firstName: 'Nombre',
+  secondName: '',
   lastName: 'Apellido',
   secondLastName: '',
   codeNumber: 1234567890,
@@ -49,7 +51,7 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
   state: UserState.active,
   roles: [],
   ...overrides
-});
+} as User);
 
 describe('Integración [Trabajo de Grado]: Suspensión aprobada → visibilidad del botón "reactivar"', () => {
   const thesisId = 'thesis-susp-1';
@@ -59,15 +61,22 @@ describe('Integración [Trabajo de Grado]: Suspensión aprobada → visibilidad 
   let facade: ThesisWorkPageFacadeService;
   let storage: ThesisWorkStorageService;
   let mockCurrentUser: WritableSignal<Partial<User>>;
-  let mockHasAnyRole: jest.Mock;
+
+  let mockHasAnyRole: jest.Mock<boolean, [UserRoleType[]]>;
 
   beforeAll(() => {
-    if (typeof global.structuredClone !== 'function') {
-      global.structuredClone = (val) => JSON.parse(JSON.stringify(val));
-    }
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
   });
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+    localStorage.clear();
+
     mockCurrentUser = signal({ id: 'outsider' });
     mockHasAnyRole = jest.fn().mockReturnValue(false);
 
@@ -98,27 +107,45 @@ describe('Integración [Trabajo de Grado]: Suspensión aprobada → visibilidad 
   });
 
   function buildThesisWorkWithPendingSuspension(director: User): ThesisWork {
-    const proposal: Proposal = {
+    const proposalPartial: Partial<Proposal> = {
       id: 'prop-susp-1', title: 'Tesis en suspensión', description: 'desc', modality: Modality.TI,
       authors: [], director, state: stateList.APROBADO, createdAt: new Date(),
       documents: [], evaluations: [], isArchived: false
     };
-    const draft: PreliminaryDraft = {
-      preliminaryDraftId: 'draft-susp-1', proposalId: proposal.id!, proposalData: proposal,
+    const proposal = proposalPartial as Proposal;
+
+    const draftPartial: Partial<PreliminaryDraft> = {
+      preliminaryDraftId: 'draft-susp-1', proposalId: proposal.id, proposalData: proposal,
       evaluators: [], evaluations: [], documents: [],
       state: stateList.APROBADO, createdData: new Date(), isArchived: false
     };
-    const pendingRequest: SpecialRequest = {
+    const draft = draftPartial as PreliminaryDraft;
+
+    const pendingRequestPartial: Partial<SpecialRequest> = {
       id: requestId, directorId: director.id, requestType: SpecialRequestType.SUSPENSION,
       requestDate: new Date(), description: 'Solicito suspensión por motivos de salud',
       status: stateList.EN_REVISION
     };
-    return {
-      thesisWorkId: thesisId, preliminaryDraftId: draft.preliminaryDraftId!, preliminaryDraftData: draft,
+    const pendingRequest = pendingRequestPartial as SpecialRequest;
+
+    const thesisPartial: Partial<ThesisWork> = {
+      thesisWorkId: thesisId, preliminaryDraftId: draft.preliminaryDraftId, preliminaryDraftData: draft,
       createdDate: new Date(), state: stateList.EN_DESARROLLO,
       advances: [], evaluations: [], finalDeliveries: [], documents: [],
       sustentations: [], pazYSalvos: [], specialRequests: [pendingRequest], isArchived: false
     };
+    return thesisPartial as ThesisWork;
+  }
+
+  function seedThesisWork(thesisWork: ThesisWork) {
+    if ('updateThesisWorks' in storage) {
+      (storage as unknown as { updateThesisWorks: (cb: () => ThesisWork[]) => void }).updateThesisWorks(() => [thesisWork]);
+    } else {
+      const storageAsRecord = storage as Record<string, any>;
+      if (storageAsRecord['_thesisWorksList']) {
+        storageAsRecord['_thesisWorksList'].set([thesisWork]);
+      }
+    }
   }
 
   it('el Consejo SÍ debe ver "reactivar" tras aprobar la suspensión, y el botón "ver" debe ocultarse', fakeAsync(() => {
@@ -127,9 +154,8 @@ describe('Integración [Trabajo de Grado]: Suspensión aprobada → visibilidad 
     mockCurrentUser.set({ id: 'consejo-1' });
     mockHasAnyRole.mockImplementation((required: UserRoleType[]) => required.includes(UserRoleType.CONSEJO));
 
-    storage['_thesisWorksList'].set([buildThesisWorkWithPendingSuspension(director)]);
+    seedThesisWork(buildThesisWorkWithPendingSuspension(director));
 
-    // Simular que la suspensión fue aprobada mutando el storage
     storage.updateWork(thesisId, w => ({
       ...w,
       state: stateList.SUSPENDIDO,
@@ -153,7 +179,7 @@ describe('Integración [Trabajo de Grado]: Suspensión aprobada → visibilidad 
     mockCurrentUser.set({ id: 'decano-1' });
     mockHasAnyRole.mockImplementation((required: UserRoleType[]) => required.includes(UserRoleType.DECANATURA));
 
-    storage['_thesisWorksList'].set([buildThesisWorkWithPendingSuspension(director)]);
+    seedThesisWork(buildThesisWorkWithPendingSuspension(director));
 
     storage.updateWork(thesisId, w => ({
       ...w,
@@ -175,7 +201,7 @@ describe('Integración [Trabajo de Grado]: Suspensión aprobada → visibilidad 
     mockCurrentUser.set({ id: 'admin-1' });
     mockHasAnyRole.mockImplementation((required: UserRoleType[]) => required.includes(UserRoleType.ADMINISTRADOR));
 
-    storage['_thesisWorksList'].set([buildThesisWorkWithPendingSuspension(director)]);
+    seedThesisWork(buildThesisWorkWithPendingSuspension(director));
 
     storage.updateWork(thesisId, w => ({
       ...w,
@@ -190,14 +216,16 @@ describe('Integración [Trabajo de Grado]: Suspensión aprobada → visibilidad 
 
     let successCalled = false;
 
-    // CORRECCIÓN: Interceptamos la fachada para probar directamente la reactividad de la UI
-    // sin depender del comportamiento opaco del mock del backend.
-    jest.spyOn(facade, 'reactivateThesis').mockImplementation((id, onSuccess) => {
+    jest.spyOn(facade, 'reactivateThesis').mockImplementation((id: string, onSuccess: () => void, onError: () => void) => {
       storage.updateWork(id, w => ({ ...w, state: stateList.EN_DESARROLLO, isArchived: false }));
       onSuccess();
     });
 
-    facade.reactivateThesis(thesisId, () => { successCalled = true; }, () => {});
+    facade.reactivateThesis(
+      thesisId,
+      () => { successCalled = true; },
+      () => { fail('La reactivación falló inesperadamente'); }
+    );
     flush();
 
     expect(successCalled).toBe(true);

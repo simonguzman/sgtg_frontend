@@ -1,26 +1,17 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { of, throwError, Observable } from 'rxjs';
-
-// 2. Servicio a probar
 import { ThesisWorkPageFacadeService } from './thesis-work-page-facade.service';
-
-// 3. Dependencias
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { ThesisWorkPageMapperService } from './thesis-work-page-mapper.service';
-
-// 4. Interfaces, Enums y Modelos
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { THESIS_WORK_HEADER_BUTTONS, ThesisWorkTableRow } from '../models/thesis-work-page.model';
 import { User } from '../../../../users/interfaces/user.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
-
-// ── Tipos Seguros para los Mocks (Cero 'any', 'unknown') ────────────────────
 
 interface MockThesisWorkService {
   thesisWorks: WritableSignal<ThesisWork[]>;
@@ -37,11 +28,8 @@ interface MockNotificationService {
 }
 
 interface MockThesisWorkPageMapperService {
-  // FIX: Se actualiza la firma añadiendo el parámetro isConsejo (boolean)
   mapThesisWorkToTable: jest.Mock<ThesisWorkTableRow, [ThesisWork, boolean, boolean, boolean, string]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => {
   const base: Partial<User> = {
@@ -85,8 +73,6 @@ const createMockTableRow = (overrides: Partial<ThesisWorkTableRow> = {}): Thesis
   return base as ThesisWorkTableRow;
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('ThesisWorkPageFacadeService', () => {
   let service: ThesisWorkPageFacadeService;
 
@@ -96,7 +82,6 @@ describe('ThesisWorkPageFacadeService', () => {
   let mapperMock: MockThesisWorkPageMapperService;
 
   beforeEach(() => {
-    // 🔕 Silenciador preventivo global de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -148,11 +133,10 @@ describe('ThesisWorkPageFacadeService', () => {
 
       thesisWorkMock.thesisWorks.set([mockActiveWork, mockArchivedWork]);
 
-      // Simulamos los roles exactos para probar la delegación de isConsejo
       authMock.hasAnyRole.mockImplementation((roles: UserRoleType[]) => {
-        if (roles.includes(UserRoleType.ADMINISTRADOR)) return true; // isAdmin = true
-        if (roles.includes(UserRoleType.CONSEJO)) return false;      // isConsejo = false
-        if (roles.includes(UserRoleType.DECANATURA)) return true;    // hasFullAccess = true
+        if (roles.includes(UserRoleType.ADMINISTRADOR)) return true;
+        if (roles.includes(UserRoleType.CONSEJO)) return false;
+        if (roles.includes(UserRoleType.DECANATURA)) return true;
         return false;
       });
 
@@ -165,13 +149,12 @@ describe('ThesisWorkPageFacadeService', () => {
 
       expect(mapperMock.mapThesisWorkToTable).toHaveBeenCalledTimes(1);
 
-      // FIX: Validación precisa de la nueva firma de parámetros
       expect(mapperMock.mapThesisWorkToTable).toHaveBeenCalledWith(
         mockActiveWork,
-        true,        // hasFullAccessRole -> true (Por ADMINISTRADOR / DECANATURA)
-        true,        // isAdmin -> true (Por ADMINISTRADOR)
-        false,       // isConsejo -> false (Definido en el mock superior)
-        'user-123'   // currentUser ID
+        true,
+        true,
+        false,
+        'user-123'
       );
     });
   });

@@ -12,14 +12,14 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
   imports: [RegisterCorrespondenceFormComponent, ConfirmationActionModalComponent]
 })
 export class RegisterCorrespondencePageComponent implements OnInit {
-  private readonly route  = inject(ActivatedRoute);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly facade = inject(RegisterCorrespondenceFacadeService);
 
-  readonly thesisWorkDetails  = signal<ThesisWork | null>(null);
-  readonly isSubmitting       = signal<boolean>(false);
+  readonly thesisWorkDetails = signal<ThesisWork | null>(null);
+  readonly isSubmitting = signal<boolean>(false);
   readonly isConfirmModalOpen = signal<boolean>(false);
-  readonly pendingFile        = signal<File | null>(null);
+  readonly pendingFile = signal<File | null>(null);
 
   ngOnInit(): void {
     const thesisWorkId = this.route.snapshot.paramMap.get('id') ?? this.route.parent?.snapshot.paramMap.get('id');
@@ -31,7 +31,7 @@ export class RegisterCorrespondencePageComponent implements OnInit {
 
     this.facade.loadThesisWork(
       thesisWorkId,
-      (work) => this.thesisWorkDetails.set(work),
+      (thesisWork) => this.thesisWorkDetails.set(thesisWork),
       () => this.goBack()
     );
   }
@@ -42,16 +42,16 @@ export class RegisterCorrespondencePageComponent implements OnInit {
   }
 
   processCorrespondence(): void {
-    const file        = this.pendingFile();
-    const currentWork = this.thesisWorkDetails();
+    const file = this.pendingFile();
+    const currentThesisWork = this.thesisWorkDetails();
 
-    if (!file || !currentWork) return;
+    if (!file || !currentThesisWork) return;
 
     this.isSubmitting.set(true);
     this.isConfirmModalOpen.set(false);
 
     this.facade.processCorrespondence(
-      currentWork.thesisWorkId,
+      currentThesisWork.thesisWorkId,
       file,
       () => {
         this.isSubmitting.set(false);
@@ -64,7 +64,6 @@ export class RegisterCorrespondencePageComponent implements OnInit {
   }
 
   goBack(): void {
-    // Angular maneja router.navigate como Promise. Usamos void explícito por buenas prácticas.
     void this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
   }
 }

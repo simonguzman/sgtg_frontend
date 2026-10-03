@@ -1,23 +1,16 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
 import { Observable, of, throwError } from 'rxjs';
-
-// 2. Servicios propios y externos a probar/mockear
 import { EvaluateAdvanceFacadeService } from './evaluate-advance-facade.service';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
-
-// 3. Utilidades y Enums
 import { stateList } from '../../../../../core/enums/state.enum';
 import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
-
-// 4. Interfaces y Tipos
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { Advance } from '../../../interfaces/advance.interface';
 import { User } from '../../../../users/interfaces/user.interface';
@@ -25,12 +18,9 @@ import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../.
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 
-// Mock de la función utilitaria independiente
 jest.mock('../../../../../core/utils/file-reader.utils', () => ({
   readFileAsDataUrl: jest.fn()
 }));
-
-// ── Tipos Seguros para los Mocks (Cero 'any', 'unknown') ───────────────────────────
 
 interface MockThesisWorkService {
   getThesisWorkByIdMock: jest.Mock<Observable<ThesisWork | undefined | null>, [string]>;
@@ -44,8 +34,6 @@ interface MockFileDownloadService {
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => {
   const base: Partial<User> = {
@@ -128,8 +116,6 @@ const createMockAdvance = (overrides: Partial<Advance> = {}): Advance => {
   return base as Advance;
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('EvaluateAdvanceFacadeService', () => {
   let service: EvaluateAdvanceFacadeService;
 
@@ -138,7 +124,6 @@ describe('EvaluateAdvanceFacadeService', () => {
   let notificationSpy: MockNotificationService;
 
   beforeAll(() => {
-    // Mockeamos randomUUID nativo, asegurando que sea configurable para limpiarlo luego
     Object.defineProperty(globalThis, 'crypto', {
       value: { randomUUID: () => 'mock-uuid-1234' },
       writable: true,
@@ -147,11 +132,9 @@ describe('EvaluateAdvanceFacadeService', () => {
   });
 
   beforeEach(() => {
-    // 🔕 Silenciar consola a nivel global para la suite
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Arrange: Espías fuertemente tipados
     thesisServiceSpy = {
       getThesisWorkByIdMock: jest.fn(),
       addEvaluationMock: jest.fn()
@@ -179,7 +162,7 @@ describe('EvaluateAdvanceFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola y espías
+    jest.restoreAllMocks();
   });
 
   describe('Carga de Proyecto (loadThesisWork)', () => {
@@ -270,7 +253,6 @@ describe('EvaluateAdvanceFacadeService', () => {
 
       await service.saveEvaluation(mockThesis, mockAdvance, mockUser, payload, successCb, errorCb);
 
-      // 🚀 Validación directa del log de error en la consola
       expect(console.error).toHaveBeenCalledWith('Error leyendo los documentos de retroalimentación:', readError);
       expect(thesisServiceSpy.addEvaluationMock).not.toHaveBeenCalled();
       expect(errorCb).toHaveBeenCalled();
@@ -281,9 +263,6 @@ describe('EvaluateAdvanceFacadeService', () => {
   });
 
   describe('Descarga de Archivos (downloadAdvance)', () => {
-
-    // FIX: Ahora pasamos FileDocument directamente tal como exige la nueva firma del servicio
-
     it('debe llamar a downloadService si el documento es válido y tiene URL', async () => {
       downloadServiceSpy.download.mockResolvedValue();
       const mockDocument = createMockFileDocument({ url: 'http://test/doc.pdf', name: 'doc1.pdf' });

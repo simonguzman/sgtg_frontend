@@ -15,24 +15,24 @@ export class RegisterPazYSalvoFacadeService {
   private readonly downloadService = inject(FileDownloadService);
 
   public loadThesisWork(
-    id:        string,
-    onSuccess: (work: ThesisWork) => void,
-    onError:   () => void
+    id: string,
+    onSuccess: (thesisWork: ThesisWork) => void,
+    onError: () => void
   ): void {
     this.thesisWorkService.getThesisWorkByIdMock(id)
       .pipe(first())
       .subscribe({
-        next:  (data) => data ? onSuccess(data) : onError(),
-        error: ()     => onError()
+        next: (data) => data ? onSuccess(data) : onError(),
+        error: () => onError()
       });
   }
 
   public processPazYSalvo(
-    thesisId:  string,
-    payload:   PazYSalvoPayload,
-    file:      File,
+    thesisId: string,
+    payload: PazYSalvoPayload,
+    file: File,
     onSuccess: () => void,
-    onError:   () => void
+    onError: () => void
   ): void {
     this.thesisWorkService.registerPazYSalvoMock(thesisId, payload, file)
       .pipe(first())
@@ -55,18 +55,16 @@ export class RegisterPazYSalvoFacadeService {
       });
   }
 
-  // ← NUEVO: faltaba por completo — el formulario emitía onDownloadFile
-  // pero ningún método de este facade lo atendía.
-  public async downloadDocument(doc: FileDocument): Promise<void> {
-    if (!doc?.url) {
+  public async downloadDocument(document: FileDocument): Promise<void> {
+    if (!document?.url) {
       this.showNotification('Error de descarga', 'No existe una URL válida vinculada a este archivo.', NotificationType.ERROR);
       return;
     }
     try {
-      await this.downloadService.download(doc.url, `${doc.name}.pdf`);
+      await this.downloadService.download(document.url, `${document.name}.pdf`);
     } catch (err) {
-      console.error(`Error al descargar el documento ${doc.name}:`, err);
-      this.showNotification('Error de descarga', `No se pudo descargar ${doc.name}. Intente más tarde.`, NotificationType.ERROR);
+      console.error(`Error al descargar el documento ${document.name}:`, err);
+      this.showNotification('Error de descarga', `No se pudo descargar ${document.name}. Intente más tarde.`, NotificationType.ERROR);
     }
   }
 

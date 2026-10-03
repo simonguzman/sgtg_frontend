@@ -16,11 +16,10 @@ export class RegisterCorrectedDocumentsPageComponent implements OnInit {
   private readonly router = inject(Router);
   protected readonly facade = inject(RegisterCorrectedDocumentsFacadeService);
 
-  readonly thesisWorkState    = signal<ThesisWork | null>(null);
+  readonly thesisWorkState = signal<ThesisWork | null>(null);
   readonly isConfirmModalOpen = signal(false);
-  readonly isSubmitting       = signal(false);
-  // ← Fix: annexes ya no es opcional — el formulario garantiza ambos archivos
-  readonly pendingFilesData   = signal<{ monograph: File; annexes: File } | null>(null);
+  readonly isSubmitting  = signal(false);
+  readonly pendingFilesData  = signal<{ monograph: File; annexes: File } | null>(null);
 
   ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
@@ -36,7 +35,7 @@ export class RegisterCorrectedDocumentsPageComponent implements OnInit {
       return;
     }
 
-    this.facade.loadThesisWork(id, (work) => this.thesisWorkState.set(work), () => this.goBack());
+    this.facade.loadThesisWork(id, (thesisWork) => this.thesisWorkState.set(thesisWork), () => this.goBack());
   }
 
   handleRequestConfirmation(files: { monograph: File; annexes: File }): void {
@@ -45,7 +44,7 @@ export class RegisterCorrectedDocumentsPageComponent implements OnInit {
   }
 
   processCorrectedDocuments(): void {
-    const files    = this.pendingFilesData();
+    const files = this.pendingFilesData();
     const thesisId = this.thesisWorkState()?.thesisWorkId;
     if (!files || !thesisId) return;
 

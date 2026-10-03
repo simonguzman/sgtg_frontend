@@ -18,7 +18,7 @@ export class ArchivedProposalsTabService implements HistoryTabConfiguration {
 
   getTableData(context: HistoryEvaluationContext): Record<string, unknown>[] {
     const userId = context.currentUser?.id;
-    const allArchived = this.proposalService.allProposals().filter((p) => p.isArchived === true);
+    const allArchived = this.proposalService.allProposals().filter((proposal) => proposal.isArchived === true);
     const allowedProposals = allArchived.filter((proposal: Proposal) =>
       hasArchiveAccess(proposal, userId, context.hasGlobalAccess)
     );

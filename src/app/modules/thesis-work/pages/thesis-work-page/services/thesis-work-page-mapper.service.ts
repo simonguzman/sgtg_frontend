@@ -32,7 +32,7 @@ export class ThesisWorkPageMapperService {
   private formatMaxDeliveryDate(rawDate?: Date | string): string {
     if (!rawDate) return 'No asignada';
     const dateObj = new Date(rawDate);
-    return isNaN(dateObj.getTime()) ? 'No asignada' : dateObj.toLocaleDateString('es-ES');
+    return Number.isNaN(dateObj.getTime()) ? 'No asignada' : dateObj.toLocaleDateString('es-ES');
   }
 
   private buildHiddenParticipants(thesisWork: ThesisWork): string {
@@ -75,12 +75,6 @@ export class ThesisWorkPageMapperService {
     const isSuspended = thesisWork.state === stateList.SUSPENDIDO;
 
     let allowed: string[] = ['ver descripción'];
-    // ← FIX: se agrega `&& !isSuspended` — mientras el trabajo está
-    // suspendido, el botón "ver" queda oculto para todos (no solo
-    // Admin/Consejo) hasta que se reactive. Nota: esto también retira el
-    // acceso de "ver" al propio director/estudiante mientras dure la
-    // suspensión — si prefieres que ellos sí conserven vista de solo
-    // lectura y esto se acote solo a Admin/Consejo, dímelo y lo ajusto.
     if (hasViewPermission && !isSuspended) allowed.push('ver');
     if (isOwnerOrAdmin) allowed.push('editar');
     if (isSuspended && (isAdmin || isConsejo)) {

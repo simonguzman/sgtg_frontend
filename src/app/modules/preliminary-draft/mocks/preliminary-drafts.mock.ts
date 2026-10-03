@@ -6,8 +6,6 @@ import { User } from '../../users/interfaces/user.interface';
 import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
 
-// Helper local para construir usuarios parciales de prueba
-// con todos los campos requeridos por la interfaz User.
 const mockUser = (id: string, firstName: string, lastName: string, email?: string): User => ({
   id,
   idType: IdentificationType.CC,

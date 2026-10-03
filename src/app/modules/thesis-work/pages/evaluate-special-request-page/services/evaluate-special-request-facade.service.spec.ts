@@ -1,15 +1,8 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
 import { of, throwError, Observable } from 'rxjs';
-
-// 2. Servicio a probar
 import { EvaluateSpecialRequestFacadeService } from './evaluate-special-request-facade.service';
-
-// 3. Dependencias
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
-
-// 4. Interfaces y Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { SpecialRequest } from '../../../interfaces/special-request.interface';
@@ -19,8 +12,6 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
-
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────
 
 type SpecialRequestVerdict = stateList.APROBADO | stateList.NO_APROBADO;
 
@@ -32,8 +23,6 @@ interface MockThesisWorkService {
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -95,25 +84,19 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('EvaluateSpecialRequestFacadeService', () => {
   let service: EvaluateSpecialRequestFacadeService;
 
-  // Interfaces Mocks estrictas
   let thesisWorkServiceMock: MockThesisWorkService;
   let notificationServiceMock: MockNotificationService;
 
-  // Data fabricada real
   const mockThesisWork = createMockThesisWork();
   const mockRequest = mockThesisWork.specialRequests![0];
 
   beforeEach(() => {
-    // 🔕 Silenciador preventivo de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Mocks inicializados respetando las firmas estrictas
     thesisWorkServiceMock = {
       getThesisWorkByIdMock: jest.fn(),
       evaluateSpecialRequestMock: jest.fn()
@@ -135,37 +118,30 @@ describe('EvaluateSpecialRequestFacadeService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks(); // Previene fugas de estado
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('Flujo de Carga: loadThesisWorkAndRequest', () => {
     it('debería llamar a onSuccess cuando el trabajo y la solicitud existen', () => {
-      // Arrange
       thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(of(mockThesisWork));
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
 
-      // Act
       service.loadThesisWorkAndRequest('thesis-1', 'req-1', onSuccessSpy, onErrorSpy);
 
-      // Assert
       expect(onSuccessSpy).toHaveBeenCalledWith(mockThesisWork, mockRequest);
       expect(onErrorSpy).not.toHaveBeenCalled();
       expect(notificationServiceMock.show).not.toHaveBeenCalled();
     });
 
     it('debería notificar y llamar a onError si la data retorna null (comportamiento corregido sin unknown)', () => {
-      // Arrange
-      // Gracias al tipado estricto en MockThesisWorkService, `of(null)` es válido y evitamos el 'unknown'
       thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(of(null));
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
 
-      // Act
       service.loadThesisWorkAndRequest('thesis-1', 'req-1', onSuccessSpy, onErrorSpy);
 
-      // Assert
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
         title: 'Error de carga',
         message: 'El trabajo de grado especificado no existe.',
@@ -176,18 +152,14 @@ describe('EvaluateSpecialRequestFacadeService', () => {
     });
 
     it('debería notificar y llamar a onError si la solicitud específica no se encuentra', () => {
-      // Arrange
-      // Sobrescribimos la fábrica para enviar un arreglo vacío de solicitudes sin romper la estructura
       const workSinRequest = createMockThesisWork({ specialRequests: [] });
       thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(of(workSinRequest));
 
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
 
-      // Act
       service.loadThesisWorkAndRequest('thesis-1', 'req-999', onSuccessSpy, onErrorSpy);
 
-      // Assert
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
         title: 'Error de carga',
         message: 'No se encontró la solicitud especial especificada.',
@@ -198,15 +170,12 @@ describe('EvaluateSpecialRequestFacadeService', () => {
     });
 
     it('debería notificar y llamar a onError cuando la petición HTTP falla', () => {
-      // Arrange
       thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('Error de red')));
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
 
-      // Act
       service.loadThesisWorkAndRequest('thesis-1', 'req-1', onSuccessSpy, onErrorSpy);
 
-      // Assert
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
         title: 'Error de carga',
         message: 'No se pudo recuperar la información del proyecto.',
@@ -221,15 +190,12 @@ describe('EvaluateSpecialRequestFacadeService', () => {
     const payload = { status: stateList.APROBADO as const, resolutionDetails: 'Ok' };
 
     it('debería notificar éxito y llamar a onSuccess', () => {
-      // Arrange
       thesisWorkServiceMock.evaluateSpecialRequestMock.mockReturnValue(of(void 0));
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
 
-      // Act
       service.processEvaluation('thesis-1', 'req-1', payload, onSuccessSpy, onErrorSpy);
 
-      // Assert
       expect(thesisWorkServiceMock.evaluateSpecialRequestMock).toHaveBeenCalledWith('thesis-1', 'req-1', payload);
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
         title: 'Evaluación Registrada',
@@ -241,15 +207,12 @@ describe('EvaluateSpecialRequestFacadeService', () => {
     });
 
     it('debería notificar error y llamar a onError cuando la API falla', () => {
-      // Arrange
       thesisWorkServiceMock.evaluateSpecialRequestMock.mockReturnValue(throwError(() => new Error('Server error')));
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
 
-      // Act
       service.processEvaluation('thesis-1', 'req-1', payload, onSuccessSpy, onErrorSpy);
 
-      // Assert
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
         title: 'Error de Red',
         message: 'Fallo la comunicación al almacenar la evaluación.',

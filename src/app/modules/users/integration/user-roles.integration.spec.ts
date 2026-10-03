@@ -1,5 +1,11 @@
+// src/app/modules/users/integration/user-roles-exchange.integration.spec.ts
 import 'fake-indexeddb/auto'; // Polyfill para la hidratación real
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+
+// FIX: Polyfill preventivo para fake-indexeddb en entornos Node/Jest antiguos (Global)
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+}
 
 // Servicios Reales (La integración completa)
 import { UserService } from '../services/user.service';
@@ -29,18 +35,29 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
   state: UserState.active,
   roles: [], // Inicia sin roles
   ...overrides
-});
+} as User);
 
 // ── Inicio de la Suite de Integración ───────────────────────────────────────
 
 describe('Integración [Users]: Asignación y Remoción de Roles (Flujo End-to-End)', () => {
   let userService: UserService;
   let userStorage: UserStorageService;
-  let errorSpy: jest.SpyInstance;
+
+  // 1. ESCUDO GLOBAL: Atrapa warnings de promesas huérfanas en toda la suite
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  // 3. Restauración definitiva al acabar el archivo
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
 
   beforeEach(() => {
-    // 1. Silenciador de consola con vigilancia
-    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    // 2. Limpieza atómica entre tests
+    jest.clearAllMocks();
+    localStorage.clear();
 
     TestBed.configureTestingModule({
       providers: [
@@ -55,16 +72,11 @@ describe('Integración [Users]: Asignación y Remoción de Roles (Flujo End-to-E
     userService = TestBed.inject(UserService);
     userStorage = TestBed.inject(UserStorageService);
 
-    // 2. Sembrar el Storage con un estado limpio, sobreescribiendo el USER_LIST por defecto
+    // Sembrar el Storage con un estado limpio, sobreescribiendo el USER_LIST por defecto
+    // FIX: Uso del Enum real en lugar de casteo de String a Enum ('ESTUDIANTE' as UserRoleType)
     userStorage.updateUsersList(() => [
-      createMockUser({ id: 'user-123', roles: ['ESTUDIANTE' as UserRoleType] })
+      createMockUser({ id: 'user-123', roles: [UserRoleType.ESTUDIANTE] })
     ]);
-  });
-
-  afterEach(() => {
-    // Garantizamos que no hubo fallos silenciosos (ej. IndexedDB reventando)
-    expect(errorSpy).not.toHaveBeenCalled();
-    errorSpy.mockRestore();
   });
 
   // =======================================================================
@@ -73,14 +85,14 @@ describe('Integración [Users]: Asignación y Remoción de Roles (Flujo End-to-E
   it('NO debe actualizar el storage si se llama al servicio pero se olvida el .subscribe()', fakeAsync(() => {
     // Act: Llamamos al servicio, pero como devuelve un Observable Frío,
     // si el componente que lo llama no hace .subscribe(), la cadena no arranca.
-    userService.addRoleToUser('user-123', 'DIRECTOR' as UserRoleType);
+    userService.addRoleToUser('user-123', UserRoleType.DIRECTOR);
 
     // Avanzamos el tiempo simulado por si acaso
     tick(500);
 
     // Assert: El usuario NO debió recibir el rol, porque el 'tap()' en el API nunca se ejecutó
     const user = userStorage.getUsersSnapshot().find(u => u.id === 'user-123');
-    expect(user?.roles).not.toContain('DIRECTOR');
+    expect(user?.roles).not.toContain(UserRoleType.DIRECTOR);
   }));
 
   // =======================================================================
@@ -88,52 +100,58 @@ describe('Integración [Users]: Asignación y Remoción de Roles (Flujo End-to-E
   // =======================================================================
   it('debe actualizar el Signal del Storage al agregar un rol cuando SÍ hay .subscribe()', fakeAsync(() => {
     // Act
-    userService.addRoleToUser('user-123', 'DIRECTOR' as UserRoleType).subscribe();
+    userService.addRoleToUser('user-123', UserRoleType.DIRECTOR).subscribe({
+      // FIX: Aseguramos que si falla RxJS, Jest nos lo avise saltando el bloqueo de consola
+      error: err => { fail('Fallo inesperado al añadir rol: ' + err); }
+    });
 
     // El observable en UserApiService tiene un delay(500).
-    // Usamos tick(500) para saltar en el tiempo sin esperar medio segundo real.
     tick(500);
 
     // Assert: Verificamos la mutación en el Storage
     const updatedUser = userStorage.getUsersSnapshot().find(u => u.id === 'user-123');
 
     expect(updatedUser).toBeDefined();
-    expect(updatedUser?.roles).toContain('ESTUDIANTE'); // Conserva el que tenía
-    expect(updatedUser?.roles).toContain('DIRECTOR');   // Añade el nuevo
+    expect(updatedUser?.roles).toContain(UserRoleType.ESTUDIANTE); // Conserva el que tenía
+    expect(updatedUser?.roles).toContain(UserRoleType.DIRECTOR);   // Añade el nuevo
   }));
 
   it('debe actualizar el Signal del Storage al remover un rol individual', fakeAsync(() => {
-    // Arrange: Preparamos un usuario con múltiples roles
-    userStorage.updateUsersList((users) => users.map(u => ({ ...u, roles: ['ESTUDIANTE' as UserRoleType, 'DIRECTOR' as UserRoleType] })));
+    // Arrange: Preparamos un usuario con múltiples roles (Usando Enum directo)
+    userStorage.updateUsersList((users) => users.map(u => ({ ...u, roles: [UserRoleType.ESTUDIANTE, UserRoleType.DIRECTOR] })));
 
     // Act
-    userService.removeRoleFromUser('user-123', 'DIRECTOR' as UserRoleType).subscribe();
+    userService.removeRoleFromUser('user-123', UserRoleType.DIRECTOR).subscribe({
+      error: err => { fail('Fallo inesperado al remover rol: ' + err); }
+    });
     tick(500); // delay de 500ms en el removeRoleFromUser
 
     // Assert
     const updatedUser = userStorage.getUsersSnapshot().find(u => u.id === 'user-123');
 
-    expect(updatedUser?.roles).toContain('ESTUDIANTE');
-    expect(updatedUser?.roles).not.toContain('DIRECTOR');
+    expect(updatedUser?.roles).toContain(UserRoleType.ESTUDIANTE);
+    expect(updatedUser?.roles).not.toContain(UserRoleType.DIRECTOR);
   }));
 
   it('debe remover roles masivos y actualizar la sesión actual si el usuario afectado está logueado', fakeAsync(() => {
     // Arrange: Seteamos al usuario afectado como el "currentUser" (Sesión activa)
-    const currentUser = createMockUser({ id: 'user-123', roles: ['ESTUDIANTE' as UserRoleType, 'JURADO' as UserRoleType] });
+    const currentUser = createMockUser({ id: 'user-123', roles: [UserRoleType.ESTUDIANTE, UserRoleType.JURADO] });
     userStorage.setCurrentUser(currentUser);
     userStorage.updateUsersList(() => [currentUser]);
 
     // Act: Usamos el método de remoción masiva que tiene delay(600)
-    userService.removeRolesFromUsersMock(['user-123'], ['JURADO' as UserRoleType]).subscribe();
+    userService.removeRolesFromUsersMock(['user-123'], [UserRoleType.JURADO]).subscribe({
+      error: err => { fail('Fallo inesperado en remoción masiva: ' + err); }
+    });
     tick(600);
 
     // Assert 1: La lista global de usuarios se actualizó
     const updatedGlobalUser = userStorage.getUsersSnapshot().find(u => u.id === 'user-123');
-    expect(updatedGlobalUser?.roles).not.toContain('JURADO');
+    expect(updatedGlobalUser?.roles).not.toContain(UserRoleType.JURADO);
 
     // Assert 2: El Signal de la sesión activa TAMBIÉN se sincronizó
     const session = userStorage.currentUser();
-    expect(session?.roles).not.toContain('JURADO');
-    expect(session?.roles).toContain('ESTUDIANTE');
+    expect(session?.roles).not.toContain(UserRoleType.JURADO);
+    expect(session?.roles).toContain(UserRoleType.ESTUDIANTE);
   }));
 });

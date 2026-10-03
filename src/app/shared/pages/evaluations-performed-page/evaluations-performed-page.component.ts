@@ -8,8 +8,6 @@ import { NotificationService } from '../../components/notifications/services/not
 import { EvaluationsFacadeService } from './services/evaluations-facade.service';
 import { TableComponent } from '../../components/table-component/table-component.component';
 import { EvaluationModalComponent } from '../../components/modals/evaluation-modal/evaluation-modal.component';
-// ← FileDownloadService eliminado: la descarga ahora vive por completo
-// en el facade, mismo patrón que el resto de páginas del proyecto.
 
 @Component({
   selector: 'app-evaluations-performed-page',
@@ -58,9 +56,6 @@ export class EvaluationsPerformedPageComponent implements OnInit {
     this.modalState.set({ open: false, evaluation: null });
   }
 
-  // ← Simplificado: solo delega. void marca explícitamente que no se
-  // espera el resultado — el facade ya maneja éxito/error con sus
-  // propias notificaciones.
   handleDownload(document: FormattedDocument): void {
     void this.evaluationsFacade.handleDownload(document);
   }

@@ -14,9 +14,6 @@ import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
   templateUrl: './evaluate-corrections-form.component.html',
   styleUrls: ['./evaluate-corrections-form.component.css'],
   standalone: true,
-  // ← CommonModule y FormsModule eliminados: el template solo usa @if/@for
-  // nativos y bindings de clase nativos — ninguna directiva de esos módulos
-  // estaba realmente en uso.
   imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent],
   providers: [EvaluateCorrectionsFormService]
 })
@@ -28,10 +25,10 @@ export class EvaluateCorrectionsFormComponent {
   @Output() onSubmitEvaluation = new EventEmitter<{ evaluation: Omit<Evaluation, 'id' | 'date'>; file: File }>();
   @Output() onGoBack = new EventEmitter<void>();
 
-  readonly selectedVerdict   = signal<stateList | null>(null);
-  readonly observations      = signal<string>('');
-  readonly uploadedFormatG   = signal<{ fileName: string; file: File } | null>(null);
-  readonly isModalOpen       = signal<boolean>(false);
+  readonly selectedVerdict = signal<stateList | null>(null);
+  readonly observations = signal<string>('');
+  readonly uploadedFormatG = signal<{ fileName: string; file: File } | null>(null);
+  readonly isModalOpen = signal<boolean>(false);
   readonly isSubmitAttempted = signal<boolean>(false);
 
   get states(): typeof stateList { return stateList; }
@@ -40,18 +37,16 @@ export class EvaluateCorrectionsFormComponent {
     this.thesisWork?.correctedDeliveries ?? []
   );
 
-  getStudentNames(): string   { return this.formService.getStudentNames(this.thesisWork); }
-  getDirectorName(): string   { return this.formService.getDirectorName(this.thesisWork); }
+  getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }
+  getDirectorName(): string { return this.formService.getDirectorName(this.thesisWork); }
   getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
-  getAdvisorName(): string    { return this.formService.getAdvisorName(this.thesisWork); }
+  getAdvisorName(): string { return this.formService.getAdvisorName(this.thesisWork); }
   getAssignedJurors(): string { return this.formService.getAssignedJurors(this.thesisWork); }
 
-  // ← void: downloadDocument() del servicio ahora es async.
-  downloadDocument(doc: FileDocument): void {
-    void this.formService.downloadDocument(doc);
+  downloadDocument(document: FileDocument): void {
+    void this.formService.downloadDocument(document);
   }
 
-  // ← Fix: reemplaza $any($event.target).value por un método con tipado correcto
   onObservationsChange(event: Event): void {
     this.observations.set((event.target as HTMLTextAreaElement).value);
   }

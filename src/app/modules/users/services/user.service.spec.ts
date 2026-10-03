@@ -1,7 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { Observable, of } from 'rxjs';
-
 import { UserService } from './user.service';
 import { UserStorageService } from './user-storage.service';
 import { UserApiService } from './user-api.service';
@@ -10,8 +9,6 @@ import { User } from '../interfaces/user.interface';
 import { IdentificationType } from '../enum/identification-type.enum';
 import { UserState } from '../enum/user-state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: '11111111-1111-1111-1111-111111111111',
@@ -29,16 +26,10 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('UserService', () => {
   let service: UserService;
-
-  // Señal controlable para simular el estado reactivo del usuario actual
   let mockCurrentUserSignal: WritableSignal<User | null>;
   let mockUser: User;
-
-  // Reemplazamos 'unknown' por el tipado estricto literal de cada servicio
   let storageSpy: {
     currentUser: WritableSignal<User | null>;
     users: WritableSignal<User[]>;
@@ -70,14 +61,10 @@ describe('UserService', () => {
   };
 
   beforeEach(() => {
-    // 🔕 Silenciar consola para mantener terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-
     mockUser = createMockUser();
     mockCurrentUserSignal = signal<User | null>(null);
-
-    // Mocks estrictos inicializados
     storageSpy = {
       currentUser: mockCurrentUserSignal,
       users: signal([mockUser]),
@@ -122,16 +109,13 @@ describe('UserService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar espías de consola
+    jest.restoreAllMocks();
   });
 
   it('debería inicializarse correctamente', () => {
     expect(service).toBeTruthy();
   });
 
-  // ==========================================
-  // ESTADO REACTIVO (Computed Signals)
-  // ==========================================
   describe('Estado Reactivo y Señales Computadas', () => {
     it('debería retornar textos por defecto ("Invitado", "No identificado") si no hay sesión', () => {
       mockCurrentUserSignal.set(null);
@@ -141,16 +125,12 @@ describe('UserService', () => {
 
     it('debería retornar el nombre formateado si existe un usuario en sesión', () => {
       mockCurrentUserSignal.set(mockUser);
-
       expect(service.currentUserFullName()).toBe('Juan Pérez');
       expect(service.currentDirectorName()).toBe('Juan Pérez');
       expect(formatterSpy.formatFullName).toHaveBeenCalledWith(mockUser);
     });
   });
 
-  // ==========================================
-  // GESTIÓN DE SESIÓN
-  // ==========================================
   describe('Gestión de Sesión', () => {
     it('login() debería delegar a storage.setCurrentUser() con el usuario completo', () => {
       service.login(mockUser);
@@ -163,9 +143,6 @@ describe('UserService', () => {
     });
   });
 
-  // ==========================================
-  // DELEGACIÓN: QUERIES & MUTATIONS
-  // ==========================================
   describe('Delegación de Consultas y Mutaciones', () => {
     it('getAllUsers() y getUsersSnapshot() deberían llamar al snapshot del storage', () => {
       expect(service.getAllUsers()).toEqual([mockUser]);
@@ -225,9 +202,6 @@ describe('UserService', () => {
     });
   });
 
-  // ==========================================
-  // DELEGACIÓN: FORMATO
-  // ==========================================
   describe('Delegación de Formateo de Texto', () => {
     it('formatFullName() debería delegar al Formatter Service', () => {
       service.formatFullName(mockUser);

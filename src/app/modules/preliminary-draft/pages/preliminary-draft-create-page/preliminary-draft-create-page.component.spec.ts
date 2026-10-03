@@ -1,7 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Component, EventEmitter, Input, Output, signal, WritableSignal } from '@angular/core';
-
 import { PreliminaryDraftCreatePageComponent } from './preliminary-draft-create-page.component';
 import { PreliminaryDraftCreatePageService } from './services/preliminary-draft-create-page.service';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
@@ -10,7 +9,6 @@ import { PreliminaryDraftFormComponent } from '../../components/preliminary-draf
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { User } from '../../../users/interfaces/user.interface';
 
-// 🔹 REFACTOR: Fábricas para generar entidades limpias sin usar casteos forzados en medio del test
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
   roles: [],
@@ -42,7 +40,6 @@ const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): Preliminary
   ...overrides
 } as PreliminaryDraft);
 
-// 1. Mocks de Componentes Hijos (Standalone)
 @Component({
   selector: 'app-preliminary-draft-form',
   template: '<div>Mock Form</div>',
@@ -64,7 +61,6 @@ class MockConfirmationActionModalComponent {
   @Output() confirm = new EventEmitter<void>();
 }
 
-// 2. Tipado estricto para el estado del servicio
 interface ConfirmState {
   isOpen: boolean;
   pendingData: PreliminaryDraft | null;
@@ -85,7 +81,6 @@ describe('PreliminaryDraftCreatePageComponent', () => {
   };
 
   beforeEach(async () => {
-    // 🔕 Silenciar los console.error y console.warn
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -103,16 +98,14 @@ describe('PreliminaryDraftCreatePageComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [PreliminaryDraftCreatePageComponent] // Componente real
+      imports: [PreliminaryDraftCreatePageComponent]
     })
     .overrideComponent(PreliminaryDraftCreatePageComponent, {
       remove: {
-        // Removemos el servicio real y los componentes hijos reales
         providers: [PreliminaryDraftCreatePageService],
         imports: [PreliminaryDraftFormComponent, ConfirmationActionModalComponent]
       },
       add: {
-        // Agregamos el mock del servicio y los componentes hijos simulados
         providers: [{ provide: PreliminaryDraftCreatePageService, useValue: mockPageService }],
         imports: [MockPreliminaryDraftFormComponent, MockConfirmationActionModalComponent]
       }
@@ -125,7 +118,7 @@ describe('PreliminaryDraftCreatePageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar implementaciones originales de la consola
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización', () => {
@@ -158,7 +151,6 @@ describe('PreliminaryDraftCreatePageComponent', () => {
     });
 
     it('debería llamar a openConfirmation cuando el formulario emita onSave', () => {
-      // 🔹 REFACTOR: Uso de fábrica limpia y estrictamente tipada
       const mockDraft = createMockDraft();
 
       const formElement = fixture.debugElement.query(By.directive(MockPreliminaryDraftFormComponent));

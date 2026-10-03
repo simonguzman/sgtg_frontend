@@ -11,11 +11,8 @@ import { EvaluationTableRow, EVALUATIONS_COLUMNS } from './models/evaluations-pa
 import { FormattedDocument } from '../../../core/interfaces/formatted-document.interface';
 import { stateList } from '../../../core/enums/state.enum';
 
-// ── Componentes Originales a Remover (Shallow Testing) ───────────────────────
 import { TableComponent } from '../../components/table-component/table-component.component';
 import { EvaluationModalComponent } from '../../components/modals/evaluation-modal/evaluation-modal.component';
-
-// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
 
 @Component({ selector: 'app-table-component', standalone: true, template: '' })
 class MockTableComponent {
@@ -39,8 +36,6 @@ class MockEvaluationModalComponent {
   @Output() onDownloadFile = new EventEmitter<FormattedDocument>();
 }
 
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
-
 const createMockEvaluationRow = (overrides: Partial<EvaluationTableRow> = {}): EvaluationTableRow => ({
   id: 'eval-1',
   evaluatorId: 'user-1',
@@ -58,17 +53,13 @@ const createMockEvaluationRow = (overrides: Partial<EvaluationTableRow> = {}): E
 const createMockFormattedDocument = (overrides: Partial<FormattedDocument> = {}): FormattedDocument => ({
   name: 'archivo.pdf',
   url: 'http://url.com',
-  // FIX: Se eliminó la propiedad 'size' que no existe en la interfaz original
   ...overrides
 });
-
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('EvaluationsPerformedPageComponent', () => {
   let component: EvaluationsPerformedPageComponent;
   let fixture: ComponentFixture<EvaluationsPerformedPageComponent>;
 
-  // Tipado estricto de los espías
   let mockFacade: {
     getMappedEvaluations: jest.Mock<EvaluationTableRow[], [string, string]>;
     handleDownload: jest.Mock<Promise<void>, [FormattedDocument]>;
@@ -84,7 +75,6 @@ describe('EvaluationsPerformedPageComponent', () => {
   };
 
   const setupTestBed = async (routeId: string | null) => {
-    // 🔕 Silenciar consola para mantener terminal limpia de advertencias y errores simulados
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -102,12 +92,11 @@ describe('EvaluationsPerformedPageComponent', () => {
       url: '/history/proposal/123'
     };
 
-    // Estructura completa de paramMap para evitar casteos "as unknown as ActivatedRoute"
     const mockParamMap = {
       has: jest.fn(),
       getAll: jest.fn(),
       keys: [],
-      get: jest.fn().mockReturnValue(routeId) // Dinámico según el parámetro
+      get: jest.fn().mockReturnValue(routeId)
     };
 
     const mockActivatedRoute = {
@@ -140,13 +129,13 @@ describe('EvaluationsPerformedPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola y espías
+    jest.restoreAllMocks();
   });
 
   describe('Cuando la URL tiene un ID válido', () => {
     beforeEach(async () => {
       await setupTestBed('prop-123');
-      fixture.detectChanges(); // Ejecuta ngOnInit y resuelve signals
+      fixture.detectChanges();
     });
 
     it('Debe crear el componente', () => {
@@ -154,9 +143,7 @@ describe('EvaluationsPerformedPageComponent', () => {
     });
 
     it('Debe obtener las evaluaciones consultando al facade mediante la propiedad computada', () => {
-      // Para probar propiedades protected, usamos notación de corchetes
       const evaluations = component['evaluationsWithPermissions']();
-
       expect(mockFacade.getMappedEvaluations).toHaveBeenCalledWith('prop-123', '/history/proposal/123');
       expect(evaluations).toHaveLength(1);
       expect(evaluations[0].evaluatorName).toBe('Dra. María');
@@ -164,9 +151,7 @@ describe('EvaluationsPerformedPageComponent', () => {
 
     it('Debe abrir el modal al hacer click en view_details', () => {
       const mockRow = createMockEvaluationRow();
-
       component.handleTableAction({ action: 'view_details', row: mockRow });
-
       expect(component.modalState()).toEqual({
         open: true,
         evaluation: mockRow
@@ -176,9 +161,7 @@ describe('EvaluationsPerformedPageComponent', () => {
     it('Debe cerrar el modal reseteando el estado', () => {
       const mockRow = createMockEvaluationRow();
       component.modalState.set({ open: true, evaluation: mockRow });
-
       component.closeModal();
-
       expect(component.modalState()).toEqual({
         open: false,
         evaluation: null
@@ -187,15 +170,12 @@ describe('EvaluationsPerformedPageComponent', () => {
 
     it('Debe delegar la descarga del documento al facade', () => {
       const mockDoc = createMockFormattedDocument();
-
       component.handleDownload(mockDoc);
-
       expect(mockFacade.handleDownload).toHaveBeenCalledWith(mockDoc);
     });
 
     it('Debe navegar hacia atrás relativo a la ruta activa', () => {
       component.goBack();
-
       const activatedRoute = TestBed.inject(ActivatedRoute);
       expect(mockRouter.navigate).toHaveBeenCalledWith(['../'], { relativeTo: activatedRoute });
     });
@@ -203,7 +183,7 @@ describe('EvaluationsPerformedPageComponent', () => {
 
   describe('Cuando la URL NO tiene un ID (Edge case)', () => {
     beforeEach(async () => {
-      await setupTestBed(null); // Simulamos que route.paramMap.get('id') devuelve null
+      await setupTestBed(null);
       fixture.detectChanges();
     });
 
@@ -218,7 +198,6 @@ describe('EvaluationsPerformedPageComponent', () => {
 
     it('Debe retornar un arreglo vacío en evaluationsWithPermissions', () => {
       const evaluations = component['evaluationsWithPermissions']();
-
       expect(evaluations).toEqual([]);
       expect(mockFacade.getMappedEvaluations).not.toHaveBeenCalled();
     });

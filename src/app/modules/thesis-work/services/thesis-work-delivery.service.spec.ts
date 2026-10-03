@@ -1,22 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { firstValueFrom, of } from 'rxjs';
-
 import { ThesisWorkDeliveryService } from './thesis-work-delivery.service';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { UserService } from '../../users/services/user.service';
-
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { DocumentType } from '../../../core/enums/document-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-
-// Importamos las interfaces necesarias para el tipado
 import { User } from '../../users/interfaces/user.interface';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 
-// Imports de helpers y utils que vamos a espiar (spyOn)
 import * as fileReaderUtils from '../../../core/utils/file-reader.utils';
 import * as thesisDateHelper from '../helpers/thesis-date.helper';
 import * as participantsHelper from '../helpers/thesis-participants.helper';
@@ -24,7 +19,6 @@ import * as participantsHelper from '../helpers/thesis-participants.helper';
 describe('ThesisWorkDeliveryService', () => {
   let service: ThesisWorkDeliveryService;
 
-  // 1. Tipamos los mocks explícitamente definiendo solo lo que la prueba usa
   let storageMock: {
     updateWork: jest.Mock<void, [string, (work: ThesisWork) => ThesisWork]>
   };
@@ -43,7 +37,6 @@ describe('ThesisWorkDeliveryService', () => {
 
     const mockId = '00000000-0000-0000-0000-000000000000' as `${string}-${string}-${string}-${string}-${string}`;
 
-    // 2. Quitamos el 'any' usando Object.defineProperty para modificar objetos globales de forma segura
     if (!globalThis.crypto) {
       Object.defineProperty(globalThis, 'crypto', {
         value: { randomUUID: () => mockId }
@@ -52,11 +45,8 @@ describe('ThesisWorkDeliveryService', () => {
       globalThis.crypto.randomUUID = () => mockId;
     }
 
-    // 3. Inicializamos los mocks con sus tipos correctos
     storageMock = {
       updateWork: jest.fn((id: string, callback: (work: ThesisWork) => ThesisWork) => {
-        // Casteamos este objeto simulado como ThesisWork para no tener que
-        // mockear las 30 propiedades extra que exige la interfaz original
         const mockThesis = {
           thesisWorkId: id,
           preliminaryDraftData: {
@@ -87,8 +77,6 @@ describe('ThesisWorkDeliveryService', () => {
     TestBed.configureTestingModule({
       providers: [
         ThesisWorkDeliveryService,
-        // 4. Inyectamos usando el patrón "as unknown as [Service]" para que Angular lo
-        // acepte sin quejarse de que al mock le faltan los demás métodos de la clase real.
         { provide: ThesisWorkStorageService, useValue: storageMock as unknown as ThesisWorkStorageService },
         { provide: EventBusService, useValue: eventBusMock as unknown as EventBusService },
         { provide: UserService, useValue: userServiceMock as unknown as UserService }

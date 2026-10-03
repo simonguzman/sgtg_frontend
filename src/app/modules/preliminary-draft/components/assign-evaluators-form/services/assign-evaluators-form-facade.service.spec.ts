@@ -1,12 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { FormBuilder } from '@angular/forms';
 import { signal, WritableSignal } from '@angular/core';
-
 import { AssignEvaluatorsFormFacadeService } from './assign-evaluators-form-facade.service';
 import { UserService } from '../../../../users/services/user.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
-
 import { User } from '../../../../users/interfaces/user.interface';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
@@ -14,7 +12,6 @@ import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { stateList } from '../../../../../core/enums/state.enum';
 
-// 🔹 REFACTOR: Fábricas de Datos (Factories) para generar entidades estrictas sin 'unknown' ni 'any'
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u1',
   firstName: 'Nombre',
@@ -48,26 +45,23 @@ const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): 
 describe('AssignEvaluatorsFormFacadeService', () => {
   let facade: AssignEvaluatorsFormFacadeService;
 
-  // 🔹 REFACTOR: Tipado estricto para los mocks
   let mockUserService: { users: WritableSignal<User[]>; getAuthorsNames: jest.Mock };
   let mockPreliminaryDraftService: { validateReviewersRules: jest.Mock };
   let mockNotificationService: { show: jest.Mock };
 
-  // Ampliamos el mock de usuarios usando el Factory para cubrir TODAS las ramas lógicas sin casquetes inseguros
   const mockUsers: User[] = [
     createMockUser({ id: 'u1', firstName: 'Docente', lastName: 'Uno', roles: [UserRoleType.DOCENTE] }),
     createMockUser({ id: 'u2', firstName: 'Docente', lastName: 'Dos', roles: [UserRoleType.DOCENTE] }),
-    createMockUser({ id: 'u3', firstName: 'Jefe', lastName: 'Dep', roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] }), // Conflicto: Jefe
-    createMockUser({ id: 'u4', firstName: 'Director', lastName: 'Proyecto', roles: [UserRoleType.DOCENTE] }), // Participante: Director
-    createMockUser({ id: 'u5', firstName: 'Codirector', lastName: 'Proyecto', roles: [UserRoleType.DOCENTE] }), // Participante: Codirector
-    createMockUser({ id: 'u6', firstName: 'Asesor', lastName: 'Proyecto', roles: [UserRoleType.DOCENTE] }), // Participante: Asesor
-    createMockUser({ id: 'u7', firstName: 'Autor', lastName: 'String', roles: [UserRoleType.DOCENTE] }), // Participante: Autor (ID string)
-    createMockUser({ id: 'u8', firstName: 'Autor', lastName: 'Object', roles: [UserRoleType.DOCENTE] }), // Participante: Autor (Objeto)
-    createMockUser({ id: 'u9', firstName: 'Sin', lastName: 'RolDocente', roles: [] }), // No es docente
+    createMockUser({ id: 'u3', firstName: 'Jefe', lastName: 'Dep', roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] }),
+    createMockUser({ id: 'u4', firstName: 'Director', lastName: 'Proyecto', roles: [UserRoleType.DOCENTE] }),
+    createMockUser({ id: 'u5', firstName: 'Codirector', lastName: 'Proyecto', roles: [UserRoleType.DOCENTE] }),
+    createMockUser({ id: 'u6', firstName: 'Asesor', lastName: 'Proyecto', roles: [UserRoleType.DOCENTE] }),
+    createMockUser({ id: 'u7', firstName: 'Autor', lastName: 'String', roles: [UserRoleType.DOCENTE] }),
+    createMockUser({ id: 'u8', firstName: 'Autor', lastName: 'Object', roles: [UserRoleType.DOCENTE] }),
+    createMockUser({ id: 'u9', firstName: 'Sin', lastName: 'RolDocente', roles: [] }),
   ];
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -99,7 +93,7 @@ describe('AssignEvaluatorsFormFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Computados: availableEvaluators & options', () => {
@@ -107,7 +101,6 @@ describe('AssignEvaluatorsFormFacadeService', () => {
       facade.preliminaryDraft.set(null);
       expect(facade.evaluator1Options()).toEqual([]);
 
-      // Pasamos un draft sin proposalData (simulando estado corrupto)
       facade.preliminaryDraft.set(createMockPreliminaryDraft({ proposalData: undefined }));
       expect(facade.evaluator1Options()).toEqual([]);
     });
@@ -126,7 +119,6 @@ describe('AssignEvaluatorsFormFacadeService', () => {
 
       const ev1Options = facade.evaluator1Options();
 
-      // De los 9 usuarios, solo u1 y u2 son docentes puros sin participación ni conflicto
       expect(ev1Options).toHaveLength(2);
       expect(ev1Options.map(opt => opt.id)).toEqual(['u1', 'u2']);
     });
@@ -135,13 +127,12 @@ describe('AssignEvaluatorsFormFacadeService', () => {
       const mockDraft = createMockPreliminaryDraft();
       facade.preliminaryDraft.set(mockDraft);
 
-      // Simulamos selección en el primer select (reacciona al valueChanges)
       facade.form.get('evaluator1')?.setValue('u1');
 
       const ev2Options = facade.evaluator2Options();
 
-      expect(ev2Options.map(opt => opt.id)).not.toContain('u1'); // u1 desaparece
-      expect(ev2Options.map(opt => opt.id)).toContain('u2'); // u2 sigue disponible
+      expect(ev2Options.map(opt => opt.id)).not.toContain('u1');
+      expect(ev2Options.map(opt => opt.id)).toContain('u2');
     });
   });
 
@@ -149,7 +140,6 @@ describe('AssignEvaluatorsFormFacadeService', () => {
     it('debería limpiar evaluator2 si el valor de evaluator1 cambia a ser idéntico', () => {
       facade.form.patchValue({ evaluator1: 'u1', evaluator2: 'u2' });
 
-      // El usuario cambia el evaluador 1 y elige a u2 (que ya estaba en el evaluador 2)
       facade.form.get('evaluator1')?.setValue('u2');
 
       expect(facade.form.get('evaluator2')?.value).toBe('');
@@ -164,24 +154,21 @@ describe('AssignEvaluatorsFormFacadeService', () => {
     });
 
     it('getAuthorsNames debería retornar la cadena del servicio o fallback', () => {
-      expect(facade.getAuthorsNames([])).toBe('Autor Test'); // Valor mockeado
-      mockUserService.getAuthorsNames.mockReturnValueOnce(''); // Simulamos vacío
+      expect(facade.getAuthorsNames([])).toBe('Autor Test');
+      mockUserService.getAuthorsNames.mockReturnValueOnce('');
       expect(facade.getAuthorsNames([])).toBe('No asignado');
     });
 
     it('isFieldInvalid e isFieldValid deberían funcionar según el estado del formControl', () => {
       const control = facade.form.get('evaluator1');
 
-      // Estado inicial (untouched)
       expect(facade.isFieldInvalid('evaluator1')).toBeFalsy();
       expect(facade.isFieldValid('evaluator1')).toBeFalsy();
 
-      // Marcamos como tocado pero está vacío (inválido)
       control?.markAsTouched();
       expect(facade.isFieldInvalid('evaluator1')).toBeTruthy();
       expect(facade.isFieldValid('evaluator1')).toBeFalsy();
 
-      // Asignamos un valor (válido)
       control?.setValue('u1');
       expect(facade.isFieldInvalid('evaluator1')).toBeFalsy();
       expect(facade.isFieldValid('evaluator1')).toBeTruthy();
@@ -190,7 +177,7 @@ describe('AssignEvaluatorsFormFacadeService', () => {
 
   describe('validateAndGetPayload', () => {
     it('debería retornar null y notificar si el formulario es inválido', () => {
-      facade.form.patchValue({ evaluator1: 'u1', evaluator2: '' }); // Falta el 2
+      facade.form.patchValue({ evaluator1: 'u1', evaluator2: '' });
 
       const result = facade.validateAndGetPayload();
 
@@ -202,7 +189,7 @@ describe('AssignEvaluatorsFormFacadeService', () => {
 
     it('debería retornar null si el formulario es válido pero no hay preliminaryDraft cargado', () => {
       facade.form.patchValue({ evaluator1: 'u1', evaluator2: 'u2' });
-      facade.preliminaryDraft.set(null); // Caso límite (edge case)
+      facade.preliminaryDraft.set(null);
 
       const result = facade.validateAndGetPayload();
 
@@ -230,7 +217,7 @@ describe('AssignEvaluatorsFormFacadeService', () => {
       facade.preliminaryDraft.set(mockDraft);
       facade.form.patchValue({ evaluator1: 'u1', evaluator2: 'u2' });
 
-      mockPreliminaryDraftService.validateReviewersRules.mockReturnValue(null); // Sin error
+      mockPreliminaryDraftService.validateReviewersRules.mockReturnValue(null);
 
       const result = facade.validateAndGetPayload();
 

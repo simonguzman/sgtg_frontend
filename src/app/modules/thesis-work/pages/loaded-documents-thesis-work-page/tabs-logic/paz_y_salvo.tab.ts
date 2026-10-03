@@ -49,20 +49,17 @@ export const PazYSalvoTabConfig: TabConfiguration<PazYSalvoTableRow> = {
   },
 
   getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): PazYSalvoTableRow[] => {
-    const pySDocs = documents.filter(doc => doc.type === DocumentType.PAZ_Y_SALVO);
-    return pySDocs.map((doc: FileDocument): PazYSalvoTableRow => {
-      // ← FIX: new Date(string) sobre "DD - MM - YYYY" no es parseo
-      // estándar — mismo bug ya cerrado en otros 3 archivos del proyecto.
-      // parseDisplayDate reconoce explícitamente ese formato.
-      const formattedDate = doc.uploadDate
-        ? formatThesisDate(parseDisplayDate(doc.uploadDate))
+    const pySDocs = documents.filter(document => document.type === DocumentType.PAZ_Y_SALVO);
+    return pySDocs.map((document: FileDocument): PazYSalvoTableRow => {
+      const formattedDate = document.uploadDate
+        ? formatThesisDate(parseDisplayDate(document.uploadDate))
         : 'Sin fecha';
       return {
-        id: doc.id,
-        name: doc.name,
+        id: document.id,
+        name: document.name,
         uploadDate: formattedDate,
-        status: doc.status || stateList.EN_REVISION,
-        url: doc.url || '',
+        status: document.status || stateList.EN_REVISION,
+        url: document.url || '',
         allowedActions: ['view-details']
       };
     });

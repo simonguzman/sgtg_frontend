@@ -1,8 +1,7 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { signal, WritableSignal } from '@angular/core';
-import { of } from 'rxjs'; // <-- FIX 1: Importamos 'of' de rxjs
-
+import { of } from 'rxjs';
 import { AuthApiService } from './auth-api.service';
 import { AuthStorageService } from './auth-storage.service';
 import { UserService } from '../../../modules/users/services/user.service';
@@ -10,8 +9,6 @@ import { UserState } from '../../../modules/users/enum/user-state.enum';
 import { User } from '../../../modules/users/interfaces/user.interface';
 import { ChangePasswordResponse } from '../../interfaces/change-password-response.interface';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
 
 interface MockAuthStorageService {
   setUser: jest.Mock<void, [User]>;
@@ -22,15 +19,10 @@ interface MockAuthStorageService {
 
 interface MockUserService {
   users: WritableSignal<User[]>;
-  // <-- FIX 2: Actualizamos el tipo para que refleje que devuelve un Observable (o any para simplificar el mock de void)
   updateUserPasswordMock: jest.Mock<any, [string, string]>;
 }
 
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
-
 const createMockUser = (overrides: Partial<User> = {}): User => {
-  // Definimos un usuario base que cumpla estrictamente con TODOS los
-  // campos requeridos por tu interfaz User.
   const baseUser: User = {
     id: '1',
     idType: 'CC',
@@ -45,13 +37,8 @@ const createMockUser = (overrides: Partial<User> = {}): User => {
     state: UserState.active,
     roles: [UserRoleType.ESTUDIANTE]
   };
-
-  // Retornamos la fusión. Aquí es el único lugar donde se permite "as User"
-  // para calmar al compilador que teme que el Partial inyecte un 'undefined'.
   return { ...baseUser, ...overrides } as User;
 };
-
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('AuthApiService', () => {
   let service: AuthApiService;
@@ -67,7 +54,6 @@ describe('AuthApiService', () => {
   });
 
   beforeEach(() => {
-    // 🔕 Silenciar consola para mantener la terminal limpia ante warnings y errores de RxJS
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -80,7 +66,6 @@ describe('AuthApiService', () => {
 
     mockUserService = {
       users: signal([validUser, inactiveUser]),
-      // <-- FIX 3: Instruimos al mock para que devuelva un observable vacío
       updateUserPasswordMock: jest.fn().mockReturnValue(of(undefined))
     };
 
@@ -100,28 +85,22 @@ describe('AuthApiService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('login', () => {
     it('debe retornar éxito y guardar usuario si credenciales son correctas', fakeAsync(() => {
       let result: { success: boolean; message?: string } | undefined;
-
-      service.login({ email: 'test@test.com', password: '123' }).subscribe(res => result = res);
-
-      tick(1000); // Avanzamos el delay(1000)
-
+      service.login({ email: 'test@test.com', password: '123' }).subscribe(response => result = response);
+      tick(1000);
       expect(result?.success).toBeTruthy();
       expect(mockStorageService.setUser).toHaveBeenCalledWith(validUser);
     }));
 
     it('debe retornar error si las credenciales son incorrectas', fakeAsync(() => {
       let result: { success: boolean; message?: string } | undefined;
-
-      service.login({ email: 'test@test.com', password: 'wrong' }).subscribe(res => result = res);
-
+      service.login({ email: 'test@test.com', password: 'wrong' }).subscribe(response => result = response);
       tick(1000);
-
       expect(result?.success).toBeFalsy();
       expect(result?.message).toBe('Correo o contraseña incorrectos.');
       expect(mockStorageService.setUser).not.toHaveBeenCalled();
@@ -129,11 +108,8 @@ describe('AuthApiService', () => {
 
     it('debe retornar error si el usuario está inactivo', fakeAsync(() => {
       let result: { success: boolean; message?: string } | undefined;
-
-      service.login({ email: 'inactive@test.com', password: '123' }).subscribe(res => result = res);
-
+      service.login({ email: 'inactive@test.com', password: '123' }).subscribe(response => result = response);
       tick(1000);
-
       expect(result?.success).toBeFalsy();
       expect(result?.message).toContain('inhabilitada');
     }));
@@ -150,8 +126,6 @@ describe('AuthApiService', () => {
   describe('changePassword', () => {
     it('debe lanzar error si la contraseña actual no coincide', (done) => {
       mockStorageService.currentUser.mockReturnValue(validUser);
-
-      // Usamos `done` para asincronismo real, asegurando que el expect se ejecute en el bloque de error
       service.changePassword('wrong', 'newPass').subscribe({
         next: () => done.fail('Debería haber lanzado un error.'),
         error: (err) => {
@@ -163,7 +137,6 @@ describe('AuthApiService', () => {
 
     it('debe lanzar error si currentUser es null', (done) => {
       mockStorageService.currentUser.mockReturnValue(null);
-
       service.changePassword('123', 'newPass').subscribe({
         next: () => done.fail('Debería haber lanzado un error.'),
         error: (err) => {
@@ -176,11 +149,8 @@ describe('AuthApiService', () => {
     it('debe actualizar la contraseña exitosamente', fakeAsync(() => {
       mockStorageService.currentUser.mockReturnValue(validUser);
       let result: ChangePasswordResponse | undefined;
-
-      service.changePassword('123', 'newPass').subscribe(res => result = res);
-
-      tick(1500); // Avanzamos el delay(1500)
-
+      service.changePassword('123', 'newPass').subscribe(response => result = response);
+      tick(1500);
       expect(result?.success).toBeTruthy();
       expect(mockStorageService.updateUser).toHaveBeenCalledWith({ ...validUser, password: 'newPass' });
       expect(mockUserService.updateUserPasswordMock).toHaveBeenCalledWith('1', 'newPass');

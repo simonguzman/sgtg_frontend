@@ -11,40 +11,40 @@
 
     <div class="flex flex-col gap-4">
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Título</span>
-        <input id="" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
+        <label for="infoTitle" class="font-display font-semibold text-primary text-size-section">Título</label>
+        <input id="infoTitle" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Descripciòn</span>
-        <input id="" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
+        <label for="infoDescription" class="font-display font-semibold text-primary text-size-section">Descripción</label>
+        <input id="infoDescription" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</span>
-        <input id="" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
+        <label for="infoModality" class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</label>
+        <input id="infoModality" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Estudiante</span>
-        <input id="" type="text" [value]="getStudentNames()" disabled
+        <label for="infoStudent" class="font-display font-semibold text-primary text-size-section">Estudiante</label>
+        <input id="infoStudent" type="text" [value]="getStudentNames()" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Director</span>
-          <input id="" type="text" [value]="getDirectorName()" disabled
+          <label for="infoDirector" class="font-display font-semibold text-primary text-size-section">Director</label>
+          <input id="infoDirector" type="text" [value]="getDirectorName()" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
 
         @if (getCodirectorName()) {
           <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-primary text-size-section">Codirector</span>
-            <input id="" type="text" [value]="getCodirectorName()" disabled
+            <label for="infoCodirector" class="font-display font-semibold text-primary text-size-section">Codirector</label>
+            <input id="infoCodirector" type="text" [value]="getCodirectorName()" disabled
                    class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
           </div>
         }
@@ -52,15 +52,15 @@
 
       @if (getAdvisorName()) {
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Asesor</span>
-          <input id="" type="text" [value]="getAdvisorName()" disabled
+          <label for="infoAdvisor" class="font-display font-semibold text-primary text-size-section">Asesor</label>
+          <input id="infoAdvisor" type="text" [value]="getAdvisorName()" disabled
                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
         </div>
       }
 
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Jurados Asignados</span>
-        <input id="" type="text" [value]="getAssignedJurors()" disabled
+        <label for="infoJurors" class="font-display font-semibold text-primary text-size-section">Jurados Asignados</label>
+        <input id="infoJurors" type="text" [value]="getAssignedJurors()" disabled
                class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
       </div>
     </div>
@@ -161,14 +161,14 @@
 
       <!-- Observaciones -->
       <div class="flex flex-col gap-1">
-        <span class="font-display font-semibold text-primary text-size-section">Observaciones y comentarios descriptivos</span>
-        <textarea id="" rows="4"
-                 class="p-3 border rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
-                 [class.border-[#ED7D31]]="isSubmitAttempted() && observations().trim().length < 10"
-                 [class.border-gray-200]="!(isSubmitAttempted() && observations().trim().length < 10)"
-                 placeholder="Ingrese el desglose detallado de las razones del veredicto o los ajustes exigidos al estudiante..."
-                 [value]="observations()"
-                 (input)="onObservationsChange($event)"></textarea>
+        <label for="evalObservations" class="font-display font-semibold text-primary text-size-section">Observaciones y comentarios descriptivos</label>
+        <textarea id="evalObservations" rows="4"
+                   class="p-3 border rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
+                   [class.border-[#ED7D31]]="isSubmitAttempted() && observations().trim().length < 10"
+                   [class.border-gray-200]="!(isSubmitAttempted() && observations().trim().length < 10)"
+                   placeholder="Ingrese el desglose detallado de las razones del veredicto o los ajustes exigidos al estudiante..."
+                   [value]="observations()"
+                   (input)="onObservationsChange($event)"></textarea>
         @if (isSubmitAttempted() && observations().trim().length < 10) {
           <span class="text-size-role-footer text-textbox-alert mt-1">Debe ingresar una justificación detallada (mínimo 10 caracteres)</span>
         }
@@ -199,8 +199,7 @@
           <div class="flex flex-col">
             <span class="text-size-body font-bold"
                   [class.text-primary]="uploadedFormatG()"
-                  [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatG()"
-                  [class.text-[#777680]]="!uploadedFormatG() && !isSubmitAttempted()">
+                  [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatG()">
               {{ uploadedFormatG()?.fileName || 'Formato_G - Acta de Evaluación' }}
             </span>
             <span class="text-size-role-footer text-[#777680]">

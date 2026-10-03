@@ -29,7 +29,6 @@ export class ReviewPreliminaryDraftPageFacadeService {
   readonly isConfirmModalOpen = signal(false);
   readonly pendingReviewData = signal<PendingReviewData | null>(null);
 
-  // ← Mismo fix de string literal que en el archivo anterior.
   readonly activeRevision = computed(() => {
     const preliminaryDraft = this.preliminaryDraftState();
     if (!preliminaryDraft?.documents) return null;
@@ -48,7 +47,6 @@ export class ReviewPreliminaryDraftPageFacadeService {
   }
 
   private loadData(id: string): void {
-    // ← first() agregado — faltaba en esta suscripción.
     this.preliminaryDraftService.getPreliminaryDraftById(id)
       .pipe(first())
       .subscribe({
@@ -74,15 +72,6 @@ export class ReviewPreliminaryDraftPageFacadeService {
     this.isConfirmModalOpen.set(true);
   }
 
-  // ← FIX CENTRAL: antes `signedDocuments: [data.file.name, data.annotatedFile?.name]`
-  // guardaba solo nombres, sin ninguna referencia al contenido real —
-  // exactamente el bug de tu captura. Ahora async: lee ambos archivos y
-  // genera sus Data URLs reales antes de construir la evaluación.
-  //
-  // Nota de compatibilidad: si la página llama esto como
-  // (confirm)="processEvaluation()" en el template, sigue funcionando
-  // sin cambios — Angular acepta handlers que devuelven Promise sin
-  // problema.
   async processEvaluation(): Promise<void> {
     const data = this.pendingReviewData();
     const preliminaryDraft = this.preliminaryDraftState();
@@ -140,9 +129,6 @@ export class ReviewPreliminaryDraftPageFacadeService {
     return documents;
   }
 
-  // ← FIX: mismo patrón fire-and-forget que ya corregimos en el resto de
-  // facades de descarga — quedó pendiente en este archivo porque el pase
-  // anterior se enfocó solo en processEvaluation().
   async downloadCurrentDocument(): Promise<void> {
     const revision = this.activeRevision();
     if (!revision) {

@@ -1,12 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators, NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 import { signal, WritableSignal, Component, Input, Output, EventEmitter, forwardRef } from '@angular/core';
-
 import { PreliminaryDraftFormComponent } from './preliminary-draft-form.component';
 import { PreliminaryDraftFormService } from './services/preliminary-draft-form.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
-
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../core/enums/document-type.enum';
@@ -16,13 +14,9 @@ import { User } from '../../../users/interfaces/user.interface';
 import { SelectOption, SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select.component';
 import { Modality } from '../../../proposal/enums/modality.enum';
 import { readFileAsDataUrl } from '../../../../core/utils/file-reader.utils';
-
-// Componentes originales para el override
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
-
-// --- Mocks de Componentes Hijos (Shallow Testing) ---
 
 @Component({ selector: 'app-button-component', standalone: true, template: '<button (click)="onClick.emit()">{{label}}</button>' })
 class MockButtonComponent {
@@ -47,7 +41,6 @@ class MockInfoBannerComponent {
   @Input() title = '';
 }
 
-// 🔹 REFACTOR: Mock de componente de formulario (Requiere ControlValueAccessor simulado)
 @Component({
   selector: 'app-searchable-select',
   standalone: true,
@@ -70,13 +63,11 @@ class MockSearchableSelectComponent implements ControlValueAccessor {
   registerOnTouched(fn: unknown): void {}
 }
 
-// --- Mocking Utils ---
 jest.mock('../../../../core/utils/file-reader.utils', () => ({
   readFileAsDataUrl: jest.fn()
 }));
 const mockedReadFileAsDataUrl = readFileAsDataUrl as jest.MockedFunction<typeof readFileAsDataUrl>;
 
-// --- Factories estrictamente tipadas (Cero 'any' y 'unknown') ---
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u1',
   firstName: 'Director',
@@ -122,7 +113,6 @@ const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): 
   ...overrides
 } as PreliminaryDraft);
 
-// --- Tipados para el Mock del Servicio ---
 type MockFormType = FormGroup<{
   proposalId: FormControl<string | null>;
   title: FormControl<string | null>;
@@ -142,7 +132,6 @@ interface MockPreliminaryDraftFormService {
   getMemberName: jest.Mock<string, [User | null | undefined]>;
 }
 
-// --- Inicio de Pruebas ---
 describe('PreliminaryDraftFormComponent', () => {
   let component: PreliminaryDraftFormComponent;
   let fixture: ComponentFixture<PreliminaryDraftFormComponent>;
@@ -150,11 +139,9 @@ describe('PreliminaryDraftFormComponent', () => {
   let mockNotificationService: jest.Mocked<Pick<NotificationService, 'show'>>;
 
   beforeEach(async () => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Configuración de resolución exitosa del file reader mock
     mockedReadFileAsDataUrl.mockResolvedValue('data:application/pdf;base64,mock');
 
     const form: MockFormType = new FormGroup({
@@ -188,12 +175,10 @@ describe('PreliminaryDraftFormComponent', () => {
     })
     .overrideComponent(PreliminaryDraftFormComponent, {
       remove: {
-        // Removemos los componentes reales y el proveedor local
         imports: [ButtonComponent, FileUploadModalComponent, InfoBannerComponent, SearchableSelectComponent],
         providers: [PreliminaryDraftFormService]
       },
       add: {
-        // Inyectamos nuestros mocks que aseguran aislamiento del DOM
         imports: [MockButtonComponent, MockFileUploadModalComponent, MockInfoBannerComponent, MockSearchableSelectComponent],
         providers: [{ provide: PreliminaryDraftFormService, useValue: mockFormService }]
       }
@@ -207,10 +192,10 @@ describe('PreliminaryDraftFormComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola y espías
+    jest.restoreAllMocks();
   });
 
-  describe('Inicialización y Ciclo de Vida', () => {
+  describe('Inicialización e Ciclo de Vida', () => {
     it('debería inicializarse en modo creación si no recibe preliminaryDraft', () => {
       fixture.componentRef.setInput('preliminaryDraft', null);
       fixture.detectChanges();
@@ -300,7 +285,7 @@ describe('PreliminaryDraftFormComponent', () => {
 
   describe('Flujo de Submit y Mapeo de Documentos', () => {
     it('debería mostrar notificación de error si el formulario es inválido', async () => {
-      component.form.patchValue({ proposalId: '' }); // Formulario inválido
+      component.form.patchValue({ proposalId: '' });
       await component.submit();
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(
@@ -319,15 +304,13 @@ describe('PreliminaryDraftFormComponent', () => {
       fixture.componentRef.setInput('preliminaryDraft', mockDraft);
       fixture.detectChanges();
 
-      // Hacemos el formulario válido
       component.form.patchValue({
         proposalId: 'p1',
         title: 'Título',
         description: 'Descripción',
-        document: mockExistingDoc // Usamos el objeto existente
+        document: mockExistingDoc
       });
 
-      // Aseguramos que coincide el nombre
       component.attachedFile = { hasFile: true, name: 'doc-existente.pdf', file: null };
 
       mockFormService.buildPreliminaryDraftPayload.mockReturnValue(mockDraft);
@@ -337,7 +320,7 @@ describe('PreliminaryDraftFormComponent', () => {
 
       expect(mockFormService.buildPreliminaryDraftPayload).toHaveBeenCalledWith(
         mockDraft,
-        [mockExistingDoc] // Pasó directamente el existente, sin leer de nuevo
+        [mockExistingDoc]
       );
       expect(component.onSave.emit).toHaveBeenCalledWith(mockDraft);
     });
@@ -362,7 +345,7 @@ describe('PreliminaryDraftFormComponent', () => {
 
       expect(mockedReadFileAsDataUrl).toHaveBeenCalledWith(mockFile);
       expect(mockFormService.buildPreliminaryDraftPayload).toHaveBeenCalledWith(
-        null, // No hay draft inicial, porque no se configuró preliminaryDraft()
+        null,
         expect.arrayContaining([
           expect.objectContaining({ name: 'nuevo-anteproyecto.pdf' })
         ])
@@ -376,7 +359,6 @@ describe('PreliminaryDraftFormComponent', () => {
       component.form.patchValue({ proposalId: 'p1', title: 'T', description: 'D', document: mockFile });
       component.attachedFile = { hasFile: true, name: 'error.pdf', file: mockFile };
 
-      // Simulamos que FileReader falla
       mockedReadFileAsDataUrl.mockRejectedValueOnce(new Error('Fallo de lectura simulado'));
 
       await component.submit();
@@ -395,7 +377,6 @@ describe('PreliminaryDraftFormComponent', () => {
       component.form.patchValue({ proposalId: 'p1', title: 'T', description: 'D', document: mockFile });
       component.attachedFile = { hasFile: true, name: 'nuevo.pdf', file: mockFile };
 
-      // Simulamos que el payload falló al construirse internamente en el servicio
       mockFormService.buildPreliminaryDraftPayload.mockReturnValue(null);
       jest.spyOn(component.onSave, 'emit');
 

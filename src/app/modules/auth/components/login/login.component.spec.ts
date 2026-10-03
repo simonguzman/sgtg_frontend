@@ -1,14 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { Component, Input } from '@angular/core';
-
 import { LoginComponent } from './login.component';
 import { LoginFacadeService } from './services/login-facade.service';
-
-// ── Componentes Originales a Remover ─────────────────────────────────────────
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 
-// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
 @Component({
   selector: 'app-button-component',
   standalone: true,
@@ -24,19 +20,14 @@ class MockButtonComponent {
 describe('LoginComponent', () => {
   let component: LoginComponent;
   let fixture: ComponentFixture<LoginComponent>;
-
-  // ── Tipado estricto del Facade (Zero 'any', 'unknown') ─────────────────────
   let facadeMock: {
     checkAlreadyAuthenticated: jest.Mock<void, []>;
     login: jest.Mock<void, [{ email: string; password: string }, () => void, () => void]>;
   };
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola para mantener terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    // Inicializamos con jest.fn()
     facadeMock = {
       checkAlreadyAuthenticated: jest.fn(),
       login: jest.fn()
@@ -61,7 +52,7 @@ describe('LoginComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola y formularios
+    jest.restoreAllMocks();
   });
 
   it('debe crearse correctamente', () => {
@@ -78,28 +69,21 @@ describe('LoginComponent', () => {
     });
 
     it('debe validar que el correo sea requerido y tenga formato email', () => {
-      // El operador ! es seguro aquí porque creamos el form con nonNullable
       const emailControl = component.loginForm.get('email')!;
-
       emailControl.setValue('');
       expect(emailControl.hasError('required')).toBeTruthy();
-
       emailControl.setValue('correo-invalido');
       expect(emailControl.hasError('email')).toBeTruthy();
-
       emailControl.setValue('test@unicauca.edu.co');
       expect(emailControl.valid).toBeTruthy();
     });
 
     it('debe validar que la contraseña sea requerida y tenga mínimo 6 caracteres', () => {
       const passwordControl = component.loginForm.get('password')!;
-
       passwordControl.setValue('');
       expect(passwordControl.hasError('required')).toBeTruthy();
-
       passwordControl.setValue('12345');
       expect(passwordControl.hasError('minlength')).toBeTruthy();
-
       passwordControl.setValue('123456');
       expect(passwordControl.valid).toBeTruthy();
     });
@@ -108,9 +92,7 @@ describe('LoginComponent', () => {
   describe('onSubmit()', () => {
     it('debe marcar todos los campos como "touched" si el formulario es inválido y NO llamar al facade', () => {
       jest.spyOn(component.loginForm, 'markAllAsTouched');
-
       component.onSubmit();
-
       expect(component.loginForm.markAllAsTouched).toHaveBeenCalled();
       expect(facadeMock.login).not.toHaveBeenCalled();
     });
@@ -120,12 +102,8 @@ describe('LoginComponent', () => {
         email: 'test@unicauca.edu.co',
         password: 'password123'
       });
-
       component.onSubmit();
-
       expect(facadeMock.login).toHaveBeenCalled();
-
-      // Gracias al tipado estricto, calledArgs conserva la estructura exacta
       const calledArgs = facadeMock.login.mock.calls[0];
       expect(calledArgs[0]).toEqual({
         email: 'test@unicauca.edu.co',
@@ -138,17 +116,11 @@ describe('LoginComponent', () => {
         email: 'test@unicauca.edu.co',
         password: 'password123'
       });
-
       component.onSubmit();
-
-      // Extracción limpia, TypeScript sabe que onStart y onComplete son () => void
       const [, onStart, onComplete] = facadeMock.login.mock.calls[0];
-
       expect(component.isLoading()).toBeFalsy();
-
       onStart();
       expect(component.isLoading()).toBeTruthy();
-
       onComplete();
       expect(component.isLoading()).toBeFalsy();
     });

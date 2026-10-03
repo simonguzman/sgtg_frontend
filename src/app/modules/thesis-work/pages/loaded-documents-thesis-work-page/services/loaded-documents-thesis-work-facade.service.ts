@@ -13,16 +13,16 @@ import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
 
 @Injectable({ providedIn: 'root' })
 export class LoadedDocumentsThesisWorkFacadeService {
-  private readonly thesisWorkService   = inject(ThesisWorkService);
-  private readonly downloadService     = inject(FileDownloadService);
+  private readonly thesisWorkService = inject(ThesisWorkService);
+  private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
   public async uploadDocument(
-    thesisId:     string,
-    fileData:     { fileName: string; file: File },
+    thesisId: string,
+    fileData: { fileName: string; file: File },
     documentType: DocumentType,
-    onSuccess:    () => void,
-    onError:      () => void
+    onSuccess: () => void,
+    onError: () => void
   ): Promise<void> {
     this.showNotification(
       'Subiendo documento',
@@ -41,16 +41,14 @@ export class LoadedDocumentsThesisWorkFacadeService {
     }
 
     const newDoc: FileDocument = {
-      id:         crypto.randomUUID(),
-      name:       fileData.fileName.replace('.pdf', ''),
-      url:        fileUrl,
+      id: crypto.randomUUID(),
+      name: fileData.fileName.replace('.pdf', ''),
+      url: fileUrl,
       uploadDate: formatThesisDate(),
-      type:       documentType,
-      status:     stateList.EN_REVISION
+      type: documentType,
+      status: stateList.EN_REVISION
     };
 
-    // MEJORA: Usar firstValueFrom mantiene todo en la misma cadena de promesas
-    // y hace que el código asíncrono sea verdaderamente predecible y fácil de testear.
     try {
       await firstValueFrom(this.thesisWorkService.uploadDocumentMock(thesisId, newDoc));
       this.showNotification(
@@ -66,24 +64,19 @@ export class LoadedDocumentsThesisWorkFacadeService {
     }
   }
 
-  public async downloadDocument(doc: FileDocument): Promise<void> {
-    if (!doc.url) {
+  public async downloadDocument(document: FileDocument): Promise<void> {
+    if (!document.url) {
       this.showNotification('Error de descarga', 'No existe una URL válida vinculada a este archivo.', NotificationType.ERROR);
       return;
     }
     try {
-      await this.downloadService.download(doc.url, `${doc.name}.pdf`);
+      await this.downloadService.download(document.url, `${document.name}.pdf`);
     } catch (err) {
-      console.error(`Error al descargar el documento ${doc.name}:`, err);
-      this.showNotification('Error de descarga', `No se pudo descargar ${doc.name}. Intente más tarde.`, NotificationType.ERROR);
+      console.error(`Error al descargar el documento ${document.name}:`, err);
+      this.showNotification('Error de descarga', `No se pudo descargar ${document.name}. Intente más tarde.`, NotificationType.ERROR);
     }
   }
 
-  // ← FIX: eliminada la bifurcación por activeTab. selectedAdvance ya trae
-  // el conjunto correcto de documentos para CUALQUIER pestaña — resuelto
-  // por ThesisWorkDetailsModalResolverService al abrir el modal. Buscar en
-  // thesis?.documents para "todo lo que no sea AVANCES" ignoraba que
-  // Entrega Final vive en finalDeliveries[], no ahí.
   public async downloadDocumentByName(fileName: string, selectedAdvance: Advance | null): Promise<void> {
     const target = selectedAdvance?.documents?.find(d => d.name === fileName);
     await this.downloadDocument(target ?? { name: fileName, url: '' } as FileDocument);

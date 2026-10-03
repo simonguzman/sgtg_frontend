@@ -24,7 +24,6 @@ export class PreliminaryDraftFacadeService {
       UserRoleType.CONSEJO
     ]);
 
-    // Asumimos que los ordenamos aquí mismo antes de mapear
     const activePreliminaryDrafts = this.preliminaryDraftService.preliminaryDrafts().filter(PreliminaryDraft => !PreliminaryDraft.isArchived);
     const sortedPreliminaryDrafts = [...activePreliminaryDrafts].sort((a, b) => {
       const dateA = a.createdData || a.proposalData?.createdAt || new Date(0);
@@ -50,7 +49,6 @@ export class PreliminaryDraftFacadeService {
   public deleteDraft(id: string, onSuccess: () => void, onError: () => void): void {
     this.showNotification('Eliminando anteproyecto', 'Se está procesando la solicitud...', NotificationType.INFO);
 
-    // Asumo que el método se llama deleteDraft en tu servicio principal
     this.preliminaryDraftService.deleteDraft(id).subscribe({
       next: () => {
         this.showNotification('Anteproyecto eliminado', 'El anteproyecto fue eliminado correctamente.', NotificationType.CONFIRMATION);

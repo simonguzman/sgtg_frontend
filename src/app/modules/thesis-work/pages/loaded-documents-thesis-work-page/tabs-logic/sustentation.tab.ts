@@ -22,7 +22,7 @@ function resolveDisplayStatus(sustentation: SustentationRegistry): stateList {
   const verdictsList: JurorVerdict[] = sustentation.verdicts || [];
   if (verdictsList.length === 0) return stateList.EN_REVISION;
 
-  const lastVerdict = verdictsList[verdictsList.length - 1].veredict;
+  const lastVerdict = verdictsList.at(-1)?.veredict;
   const hadObservaciones = verdictsList.some(v => v.veredict === stateList.APROBADO_CON_OBSERVACIONES);
 
   if (hadObservaciones && lastVerdict === stateList.APROBADO) {
@@ -52,7 +52,7 @@ export const SustentationTabConfig: TabConfiguration<SustentationTableRow> = {
     if (!thesis) return baseContext;
 
     const hasApprovedPazYSalvo = thesis.documents?.some(
-      (doc: FileDocument) => doc.type === DocumentType.PAZ_Y_SALVO && doc.status === stateList.APROBADO
+      (document: FileDocument) => document.type === DocumentType.PAZ_Y_SALVO && document.status === stateList.APROBADO
     ) ?? false;
 
     const currentSustentations: SustentationRegistry[] = thesis.sustentations ?? [];
@@ -76,7 +76,7 @@ export const SustentationTabConfig: TabConfiguration<SustentationTableRow> = {
 
   getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): SustentationTableRow[] => {
     const thesis = context.thesisWork;
-    if (!thesis || !thesis.sustentations || thesis.sustentations.length === 0) return [];
+    if (!thesis?.sustentations?.length) return [];
 
     const isJurorContext = !!context.isJuror;
     const totalSustentations = thesis.sustentations.length;
@@ -116,17 +116,18 @@ export const SustentationTabConfig: TabConfiguration<SustentationTableRow> = {
     if (isConsejo) {
       const activeSustentation = thesis?.sustentations?.[0];
       const verdictsList: JurorVerdict[] = activeSustentation?.verdicts || [];
-      const lastVerdict = verdictsList.length > 0 ? verdictsList[verdictsList.length - 1].veredict : null;
+      const lastVerdict = verdictsList.at(-1)?.veredict ?? null;
       const isAdministrativelyPostponed = activeSustentation?.status === SustentationStatus.APLAZADA;
 
-      let buttonLabel = 'Registrar Sustentación';
-      let buttonDisabled = false;
+      let buttonLabel: string;
+      let buttonDisabled: boolean;
 
       if (!hasApprovedPazYSalvo) {
         buttonLabel = 'Requiere Paz y Salvo Aprobado';
         buttonDisabled = true;
       } else if (!hasSustentationRegistered) {
         buttonLabel = 'Registrar Sustentación';
+        buttonDisabled = false;
       } else if (lastVerdict === stateList.APLAZADO || isAdministrativelyPostponed) {
         buttonLabel = 'Registrar Nueva Sustentación';
         buttonDisabled = false;

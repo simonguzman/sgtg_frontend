@@ -1,31 +1,20 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Component, EventEmitter, Input, Output, signal, WritableSignal } from '@angular/core';
-
-// 2. Componente a probar
 import { CorrectedDocumentsPageComponent } from './corrected-documents-page.component';
-
-// 3. Servicios, Facades y Enums
 import { CorrectedDocumentsFacadeService } from './services/corrected-documents-facade.service';
 import { ThesisWorkService } from '../../services/thesis-work.service';
 import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
 import { stateList } from '../../../../core/enums/state.enum';
 import { DocumentType } from '../../../../core/enums/document-type.enum';
-
-// 4. Modelos e Interfaces
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { CorrectedDeliveryTableRow, CORRECTED_DOCUMENTS_COLUMNS } from './models/corrected-documents-page.model';
 import { CorrectedDelivery } from '../../interfaces/corrected-delivery.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
-
-// 5. Componentes Basekit (Para overriding)
 import { TableComponent, Column } from '../../../../shared/components/table-component/table-component.component';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
-
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown' ni casteos dobles) ──
 
 interface MockCorrectedDocumentsFacadeService {
   findThesisWork: jest.Mock<ThesisWork | null, [string | null, ThesisWork[]]>;
@@ -71,8 +60,6 @@ interface MockThesisWorkService {
   allThesisWorks: WritableSignal<ThesisWork[]>;
 }
 
-// ── Mocks de Componentes Standalone (Strict-Init sin 'unknown') ─────────────
-
 @Component({ selector: 'app-table-component', standalone: true, template: '' })
 class MockTableComponent {
   @Input() value: CorrectedDeliveryTableRow[] = [];
@@ -113,8 +100,6 @@ class MockInfoBannerComponent {
   @Input() title = '';
 }
 
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
-
 const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
   id: 'doc-1',
   name: 'documento',
@@ -134,7 +119,7 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   sustentations: [],
   state: stateList.EN_DESARROLLO,
   createdDate: new Date(),
-  preliminaryDraftData: {} as any, // Irrelevante aquí, se maneja en el Facade
+  preliminaryDraftData: {} as any,
   ...overrides
 });
 
@@ -142,7 +127,6 @@ const createMockDelivery = (overrides: Partial<CorrectedDelivery> = {}): Correct
   id: 'd-1',
   uploadDate: new Date(),
   status: stateList.EN_REVISION,
-  // 🔨 Usamos la fábrica para proveer objetos FileDocument válidos
   monograph: createMockFileDocument({ name: 'monografia' }),
   annexes: createMockFileDocument({ name: 'anexos', type: DocumentType.ANEXOS }),
   ...overrides
@@ -157,30 +141,24 @@ const createMockTableRow = (rawDelivery: CorrectedDelivery): CorrectedDeliveryTa
   rawDelivery
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('CorrectedDocumentsPageComponent', () => {
   let component: CorrectedDocumentsPageComponent;
   let fixture: ComponentFixture<CorrectedDocumentsPageComponent>;
 
-  // Mocks Tipados Estrictamente
   let facadeSpy: MockCorrectedDocumentsFacadeService;
   let routerSpy: MockRouter;
   let breadcrumbSpy: MockBreadcrumbService;
   let thesisWorkServiceSpy: MockThesisWorkService;
 
-  // Nodos de ruta para anidación
   let routeSnapshotMock: MockRouteSnapshot;
   let parentSnapshotMock: MockRouteSnapshot;
   let grandParentSnapshotMock: MockRouteSnapshot;
   let routeSpy: MockActivatedRoute;
 
   beforeEach(async () => {
-    // 🔕 Silenciador preventivo global de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // 1. Inicialización de Fachada y Servicios
     facadeSpy = {
       findThesisWork: jest.fn().mockReturnValue(null),
       isDirector: jest.fn().mockReturnValue(false),
@@ -211,7 +189,6 @@ describe('CorrectedDocumentsPageComponent', () => {
       allThesisWorks: signal<ThesisWork[]>([])
     };
 
-    // 2. Configuración del árbol de rutas simulado (Componente -> Padre -> Abuelo)
     grandParentSnapshotMock = { paramMap: { get: jest.fn().mockReturnValue('tw-123') }, data: {} };
     parentSnapshotMock = { paramMap: { get: jest.fn().mockReturnValue(null) }, data: {} };
     routeSnapshotMock = { paramMap: { get: jest.fn().mockReturnValue(null) }, data: { isArchived: false } };
@@ -246,7 +223,7 @@ describe('CorrectedDocumentsPageComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('ngOnInit e inicialización', () => {

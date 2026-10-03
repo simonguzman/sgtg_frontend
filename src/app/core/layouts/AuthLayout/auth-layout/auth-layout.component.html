@@ -9,17 +9,13 @@
     <div class="absolute inset-0 bg-primary/10"></div>
   </div>
 
-  <!-- Header encima de la imagen -->
   <app-auth-header class="relative z-10"></app-auth-header>
-
-  <!-- Main solo maneja el lado izquierdo -->
   <main class="flex-1 flex relative z-10">
     <section class="w-full md:w-1/2 flex items-center justify-center p-6 bg-white">
       <div class="w-full max-w-md">
         <router-outlet></router-outlet>
       </div>
     </section>
-    <!-- El lado derecho está vacío, la imagen lo cubre desde atrás -->
     <div class="hidden md:block md:w-1/2"></div>
   </main>
 

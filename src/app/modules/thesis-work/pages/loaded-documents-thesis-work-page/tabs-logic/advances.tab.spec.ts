@@ -1,8 +1,5 @@
-// 1. Angular y Testing
 import { AdvancesTabConfig } from './advances.tab';
 import { ThesisEvaluationContext } from './tab-config.interface';
-
-// 2. Interfaces y Enums
 import { stateList } from '../../../../../core/enums/state.enum';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { Advance } from '../../../interfaces/advance.interface';
@@ -13,14 +10,11 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
+import { formatThesisDate } from '../../../helpers/thesis-date.helper';
 
-// ── Mapeo de Mocks Globales (Hoisted por Jest) ──────────────────────────────
 jest.mock('../../../helpers/thesis-date.helper', () => ({
   formatThesisDate: jest.fn(() => 'fecha-formateada-mock')
 }));
-import { formatThesisDate } from '../../../helpers/thesis-date.helper';
-
-// ── Funciones Fábrica fuertemente tipadas (Cero 'any') ───────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -75,7 +69,6 @@ const createMockEvaluation = (overrides: Partial<Evaluation> = {}): Evaluation =
 const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
   const baseUser = createMockUser();
 
-  // Construcción estricta para evitar el 'as any'
   const mockDraftData: NonNullable<ThesisWork['preliminaryDraftData']> = {
     preliminaryDraftId: 'draft-1',
     proposalId: 'prop-1',
@@ -84,7 +77,7 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
     evaluators: [],
     evaluations: [],
     documents: [],
-    maximumDeliveryDate: new Date(), // Agregado requerido por tu interfaz previa
+    maximumDeliveryDate: new Date(),
     proposalData: {
       id: 'prop-1',
       title: 'Mock Title',
@@ -135,24 +128,20 @@ const createMockEvaluationContext = (overrides: Partial<ThesisEvaluationContext>
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('AdvancesTabConfig', () => {
   let baseContext: ThesisEvaluationContext;
 
   beforeEach(() => {
-    // 🔕 Silenciador preventivo global de consola para mantener la terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'log').mockImplementation(() => {});
 
-    // Restaurar baseContext fresco para cada prueba usando la fábrica
     baseContext = createMockEvaluationContext();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Propiedades Estáticas', () => {
@@ -172,7 +161,6 @@ describe('AdvancesTabConfig', () => {
     });
 
     it('debe calcular correctly requiredEvaluatorsCount basado en los roles de la propuesta', () => {
-      // Configuramos el mock para que tenga Director y Asesor (esperado: 2 evaluadores)
       const thesis = createMockThesisWork();
       thesis.preliminaryDraftData!.proposalData.director = createMockUser({ id: 'dir-1' });
       thesis.preliminaryDraftData!.proposalData.advisor = createMockUser({ id: 'adv-1' });
@@ -247,10 +235,9 @@ describe('AdvancesTabConfig', () => {
         id: 'adv-2',
         title: 'Avance String',
         status: stateList.EN_DESARROLLO,
-        documents: undefined // Forzamos undefined para probar el fallback || []
+        documents: undefined
       });
 
-      // Simulación segura para probar resiliencia en runtime sin romper el compilador TS
       mockAdvanceStrDate.uploadDate = '2026-10-15' as unknown as Date;
 
       baseContext.thesisWork = createMockThesisWork({ advances: [mockAdvanceStrDate] });

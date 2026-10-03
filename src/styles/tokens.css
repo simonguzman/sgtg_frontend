@@ -1,0 +1,111 @@
+/* ==========================================================================
+   CONFIGURACIÓN GLOBAL
+   Propósito: Forzar el esquema de color claro en toda la aplicación para
+   garantizar consistencia visual independientemente del sistema operativo.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+}
+
+/* ==========================================================================
+   SISTEMA DE DISEÑO — TOKENS (@theme)
+   Propósito: Centralizar todas las variables de diseño del sistema.
+   Estas variables son la fuente única de verdad para colores, tipografía,
+   espaciado y dimensiones. Cualquier cambio aquí se propaga a toda la app.
+   ========================================================================== */
+
+@theme {
+
+  /* ── Botón Primario ───────────────────────────────────────────────────────
+     Paleta de color para el botón de acción principal del sistema.
+     Basado en el azul institucional de la Universidad del Cauca.          */
+  --color-primary:          #000066;
+  --color-primary-hover:    #828AE3;
+  --color-primary-active:   #5056AC;
+  --color-primary-disabled: #C8C5D0;
+
+  /* ── Botón Secundario ─────────────────────────────────────────────────────
+     Paleta de color para el botón de acción secundaria del sistema.
+     Usa fondo blanco con borde azul institucional.                        */
+  --color-secondary:                  #FFFFFF;
+  --color-secondary-hover:            #5056ac33;
+  --color-secondary-active:           #828ae380;
+  --color-secondary-disabled:         #C8C5D0;
+  --color-secondary-border-color:     #000066;
+  --color-secondary-border-color-disabled: #46464F;
+  --secondary-border-width:           2px;
+
+  /* ── Estados del Sistema ──────────────────────────────────────────────────
+     Colores semánticos para representar el estado de un trabajo de grado
+     a lo largo de su ciclo de vida dentro del sistema.                    */
+  --color-state-approved:              #249337;
+  --color-state-approved-with-comments:#EC6C1F;
+  --color-state-rejected:              #D32F2F;
+  --color-state-under-review:          #F8AE15;
+  --color-state-evaluated:             #8CBB22;
+  --color-state-in-development:        #0051C6;
+  --color-state-postponed:             #4C19AF;
+  --color-state-cancelled:             #6B7280;
+  --color-state-suspended:             #EAB308;
+
+  /* ── Pill / Badge ─────────────────────────────────────────────────────────
+     Dimensiones estándar para los componentes de tipo pill (botones y
+     badges de estado). Garantizan altura y bordes consistentes.            */
+  --radius-pill:   100px;
+  --height-pill:   41px;
+
+  /* ── Tipografía ───────────────────────────────────────────────────────────
+     Dos familias tipográficas:
+     - 'Open Sans'  (--font-sans):    texto de cuerpo y datos.
+     - 'Fira Sans'  (--font-display): títulos y encabezados de tabla.
+     La escala de tamaños sigue la jerarquía visual del sistema.           */
+  --font-sans:               'Open Sans', sans-serif;
+  --font-display:            'Fira Sans', sans-serif;
+  --text-size-role-footer:   12px;
+  --text-size-body:          14px;
+  --text-size-section:       16px;
+  --text-size-sidebar-title: 18px;
+  --text-size-header-title:  20px;
+  --text-size-modal-title:   24px;
+  --text-title-section:      28px;
+  --text-file:               36px;
+  --font-bold-weight:        700;
+  --font-semibold-weight:    600;
+  --font-regular-weight:     400;
+  --font-light-weight:       300;
+  --color-text-white:        #ffffff;
+  --color-text-blue:         #000066;
+  --color-text-disabled:     #46464F;
+
+  /* ── Espaciado Pill ───────────────────────────────────────────────────────
+     Padding interno estandarizado para botones y badges de tipo pill.      */
+  --padding-pill-y: 11px;
+  --padding-pill-x: 20px;
+
+  /* ── PrimeNG: Paginador ───────────────────────────────────────────────────
+     Override del token interno de PrimeNG para la página seleccionada.    */
+  --p-paginator-nav-button-selected-background: var(--color-primary);
+}
+
+/* ==========================================================================
+   VARIABLES GLOBALES DE PRIMENG
+   Propósito: Sobreescribir los tokens CSS de PrimeNG a nivel de documento
+   para componentes que no se pueden controlar desde @theme (tooltip,
+   paginador). Se declaran en html/body para máxima especificidad.
+   ========================================================================== */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+
+  --p-paginator-nav-button-selected-background: #000066;
+  --p-paginator-nav-button-selected-color:      #ffffff;
+
+  --p-tooltip-background:    rgba(234, 240, 251, 0.9);
+  --p-tooltip-color:         #000000;
+  --p-tooltip-border-radius: 10px;
+  --p-tooltip-padding:       0.5rem 0.75rem;
+  --p-tooltip-max-width:     20rem;
+}

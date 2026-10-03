@@ -8,7 +8,7 @@ import { Evaluation } from '../../../../../core/interfaces/evaluation.interface'
 
 @Injectable({ providedIn: 'root' })
 export class EvaluateCorrectionsFacadeService {
-  private readonly thesisWorkService   = inject(ThesisWorkService);
+  private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
 
   public loadThesisWork(id: string, onSuccess: (work: ThesisWork) => void, onError: () => void): void {

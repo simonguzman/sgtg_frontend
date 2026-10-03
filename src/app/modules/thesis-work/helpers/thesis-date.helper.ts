@@ -9,10 +9,10 @@ export function formatThesisDate(date: Date = new Date()): string {
 }
 
 export function ensureDate(date: Date | string | undefined | null): Date {
-  if (date instanceof Date && !isNaN(date.getTime())) return date;
+  if (date instanceof Date && !Number.isNaN(date.getTime())) return date;
   if (typeof date === 'string' && date.trim()) {
     const parsed = new Date(date);
-    if (!isNaN(parsed.getTime())) return parsed;
+    if (!Number.isNaN(parsed.getTime())) return parsed;
   }
   return new Date();
 }

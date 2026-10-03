@@ -1,9 +1,7 @@
-// src/app/modules/thesis-work/integration/thesis-work-deadline-expiration.integration.spec.ts
 import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Injector } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
-
 import { ThesisWorkService } from '../services/thesis-work.service';
 import { ThesisWorkStorageService } from '../services/thesis-work-storage.service';
 import { ThesisWorkApiService } from '../services/thesis-work-api.service';
@@ -20,7 +18,6 @@ import { UserApiService } from '../../users/services/user-api.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
-
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { FinalDelivery } from '../interfaces/final-delivery.interface';
 import { User } from '../../users/interfaces/user.interface';
@@ -33,21 +30,26 @@ import { PreliminaryDraft } from '../../preliminary-draft/interfaces/preliminary
 import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
 
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+}
+
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-default', idType: IdentificationType.CC, idNumber: 123456789,
-  firstName: 'Nombre', lastName: 'Apellido', secondLastName: '',
+  firstName: 'Nombre', secondName: '', lastName: 'Apellido', secondLastName: '',
   codeNumber: 1234567890, email: 'test@test.com', password: 'hash',
   state: UserState.active, roles: [], ...overrides
-});
+} as User);
 
 function buildThesisWork(id: string, overrides: Partial<ThesisWork>, draft: PreliminaryDraft): ThesisWork {
-  return {
-    thesisWorkId: id, preliminaryDraftId: draft.preliminaryDraftId!, preliminaryDraftData: draft,
+  const thesisPartial: Partial<ThesisWork> = {
+    thesisWorkId: id, preliminaryDraftId: draft.preliminaryDraftId, preliminaryDraftData: draft,
     createdDate: new Date(), state: stateList.EN_DESARROLLO,
     advances: [], evaluations: [], finalDeliveries: [], documents: [],
     sustentations: [], pazYSalvos: [], specialRequests: [], isArchived: false,
     ...overrides
   };
+  return thesisPartial as ThesisWork;
 }
 
 describe('Integración [Trabajo de Grado]: Vencimiento automático de plazo (verifyDeliveryDeadlinesMock)', () => {
@@ -59,13 +61,21 @@ describe('Integración [Trabajo de Grado]: Vencimiento automático de plazo (ver
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const nextYear = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
-  beforeEach(async () => {
+  beforeAll(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    localStorage.clear();
 
     TestBed.configureTestingModule({
       providers: [
-        // ThesisWorkService NO se registra aquí — se inyecta más tarde,
-        // dentro de cada it(), después de sembrar los datos.
         ThesisWorkStorageService, ThesisWorkApiService,
         ThesisWorkAdvanceService, ThesisWorkDeliveryService, ThesisWorkEvaluationService,
         ThesisWorkSpecialRequestService, ThesisWorkSustentationService,
@@ -95,39 +105,50 @@ describe('Integración [Trabajo de Grado]: Vencimiento automático de plazo (ver
     const director3 = createMockUser({ id: 'dir-exp-3', firstName: 'Director Tres' });
     userStorage.updateUsersList(() => [evaluator, director1, director2, director3]);
 
-    // Caso A: DEBE archivarse — vencido, EN_DESARROLLO, sin entrega final.
-    const proposalA: Proposal = { id: 'prop-exp-a', title: 'Vencido sin entrega', description: '', modality: Modality.TI, authors: [], director: director1, state: stateList.APROBADO, createdAt: new Date(), documents: [], evaluations: [], isArchived: false };
-    const draftA: PreliminaryDraft = { preliminaryDraftId: 'draft-exp-a', proposalId: proposalA.id!, proposalData: proposalA, evaluators: [evaluator], evaluations: [], documents: [], state: stateList.APROBADO, createdData: new Date(), isArchived: false, maximumDeliveryDate: yesterday };
+    const proposalAPartial: Partial<Proposal> = { id: 'prop-exp-a', title: 'Vencido sin entrega', description: '', modality: Modality.TI, authors: [], director: director1, state: stateList.APROBADO, createdAt: new Date(), documents: [], evaluations: [], isArchived: false };
+    const proposalA = proposalAPartial as Proposal;
+    const draftAPartial: Partial<PreliminaryDraft> = { preliminaryDraftId: 'draft-exp-a', proposalId: proposalA.id, proposalData: proposalA, evaluators: [evaluator], evaluations: [], documents: [], state: stateList.APROBADO, createdData: new Date(), isArchived: false, maximumDeliveryDate: yesterday };
+    const draftA = draftAPartial as PreliminaryDraft;
     const thesisA = buildThesisWork('thesis-exp-a', {}, draftA);
-    proposalStorage.updateProposals(list => [...list, proposalA]);
+
+    if ('updateProposals' in proposalStorage) {
+      proposalStorage.updateProposals(list => [...list, proposalA]);
+    }
     preliminaryDraftStorage.addDraft(draftA);
 
-    // Caso B: NO debe archivarse — plazo aún vigente.
-    const proposalB: Proposal = { id: 'prop-exp-b', title: 'Plazo vigente', description: '', modality: Modality.TI, authors: [], director: director2, state: stateList.APROBADO, createdAt: new Date(), documents: [], evaluations: [], isArchived: false };
-    const draftB: PreliminaryDraft = { preliminaryDraftId: 'draft-exp-b', proposalId: proposalB.id!, proposalData: proposalB, evaluators: [], evaluations: [], documents: [], state: stateList.APROBADO, createdData: new Date(), isArchived: false, maximumDeliveryDate: nextYear };
+    const proposalBPartial: Partial<Proposal> = { id: 'prop-exp-b', title: 'Plazo vigente', description: '', modality: Modality.TI, authors: [], director: director2, state: stateList.APROBADO, createdAt: new Date(), documents: [], evaluations: [], isArchived: false };
+    const proposalB = proposalBPartial as Proposal;
+    const draftBPartial: Partial<PreliminaryDraft> = { preliminaryDraftId: 'draft-exp-b', proposalId: proposalB.id, proposalData: proposalB, evaluators: [], evaluations: [], documents: [], state: stateList.APROBADO, createdData: new Date(), isArchived: false, maximumDeliveryDate: nextYear };
+    const draftB = draftBPartial as PreliminaryDraft;
     const thesisB = buildThesisWork('thesis-exp-b', {}, draftB);
 
-    // Caso C: NO debe archivarse — vencido, pero YA tiene entrega final.
-    const proposalC: Proposal = { id: 'prop-exp-c', title: 'Vencido con entrega ya radicada', description: '', modality: Modality.TI, authors: [], director: director3, state: stateList.APROBADO, createdAt: new Date(), documents: [], evaluations: [], isArchived: false };
-    const draftC: PreliminaryDraft = { preliminaryDraftId: 'draft-exp-c', proposalId: proposalC.id!, proposalData: proposalC, evaluators: [], evaluations: [], documents: [], state: stateList.APROBADO, createdData: new Date(), isArchived: false, maximumDeliveryDate: yesterday };
-    const existingDelivery: FinalDelivery = {
+    const proposalCPartial: Partial<Proposal> = { id: 'prop-exp-c', title: 'Vencido con entrega', description: '', modality: Modality.TI, authors: [], director: director3, state: stateList.APROBADO, createdAt: new Date(), documents: [], evaluations: [], isArchived: false };
+    const proposalC = proposalCPartial as Proposal;
+    const draftCPartial: Partial<PreliminaryDraft> = { preliminaryDraftId: 'draft-exp-c', proposalId: proposalC.id, proposalData: proposalC, evaluators: [], evaluations: [], documents: [], state: stateList.APROBADO, createdData: new Date(), isArchived: false, maximumDeliveryDate: yesterday };
+    const draftC = draftCPartial as PreliminaryDraft;
+
+    const existingDeliveryPartial: Partial<FinalDelivery> = {
       id: 'delivery-exp-c', uploadDate: '10 - 10 - 2026',
       monograph: { id: 'mono-c', name: 'Monografía', url: 'data:m', uploadDate: '10 - 10 - 2026', type: DocumentType.MONOGRAFIA, status: stateList.EN_REVISION },
       formatE: { id: 'fe-c', name: 'Formato E', url: 'data:fe', uploadDate: '10 - 10 - 2026', type: DocumentType.FORMATO_E, status: stateList.EN_REVISION },
       status: stateList.EN_REVISION
     };
+    const existingDelivery = existingDeliveryPartial as FinalDelivery;
     const thesisC = buildThesisWork('thesis-exp-c', { finalDeliveries: [existingDelivery] }, draftC);
 
-    thesisStorage['_thesisWorksList'].set([thesisA, thesisB, thesisC]);
+    if ('updateThesisWorks' in thesisStorage) {
+      (thesisStorage as unknown as { updateThesisWorks: (cb: () => ThesisWork[]) => void }).updateThesisWorks(() => [thesisA, thesisB, thesisC]);
+    } else {
+      const storageAsRecord = thesisStorage as Record<string, any>;
+      if (storageAsRecord['_thesisWorksList']) {
+        storageAsRecord['_thesisWorksList'].set([thesisA, thesisB, thesisC]);
+      }
+    }
 
-    // Recién ahora se instancia ThesisWorkService.
-    // Su constructor dispara verifyDeliveryDeadlinesMock() automáticamente.
     TestBed.inject(ThesisWorkService);
 
-    // El tick(2000) es lo único que necesitábamos para que los delay(800) de RxJS terminen de procesarse.
     tick(2000);
 
-    // A: archivado en cascada a los 3 niveles.
     const updatedA = thesisStorage.allThesisWorks().find(w => w.thesisWorkId === 'thesis-exp-a');
     expect(updatedA?.state).toBe(stateList.NO_APROBADO);
     expect(updatedA?.isArchived).toBe(true);
@@ -135,12 +156,10 @@ describe('Integración [Trabajo de Grado]: Vencimiento automático de plazo (ver
     expect(proposalStorage.allProposals().find(p => p.id === 'prop-exp-a')?.isArchived).toBe(true);
     expect(userStorage.getUsersSnapshot().find(u => u.id === 'eval-exp-1')?.roles).not.toContain(UserRoleType.EVALUADOR);
 
-    // B: intacto — el plazo no ha vencido.
     const updatedB = thesisStorage.allThesisWorks().find(w => w.thesisWorkId === 'thesis-exp-b');
     expect(updatedB?.state).toBe(stateList.EN_DESARROLLO);
     expect(updatedB?.isArchived).toBe(false);
 
-    // C: intacto — ya tenía entrega final radicada, aunque venció.
     const updatedC = thesisStorage.allThesisWorks().find(w => w.thesisWorkId === 'thesis-exp-c');
     expect(updatedC?.state).toBe(stateList.EN_DESARROLLO);
     expect(updatedC?.isArchived).toBe(false);

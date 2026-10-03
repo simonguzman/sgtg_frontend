@@ -1,8 +1,5 @@
-// 1. Angular y Configuración
 import { SpecialRequestTabConfig } from './special-request.tab';
 import { ThesisEvaluationContext } from './tab-config.interface';
-
-// 2. Interfaces y Enums
 import { stateList } from '../../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
@@ -15,8 +12,6 @@ import { SpecialRequestType } from '../../../enums/special-request-type.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
 import { SustentationRegistry } from '../../../interfaces/sustentation-registry.interface';
 import { SustentationStatus } from '../../../enums/sustentation-status.enum';
-
-// ── Funciones Fábrica fuertemente tipadas (Cero 'any') ───────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -68,7 +63,6 @@ const createMockSpecialRequest = (overrides: Partial<SpecialRequest> = {}): Spec
 const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
   const baseUser = createMockUser();
 
-  // Construcción estricta para el borrador preliminar
   const mockDraftData: NonNullable<ThesisWork['preliminaryDraftData']> = {
     preliminaryDraftId: 'draft-1',
     proposalId: 'prop-1',
@@ -127,25 +121,21 @@ const createMockEvaluationContext = (overrides: Partial<ThesisEvaluationContext>
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('SpecialRequestTabConfig', () => {
   let baseContext: ThesisEvaluationContext;
 
   beforeEach(() => {
-    // 🔕 Silenciador preventivo global de consola para limpiar la terminal en Jest
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'log').mockImplementation(() => {});
 
     jest.clearAllMocks();
 
-    // Contexto base prístino inicializado para cada test
     baseContext = createMockEvaluationContext();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Propiedades Estáticas', () => {
@@ -167,12 +157,10 @@ describe('SpecialRequestTabConfig', () => {
     });
 
     it('debe marcar isSustentationFinalized como false si no hay sustentaciones o no hay veredictos', () => {
-      // Sin sustentaciones
       baseContext.thesisWork = createMockThesisWork({ sustentations: [] });
       let result = SpecialRequestTabConfig.enrichEvaluationContext(baseContext);
       expect(result.isSustentationFinalized).toBe(false);
 
-      // Con sustentación pero sin veredictos
       const sustentationSinVeredictos = createMockSustentation({ verdicts: [] });
       baseContext.thesisWork = createMockThesisWork({ sustentations: [sustentationSinVeredictos] });
 
@@ -182,7 +170,7 @@ describe('SpecialRequestTabConfig', () => {
 
     it('debe marcar isSustentationFinalized como false si el último veredicto es APLAZADO', () => {
       const verdictAprobado = createMockJurorVerdict({ veredict: stateList.APROBADO });
-      const verdictAplazado = createMockJurorVerdict({ veredict: stateList.APLAZADO }); // Último en el arreglo
+      const verdictAplazado = createMockJurorVerdict({ veredict: stateList.APLAZADO });
 
       const sustentation = createMockSustentation({ verdicts: [verdictAprobado, verdictAplazado] });
       baseContext.thesisWork = createMockThesisWork({ sustentations: [sustentation] });
@@ -194,7 +182,7 @@ describe('SpecialRequestTabConfig', () => {
 
     it('debe marcar isSustentationFinalized como true si hay veredictos y el último NO es APLAZADO', () => {
       const verdictAplazado = createMockJurorVerdict({ veredict: stateList.APLAZADO });
-      const verdictAprobado = createMockJurorVerdict({ veredict: stateList.APROBADO }); // Último en el arreglo
+      const verdictAprobado = createMockJurorVerdict({ veredict: stateList.APROBADO });
 
       const sustentation = createMockSustentation({ verdicts: [verdictAplazado, verdictAprobado] });
       baseContext.thesisWork = createMockThesisWork({ sustentations: [sustentation] });
@@ -220,7 +208,7 @@ describe('SpecialRequestTabConfig', () => {
       const mockRequest = createMockSpecialRequest({
         id: 'req-1',
         description: 'Prorroga de entrega',
-        requestDate: undefined, // Ausencia intencional para forzar fallback
+        requestDate: undefined,
         status: stateList.APROBADO
       });
 
@@ -231,7 +219,7 @@ describe('SpecialRequestTabConfig', () => {
       expect(rows).toHaveLength(1);
       expect(rows[0].id).toBe('req-1');
       expect(rows[0].description).toBe('Prorroga de entrega');
-      expect(rows[0].date).toBe('Sin fecha'); // Validación del fallback
+      expect(rows[0].date).toBe('Sin fecha');
       expect(rows[0].status).toBe(stateList.APROBADO);
       expect(rows[0].allowedActions).toEqual(['view-details']);
     });
@@ -248,7 +236,6 @@ describe('SpecialRequestTabConfig', () => {
 
       const rows = SpecialRequestTabConfig.getTableData(dummyDocs, baseContext);
 
-      // Valida formateo nativo de toLocaleDateString
       const expectedDate = dateObj.toLocaleDateString('es-ES');
       expect(rows[0].date).toBe(expectedDate);
     });
@@ -260,7 +247,6 @@ describe('SpecialRequestTabConfig', () => {
         status: stateList.EN_REVISION
       });
 
-      // Simulación segura sin @ts-ignore para probar resiliencia en runtime (JavaScript/API Response)
       mockRequest.requestDate = dateString as unknown as Date;
 
       baseContext.thesisWork = createMockThesisWork({ specialRequests: [mockRequest] });
@@ -312,7 +298,7 @@ describe('SpecialRequestTabConfig', () => {
   describe('getHeaderButtons', () => {
     it('debe retornar array vacío si está archivado', () => {
       baseContext.isArchived = true;
-      baseContext.isDirector = true; // Intentamos forzar con un rol autorizado
+      baseContext.isDirector = true;
 
       const buttons = SpecialRequestTabConfig.getHeaderButtons(baseContext);
 
@@ -322,7 +308,7 @@ describe('SpecialRequestTabConfig', () => {
     it('debe retornar array vacío si el usuario no es Director ni Admin', () => {
       baseContext.isDirector = false;
       baseContext.isAdmin = false;
-      baseContext.isStudent = true; // Rol sin permisos para crear
+      baseContext.isStudent = true;
 
       const buttons = SpecialRequestTabConfig.getHeaderButtons(baseContext);
 

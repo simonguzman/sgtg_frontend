@@ -1,31 +1,25 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-
 import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { IndexedDbListStoreService } from '../../../core/services/persistence/indexed-db-list-store.service';
-
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { User } from '../../users/interfaces/user.interface';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { PRELIMINARY_DRAFTS_LIST } from '../mocks/preliminary-drafts.mock';
 
-// Tipos auxiliares derivados de las interfaces
 type ProposalType = NonNullable<PreliminaryDraft['proposalData']>;
 type EvaluationType = NonNullable<PreliminaryDraft['evaluations']>[number];
 type EvaluatorType = NonNullable<PreliminaryDraft['evaluators']>[number];
 
-// ── Utilidad para drenar Promesas Nativas en Jest ────────────────────────────
 const flushPromises = () => new Promise(resolve => setTimeout(resolve, 0));
 
-// ── Mocks Estrictos de Servicios ─────────────────────────────────────────────
 interface MockIndexedDbStore {
   get: jest.Mock<Promise<unknown>, [string]>;
   set: jest.Mock<Promise<void>, [string, unknown]>;
 }
 
-// ── Factory helpers con tipado estricto (Cero "any" o "unknown") ────────────
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-default-id',
   name: 'Default User',
@@ -61,8 +55,6 @@ const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): Preliminary
   ...overrides
 } as PreliminaryDraft);
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('PreliminaryDraftStorageService', () => {
   let service: PreliminaryDraftStorageService;
 
@@ -78,7 +70,6 @@ describe('PreliminaryDraftStorageService', () => {
   let localStorageRemoveItemSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -123,7 +114,6 @@ describe('PreliminaryDraftStorageService', () => {
       expect(dbStoreSpy.get).toHaveBeenCalledWith('preliminaryDrafts');
       expect(service.isHydrated()).toBeTruthy();
 
-      // Fallback a PRELIMINARY_DRAFTS_LIST
       expect(service.allPreliminaryDrafts()).toEqual(PRELIMINARY_DRAFTS_LIST);
     });
 
@@ -168,13 +158,13 @@ describe('PreliminaryDraftStorageService', () => {
     it('debería guardar en IndexedDB cuando se actualiza la lista', async () => {
       dbStoreSpy.get.mockResolvedValue([]);
       service = TestBed.inject(PreliminaryDraftStorageService);
-      await flushPromises(); // Esperar hidratación
+      await flushPromises();
 
       const newDraft = createMockDraft({ preliminaryDraftId: 'new-persist' });
 
       service.addDraft(newDraft);
       TestBed.flushEffects();
-      await flushPromises(); // Esperar resolución de dbStore.set()
+      await flushPromises();
 
       expect(dbStoreSpy.set).toHaveBeenCalledWith('preliminaryDrafts', expect.arrayContaining([newDraft]));
     });
@@ -186,8 +176,6 @@ describe('PreliminaryDraftStorageService', () => {
       service = TestBed.inject(PreliminaryDraftStorageService);
       await flushPromises();
 
-      // FIX: Limpiamos los defaults inyectados por PRELIMINARY_DRAFTS_LIST
-      // para asegurar que las pruebas evalúen exclusivamente los borradores insertados en cada test.
       (service as any)['_preliminaryDraftsList'].set([]);
     });
 
@@ -289,7 +277,6 @@ describe('PreliminaryDraftStorageService', () => {
       service = TestBed.inject(PreliminaryDraftStorageService);
       await flushPromises();
 
-      // Limpiamos los defaults inyectados por PRELIMINARY_DRAFTS_LIST
       (service as any)['_preliminaryDraftsList'].set([]);
     });
 

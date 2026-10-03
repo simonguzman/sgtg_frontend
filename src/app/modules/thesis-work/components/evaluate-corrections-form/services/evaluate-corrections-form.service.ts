@@ -15,9 +15,9 @@ const MIN_OBSERVATIONS_LENGTH = 10;
 @Injectable()
 export class EvaluateCorrectionsFormService {
   private readonly notificationService = inject(NotificationService);
-  private readonly downloadService     = inject(FileDownloadService);
-  private readonly authService         = inject(AuthService);
-  private readonly participants        = inject(ThesisParticipantsFormatterService);
+  private readonly downloadService = inject(FileDownloadService);
+  private readonly authService = inject(AuthService);
+  private readonly participants = inject(ThesisParticipantsFormatterService);
 
   getStudentNames(thesisWork: ThesisWork): string   { return this.participants.getStudentNames(thesisWork); }
   getDirectorName(thesisWork: ThesisWork): string   { return this.participants.getDirectorName(thesisWork); }
@@ -38,23 +38,21 @@ export class EvaluateCorrectionsFormService {
     observations: string,
     correctedDeliveries: CorrectedDelivery[]
   ): Omit<Evaluation, 'id' | 'date'> {
-    const currentUser      = this.authService.currentUser();
+    const currentUser = this.authService.currentUser();
     const targetDocumentId = correctedDeliveries[0]?.monograph?.id ?? '';
     return {
-      documentId:    targetDocumentId,
-      proposalId:    thesisWork.preliminaryDraftData?.proposalData?.id ?? '',
-      evaluatorId:   currentUser?.id ?? '',
+      documentId: targetDocumentId,
+      proposalId: thesisWork.preliminaryDraftData?.proposalData?.id ?? '',
+      evaluatorId: currentUser?.id ?? '',
       evaluatorName: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Jurado Asignado',
       evaluatorRole: 'JURADO',
-      veredict:      verdict,
+      veredict: verdict,
       observations
     };
   }
 
-  // ← FIX: async + try/catch — mismo patrón ya aplicado al resto de
-  // descargas del proyecto. Antes era "fire and forget" sin await.
-  async downloadDocument(doc: FileDocument): Promise<void> {
-    if (!doc?.url) {
+  async downloadDocument(document: FileDocument): Promise<void> {
+    if (!document?.url) {
       this.notificationService.show({
         title: 'Error de archivo',
         message: 'Este documento no posee una ruta válida de descarga.',
@@ -63,12 +61,12 @@ export class EvaluateCorrectionsFormService {
       return;
     }
     try {
-      await this.downloadService.download(doc.url, `${doc.name}.pdf`);
+      await this.downloadService.download(document.url, `${document.name}.pdf`);
     } catch (err) {
-      console.error(`Error al descargar el documento ${doc.name}:`, err);
+      console.error(`Error al descargar el documento ${document.name}:`, err);
       this.notificationService.show({
         title: 'Error de descarga',
-        message: `No se pudo descargar ${doc.name}. Intente más tarde.`,
+        message: `No se pudo descargar ${document.name}. Intente más tarde.`,
         type: NotificationType.ERROR
       });
     }
@@ -90,9 +88,9 @@ export class EvaluateCorrectionsFormService {
   }
   notifyInvalidObservations(): void {
     this.notificationService.show({
-      title:   'Observaciones vacías',
+      title: 'Observaciones vacías',
       message: `Debe ingresar una justificación técnica detallada (mínimo ${MIN_OBSERVATIONS_LENGTH} caracteres).`,
-      type:    NotificationType.ERROR
+      type: NotificationType.ERROR
     });
   }
   notifyMissingFormatG(): void {

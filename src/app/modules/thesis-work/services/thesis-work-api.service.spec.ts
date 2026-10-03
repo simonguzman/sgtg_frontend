@@ -10,14 +10,12 @@ import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { User } from '../../users/interfaces/user.interface';
 
-// Extraemos los tipos anidados exactos para los mocks parciales
 type PreliminaryDraftData = NonNullable<ThesisWork['preliminaryDraftData']>;
 type ProposalData = NonNullable<PreliminaryDraftData['proposalData']>;
 
 describe('ThesisWorkApiService', () => {
   let service: ThesisWorkApiService;
 
-  // Mocks con tipado explícito
   let storageMock: {
     getById: jest.Mock;
     allThesisWorks: jest.Mock;
@@ -30,7 +28,6 @@ describe('ThesisWorkApiService', () => {
     emit: jest.Mock;
   };
 
-  // 1. Mock de Evaluador usando el patrón estricto
   const mockEvaluator = {
     id: 'eval-1',
     firstName: 'Carlos',
@@ -38,7 +35,6 @@ describe('ThesisWorkApiService', () => {
     email: 'carlos@unicauca.edu.co',
   } as Partial<User> as User;
 
-  // 2. Mock de la Propuesta (Nivel 3)
   const mockProposalData = {
     title: 'Desarrollo de Software Educativo',
     authors: [{ id: 'student-1' } as Partial<User> as User],
@@ -46,15 +42,13 @@ describe('ThesisWorkApiService', () => {
     isArchived: false,
   } as Partial<ProposalData> as ProposalData;
 
-  // 3. Mock del Anteproyecto (Nivel 2)
   const mockPreliminaryDraftData = {
-    maximumDeliveryDate: '2020-01-01T00:00:00Z', // Fecha pasada
+    maximumDeliveryDate: '2020-01-01T00:00:00Z',
     isArchived: false,
     evaluators: [mockEvaluator],
     proposalData: mockProposalData,
   } as Partial<PreliminaryDraftData> as PreliminaryDraftData;
 
-  // 4. Mock del Trabajo de Grado (Nivel 1)
   const mockExpiredThesisWork = {
     thesisWorkId: 'thesis-expired-1',
     state: stateList.EN_DESARROLLO,
@@ -109,7 +103,7 @@ describe('ThesisWorkApiService', () => {
       const nonActiveWork = {
         ...mockExpiredThesisWork,
         state: stateList.APROBADO,
-      } as Partial<ThesisWork> as ThesisWork; // Evitando 'unknown'
+      } as Partial<ThesisWork> as ThesisWork;
 
       storageMock.allThesisWorks.mockReturnValue([nonActiveWork]);
 
@@ -125,7 +119,7 @@ describe('ThesisWorkApiService', () => {
         ...mockExpiredThesisWork,
         preliminaryDraftData: {
           ...mockExpiredThesisWork.preliminaryDraftData,
-          maximumDeliveryDate: '2099-12-31T23:59:59Z', // Fecha futura
+          maximumDeliveryDate: '2099-12-31T23:59:59Z',
         },
       } as Partial<ThesisWork> as ThesisWork;
 
@@ -142,7 +136,7 @@ describe('ThesisWorkApiService', () => {
       const workWithFinalDelivery = {
         ...mockExpiredThesisWork,
         finalDeliveries: [{ id: 'delivery-1' }],
-      } as Partial<ThesisWork> as ThesisWork; // Evitando 'unknown'
+      } as Partial<ThesisWork> as ThesisWork;
 
       storageMock.allThesisWorks.mockReturnValue([workWithFinalDelivery]);
 
@@ -166,19 +160,16 @@ describe('ThesisWorkApiService', () => {
 
       expect(storageMock.updateWork).toHaveBeenCalledWith('thesis-expired-1', expect.any(Function));
 
-      // Verificación de la inmutabilidad y los estados archivados
       expect(updatedResult?.state).toBe(stateList.NO_APROBADO);
       expect(updatedResult?.isArchived).toBe(true);
       expect(updatedResult?.preliminaryDraftData?.isArchived).toBe(true);
       expect(updatedResult?.preliminaryDraftData?.proposalData?.isArchived).toBe(true);
 
-      // Verificación de la revocación del rol de evaluador
       expect(userServiceMock.removeRolesFromUsersMock).toHaveBeenCalledWith(
         ['eval-1'],
         [UserRoleType.EVALUADOR]
       );
 
-      // Verificación del evento emitido en el bus
       expect(eventBusMock.emit).toHaveBeenCalledWith({
         type: AppEventType.THESIS_DEADLINE_EXPIRED,
         targetUserIds: expect.arrayContaining(['student-1', 'director-1']),

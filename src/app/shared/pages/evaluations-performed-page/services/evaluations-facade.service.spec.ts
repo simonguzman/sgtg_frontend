@@ -11,15 +11,13 @@ import { EvaluationTableRow } from '../models/evaluations-page.model';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
-
 const createMockEvaluationTableRow = (overrides: Partial<EvaluationTableRow> = {}): EvaluationTableRow => ({
   id: 'eval-1',
   evaluatorId: 'user-1',
-  evaluatorName: 'Test Evaluator', // FIX: Nombre correcto de la propiedad
-  evaluatorRole: 'Jurado',         // FIX: Nombre correcto de la propiedad
+  evaluatorName: 'Test Evaluator',
+  evaluatorRole: 'Jurado',
   documentTargetName: 'Documento de prueba',
-  veredict: stateList.EVALUADO,    // FIX: La propiedad es 'veredict', no 'state'
+  veredict: stateList.EVALUADO,
   observations: 'Sin observaciones',
   date: new Date('2023-01-01T10:00:00Z'),
   signedDocuments: [],
@@ -34,12 +32,8 @@ const createMockFormattedDocument = (overrides: Partial<FormattedDocument> = {})
   ...overrides
 } as FormattedDocument);
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('EvaluationsFacadeService', () => {
   let service: EvaluationsFacadeService;
-
-  // Tipado estricto de los servicios simulados
   let mockMapperService: {
     processProposalEvaluations: jest.Mock<EvaluationTableRow[], [{ id: string }]>;
     processDraftEvaluations: jest.Mock<EvaluationTableRow[], [{ preliminaryDraftId: string }]>;
@@ -67,7 +61,6 @@ describe('EvaluationsFacadeService', () => {
   };
 
   beforeEach(() => {
-    // 🔕 Silenciar consola para mantener terminal limpia ante errores de descarga esperados
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -101,12 +94,11 @@ describe('EvaluationsFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola y espías
+    jest.restoreAllMocks();
   });
 
   describe('getMappedEvaluations()', () => {
 
-    // FIX: Cambiamos 'state' por 'veredict'
     const mockUnsortedEvaluations: EvaluationTableRow[] = [
       createMockEvaluationTableRow({ date: new Date('2023-01-01T10:00:00Z'), veredict: stateList.EVALUADO }),
       createMockEvaluationTableRow({ date: new Date('2023-05-01T10:00:00Z'), veredict: stateList.APROBADO }),
@@ -121,8 +113,8 @@ describe('EvaluationsFacadeService', () => {
       const result = service.getMappedEvaluations('prop-1', '/history/proposal/prop-1');
 
       expect(mockMapperService.processProposalEvaluations).toHaveBeenCalledWith(mockProposal);
-      expect(result[0].date).toEqual(new Date('2023-05-01T10:00:00Z')); // El más reciente primero
-      expect(result[2].date).toEqual(new Date('2023-01-01T10:00:00Z')); // El más antiguo último
+      expect(result[0].date).toEqual(new Date('2023-05-01T10:00:00Z'));
+      expect(result[2].date).toEqual(new Date('2023-01-01T10:00:00Z'));
     });
 
     it('debería mapear y ordenar evaluaciones de ANTEPROYECTOS si la url contiene "preliminary-draft"', () => {

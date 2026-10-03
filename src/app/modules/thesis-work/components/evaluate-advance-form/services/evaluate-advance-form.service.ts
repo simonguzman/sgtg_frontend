@@ -10,7 +10,7 @@ export class EvaluateAdvanceFormService {
   private readonly participants = inject(ThesisParticipantsFormatterService);
 
   readonly evaluationForm = this.fb.nonNullable.group({
-    result:   [AdvanceEvaluationResult.EN_REVISION, Validators.required],
+    result: [AdvanceEvaluationResult.EN_REVISION, Validators.required],
     comments: ['', Validators.required]
   });
 

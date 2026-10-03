@@ -1,8 +1,5 @@
-// 1. Archivo a probar
 import { SustentationTabConfig } from './sustentation.tab';
 import { ThesisEvaluationContext } from './tab-config.interface';
-
-// 2. Interfaces y Enums
 import { stateList } from '../../../../../core/enums/state.enum';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
@@ -14,8 +11,6 @@ import { JurorVerdict } from '../../../interfaces/juror-verdict.interface';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
-
-// ── Funciones Fábrica fuertemente tipadas (Cero 'any', cero 'as Type') ──────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -51,7 +46,6 @@ const createMockJurorVerdict = (overrides: Partial<JurorVerdict> = {}): JurorVer
   ...overrides
 });
 
-// Tipado directo a la interfaz oficial sin necesidad de aliases
 const createMockSustentation = (overrides: Partial<SustentationRegistry> = {}): SustentationRegistry => ({
   id: 'sus-1',
   sustentationDate: new Date(),
@@ -65,7 +59,6 @@ const createMockSustentation = (overrides: Partial<SustentationRegistry> = {}): 
 const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
   const baseUser = createMockUser();
 
-  // Construcción estricta para evitar el 'as any' en preliminaryDraftData
   const mockDraftData: NonNullable<ThesisWork['preliminaryDraftData']> = {
     preliminaryDraftId: 'draft-1',
     proposalId: 'prop-1',
@@ -127,25 +120,21 @@ const createMockEvaluationContext = (overrides: Partial<ThesisEvaluationContext>
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('SustentationTabConfig', () => {
   let baseContext: ThesisEvaluationContext;
 
   beforeEach(() => {
-    // 🔕 Silenciador preventivo global de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'log').mockImplementation(() => {});
 
     jest.clearAllMocks();
 
-    // Contexto base prístino inicializado con la fábrica
     baseContext = createMockEvaluationContext();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Propiedades Estáticas', () => {
@@ -177,9 +166,8 @@ describe('SustentationTabConfig', () => {
     });
 
     it('debe validar si el usuario actual es jurado de la sustentación activa', () => {
-      const mockJuror = createMockUser({ id: 'juror-1' }); // currentUser ID
+      const mockJuror = createMockUser({ id: 'juror-1' });
 
-      // Ya no necesitamos el `as JurorItem`, TypeScript valida la compatibilidad estructural
       const mockSustentation = createMockSustentation({
         assignedJurors: [mockJuror]
       });
@@ -221,7 +209,7 @@ describe('SustentationTabConfig', () => {
       const mockSustentation = createMockSustentation({
         id: 'sus-1',
         status: SustentationStatus.CANCELADA,
-        sustentationDate: undefined // Ausencia intencional para fallback
+        sustentationDate: undefined
       });
       baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
 
@@ -262,7 +250,7 @@ describe('SustentationTabConfig', () => {
 
     it('debe mostrar APROBADO_CON_OBSERVACIONES si hubo observaciones previas y el último es APROBADO', () => {
       const verdictObservaciones = createMockJurorVerdict({ veredict: stateList.APROBADO_CON_OBSERVACIONES });
-      const verdictAprobado = createMockJurorVerdict({ veredict: stateList.APROBADO }); // Último
+      const verdictAprobado = createMockJurorVerdict({ veredict: stateList.APROBADO });
 
       const mockSustentation = createMockSustentation({
         id: 'sus-4',
@@ -277,7 +265,7 @@ describe('SustentationTabConfig', () => {
 
     it('debe mostrar el último veredicto si es diferente a las reglas de observación cruzadas', () => {
       const verdictObservaciones = createMockJurorVerdict({ veredict: stateList.APROBADO_CON_OBSERVACIONES });
-      const verdictNoAprobado = createMockJurorVerdict({ veredict: stateList.NO_APROBADO }); // Último
+      const verdictNoAprobado = createMockJurorVerdict({ veredict: stateList.NO_APROBADO });
 
       const mockSustentation = createMockSustentation({
         id: 'sus-5',
@@ -328,7 +316,7 @@ describe('SustentationTabConfig', () => {
       expect(SustentationTabConfig.getHeaderButtons(baseContext)).toEqual([]);
 
       baseContext.isArchived = false;
-      baseContext.isConsejo = false; // Falla rol
+      baseContext.isConsejo = false;
       expect(SustentationTabConfig.getHeaderButtons(baseContext)).toEqual([]);
     });
 
@@ -388,10 +376,10 @@ describe('SustentationTabConfig', () => {
       baseContext.isConsejo = true;
       baseContext.hasApprovedPazYSalvo = true;
       baseContext.hasSustentationRegistered = true;
-      baseContext.isSustentationEvaluated = true; // Context flag
+      baseContext.isSustentationEvaluated = true;
 
       const mockSustentation = createMockSustentation({
-        verdicts: [createMockJurorVerdict({ veredict: stateList.APROBADO })] // Diferente de APLAZADO
+        verdicts: [createMockJurorVerdict({ veredict: stateList.APROBADO })]
       });
       baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
 
@@ -405,11 +393,11 @@ describe('SustentationTabConfig', () => {
       baseContext.isConsejo = true;
       baseContext.hasApprovedPazYSalvo = true;
       baseContext.hasSustentationRegistered = true;
-      baseContext.isSustentationEvaluated = false; // Context flag
+      baseContext.isSustentationEvaluated = false;
 
       const mockSustentation = createMockSustentation({
         status: SustentationStatus.PROGRAMADA,
-        verdicts: [] // Sin veredictos
+        verdicts: []
       });
       baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
 

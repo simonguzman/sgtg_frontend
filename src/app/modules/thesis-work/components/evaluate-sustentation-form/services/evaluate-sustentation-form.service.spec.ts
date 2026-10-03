@@ -1,15 +1,8 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
-
-// 2. Servicio a probar
 import { EvaluateSustentationFormService } from './evaluate-sustentation-form.service';
-
-// 3. Dependencias (Servicios)
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
 import { ThesisFinalDeliveryDocumentResolverService } from '../../../services/thesis-final-delivery-document-resolver.service';
-
-// 4. Interfaces y Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
@@ -20,8 +13,6 @@ import { IdentificationType } from '../../../../users/enum/identification-type.e
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
-
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
 
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
@@ -39,8 +30,6 @@ interface MockDocumentResolverService {
   resolveLatestFinalDeliveryDocument: jest.Mock<FileDocument | null, [ThesisWork, string]>;
 }
 
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
-
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
   idType: IdentificationType.CC,
@@ -49,7 +38,7 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
   secondName: '',
   lastName: 'Perez',
   secondLastName: '',
-  codeNumber: 1234567890, // ← Aprendido e integrado
+  codeNumber: 1234567890,
   email: 'juan@test.com',
   password: 'hash',
   state: UserState.active,
@@ -60,7 +49,7 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
 const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
   const baseUser = createMockUser();
   const baseThesis: ThesisWork = {
-    thesisWorkId: 'mock-thesis-123', // ← Aprendido e integrado en la raíz
+    thesisWorkId: 'mock-thesis-123',
     preliminaryDraftId: 'draft-1',
     documents: [],
     evaluations: [],
@@ -91,7 +80,6 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-// 🔥 FIX: Adaptado exactamente a la interfaz real de SustentationRegistry
 const createMockSustentationRegistry = (overrides: Partial<SustentationRegistry> = {}): SustentationRegistry => ({
   id: 'sust-1',
   sustentationDate: new Date(),
@@ -113,18 +101,14 @@ const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocu
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('EvaluateSustentationFormService', () => {
   let service: EvaluateSustentationFormService;
 
-  // Tipados estructurales exactos
   let notificationMock: MockNotificationService;
   let participantsMock: MockParticipantsService;
   let resolverMock: MockDocumentResolverService;
 
   beforeEach(() => {
-    // 🔕 Silenciar consola como medida preventiva
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -155,13 +139,11 @@ describe('EvaluateSustentationFormService', () => {
   });
 
   afterEach(() => {
-    // Evita la contaminación de los mocks entre pruebas
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Delegación de Nombres (Participants)', () => {
-    // Objeto mock seguro generado por la fábrica
     const mockThesis = createMockThesisWork();
 
     it('debería delegar la obtención de nombres de estudiantes y director al servicio formateador', () => {

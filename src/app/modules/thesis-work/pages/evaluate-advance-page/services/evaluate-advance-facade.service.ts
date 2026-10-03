@@ -16,8 +16,8 @@ import { FileDocument } from '../../../../../core/interfaces/file-document.inter
 
 @Injectable({ providedIn: 'root' })
 export class EvaluateAdvanceFacadeService {
-  private readonly thesisWorkService   = inject(ThesisWorkService);
-  private readonly downloadService     = inject(FileDownloadService);
+  private readonly thesisWorkService = inject(ThesisWorkService);
+  private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
   public loadThesisWork(
@@ -43,16 +43,6 @@ export class EvaluateAdvanceFacadeService {
       });
   }
 
-  /**
-   * ← FIX CENTRAL: antes `signedDocuments: data.files?.map(file => file.name)`
-   * — un string[] que ya no compila contra Evaluation.signedDocuments
-   * (FormattedDocument[]). Ahora es async: lee cada archivo real de
-   * retroalimentación vía readFileAsDataUrl antes de construir la
-   * evaluación, así el documento adjunto apunta a contenido real.
-   *
-   * El fix de veredict hardcodeado (de un turno anterior) se conserva
-   * intacto.
-   */
   public async saveEvaluation(
     thesisWork: ThesisWork,
     advance: Advance,
@@ -111,8 +101,6 @@ export class EvaluateAdvanceFacadeService {
       });
   }
 
-  // ← FIX: recibe el FileDocument exacto en vez de derivarlo con
-  // advance.documents[0], que ignoraba cuál botón se había presionado.
   public async downloadAdvance(document: FileDocument): Promise<void> {
     if (!document?.url) {
       this.showNotification('Error de descarga', 'No existe un documento válido para descargar.', NotificationType.ERROR);

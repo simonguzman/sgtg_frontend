@@ -21,7 +21,6 @@ export class ThesisWorkDetailsFacadeService {
 
   public loadThesisWorkDetails(id: string): void {
     this.isLoading.set(true);
-    // ← first() agregado: faltaba en esta suscripción.
     this.thesisWorkService.getThesisWorkByIdMock(id)
       .pipe(first())
       .subscribe({
@@ -43,9 +42,6 @@ export class ThesisWorkDetailsFacadeService {
       });
   }
 
-  // ← FIX: async + try/catch, mismo patrón ya aplicado al resto de
-  // descargas del proyecto. Antes mostraba "Descarga exitosa" de
-  // inmediato, sin esperar a que la descarga realmente completara.
   public async downloadDocument(): Promise<void> {
     const document = this.details()?.mainDocument;
     if (!document?.url) {

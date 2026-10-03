@@ -19,7 +19,6 @@ export class SustentationDetailsFacadeService {
 
   public loadDetails(thesisWorkId: string, sustentationId: string): void {
     this.isLoading.set(true);
-    // ← first() agregado: consistente con el resto del módulo.
     this.thesisWorkService.getThesisWorkByIdMock(thesisWorkId)
       .pipe(first())
       .subscribe({

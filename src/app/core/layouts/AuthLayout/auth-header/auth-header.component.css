@@ -2,6 +2,6 @@
   display: block;
   top: 0;
   left: 0;
-  width: 50%; /* Solo sobre la mitad izquierda, no sobre la imagen */
+  width: 50%;
   z-index: 10;
 }

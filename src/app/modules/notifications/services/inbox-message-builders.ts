@@ -9,25 +9,12 @@ function baseFields(): Pick<InboxMessage, 'date' | 'status'> {
   return { date: new Date(), status: 'no leido' };
 }
 
-/**
- * Construye la ruta de detalle de sustentación con fallback seguro.
- * Se repetía de forma idéntica en THESIS_SUSTENTATION_PROGRAMMED y
- * THESIS_VERDICT_REGISTERED en el switch original.
- */
 function buildSustentationRoute(thesisId: string | undefined, sustentationId: unknown): string {
   return sustentationId
     ? `/thesis-work/details/${thesisId}/view_sustentation_details/${sustentationId}`
     : `/thesis-work/details/${thesisId}`;
 }
 
-/**
- * Mapa de "tipo de evento → constructor de mensaje de bandeja".
- * Al usar el enum AppEventType completo como tipo de clave (no
- * Partial<Record<...>>), TypeScript exige en tiempo de compilación que
- * TODOS los valores del enum estén cubiertos. Esto es lo que reveló que
- * THESIS_REACTIVATED nunca tenía un `case` en el switch original — un
- * evento real que se emite pero nunca generaba notificación al usuario.
- */
 export const INBOX_MESSAGE_BUILDERS: Record<AppEventType, InboxMessageBuilder> = {
 
   // ==========================================
@@ -168,7 +155,6 @@ export const INBOX_MESSAGE_BUILDERS: Record<AppEventType, InboxMessageBuilder> =
   }),
 
   [AppEventType.THESIS_SUSTENTATION_PROGRAMMED]: (ctx) => ({
-    // ← console.log de depuración eliminado (no debía llegar a producción)
     ...baseFields(),
     type: NotificationType.INFO,
     title: 'Sustentación Programada',
@@ -232,10 +218,6 @@ export const INBOX_MESSAGE_BUILDERS: Record<AppEventType, InboxMessageBuilder> =
     actionUrl: `/thesis-work/details/${ctx.thesisId}/corrected_documents`
   }),
 
-  // ← NUEVO: este evento se emite en ThesisWorkApiService.reactivateThesisWorkMock
-  // pero no tenía ningún `case` en el switch original — el usuario nunca recibía
-  // notificación de que su trabajo fue reactivado. El texto es una propuesta;
-  // ajústalo si quieres un tono distinto.
   [AppEventType.THESIS_REACTIVATED]: (ctx) => ({
     ...baseFields(),
     type: NotificationType.CONFIRMATION,

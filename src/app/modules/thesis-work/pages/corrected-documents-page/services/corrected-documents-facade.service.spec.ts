@@ -1,18 +1,11 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
-
-// 2. Servicio a probar
 import { CorrectedDocumentsFacadeService } from './corrected-documents-facade.service';
-
-// 3. Dependencias
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
-
-// 4. Interfaces, Enums y Modelos
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { CorrectedDelivery } from '../../../interfaces/corrected-delivery.interface';
@@ -22,8 +15,6 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
-
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown' ni casteos dobles) ──
 
 interface MockAuthService {
   currentUser: WritableSignal<User | null>;
@@ -43,8 +34,6 @@ interface MockFileDownloadService {
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-123',
@@ -103,7 +92,7 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
         id: 'prop-1',
         title: 'Tesis IA',
         description: 'Uso de IA',
-        modality: undefined as any, // Irrelevante en este scope
+        modality: undefined as any,
         authors: [baseUser],
         director: baseUser,
         state: stateList.APROBADO,
@@ -117,23 +106,18 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('CorrectedDocumentsFacadeService', () => {
   let service: CorrectedDocumentsFacadeService;
 
-  // Mocks Tipados Estrictamente
   let authSpy: MockAuthService;
   let participantsSpy: MockThesisParticipantsFormatterService;
   let downloadSpy: MockFileDownloadService;
   let notificationSpy: MockNotificationService;
 
   beforeEach(() => {
-    // 🔕 Silenciador preventivo global de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Inicializamos señales y dependencias con firmas estrictas (Cero casteos)
     authSpy = {
       currentUser: signal(createMockUser({ id: 'user-123' }))
     };
@@ -156,7 +140,7 @@ describe('CorrectedDocumentsFacadeService', () => {
     TestBed.configureTestingModule({
       providers: [
         CorrectedDocumentsFacadeService,
-        { provide: ThesisWorkService, useValue: {} }, // Este facade no lo usa directamente en sus métodos, solo lo inyecta
+        { provide: ThesisWorkService, useValue: {} },
         { provide: AuthService, useValue: authSpy },
         { provide: ThesisParticipantsFormatterService, useValue: participantsSpy },
         { provide: FileDownloadService, useValue: downloadSpy },
@@ -168,8 +152,8 @@ describe('CorrectedDocumentsFacadeService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks(); // Limpia los espías
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('findThesisWork', () => {
@@ -194,7 +178,7 @@ describe('CorrectedDocumentsFacadeService', () => {
   describe('Validaciones de Roles (isDirector, isJuror)', () => {
     it('isDirector debe retornar true si el usuario actual es el director de la tesis', () => {
       const thesis = createMockThesisWork();
-      thesis.preliminaryDraftData!.proposalData.director = createMockUser({ id: 'user-123' }); // Coincide con authSpy
+      thesis.preliminaryDraftData!.proposalData.director = createMockUser({ id: 'user-123' });
 
       expect(service.isDirector(thesis)).toBe(true);
     });
@@ -211,7 +195,7 @@ describe('CorrectedDocumentsFacadeService', () => {
       thesis.sustentations = [
         {
           id: 'sust-1',
-          sustentationDate: new Date(), // <-- CORRECCIÓN AQUÍ (antes era date)
+          sustentationDate: new Date(),
           location: '',
           verdicts: [],
           assignedJurors: [createMockUser({ id: 'user-123' })]
@@ -223,7 +207,7 @@ describe('CorrectedDocumentsFacadeService', () => {
 
     it('isJuror debe retornar false si no hay sustentaciones o el usuario no está asignado', () => {
       const thesis = createMockThesisWork();
-      thesis.sustentations = []; // Vacío
+      thesis.sustentations = [];
 
       expect(service.isJuror(thesis)).toBe(false);
     });
@@ -231,7 +215,6 @@ describe('CorrectedDocumentsFacadeService', () => {
 
   describe('Permisos (canDirectorUpload, canJurorEvaluate)', () => {
     it('canDirectorUpload debe retornar false si está archivado o no es director', () => {
-      // (thesis, isDirector, isArchived)
       expect(service.canDirectorUpload(null, false, false)).toBe(false);
       expect(service.canDirectorUpload(null, true, true)).toBe(false);
     });
@@ -300,11 +283,10 @@ describe('CorrectedDocumentsFacadeService', () => {
 
     it('downloadDocumentByName debe mostrar notificación estricta de error si el documento no tiene URL', async () => {
       const badDelivery = createMockCorrectedDelivery();
-      badDelivery.monograph!.url = ''; // Forzamos una url vacía
+      badDelivery.monograph!.url = '';
 
       await service.downloadDocumentByName(badDelivery, 'monografia');
 
-      // Cero expect.objectContaining: validamos exactamente el objeto
       expect(notificationSpy.show).toHaveBeenCalledWith({
         title: 'Error de descarga',
         message: 'No existe un enlace de descarga válido para este archivo.',
@@ -315,14 +297,12 @@ describe('CorrectedDocumentsFacadeService', () => {
 
     it('downloadDocumentByName debe registrar el error en consola y notificar si la descarga (API) falla', async () => {
       const mockError = new Error('Network timeout');
-      downloadSpy.download.mockRejectedValue(mockError); // Simulamos fallo HTTP
+      downloadSpy.download.mockRejectedValue(mockError);
 
       await service.downloadDocumentByName(mockDelivery, 'monografia');
 
-      // Verificamos que el error es capturado y enviado a consola
       expect(console.error).toHaveBeenCalledWith('Error al descargar el documento monografia:', mockError);
 
-      // Verificamos que se lanza la notificación de error al usuario
       expect(notificationSpy.show).toHaveBeenCalledWith({
         title: 'Error de descarga',
         message: 'No se pudo descargar monografia. Intente más tarde.',

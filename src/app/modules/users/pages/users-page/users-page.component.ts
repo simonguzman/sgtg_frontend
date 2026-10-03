@@ -5,11 +5,9 @@ import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { UserRole } from '../../../../core/models/user-role';
 import { User } from '../../interfaces/user.interface';
 import { UserState } from '../../enum/user-state.enum';
-
 import { TableButton, TableComponent } from "../../../../shared/components/table-component/table-component.component";
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { RolesModalComponent } from '../../../../shared/components/modals/roles/roles-modal/roles-modal.component';
-
 import { UsersFacadeService } from './services/users-facade.service';
 import { USER_COLUMNS, USER_HEADER_BUTTONS, UserTableRow } from './models/users-page.model';
 
@@ -43,10 +41,6 @@ export class UsersPageComponent {
   idUserToDisabled: string | null = null;
   confirmationMessage = ' ';
 
-  // ==========================================
-  // EVENTOS DE LA TABLA
-  // ==========================================
-
   handleHeaderButton(button: TableButton): void {
     if (button.label === 'Crear usuarios') {
       this.router.navigate(['/users/create']);
@@ -73,10 +67,6 @@ export class UsersPageComponent {
         break;
     }
   }
-
-  // ==========================================
-  // LÓGICA DE MODALES: ROLES
-  // ==========================================
 
   private prepareRolesModal(user: User, row: UserTableRow): void {
     this.idUserForRoles = user.id!;
@@ -109,10 +99,6 @@ export class UsersPageComponent {
       this.idUserForRoles = null;
     });
   }
-
-  // ==========================================
-  // LÓGICA DE MODALES: ACTIVAR / DESACTIVAR
-  // ==========================================
 
   private prepareDisabledModal(user: User, row: UserTableRow): void {
     this.idUserToDisabled = user.id!;

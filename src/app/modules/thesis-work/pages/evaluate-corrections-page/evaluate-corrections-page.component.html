@@ -7,7 +7,6 @@
       <span class="return-arrow-option">Regresar</span>
     </button>
 
-    <!-- MEJORA: Usamos '; as thesisWork' para evitar el uso de ! (Non-null assertion) -->
     @if (thesisWorkState(); as thesisWork) {
       <app-evaluate-corrections-form
         [thesisWork]="thesisWork"

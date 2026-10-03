@@ -6,7 +6,6 @@ import { RegisterSpecialRequestFacadeService } from './services/register-special
 import { RegisterSpecialRequestFormComponent } from '../../components/register-special-request-form/register-special-request-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 
-// Interfaz local para estandarizar el payload y evitar repetición de código
 export interface SpecialRequestData {
   requestType: SpecialRequestType;
   comments: string;
@@ -20,14 +19,14 @@ export interface SpecialRequestData {
 })
 export class RegisterSpecialRequestPageComponent implements OnInit {
   private readonly router = inject(Router);
-  private readonly route  = inject(ActivatedRoute);
+  private readonly route = inject(ActivatedRoute);
   protected readonly facade = inject(RegisterSpecialRequestFacadeService);
 
-  public readonly isLoading          = signal(true);
-  public readonly isSubmitting       = signal(false);
-  public readonly thesisWorkData     = signal<ThesisWork | undefined>(undefined);
+  public readonly isLoading = signal(true);
+  public readonly isSubmitting = signal(false);
+  public readonly thesisWorkData = signal<ThesisWork | undefined>(undefined);
   public readonly isConfirmModalOpen = signal(false);
-  public readonly pendingData        = signal<SpecialRequestData | null>(null);
+  public readonly pendingData = signal<SpecialRequestData | null>(null);
 
   ngOnInit(): void {
     const thesisId = this.route.snapshot.paramMap.get('id') ?? this.route.parent?.snapshot.paramMap.get('id');
@@ -39,9 +38,9 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
 
     this.facade.loadThesisWork(
       thesisId,
-      (work) => { this.thesisWorkData.set(work); this.isLoading.set(false); },
-      ()     => { this.isLoading.set(false); this.goBack(); },
-      ()     => { this.isLoading.set(false); }
+      (thesisWork) => { this.thesisWorkData.set(thesisWork); this.isLoading.set(false); },
+      () => { this.isLoading.set(false); this.goBack(); },
+      () => { this.isLoading.set(false); }
     );
   }
 
@@ -51,16 +50,16 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
   }
 
   public processSaveRequest(): void {
-    const data        = this.pendingData();
-    const currentWork = this.thesisWorkData();
+    const data = this.pendingData();
+    const currentThesisWork = this.thesisWorkData();
 
-    if (!data || !currentWork) return;
+    if (!data || !currentThesisWork) return;
 
     this.isSubmitting.set(true);
     this.isConfirmModalOpen.set(false);
 
     this.facade.processSaveRequest(
-      currentWork.thesisWorkId,
+      currentThesisWork.thesisWorkId,
       data,
       () => { this.isSubmitting.set(false); this.goBack(); },
       () => { this.isSubmitting.set(false); }

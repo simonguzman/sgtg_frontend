@@ -2,9 +2,9 @@ import { stateList } from '../../../../core/enums/state.enum';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
-import { Column } from '../../../components/table-component/table-component.component';
+import { Column, TableRow } from '../../../components/table-component/table-component.component';
 
-export interface EvaluationTableRow {
+export interface EvaluationTableRow extends TableRow {
   id: string;
   evaluatorId: string;
   evaluatorName: string;

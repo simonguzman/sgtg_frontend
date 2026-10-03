@@ -2,22 +2,16 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal, WritableSignal, Component, Input, Output, EventEmitter, forwardRef } from '@angular/core';
 import { FormGroup, FormControl, ReactiveFormsModule, NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 import { DatePipe } from '@angular/common';
-
 import { AssignEvaluatorsFormComponent } from './assign-evaluators-form.component';
 import { AssignEvaluatorsFormFacadeService } from './services/assign-evaluators-form-facade.service';
-
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { Proposal } from '../../../proposal/interfaces/proposal.interface';
 import { User } from '../../../users/interfaces/user.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
 import { SelectOption, SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select.component';
-
-// Componentes originales a remover
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
-
-// --- Mocks de Componentes Hijos (Shallow Testing) ---
 
 @Component({ selector: 'app-button-component', standalone: true, template: '<button (click)="onClick.emit()">{{label}}</button>' })
 class MockButtonComponent {
@@ -54,8 +48,6 @@ class MockSearchableSelectComponent implements ControlValueAccessor {
   registerOnChange(fn: unknown): void {}
   registerOnTouched(fn: unknown): void {}
 }
-
-// --- Factories estrictamente tipadas (Cero 'any' y 'unknown') ---
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u1',
@@ -94,8 +86,6 @@ const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): 
   ...overrides
 } as PreliminaryDraft);
 
-// --- Tipado estricto para el Facade Mock ---
-
 type MockFormType = FormGroup<{
   evaluator1: FormControl<string | null>;
   evaluator2: FormControl<string | null>;
@@ -121,7 +111,6 @@ describe('AssignEvaluatorsFormComponent', () => {
   const mockDraft = createMockPreliminaryDraft();
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola para mantener la terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -159,14 +148,13 @@ describe('AssignEvaluatorsFormComponent', () => {
     fixture = TestBed.createComponent(AssignEvaluatorsFormComponent);
     component = fixture.componentInstance;
 
-    // Proveemos el Input obligatorio
     fixture.componentRef.setInput('preliminaryDraft', mockDraft);
-    fixture.detectChanges(); // Dispara el renderizado del HTML y el 'effect'
+    fixture.detectChanges();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola y espías
+    jest.restoreAllMocks();
   });
 
   it('Debe crear el componente', () => {
@@ -202,7 +190,6 @@ describe('AssignEvaluatorsFormComponent', () => {
 
   describe('Interacción con la UI (HTML)', () => {
     it('Debe renderizar los errores consultando los validadores del facade', () => {
-      // Forzamos un error visual en el evaluador 1 para asegurar que la UI reacciona
       mockFacade.isFieldInvalid.mockImplementation((field) => field === 'evaluator1');
       fixture.detectChanges();
 
@@ -211,8 +198,7 @@ describe('AssignEvaluatorsFormComponent', () => {
 
       expect(mockFacade.isFieldInvalid).toHaveBeenCalledWith('evaluator1');
 
-      // Aseguramos que solo aparece el error de evaluator1 y su texto es correcto
-      expect(errorSpans.length).toBe(1);
+      expect(errorSpans).toHaveLength(1);
       expect(errorSpans[0].textContent?.trim()).toBe('Debe seleccionar el primer evaluador');
     });
   });

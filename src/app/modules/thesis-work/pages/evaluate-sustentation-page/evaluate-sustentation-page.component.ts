@@ -12,14 +12,14 @@ import { EvaluateSustentationFormComponent, SustentationEvaluationPayload } from
   imports: [ConfirmationActionModalComponent, EvaluateSustentationFormComponent]
 })
 export class EvaluateSustentationPageComponent implements OnInit {
-  private readonly route  = inject(ActivatedRoute);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly facade = inject(EvaluateSustentationFacadeService);
 
-  readonly thesisWorkState    = signal<ThesisWork | null>(null);
+  readonly thesisWorkState = signal<ThesisWork | null>(null);
   readonly isConfirmModalOpen = signal<boolean>(false);
-  readonly isSubmitting       = signal<boolean>(false);
-  readonly pendingData        = signal<{ payload: SustentationEvaluationPayload; file: File } | null>(null);
+  readonly isSubmitting = signal<boolean>(false);
+  readonly pendingData = signal<{ payload: SustentationEvaluationPayload; file: File } | null>(null);
 
   ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
@@ -32,8 +32,8 @@ export class EvaluateSustentationPageComponent implements OnInit {
 
     this.facade.loadThesisWork(
       id,
-      (work) => this.thesisWorkState.set(work),
-      ()     => this.goBack()
+      (thesisWork) => this.thesisWorkState.set(thesisWork),
+      () => this.goBack()
     );
   }
 
@@ -43,7 +43,7 @@ export class EvaluateSustentationPageComponent implements OnInit {
   }
 
   processSustentationEvaluation(): void {
-    const data     = this.pendingData();
+    const data = this.pendingData();
     const thesisId = this.thesisWorkState()?.thesisWorkId;
     if (!data || !thesisId) return;
 

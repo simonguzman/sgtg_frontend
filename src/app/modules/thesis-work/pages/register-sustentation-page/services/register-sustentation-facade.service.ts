@@ -9,13 +9,13 @@ import { SustentationFormPayload } from '../../../components/register-sustentati
 
 @Injectable({ providedIn: 'root' })
 export class RegisterSustentationFacadeService {
-  private readonly thesisWorkService   = inject(ThesisWorkService);
+  private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
 
   public loadThesisWork(
-    id:        string,
-    onSuccess: (work: ThesisWork) => void,
-    onError:   () => void
+    id: string,
+    onSuccess: (thesisWork: ThesisWork) => void,
+    onError: () => void
   ): void {
     this.thesisWorkService.getThesisWorkByIdMock(id)
       .pipe(first())
@@ -36,15 +36,12 @@ export class RegisterSustentationFacadeService {
   }
 
   public processSustentation(
-    thesisId:  string,
-    payload:   SustentationFormPayload,
-    file:      File,
+    thesisId: string,
+    payload: SustentationFormPayload,
+    file: File,
     onSuccess: () => void,
-    onError:   () => void
+    onError: () => void
   ): void {
-    // Mantiene el comportamiento original: formatEDocument recibe el File crudo,
-    // que satisface estructuralmente los campos opcionales de SustentationFormData
-    // (File.name existe nativamente).
     const requestData: SustentationFormData = { ...payload, formatEDocument: file };
 
     this.thesisWorkService.saveSustentationRegistryMock(thesisId, requestData)

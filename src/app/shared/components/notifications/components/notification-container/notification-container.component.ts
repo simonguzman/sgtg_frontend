@@ -9,6 +9,5 @@ import { NotificationItemComponent } from '../notification-item/notification-ite
   styleUrls: ['./notification-container.component.css']
 })
 export class NotificationContainerComponent {
-  // ← readonly agregado: mismo patrón que cada servicio inyectado en el resto del proyecto.
   protected readonly notificationService = inject(NotificationService);
 }

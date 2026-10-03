@@ -9,19 +9,15 @@ import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 
 @Injectable({ providedIn: 'root' })
 export class ProposalEditFacadeService {
-  private readonly proposalService     = inject(ProposalService);
-  private readonly authService         = inject(AuthService);
+  private readonly proposalService = inject(ProposalService);
+  private readonly authService = inject(AuthService);
   private readonly notificationService = inject(NotificationService);
 
-  /**
-   * Carga la propuesta y verifica permisos de edición.
-   * Ejecuta el callback correspondiente según el resultado.
-   */
   public loadAndAuthorize(
     id: string,
     onAuthorized: (proposal: Proposal) => void,
-    onForbidden:  () => void,
-    onNotFound:   () => void
+    onForbidden: () => void,
+    onNotFound: () => void
   ): void {
     this.proposalService.getProposalByIdMock(id)
       .pipe(first())
@@ -48,17 +44,10 @@ export class ProposalEditFacadeService {
       });
   }
 
-  /**
-   * Valida las reglas de negocio antes de guardar.
-   * Devuelve el mensaje de error o null si todo es válido.
-   */
   public validateRules(proposal: Proposal): string | null {
     return this.proposalService.validateProposalRules(proposal);
   }
 
-  /**
-   * Ejecuta la actualización con notificaciones integradas.
-   */
   public saveUpdate(
     id: string,
     data: Proposal,

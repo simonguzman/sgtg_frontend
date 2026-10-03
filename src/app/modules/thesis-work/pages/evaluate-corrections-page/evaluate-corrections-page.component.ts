@@ -14,13 +14,13 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
   imports: [EvaluateCorrectionsFormComponent, ConfirmationActionModalComponent]
 })
 export class EvaluateCorrectionsPageComponent implements OnInit {
-  private readonly route  = inject(ActivatedRoute);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly facade = inject(EvaluateCorrectionsFacadeService);
 
-  readonly thesisWorkState       = signal<ThesisWork | null>(null);
-  readonly isConfirmModalOpen    = signal(false);
-  readonly isSubmitting          = signal(false);
+  readonly thesisWorkState = signal<ThesisWork | null>(null);
+  readonly isConfirmModalOpen = signal(false);
+  readonly isSubmitting = signal(false);
   readonly pendingEvaluationData = signal<{ evaluation: Omit<Evaluation, 'id' | 'date'>; file: File } | null>(null);
 
   ngOnInit(): void {
@@ -36,7 +36,7 @@ export class EvaluateCorrectionsPageComponent implements OnInit {
       this.goBack();
       return;
     }
-    this.facade.loadThesisWork(id, (work) => this.thesisWorkState.set(work), () => this.goBack());
+    this.facade.loadThesisWork(id, (thesisWork) => this.thesisWorkState.set(thesisWork), () => this.goBack());
   }
 
   handleOpenConfirmation(event: { evaluation: Omit<Evaluation, 'id' | 'date'>; file: File }): void {
@@ -45,7 +45,7 @@ export class EvaluateCorrectionsPageComponent implements OnInit {
   }
 
   executeEvaluationSave(): void {
-    const data     = this.pendingEvaluationData();
+    const data = this.pendingEvaluationData();
     const thesisId = this.thesisWorkState()?.thesisWorkId;
     if (!data || !thesisId) return;
 

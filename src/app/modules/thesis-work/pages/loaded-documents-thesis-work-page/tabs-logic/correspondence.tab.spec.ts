@@ -1,8 +1,5 @@
-// 1. Angular y Configuración
 import { CorrespondenceTabConfig } from './correspondence.tab';
 import { ThesisEvaluationContext } from './tab-config.interface';
-
-// 2. Interfaces y Enums
 import { stateList } from '../../../../../core/enums/state.enum';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
@@ -11,8 +8,6 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
-
-// ── Funciones Fábrica fuertemente tipadas (Cero 'any') ───────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -43,7 +38,6 @@ const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocu
 const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
   const baseUser = createMockUser();
 
-  // Construcción estricta para evitar el 'as any'
   const mockDraftData: NonNullable<ThesisWork['preliminaryDraftData']> = {
     preliminaryDraftId: 'draft-1',
     proposalId: 'prop-1',
@@ -76,7 +70,7 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
     sustentations: [],
     advances: [],
     finalDeliveries: [],
-    pazYSalvos: [], // Agregado para homogeneidad
+    pazYSalvos: [],
     state: stateList.EN_DESARROLLO,
     createdDate: new Date(),
     isArchived: false,
@@ -99,28 +93,24 @@ const createMockEvaluationContext = (overrides: Partial<ThesisEvaluationContext>
   isConsejo: false,
   latestAdvanceId: null,
   isLatestAdvancePending: false,
-  hasCorrespondence: false, // Declarado explícitamente para el mock
+  hasCorrespondence: false,
   ...overrides
 });
-
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('CorrespondenceTabConfig', () => {
   let baseContext: ThesisEvaluationContext;
 
   beforeEach(() => {
-    // 🔕 Silenciador preventivo global de consola para mantener la terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'log').mockImplementation(() => {});
 
-    // Contexto base restaurado antes de cada prueba mediante la fábrica
     baseContext = createMockEvaluationContext();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Propiedades Estáticas', () => {
@@ -209,8 +199,8 @@ describe('CorrespondenceTabConfig', () => {
         name: 'Resolucion Sin Fecha',
         type: DocumentType.FORMATO_H,
         url: 'http://docs/res2',
-        uploadDate: undefined, // Ausencia deliberada
-        status: undefined      // Ausencia deliberada
+        uploadDate: undefined,
+        status: undefined
       });
 
       const rows = CorrespondenceTabConfig.getTableData([mockDoc], baseContext);
@@ -224,7 +214,7 @@ describe('CorrespondenceTabConfig', () => {
   describe('getHeaderButtons', () => {
     it('debe retornar array vacío si la tesis está archivada, independientemente del rol', () => {
       baseContext.isArchived = true;
-      baseContext.isJuror = true; // Intentamos forzar con un rol válido
+      baseContext.isJuror = true;
 
       const buttons = CorrespondenceTabConfig.getHeaderButtons(baseContext);
 
@@ -233,7 +223,7 @@ describe('CorrespondenceTabConfig', () => {
 
     it('debe retornar array vacío si el usuario NO es jurado', () => {
       baseContext.isJuror = false;
-      baseContext.isDirector = true; // Otro rol
+      baseContext.isDirector = true;
 
       const buttons = CorrespondenceTabConfig.getHeaderButtons(baseContext);
 

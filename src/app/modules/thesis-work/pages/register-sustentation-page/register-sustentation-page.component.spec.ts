@@ -1,15 +1,8 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-
-// 2. Componente a probar
 import { RegisterSustentationPageComponent } from './register-sustentation-page.component';
-
-// 3. Servicios y Facades
 import { RegisterSustentationFacadeService } from './services/register-sustentation-facade.service';
-
-// 4. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SustentationFormPayload } from '../../components/register-sustentation-form/register-sustentation-form.component';
 import { User } from '../../../users/interfaces/user.interface';
@@ -17,12 +10,8 @@ import { stateList } from '../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
 import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
-
-// Importamos los componentes reales para removerlos en el override
 import { RegisterSustentationFormComponent } from '../../components/register-sustentation-form/register-sustentation-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
-
-// ── Mocks de Componentes Hijos (Standalone) ──────────────────────────────────
 
 @Component({ selector: 'app-register-sustentation-form', template: '', standalone: true })
 class MockRegisterSustentationFormComponent {
@@ -40,8 +29,6 @@ class MockConfirmationActionModalComponent {
   @Output() confirm = new EventEmitter<void>();
 }
 
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown', 'Partial') ──────────
-
 interface MockRouteNode {
   snapshot: { paramMap: { get: jest.Mock<string | null, [string]> } };
   parent: MockRouteNode | null;
@@ -55,8 +42,6 @@ interface MockRegisterSustentationFacadeService {
   loadThesisWork: jest.Mock<void, [string, (work: ThesisWork) => void, () => void]>;
   processSustentation: jest.Mock<void, [string, SustentationFormPayload, File, () => void, () => void]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -116,13 +101,10 @@ const createMockPayload = (overrides: Partial<SustentationFormPayload> = {}): Su
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('RegisterSustentationPageComponent', () => {
   let component: RegisterSustentationPageComponent;
   let fixture: ComponentFixture<RegisterSustentationPageComponent>;
 
-  // Interfaces estrictas
   let facadeMock: MockRegisterSustentationFacadeService;
   let routerMock: MockRouter;
   let routeMock: MockRouteNode;
@@ -130,11 +112,9 @@ describe('RegisterSustentationPageComponent', () => {
   const mockWork = createMockThesisWork({ thesisWorkId: 'thesis-123' });
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola preventiva
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Mocks inicializados cumpliendo 100% sus interfaces
     facadeMock = {
       loadThesisWork: jest.fn(),
       processSustentation: jest.fn()
@@ -175,17 +155,14 @@ describe('RegisterSustentationPageComponent', () => {
   });
 
   afterEach(() => {
-    // Previene contaminación de mocks entre los bloques 'it'
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('ngOnInit y Enrutamiento', () => {
     it('debería buscar el ID en la ruta actual o padres e invocar loadThesisWork', () => {
-      // Act
-      fixture.detectChanges(); // Dispara ngOnInit
+      fixture.detectChanges();
 
-      // Assert
       expect(routeMock.parent!.snapshot.paramMap.get).toHaveBeenCalledWith('id');
       expect(facadeMock.loadThesisWork).toHaveBeenCalledWith(
         'thesis-123',
@@ -195,36 +172,28 @@ describe('RegisterSustentationPageComponent', () => {
     });
 
     it('debería retornar atrás (goBack) si no encuentra ningún ID', () => {
-      // Arrange
       routeMock.parent!.snapshot.paramMap.get.mockReturnValue(null);
       const goBackSpy = jest.spyOn(component, 'goBack');
 
-      // Act
       fixture.detectChanges();
 
-      // Assert
       expect(goBackSpy).toHaveBeenCalled();
       expect(facadeMock.loadThesisWork).not.toHaveBeenCalled();
     });
 
     it('debería navegar a loaded_documents al llamar a goBack', () => {
-      // Act
       component.goBack();
 
-      // Assert
       expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
     });
   });
 
   describe('Acciones de Usuario', () => {
     it('handleRequestConfirmation debería actualizar pendientes y abrir modal', () => {
-      // Arrange
       const mockData = { payload: createMockPayload(), file: new File([''], 'test.pdf') };
 
-      // Act
       component.handleRequestConfirmation(mockData);
 
-      // Assert
       expect(component.pendingData()).toEqual(mockData);
       expect(component.isConfirmModalOpen()).toBe(true);
     });
@@ -232,19 +201,15 @@ describe('RegisterSustentationPageComponent', () => {
 
   describe('Proceso de Sustentación (processSustentacion)', () => {
     it('debería detenerse temprano si no hay datos pendientes o thesisId', () => {
-      // Arrange
       component.pendingData.set(null);
 
-      // Act
       component.processSustentacion();
 
-      // Assert
       expect(component.isSubmitting()).toBe(false);
       expect(facadeMock.processSustentation).not.toHaveBeenCalled();
     });
 
     it('debería invocar al facade para procesar, activar isSubmitting y ocultar modal', () => {
-      // Arrange
       const mockPayload = createMockPayload();
       const mockFile = new File([''], 'f.pdf');
 
@@ -252,10 +217,8 @@ describe('RegisterSustentationPageComponent', () => {
       component.pendingData.set({ payload: mockPayload, file: mockFile });
       component.isConfirmModalOpen.set(true);
 
-      // Act
       component.processSustentacion();
 
-      // Assert
       expect(component.isSubmitting()).toBe(true);
       expect(component.isConfirmModalOpen()).toBe(false);
       expect(facadeMock.processSustentation).toHaveBeenCalledWith(
@@ -268,39 +231,31 @@ describe('RegisterSustentationPageComponent', () => {
     });
 
     it('callbacks del facade deberían reiniciar isSubmitting y navegar atrás en caso de éxito', () => {
-      // Arrange
       component.thesisWorkState.set(mockWork);
       component.pendingData.set({ payload: createMockPayload(), file: new File([''], '') });
       const goBackSpy = jest.spyOn(component, 'goBack');
 
-      // Simulamos la ejecución del callback onSuccess
       facadeMock.processSustentation.mockImplementation((id, p, f, onSuccess, onError) => {
         onSuccess();
       });
 
-      // Act
       component.processSustentacion();
 
-      // Assert
       expect(component.isSubmitting()).toBe(false);
       expect(goBackSpy).toHaveBeenCalled();
     });
 
     it('callbacks del facade deberían reiniciar isSubmitting y no navegar atrás en caso de error', () => {
-      // Arrange
       component.thesisWorkState.set(mockWork);
       component.pendingData.set({ payload: createMockPayload(), file: new File([''], '') });
       const goBackSpy = jest.spyOn(component, 'goBack');
 
-      // Simulamos la ejecución del callback onError
       facadeMock.processSustentation.mockImplementation((id, p, f, onSuccess, onError) => {
         onError();
       });
 
-      // Act
       component.processSustentacion();
 
-      // Assert
       expect(component.isSubmitting()).toBe(false);
       expect(goBackSpy).not.toHaveBeenCalled();
     });

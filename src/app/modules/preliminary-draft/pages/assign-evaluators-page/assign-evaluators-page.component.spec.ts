@@ -1,7 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component, EventEmitter, Input, Output, signal, WritableSignal } from '@angular/core';
 import { By } from '@angular/platform-browser';
-
+import { Component, EventEmitter, Input, Output, signal, WritableSignal } from '@angular/core';
 import { AssignEvaluatorsPageComponent } from './assign-evaluators-page.component';
 import { AssignEvaluatorsPageFacadeService } from './services/assign-evaluators-page-facade.service';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
@@ -9,7 +8,6 @@ import { AssignEvaluatorsFormComponent } from '../../components/assign-evaluator
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { stateList } from '../../../../core/enums/state.enum';
 
-// 🔹 REFACTOR: Fábrica para generar entidades limpias sin usar 'as unknown'
 const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
   preliminaryDraftId: 'draft-123',
   proposalId: 'prop-1',
@@ -20,7 +18,6 @@ const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): Preliminary
   ...overrides
 } as PreliminaryDraft);
 
-// 🔹 REFACTOR: Mocks de Componentes Hijos para aislar el contenedor
 @Component({
   selector: 'app-assign-evaluators-form',
   standalone: true,
@@ -43,7 +40,6 @@ class MockConfirmationActionModalComponent {
   @Output() confirm = new EventEmitter<void>();
 }
 
-// Interfaz estricta para el estado
 interface ConfirmState {
   isOpen: boolean;
   pendingData: { ev1: string; ev2: string } | null;
@@ -54,7 +50,6 @@ describe('AssignEvaluatorsPageComponent', () => {
   let component: AssignEvaluatorsPageComponent;
   let fixture: ComponentFixture<AssignEvaluatorsPageComponent>;
 
-  // 🔹 REFACTOR: Mock del facade tipado estrictamente sin Partial
   let mockFacade: {
     init: jest.Mock;
     goBack: jest.Mock;
@@ -67,7 +62,6 @@ describe('AssignEvaluatorsPageComponent', () => {
   };
 
   beforeEach(async () => {
-    // 🔕 Silenciar los console.error y console.warn para mantener limpia la consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -78,7 +72,7 @@ describe('AssignEvaluatorsPageComponent', () => {
       cancelAssignment: jest.fn(),
       confirmAssignment: jest.fn(),
       selectedPreliminaryDraft: signal(null),
-      isDataLoading: signal(true), // Por defecto, inicia cargando
+      isDataLoading: signal(true),
       confirmState: signal({
         isOpen: false,
         pendingData: null,
@@ -91,12 +85,10 @@ describe('AssignEvaluatorsPageComponent', () => {
     })
     .overrideComponent(AssignEvaluatorsPageComponent, {
       remove: {
-        // Quitamos los componentes hijos reales y el proveedor original
         imports: [AssignEvaluatorsFormComponent, ConfirmationActionModalComponent],
         providers: [AssignEvaluatorsPageFacadeService]
       },
       add: {
-        // Insertamos nuestros mocks
         imports: [MockAssignEvaluatorsFormComponent, MockConfirmationActionModalComponent],
         providers: [{ provide: AssignEvaluatorsPageFacadeService, useValue: mockFacade }]
       }
@@ -108,7 +100,7 @@ describe('AssignEvaluatorsPageComponent', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización y Renderizado Condicional', () => {
@@ -117,7 +109,7 @@ describe('AssignEvaluatorsPageComponent', () => {
     });
 
     it('debería inicializar el facade al cargar el componente (ngOnInit)', () => {
-      fixture.detectChanges(); // Ejecuta ngOnInit
+      fixture.detectChanges();
       expect(mockFacade.init).toHaveBeenCalled();
     });
 
@@ -138,14 +130,12 @@ describe('AssignEvaluatorsPageComponent', () => {
       const formElement = fixture.debugElement.query(By.directive(MockAssignEvaluatorsFormComponent));
       expect(formElement).toBeTruthy();
 
-      // Validamos que el @Input se haya pasado correctamente al hijo
       expect(formElement.componentInstance.preliminaryDraft).toEqual(mockDraft);
     });
   });
 
   describe('Interacciones con la Vista (Eventos)', () => {
     beforeEach(() => {
-      // Configuramos el estado para que se rendericen los componentes hijos
       mockFacade.isDataLoading.set(false);
       mockFacade.selectedPreliminaryDraft.set(createMockDraft());
       fixture.detectChanges();
@@ -177,7 +167,6 @@ describe('AssignEvaluatorsPageComponent', () => {
       let modalElement: MockConfirmationActionModalComponent = fixture.debugElement.query(By.directive(MockConfirmationActionModalComponent)).componentInstance;
       expect(modalElement.isOpen).toBeFalsy();
 
-      // Cambiamos el estado en el facade
       mockFacade.confirmState.set({ isOpen: true, pendingData: null, isProcessing: false });
       fixture.detectChanges();
 

@@ -3,39 +3,34 @@
   height: 100%;
 }
 
-/* Color base del sidebar */
 .bg-unicauca-blue {
-  background-color: var(--color-primary); /* Azul institucional oscuro */
+  background-color: var(--color-primary);
 }
 
-/* Estilo base de los enlaces */
 .menu-link {
   color: #ffffff;
   background-color: transparent;
   border-left: 4px solid transparent;
 }
 
-/* Hover - tono medio */
 .menu-link:hover {
-  background-color: var(--color-primary-hover); /* Azul medio */
-  border-left-color: #93c5fd; /* Celeste suave */
+  background-color: var(--color-primary-hover);
+  border-left-color: #93c5fd;
 }
 
-/* Activo (routerLinkActive) - tono más oscuro */
 .active-link {
-  background-color: var(--color-primary-active); /* Azul aún más oscuro */
+  background-color: var(--color-primary-active);
   border-left: 4px solid #ffffff;
 }
 
-/* Ajustes visuales */
 .menu-link i {
   color: #ffffff;
 }
 
 .menu-link:hover i {
-  color: #bfdbfe; /* Azul claro para el ícono */
+  color: #bfdbfe;
 }
 
 .active-link i {
-  color: #93c5fd; /* Azul intermedio activo */
+  color: #93c5fd;
 }

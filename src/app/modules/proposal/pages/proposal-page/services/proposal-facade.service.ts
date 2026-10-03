@@ -11,13 +11,13 @@ import { PROPOSAL_HEADER_BUTTONS, ProposalTableRow } from '../models/proposal-pa
 @Injectable({ providedIn: 'root' })
 export class ProposalFacadeService {
   private readonly proposalService = inject(ProposalService);
-  private readonly authService    = inject(AuthService);
-  private readonly mapper         = inject(ProposalMapperService);
+  private readonly authService = inject(AuthService);
+  private readonly mapper = inject(ProposalMapperService);
   private readonly notificationService = inject(NotificationService);
 
   public readonly proposalsTableData = computed<ProposalTableRow[]>(() => {
     const currentUser = this.authService.currentUser();
-    const isAdmin     = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
+    const isAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
     return this.proposalService.proposals().map(proposal =>
       this.mapper.mapProposalToTable(proposal, isAdmin, currentUser?.id)
     );

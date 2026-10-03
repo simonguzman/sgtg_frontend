@@ -20,8 +20,6 @@ export class ProposalEditPageComponent implements OnInit {
   private readonly route  = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly location = inject(Location);
-
-  // 1. Inyectamos la verdadera fachada
   private readonly facade = inject(ProposalEditFacadeService);
 
   readonly proposalToEdit = signal<Proposal | null>(null);
@@ -36,17 +34,15 @@ export class ProposalEditPageComponent implements OnInit {
       return;
     }
 
-    // 2. Delegamos la carga y autorización a la fachada
     this.facade.loadAndAuthorize(
       id,
       (proposal) => this.proposalToEdit.set(proposal),
-      () => this.router.navigate(['/proposal']), // onForbidden
-      () => this.router.navigate(['/proposal'])  // onNotFound
+      () => this.router.navigate(['/proposal']),
+      () => this.router.navigate(['/proposal'])
     );
   }
 
   handleUpdate(updatedData: Proposal): void {
-    // 3. Delegamos la validación de reglas
     const errorMessage = this.facade.validateRules(updatedData);
 
     if (errorMessage) {
@@ -66,7 +62,6 @@ export class ProposalEditPageComponent implements OnInit {
 
     this.isModalOpen.set(false);
 
-    // 4. Delegamos el guardado
     this.facade.saveUpdate(
       currentProposal.id,
       dataToSave,
@@ -75,7 +70,6 @@ export class ProposalEditPageComponent implements OnInit {
         this.router.navigate(['/proposal']);
       },
       () => {
-        // La notificación de error ya la maneja la fachada
         this.isModalOpen.set(false);
       }
     );

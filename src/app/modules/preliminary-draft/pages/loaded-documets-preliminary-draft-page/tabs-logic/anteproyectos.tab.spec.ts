@@ -9,7 +9,6 @@ import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interfac
 import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 
-// 🔹 REFACTOR: Fábricas de Datos (Factories) para generar entidades sin usar 'any' ni 'unknown'
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u1',
   firstName: 'Juan',
@@ -55,14 +54,11 @@ describe('AnteproyectosTabConfig', () => {
   let mockPreliminaryDraftService: { calculateDocumentStatus: jest.Mock };
 
   beforeEach(() => {
-    // 🔕 Silenciar los console.error y console.warn para evitar ruido en la terminal
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // 1. Inicializamos el contexto usando la fábrica limpia
     mockContext = createMockContext();
 
-    // 2. Mockeamos el servicio estrictamente
     mockPreliminaryDraftService = {
       calculateDocumentStatus: jest.fn().mockReturnValue(stateList.EN_REVISION)
     };
@@ -70,7 +66,7 @@ describe('AnteproyectosTabConfig', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('getTableData', () => {
@@ -105,7 +101,7 @@ describe('AnteproyectosTabConfig', () => {
         proposalId: 'prop-1',
         documentId: 'doc-1',
         evaluatorId: 'u1',
-        evaluatorName: 'Juan Perez', // Coincide con el firstName/lastName del currentUser
+        evaluatorName: 'Juan Perez',
         evaluatorRole: 'Evaluador Asignado',
         veredict: stateList.EN_REVISION,
         observations: 'Observaciones de prueba',
@@ -133,14 +129,13 @@ describe('AnteproyectosTabConfig', () => {
 
     it('debería setear el estado a NO_APROBADO para documentos antiguos si antes estaban aprobados', () => {
       const documents: FileDocument[] = [{
-        id: 'doc-old', // Diferente al latestAnteproyectoId ('doc-1')
+        id: 'doc-old',
         name: 'old_version',
         url: 'url',
         uploadDate: new Date(),
         type: DocumentType.ANTEPROYECTO
       } as FileDocument];
 
-      // Simulamos que el calculador inicial dice que estaba Aprobado
       mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.APROBADO);
 
       const result = AnteproyectosTabConfig.getTableData(
@@ -149,7 +144,6 @@ describe('AnteproyectosTabConfig', () => {
         mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
       );
 
-      // Como no es el documento más reciente, la regla de negocio lo debe invalidar
       expect(result[0].status).toBe(stateList.NO_APROBADO);
     });
   });
@@ -206,12 +200,12 @@ describe('AnteproyectosTabConfig', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].action).toBe('upload_document');
-      expect(result[0].disabled).toBeTruthy(); // No puede subir archivo si ya está en revisión
+      expect(result[0].disabled).toBeTruthy();
     });
 
     it('debería retornar el botón de "Cargar anteproyecto" habilitado para el Director si el último fue Rechazado', () => {
       mockContext.isDirector = true;
-      mockContext.preliminaryDraft.state = stateList.NO_APROBADO; // Rechazo general
+      mockContext.preliminaryDraft.state = stateList.NO_APROBADO;
       mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.NO_APROBADO);
 
       const result = AnteproyectosTabConfig.getHeaderButtons(
@@ -221,7 +215,7 @@ describe('AnteproyectosTabConfig', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].action).toBe('upload_document');
-      expect(result[0].disabled).toBeFalsy(); // Se habilita para subir las correcciones
+      expect(result[0].disabled).toBeFalsy();
     });
   });
 });

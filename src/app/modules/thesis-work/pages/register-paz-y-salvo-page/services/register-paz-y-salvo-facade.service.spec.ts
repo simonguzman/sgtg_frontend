@@ -1,16 +1,9 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
 import { of, throwError, Observable } from 'rxjs';
-
-// 2. Servicio a probar
 import { RegisterPazYSalvoFacadeService } from './register-paz-y-salvo-facade.service';
-
-// 3. Dependencias (Servicios)
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
-
-// 4. Interfaces y Enums
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { PazYSalvoPayload } from '../../../interfaces/paz-y-salvo-playload.interface';
@@ -21,8 +14,6 @@ import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
-
-// ── Tipos Seguros para los Mocks (Cero 'any', 'unknown') ───────────────────────
 
 interface MockThesisWorkService {
   getThesisWorkByIdMock: jest.Mock<Observable<ThesisWork | null>, [string]>;
@@ -36,8 +27,6 @@ interface MockNotificationService {
 interface MockFileDownloadService {
   download: jest.Mock<Promise<void>, [string, string]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -103,23 +92,18 @@ const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocu
   return base as FileDocument;
 };
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('RegisterPazYSalvoFacadeService', () => {
   let service: RegisterPazYSalvoFacadeService;
 
-  // Tipado estricto de los mocks
   let mockThesisWorkService: MockThesisWorkService;
   let mockNotificationService: MockNotificationService;
   let mockFileDownloadService: MockFileDownloadService;
 
   beforeEach(() => {
-    // 🔕 Silenciar consola preventivamente global (para atrapar los console.error del catch)
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'log').mockImplementation(() => {});
 
-    // Arrange: Inicialización limpia de mocks
     mockThesisWorkService = {
       getThesisWorkByIdMock: jest.fn(),
       registerPazYSalvoMock: jest.fn(),
@@ -138,7 +122,7 @@ describe('RegisterPazYSalvoFacadeService', () => {
         RegisterPazYSalvoFacadeService,
         { provide: ThesisWorkService, useValue: mockThesisWorkService },
         { provide: NotificationService, useValue: mockNotificationService },
-        { provide: FileDownloadService, useValue: mockFileDownloadService } // Agregado al provider
+        { provide: FileDownloadService, useValue: mockFileDownloadService }
       ]
     });
 
@@ -147,7 +131,7 @@ describe('RegisterPazYSalvoFacadeService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.restoreAllMocks();
   });
 
   describe('Carga de Proyecto (loadThesisWork)', () => {
@@ -165,7 +149,6 @@ describe('RegisterPazYSalvoFacadeService', () => {
     });
 
     it('debería ejecutar onError si la petición es exitosa (200 OK) pero devuelve null', () => {
-      // Simula el caso del operador ternario: `data ? onSuccess(data) : onError()`
       mockThesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(null));
 
       const onSuccessSpy = jest.fn();
@@ -224,7 +207,7 @@ describe('RegisterPazYSalvoFacadeService', () => {
       const payload: PazYSalvoPayload = {
         academicApproved: true,
         academicComments: '',
-        financialApproved: false, // Simulamos el rechazo
+        financialApproved: false,
         financialComments: ''
       };
 
@@ -266,11 +249,10 @@ describe('RegisterPazYSalvoFacadeService', () => {
       await service.downloadDocument(mockDoc);
 
       expect(mockFileDownloadService.download).toHaveBeenCalledWith('http://test/valid.pdf', 'archivo_final.pdf');
-      expect(mockNotificationService.show).not.toHaveBeenCalled(); // No debe mostrar notificaciones de error
+      expect(mockNotificationService.show).not.toHaveBeenCalled();
     });
 
     it('debería abortar la descarga y notificar ERROR si el documento no tiene URL', async () => {
-      // Simula un documento mal formado o en un estado donde el backend no generó URL
       const mockDoc = createMockFileDocument({ url: '' });
 
       await service.downloadDocument(mockDoc);
@@ -286,15 +268,12 @@ describe('RegisterPazYSalvoFacadeService', () => {
       const mockDoc = createMockFileDocument({ name: 'archivo_fallido' });
       const downloadError = new Error('Network interruption');
 
-      // Simulamos que la API del navegador rechaza la promesa
       mockFileDownloadService.download.mockRejectedValue(downloadError);
 
       await service.downloadDocument(mockDoc);
 
-      // Verificamos que el error llegó a la consola silenciosamente
       expect(console.error).toHaveBeenCalledWith(`Error al descargar el documento archivo_fallido:`, downloadError);
 
-      // Verificamos que se le informa al usuario
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
         type: NotificationType.ERROR,
         title: 'Error de descarga',

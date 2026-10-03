@@ -29,14 +29,8 @@ export class DownloadableFormatsPageComponent {
     DOWNLOADABLE_FORMATS_BY_CATEGORY[this.activeTab()] ?? []
   );
 
-  // ← Simplificado: ya no destructura url/id ni construye el nombre de
-  // archivo — toda esa lógica vive en el facade, el componente solo
-  // reenvía la fila completa.
   handleTableAction(event: { action: string; row: DownloadableFormat }): void {
     if (event.action !== 'descargar') return;
-    // void explícito: promesa intencionalmente no esperada — el facade ya
-    // maneja éxito/error internamente vía notificaciones, el componente no
-    // necesita reaccionar al resultado.
     void this.facade.downloadFormat(event.row);
   }
 

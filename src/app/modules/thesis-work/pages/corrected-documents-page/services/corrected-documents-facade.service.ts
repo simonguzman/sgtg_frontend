@@ -13,50 +13,50 @@ import { CorrectedDeliveryTableRow } from '../models/corrected-documents-page.mo
 
 @Injectable({ providedIn: 'root' })
 export class CorrectedDocumentsFacadeService {
-  private readonly thesisWorkService   = inject(ThesisWorkService);
-  private readonly authService         = inject(AuthService);
-  private readonly participants        = inject(ThesisParticipantsFormatterService);
-  private readonly downloadService     = inject(FileDownloadService);
+  private readonly thesisWorkService = inject(ThesisWorkService);
+  private readonly authService = inject(AuthService);
+  private readonly participants = inject(ThesisParticipantsFormatterService);
+  private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
-  findThesisWork(id: string | null, allWorks: ThesisWork[]): ThesisWork | null {
+  findThesisWork(id: string | null, allThesisWorks: ThesisWork[]): ThesisWork | null {
     if (!id) return null;
-    return allWorks.find(w => w.thesisWorkId === id) ?? null;
+    return allThesisWorks.find(thesisWork => thesisWork.thesisWorkId === id) ?? null;
   }
 
-  isDirector(thesis: ThesisWork | null): boolean {
+  isDirector(thesisWork: ThesisWork | null): boolean {
     const user = this.authService.currentUser();
-    return thesis?.preliminaryDraftData?.proposalData?.director?.id === user?.id;
+    return thesisWork?.preliminaryDraftData?.proposalData?.director?.id === user?.id;
   }
 
-  isJuror(thesis: ThesisWork | null): boolean {
+  isJuror(thesisWork: ThesisWork | null): boolean {
     const user = this.authService.currentUser();
-    if (!thesis?.sustentations?.[0] || !user) return false;
-    return thesis.sustentations[0].assignedJurors?.some(j => j.id === user.id) ?? false;
+    if (!thesisWork?.sustentations?.[0] || !user) return false;
+    return thesisWork.sustentations[0].assignedJurors?.some(juror => juror.id === user.id) ?? false;
   }
 
-  canDirectorUpload(thesis: ThesisWork | null, isDirector: boolean, isArchived: boolean): boolean {
+  canDirectorUpload(thesisWork: ThesisWork | null, isDirector: boolean, isArchived: boolean): boolean {
     if (isArchived || !isDirector) return false;
-    const deliveries = thesis?.correctedDeliveries ?? [];
+    const deliveries = thesisWork?.correctedDeliveries ?? [];
     if (deliveries.length === 0) return true;
     const latestStatus = deliveries[0].status ?? deliveries[0].monograph?.status;
     return latestStatus === stateList.NO_APROBADO || latestStatus === stateList.APLAZADO;
   }
 
-  canJurorEvaluate(thesis: ThesisWork | null, isJuror: boolean, isArchived: boolean): boolean {
+  canJurorEvaluate(thesisWork: ThesisWork | null, isJuror: boolean, isArchived: boolean): boolean {
     if (isArchived || !isJuror) return false;
-    const deliveries = thesis?.correctedDeliveries ?? [];
+    const deliveries = thesisWork?.correctedDeliveries ?? [];
     if (deliveries.length === 0) return true;
     const latestStatus = deliveries[0].status ?? deliveries[0].monograph?.status;
     return latestStatus === stateList.EN_REVISION;
   }
 
-  buildTableData(thesis: ThesisWork | null): CorrectedDeliveryTableRow[] {
-    if (!thesis?.correctedDeliveries) return [];
-    return thesis.correctedDeliveries.map((delivery, index) => ({
-      id:     delivery.id,
-      name:   `Paquete de Correcciones Radicado ${index + 1}`,
-      date:   delivery.uploadDate ?? 'Sin fecha',
+  buildTableData(thesisWork: ThesisWork | null): CorrectedDeliveryTableRow[] {
+    if (!thesisWork?.correctedDeliveries) return [];
+    return thesisWork.correctedDeliveries.map((delivery, index) => ({
+      id: delivery.id,
+      name: `Paquete de Correcciones Radicado ${index + 1}`,
+      date: delivery.uploadDate ?? 'Sin fecha',
       status: delivery.status ?? delivery.monograph?.status ?? stateList.EN_REVISION,
       allowedActions: ['view-details'],
       rawDelivery: delivery
@@ -71,39 +71,48 @@ export class CorrectedDocumentsFacadeService {
     return docs;
   }
 
-  getStudentName(thesis: ThesisWork | null): string {
-    return this.participants.getStudentNames(thesis);
-  }
-  getDirectorName(thesis: ThesisWork | null): string {
-    return this.participants.getDirectorName(thesis);
-  }
-  getCodirectorName(thesis: ThesisWork | null): string | undefined {
-    return this.participants.getCodirectorName(thesis) || undefined;
-  }
-  getAdvisorName(thesis: ThesisWork | null): string | undefined {
-    return this.participants.getAdvisorName(thesis) || undefined;
+  getStudentName(thesisWork: ThesisWork | null): string {
+    return this.participants.getStudentNames(thesisWork);
   }
 
-  // ← FIX: async + try/catch, mismo patrón ya aplicado al resto de
-  // descargas del proyecto. Antes era "fire and forget" sin await.
+  getDirectorName(thesisWork: ThesisWork | null): string {
+    return this.participants.getDirectorName(thesisWork);
+  }
+
+  getCodirectorName(thesisWork: ThesisWork | null): string | undefined {
+    return this.participants.getCodirectorName(thesisWork) || undefined;
+  }
+
+  getAdvisorName(thesisWork: ThesisWork | null): string | undefined {
+    return this.participants.getAdvisorName(thesisWork) || undefined;
+  }
+
   async downloadDocumentByName(delivery: CorrectedDelivery | null, fileName: string): Promise<void> {
     if (!delivery) return;
-    const target = delivery.monograph?.name === fileName ? delivery.monograph
-      : delivery.annexes?.name === fileName ? delivery.annexes
-      : undefined;
-    if (target) await this.downloadDocument(target);
+
+    let target: FileDocument | undefined;
+
+    if (delivery.monograph?.name === fileName) {
+      target = delivery.monograph;
+    } else if (delivery.annexes?.name === fileName) {
+      target = delivery.annexes;
+    }
+
+    if (target) {
+      await this.downloadDocument(target);
+    }
   }
 
-  private async downloadDocument(doc: FileDocument): Promise<void> {
-    if (!doc.url) {
+  private async downloadDocument(document: FileDocument): Promise<void> {
+    if (!document.url) {
       this.showNotification('Error de descarga', 'No existe un enlace de descarga válido para este archivo.', NotificationType.ERROR);
       return;
     }
     try {
-      await this.downloadService.download(doc.url, `${doc.name}.pdf`);
+      await this.downloadService.download(document.url, `${document.name}.pdf`);
     } catch (err) {
-      console.error(`Error al descargar el documento ${doc.name}:`, err);
-      this.showNotification('Error de descarga', `No se pudo descargar ${doc.name}. Intente más tarde.`, NotificationType.ERROR);
+      console.error(`Error al descargar el documento ${document.name}:`, err);
+      this.showNotification('Error de descarga', `No se pudo descargar ${document.name}. Intente más tarde.`, NotificationType.ERROR);
     }
   }
 

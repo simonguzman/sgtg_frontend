@@ -15,13 +15,6 @@ export class NotificationService {
 
     this._notifications.update(prev => [newNotification, ...prev]);
 
-    // ← FIX: antes era `if (newNotification.type)`, siempre true.
-    // Se usa `!== false` (no `=== true`) a propósito: casi ninguna llamada
-    // a show() en el proyecto pasa `autoDismiss` explícitamente, y todas
-    // dependen del comportamiento actual de auto-cierre. Con `!== false`
-    // el default (ausente → se cierra solo) se preserva exactamente igual,
-    // y ahora sí es posible pedir una notificación persistente con
-    // `autoDismiss: false`.
     if (newNotification.autoDismiss !== false) {
       const duration = this.resolveAutoDismissDuration(newNotification);
       setTimeout(() => this.dismiss(id), duration);
@@ -48,9 +41,6 @@ export class NotificationService {
     this.show({ type: NotificationType.SECURITY, title, message, autoDismiss: true });
   }
 
-  // ← NUEVO: antes autoDismissDelay estaba declarado pero nunca se leía —
-  // un caller no tenía forma real de pedir una duración personalizada.
-  // Ahora se respeta, con fallback al comportamiento anterior según el tipo.
   private resolveAutoDismissDuration(notification: Notification): number {
     if (notification.autoDismissDelay !== undefined) {
       return notification.autoDismissDelay;

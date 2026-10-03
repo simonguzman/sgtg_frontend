@@ -1,9 +1,7 @@
-// src/app/modules/thesis-work/integration/thesis-work-correspondence-closure.integration.spec.ts
 import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Injector } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
-
 import { RegisterCorrespondenceFacadeService } from '../pages/register-correspondence-page/services/register-correspondence-facade.service';
 import { ThesisWorkService } from '../services/thesis-work.service';
 import { ThesisWorkStorageService } from '../services/thesis-work-storage.service';
@@ -21,7 +19,6 @@ import { UserApiService } from '../../users/services/user-api.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
-
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { FinalDelivery } from '../interfaces/final-delivery.interface';
 import { User } from '../../users/interfaces/user.interface';
@@ -34,12 +31,16 @@ import { PreliminaryDraft } from '../../preliminary-draft/interfaces/preliminary
 import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
 
+if (typeof globalThis.structuredClone === 'undefined') {
+  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
+}
+
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-default', idType: IdentificationType.CC, idNumber: 123456789,
-  firstName: 'Nombre', lastName: 'Apellido', secondLastName: '',
+  firstName: 'Nombre', secondName: '', lastName: 'Apellido', secondLastName: '',
   codeNumber: 1234567890, email: 'test@test.com', password: 'hash',
   state: UserState.active, roles: [], ...overrides
-});
+} as User);
 
 describe('Integración [Trabajo de Grado]: Correspondencia final — cierre completo del proceso', () => {
   let facade: RegisterCorrespondenceFacadeService;
@@ -56,12 +57,14 @@ describe('Integración [Trabajo de Grado]: Correspondencia final — cierre comp
   const directorId = 'dir-corr-1';
 
   beforeAll(() => {
-    // Interceptamos la API nativa de lectura de archivos
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     Object.defineProperty(window, 'FileReader', {
       writable: true,
       value: class {
-        onload: Function | null = null;
-        onerror: Function | null = null;
+        onload: ((ev: { target: unknown }) => void) | null = null;
+        onerror: ((ev: { target: { error: Error } }) => void) | null = null;
         result: string | null = null;
 
         readAsDataURL(file: File) {
@@ -78,8 +81,13 @@ describe('Integración [Trabajo de Grado]: Correspondencia final — cierre comp
     });
   });
 
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
   beforeEach(async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.clearAllMocks();
+    localStorage.clear();
 
     TestBed.configureTestingModule({
       providers: [
@@ -100,6 +108,7 @@ describe('Integración [Trabajo de Grado]: Correspondencia final — cierre comp
     preliminaryDraftStorage = TestBed.inject(PreliminaryDraftStorageService);
     proposalStorage = TestBed.inject(ProposalStorageService);
     userStorage = TestBed.inject(UserStorageService);
+
     const injector = TestBed.inject(Injector);
 
     await waitForHydration(thesisStorage.isHydrated, injector);
@@ -111,44 +120,66 @@ describe('Integración [Trabajo de Grado]: Correspondencia final — cierre comp
     const juror = createMockUser({ id: jurorId, firstName: 'Jurado', roles: [UserRoleType.DOCENTE, UserRoleType.JURADO] });
     userStorage.updateUsersList(() => [director, evaluator, juror]);
 
-    const proposal: Proposal = {
+    const proposalPartial: Partial<Proposal> = {
       id: proposalId, title: 'Tesis a cerrar', description: 'desc', modality: Modality.TI,
       authors: [], director, state: stateList.APROBADO, createdAt: new Date(),
       documents: [], evaluations: [], isArchived: false
     };
-    proposalStorage.updateProposals(() => [proposal]);
+    const proposal = proposalPartial as Proposal;
 
-    const draft: PreliminaryDraft = {
+    if ('updateProposals' in proposalStorage) {
+      proposalStorage.updateProposals(() => [proposal]);
+    }
+
+    const draftPartial: Partial<PreliminaryDraft> = {
       preliminaryDraftId: draftId, proposalId, proposalData: proposal,
       evaluators: [evaluator], evaluations: [], documents: [],
       state: stateList.APROBADO, createdData: new Date(), isArchived: false
     };
+    const draft = draftPartial as PreliminaryDraft;
     preliminaryDraftStorage.addDraft(draft);
 
-    const pendingDelivery: FinalDelivery = {
+    const pendingDeliveryPartial: Partial<FinalDelivery> = {
       id: 'delivery-1',
       uploadDate: '10 - 10 - 2026',
       monograph: { id: 'doc-mono', name: 'Monografía', url: 'data:mono', uploadDate: '10 - 10 - 2026', type: DocumentType.MONOGRAFIA, status: stateList.EN_REVISION },
       formatE: { id: 'doc-fe', name: 'Formato E', url: 'data:fe', uploadDate: '10 - 10 - 2026', type: DocumentType.FORMATO_E, status: stateList.EN_REVISION },
       status: stateList.EN_REVISION
     };
+    const pendingDelivery = pendingDeliveryPartial as FinalDelivery;
 
-    const thesisWork: ThesisWork = {
+    const thesisWorkPartial: Partial<ThesisWork> = {
       thesisWorkId: thesisId, preliminaryDraftId: draftId, preliminaryDraftData: draft,
       createdDate: new Date(), state: stateList.EN_DESARROLLO,
       advances: [], evaluations: [], finalDeliveries: [pendingDelivery], documents: [],
       sustentations: [{ id: 'sust-corr-1', assignedJurors: [juror], verdicts: [] }],
       pazYSalvos: [], specialRequests: [], isArchived: false
     };
-    thesisStorage['_thesisWorksList'].set([thesisWork]);
+    const thesisWork = thesisWorkPartial as ThesisWork;
+
+    if ('updateThesisWorks' in thesisStorage) {
+      (thesisStorage as unknown as { updateThesisWorks: (cb: () => ThesisWork[]) => void }).updateThesisWorks(() => [thesisWork]);
+    } else {
+      const storageAsRecord = thesisStorage as Record<string, any>;
+      if (storageAsRecord['_thesisWorksList']) {
+        storageAsRecord['_thesisWorksList'].set([thesisWork]);
+      }
+    }
   });
 
   it('debe leer el Formato H real, cerrar la entrega final, archivar los 3 niveles y retirar evaluador+jurado', fakeAsync(() => {
     const formatoHFile = new File(['contenido oficial'], 'resolucion-final.pdf', { type: 'application/pdf' });
 
     let successCalled = false;
-    facade.processCorrespondence(thesisId, formatoHFile, () => { successCalled = true; }, () => {});
-    tick(1500); // Reemplaza flush() para garantizar que la microtarea asíncrona fluya
+
+    facade.processCorrespondence(
+      thesisId,
+      formatoHFile,
+      () => { successCalled = true; },
+      () => { fail('La subida de la correspondencia falló inesperadamente'); }
+    );
+
+    tick(1500);
 
     expect(successCalled).toBe(true);
     const updatedThesis = thesisStorage.allThesisWorks().find(w => w.thesisWorkId === thesisId);
@@ -174,11 +205,17 @@ describe('Integración [Trabajo de Grado]: Correspondencia final — cierre comp
   }));
 
   it('debe notificar el error y no mutar nada si la lectura del archivo falla', fakeAsync(() => {
-    // Archivo inválido (size 0) para disparar el this.onerror en el mock
     const brokenFile = { size: 0 } as File;
 
     let errorCalled = false;
-    facade.processCorrespondence(thesisId, brokenFile, () => {}, () => { errorCalled = true; });
+
+    facade.processCorrespondence(
+      thesisId,
+      brokenFile,
+      () => { fail('La subida no debió reportar éxito con un archivo inválido'); },
+      () => { errorCalled = true; }
+    );
+
     tick(1500);
 
     expect(errorCalled).toBe(true);

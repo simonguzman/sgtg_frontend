@@ -6,8 +6,6 @@ import { IdentificationType } from '../enum/identification-type.enum';
 import { UserState } from '../enum/user-state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
-
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: '11111111-1111-1111-1111-111111111111',
   idType: IdentificationType.CC,
@@ -24,22 +22,15 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('UserFormatterService', () => {
   let service: UserFormatterService;
-
-  // Tipado estricto del Mock del Storage (Zero 'any', Zero 'Partial')
   let mockStorageService: {
     getUsersSnapshot: jest.Mock<User[], []>;
   };
 
   beforeEach(() => {
-    // 🔕 Silenciar consola para mantener terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    // Simulamos la obtención síncrona del snapshot de usuarios devolviendo nuestro usuario base
     mockStorageService = {
       getUsersSnapshot: jest.fn().mockReturnValue([createMockUser()])
     };
@@ -50,13 +41,12 @@ describe('UserFormatterService', () => {
         { provide: UserStorageService, useValue: mockStorageService }
       ]
     });
-
     service = TestBed.inject(UserFormatterService);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar espías de consola
+    jest.restoreAllMocks();
   });
 
   it('debería instanciarse correctamente el servicio', () => {
@@ -71,14 +61,11 @@ describe('UserFormatterService', () => {
     });
 
     it('debería formatear sin dejar dobles espacios si faltan segundos nombres/apellidos', () => {
-      // Usamos la fábrica sobreescribiendo los segundos nombres con string vacío
       const userSinSegundos = createMockUser({
         secondName: '',
         secondLastName: ''
       });
       const result = service.formatFullName(userSinSegundos);
-
-      // FIX: Ahora sí esperamos "Juan Pérez", ya que anulamos el secondLastName
       expect(result).toBe('Juan Pérez');
     });
   });
@@ -108,7 +95,6 @@ describe('UserFormatterService', () => {
     });
 
     it('debería procesar y formatear un arreglo mixto de IDs (string) y objetos User', () => {
-      // Usuario adicional inyectado directamente como objeto
       const user2 = createMockUser({
         id: '22222222-2222-2222-2222-222222222222',
         firstName: 'Ana',
@@ -116,10 +102,7 @@ describe('UserFormatterService', () => {
         lastName: 'López',
         secondLastName: ''
       });
-
-      // Arreglo mixto: [Objeto User, String ID (que existe en el mockStorage)]
       const authors = [user2, '11111111-1111-1111-1111-111111111111'];
-
       const result = service.getAuthorsNames(authors);
       expect(result).toBe('Ana López, Juan Carlos Pérez Gómez');
     });

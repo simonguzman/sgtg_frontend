@@ -18,7 +18,6 @@ export class ProposalMapperService {
       modality: proposal.modality,
       description: proposal.description,
       state: proposal.state,
-      // ← Delegado al helper compartido en vez de calcularlo inline
       deadlineStatus: getSingleEvaluationDeadlineLabel(
         proposal.state,
         proposal.evaluationDeadline,

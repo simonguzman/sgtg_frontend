@@ -56,7 +56,6 @@ export class UploadAdvancePageComponent implements OnInit {
     const user = this.authService.currentUser();
     if (!data || !thesis || !user) return;
     this.isSaving.set(true);
-    // ← void: processAdvance() ahora es async.
     void this.facade.processAdvance(
       thesis.thesisWorkId,
       user.id,

@@ -6,18 +6,10 @@ import { NotificationService } from '../../shared/components/notifications/servi
 import { NotificationType } from '../../shared/components/notifications/models/notification.model';
 import { resolveEntityForGuard } from '../helpers/resolve-entity-for-guard.helper';
 
-/**
- * Mismo criterio que proposalOwnershipGuard. Cierra un hueco más serio
- * que "solo ver": review_preliminary_draft/evaluate_presentation
- * permiten el rol EVALUADOR/CONSEJO de forma genérica — sin este guard,
- * cualquier evaluador (no solo los asignados a ESTE anteproyecto) podía
- * navegar directo y registrar una evaluación para uno que nunca le fue
- * asignado.
- */
 export const preliminaryDraftOwnershipGuard: CanActivateFn = (route) => {
   const router = inject(Router);
   const authService = inject(AuthService);
-  const draftStorage = inject(PreliminaryDraftStorageService);
+  const preliminaryDraftStorage = inject(PreliminaryDraftStorageService);
   const notificationService = inject(NotificationService);
   const injector = inject(Injector);
 
@@ -26,13 +18,13 @@ export const preliminaryDraftOwnershipGuard: CanActivateFn = (route) => {
   if (!id || !currentUser) return true;
 
   return resolveEntityForGuard(
-    draftStorage.isHydrated,
-    () => draftStorage.allPreliminaryDrafts(),
-    draft => draft.preliminaryDraftId === id,
+    preliminaryDraftStorage.isHydrated,
+    () => preliminaryDraftStorage.allPreliminaryDrafts(),
+    preliminaryDraft => preliminaryDraft.preliminaryDraftId === id,
     injector
-  ).then(draft => {
-    if (!draft) return true;
-    if (draftStorage.canUserViewPreliminaryDraft(draft, currentUser.id)) return true;
+  ).then(preliminaryDraft => {
+    if (!preliminaryDraft) return true;
+    if (preliminaryDraftStorage.canUserViewPreliminaryDraft(preliminaryDraft, currentUser.id)) return true;
 
     notificationService.show({
       title: 'Acceso restringido',

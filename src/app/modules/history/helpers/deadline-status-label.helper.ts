@@ -14,7 +14,7 @@ export interface EvaluatorsDeadlineInput {
 export function getEvaluatorsDeadlineLabel(input: EvaluatorsDeadlineInput): string {
   const totalEvaluators = input.evaluators?.length ?? 0;
   const relevantEvaluations = input.evaluations?.filter(
-    e => input.documentId && e.documentId === input.documentId
+    evaluation => input.documentId && evaluation.documentId === input.documentId
   ) ?? [];
 
   const statusLabel = resolveEvaluationsStatusLabel(relevantEvaluations);
@@ -55,7 +55,6 @@ export function getSingleEvaluationDeadlineLabel(
   const isEvaluated = state === stateList.APROBADO || state === stateList.NO_APROBADO;
 
   if (isEvaluated) {
-    // FIX: Eliminado el casteo redundante 'as string'
     return latestEvaluation?.deadlineStatus
       ? latestEvaluation.deadlineStatus
       : 'Evaluación completada';

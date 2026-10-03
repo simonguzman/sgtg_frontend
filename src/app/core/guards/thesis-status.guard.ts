@@ -34,11 +34,7 @@ export const thesisRestrictedStatusGuard: CanActivateFn = (route) => {
   });
 };
 
-/**
- * Bloquea solo la VISUALIZACIÓN mientras el trabajo está SUSPENDIDO —
- * deliberadamente NO bloquea CANCELADO, porque ese queda archivado y su
- * lectura sigue siendo el propósito del módulo de Historial.
- */
+
 export const thesisSuspendedViewGuard: CanActivateFn = (route) => {
   const router = inject(Router);
   const thesisStorage = inject(ThesisWorkStorageService);

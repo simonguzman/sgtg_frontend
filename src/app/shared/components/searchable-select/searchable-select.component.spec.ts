@@ -2,15 +2,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { SearchableSelectComponent, SelectOption } from './searchable-select.component';
 
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
-
 const createMockSelectOption = (overrides: Partial<SelectOption> = {}): SelectOption => ({
   id: '1',
   label: 'Default Option',
   ...overrides
 });
-
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('SearchableSelectComponent', () => {
   let component: SearchableSelectComponent;
@@ -23,7 +19,6 @@ describe('SearchableSelectComponent', () => {
   ];
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola para mantener terminal limpia ante advertencias o errores de renderizado
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -34,7 +29,6 @@ describe('SearchableSelectComponent', () => {
     fixture = TestBed.createComponent(SearchableSelectComponent);
     component = fixture.componentInstance;
 
-    // Configuración de los Inputs mediante la API de Signals de Angular
     fixture.componentRef.setInput('options', mockOptions);
     fixture.componentRef.setInput('placeholder', 'Seleccione un framework');
 
@@ -43,7 +37,7 @@ describe('SearchableSelectComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar la consola y los espías
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización y Renderizado', () => {
@@ -78,10 +72,8 @@ describe('SearchableSelectComponent', () => {
       component.isOpen.set(true);
       fixture.detectChanges();
 
-      // Simulamos clic en el documento, fuera del elemento referenciado por ElementRef
       document.dispatchEvent(new MouseEvent('click'));
       fixture.detectChanges();
-
       expect(component.isOpen()).toBe(false);
     });
 
@@ -96,7 +88,7 @@ describe('SearchableSelectComponent', () => {
       expect(component.searchTerm()).toBe('ang');
 
       const filtered = component.filteredOptions();
-      expect(filtered.length).toBe(1);
+      expect(filtered).toHaveLength(1);
       expect(filtered[0].label).toBe('Angular');
     });
 
@@ -144,7 +136,6 @@ describe('SearchableSelectComponent', () => {
 
       const clearBtn = fixture.debugElement.query(By.css('span[title="Limpiar selección"]')).nativeElement;
 
-      // Creamos el evento y lo espiamos nativamente
       const clickEvent = new MouseEvent('click');
       jest.spyOn(clickEvent, 'stopPropagation');
 

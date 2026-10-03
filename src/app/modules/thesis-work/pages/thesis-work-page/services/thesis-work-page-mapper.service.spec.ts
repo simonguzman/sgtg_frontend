@@ -1,13 +1,6 @@
-// 1. Angular Core y Testing
 import { TestBed } from '@angular/core/testing';
-
-// 2. Servicio a probar
 import { ThesisWorkPageMapperService } from './thesis-work-page-mapper.service';
-
-// 3. Dependencias
 import { UserService } from '../../../../users/services/user.service';
-
-// 4. Interfaces y Enums
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
@@ -15,13 +8,9 @@ import { Modality } from '../../../../proposal/enums/modality.enum';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 
-// ── Tipos Seguros para los Mocks (Cero 'any', 'unknown') ─────────────────────
-
 interface MockUserService {
   formatFullName: jest.Mock<string, [User]>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas ────────────────────────────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => {
   const base: Partial<User> = {
@@ -73,23 +62,19 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
         documents: [],
         evaluations: []
       }
-    } as any // Casteo temporal para aislar la data del draft base
+    } as any
   };
   return { ...baseThesis, ...overrides } as ThesisWork;
 };
-
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
 
 describe('ThesisWorkPageMapperService', () => {
   let service: ThesisWorkPageMapperService;
   let userServiceMock: MockUserService;
 
   beforeEach(() => {
-    // 🔕 Silenciador preventivo de consola
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Inicialización del mock respetando la firma estricta
     userServiceMock = {
       formatFullName: jest.fn().mockImplementation((user: User) => {
         return [user.firstName, user.secondName, user.lastName, user.secondLastName]
@@ -135,10 +120,8 @@ describe('ThesisWorkPageMapperService', () => {
         }]
       });
 
-      // Act (Nuevos 5 parámetros)
       const result = service.mapThesisWorkToTable(mockThesisWork, false, false, false, 'u-1');
 
-      // Assert
       expect(result.id).toBe('tw-1');
       expect(result.title).toBe('Tesis IA');
       expect(result.modality).toBe(Modality.TI);
@@ -208,42 +191,37 @@ describe('ThesisWorkPageMapperService', () => {
       expect(result.allowedActions).toEqual(['ver descripción', 'ver']);
     });
 
-    // ── FIX: Evaluación de la nueva regla `!isSuspended` y el botón `reactivar` ──
-
     it('debe OCULTAR "ver" pero mantener "editar" y agregar "reactivar" para el Administrador si está suspendido', () => {
       baseWork.state = stateList.SUSPENDIDO;
 
-      // hasFullAccess = true, isAdmin = true, isConsejo = false
       const result = service.mapThesisWorkToTable(baseWork, true, true, false, 'admin-id');
 
       expect(result.allowedActions).toContain('ver descripción');
       expect(result.allowedActions).toContain('editar');
       expect(result.allowedActions).toContain('reactivar');
-      expect(result.allowedActions).not.toContain('ver'); // FIX: Verifica que se oculta por la suspensión
+      expect(result.allowedActions).not.toContain('ver');
     });
 
     it('debe OCULTAR "ver" y agregar "reactivar" para el Consejo (no es owner ni admin) si está suspendido', () => {
       baseWork.state = stateList.SUSPENDIDO;
 
-      // hasFullAccess = true, isAdmin = false, isConsejo = true
       const result = service.mapThesisWorkToTable(baseWork, true, false, true, 'consejo-id');
 
       expect(result.allowedActions).toContain('ver descripción');
       expect(result.allowedActions).toContain('reactivar');
-      expect(result.allowedActions).not.toContain('ver');    // Oculto por suspensión
-      expect(result.allowedActions).not.toContain('editar'); // Consejo no es dueño ni admin
+      expect(result.allowedActions).not.toContain('ver');
+      expect(result.allowedActions).not.toContain('editar');
     });
 
     it('debe OCULTAR "ver" al propio director y NO agregar "reactivar" si está suspendido', () => {
       baseWork.state = stateList.SUSPENDIDO;
 
-      // Director: no tiene full access, no es admin, no es consejo
       const result = service.mapThesisWorkToTable(baseWork, false, false, false, 'director-id');
 
       expect(result.allowedActions).toContain('ver descripción');
-      expect(result.allowedActions).toContain('editar');     // Owner conserva edición
-      expect(result.allowedActions).not.toContain('ver');    // Pierde ver temporalmente
-      expect(result.allowedActions).not.toContain('reactivar'); // No tiene permisos de reactivar
+      expect(result.allowedActions).toContain('editar');
+      expect(result.allowedActions).not.toContain('ver');
+      expect(result.allowedActions).not.toContain('reactivar');
     });
   });
 });

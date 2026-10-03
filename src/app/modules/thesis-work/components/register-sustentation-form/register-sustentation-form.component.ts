@@ -28,17 +28,17 @@ export interface SustentationFormPayload {
 })
 export class RegisterSustentationFormComponent implements OnInit {
   protected readonly formService = inject(RegisterSustentationFormService);
-  private readonly destroyRef    = inject(DestroyRef);
+  private readonly destroyRef = inject(DestroyRef);
 
-  thesisWork    = input.required<ThesisWork>();
-  isSubmitting  = input<boolean>(false);
-  @Output() onSave         = new EventEmitter<{ payload: SustentationFormPayload; file: File }>();
-  @Output() onBack         = new EventEmitter<void>();
+  thesisWork = input.required<ThesisWork>();
+  isSubmitting = input<boolean>(false);
+  @Output() onSave = new EventEmitter<{ payload: SustentationFormPayload; file: File }>();
+  @Output() onBack = new EventEmitter<void>();
   @Output() onDownloadFile = new EventEmitter<FileDocument>();
 
   private readonly firstJurorSelectedId = signal<string>('');
-  readonly isModalOpen       = signal<boolean>(false);
-  readonly uploadedFormatE   = signal<{ fileName: string; file: File } | null>(null);
+  readonly isModalOpen = signal<boolean>(false);
+  readonly uploadedFormatE = signal<{ fileName: string; file: File } | null>(null);
   readonly isSubmitAttempted = signal<boolean>(false);
 
   readonly uploadedFileName = computed<string>(() => {
@@ -72,7 +72,7 @@ export class RegisterSustentationFormComponent implements OnInit {
   ngOnInit(): void {
     this.form.get('juror1')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((id: string | null) => {
+      .subscribe((id: string | null = '') => {
         const selectedId = id ?? '';
         this.firstJurorSelectedId.set(selectedId);
         if (this.form.get('juror2')?.value === selectedId) {
@@ -81,8 +81,6 @@ export class RegisterSustentationFormComponent implements OnInit {
       });
   }
 
-  // ← Simplificados: delegan al servicio con el ThesisWork completo,
-  // sin extraer el objeto User embebido de la propuesta manualmente.
   getStudentNames(): string   { return this.formService.getStudentNames(this.thesisWork()); }
   getDirectorName(): string   { return this.formService.getDirectorName(this.thesisWork()); }
   getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork()); }
@@ -106,8 +104,8 @@ export class RegisterSustentationFormComponent implements OnInit {
     return this.formService.getExistingDocument(this.thesisWork(), type);
   }
 
-  downloadDocument(doc: FileDocument | null): void {
-    if (doc) this.onDownloadFile.emit(doc);
+  downloadDocument(document: FileDocument | null): void {
+    if (document) this.onDownloadFile.emit(document);
   }
 
   handleFileUploaded(event: { fileName: string; file: File }): void {

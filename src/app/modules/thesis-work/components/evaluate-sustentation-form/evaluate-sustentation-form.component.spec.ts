@@ -1,14 +1,9 @@
-// 1. Angular Core y Testing
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
-
-// 2. Componente a probar
 import { EvaluateSustentationFormComponent, SustentationEvaluationPayload } from './evaluate-sustentation-form.component';
 import { EvaluateSustentationFormService } from './services/evaluate-sustentation-form.service';
-
-// 3. Interfaces y Enums
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SustentationRegistry } from '../../interfaces/sustentation-registry.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
@@ -19,13 +14,9 @@ import { IdentificationType } from '../../../users/enum/identification-type.enum
 import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
 import { JurorVerdict } from '../../interfaces/juror-verdict.interface';
-
-// 4. Componentes Reales para Override
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
-
-// ── Mocks de Componentes Hijos (Standalone) ──────────────────────────────────
 
 @Component({ selector: 'app-button-component', template: '', standalone: true })
 class MockButtonComponent {
@@ -48,8 +39,6 @@ class MockInfoBannerComponent {
   @Input() title = '';
 }
 
-// ── Tipos Seguros para los Mocks (Zero 'any', 'unknown') ──────────────────────────────
-
 interface MockEvaluateSustentationFormService {
   getStudentNames: jest.Mock<string, [ThesisWork]>;
   getDirectorName: jest.Mock<string, [ThesisWork]>;
@@ -61,8 +50,6 @@ interface MockEvaluateSustentationFormService {
   notifyMissingVerdict: jest.Mock<void, []>;
   notifyMissingFile: jest.Mock<void, []>;
 }
-
-// ── Funciones Fábrica fuertemente tipadas (Con estructura actualizada) ───────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-1',
@@ -135,20 +122,15 @@ const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocu
   ...overrides
 });
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('EvaluateSustentationFormComponent', () => {
   let component: EvaluateSustentationFormComponent;
   let fixture: ComponentFixture<EvaluateSustentationFormComponent>;
 
-  // Tipado estructural estricto
   let formServiceMock: MockEvaluateSustentationFormService;
 
-  // Fábrica para el componente inicial
   const mockThesisWork = createMockThesisWork();
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola como medida preventiva
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -182,14 +164,13 @@ describe('EvaluateSustentationFormComponent', () => {
     fixture = TestBed.createComponent(EvaluateSustentationFormComponent);
     component = fixture.componentInstance;
 
-    // Asignación segura del Input
     fixture.componentRef.setInput('thesisWork', mockThesisWork);
     fixture.detectChanges();
   });
 
   afterEach(() => {
-    jest.clearAllMocks(); // Limpieza del estado de los espías entre pruebas
-    jest.restoreAllMocks(); // 🧹 Restaurar consola
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización y Getters de Entidad', () => {
@@ -279,7 +260,6 @@ describe('EvaluateSustentationFormComponent', () => {
       textarea.value = 'Se aprueba con cambios menores';
       const mockEvent = new Event('input');
 
-      // Definimos la propiedad sin mutar la clase Event ni usar 'as any'
       Object.defineProperty(mockEvent, 'target', { writable: false, value: textarea });
 
       component.onObservationsChange(mockEvent);

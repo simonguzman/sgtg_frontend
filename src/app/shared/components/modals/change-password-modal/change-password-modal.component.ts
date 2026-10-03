@@ -11,7 +11,6 @@ export const passwordMatchValidator = (control: AbstractControl): ValidationErro
   const confirmPassword = control.get('confirmPassword');
 
   if (newPassword && confirmPassword && newPassword.value !== confirmPassword.value) {
-    // Si no coinciden, asignamos el error al formGroup
     return { passwordMismatch: true };
   }
   return null;
@@ -54,14 +53,12 @@ export class ChangePasswordModalComponent {
     if (field === 'confirm') this.showConfirmPassword = !this.showConfirmPassword;
   }
 
-  // Paso 1: El usuario da clic en "Confirmar" en el formulario
   onAttemptSave() {
     if (this.passwordForm.valid) {
       this.isConfirmActionOpen = true;
     }
   }
 
-  // Paso 2: El usuario confirma en el modal de advertencia
   confirmChange() {
     this.isConfirmActionOpen = false;
     this.isLoading = true;
@@ -71,14 +68,11 @@ export class ChangePasswordModalComponent {
     this.authService.changePassword(currentPassword, newPassword).subscribe({
       next: () => {
         this.isLoading = false;
-        // Podrías lanzar un toast de éxito aquí antes de cerrar
         this.closeModal();
       },
       error: (err) => {
         this.isLoading = false;
-        // Aquí podrías asignar un mensaje de error para mostrar en el HTML
         console.error('Error al cambiar contraseña:', err.message);
-        // Por ejemplo: this.errorMessage = 'La contraseña actual no coincide';
       }
     });
   }

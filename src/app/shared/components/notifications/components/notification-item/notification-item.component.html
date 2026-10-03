@@ -2,10 +2,8 @@
   role="alert"
   [ngClass]="['notification', config().containerClass]"
 >
-  <!-- Ícono -->
   <i [ngClass]="['pi', config().icon, config().iconClass, 'notification__icon']"></i>
 
-  <!-- Contenido -->
   <div class="notification__body">
     <span [ngClass]="['notification__title', config().titleClass]">
       {{ notification().title }}
@@ -15,7 +13,6 @@
     </span>
   </div>
 
-  <!-- Botón cerrar -->
   @if (notification().dismissible !== false) {
     <button
       [ngClass]="['notification__close', config().closeClass]"

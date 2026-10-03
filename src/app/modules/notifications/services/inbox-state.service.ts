@@ -1,8 +1,6 @@
 import { Injectable, signal, effect } from '@angular/core';
 import { InboxMessage } from '../interfaces/inbox-message.interface';
 
-// ← Reemplaza el `as any[]` del parseo — refleja la forma real en la que
-// las fechas quedan serializadas en localStorage (como string, no Date).
 interface StoredInboxMessage extends Omit<InboxMessage, 'date'> {
   date: string;
 }
@@ -48,13 +46,10 @@ export class InboxStateService {
       const parsed = JSON.parse(stored) as StoredInboxMessage[];
       return parsed.map(message => ({
         ...message,
-        date: new Date(message.date) // Reconstrucción crucial del objeto Date
+        date: new Date(message.date)
       }));
     } catch (error) {
       console.error('Error parseando notificaciones de localStorage', error);
-      // ← FIX: se agrega removeItem, igual que ProposalStorageService y
-      // PreliminaryDraftStorageService. Sin esto, un JSON corrupto fallaría
-      // el parseo en cada carga de la app indefinidamente, no solo una vez.
       localStorage.removeItem(this.STORAGE_KEY);
       return [];
     }

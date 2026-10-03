@@ -17,17 +17,11 @@ export class EvaluateSpecialRequestFacadeService {
   public loadThesisWorkAndRequest(
     thesisId: string,
     requestId: string,
-    onSuccess: (work: ThesisWork, request: SpecialRequest) => void,
+    onSuccess: (thesisWork: ThesisWork, request: SpecialRequest) => void,
     onError: () => void
   ): void {
     this.thesisWorkService.getThesisWorkByIdMock(thesisId).pipe(first()).subscribe({
       next: (data) => {
-        // ← FIX: antes `if (!data) return;` dejaba la página cargando
-        // indefinidamente sin notificar ni redirigir — inconsistente con
-        // RegisterSpecialRequestFacadeService.loadThesisWork, que sí
-        // maneja este caso. Ahora ambos facades se comportan igual, y no
-        // hizo falta tocar la firma: el mismo onError() que ya se usa para
-        // "solicitud no encontrada" sirve también aquí.
         if (!data) {
           this.showError('El trabajo de grado especificado no existe.');
           onError();
@@ -60,17 +54,17 @@ export class EvaluateSpecialRequestFacadeService {
       .subscribe({
         next: () => {
           this.notificationService.show({
-            title:   'Evaluación Registrada',
+            title: 'Evaluación Registrada',
             message: 'La evaluación de la solicitud ha sido guardada correctamente.',
-            type:    NotificationType.CONFIRMATION
+            type: NotificationType.CONFIRMATION
           });
           onSuccess();
         },
         error: () => {
           this.notificationService.show({
-            title:   'Error de Red',
+            title: 'Error de Red',
             message: 'Fallo la comunicación al almacenar la evaluación.',
-            type:    NotificationType.ERROR
+            type: NotificationType.ERROR
           });
           onError();
         }
