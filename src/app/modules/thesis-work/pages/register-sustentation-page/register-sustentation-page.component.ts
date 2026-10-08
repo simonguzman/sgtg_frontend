@@ -4,6 +4,7 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { RegisterSustentationFacadeService } from './services/register-sustentation-facade.service';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { RegisterSustentationFormComponent, SustentationFormPayload } from '../../components/register-sustentation-form/register-sustentation-form.component';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 
 @Component({
   selector: 'app-register-sustentation-page',
@@ -56,6 +57,10 @@ export class RegisterSustentationPageComponent implements OnInit {
       () => { this.isSubmitting.set(false); this.goBack(); },
       () => { this.isSubmitting.set(false); }
     );
+  }
+
+  downloadDocument(document: FileDocument): void {
+    void this.facade.downloadDocument(document);
   }
 
   goBack(): void {

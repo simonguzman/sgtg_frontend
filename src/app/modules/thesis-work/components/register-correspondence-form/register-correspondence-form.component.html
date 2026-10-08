@@ -7,54 +7,22 @@
   <section class="mb-8">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
     <div class="flex flex-col gap-4">
-      <div class="flex flex-col gap-1">
-        <label for="infoTitle" class="font-display font-semibold text-primary text-size-section">Título</label>
-        <input id="infoTitle" type="text" [value]="thesisWork().preliminaryDraftData.proposalData.title || ''" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
-      <div class="flex flex-col gap-1">
-        <label for="infoDescription" class="font-display font-semibold text-primary text-size-section">Descripción</label>
-        <input id="infoDescription" type="text" [value]="thesisWork().preliminaryDraftData.proposalData.description" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
+      <app-readonly-field label="Título" [value]="thesisWork().preliminaryDraftData.proposalData.title"></app-readonly-field>
+      <app-readonly-field label="Descripción" [value]="thesisWork().preliminaryDraftData.proposalData.description"></app-readonly-field>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="flex flex-col gap-1">
-          <label for="infoModality" class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</label>
-          <input id="infoModality" type="text" [value]="thesisWork().preliminaryDraftData.proposalData.modality || ''" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-        </div>
-        <div class="flex flex-col gap-1">
-          <label for="infoStudent" class="font-display font-semibold text-primary text-size-section">Estudiante</label>
-          <input id="infoStudent" type="text" [value]="getStudentNames()" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-        </div>
+        <app-readonly-field label="Modalidad del trabajo de grado" [value]="thesisWork().preliminaryDraftData.proposalData.modality"></app-readonly-field>
+        <app-readonly-field label="Estudiante" [value]="getStudentNames()"></app-readonly-field>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="flex flex-col gap-1">
-          <label for="infoDirector" class="font-display font-semibold text-primary text-size-section">Director</label>
-          <input id="infoDirector" type="text" [value]="getDirectorName()" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-        </div>
+        <app-readonly-field label="Director" [value]="getDirectorName()"></app-readonly-field>
         @if (thesisWork().preliminaryDraftData.proposalData.codirector) {
-          <div class="flex flex-col gap-1">
-            <label for="infoCodirector" class="font-display font-semibold text-primary text-size-section">Codirector</label>
-            <input id="infoCodirector" type="text" [value]="getCodirectorName()" disabled
-                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-          </div>
+          <app-readonly-field label="Codirector" [value]="getCodirectorName()"></app-readonly-field>
         }
         @if (thesisWork().preliminaryDraftData.proposalData.advisor) {
-          <div class="flex flex-col gap-1">
-            <label for="infoAdvisor" class="font-display font-semibold text-primary text-size-section">Asesor</label>
-            <input id="infoAdvisor" type="text" [value]="getAdvisorName()" disabled
-                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-          </div>
+          <app-readonly-field label="Asesor" [value]="getAdvisorName()"></app-readonly-field>
         }
       </div>
-      <div class="flex flex-col gap-1">
-        <label for="infoState" class="font-display font-semibold text-primary text-size-section">Estado Actual</label>
-        <input id="infoState" type="text" [value]="thesisWork().state" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
-      </div>
+      <app-readonly-field label="Estado Actual" [value]="thesisWork().state" [emphasize]="true"></app-readonly-field>
     </div>
   </section>
   <section class="mb-8">
@@ -62,7 +30,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Jurados Asignados</span>
-        <div class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full min-h-10 flex items-center gap-1">
+        <div class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 w-full min-h-10 flex items-center gap-1">
           @for (juror of thesisWork().sustentations?.[0]?.assignedJurors; track juror.id) {
             <span>{{ getMemberName(juror.id) }}{{ $last ? '' : ' - ' }}</span>
           } @empty {
@@ -70,11 +38,7 @@
           }
         </div>
       </div>
-      <div class="flex flex-col gap-1">
-        <label for="infoDate" class="font-display font-semibold text-primary text-size-section">Fecha de Sustentación</label>
-        <input id="infoDate" type="text" [value]="(thesisWork().sustentations?.[0]?.sustentationDate | date:'dd / MM / yyyy') || 'Pendiente'" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
+      <app-readonly-field label="Fecha de Sustentación" [value]="(thesisWork().sustentations?.[0]?.sustentationDate | date:'dd / MM / yyyy')" emptyText="Pendiente"></app-readonly-field>
     </div>
   </section>
   <hr class="border-gray-200 mb-8">
@@ -134,11 +98,7 @@
               </span>
             </div>
           </div>
-          <app-button-component
-            label="Cargar Formato H"
-            variant="secondary"
-            (onClick)="isModalOpen.set(true)">
-          </app-button-component>
+          <app-button-component label="Cargar Formato H" variant="secondary" (onClick)="isModalOpen.set(true)"></app-button-component>
         </div>
       }
       @else {
@@ -150,22 +110,14 @@
               <span class="text-size-role-footer text-[#777680]">Documento cargado con éxito</span>
             </div>
           </div>
-          <button
-            type="button"
-            (click)="removeSelectedFile()"
-            class="text-[#777680] hover:text-[#DB141C] transition-colors">
+          <button type="button" (click)="removeSelectedFile()" class="text-[#777680] hover:text-[#DB141C] transition-colors">
             <span class="material-symbols-outlined">delete</span>
           </button>
         </div>
       }
     </div>
     <div class="flex gap-4 justify-end mt-10">
-      <app-button-component
-        label="Registrar y Finalizar Proceso"
-        variant="primary"
-        [disabled]="!selectedFile() || isSubmitting()"
-        (onClick)="submitForm()">
-      </app-button-component>
+      <app-button-component label="Registrar y Finalizar Proceso" variant="primary" [disabled]="!selectedFile() || isSubmitting()" (onClick)="submitForm()"></app-button-component>
     </div>
   </section>
 </div>

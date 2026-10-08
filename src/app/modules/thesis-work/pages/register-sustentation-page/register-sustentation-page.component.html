@@ -11,7 +11,8 @@
         [thesisWork]="thesisWorkState()!"
         [isSubmitting]="isSubmitting()"
         (onSave)="handleRequestConfirmation($event)"
-        (onBack)="goBack()">
+        (onBack)="goBack()"
+        (onDownloadFile)="downloadDocument($event)">
       </app-register-sustentation-form>
     }
 

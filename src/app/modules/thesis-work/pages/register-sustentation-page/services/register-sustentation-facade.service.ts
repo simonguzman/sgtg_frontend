@@ -1,15 +1,18 @@
 import { inject, Injectable } from '@angular/core';
 import { first } from 'rxjs/operators';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
+import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { SustentationFormData } from '../../../interfaces/sustentation-form-data.interface';
 import { SustentationFormPayload } from '../../../components/register-sustentation-form/register-sustentation-form.component';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 
 @Injectable({ providedIn: 'root' })
 export class RegisterSustentationFacadeService {
   private readonly thesisWorkService = inject(ThesisWorkService);
+  private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
   public loadThesisWork(
@@ -60,6 +63,19 @@ export class RegisterSustentationFacadeService {
           onError();
         }
       });
+  }
+
+  public async downloadDocument(document: FileDocument): Promise<void> {
+    if (!document?.url) {
+      this.showNotification('Error de descarga', 'No existe una URL válida vinculada a este archivo.', NotificationType.ERROR);
+      return;
+    }
+    try {
+      await this.downloadService.download(document.url, `${document.name}.pdf`);
+    } catch (err) {
+      console.error(`Error al descargar el documento ${document.name}:`, err);
+      this.showNotification('Error de descarga', `No se pudo descargar ${document.name}. Intente más tarde.`, NotificationType.ERROR);
+    }
   }
 
   private showNotification(title: string, message: string, type: NotificationType): void {

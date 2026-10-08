@@ -11,43 +11,28 @@
       </h3>
 
       <div class="flex flex-col gap-4">
-        <ng-template #readOnlyField let-label="label" let-value="value" let-isTextArea="isTextArea">
-          <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-primary text-size-section">
-              {{ label }}
-            </span>
-            @if (isTextArea) {
-              <textarea id="" [value]="value || 'Sin descripción disponible'" disabled rows="4"
-                        class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body resize-none"></textarea>
-            } @else {
-              <input id="" type="text" [value]="value" disabled
-                     class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body">
-            }
-          </div>
-        </ng-template>
-
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Título', value: preliminaryDraft().proposalData.title }"></ng-container>
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Descripción', value: preliminaryDraft().proposalData.description, isTextArea: true }"></ng-container>
+        <app-readonly-field label="Título" [value]="preliminaryDraft().proposalData.title"></app-readonly-field>
+        <app-readonly-field label="Descripción" [value]="preliminaryDraft().proposalData.description" emptyText="Sin descripción disponible"></app-readonly-field>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Fecha de carga', value: (preliminaryDraft().createdData | date:'dd - MM - yyyy') }"></ng-container>
-            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Modalidad del trabajo de grado', value: preliminaryDraft().proposalData.modality }"></ng-container>
+          <app-readonly-field label="Fecha de carga" [value]="preliminaryDraft().createdData | date:'dd - MM - yyyy'"></app-readonly-field>
+          <app-readonly-field label="Modalidad del trabajo de grado" [value]="preliminaryDraft().proposalData.modality"></app-readonly-field>
         </div>
 
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estudiante', value: facade.getAuthorsNames(preliminaryDraft().proposalData.authors) }"></ng-container>
+        <app-readonly-field label="Estudiante" [value]="facade.getAuthorsNames(preliminaryDraft().proposalData.authors)"></app-readonly-field>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Director', value: facade.getMemberFullName(preliminaryDraft().proposalData.director) }"></ng-container>
-            @if (preliminaryDraft().proposalData.codirector) {
-                <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Codirector', value: facade.getMemberFullName(preliminaryDraft().proposalData.codirector) }"></ng-container>
-            }
+          <app-readonly-field label="Director" [value]="facade.getMemberFullName(preliminaryDraft().proposalData.director)"></app-readonly-field>
+          @if (preliminaryDraft().proposalData.codirector) {
+            <app-readonly-field label="Codirector" [value]="facade.getMemberFullName(preliminaryDraft().proposalData.codirector)"></app-readonly-field>
+          }
         </div>
 
         @if (preliminaryDraft().proposalData.advisor) {
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Asesor', value: facade.getMemberFullName(preliminaryDraft().proposalData.advisor) }"></ng-container>
+          <app-readonly-field label="Asesor" [value]="facade.getMemberFullName(preliminaryDraft().proposalData.advisor)"></app-readonly-field>
         }
 
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estado', value: preliminaryDraft().state }"></ng-container>
+        <app-readonly-field label="Estado" [value]="preliminaryDraft().state"></app-readonly-field>
       </div>
     </section>
 
@@ -99,11 +84,7 @@
       </div>
 
       <div class="flex justify-end gap-4 mt-10">
-        <app-button-component
-          label="Asignar evaluadores"
-          variant="primary"
-          type="submit"
-        ></app-button-component>
+        <app-button-component label="Asignar evaluadores" variant="primary" type="submit"></app-button-component>
       </div>
 
     </section>

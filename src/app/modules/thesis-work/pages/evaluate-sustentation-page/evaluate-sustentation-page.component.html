@@ -11,7 +11,8 @@
         [thesisWork]="thesisWorkState()!"
         [isSubmitting]="isSubmitting()"
         (onSave)="handleSaveTriggered($event)"
-        (onBack)="goBack()">
+        (onBack)="goBack()"
+        (onDownloadFile)="downloadDocument($event)">
       </app-evaluate-sustentation-form>
     }
 
@@ -23,4 +24,3 @@
     </app-confirmation-action-modal>
   </div>
 </div>
-

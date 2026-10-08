@@ -1,11 +1,11 @@
 import { Component, computed, DestroyRef, EventEmitter, inject, input, OnInit, Output, signal } from '@angular/core';
-import { NgTemplateOutlet } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { DatePicker } from 'primeng/datepicker';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 import { SelectOption, SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select.component';
 import { RegisterSustentationFormService } from './services/register-sustentation-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
@@ -23,7 +23,7 @@ export interface SustentationFormPayload {
   selector: 'app-register-sustentation-form',
   templateUrl: './register-sustentation-form.component.html',
   styleUrls: ['./register-sustentation-form.component.css'],
-  imports: [NgTemplateOutlet, ReactiveFormsModule, FileUploadModalComponent, ButtonComponent, DatePicker, InfoBannerComponent, SearchableSelectComponent],
+  imports: [ReactiveFormsModule, FileUploadModalComponent, ButtonComponent, DatePicker, InfoBannerComponent, SearchableSelectComponent, ReadonlyFieldComponent],
   providers: [RegisterSustentationFormService]
 })
 export class RegisterSustentationFormComponent implements OnInit {

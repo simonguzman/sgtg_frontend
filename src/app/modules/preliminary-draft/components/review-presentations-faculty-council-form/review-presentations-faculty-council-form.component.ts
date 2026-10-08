@@ -1,10 +1,10 @@
 import { Component, effect, inject, input, output, OnInit } from '@angular/core';
-import { NgTemplateOutlet } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { DatePicker } from 'primeng/datepicker';
 import { ReviewPresentationsFacultyCouncilFormFacadeService } from './services/review-presentations-faculty-council-form-facade.service';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
+import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
@@ -13,7 +13,7 @@ import { SaveEvaluationPayload } from './models/council-evaluation.model';
 @Component({
   selector: 'app-review-presentations-faculty-council-form',
   standalone: true,
-  imports: [NgTemplateOutlet, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, DatePicker],
+  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent, DatePicker],
   providers: [ReviewPresentationsFacultyCouncilFormFacadeService],
   templateUrl: './review-presentations-faculty-council-form.component.html',
   styleUrls: ['./review-presentations-faculty-council-form.component.css']

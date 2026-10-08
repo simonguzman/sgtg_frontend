@@ -11,43 +11,26 @@
       </h3>
 
       <div class="flex flex-col gap-4">
-
-        <ng-template #readOnlyField let-id="id" let-label="label" let-value="value" let-isState="isState" let-isTextArea="isTextArea">
-          <div class="flex flex-col gap-1">
-            <label [for]="id" class="font-display font-semibold text-primary text-size-section">{{ label }}</label>
-            @if (isTextArea) {
-              <textarea [id]="id" [value]="value || 'Sin descripción disponible'" disabled rows="4"
-                        class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body resize-none"></textarea>
-            } @else {
-              <input [id]="id" type="text" [value]="value" disabled
-                     class="information-block p-2 border rounded-md text-[#777680] w-full cursor-not-allowed font-sans text-size-body"
-                     [class.font-medium]="isState" [class.capitalize]="isState">
-            }
-          </div>
-        </ng-template>
-
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoTitle', label: 'Título', value: thesisWork.preliminaryDraftData.proposalData.title }"></ng-container>
-
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoDescription', label: 'Descripción', value: thesisWork.preliminaryDraftData.proposalData.description, isTextArea: true }"></ng-container>
+        <app-readonly-field label="Título" [value]="thesisWork.preliminaryDraftData.proposalData.title"></app-readonly-field>
+        <app-readonly-field label="Descripción" [value]="thesisWork.preliminaryDraftData.proposalData.description" emptyText="Sin descripción disponible"></app-readonly-field>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoModality', label: 'Modalidad', value: thesisWork.preliminaryDraftData.proposalData.modality }"></ng-container>
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoStudent', label: 'Estudiante', value: getStudentNames() }"></ng-container>
+          <app-readonly-field label="Modalidad" [value]="thesisWork.preliminaryDraftData.proposalData.modality"></app-readonly-field>
+          <app-readonly-field label="Estudiante" [value]="getStudentNames()"></app-readonly-field>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoDirector', label: 'Director', value: getDirectorName() }"></ng-container>
+          <app-readonly-field label="Director" [value]="getDirectorName()"></app-readonly-field>
           @if (getCodirectorName()) {
-            <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoCodirector', label: 'Codirector', value: getCodirectorName() }"></ng-container>
+            <app-readonly-field label="Codirector" [value]="getCodirectorName()"></app-readonly-field>
           }
         </div>
 
         @if (getAdvisorName()) {
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoAdvisor', label: 'Asesor', value: getAdvisorName() }"></ng-container>
+          <app-readonly-field label="Asesor" [value]="getAdvisorName()"></app-readonly-field>
         }
 
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoState', label: 'Estado', value: thesisWork.state, isState: true }"></ng-container>
-
+        <app-readonly-field label="Estado" [value]="thesisWork.state" [emphasize]="true"></app-readonly-field>
       </div>
     </section>
 
@@ -118,19 +101,8 @@
       </div>
 
       <div class="flex justify-end gap-4 mt-10">
-        <app-button-component
-          label="Cargar archivo"
-          variant="secondary"
-          type="button"
-          (onClick)="isUploadModalOpen.set(true)">
-        </app-button-component>
-
-        <app-button-component
-          label="Guardar y enviar avance"
-          variant="primary"
-          type="submit"
-          [disabled]="isSubmitting">
-        </app-button-component>
+        <app-button-component label="Cargar archivo" variant="secondary" type="button" (onClick)="isUploadModalOpen.set(true)"></app-button-component>
+        <app-button-component label="Guardar y enviar avance" variant="primary" type="submit" [disabled]="isSubmitting"></app-button-component>
       </div>
 
     </section>

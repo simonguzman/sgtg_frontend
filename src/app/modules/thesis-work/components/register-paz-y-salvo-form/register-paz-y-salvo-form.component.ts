@@ -1,6 +1,7 @@
 import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
+import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 import { RegisterPazYSalvoFormService } from './services/register-paz-y-salvo-form.service';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
@@ -9,7 +10,7 @@ import { PazYSalvoPayload } from '../../interfaces/paz-y-salvo-playload.interfac
 
 @Component({
   selector: 'app-register-paz-y-salvo-form',
-  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent],
+  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent, ReadonlyFieldComponent],
   providers: [RegisterPazYSalvoFormService],
   templateUrl: './register-paz-y-salvo-form.component.html',
   styleUrls: ['./register-paz-y-salvo-form.component.css']

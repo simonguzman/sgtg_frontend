@@ -15,12 +15,15 @@ import { Modality } from '../../../../proposal/enums/modality.enum';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { PreliminaryDraftDetailsPageService } from './preliminary-draft-details-page.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
+import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
+import { FormattedDocument } from '../../../../../core/interfaces/formatted-document.interface';
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
   idType: IdentificationType.CC,
   idNumber: 123456789,
   firstName: 'Usuario',
+  secondName: '',
   lastName: 'Test',
   secondLastName: 'Mock',
   codeNumber: 1111,
@@ -29,16 +32,36 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
   password: 'hash',
   state: UserState.active,
   ...overrides
-} as User);
+});
 
-const createMockDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
+const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
   id: 'doc-1',
   name: 'anteproyecto.pdf',
   url: 'http://docs/anteproyecto.pdf',
-  uploadDate: '23/07/2026',
+  uploadDate: new Date('2026-07-23'),
   type: DocumentType.ANTEPROYECTO,
   ...overrides
-} as FileDocument);
+});
+
+const createMockFormattedDocument = (overrides: Partial<FormattedDocument> = {}): FormattedDocument => ({
+  name: 'formato_evaluacion.pdf',
+  url: 'http://docs/formato_evaluacion.pdf',
+  ...overrides
+});
+
+const createMockEvaluation = (overrides: Partial<Evaluation> = {}): Evaluation => ({
+  id: 'eval-1',
+  proposalId: 'prop-1',
+  documentId: 'doc-1',
+  evaluatorId: 'u1',
+  evaluatorName: 'Evaluador Mock',
+  evaluatorRole: 'Jurado',
+  veredict: stateList.APROBADO,
+  observations: '',
+  date: new Date(),
+  signedDocuments: [createMockFormattedDocument()],
+  ...overrides
+});
 
 type ProposalData = NonNullable<PreliminaryDraft['proposalData']>;
 const createMockProposalData = (overrides: Partial<ProposalData> = {}): ProposalData => ({
@@ -51,9 +74,9 @@ const createMockProposalData = (overrides: Partial<ProposalData> = {}): Proposal
   state: stateList.EN_REVISION,
   createdAt: new Date(),
   documents: [],
-  evaluations: [],
+  evaluations: [createMockEvaluation()],
   ...overrides
-} as ProposalData);
+});
 
 const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
   preliminaryDraftId: 'draft-1',
@@ -62,18 +85,19 @@ const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): Preliminary
   createdData: new Date(),
   evaluations: [],
   documents: [
-    createMockDocument({ id: 'doc-2', type: DocumentType.FORMATO_C, name: 'formato_c.pdf' }),
-    createMockDocument()
+    createMockFileDocument({ id: 'doc-2', type: DocumentType.FORMATO_C, name: 'formato_c.pdf' }),
+    createMockFileDocument()
   ],
   proposalData: createMockProposalData(),
+  isArchived: false,
   ...overrides
-} as PreliminaryDraft);
+});
 
 describe('PreliminaryDraftDetailsPageService', () => {
   let service: PreliminaryDraftDetailsPageService;
 
-  let mockRouteParamMapGet: jest.Mock;
-  let mockParentRouteParamMapGet: jest.Mock;
+  let mockRouteParamMapGet: jest.Mock<string | null, [string]>;
+  let mockParentRouteParamMapGet: jest.Mock<string | null, [string]>;
   let mockRouter: { navigate: jest.Mock; url: string };
   let mockPreliminaryDraftService: { getPreliminaryDraftById: jest.Mock };
   let mockUserService: { getUserFullName: jest.Mock; getAuthorsNames: jest.Mock };
@@ -183,29 +207,31 @@ describe('PreliminaryDraftDetailsPageService', () => {
     });
   });
 
-  describe('Señal Computada: mainDocument()', () => {
-    it('debería obtener el documento tipo "Anteproyecto" (DocumentType.ANTEPROYECTO)', () => {
-      service.preliminaryDraftDetails.set(createMockDraft());
-
-      expect(service.mainDocument()?.type).toBe(DocumentType.ANTEPROYECTO);
-      expect(service.mainDocument()?.name).toBe('anteproyecto.pdf');
-    });
-
-    it('debería retornar el primer documento si no hay ninguno marcado como "Anteproyecto"', () => {
-      const draftWithoutAnteproyecto = createMockDraft({
-        documents: [createMockDocument({ id: 'doc-2', type: DocumentType.FORMATO_C, name: 'formato_c.pdf' })]
+  describe('Señal Computada: approvedProposalDocument()', () => {
+    it('debería obtener el documento firmado de la última evaluación aprobada de la propuesta', () => {
+      const mockDoc = createMockFormattedDocument({ name: 'documento_aprobado.pdf' });
+      const draft = createMockDraft({
+        proposalData: createMockProposalData({
+          evaluations: [createMockEvaluation({ veredict: stateList.APROBADO, signedDocuments: [mockDoc] })]
+        })
       });
+      service.preliminaryDraftDetails.set(draft);
 
-      service.preliminaryDraftDetails.set(draftWithoutAnteproyecto);
-
-      expect(service.mainDocument()?.type).toBe(DocumentType.FORMATO_C);
+      expect(service.approvedProposalDocument()).toEqual(mockDoc);
     });
 
-    it('debería retornar null si el array de documentos está vacío', () => {
-      const draftWithoutDocs = createMockDraft({ documents: [] });
-      service.preliminaryDraftDetails.set(draftWithoutDocs);
+    it('debería retornar null si la propuesta no tiene evaluaciones', () => {
+      const draftWithoutEvaluations = createMockDraft({
+        proposalData: createMockProposalData({ evaluations: [] })
+      });
+      service.preliminaryDraftDetails.set(draftWithoutEvaluations);
 
-      expect(service.mainDocument()).toBeNull();
+      expect(service.approvedProposalDocument()).toBeNull();
+    });
+
+    it('debería retornar null si no hay un PreliminaryDraft (estado inicial)', () => {
+      service.preliminaryDraftDetails.set(null);
+      expect(service.approvedProposalDocument()).toBeNull();
     });
   });
 
@@ -226,7 +252,7 @@ describe('PreliminaryDraftDetailsPageService', () => {
     });
   });
 
-  describe('Flujos de Acción Secundaria', () => {
+  describe('Flujos de Acción Secundaria (Navegación)', () => {
     it('goBack() debería redirigir a history si la ruta actual lo contiene', () => {
       mockRouter.url = '/history/details/draft-1';
       service.goBack();
@@ -245,8 +271,13 @@ describe('PreliminaryDraftDetailsPageService', () => {
   });
 
   describe('Descarga de Documento (downloadDocument) - Flujo Asíncrono', () => {
-    it('debería notificar y descargar correctamente si existe el documento principal', async () => {
-      service.preliminaryDraftDetails.set(createMockDraft());
+    it('debería notificar y descargar correctamente si existe el documento de evaluación aprobado', async () => {
+      const mockDoc = createMockFormattedDocument();
+      service.preliminaryDraftDetails.set(createMockDraft({
+        proposalData: createMockProposalData({
+          evaluations: [createMockEvaluation({ veredict: stateList.APROBADO, signedDocuments: [mockDoc] })]
+        })
+      }));
       mockDownloadService.download.mockResolvedValue(undefined);
 
       await service.downloadDocument();
@@ -254,14 +285,16 @@ describe('PreliminaryDraftDetailsPageService', () => {
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Iniciando transferencia', type: NotificationType.INFO })
       );
-      expect(mockDownloadService.download).toHaveBeenCalledWith('http://docs/anteproyecto.pdf', 'anteproyecto.pdf');
+      expect(mockDownloadService.download).toHaveBeenCalledWith(mockDoc.url, mockDoc.name);
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Descarga exitosa', type: NotificationType.CONFIRMATION })
       );
     });
 
-    it('debería notificar error si el documento principal no existe (o no tiene URL)', async () => {
-      const draftInvalidDoc = createMockDraft({ documents: [] });
+    it('debería notificar error si el documento de evaluación no existe (o no tiene URL)', async () => {
+      const draftInvalidDoc = createMockDraft({
+        proposalData: createMockProposalData({ evaluations: [] })
+      });
       service.preliminaryDraftDetails.set(draftInvalidDoc);
 
       await service.downloadDocument();
@@ -273,7 +306,12 @@ describe('PreliminaryDraftDetailsPageService', () => {
     });
 
     it('debería notificar error si la Promesa de FileDownloadService es rechazada', async () => {
-      service.preliminaryDraftDetails.set(createMockDraft());
+      const mockDoc = createMockFormattedDocument();
+      service.preliminaryDraftDetails.set(createMockDraft({
+        proposalData: createMockProposalData({
+          evaluations: [createMockEvaluation({ veredict: stateList.APROBADO, signedDocuments: [mockDoc] })]
+        })
+      }));
       mockDownloadService.download.mockRejectedValue(new Error('Fallo de red'));
 
       await service.downloadDocument();

@@ -12,6 +12,8 @@ import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { EvaluateSustentationFormComponent } from '../../components/evaluate-sustentation-form/evaluate-sustentation-form.component';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../core/enums/document-type.enum';
 
 @Component({ selector: 'app-confirmation-action-modal', template: '', standalone: true })
 class MockConfirmationActionModalComponent {
@@ -27,6 +29,7 @@ class MockEvaluateSustentationFormComponent {
   @Input() isSubmitting = false;
   @Output() onSave = new EventEmitter<{ payload: SustentationEvaluationPayload; file: File }>();
   @Output() onBack = new EventEmitter<void>();
+  @Output() onDownloadFile = new EventEmitter<FileDocument>();
 }
 
 interface MockRouteNode {
@@ -41,6 +44,7 @@ interface MockRouter {
 interface MockEvaluateSustentationFacadeService {
   loadThesisWork: jest.Mock<void, [string, (work: ThesisWork) => void, () => void]>;
   processEvaluation: jest.Mock<void, [string, SustentationEvaluationPayload, File, () => void, () => void]>;
+  downloadDocument: jest.Mock<Promise<void>, [FileDocument]>;
 }
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
@@ -93,14 +97,21 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-const createMockEvaluationPayload = (overrides: Partial<SustentationEvaluationPayload> = {}): SustentationEvaluationPayload => {
-  return {
-    veredict: stateList.APROBADO,
-    observations: 'Sin observaciones',
-    evaluationDate: new Date('2026-08-24T10:00:00'),
-    ...overrides
-  } as SustentationEvaluationPayload;
-};
+const createMockEvaluationPayload = (overrides: Partial<SustentationEvaluationPayload> = {}): SustentationEvaluationPayload => ({
+  veredict: stateList.APROBADO,
+  observations: 'Sin observaciones',
+  evaluationDate: new Date('2026-08-24T10:00:00'),
+  ...overrides
+});
+
+const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
+  id: 'doc-1',
+  name: 'documento.pdf',
+  url: 'http://docs/documento.pdf',
+  uploadDate: new Date(),
+  type: DocumentType.FORMATO,
+  ...overrides
+});
 
 describe('EvaluateSustentationPageComponent', () => {
   let component: EvaluateSustentationPageComponent;
@@ -118,7 +129,8 @@ describe('EvaluateSustentationPageComponent', () => {
 
     facadeMock = {
       loadThesisWork: jest.fn(),
-      processEvaluation: jest.fn()
+      processEvaluation: jest.fn(),
+      downloadDocument: jest.fn()
     };
 
     routerMock = {
@@ -160,8 +172,8 @@ describe('EvaluateSustentationPageComponent', () => {
     jest.restoreAllMocks();
   });
 
-  describe('ngOnInit y Navegación', () => {
-    it('debería buscar el ID en la ruta anidada y cargar la tesis', () => {
+  describe('Inicialización y Navegación', () => {
+    it('debería buscar el ID en la ruta anidada y cargar la tesis a través del facade', () => {
       facadeMock.loadThesisWork.mockImplementation((id, onSuccess) => onSuccess(mockWork));
 
       fixture.detectChanges();
@@ -174,7 +186,7 @@ describe('EvaluateSustentationPageComponent', () => {
       expect(component.thesisWorkState()).toEqual(mockWork);
     });
 
-    it('debería regresar si no encuentra el ID en la ruta o sus padres', () => {
+    it('debería ejecutar goBack si no encuentra el ID en la ruta ni en sus padres', () => {
       activatedRouteMock.parent!.snapshot.paramMap.get.mockReturnValue(null);
       const goBackSpy = jest.spyOn(component, 'goBack');
 
@@ -184,14 +196,17 @@ describe('EvaluateSustentationPageComponent', () => {
       expect(facadeMock.loadThesisWork).not.toHaveBeenCalled();
     });
 
-    it('debería navegar a loaded_documents al llamar a goBack', () => {
+    it('debería navegar a "loaded_documents" relativo al padre al invocar goBack', () => {
       component.goBack();
 
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: activatedRouteMock.parent });
+      expect(routerMock.navigate).toHaveBeenCalledWith(
+        ['loaded_documents'],
+        { relativeTo: activatedRouteMock.parent }
+      );
     });
   });
 
-  describe('Flujo de Guardado', () => {
+  describe('Flujo de Guardado y Delegación', () => {
     const mockData = {
       payload: createMockEvaluationPayload(),
       file: new File([''], 'test.pdf')
@@ -201,14 +216,14 @@ describe('EvaluateSustentationPageComponent', () => {
       component.thesisWorkState.set(mockWork);
     });
 
-    it('debería almacenar datos temporales y abrir el modal en handleSaveTriggered', () => {
+    it('debería almacenar datos temporales y abrir el modal al disparar handleSaveTriggered', () => {
       component.handleSaveTriggered(mockData);
 
       expect(component.pendingData()).toEqual(mockData);
       expect(component.isConfirmModalOpen()).toBe(true);
     });
 
-    it('debería detenerse temprano si no hay datos pendientes o thesisId', () => {
+    it('debería detener el guardado (return temprano) si no hay datos pendientes o falta el ID', () => {
       component.pendingData.set(null);
 
       component.processSustentationEvaluation();
@@ -217,7 +232,7 @@ describe('EvaluateSustentationPageComponent', () => {
       expect(component.isSubmitting()).toBe(false);
     });
 
-    it('debería procesar la sustentación, resetear indicadores y ejecutar onSuccess', () => {
+    it('debería procesar la evaluación, resetear indicadores y ejecutar onSuccess', () => {
       component.pendingData.set(mockData);
       component.isConfirmModalOpen.set(true);
       const goBackSpy = jest.spyOn(component, 'goBack');
@@ -238,7 +253,7 @@ describe('EvaluateSustentationPageComponent', () => {
       expect(goBackSpy).toHaveBeenCalled();
     });
 
-    it('debería procesar la sustentación y mantener al usuario en pantalla si falla', () => {
+    it('debería mantener al usuario en la pantalla si el guardado falla (ejecuta onError)', () => {
       component.pendingData.set(mockData);
       component.isConfirmModalOpen.set(true);
       const goBackSpy = jest.spyOn(component, 'goBack');
@@ -250,6 +265,17 @@ describe('EvaluateSustentationPageComponent', () => {
       expect(component.isSubmitting()).toBe(false);
       expect(component.isConfirmModalOpen()).toBe(false);
       expect(goBackSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Delegación de Descargas', () => {
+    it('debería invocar la función de descarga del facade de manera correcta', () => {
+      const mockDoc = createMockFileDocument();
+      facadeMock.downloadDocument.mockResolvedValue();
+
+      component.downloadDocument(mockDoc);
+
+      expect(facadeMock.downloadDocument).toHaveBeenCalledWith(mockDoc);
     });
   });
 });

@@ -30,47 +30,23 @@
         </h3>
 
         <div class="flex flex-col gap-4">
-          @for (field of [
-            { label: 'Título', value: proposal.title, id: 'proposal-title' },
-            { label: 'Descripción', value: proposal.description, id: 'proposal-description' },
-            { label: 'Fecha de carga', value: documentUploadDate, id: 'proposal-date' },
-            { label: 'Modalidad del trabajo de grado', value: proposal.modality, id: 'proposal-modality' },
-            { label: 'Estudiante(s)', value: getStudentNames(proposal.authors), id: 'proposal-students' }
-          ]; track field.label) {
-            <div class="flex flex-col gap-1">
-              <label [for]="field.id" class="font-display font-semibold text-primary text-size-section">{{ field.label }}</label>
-              <input type="text" [id]="field.id" [value]="field.value" disabled
-                    class="information-block p-2 border border-gray-200 rounded-md text-[#777680] w-full cursor-not-allowed bg-gray-50">
-            </div>
-          }
+          <app-readonly-field label="Título" [value]="proposal.title"></app-readonly-field>
+          <app-readonly-field label="Descripción" [value]="proposal.description"></app-readonly-field>
+          <app-readonly-field label="Fecha de carga" [value]="documentUploadDate"></app-readonly-field>
+          <app-readonly-field label="Modalidad del trabajo de grado" [value]="proposal.modality"></app-readonly-field>
+          <app-readonly-field label="Estudiante(s)" [value]="getStudentNames(proposal.authors)"></app-readonly-field>
 
-          <div class="flex flex-col gap-1">
-            <label for="proposal-director" class="font-display font-semibold text-primary text-size-section">Director</label>
-            <input type="text" id="proposal-director" [value]="getDirectorName(proposal.director.id)" disabled
-                  class="information-block p-2 border border-gray-200 rounded-md text-[#777680] w-full cursor-not-allowed bg-gray-50">
-          </div>
+          <app-readonly-field label="Director" [value]="getDirectorName(proposal.director.id)"></app-readonly-field>
 
           @if (proposal.codirector) {
-            <div class="flex flex-col gap-1">
-              <label for="proposal-codirector" class="font-display font-semibold text-primary text-size-section">Codirector</label>
-              <input type="text" id="proposal-codirector" [value]="getCodirectorName(proposal.codirector.id)" disabled
-                    class="information-block p-2 border border-gray-200 rounded-md text-[#777680] w-full cursor-not-allowed bg-gray-50">
-            </div>
+            <app-readonly-field label="Codirector" [value]="getCodirectorName(proposal.codirector.id)"></app-readonly-field>
           }
 
           @if (proposal.advisor) {
-            <div class="flex flex-col gap-1">
-              <label for="proposal-advisor" class="font-display font-semibold text-primary text-size-section">Asesor</label>
-              <input type="text" id="proposal-advisor" [value]="getAdvisorName(proposal.advisor.id)" disabled
-                    class="information-block p-2 border border-gray-200 rounded-md text-[#777680] w-full cursor-not-allowed bg-gray-50">
-            </div>
+            <app-readonly-field label="Asesor" [value]="getAdvisorName(proposal.advisor.id)"></app-readonly-field>
           }
 
-          <div class="flex flex-col gap-1">
-            <label for="proposal-state" class="font-display font-semibold text-primary text-size-section">Estado actual</label>
-            <input type="text" id="proposal-state" [value]="proposal.state" disabled
-                  class="information-block p-2 border border-gray-200 rounded-md text-primary font-semibold w-full cursor-not-allowed bg-gray-50">
-          </div>
+          <app-readonly-field label="Estado actual" [value]="proposal.state" [emphasize]="true"></app-readonly-field>
         </div>
       </section>
 
@@ -188,11 +164,7 @@
           </div>
 
           <div class="flex gap-4 justify-end mt-6">
-            <app-button-component
-              label="Guardar Evaluación"
-              variant="primary"
-              type="submit">
-            </app-button-component>
+            <app-button-component label="Guardar Evaluación" variant="primary" type="submit"></app-button-component>
           </div>
 
         </form>

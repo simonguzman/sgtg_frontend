@@ -8,6 +8,7 @@ import { FileUploadModalComponent } from '../../../../shared/components/modals/f
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 
 @Component({
   selector: 'app-evaluation-proposal-form',
@@ -17,7 +18,8 @@ import { InfoBannerComponent } from '../../../../shared/components/info-banner/i
     FileUploadModalComponent,
     ConfirmationActionModalComponent,
     ButtonComponent,
-    InfoBannerComponent
+    InfoBannerComponent,
+    ReadonlyFieldComponent
   ],
   providers: [EvaluationProposalFormService],
   templateUrl: './evaluation-proposal-form.component.html',

@@ -8,6 +8,7 @@ import { UserService } from '../../../../users/services/user.service';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { SelectOption } from '../../../../../shared/components/searchable-select/searchable-select.component';
 import { stateList } from '../../../../../core/enums/state.enum';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { FormattedDocument } from '../../../../../core/interfaces/formatted-document.interface';
 import { User } from '../../../../users/interfaces/user.interface';
@@ -100,6 +101,10 @@ export class PreliminaryDraftFormService {
     const proposal = this.selectedProposal();
     if (!proposal) return null;
     const isEdit = !!originalPreliminaryDraft;
+    const mergedDocuments = isEdit
+      ? this.mergePreliminaryDraftDocument(originalPreliminaryDraft!.documents || [], documents)
+      : documents;
+
     return {
       ...(originalPreliminaryDraft ?? undefined),
       proposalId: proposal.id!,
@@ -108,11 +113,16 @@ export class PreliminaryDraftFormService {
         title: (isEdit ? this.form.get('title')?.value : proposal.title) ?? '',
         description: (isEdit ? this.form.get('description')?.value : proposal.description) ?? ''
       },
-      documents: documents.length > 0 ? documents : (originalPreliminaryDraft?.documents || []),
+      documents: mergedDocuments,
       state: originalPreliminaryDraft?.state || stateList.EN_REVISION,
       createdData: originalPreliminaryDraft?.createdData || new Date(),
       evaluations: originalPreliminaryDraft?.evaluations || []
     } as PreliminaryDraft;
+  }
+
+  private mergePreliminaryDraftDocument(existingDocuments: FileDocument[], newPreliminaryDraftDocs: FileDocument[]): FileDocument[] {
+    const withoutOldPreliminaryDraft = existingDocuments.filter(document => document.type !== DocumentType.ANTEPROYECTO);
+    return [...newPreliminaryDraftDocs, ...withoutOldPreliminaryDraft];
   }
 
   getMemberName(user: User | undefined): string {

@@ -2,6 +2,7 @@ import { Component, computed, EventEmitter, inject, Input, Output, signal } from
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 import { EvaluateCorrectionsFormService } from './services/evaluate-corrections-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { CorrectedDelivery } from '../../interfaces/corrected-delivery.interface';
@@ -14,7 +15,7 @@ import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
   templateUrl: './evaluate-corrections-form.component.html',
   styleUrls: ['./evaluate-corrections-form.component.css'],
   standalone: true,
-  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent],
+  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent, ReadonlyFieldComponent],
   providers: [EvaluateCorrectionsFormService]
 })
 export class EvaluateCorrectionsFormComponent {

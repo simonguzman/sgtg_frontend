@@ -9,6 +9,7 @@ import { IdentificationType } from '../../../users/enum/identification-type.enum
 import { UserState } from '../../../users/enum/user-state.enum';
 import { User } from '../../../users/interfaces/user.interface';
 import { Modality } from '../../../proposal/enums/modality.enum';
+import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 
 interface MockUploadAdvanceFormService {
   advanceForm: FormGroup;
@@ -121,15 +122,14 @@ describe('UploadAdvanceFormComponent', () => {
       expect(component).toBeTruthy();
     });
 
-    it('debería renderizar la información de solo lectura usando los templates', () => {
-      const disabledInputs = fixture.debugElement.queryAll(By.css('input[disabled]'));
-      const disabledTextarea = fixture.debugElement.query(By.css('textarea[disabled]'));
-
-      expect(disabledInputs[0]?.nativeElement?.value).toBe('Título de Prueba del Avance');
-      expect(disabledTextarea?.nativeElement?.value).toBe('Descripción detallada de prueba');
-      expect(disabledInputs[1]?.nativeElement?.value).toBe(mockThesisWork.preliminaryDraftData.proposalData.modality);
-      expect(disabledInputs[2]?.nativeElement?.value).toBe('Ana López');
-      expect(disabledInputs[3]?.nativeElement?.value).toBe('Director Test');
+    it('debería renderizar la información de solo lectura usando los componentes ReadonlyFieldComponent', () => {
+      const readonlyFields = fixture.debugElement.queryAll(By.directive(ReadonlyFieldComponent));
+      expect(readonlyFields[0].componentInstance.value).toBe('Título de Prueba del Avance');
+      expect(readonlyFields[1].componentInstance.value).toBe('Descripción detallada de prueba');
+      expect(readonlyFields[2].componentInstance.value).toBe(mockThesisWork.preliminaryDraftData.proposalData.modality);
+      expect(readonlyFields[3].componentInstance.value).toBe('Ana López');
+      expect(readonlyFields[4].componentInstance.value).toBe('Director Test');
+      expect(readonlyFields[5].componentInstance.value).toBe(stateList.EN_DESARROLLO);
     });
   });
 

@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { DatePicker } from 'primeng/datepicker';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 import { EvaluateSpecialRequestFormService } from './services/evaluate-special-request-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SpecialRequest } from '../../interfaces/special-request.interface';
@@ -15,7 +16,7 @@ type SpecialRequestVerdict = stateList.APROBADO | stateList.NO_APROBADO;
   selector: 'app-evaluate-special-request-form',
   templateUrl: './evaluate-special-request-form.component.html',
   styleUrls: ['./evaluate-special-request-form.component.css'],
-  imports: [ButtonComponent, DatePicker, FormsModule, InfoBannerComponent],
+  imports: [ButtonComponent, DatePicker, FormsModule, InfoBannerComponent, ReadonlyFieldComponent],
   providers: [EvaluateSpecialRequestFormService]
 })
 export class EvaluateSpecialRequestFormComponent {

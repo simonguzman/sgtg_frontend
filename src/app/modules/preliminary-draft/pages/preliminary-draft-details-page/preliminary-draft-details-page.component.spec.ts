@@ -83,7 +83,7 @@ interface MockPageService {
   getMemberName: jest.Mock<string, [string | undefined]>;
   getAuthors: jest.Mock<string, [User[] | undefined]>;
   preliminaryDraftDetails: WritableSignal<PreliminaryDraft | null>;
-  mainDocument: WritableSignal<FileDocument | null>;
+  approvedProposalDocument: WritableSignal<FileDocument | null>;
 }
 
 describe('PreliminaryDraftDetailsPageComponent', () => {
@@ -104,7 +104,7 @@ describe('PreliminaryDraftDetailsPageComponent', () => {
       getMemberName: jest.fn().mockReturnValue('Nombre Miembro Mock'),
       getAuthors: jest.fn().mockReturnValue('Autores Mock'),
       preliminaryDraftDetails: signal<PreliminaryDraft | null>(null),
-      mainDocument: signal<FileDocument | null>(null)
+      approvedProposalDocument: signal<FileDocument | null>(null)
     };
 
     await TestBed.configureTestingModule({
@@ -151,7 +151,7 @@ describe('PreliminaryDraftDetailsPageComponent', () => {
       const document = createMockDocument();
 
       mockPageService.preliminaryDraftDetails.set(draft);
-      mockPageService.mainDocument.set(document);
+      mockPageService.approvedProposalDocument.set(document);
 
       fixture.detectChanges();
 
@@ -171,7 +171,7 @@ describe('PreliminaryDraftDetailsPageComponent', () => {
   describe('Interacciones y Eventos de Vista (Bindings)', () => {
     beforeEach(() => {
       mockPageService.preliminaryDraftDetails.set(createMockDraft());
-      mockPageService.mainDocument.set(createMockDocument());
+      mockPageService.approvedProposalDocument.set(createMockDocument());
       fixture.detectChanges();
     });
 

@@ -2,6 +2,7 @@ import { Component, EventEmitter, inject, Input, Output, signal } from '@angular
 import { ReactiveFormsModule } from '@angular/forms';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 import { RegisterSpecialRequestFormService } from './services/register-special-request-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SpecialRequestType } from '../../enums/special-request-type.enum';
@@ -10,7 +11,7 @@ import { SpecialRequestType } from '../../enums/special-request-type.enum';
   selector: 'app-register-special-request-form',
   templateUrl: './register-special-request-form.component.html',
   styleUrls: ['./register-special-request-form.component.css'],
-  imports: [ReactiveFormsModule, ButtonComponent, InfoBannerComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, InfoBannerComponent, ReadonlyFieldComponent],
   providers: [RegisterSpecialRequestFormService]
 })
 export class RegisterSpecialRequestFormComponent {

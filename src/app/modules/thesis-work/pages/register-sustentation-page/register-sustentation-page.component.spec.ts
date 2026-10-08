@@ -12,6 +12,8 @@ import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
 import { RegisterSustentationFormComponent } from '../../components/register-sustentation-form/register-sustentation-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { DocumentType } from '../../../../core/enums/document-type.enum';
 
 @Component({ selector: 'app-register-sustentation-form', template: '', standalone: true })
 class MockRegisterSustentationFormComponent {
@@ -19,6 +21,7 @@ class MockRegisterSustentationFormComponent {
   @Input() isSubmitting = false;
   @Output() onSave = new EventEmitter<{ payload: SustentationFormPayload; file: File }>();
   @Output() onBack = new EventEmitter<void>();
+  @Output() onDownloadFile = new EventEmitter<FileDocument>(); // Agregado para soportar la descarga
 }
 
 @Component({ selector: 'app-confirmation-action-modal', template: '', standalone: true })
@@ -41,6 +44,7 @@ interface MockRouter {
 interface MockRegisterSustentationFacadeService {
   loadThesisWork: jest.Mock<void, [string, (work: ThesisWork) => void, () => void]>;
   processSustentation: jest.Mock<void, [string, SustentationFormPayload, File, () => void, () => void]>;
+  downloadDocument: jest.Mock<Promise<void>, [FileDocument]>;
 }
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
@@ -94,10 +98,19 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
 };
 
 const createMockPayload = (overrides: Partial<SustentationFormPayload> = {}): SustentationFormPayload => ({
-  sustentationDate: '2026-10-10T10:00:00',
+  sustentationDate: new Date('2026-10-10T10:00:00'),
   location: 'Auditorio',
   juror1: 'docente-1',
   juror2: 'docente-2',
+  ...overrides
+});
+
+const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
+  id: 'doc-1',
+  name: 'documento.pdf',
+  url: 'http://docs/documento.pdf',
+  uploadDate: new Date(),
+  type: DocumentType.FORMATO,
   ...overrides
 });
 
@@ -117,7 +130,8 @@ describe('RegisterSustentationPageComponent', () => {
 
     facadeMock = {
       loadThesisWork: jest.fn(),
-      processSustentation: jest.fn()
+      processSustentation: jest.fn(),
+      downloadDocument: jest.fn()
     };
 
     routerMock = {
@@ -258,6 +272,17 @@ describe('RegisterSustentationPageComponent', () => {
 
       expect(component.isSubmitting()).toBe(false);
       expect(goBackSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Delegación de Descargas', () => {
+    it('debería invocar la función de descarga del facade de manera correcta', () => {
+      const mockDoc = createMockFileDocument();
+      facadeMock.downloadDocument.mockResolvedValue();
+
+      component.downloadDocument(mockDoc);
+
+      expect(facadeMock.downloadDocument).toHaveBeenCalledWith(mockDoc);
     });
   });
 });

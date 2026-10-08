@@ -144,7 +144,7 @@
             <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
             <div class="flex flex-col overflow-hidden">
               <span class="text-size-body font-bold text-primary truncate">
-                {{ currentSustentation.formatEDocument.name || 'Formato_E_Programacion.pdf' }}
+                {{ currentSustentation?.formatEDocument?.name || 'Formato_E_Programacion.pdf' }}
               </span>
               <span class="text-size-role-footer text-[#777680]">Formato E • Documento de programación avalado por el consejo</span>
             </div>
@@ -152,7 +152,7 @@
           <app-button-component
             label="Descargar"
             variant="primary"
-            (onClick)="downloadDocument(currentSustentation.formatEDocument)">
+            (onClick)="downloadDocument(currentSustentation?.formatEDocument)">
           </app-button-component>
         </div>
       }

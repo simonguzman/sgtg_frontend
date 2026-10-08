@@ -204,6 +204,7 @@
 <app-file-upload-modal
   [isOpen]="activeModal() === 'ANNEXES'"
   description="Subir archivos anexos (PDF o ZIP)"
+  acceptedTypes="pdf-zip"
   (onFileUploaded)="handleFileUploaded($event)"
   (onClose)="closeModal()">
 </app-file-upload-modal>

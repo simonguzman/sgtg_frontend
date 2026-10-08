@@ -7,7 +7,8 @@ import { FileDownloadService } from '../../../../../core/services/filedownload/f
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { User } from '../../../../users/interfaces/user.interface';
-import { DocumentType } from '../../../../../core/enums/document-type.enum';
+import { FormattedDocument } from '../../../../../core/interfaces/formatted-document.interface';
+import { resolveApprovedEvaluationDocument } from '../../../../../core/utils/evaluation-utils';
 
 @Injectable()
 export class PreliminaryDraftDetailsPageService {
@@ -20,12 +21,9 @@ export class PreliminaryDraftDetailsPageService {
 
   readonly preliminaryDraftDetails = signal<PreliminaryDraft | null>(null);
 
-  readonly mainDocument = computed(() => {
-    const currentPreliminaryDraft = this.preliminaryDraftDetails();
-    if (!currentPreliminaryDraft) return null;
-    return currentPreliminaryDraft.documents.find(document => document.type === DocumentType.ANTEPROYECTO)
-          || currentPreliminaryDraft.documents[0]
-          || null;
+  readonly approvedProposalDocument = computed<FormattedDocument | null>(() => {
+    const evaluations = this.preliminaryDraftDetails()?.proposalData?.evaluations;
+    return resolveApprovedEvaluationDocument(evaluations);
   });
 
   init(): void {
@@ -47,7 +45,7 @@ export class PreliminaryDraftDetailsPageService {
       },
       error: (error) => {
         this.showErrorNotification();
-        this.router.navigate(['/preliminary-draft']);
+        void this.router.navigate(['/preliminary-draft']);
         console.error('Error al recuperar detalles:', error);
       }
     });
@@ -62,7 +60,7 @@ export class PreliminaryDraftDetailsPageService {
   }
 
   async downloadDocument(): Promise<void> {
-    const targetDocument = this.mainDocument();
+    const targetDocument = this.approvedProposalDocument();
     if (!targetDocument?.url) {
       this.showDownloadFileErrorNotification();
       return;
@@ -80,24 +78,24 @@ export class PreliminaryDraftDetailsPageService {
   goBack(): void {
     const currentUrl = this.router.url;
     if (currentUrl.includes('/history')) {
-      this.router.navigate(['/history']);
+      void this.router.navigate(['/history']);
     } else {
-      this.router.navigate(['/preliminary-draft']);
+      void this.router.navigate(['/preliminary-draft']);
     }
   }
 
   navigateToEvaluations(): void {
-    this.router.navigate(['evaluations_performed'], { relativeTo: this.route });
+    void this.router.navigate(['evaluations_performed'], { relativeTo: this.route });
   }
 
   navigateToDocuments(): void {
-    this.router.navigate(['loaded_documents'], { relativeTo: this.route });
+    void this.router.navigate(['loaded_documents'], { relativeTo: this.route });
   }
 
   private showDownloadFileSuccessNotification(): void {
     this.notificationService.show({
       title: 'Descarga exitosa',
-      message: 'El archivo del anteproyecto se ha guardado en su equipo.',
+      message: 'El formato de evaluación se ha guardado en su equipo.',
       type: NotificationType.CONFIRMATION
     });
   }
@@ -113,7 +111,7 @@ export class PreliminaryDraftDetailsPageService {
   private showDownloadFileErrorNotification(): void {
     this.notificationService.show({
       title: 'Archivo no disponible',
-      message: 'No se encontró un documento válido vinculado a este anteproyecto.',
+      message: 'No se encontró el formato de evaluación aprobado por el comité para esta propuesta.',
       type: NotificationType.ERROR
     });
   }

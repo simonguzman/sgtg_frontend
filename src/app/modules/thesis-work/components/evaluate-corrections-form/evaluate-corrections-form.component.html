@@ -5,115 +5,61 @@
     y adjunte el <strong>Formato_G firmado</strong> para completar el proceso de evaluación de correcciones.
   </app-info-banner>
 
-  <!-- ── Información del trabajo de grado ──────────────────────────────────── -->
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
 
     <div class="flex flex-col gap-4">
-      <div class="flex flex-col gap-1">
-        <label for="infoTitle" class="font-display font-semibold text-primary text-size-section">Título</label>
-        <input id="infoTitle" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
-
-      <div class="flex flex-col gap-1">
-        <label for="infoDescription" class="font-display font-semibold text-primary text-size-section">Descripción</label>
-        <input id="infoDescription" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
-
-      <div class="flex flex-col gap-1">
-        <label for="infoModality" class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</label>
-        <input id="infoModality" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
-
-      <div class="flex flex-col gap-1">
-        <label for="infoStudent" class="font-display font-semibold text-primary text-size-section">Estudiante</label>
-        <input id="infoStudent" type="text" [value]="getStudentNames()" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
+      <app-readonly-field label="Título" [value]="thesisWork.preliminaryDraftData.proposalData.title"></app-readonly-field>
+      <app-readonly-field label="Descripción" [value]="thesisWork.preliminaryDraftData.proposalData.description"></app-readonly-field>
+      <app-readonly-field label="Modalidad del trabajo de grado" [value]="thesisWork.preliminaryDraftData.proposalData.modality"></app-readonly-field>
+      <app-readonly-field label="Estudiante" [value]="getStudentNames()"></app-readonly-field>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="flex flex-col gap-1">
-          <label for="infoDirector" class="font-display font-semibold text-primary text-size-section">Director</label>
-          <input id="infoDirector" type="text" [value]="getDirectorName()" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-        </div>
-
+        <app-readonly-field label="Director" [value]="getDirectorName()"></app-readonly-field>
         @if (getCodirectorName()) {
-          <div class="flex flex-col gap-1">
-            <label for="infoCodirector" class="font-display font-semibold text-primary text-size-section">Codirector</label>
-            <input id="infoCodirector" type="text" [value]="getCodirectorName()" disabled
-                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-          </div>
+          <app-readonly-field label="Codirector" [value]="getCodirectorName()"></app-readonly-field>
         }
       </div>
 
       @if (getAdvisorName()) {
-        <div class="flex flex-col gap-1">
-          <label for="infoAdvisor" class="font-display font-semibold text-primary text-size-section">Asesor</label>
-          <input id="infoAdvisor" type="text" [value]="getAdvisorName()" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-        </div>
+        <app-readonly-field label="Asesor" [value]="getAdvisorName()"></app-readonly-field>
       }
 
-      <div class="flex flex-col gap-1">
-        <label for="infoJurors" class="font-display font-semibold text-primary text-size-section">Jurados Asignados</label>
-        <input id="infoJurors" type="text" [value]="getAssignedJurors()" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
-      </div>
+      <app-readonly-field label="Jurados Asignados" [value]="getAssignedJurors()"></app-readonly-field>
     </div>
   </section>
 
   <hr class="border-gray-200 mb-8">
 
-  <!-- ── Documentos corregidos radicados ───────────────────────────────────── -->
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Documentos Corregidos Radicados</h3>
 
     @if (correctedDeliveriesList().length > 0) {
       <div class="flex flex-col gap-3">
         @for (delivery of correctedDeliveriesList(); track delivery.id) {
-
-          <!-- Monografía corregida -->
           <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
             <div class="flex items-center gap-3 overflow-hidden">
               <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
               <div class="flex flex-col overflow-hidden">
-                <span class="text-size-body font-bold text-primary truncate">
-                  {{ delivery.monograph.name }}
-                </span>
+                <span class="text-size-body font-bold text-primary truncate">{{ delivery.monograph.name }}</span>
                 <span class="text-size-role-footer text-[#777680]">Monografía corregida • Cargado el {{ delivery.uploadDate || 'Sin fecha' }}</span>
               </div>
             </div>
-            <app-button-component
-              label="Descargar"
-              variant="primary"
-              (onClick)="downloadDocument(delivery.monograph)">
-            </app-button-component>
+            <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(delivery.monograph)"></app-button-component>
           </div>
 
-          <!-- Anexos (si existen) -->
           @if (delivery.annexes) {
             <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
               <div class="flex items-center gap-3 overflow-hidden">
                 <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">folder_open</span>
                 <div class="flex flex-col overflow-hidden">
-                  <span class="text-size-body font-bold text-primary truncate">
-                    {{ delivery.annexes.name }}
-                  </span>
+                  <span class="text-size-body font-bold text-primary truncate">{{ delivery.annexes.name }}</span>
                   <span class="text-size-role-footer text-[#777680]">Anexos corregidos • Cargado el {{ delivery.uploadDate || 'Sin fecha' }}</span>
                 </div>
               </div>
-              <app-button-component
-                label="Descargar"
-                variant="primary"
-                (onClick)="downloadDocument(delivery.annexes)">
-              </app-button-component>
+              <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(delivery.annexes)"></app-button-component>
             </div>
           }
-
         }
       </div>
     } @else {
@@ -126,7 +72,6 @@
 
   <hr class="border-gray-200 mb-8">
 
-  <!-- ── Evaluación del jurado ──────────────────────────────────────────────── -->
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Evaluación del jurado</h3>
 
@@ -134,13 +79,11 @@
          [class.border-[#ED7D31]]="isSubmitAttempted() && selectedVerdict() === null"
          [class.border-blue-100]="!(isSubmitAttempted() && selectedVerdict() === null)">
 
-      <!-- Mensaje informativo -->
       <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-size-body text-[#777680] mb-6">
         Seleccione el resultado definitivo de la evaluación de las correcciones acordado por el cuerpo de jurados.
         Adicionalmente, registre los comentarios u observaciones obligatorias/recomendadas según corresponda.
       </div>
 
-      <!-- Opciones de veredicto simplificadas a 2 opciones -->
       <div class="flex flex-wrap justify-center gap-8 mb-4">
         <label class="flex items-center gap-2 cursor-pointer group">
           <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
@@ -159,7 +102,6 @@
         <p class="text-size-role-footer text-textbox-alert text-center mb-4">Debe seleccionar una calificación para proceder</p>
       }
 
-      <!-- Observaciones -->
       <div class="flex flex-col gap-1">
         <label for="evalObservations" class="font-display font-semibold text-primary text-size-section">Observaciones y comentarios descriptivos</label>
         <textarea id="evalObservations" rows="4"
@@ -178,7 +120,6 @@
 
   <hr class="border-gray-200 mb-8">
 
-  <!-- ── Carga del Formato G ────────────────────────────────────────────────── -->
   <section>
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Archivos adjuntos requeridos</h3>
 

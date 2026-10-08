@@ -68,7 +68,7 @@ describe('PreliminaryDraftFormService', () => {
   let mockProposalService: { proposals: WritableSignal<Proposal[]> };
   let mockAuthService: { currentUser: WritableSignal<User | null> };
   let mockPreliminaryDraftService: { preliminaryDrafts: WritableSignal<PreliminaryDraft[]> };
-  let mockUserService: { getAuthorsNames: jest.Mock };
+  let mockUserService: { getAuthorsNames: jest.Mock<string, [User[] | undefined]> };
 
   let currentUserSignal: WritableSignal<User | null>;
   let proposalsSignal: WritableSignal<Proposal[]>;
@@ -98,7 +98,9 @@ describe('PreliminaryDraftFormService', () => {
       ]
     });
 
-    service = TestBed.inject(PreliminaryDraftFormService);
+    TestBed.runInInjectionContext(() => {
+      service = TestBed.inject(PreliminaryDraftFormService);
+    });
   });
 
   afterEach(() => {
@@ -297,14 +299,14 @@ describe('PreliminaryDraftFormService', () => {
         description: 'Descripción Editada'
       });
 
-      const mockDocs = [{
+      // FIX: Se eliminó la propiedad 'file: new File(...)' ya que no pertenece a FileDocument
+      const mockDocs: FileDocument[] = [{
         id: 'doc-1',
         name: 'doc.pdf',
         url: 'http://ruta/al/documento.pdf',
         uploadDate: new Date(),
-        type: DocumentType.ANTEPROYECTO,
-        file: new File([''], 'doc.pdf')
-      } as FileDocument];
+        type: DocumentType.ANTEPROYECTO
+      }];
 
       const payload = service.buildPreliminaryDraftPayload(originalDraft, mockDocs);
 
@@ -331,8 +333,9 @@ describe('PreliminaryDraftFormService', () => {
     });
 
     it('getAuthorsNames debería delegar al UserService', () => {
-      const result = service.getAuthorsNames([createMockUser()]);
-      expect(mockUserService.getAuthorsNames).toHaveBeenCalled();
+      const mockUsers = [createMockUser()];
+      const result = service.getAuthorsNames(mockUsers);
+      expect(mockUserService.getAuthorsNames).toHaveBeenCalledWith(mockUsers);
       expect(result).toBe('Autor de Prueba');
     });
   });

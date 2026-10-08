@@ -4,6 +4,7 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { EvaluateSustentationFacadeService } from './services/evaluate-sustentation-facade.service';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { EvaluateSustentationFormComponent, SustentationEvaluationPayload } from '../../components/evaluate-sustentation-form/evaluate-sustentation-form.component';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 
 @Component({
   selector: 'app-evaluate-sustentation-page',
@@ -57,7 +58,11 @@ export class EvaluateSustentationPageComponent implements OnInit {
     );
   }
 
+  downloadDocument(document: FileDocument): void {
+    void this.facade.downloadDocument(document);
+  }
+
   goBack(): void {
-    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
+    void this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
   }
 }

@@ -7,7 +7,7 @@
   [draggable]="false"
   [resizable]="false"
 >
-  <input type="file" #fileInput accept=".pdf" class="hidden" (change)="onFileSelected($event)" />
+  <input type="file" #fileInput [accept]="acceptAttribute" class="hidden" (change)="onFileSelected($event)" />
 
   @if (!uploadedFile) {
     <div class="text-center flex flex-col items-center justify-center p-4">
@@ -26,7 +26,7 @@
   @if (uploadedFile) {
     <div class="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 mt-2">
       <div class="flex items-center gap-3">
-        <span class="material-symbols-outlined text-[#DB141C]">picture_as_pdf</span>
+        <span class="material-symbols-outlined text-[#DB141C]">{{ uploadedFileIcon }}</span>
         <div>
           <p class="font-semibold text-sm">{{ uploadedFile.name }}</p>
           <p class="text-xs opacity-70">Subido por: {{ uploadedBy }}</p>

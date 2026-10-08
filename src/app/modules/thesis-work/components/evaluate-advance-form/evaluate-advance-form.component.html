@@ -13,43 +13,26 @@
       </h3>
 
       <div class="flex flex-col gap-4">
-
-        <ng-template #readOnlyField let-id="id" let-label="label" let-value="value" let-isState="isState" let-isTextArea="isTextArea">
-          <div class="flex flex-col gap-1">
-            <label [for]="id" class="font-display font-semibold text-primary text-size-section">{{ label }}</label>
-            @if (isTextArea) {
-              <textarea [id]="id" [value]="value || 'Sin descripción disponible'" disabled rows="4"
-                        class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 w-full cursor-not-allowed font-sans text-size-body resize-none"></textarea>
-            } @else {
-              <input [id]="id" type="text" [value]="value" disabled
-                     class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 w-full cursor-not-allowed font-sans text-size-body"
-                     [class.font-medium]="isState" [class.capitalize]="isState">
-            }
-          </div>
-        </ng-template>
-
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoTitle', label: 'Título', value: thesisWork.preliminaryDraftData.proposalData.title }"></ng-container>
-
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoDescription', label: 'Descripción', value: thesisWork.preliminaryDraftData.proposalData.description, isTextArea: true }"></ng-container>
+        <app-readonly-field label="Título" [value]="thesisWork.preliminaryDraftData.proposalData.title"></app-readonly-field>
+        <app-readonly-field label="Descripción" [value]="thesisWork.preliminaryDraftData.proposalData.description" emptyText="Sin descripción disponible"></app-readonly-field>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoModality', label: 'Modalidad', value: thesisWork.preliminaryDraftData.proposalData.modality }"></ng-container>
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoStudent', label: 'Estudiante', value: getStudentNames() }"></ng-container>
+          <app-readonly-field label="Modalidad" [value]="thesisWork.preliminaryDraftData.proposalData.modality"></app-readonly-field>
+          <app-readonly-field label="Estudiante" [value]="getStudentNames()"></app-readonly-field>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoDirector', label: 'Director', value: getDirectorName() }"></ng-container>
+          <app-readonly-field label="Director" [value]="getDirectorName()"></app-readonly-field>
           @if (getCodirectorName()) {
-            <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoCodirector', label: 'Codirector', value: getCodirectorName() }"></ng-container>
+            <app-readonly-field label="Codirector" [value]="getCodirectorName()"></app-readonly-field>
           }
         </div>
 
         @if (getAdvisorName()) {
-          <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoAdvisor', label: 'Asesor', value: getAdvisorName() }"></ng-container>
+          <app-readonly-field label="Asesor" [value]="getAdvisorName()"></app-readonly-field>
         }
 
-        <ng-container *ngTemplateOutlet="readOnlyField; context: { id: 'infoState', label: 'Estado del proyecto', value: thesisWork.state, isState: true }"></ng-container>
-
+        <app-readonly-field label="Estado del proyecto" [value]="thesisWork.state" [emphasize]="true"></app-readonly-field>
       </div>
     </section>
 
@@ -59,17 +42,8 @@
       </h3>
 
       <div class="flex flex-col gap-4">
-        <div class="flex flex-col gap-1">
-          <label for="advanceTitle" class="font-display font-semibold text-primary text-size-section">Nombre del avance</label>
-          <input id="advanceTitle" type="text" [value]="advanceData.title || ''" disabled
-                 class="information-block p-2 border border-gray-200 rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-sans text-size-body">
-        </div>
-
-        <div class="flex flex-col gap-1">
-          <label for="advanceComments" class="font-display font-semibold text-primary text-size-section">Comentarios del estudiante</label>
-          <textarea id="advanceComments" rows="4" [value]="advanceData.comments || ''" disabled
-                    class="information-block p-3 border border-gray-200 rounded-md w-full bg-gray-50 text-[#777680] cursor-not-allowed font-sans resize-none text-size-body"></textarea>
-        </div>
+        <app-readonly-field label="Nombre del avance" [value]="advanceData.title"></app-readonly-field>
+        <app-readonly-field label="Comentarios del estudiante" [value]="advanceData.comments"></app-readonly-field>
 
         <div class="flex flex-col gap-2 mt-2">
           <span class="font-display font-semibold text-primary text-size-section">Archivos de Evidencia</span>
@@ -168,20 +142,8 @@
         </div>
 
         <div class="flex gap-4 justify-end mt-10">
-          <app-button-component
-            label="Cargar anotaciones"
-            variant="secondary"
-            type="button"
-            (onClick)="isFeedbackModalOpen.set(true)"
-            [disabled]="isReadOnly">
-          </app-button-component>
-
-          <app-button-component
-            label="Guardar evaluación"
-            variant="primary"
-            type="submit"
-            [disabled]="isReadOnly">
-          </app-button-component>
+          <app-button-component label="Cargar anotaciones" variant="secondary" type="button" (onClick)="isFeedbackModalOpen.set(true)" [disabled]="isReadOnly"></app-button-component>
+          <app-button-component label="Guardar evaluación" variant="primary" type="submit" [disabled]="isReadOnly"></app-button-component>
         </div>
       </form>
     </section>

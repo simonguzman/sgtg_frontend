@@ -1,16 +1,17 @@
 import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
-import { NgClass, NgTemplateOutlet } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 import { UploadAdvanceFormService } from './services/upload-advance-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { UploadAdvancePayload } from '../../interfaces/advance-playload.interface';
 
 @Component({
   selector: 'app-upload-advance-form',
-  imports: [NgTemplateOutlet, NgClass, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent],
+  imports: [NgClass, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],
   providers: [UploadAdvanceFormService],
   templateUrl: './upload-advance-form.component.html',
   styleUrls: ['./upload-advance-form.component.css']

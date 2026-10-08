@@ -7,10 +7,11 @@ import { ReviewPreliminaryDraftFormFacadeService } from './services/review-preli
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
+import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 
 @Component({
   selector: 'app-review-preliminary-draft-form',
-  imports: [CommonModule, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent],
+  imports: [CommonModule, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],
   providers: [ReviewPreliminaryDraftFormFacadeService],
   templateUrl: './review-preliminary-draft-form.component.html',
   styleUrls: ['./review-preliminary-draft-form.component.css']

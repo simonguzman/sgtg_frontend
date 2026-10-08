@@ -3,14 +3,17 @@ import { of, throwError, Observable } from 'rxjs';
 import { EvaluateSustentationFacadeService } from './evaluate-sustentation-facade.service';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
+import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { stateList } from '../../../../../core/enums/state.enum';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { SustentationEvaluationPayload } from '../../../components/evaluate-sustentation-form/evaluate-sustentation-form.component';
 import { User } from '../../../../users/interfaces/user.interface';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { Modality } from '../../../../proposal/enums/modality.enum';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 
 interface MockThesisWorkService {
   getThesisWorkByIdMock: jest.Mock<Observable<ThesisWork | undefined>, [string]>;
@@ -19,6 +22,10 @@ interface MockThesisWorkService {
 
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
+}
+
+interface MockFileDownloadService {
+  download: jest.Mock<Promise<void>, [string, string]>;
 }
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
@@ -78,11 +85,21 @@ const createMockEvaluationPayload = (overrides: Partial<SustentationEvaluationPa
   ...overrides
 });
 
+const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
+  id: 'doc-1',
+  name: 'documento_evidencia',
+  url: 'http://docs/evidencia.pdf',
+  uploadDate: new Date(),
+  type: DocumentType.FORMATO_G,
+  ...overrides
+});
+
 describe('EvaluateSustentationFacadeService', () => {
   let service: EvaluateSustentationFacadeService;
 
   let thesisWorkServiceMock: MockThesisWorkService;
   let notificationServiceMock: MockNotificationService;
+  let fileDownloadServiceMock: MockFileDownloadService;
 
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -97,11 +114,16 @@ describe('EvaluateSustentationFacadeService', () => {
       show: jest.fn()
     };
 
+    fileDownloadServiceMock = {
+      download: jest.fn()
+    };
+
     TestBed.configureTestingModule({
       providers: [
         EvaluateSustentationFacadeService,
         { provide: ThesisWorkService, useValue: thesisWorkServiceMock },
-        { provide: NotificationService, useValue: notificationServiceMock }
+        { provide: NotificationService, useValue: notificationServiceMock },
+        { provide: FileDownloadService, useValue: fileDownloadServiceMock }
       ]
     });
 
@@ -206,6 +228,44 @@ describe('EvaluateSustentationFacadeService', () => {
       });
       expect(onErrorSpy).toHaveBeenCalled();
       expect(onSuccessSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Descarga de Documento (downloadDocument) - Flujo asíncrono', () => {
+    it('debería mostrar error y detenerse si el documento no tiene URL', async () => {
+      const invalidDoc = createMockFileDocument({ url: undefined });
+
+      await service.downloadDocument(invalidDoc);
+
+      expect(notificationServiceMock.show).toHaveBeenCalledWith({
+        title: 'Error de descarga',
+        message: 'No existe una URL válida vinculada a este archivo.',
+        type: NotificationType.ERROR
+      });
+      expect(fileDownloadServiceMock.download).not.toHaveBeenCalled();
+    });
+
+    it('debería procesar la descarga exitosamente si tiene URL', async () => {
+      const validDoc = createMockFileDocument({ name: 'documento_final', url: 'http://docs/final.pdf' });
+      fileDownloadServiceMock.download.mockResolvedValue(undefined);
+
+      await service.downloadDocument(validDoc);
+
+      expect(fileDownloadServiceMock.download).toHaveBeenCalledWith('http://docs/final.pdf', 'documento_final.pdf');
+    });
+
+    it('debería atrapar la promesa rechazada de descarga, mostrar error en consola y emitir notificación', async () => {
+      const validDoc = createMockFileDocument({ name: 'documento_roto', url: 'http://docs/roto.pdf' });
+      fileDownloadServiceMock.download.mockRejectedValue(new Error('Network disconnected'));
+
+      await service.downloadDocument(validDoc);
+
+      expect(console.error).toHaveBeenCalled();
+      expect(notificationServiceMock.show).toHaveBeenCalledWith({
+        title: 'Error de descarga',
+        message: 'No se pudo descargar documento_roto. Intente más tarde.',
+        type: NotificationType.ERROR
+      });
     });
   });
 });

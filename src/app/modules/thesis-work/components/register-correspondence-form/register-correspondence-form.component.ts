@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
+import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 import { RegisterCorrespondenceFormService } from './services/register-correspondence-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
@@ -11,7 +12,7 @@ import { FileDocument } from '../../../../core/interfaces/file-document.interfac
   selector: 'app-register-correspondence-form',
   templateUrl: './register-correspondence-form.component.html',
   styleUrls: ['./register-correspondence-form.component.css'],
-  imports: [ButtonComponent, DatePipe, InfoBannerComponent, FileUploadModalComponent],
+  imports: [ButtonComponent, DatePipe, InfoBannerComponent, FileUploadModalComponent, ReadonlyFieldComponent],
   providers: [RegisterCorrespondenceFormService]
 })
 export class RegisterCorrespondenceFormComponent {
