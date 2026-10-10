@@ -1,185 +1,221 @@
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { UserApiService } from './user-api.service';
 import { UserStorageService } from './user-storage.service';
+import { AuthStorageService } from '../../../core/services/auth/auth-storage.service';
+import { UsuarioResponse } from '../../../core/interfaces/api/auth-api.interface';
 import { User } from '../interfaces/user.interface';
-import { UserState } from '../enum/user-state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
+import { UserState } from '../enum/user-state.enum';
 import { IdentificationType } from '../enum/identification-type.enum';
-import { Observable, of } from 'rxjs';
+import { ContractType } from '../enum/contract-type.enum';
+import { crearJwtDePrueba } from '../../../testing/jwt-de-prueba';
 
-const createMockUser = (id: string, roles: UserRoleType[] = [UserRoleType.DOCENTE]): User => ({
-  id,
+const API = '/api/v1/sgtg/usuarios';
+
+const usuarioApi = (overrides: Partial<UsuarioResponse> = {}): UsuarioResponse => ({
+  id: 5,
+  codigo: '1005',
+  tipoDocumento: 'CC',
+  numeroDocumento: '1065',
+  email: 'd5@unicauca.edu.co',
+  primerNombre: 'Docente',
+  segundoNombre: null,
+  primerApellido: 'Cinco',
+  segundoApellido: null,
+  roles: ['DOCENTE', 'DIRECTOR'],
+  activo: true,
+  tipoVinculacion: 'OCASIONAL',
+  departamento: { id: 1, nombre: 'Sistemas' },
+  programa: null,
+  ...overrides
+});
+
+const formUser = (overrides: Partial<User> = {}): User => ({
+  id: '',
   idType: IdentificationType.CC,
-  idNumber: 12345,
-  firstName: 'Test',
+  idNumber: 1065,
+  firstName: 'Docente',
   secondName: '',
-  lastName: 'User',
+  lastName: 'Cinco',
   secondLastName: '',
-  email: `${id}@test.com`,
-  password: 'old-password',
-  codeNumber: 100,
+  codeNumber: 1005,
+  roles: [UserRoleType.DOCENTE, UserRoleType.DIRECTOR],
+  email: 'd5@unicauca.edu.co',
+  password: 'Clave1234',
   state: UserState.active,
-  roles
+  department: { id: 1, name: 'Sistemas' },
+  program: null,
+  ...overrides
 });
 
 describe('UserApiService', () => {
   let service: UserApiService;
-  let mockStorageService: {
-    getById: jest.Mock<Observable<User | undefined>, [string]>;
-    getUsersSnapshot: jest.Mock<User[], []>;
-    updateUsersList: jest.Mock<void, [(users: User[]) => User[]]>;
-    currentUser: jest.Mock<User | null, []>;
-    updateCurrentUser: jest.Mock<void, [(current: User | null) => User | null]>;
-  };
+  let storage: UserStorageService;
+  let http: HttpTestingController;
 
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-    mockStorageService = {
-      getById: jest.fn(),
-      getUsersSnapshot: jest.fn(),
-      updateUsersList: jest.fn((cb: (users: User[]) => User[]) => {
-        cb([]);
-      }),
-      currentUser: jest.fn(),
-      updateCurrentUser: jest.fn((cb: (current: User | null) => User | null) => {
-        cb(null);
-      })
-    };
-
+    localStorage.clear();
     TestBed.configureTestingModule({
-      providers: [
-        UserApiService,
-        { provide: UserStorageService, useValue: mockStorageService }
-      ]
+      providers: [provideHttpClient(), provideHttpClientTesting()]
     });
-
     service = TestBed.inject(UserApiService);
-    Object.defineProperty(globalThis, 'crypto', {
-      value: { randomUUID: jest.fn().mockReturnValue('11111111-1111-1111-1111-111111111111') },
-      configurable: true
+    storage = TestBed.inject(UserStorageService);
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => http.verify());
+
+  /** Deja en la lista el usuario 5 tal como lo devuelve el backend. */
+  const cargarLista = () => {
+    service.loadUsers().subscribe();
+    http.expectOne(API).flush([usuarioApi()]);
+  };
+
+  describe('consultas', () => {
+    it('loadUsers carga la lista con los usuarios convertidos', () => {
+      let users: User[] = [];
+      service.loadUsers().subscribe(lista => users = lista);
+      http.expectOne(API).flush([usuarioApi(), usuarioApi({ id: 6, roles: ['ESTUDIANTE'], tipoVinculacion: null,
+        departamento: null, programa: { id: 7, nombre: 'Ingeniería de Sistemas' } })]);
+
+      expect(users.map(user => user.id)).toEqual(['5', '6']);
+      expect(storage.getUsersSnapshot()).toEqual(users);
+      expect(users[0].contractType).toBe(ContractType.OCASIONAL);
+      expect(users[1].program).toEqual({ id: 7, name: 'Ingeniería de Sistemas' });
+    });
+
+    it('getUserById consulta el usuario y lo refleja en la lista', () => {
+      let user: User | undefined;
+      service.getUserById('5').subscribe(u => user = u);
+      http.expectOne(`${API}/5`).flush(usuarioApi());
+
+      expect(user?.email).toBe('d5@unicauca.edu.co');
+      expect(storage.getUsersSnapshot().map(u => u.id)).toEqual(['5']);
+    });
+
+    it('getUserById devuelve undefined si no existe', () => {
+      let user: User | undefined = formUser();
+      service.getUserById('404').subscribe(u => user = u);
+      http.expectOne(`${API}/404`).flush({ message: 'No se encontró' }, { status: 404, statusText: 'Not Found' });
+      expect(user).toBeUndefined();
+    });
+
+    it('getUsersByRole filtra la lista cargada', () => {
+      cargarLista();
+      let docentes: User[] = [];
+      service.getUsersByRole(UserRoleType.DIRECTOR).subscribe(lista => docentes = lista);
+      expect(docentes.map(u => u.id)).toEqual(['5']);
     });
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
-  });
+  describe('crear y editar', () => {
+    it('createUser envía el usuario con la vinculación deducida y lo agrega a la lista', () => {
+      let saved: User | undefined;
+      service.createUser(formUser()).subscribe(u => saved = u);
 
-  it('debería instanciarse correctamente el servicio', () => {
-    expect(service).toBeTruthy();
-  });
+      const req = http.expectOne(API);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual(expect.objectContaining({
+        codigo: '1005',
+        tipoDocumento: 'CC',
+        roles: ['DOCENTE', 'DIRECTOR'],
+        tipoVinculacion: 'OCASIONAL',
+        departamentoId: 1,
+        programaId: null,
+        password: 'Clave1234'
+      }));
+      req.flush(usuarioApi());
 
-  describe('Queries', () => {
-    it('getUserById() debería retornar el flujo del Storage directamente', (done) => {
-      const user = createMockUser('1');
-      mockStorageService.getById.mockReturnValue(of(user));
-
-      service.getUserById('1').subscribe(res => {
-        expect(res).toEqual(user);
-        expect(mockStorageService.getById).toHaveBeenCalledWith('1');
-        done();
-      });
+      expect(saved?.id).toBe('5');
+      expect(storage.getUsersSnapshot().map(u => u.id)).toEqual(['5']);
     });
 
-    it('getUsersByRole() debería filtrar usuarios por rol tras un delay de 400ms', fakeAsync(() => {
-      const user1 = createMockUser('1', [UserRoleType.ADMINISTRADOR]);
-      const user2 = createMockUser('2', [UserRoleType.DOCENTE]);
-      mockStorageService.getUsersSnapshot.mockReturnValue([user1, user2]);
+    it('un codirector se crea con vinculación de planta', () => {
+      service.createUser(formUser({ roles: [UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR] })).subscribe();
+      const req = http.expectOne(API);
+      expect(req.request.body.tipoVinculacion).toBe('PLANTA');
+      req.flush(usuarioApi());
+    });
 
-      let emittedResult: User[] | undefined;
-      service.getUsersByRole(UserRoleType.ADMINISTRADOR).subscribe(result => {
-        emittedResult = result;
-      });
-      expect(emittedResult).toBeUndefined();
-      tick(400);
-      expect(emittedResult).toEqual([user1]);
-    }));
+    it('updateUser envía el usuario completo y reemplaza el de la lista', () => {
+      cargarLista();
+      service.updateUser('5', { firstName: 'Editado', password: '' }).subscribe();
+
+      const req = http.expectOne(`${API}/5`);
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual(expect.objectContaining({
+        primerNombre: 'Editado', primerApellido: 'Cinco', password: '', departamentoId: 1
+      }));
+      req.flush(usuarioApi({ primerNombre: 'Editado' }));
+
+      expect(storage.getUsersSnapshot()[0].firstName).toBe('Editado');
+    });
+
+    it('si el usuario editado es el de la sesión, también actualiza la sesión', () => {
+      const auth = TestBed.inject(AuthStorageService);
+      cargarLista();
+      auth.setSession(crearJwtDePrueba(), storage.getUsersSnapshot()[0]);
+
+      service.updateUser('5', { firstName: 'Yo mismo' }).subscribe();
+      http.expectOne(`${API}/5`).flush(usuarioApi({ primerNombre: 'Yo mismo' }));
+
+      expect(auth.currentUser()?.firstName).toBe('Yo mismo');
+    });
   });
 
-  describe('Mutations', () => {
-    it('createUser() debería asignar UUID, estado activo y agregarlo a la lista', fakeAsync(() => {
-      const baseUser = createMockUser('');
-      let savedUser: User | undefined;
-      service.createUser(baseUser).subscribe(res => savedUser = res);
-      tick(1000);
-      expect(savedUser).toBeDefined();
-      expect(savedUser?.id).toBe('11111111-1111-1111-1111-111111111111');
-      expect(savedUser?.state).toBe(UserState.active);
-      expect(mockStorageService.updateUsersList).toHaveBeenCalled();
-    }));
+  describe('roles y estado', () => {
+    it('updateUserRoles envía las claves de los roles', () => {
+      cargarLista();
+      service.updateUserRoles('5', [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP]).subscribe();
 
-    it('updateUser() debería modificar los campos e interceptar si es el currentUser', fakeAsync(() => {
-      const targetUser = createMockUser('1');
-      mockStorageService.currentUser.mockReturnValue(targetUser);
-      mockStorageService.updateUsersList.mockImplementationOnce((cb: (users: User[]) => User[]) => {
-        const result = cb([targetUser]);
-        expect(result[0].firstName).toBe('NuevoNombre');
-      });
-      service.updateUser('1', { firstName: 'NuevoNombre' }).subscribe();
-      tick(800);
-      expect(mockStorageService.updateUsersList).toHaveBeenCalled();
-      expect(mockStorageService.updateCurrentUser).toHaveBeenCalled();
-    }));
+      const req = http.expectOne(`${API}/5/roles`);
+      expect(req.request.body).toEqual({ roles: ['DOCENTE', 'JEFE_DEP'] });
+      req.flush(usuarioApi({ roles: ['DOCENTE', 'JEFE_DEP'] }));
 
-    it('updateUserPassword() debería alterar únicamente el campo password', fakeAsync(() => {
-      const targetUser = createMockUser('1');
-      mockStorageService.updateUsersList.mockImplementationOnce((cb: (users: User[]) => User[]) => {
-        const result = cb([targetUser]);
-        expect(result[0].password).toBe('new-secure-password');
-      });
-      service.updateUserPassword('1', 'new-secure-password').subscribe();
-      tick(600);
-      expect(mockStorageService.updateUsersList).toHaveBeenCalled();
-    }));
+      expect(storage.getUsersSnapshot()[0].roles).toEqual([UserRoleType.DOCENTE, UserRoleType.JEFE_DEP]);
+    });
 
-    it('softDeleteUser() debería conmutar el estado del usuario', fakeAsync(() => {
-      const activeUser = createMockUser('1');
-      mockStorageService.updateUsersList.mockImplementationOnce((cb: (users: User[]) => User[]) => {
-        const result = cb([activeUser]);
-        expect(result[0].state).toBe(UserState.inactive);
-      });
-      service.softDeleteUser('1').subscribe();
-      tick(800);
-      expect(mockStorageService.updateUsersList).toHaveBeenCalled();
-    }));
+    it('softDeleteUser inactiva al usuario activo y activa al inactivo', () => {
+      cargarLista();
+      service.softDeleteUser('5').subscribe();
+      const inactivar = http.expectOne(`${API}/5/estado`);
+      expect(inactivar.request.body).toEqual({ activo: false });
+      inactivar.flush(usuarioApi({ activo: false }));
+      expect(storage.getUsersSnapshot()[0].state).toBe(UserState.inactive);
 
-    it('addRoleToUser() debería añadir un rol nuevo al usuario si no lo tiene', fakeAsync(() => {
-      const user = createMockUser('1', [UserRoleType.DOCENTE]);
-      mockStorageService.updateUsersList.mockImplementationOnce((cb: (users: User[]) => User[]) => {
-        const result = cb([user]);
-        expect(result[0].roles).toContain(UserRoleType.ADMINISTRADOR);
-      });
-      service.addRoleToUser('1', UserRoleType.ADMINISTRADOR).subscribe();
-      tick(500);
-      expect(mockStorageService.updateUsersList).toHaveBeenCalled();
-    }));
+      service.softDeleteUser('5').subscribe();
+      const activar = http.expectOne(`${API}/5/estado`);
+      expect(activar.request.body).toEqual({ activo: true });
+      activar.flush(usuarioApi());
+      expect(storage.getUsersSnapshot()[0].state).toBe(UserState.active);
+    });
+  });
 
-    it('removeRoleFromUser() debería sustraer el rol indicado del perfil', fakeAsync(() => {
-      const user = createMockUser('1', [UserRoleType.DOCENTE, UserRoleType.ADMINISTRADOR]);
-      mockStorageService.updateUsersList.mockImplementationOnce((cb: (users: User[]) => User[]) => {
-        const result = cb([user]);
-        expect(result[0].roles).not.toContain(UserRoleType.ADMINISTRADOR);
-        expect(result[0].roles).toContain(UserRoleType.DOCENTE);
-      });
-      service.removeRoleFromUser('1', UserRoleType.ADMINISTRADOR).subscribe();
-      tick(500);
-      expect(mockStorageService.updateUsersList).toHaveBeenCalled();
-    }));
+  describe('roles automáticos (solo en memoria)', () => {
+    beforeEach(() => cargarLista());
 
-    it('removeRolesFromUsers() debería limpiar los roles en masa de múltiples usuarios', fakeAsync(() => {
-      const user1 = createMockUser('1', [UserRoleType.DOCENTE, UserRoleType.ADMINISTRADOR]);
-      const user2 = createMockUser('2', [UserRoleType.ADMINISTRADOR]);
-      mockStorageService.currentUser.mockReturnValue(user1);
-      mockStorageService.updateUsersList.mockImplementationOnce((cb: (users: User[]) => User[]) => {
-        const result = cb([user1, user2]);
-        expect(result[0].roles).not.toContain(UserRoleType.ADMINISTRADOR);
-        expect(result[1].roles).not.toContain(UserRoleType.ADMINISTRADOR);
-      });
-      service.removeRolesFromUsers(['1', '2'], [UserRoleType.ADMINISTRADOR]).subscribe();
-      tick(600);
-      expect(mockStorageService.updateUsersList).toHaveBeenCalled();
-      expect(mockStorageService.updateCurrentUser).toHaveBeenCalled();
-    }));
+    it('addRoleToUser agrega el rol al suscribirse, sin llamar al backend', () => {
+      const cambio = service.addRoleToUser('5', UserRoleType.EVALUADOR);
+      expect(storage.getUsersSnapshot()[0].roles).not.toContain(UserRoleType.EVALUADOR);
+      cambio.subscribe();
+      expect(storage.getUsersSnapshot()[0].roles).toContain(UserRoleType.EVALUADOR);
+    });
+
+    it('removeRoleFromUser quita el rol', () => {
+      service.removeRoleFromUser('5', UserRoleType.DIRECTOR).subscribe();
+      expect(storage.getUsersSnapshot()[0].roles).toEqual([UserRoleType.DOCENTE]);
+    });
+
+    it('removeRolesFromUsers quita los roles también del usuario en sesión', () => {
+      const auth = TestBed.inject(AuthStorageService);
+      auth.setSession(crearJwtDePrueba(), storage.getUsersSnapshot()[0]);
+
+      service.removeRolesFromUsers(['5'], [UserRoleType.DIRECTOR]).subscribe();
+
+      expect(storage.getUsersSnapshot()[0].roles).toEqual([UserRoleType.DOCENTE]);
+      expect(auth.currentUser()?.roles).toEqual([UserRoleType.DOCENTE]);
+    });
   });
 });

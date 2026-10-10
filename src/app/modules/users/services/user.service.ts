@@ -1,4 +1,4 @@
-import { computed, inject, Injectable } from '@angular/core';
+import { computed, effect, inject, Injectable, untracked } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { UserStorageService } from './user-storage.service';
@@ -7,6 +7,7 @@ import { UserFormatterService } from './user-formatter.service';
 
 import { User } from '../interfaces/user.interface';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
+import { AuthStorageService } from '../../../core/services/auth/auth-storage.service';
 
 @Injectable({
   providedIn: 'root'
@@ -15,6 +16,7 @@ export class UserService {
   private readonly storage = inject(UserStorageService);
   private readonly api = inject(UserApiService);
   private readonly formatter = inject(UserFormatterService);
+  private readonly authStorage = inject(AuthStorageService);
 
 
   // ==========================================
@@ -36,6 +38,27 @@ export class UserService {
     const user = this.storage.currentUser();
     return user ? this.formatter.formatFullName(user) : 'No identificado';
   });
+
+  constructor() {
+    // La lista de usuarios viene del backend: se carga al iniciar sesión (o al
+    // abrir la aplicación con sesión) y se vacía al cerrarla
+    let autenticadoAntes = false;
+    effect(() => {
+      const autenticado = this.authStorage.isAuthenticated();
+      untracked(() => {
+        if (autenticado && !autenticadoAntes) this.loadUsers();
+        if (!autenticado && autenticadoAntes) this.storage.updateUsersList(() => []);
+      });
+      autenticadoAntes = autenticado;
+    });
+  }
+
+  /** Vuelve a cargar la lista de usuarios desde el backend. */
+  public loadUsers(): void {
+    this.api.loadUsers().subscribe({
+      error: error => console.warn('No se pudo cargar la lista de usuarios', error?.status)
+    });
+  }
 
   // ==========================================
   // SESIÓN
@@ -81,10 +104,6 @@ export class UserService {
 
   public updateUserMock(id: string, changes: Partial<User>): Observable<User> {
     return this.api.updateUser(id, changes);
-  }
-
-  public updateUserPasswordMock(userId: string, newPassword: string): Observable<void> {
-    return this.api.updateUserPassword(userId, newPassword);
   }
 
   public softDeleteUserMock(id: string): Observable<void> {

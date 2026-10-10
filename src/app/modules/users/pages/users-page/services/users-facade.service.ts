@@ -5,6 +5,7 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { User } from '../../../interfaces/user.interface';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
 @Injectable({ providedIn: 'root' })
 export class UsersFacadeService {
@@ -14,6 +15,10 @@ export class UsersFacadeService {
   public readonly usersTableData = computed(() => {
     return this.userService.users().map(user => this.mapper.mapUserToTable(user));
   });
+
+  public loadUsers(): void {
+    this.userService.loadUsers();
+  }
 
   public findUserById(id: string): User | undefined {
     return this.userService.users().find(user => user.id === id);
@@ -28,7 +33,7 @@ export class UsersFacadeService {
         onSuccess();
       },
       error: (err) => {
-        this.showNotification('Error al asignar roles', 'No se pudieron actualizar los roles. Intente de nuevo.', NotificationType.ERROR);
+        this.showNotification('Error al asignar roles', apiErrorMessage(err, 'No se pudieron actualizar los roles. Intente de nuevo.'), NotificationType.ERROR);
         console.error(err);
       }
     });
@@ -49,7 +54,7 @@ export class UsersFacadeService {
       },
       error: (err) => {
         const errTitle = isEnabling ? 'Error al habilitar' : 'Error al deshabilitar';
-        this.showNotification(errTitle, 'No se pudo completar la acción. Intente de nuevo.', NotificationType.ERROR);
+        this.showNotification(errTitle, apiErrorMessage(err, 'No se pudo completar la acción. Intente de nuevo.'), NotificationType.ERROR);
         console.error(err);
       }
     });

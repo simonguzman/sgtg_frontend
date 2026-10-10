@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Injector } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
 import { UploadAdvancePageFacadeService } from '../pages/upload-advance-page/services/upload-advance-page-facade.service';
@@ -71,6 +73,9 @@ describe('Integración [Trabajo de Grado]: Subida de avance — ubicación real 
 
     TestBed.configureTestingModule({
       providers: [
+        // UserService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         UploadAdvancePageFacadeService,
         LoadedDocumentsThesisWorkFacadeService,
         ThesisWorkService, ThesisWorkStorageService, ThesisWorkAdvanceService,

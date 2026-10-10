@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Injector } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
 import { ThesisWorkService } from '../services/thesis-work.service';
@@ -102,6 +104,9 @@ describe('Integración [Trabajo de Grado]: Ramas de aprobación de solicitudes e
 
     TestBed.configureTestingModule({
       providers: [
+        // UserService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         ThesisWorkService, ThesisWorkStorageService, ThesisWorkSpecialRequestService,
         ThesisWorkAdvanceService, ThesisWorkDeliveryService, ThesisWorkEvaluationService,
         ThesisWorkSustentationService, ThesisWorkApiService,

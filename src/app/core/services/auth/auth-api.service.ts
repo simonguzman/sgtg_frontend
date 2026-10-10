@@ -1,34 +1,53 @@
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { delay, map, Observable, of, throwError } from 'rxjs';
 import { Router } from '@angular/router';
+import { catchError, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 import { AuthStorageService } from './auth-storage.service';
-import { UserService } from '../../../modules/users/services/user.service';
-import { UserState } from '../../../modules/users/enum/user-state.enum';
 import { ChangePasswordResponse } from '../../interfaces/change-password-response.interface';
+import { ApiError, CambiarPasswordRequest, LoginResponse, UsuarioResponse } from '../../interfaces/api/auth-api.interface';
+import { mapUsuarioToUser } from '../../mappers/usuario.mapper';
 
+/** Mensaje cuando el backend rechaza las credenciales sin dar uno propio. */
+export const CREDENCIALES_INVALIDAS = 'Correo o contraseña incorrectos.';
+
+/**
+ * Llamadas al backend de autenticación: login (`POST /auth/login` y luego
+ * `GET /usuarios/me`), consulta del usuario autenticado y cambio de contraseña.
+ */
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
-  private readonly storage     = inject(AuthStorageService);
-  private readonly userService = inject(UserService);
-  private readonly router      = inject(Router);
+  private readonly http    = inject(HttpClient);
+  private readonly storage = inject(AuthStorageService);
+  private readonly router  = inject(Router);
+  private readonly apiUrl  = environment.apiUrl;
 
+  /**
+   * Inicia sesión. Las credenciales rechazadas (401) y los datos inválidos (400)
+   * se devuelven como `{ success: false, message }`; los errores de conexión o
+   * del servidor se propagan como error.
+   */
   login(credentials: { email: string; password: string }): Observable<{ success: boolean; message?: string }> {
-    const found = this.userService.users().find(
-      u => u.email === credentials.email && u.password === credentials.password
-    );
-
-    return of(found).pipe(
-      delay(1000),
-      map(user => {
-        if (!user) {
-          return { success: false, message: 'Correo o contraseña incorrectos.' };
+    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, credentials).pipe(
+      // El token todavía no está en la sesión: se envía explícito para consultar el usuario
+      switchMap(({ token }) => this.http.get<UsuarioResponse>(`${this.apiUrl}/usuarios/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).pipe(tap(usuario => this.storage.setSession(token, mapUsuarioToUser(usuario))))),
+      map(() => ({ success: true })),
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 401 || error.status === 400) {
+          return of({ success: false, message: this.mensajeDeError(error, CREDENCIALES_INVALIDAS) });
         }
-        if (user.state !== UserState.active) {
-          return { success: false, message: 'Tu cuenta se encuentra inhabilitada. Contacta al administrador.' };
-        }
-        this.storage.setUser(user);
-        return { success: true };
+        return throwError(() => error);
       })
+    );
+  }
+
+  /** Vuelve a consultar el usuario autenticado (roles o estado pudieron cambiar). */
+  refreshCurrentUser(): Observable<void> {
+    return this.http.get<UsuarioResponse>(`${this.apiUrl}/usuarios/me`).pipe(
+      tap(usuario => this.storage.setUser(mapUsuarioToUser(usuario))),
+      map(() => undefined)
     );
   }
 
@@ -37,27 +56,22 @@ export class AuthApiService {
     this.router.navigate(['/auth/login']);
   }
 
+  /**
+   * Cambia la contraseña del usuario autenticado. Si el backend la rechaza
+   * (contraseña actual incorrecta, nueva inválida) el error trae su mensaje.
+   */
   changePassword(currentPassword: string, newPassword: string): Observable<ChangePasswordResponse> {
-    const user = this.storage.currentUser();
+    const cuerpo: CambiarPasswordRequest = { passwordActual: currentPassword, passwordNueva: newPassword };
+    return this.http.put<void>(`${this.apiUrl}/usuarios/me/password`, cuerpo).pipe(
+      map(() => ({ success: true, message: 'Contraseña actualizada exitosamente.' })),
+      catchError((error: HttpErrorResponse) => throwError(() =>
+        new Error(this.mensajeDeError(error, 'No se pudo cambiar la contraseña. Intenta de nuevo.'))))
+    );
+  }
 
-    // S6582: La comprobación !user || user.password !== ... se simplifica con
-    // encadenamiento opcional. Si user es null, user?.password es undefined,
-    // que siempre difiere de un string de contraseña → se dispara throwError.
-    if (user?.password !== currentPassword) {
-      return throwError(() => new Error('La contraseña actual es incorrecta.'));
-    }
-
-    // En este punto user es garantizadamente no-nulo: si fuera null,
-    // user?.password sería undefined y habría diferido de currentPassword
-    // (string), retornando el error arriba. TypeScript no infiere
-    // automáticamente el narrowing tras optional chain, de ahí el uso de !.
-    const updatedUser = { ...user!, password: newPassword };
-    this.storage.updateUser(updatedUser);
-
-    // ¡Añadimos la suscripción para que el Observable frío se ejecute!
-    this.userService.updateUserPasswordMock(user!.id, newPassword).subscribe();
-
-    return of({ success: true, message: 'Contraseña actualizada exitosamente.' })
-      .pipe(delay(1500));
+  /** Mensaje del backend (`Error.message`) o el indicado si la respuesta no lo trae. */
+  private mensajeDeError(error: HttpErrorResponse, porDefecto: string): string {
+    const cuerpo = error.error as Partial<ApiError> | null;
+    return typeof cuerpo?.message === 'string' && cuerpo.message ? cuerpo.message : porDefecto;
   }
 }

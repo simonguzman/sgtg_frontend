@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, flush, tick } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ApplicationRef, Injector } from '@angular/core';
 import { ProposalApiService } from '../services/proposal-api.service';
 import { ProposalStorageService } from '../services/proposal-storage.service';
@@ -57,6 +59,9 @@ describe('Integración [Proposal]: Eliminación y Limpieza Condicional de Roles'
 
     TestBed.configureTestingModule({
       providers: [
+        // AuthService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         ProposalApiService, ProposalStorageService, ProposalRulesService,
         UserService, UserStorageService, EventBusService
       ]

@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Injector, runInInjectionContext } from '@angular/core';
 import { Router, UrlTree, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
@@ -84,6 +86,9 @@ describe('Integración [Proposal]: Guard de pertenencia contra storage real', ()
 
     TestBed.configureTestingModule({
       providers: [
+        // UserService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         ProposalStorageService, UserService, UserStorageService,
         { provide: Router, useValue: routerMock },
         { provide: NotificationService, useValue: notificationMock },

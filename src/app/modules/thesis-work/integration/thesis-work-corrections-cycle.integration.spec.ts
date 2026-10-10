@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Injector } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
 import { RegisterCorrectedDocumentsFacadeService } from '../pages/register-corrected-documents-page/services/register-corrected-documents-facade.service';
@@ -93,6 +95,9 @@ describe('Integración [Trabajo de Grado]: Ciclo de Correcciones — subida y ev
 
     TestBed.configureTestingModule({
       providers: [
+        // UserService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         RegisterCorrectedDocumentsFacadeService,
         EvaluateCorrectionsFacadeService,
         ThesisWorkService, ThesisWorkStorageService, ThesisWorkAdvanceService,

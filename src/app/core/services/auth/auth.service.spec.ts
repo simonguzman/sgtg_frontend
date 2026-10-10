@@ -1,6 +1,7 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Router } from '@angular/router';
+import { Observable, of, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
 import { AuthStorageService } from './auth-storage.service';
 import { AuthApiService } from './auth-api.service';
@@ -8,109 +9,165 @@ import { User } from '../../../modules/users/interfaces/user.interface';
 import { UserRoleType } from '../../enums/user-role-type.enum';
 import { UserState } from '../../../modules/users/enum/user-state.enum';
 import { ChangePasswordResponse } from '../../interfaces/change-password-response.interface';
+import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
+import { crearJwtDePrueba } from '../../../testing/jwt-de-prueba';
 
 interface MockAuthStorageService {
   currentUser: WritableSignal<User | null>;
   isAuthenticated: WritableSignal<boolean>;
   userRoles: WritableSignal<UserRoleType[]>;
+  token: WritableSignal<string | null>;
+  clearUser: jest.Mock<void, []>;
 }
 
 interface MockAuthApiService {
   login: jest.Mock<Observable<{ success: boolean; message?: string }>, [{ email: string; password: string }]>;
   logout: jest.Mock<void, []>;
   changePassword: jest.Mock<Observable<ChangePasswordResponse>, [string, string]>;
+  refreshCurrentUser: jest.Mock<Observable<void>, []>;
 }
 
-const createMockUser = (overrides: Partial<User> = {}): User => {
-  const baseUser: User = {
-    id: '1',
-    idType: 'CC',
-    idNumber: 1000000000,
-    firstName: 'Simón',
-    secondName: '',
-    lastName: 'Guzmán',
-    secondLastName: 'Anaya',
-    codeNumber: 1234567890,
-    email: 'test@test.com',
-    password: '123',
-    state: UserState.active,
-    roles: [UserRoleType.ADMINISTRADOR, UserRoleType.ESTUDIANTE]
-  };
-
-  return { ...baseUser, ...overrides } as User;
+const mockUser: User = {
+  id: '1',
+  idType: 'CC',
+  idNumber: 1000000000,
+  firstName: 'Simón',
+  secondName: '',
+  lastName: 'Guzmán',
+  secondLastName: 'Anaya',
+  codeNumber: 1234567890,
+  email: 'test@test.com',
+  state: UserState.active,
+  roles: [UserRoleType.ADMINISTRADOR, UserRoleType.ESTUDIANTE]
 };
 
 describe('AuthService (Facade)', () => {
   let service: AuthService;
-  let mockStorageService: MockAuthStorageService;
-  let mockApiService: MockAuthApiService;
-  const mockUser = createMockUser();
+  let storage: MockAuthStorageService;
+  let api: MockAuthApiService;
+  let router: { navigate: jest.Mock };
+  let notification: { security: jest.Mock };
 
-  beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    mockStorageService = {
-      currentUser: signal(mockUser),
-      isAuthenticated: signal(true),
-      userRoles: signal(mockUser.roles)
+  /** Crea el servicio con un token que vence en los segundos indicados (null = sin sesión). */
+  const crearServicio = (segundosParaVencer: number | null = 3600) => {
+    storage = {
+      currentUser: signal(segundosParaVencer === null ? null : mockUser),
+      isAuthenticated: signal(segundosParaVencer !== null),
+      userRoles: signal(mockUser.roles),
+      token: signal(segundosParaVencer === null ? null : crearJwtDePrueba(segundosParaVencer)),
+      clearUser: jest.fn(() => {
+        storage.currentUser.set(null);
+        storage.isAuthenticated.set(false);
+        storage.token.set(null);
+      })
     };
-
-    mockApiService = {
+    api = {
       login: jest.fn(),
       logout: jest.fn(),
-      changePassword: jest.fn()
+      changePassword: jest.fn(),
+      refreshCurrentUser: jest.fn(() => of(undefined))
     };
+    router = { navigate: jest.fn() };
+    notification = { security: jest.fn() };
 
     TestBed.configureTestingModule({
       providers: [
         AuthService,
-        { provide: AuthStorageService, useValue: mockStorageService },
-        { provide: AuthApiService, useValue: mockApiService }
+        { provide: AuthStorageService, useValue: storage },
+        { provide: AuthApiService, useValue: api },
+        { provide: Router, useValue: router },
+        { provide: NotificationService, useValue: notification }
       ]
     });
-
     service = TestBed.inject(AuthService);
-  });
+  };
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
-  });
+  beforeEach(() => jest.spyOn(console, 'warn').mockImplementation(() => {}));
+  afterEach(() => jest.restoreAllMocks());
 
-  describe('Delegación de métodos a API (AuthApiService)', () => {
-    it('debe delegar login a AuthApiService con las credenciales exactas', () => {
+  describe('Delegación a AuthApiService', () => {
+    beforeEach(() => crearServicio());
+
+    it('debe delegar login con las credenciales exactas', () => {
       const credentials = { email: 'a@a.com', password: '123' };
       service.login(credentials);
-      expect(mockApiService.login).toHaveBeenCalledWith(credentials);
-      expect(mockApiService.login).toHaveBeenCalledTimes(1);
+      expect(api.login).toHaveBeenCalledWith(credentials);
     });
 
-    it('debe delegar logout a AuthApiService', () => {
+    it('debe delegar logout', () => {
       service.logout();
-      expect(mockApiService.logout).toHaveBeenCalledTimes(1);
+      expect(api.logout).toHaveBeenCalledTimes(1);
     });
 
-    it('debe delegar changePassword a AuthApiService con los parámetros exactos', () => {
+    it('debe delegar changePassword con los parámetros exactos', () => {
       service.changePassword('old', 'new');
-      expect(mockApiService.changePassword).toHaveBeenCalledWith('old', 'new');
-      expect(mockApiService.changePassword).toHaveBeenCalledTimes(1);
+      expect(api.changePassword).toHaveBeenCalledWith('old', 'new');
     });
   });
 
-  describe('Lógica derivada (hasAnyRole)', () => {
-    it('debe retornar true si el usuario tiene al menos uno de los roles requeridos', () => {
-      expect(service.hasAnyRole([UserRoleType.ADMINISTRADOR, 'otro_rol'])).toBeTruthy();
-      expect(service.hasAnyRole([UserRoleType.ESTUDIANTE])).toBeTruthy();
+  describe('hasAnyRole', () => {
+    beforeEach(() => crearServicio());
+
+    it('es true si el usuario tiene al menos uno de los roles', () => {
+      expect(service.hasAnyRole([UserRoleType.ADMINISTRADOR, 'otro_rol'])).toBe(true);
     });
 
-    it('debe retornar false si el usuario no tiene ninguno de los roles requeridos', () => {
-      expect(service.hasAnyRole([UserRoleType.DIRECTOR, UserRoleType.ASESOR])).toBeFalsy();
+    it('es false si no tiene ninguno', () => {
+      expect(service.hasAnyRole([UserRoleType.DIRECTOR, UserRoleType.ASESOR])).toBe(false);
     });
 
-    it('debe retornar false si no hay usuario en sesión (currentUser es null)', () => {
-      mockStorageService.currentUser.set(null);
-      expect(service.hasAnyRole([UserRoleType.ADMINISTRADOR])).toBeFalsy();
+    it('es false sin usuario en sesión', () => {
+      storage.currentUser.set(null);
+      expect(service.hasAnyRole([UserRoleType.ADMINISTRADOR])).toBe(false);
     });
+  });
+
+  describe('initialize', () => {
+    it('sin sesión no consulta el backend', () => {
+      crearServicio(null);
+      service.initialize().subscribe();
+      expect(api.refreshCurrentUser).not.toHaveBeenCalled();
+    });
+
+    it('con sesión refresca el usuario', () => {
+      crearServicio();
+      service.initialize().subscribe();
+      expect(api.refreshCurrentUser).toHaveBeenCalledTimes(1);
+    });
+
+    it('si el refresco falla no rompe el arranque', () => {
+      crearServicio();
+      api.refreshCurrentUser.mockReturnValue(throwError(() => ({ status: 0 })));
+      let completo = false;
+      service.initialize().subscribe({ complete: () => completo = true });
+      expect(completo).toBe(true);
+    });
+  });
+
+  describe('expireSession', () => {
+    it('limpia la sesión, avisa y navega al login', () => {
+      crearServicio();
+      service.expireSession();
+      expect(storage.clearUser).toHaveBeenCalled();
+      expect(notification.security).toHaveBeenCalledWith('Sesión finalizada', expect.any(String));
+      expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
+    });
+
+    it('no hace nada si ya no hay sesión (evita avisos repetidos)', () => {
+      crearServicio(null);
+      service.expireSession();
+      expect(storage.clearUser).not.toHaveBeenCalled();
+      expect(notification.security).not.toHaveBeenCalled();
+    });
+
+    it('se ejecuta sola cuando vence el token', fakeAsync(() => {
+      crearServicio(5);
+      TestBed.tick();
+      tick(4000);
+      expect(storage.clearUser).not.toHaveBeenCalled();
+      tick(1500);
+      expect(storage.clearUser).toHaveBeenCalled();
+      expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
+    }));
   });
 });

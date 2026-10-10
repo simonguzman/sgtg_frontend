@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Injector } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { filter, take } from 'rxjs/operators';
@@ -47,6 +49,9 @@ describe('Integración [Proposal]: Reglas de Negocio y Límite de Estudiantes', 
 
     TestBed.configureTestingModule({
       providers: [
+        // AuthService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         ProposalRulesService,
         ProposalStorageService,
         UserService,

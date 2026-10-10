@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, flush } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Injector, signal, WritableSignal } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
 import { of } from 'rxjs';
@@ -82,6 +84,9 @@ describe('Integración [Trabajo de Grado]: Suspensión aprobada → visibilidad 
 
     TestBed.configureTestingModule({
       providers: [
+        // UserService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         ThesisWorkPageFacadeService, ThesisWorkPageMapperService,
         ThesisWorkService, ThesisWorkStorageService, ThesisWorkSpecialRequestService,
         ThesisWorkApiService, ThesisWorkAdvanceService, ThesisWorkDeliveryService,

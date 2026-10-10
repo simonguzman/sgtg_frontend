@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Injector } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
 import { ProposalStorageService } from '../services/proposal-storage.service';
@@ -53,6 +55,9 @@ describe('Integración [Proposal]: Visibilidad por rol — señal proposals() fi
   it('un rol privilegiado (Comité) ve TODAS las propuestas activas, sin importar participación', async () => {
     TestBed.configureTestingModule({
       providers: [
+        // UserService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         ProposalStorageService, UserService, UserStorageService,
         { provide: AuthService, useValue: { currentUser: () => createMockUser({ id: 'comite-1' }), hasAnyRole: () => true } }
       ]
@@ -73,6 +78,9 @@ describe('Integración [Proposal]: Visibilidad por rol — señal proposals() fi
     const ownDirectorId = 'dir-vis-own';
     TestBed.configureTestingModule({
       providers: [
+        // UserService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         ProposalStorageService, UserService, UserStorageService,
         { provide: AuthService, useValue: { currentUser: () => createMockUser({ id: ownDirectorId }), hasAnyRole: () => false } }
       ]
@@ -93,6 +101,9 @@ describe('Integración [Proposal]: Visibilidad por rol — señal proposals() fi
   it('las propuestas archivadas quedan excluidas incluso para un rol privilegiado', async () => {
     TestBed.configureTestingModule({
       providers: [
+        // UserService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         ProposalStorageService, UserService, UserStorageService,
         { provide: AuthService, useValue: { currentUser: () => createMockUser({ id: 'consejo-1' }), hasAnyRole: () => true } }
       ]

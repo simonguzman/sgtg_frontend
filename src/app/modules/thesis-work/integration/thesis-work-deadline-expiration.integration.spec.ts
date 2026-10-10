@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Injector } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
 import { ThesisWorkService } from '../services/thesis-work.service';
@@ -76,6 +78,9 @@ describe('Integración [Trabajo de Grado]: Vencimiento automático de plazo (ver
 
     TestBed.configureTestingModule({
       providers: [
+        // UserService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         ThesisWorkStorageService, ThesisWorkApiService,
         ThesisWorkAdvanceService, ThesisWorkDeliveryService, ThesisWorkEvaluationService,
         ThesisWorkSpecialRequestService, ThesisWorkSustentationService,

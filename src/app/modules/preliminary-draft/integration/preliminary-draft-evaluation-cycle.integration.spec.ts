@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, flush, tick } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ApplicationRef, Injector } from '@angular/core';
 import { PreliminaryDraftService } from '../services/preliminary-draft.service';
 import { PreliminaryDraftStorageService } from '../services/preliminary-draft-storage.service';
@@ -57,6 +59,9 @@ describe('Integración [Anteproyectos]: Ciclo de Asignación y Evaluación', () 
 
     TestBed.configureTestingModule({
       providers: [
+        // AuthService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         PreliminaryDraftService,
         PreliminaryDraftStorageService,
         PreliminaryDraftAssignmentService,

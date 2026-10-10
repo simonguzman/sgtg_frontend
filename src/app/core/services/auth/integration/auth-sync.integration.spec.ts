@@ -1,113 +1,120 @@
 import 'fake-indexeddb/auto';
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { Router, NavigationExtras } from '@angular/router';
-import { AuthApiService } from '../auth-api.service';
+import { TestBed } from '@angular/core/testing';
+import { provideHttpClient, withInterceptors, HttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Router } from '@angular/router';
+import { AuthService } from '../auth.service';
 import { AuthStorageService } from '../auth-storage.service';
 import { UserService } from '../../../../modules/users/services/user.service';
-import { UserStorageService } from '../../../../modules/users/services/user-storage.service';
-import { UserApiService } from '../../../../modules/users/services/user-api.service';
-import { User } from '../../../../modules/users/interfaces/user.interface';
-import { UserState } from '../../../../modules/users/enum/user-state.enum';
-import { IdentificationType } from '../../../../modules/users/enum/identification-type.enum';
+import { authInterceptor } from '../../../interceptors/auth.interceptor';
+import { UserRoleType } from '../../../enums/user-role-type.enum';
+import { crearJwtDePrueba } from '../../../../testing/jwt-de-prueba';
 
 if (typeof globalThis.structuredClone === 'undefined') {
   globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
 }
 
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'user-auth-1',
-  idType: IdentificationType.CC,
-  idNumber: 123456789,
-  firstName: 'Juan',
-  secondName: '',
-  lastName: 'Perez',
-  secondLastName: '',
-  codeNumber: 202601,
-  email: 'juan@test.com',
-  password: 'oldPassword123',
-  state: UserState.active,
-  roles: [],
-  ...overrides
-} as User);
+const API = '/api/v1/sgtg';
 
-describe('Integración [Auth]: Sincronización Cruzada de Identidad (Core ➔ Users)', () => {
-  let authApi: AuthApiService;
-  let authStorage: AuthStorageService;
+/**
+ * Integración del login con el backend simulado por HttpTestingController:
+ * fachada, almacenamiento, interceptor y la sesión que leen los demás módulos.
+ */
+describe('Integración [Auth]: sesión con el backend (Core ➔ Users)', () => {
+  let auth: AuthService;
+  let storage: AuthStorageService;
   let userService: UserService;
-  let userStorage: UserStorageService;
-  let routerMock: { navigate: jest.Mock<Promise<boolean>, [string[], NavigationExtras?]> };
+  let httpClient: HttpClient;
+  let http: HttpTestingController;
+  let router: { navigate: jest.Mock };
+  const token = crearJwtDePrueba();
 
-  beforeAll(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+  beforeEach(() => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
+    localStorage.clear();
+    router = { navigate: jest.fn().mockResolvedValue(true) };
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(withInterceptors([authInterceptor])),
+        provideHttpClientTesting(),
+        { provide: Router, useValue: router }
+      ]
+    });
+    auth = TestBed.inject(AuthService);
+    storage = TestBed.inject(AuthStorageService);
+    userService = TestBed.inject(UserService);
+    httpClient = TestBed.inject(HttpClient);
+    http = TestBed.inject(HttpTestingController);
   });
 
-  afterAll(() => {
+  afterEach(() => {
+    http.verify();
     jest.restoreAllMocks();
   });
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-
-    routerMock = { navigate: jest.fn().mockResolvedValue(true) };
-
-    TestBed.configureTestingModule({
-      providers: [
-        AuthApiService,
-        AuthStorageService,
-        UserService,
-        UserStorageService,
-        UserApiService,
-        { provide: Router, useValue: routerMock }
-      ]
+  const iniciarSesion = () => {
+    auth.login({ email: 'jefe@unicauca.edu.co', password: 'Clave123*' }).subscribe();
+    http.expectOne(`${API}/auth/login`).flush({ token });
+    http.expectOne(`${API}/usuarios/me`).flush({
+      id: 3, codigo: '2001', tipoDocumento: 'CC', numeroDocumento: '1061', email: 'jefe@unicauca.edu.co',
+      primerNombre: 'Luis', segundoNombre: null, primerApellido: 'Mora', segundoApellido: null,
+      roles: ['DOCENTE', 'JEFE_DEP'], activo: true
     });
+  };
 
-    authApi = TestBed.inject(AuthApiService);
-    authStorage = TestBed.inject(AuthStorageService);
-    userService = TestBed.inject(UserService);
-    userStorage = TestBed.inject(UserStorageService);
-    localStorage.clear();
-    const testUser = createMockUser();
-    userStorage.updateUsersList(() => [testUser]);
+  it('la sesión del login es la misma que leen el guard de roles y el módulo de usuarios', () => {
+    iniciarSesion();
+
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(auth.hasAnyRole([UserRoleType.JEFE_DEP])).toBe(true);
+    expect(userService.currentUser()?.id).toBe('3');
+    expect(userService.currentUserFullName()).toContain('Luis');
   });
 
-  it('debe mantener sincronizada la lista global de usuarios y la sesión al cambiar la contraseña', fakeAsync(() => {
-    let loginSuccess = false;
-    authApi.login({ email: 'juan@test.com', password: 'oldPassword123' }).subscribe(response => {
-      loginSuccess = response.success;
-    });
-    tick(1000);
-    expect(loginSuccess).toBe(true);
-    expect(authStorage.isAuthenticated()).toBe(true);
-    let changeResponse: { success: boolean; message?: string } | undefined;
-    authApi.changePassword('oldPassword123', 'newPassword456').subscribe(response => {
-      changeResponse = response;
-    });
-    tick(2100);
-    expect(changeResponse?.success).toBe(true);
-    const activeSession = authStorage.currentUser();
-    expect(activeSession?.password).toBe('newPassword456');
-    const globalUser = userService.getUsersSnapshot().find(u => u.id === 'user-auth-1');
-    expect(globalUser?.password).toBe('newPassword456');
-    authApi.logout();
-    let secondLoginSuccess = false;
-    authApi.login({ email: 'juan@test.com', password: 'newPassword456' }).subscribe(response => {
-      secondLoginSuccess = response.success;
-    });
-    tick(1000);
-    expect(secondLoginSuccess).toBe(true);
-  }));
+  it('el interceptor envía el token en las peticiones al backend', () => {
+    iniciarSesion();
 
-  it('debe rebotar el cambio de contraseña si la contraseña actual no coincide, sin mutar nada', fakeAsync(() => {
-    authApi.login({ email: 'juan@test.com', password: 'oldPassword123' }).subscribe();
-    tick(1000);
-    let errorCaught = false;
-    authApi.changePassword('wrongPassword', 'newPassword456').subscribe({
-      error: () => errorCaught = true
-    });
-    tick(1500);
-    expect(errorCaught).toBe(true);
-    const globalUser = userService.getUsersSnapshot().find(user => user.id === 'user-auth-1');
-    expect(globalUser?.password).toBe('oldPassword123');
-  }));
+    httpClient.get(`${API}/trabajos-grado/mis-trabajos`).subscribe();
+    const req = http.expectOne(`${API}/trabajos-grado/mis-trabajos`);
+    expect(req.request.headers.get('Authorization')).toBe(`Bearer ${token}`);
+    req.flush([]);
+  });
+
+  it('el interceptor no envía el token a otros servidores', () => {
+    iniciarSesion();
+
+    httpClient.get('/assets/formatos/formato-a.pdf').subscribe();
+    const req = http.expectOne('/assets/formatos/formato-a.pdf');
+    expect(req.request.headers.has('Authorization')).toBe(false);
+    req.flush('');
+  });
+
+  it('un 401 del backend cierra la sesión y lleva al login', () => {
+    iniciarSesion();
+
+    httpClient.get(`${API}/usuarios/me`).subscribe({ error: () => undefined });
+    http.expectOne(`${API}/usuarios/me`).flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    expect(storage.isAuthenticated()).toBe(false);
+    expect(localStorage.getItem('sgtg_token')).toBeNull();
+    expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
+  });
+
+  it('un 401 del login es un login fallido, no cierra ninguna sesión ni navega', () => {
+    let respuesta: { success: boolean; message?: string } | undefined;
+    auth.login({ email: 'jefe@unicauca.edu.co', password: 'otra' }).subscribe(r => respuesta = r);
+    http.expectOne(`${API}/auth/login`).flush(
+      { errorCode: 'GC-0005', message: 'Correo o contraseña incorrectos.' }, { status: 401, statusText: 'Unauthorized' });
+
+    expect(respuesta).toEqual({ success: false, message: 'Correo o contraseña incorrectos.' });
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('logout cierra la sesión para todos los módulos', () => {
+    iniciarSesion();
+    auth.logout();
+
+    expect(userService.currentUser()).toBeNull();
+    expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
+  });
 });

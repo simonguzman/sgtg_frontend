@@ -4,6 +4,7 @@ import { User } from '../interfaces/user.interface';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { IdentificationType } from '../enum/identification-type.enum';
 import { UserState } from '../enum/user-state.enum';
+import { crearJwtDePrueba } from '../../../testing/jwt-de-prueba';
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'default-id',
@@ -59,31 +60,32 @@ describe('UserStorageService', () => {
   });
 
   describe('Inicialización y LocalStorage', () => {
-    it('debería cargar los datos desde LocalStorage si el JSON almacenado es válido', () => {
+    it('debería iniciar sin usuarios (vienen del backend) y tomar la sesión del login (AuthStorageService)', () => {
+      localStorageStore['sgtg_token'] = crearJwtDePrueba();
+      localStorageStore['sgtg_session'] = JSON.stringify(mockTeacher);
+      TestBed.configureTestingModule({ providers: [UserStorageService] });
+      service = TestBed.inject(UserStorageService);
+      expect(service.getUsersSnapshot()).toEqual([]);
+      expect(service.currentUser()).toEqual(mockTeacher);
+    });
+
+    it('debería eliminar los datos simulados del formato anterior', () => {
       localStorageStore['sgtg_users'] = JSON.stringify([mockStudent]);
       localStorageStore['sgtg_current_session'] = JSON.stringify(mockTeacher);
       TestBed.configureTestingModule({ providers: [UserStorageService] });
       service = TestBed.inject(UserStorageService);
-      expect(service.getUsersSnapshot()).toEqual([mockStudent]);
-      expect(service.currentUser()).toEqual(mockTeacher);
-    });
-
-    it('debería manejar errores de JSON inválido, limpiar la llave y cargar usuarios iniciales', () => {
-      localStorageStore['sgtg_users'] = '{ json_corrupto_sin_comillas }';
-      localStorageStore['sgtg_current_session'] = 'undefined';
-      TestBed.configureTestingModule({ providers: [UserStorageService] });
-      service = TestBed.inject(UserStorageService);
-      expect(Storage.prototype.removeItem).toHaveBeenCalledWith('sgtg_users');
-      expect(service.getUsersSnapshot().length).toBeGreaterThan(0);
+      expect(localStorageStore['sgtg_users']).toBeUndefined();
+      expect(localStorageStore['sgtg_current_session']).toBeUndefined();
+      expect(service.getUsersSnapshot()).toEqual([]);
       expect(service.currentUser()).toBeNull();
     });
   });
 
   describe('Señales Computadas para Roles', () => {
     beforeEach(() => {
-      localStorageStore['sgtg_users'] = JSON.stringify([mockStudent, mockTeacher]);
       TestBed.configureTestingModule({ providers: [UserStorageService] });
       service = TestBed.inject(UserStorageService);
+      service.updateUsersList(() => [mockStudent, mockTeacher]);
     });
 
     it('debería segmentar correctamente al arreglo de estudiantes', () => {
@@ -108,33 +110,33 @@ describe('UserStorageService', () => {
       service = TestBed.inject(UserStorageService);
     });
 
-    it('updateUsersList() debería mutar la señal y disparar el effect hacia LocalStorage', () => {
+    it('updateUsersList() debería mutar la señal sin guardar la lista en LocalStorage', () => {
       service.updateUsersList(() => [mockTeacher]);
-      TestBed.flushEffects();
       expect(service.getUsersSnapshot()).toEqual([mockTeacher]);
-      expect(Storage.prototype.setItem).toHaveBeenCalledWith('sgtg_users', JSON.stringify([mockTeacher]));
+      expect(Storage.prototype.setItem).not.toHaveBeenCalledWith('sgtg_users', expect.anything());
     });
 
-    it('updateCurrentUser() debería mutar al usuario actual y disparar el effect', () => {
+    it('updateCurrentUser() debería actualizar el usuario de la sesión única', () => {
       service.updateCurrentUser(() => mockTeacher);
-      TestBed.flushEffects();
       expect(service.currentUser()).toEqual(mockTeacher);
-      expect(Storage.prototype.setItem).toHaveBeenCalledWith('sgtg_current_session', JSON.stringify(mockTeacher));
+      expect(Storage.prototype.setItem).toHaveBeenCalledWith('sgtg_session', JSON.stringify(mockTeacher));
     });
 
-    it('setCurrentUser() debería actualizar la sesión y disparar el effect hacia LocalStorage', () => {
+    it('setCurrentUser() debería actualizar la sesión única y con null cerrarla', () => {
       service.setCurrentUser(mockStudent);
-      TestBed.flushEffects();
       expect(service.currentUser()).toEqual(mockStudent);
-      expect(Storage.prototype.setItem).toHaveBeenCalledWith('sgtg_current_session', JSON.stringify(mockStudent));
+      expect(Storage.prototype.setItem).toHaveBeenCalledWith('sgtg_session', JSON.stringify(mockStudent));
+      service.setCurrentUser(null);
+      expect(service.currentUser()).toBeNull();
+      expect(Storage.prototype.removeItem).toHaveBeenCalledWith('sgtg_session');
     });
   });
 
   describe('Consultas Asíncronas (RxJS)', () => {
     beforeEach(() => {
-      localStorageStore['sgtg_users'] = JSON.stringify([mockStudent]);
       TestBed.configureTestingModule({ providers: [UserStorageService] });
       service = TestBed.inject(UserStorageService);
+      service.updateUsersList(() => [mockStudent]);
     });
 
     it('getById() debería buscar al usuario y emitirlo tras un delay de 500ms', fakeAsync(() => {

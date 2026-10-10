@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: '/api' // Ruta relativa que interceptará Nginx automáticamente
+  apiUrl: '/api/v1/sgtg' // Ruta relativa que redirige Nginx al backend (nginx.conf)
 };

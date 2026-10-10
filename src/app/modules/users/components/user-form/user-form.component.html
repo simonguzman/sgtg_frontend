@@ -17,9 +17,9 @@
               [class.input-success]="userForm.get('idType')?.valid && userForm.get('idType')?.touched"
             >
               <option value="" disabled selected>Tipo de documento</option>
-              <option value="CC">Cédula de Ciudadanía</option>
-              <option value="CE">Cédula de extranjería</option>
-              <option value="PASSPORT">Pasaporte</option>
+              @for (type of identificationTypes; track type) {
+                <option [value]="type">{{ type }}</option>
+              }
             </select>
             <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
             @if (userForm.get('idType')?.valid && userForm.get('idType')?.touched) {
@@ -191,11 +191,83 @@
             }
           </div>
           @if (isFieldInvalid('password')) {
-            <span class="text-textbox-alert">Mínimo 6 caracteres</span>
+            <span class="text-textbox-alert">Mínimo {{ minPasswordLength }} caracteres</span>
+          }
+          @if (isEditMode) {
+            <span class="text-size-body text-[#777680]">Déjela vacía para conservar la contraseña actual</span>
           }
         </div>
       </div>
     </section>
+
+    @if (showDepartment || showProgram) {
+      <section>
+        <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">Perfil académico</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+
+          @if (showDepartment) {
+            <!-- Departamento (director o codirector) -->
+            <div class="flex flex-col gap-1">
+              <label for="departmentId" class="title-textbox">Departamento <span class="text-[#ED7D31]">*</span></label>
+              <div class="relative flex items-center">
+                <select id="departmentId" formControlName="departmentId"
+                  class="font-sans font-normal text-size-body custom-select text-textbox p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10"
+                  [class.border-[#ED7D31]]="isFieldInvalid('departmentId')">
+                  <option [ngValue]="null" disabled>Seleccione el departamento</option>
+                  @for (department of departments(); track department.id) {
+                    <option [ngValue]="department.id">{{ department.name }}</option>
+                  }
+                </select>
+                <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
+              </div>
+              @if (isFieldInvalid('departmentId')) {
+                <span class="text-textbox-alert">Seleccione el departamento del docente</span>
+              }
+              <div class="flex gap-2 items-center">
+                <input #newDepartment type="text" placeholder="Nuevo departamento"
+                  class="font-sans font-normal text-size-body text-textbox p-1 border rounded-md flex-1 focus:outline-none focus:ring-1 focus:ring-primary">
+                <button type="button" class="text-primary text-size-body underline cursor-pointer"
+                  (click)="addDepartment(newDepartment.value); newDepartment.value = ''">Agregar</button>
+              </div>
+            </div>
+
+            <!-- Vinculación deducida de los roles -->
+            <div class="flex flex-col gap-1">
+              <span class="title-textbox">Vinculación</span>
+              <span class="font-sans font-normal text-size-body text-textbox p-2">{{ contractTypeDescription }}</span>
+              <span class="text-size-body text-[#777680]">Se asigna según los roles: con rol Codirector es de planta; solo Director, ocasional.</span>
+            </div>
+          }
+
+          @if (showProgram) {
+            <!-- Programa (estudiante) -->
+            <div class="flex flex-col gap-1">
+              <label for="programId" class="title-textbox">Programa académico <span class="text-[#ED7D31]">*</span></label>
+              <div class="relative flex items-center">
+                <select id="programId" formControlName="programId"
+                  class="font-sans font-normal text-size-body custom-select text-textbox p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10"
+                  [class.border-[#ED7D31]]="isFieldInvalid('programId')">
+                  <option [ngValue]="null" disabled>Seleccione el programa</option>
+                  @for (program of programs(); track program.id) {
+                    <option [ngValue]="program.id">{{ program.name }}</option>
+                  }
+                </select>
+                <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
+              </div>
+              @if (isFieldInvalid('programId')) {
+                <span class="text-textbox-alert">Seleccione el programa del estudiante</span>
+              }
+              <div class="flex gap-2 items-center">
+                <input #newProgram type="text" placeholder="Nuevo programa"
+                  class="font-sans font-normal text-size-body text-textbox p-1 border rounded-md flex-1 focus:outline-none focus:ring-1 focus:ring-primary">
+                <button type="button" class="text-primary text-size-body underline cursor-pointer"
+                  (click)="addProgram(newProgram.value); newProgram.value = ''">Agregar</button>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
 
     <div class="flex justify-end gap-2">
       <app-button-component

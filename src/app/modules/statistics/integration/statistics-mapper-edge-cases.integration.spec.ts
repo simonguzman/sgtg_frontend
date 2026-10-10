@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ProjectDataMapperService } from '../services/project-data-mapper.service';
 import { UserService } from '../../users/services/user.service';
 import { UserStorageService } from '../../users/services/user-storage.service';
@@ -38,7 +40,12 @@ describe('Integración [Estadísticas]: Casos límite del ProjectDataMapperServi
   beforeEach(() => {
     jest.clearAllMocks();
     TestBed.configureTestingModule({
-      providers: [ProjectDataMapperService, UserService, UserStorageService, UserApiService, UserFormatterService]
+      providers: [
+        // UserService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        ProjectDataMapperService, UserService, UserStorageService, UserApiService, UserFormatterService,
+      ]
     });
     mapper = TestBed.inject(ProjectDataMapperService);
   });

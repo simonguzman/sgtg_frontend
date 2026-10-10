@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Injector } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
 import { ArchivedProposalsTabService } from '../pages/history-page/services/archived-proposals-tab.service';
@@ -58,6 +60,9 @@ describe('Integración [Historial]: Filtrado real de pertenencia y cálculo de p
     jest.clearAllMocks();
     TestBed.configureTestingModule({
       providers: [
+        // UserService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         ArchivedProposalsTabService, ArchivedPreliminaryDraftsTabService,
         ProposalService, ProposalStorageService, ProposalApiService, ProposalRulesService,
         PreliminaryDraftService, PreliminaryDraftStorageService, PreliminaryDraftApiService,

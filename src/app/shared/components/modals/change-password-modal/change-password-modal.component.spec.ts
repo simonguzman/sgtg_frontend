@@ -6,6 +6,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 import { ChangePasswordModalComponent } from './change-password-modal.component';
 import { AuthService } from '../../../../core/services/auth/auth.service';
+import { NotificationService } from '../../notifications/services/notification.service';
 
 // ── Componentes Originales a Remover (Shallow Testing) ───────────────────────
 import { ButtonComponent } from '../../button-component/button-component.component';
@@ -42,11 +43,10 @@ describe('ChangePasswordModalComponent', () => {
     changePassword: jest.Mock<Observable<any>, [string, string]>
   };
 
-  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(async () => {
     // 🔕 Silenciar consola para mantener terminal limpia ante warnings y errores esperados (ej. HTTP)
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     // Inicializamos el mock con funciones de Jest
@@ -174,8 +174,9 @@ describe('ChangePasswordModalComponent', () => {
 
   describe('Envío de Datos (AuthService)', () => {
     it('debería llamar al servicio changePassword, remover el loading y cerrar el modal al confirmar', () => {
-      authServiceMock.changePassword.mockReturnValue(of({ success: true }));
+      authServiceMock.changePassword.mockReturnValue(of({ success: true, message: 'Contraseña actualizada exitosamente.' }));
       const closeSpy = jest.spyOn(component, 'closeModal');
+      const successSpy = jest.spyOn(TestBed.inject(NotificationService), 'success');
 
       component.passwordForm.patchValue({
         currentPassword: 'old_password',
@@ -190,13 +191,15 @@ describe('ChangePasswordModalComponent', () => {
       expect(authServiceMock.changePassword).toHaveBeenCalledWith('old_password', 'new_password_long');
       expect(authServiceMock.changePassword).toHaveBeenCalledTimes(1);
       expect(closeSpy).toHaveBeenCalledTimes(1);
+      expect(successSpy).toHaveBeenCalledWith('Contraseña actualizada', 'Contraseña actualizada exitosamente.');
     });
 
     it('debería manejar errores del servicio, remover el loading y mantener el modal abierto', () => {
       // Configuramos el mock para simular un error sincrónico
-      authServiceMock.changePassword.mockReturnValue(throwError(() => new Error('Error de red')));
+      authServiceMock.changePassword.mockReturnValue(throwError(() => new Error('La contraseña actual es incorrecta.')));
 
       const closeSpy = jest.spyOn(component, 'closeModal');
+      const errorSpy = jest.spyOn(TestBed.inject(NotificationService), 'error');
 
       component.passwordForm.patchValue({
         currentPassword: 'old_password',
@@ -211,8 +214,8 @@ describe('ChangePasswordModalComponent', () => {
       expect(authServiceMock.changePassword).toHaveBeenCalledTimes(1);
       expect(closeSpy).not.toHaveBeenCalled(); // No debe cerrarse el modal si hay error
 
-      // Comprobamos que el console.error (previamente interceptado en el beforeEach) se ejecutó
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error al cambiar contraseña:', 'Error de red');
+      // El usuario ve el mensaje del backend
+      expect(errorSpy).toHaveBeenCalledWith('No se cambió la contraseña', 'La contraseña actual es incorrecta.');
     });
   });
 });

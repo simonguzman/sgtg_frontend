@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { AuthStorageService } from '../../../core/services/auth/auth-storage.service';
 import { signal, WritableSignal } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { UserService } from './user.service';
@@ -39,14 +40,16 @@ describe('UserService', () => {
     potentialDirectors: WritableSignal<User[]>;
     setCurrentUser: jest.Mock<void, [User | null]>;
     getUsersSnapshot: jest.Mock<User[], []>;
+    updateUsersList: jest.Mock<void, [(users: User[]) => User[]]>;
   };
+  let isAuthenticated: WritableSignal<boolean>;
 
   let apiSpy: {
     getUserById: jest.Mock<Observable<User | undefined>, [string]>;
     getUsersByRole: jest.Mock<Observable<User[]>, [UserRoleType]>;
     createUser: jest.Mock<Observable<User>, [User]>;
     updateUser: jest.Mock<Observable<User>, [string, Partial<User>]>;
-    updateUserPassword: jest.Mock<Observable<void>, [string, string]>;
+    loadUsers: jest.Mock<Observable<User[]>, []>;
     softDeleteUser: jest.Mock<Observable<void>, [string]>;
     updateUserRoles: jest.Mock<Observable<void>, [string, UserRoleType[]]>;
     addRoleToUser: jest.Mock<Observable<void>, [string, UserRoleType]>;
@@ -74,14 +77,16 @@ describe('UserService', () => {
       potentialDirectors: signal([mockUser]),
       setCurrentUser: jest.fn(),
       getUsersSnapshot: jest.fn().mockReturnValue([mockUser]),
+      updateUsersList: jest.fn()
     };
+    isAuthenticated = signal(false);
 
     apiSpy = {
       getUserById: jest.fn().mockReturnValue(of(mockUser)),
       getUsersByRole: jest.fn().mockReturnValue(of([mockUser])),
       createUser: jest.fn().mockReturnValue(of(mockUser)),
       updateUser: jest.fn().mockReturnValue(of(mockUser)),
-      updateUserPassword: jest.fn().mockReturnValue(of(void 0)),
+      loadUsers: jest.fn().mockReturnValue(of([mockUser])),
       softDeleteUser: jest.fn().mockReturnValue(of(void 0)),
       updateUserRoles: jest.fn().mockReturnValue(of(void 0)),
       addRoleToUser: jest.fn().mockReturnValue(of(void 0)),
@@ -100,7 +105,8 @@ describe('UserService', () => {
         UserService,
         { provide: UserStorageService, useValue: storageSpy },
         { provide: UserApiService, useValue: apiSpy },
-        { provide: UserFormatterService, useValue: formatterSpy }
+        { provide: UserFormatterService, useValue: formatterSpy },
+        { provide: AuthStorageService, useValue: { isAuthenticated } }
       ]
     });
 
@@ -110,6 +116,32 @@ describe('UserService', () => {
   afterEach(() => {
     jest.clearAllMocks();
     jest.restoreAllMocks();
+  });
+
+  describe('Carga de la lista desde el backend', () => {
+    it('sin sesión no carga usuarios ni vacía la lista', () => {
+      TestBed.tick();
+      expect(apiSpy.loadUsers).not.toHaveBeenCalled();
+      expect(storageSpy.updateUsersList).not.toHaveBeenCalled();
+    });
+
+    it('carga la lista al iniciar sesión y la vacía al cerrarla', () => {
+      TestBed.tick();
+      isAuthenticated.set(true);
+      TestBed.tick();
+      expect(apiSpy.loadUsers).toHaveBeenCalledTimes(1);
+
+      isAuthenticated.set(false);
+      TestBed.tick();
+      expect(storageSpy.updateUsersList).toHaveBeenCalledTimes(1);
+      const vaciar = storageSpy.updateUsersList.mock.calls[0][0];
+      expect(vaciar([mockUser])).toEqual([]);
+    });
+
+    it('loadUsers() vuelve a pedir la lista al API', () => {
+      service.loadUsers();
+      expect(apiSpy.loadUsers).toHaveBeenCalled();
+    });
   });
 
   it('debería inicializarse correctamente', () => {
@@ -169,11 +201,6 @@ describe('UserService', () => {
       const changes = { firstName: 'Carlos' };
       service.updateUserMock('111', changes).subscribe();
       expect(apiSpy.updateUser).toHaveBeenCalledWith('111', changes);
-    });
-
-    it('updateUserPasswordMock() debería delegar al API Service', () => {
-      service.updateUserPasswordMock('111', 'newpass').subscribe();
-      expect(apiSpy.updateUserPassword).toHaveBeenCalledWith('111', 'newpass');
     });
 
     it('softDeleteUserMock() debería delegar la eliminación lógica al API Service', () => {

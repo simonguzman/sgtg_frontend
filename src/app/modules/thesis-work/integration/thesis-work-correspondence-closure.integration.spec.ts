@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Injector } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
 import { RegisterCorrespondenceFacadeService } from '../pages/register-correspondence-page/services/register-correspondence-facade.service';
@@ -91,6 +93,9 @@ describe('Integración [Trabajo de Grado]: Correspondencia final — cierre comp
 
     TestBed.configureTestingModule({
       providers: [
+        // UserService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         RegisterCorrespondenceFacadeService,
         ThesisWorkService, ThesisWorkStorageService, ThesisWorkAdvanceService,
         ThesisWorkDeliveryService, ThesisWorkEvaluationService,

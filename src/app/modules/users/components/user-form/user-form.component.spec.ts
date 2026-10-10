@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { of } from 'rxjs';
+import { CatalogApiService } from '../../../../core/services/catalog/catalog-api.service';
 import { UserFormComponent } from './user-form.component';
 import { User } from '../../interfaces/user.interface';
 import { IdentificationType } from '../../enum/identification-type.enum';
@@ -54,20 +56,37 @@ describe('UserFormComponent', () => {
   let fixture: ComponentFixture<UserFormComponent>;
   let mockNotificationService: {
     show: jest.Mock<void, [any]>;
+    error: jest.Mock<void, [string, string]>;
   };
+  let mockCatalogApi: {
+    getDepartments: jest.Mock;
+    getPrograms: jest.Mock;
+    createDepartment: jest.Mock;
+    createProgram: jest.Mock;
+  };
+  const SISTEMAS = { id: 1, name: 'Sistemas' };
+  const ING_SISTEMAS = { id: 7, name: 'Ingeniería de Sistemas' };
 
   beforeEach(async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     mockNotificationService = {
-      show: jest.fn()
+      show: jest.fn(),
+      error: jest.fn()
+    };
+    mockCatalogApi = {
+      getDepartments: jest.fn(() => of([SISTEMAS])),
+      getPrograms: jest.fn(() => of([ING_SISTEMAS])),
+      createDepartment: jest.fn((name: string) => of({ id: 2, name })),
+      createProgram: jest.fn((name: string) => of({ id: 8, name }))
     };
 
     await TestBed.configureTestingModule({
       imports: [UserFormComponent, ReactiveFormsModule],
       providers: [
-        { provide: NotificationService, useValue: mockNotificationService }
+        { provide: NotificationService, useValue: mockNotificationService },
+        { provide: CatalogApiService, useValue: mockCatalogApi }
       ]
     })
     .overrideComponent(UserFormComponent, {
@@ -101,12 +120,17 @@ describe('UserFormComponent', () => {
       expect(emailControl?.hasError('required')).toBeTruthy();
     });
 
-    it('debería validar la longitud mínima de la contraseña', () => {
+    it('debería validar la longitud mínima de la contraseña (8, como el backend)', () => {
       const passwordControl = component.userForm.get('password');
-      passwordControl?.setValue('12345');
+      passwordControl?.setValue('1234567');
       expect(passwordControl?.hasError('minlength')).toBeTruthy();
-      passwordControl?.setValue('123456');
+      passwordControl?.setValue('12345678');
       expect(passwordControl?.hasError('minlength')).toBeFalsy();
+    });
+
+    it('debería cargar los departamentos y programas del backend', () => {
+      expect(component.departments()).toEqual([SISTEMAS]);
+      expect(component.programs()).toEqual([ING_SISTEMAS]);
     });
   });
 
@@ -123,6 +147,17 @@ describe('UserFormComponent', () => {
       expect(component.isEditMode).toBeTruthy();
       expect(component.userForm.get('firstName')?.value).toBe('Juan');
       expect(component.userForm.get('email')?.value).toBe('juan@test.com');
+      // La contraseña nunca se precarga
+      expect(component.userForm.get('password')?.value).toBe('');
+    });
+
+    it('debería precargar el perfil y aceptar el tipo de documento como clave', () => {
+      fixture.componentRef.setInput('user', createMockUser({
+        idType: 'PASAPORTE', roles: [UserRoleType.DIRECTOR], department: SISTEMAS
+      }));
+      fixture.detectChanges();
+      expect(component.userForm.get('idType')?.value).toBe(IdentificationType.PASAPORTE);
+      expect(component.userForm.get('departmentId')?.value).toBe(1);
     });
 
     it('debería cambiar la validación de contraseña según el modo (crear vs editar)', () => {
@@ -163,16 +198,61 @@ describe('UserFormComponent', () => {
         codeNumber: 9876,
         roles: [UserRoleType.ESTUDIANTE],
         email: 'ana@universidad.edu.co',
-        password: 'password123'
+        password: 'password123',
+        programId: 7
       })
       component.submit();
       expect(component.userForm.valid).toBeTruthy();
       expect(emitSpy).toHaveBeenCalledWith(expect.objectContaining({
         firstName: 'Ana',
         email: 'ana@universidad.edu.co',
-        roles: [UserRoleType.ESTUDIANTE]
+        roles: [UserRoleType.ESTUDIANTE],
+        program: ING_SISTEMAS,
+        department: null
       }));
+      expect(emitSpy.mock.calls[0][0]).not.toHaveProperty('programId');
       expect(mockNotificationService.show).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Perfil académico según los roles', () => {
+    it('un director exige departamento y se registra como ocasional', () => {
+      component.userForm.controls.roles.setValue([UserRoleType.DOCENTE, UserRoleType.DIRECTOR]);
+      expect(component.showDepartment).toBe(true);
+      expect(component.userForm.get('departmentId')?.hasError('required')).toBe(true);
+      expect(component.contractTypeDescription).toContain('Ocasional');
+      expect(component.contractTypeDescription).toContain('requiere un codirector');
+    });
+
+    it('con rol codirector (solo o con director) es de planta', () => {
+      component.userForm.controls.roles.setValue([UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR]);
+      expect(component.contractTypeDescription).toContain('De planta');
+      expect(component.contractTypeDescription).toContain('no requiere codirector');
+    });
+
+    it('otros docentes no tienen perfil: no se pide departamento', () => {
+      component.userForm.controls.roles.setValue([UserRoleType.DOCENTE, UserRoleType.JEFE_DEP]);
+      expect(component.showDepartment).toBe(false);
+      expect(component.userForm.get('departmentId')?.hasError('required')).toBe(false);
+      expect(component.contractTypeDescription).toBe('');
+    });
+
+    it('un estudiante exige programa', () => {
+      component.userForm.controls.roles.setValue([UserRoleType.ESTUDIANTE]);
+      expect(component.showProgram).toBe(true);
+      expect(component.userForm.get('programId')?.hasError('required')).toBe(true);
+    });
+
+    it('agrega un departamento al catálogo y lo selecciona', () => {
+      component.addDepartment('  Telemática ');
+      expect(mockCatalogApi.createDepartment).toHaveBeenCalledWith('Telemática');
+      expect(component.departments()).toContainEqual({ id: 2, name: 'Telemática' });
+      expect(component.userForm.get('departmentId')?.value).toBe(2);
+    });
+
+    it('no agrega catálogos con nombre vacío', () => {
+      component.addProgram('   ');
+      expect(mockCatalogApi.createProgram).not.toHaveBeenCalled();
     });
   });
 

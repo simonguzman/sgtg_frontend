@@ -1,7 +1,8 @@
-
 import { UserRoleType } from "../../../core/enums/user-role-type.enum";
 import { IdentificationType } from "../enum/identification-type.enum";
 import { UserState } from "../enum/user-state.enum";
+import { ContractType } from "../enum/contract-type.enum";
+import { CatalogItem } from "./catalog-item.interface";
 
 export interface User {
   id: string;
@@ -14,6 +15,13 @@ export interface User {
   codeNumber: number;
   roles: UserRoleType[];
   email: string;
-  password: string;
-  state: UserState
+  /** Solo se usa al crear o editar un usuario; la sesión nunca la guarda */
+  password?: string;
+  state: UserState;
+  /** Perfil docente: vinculación (la deduce el mapeo a partir de los roles) */
+  contractType?: ContractType | null;
+  /** Perfil docente: departamento al que está adscrito */
+  department?: CatalogItem | null;
+  /** Perfil de estudiante: programa académico */
+  program?: CatalogItem | null;
 }

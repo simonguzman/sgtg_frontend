@@ -5,6 +5,7 @@ import { UserService } from '../../services/user.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { User } from '../../interfaces/user.interface';
+import { apiErrorMessage } from '../../../../core/utils/api-error.utils';
 
 @Injectable({ providedIn: 'root' })
 export class UserFormFacadeService {
@@ -32,7 +33,7 @@ export class UserFormFacadeService {
       },
       error: (err) => {
         console.error('Error en la creación:', err);
-        this.showNotification('Error de servidor', 'No se pudo guardar el usuario. Intente nuevamente.', NotificationType.ERROR);
+        this.showNotification('No se registró el usuario', apiErrorMessage(err, 'No se pudo guardar el usuario. Intente nuevamente.'), NotificationType.ERROR);
       }
     });
   }
@@ -49,7 +50,7 @@ export class UserFormFacadeService {
       },
       error: (err) => {
         console.error('Error en la actualización:', err);
-        this.showNotification('Error de actualización', 'No se pudo guardar la información. Intente de nuevo', NotificationType.ERROR);
+        this.showNotification('Error de actualización', apiErrorMessage(err, 'No se pudo guardar la información. Intente de nuevo'), NotificationType.ERROR);
         onError();
       }
     });

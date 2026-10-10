@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
@@ -95,6 +97,9 @@ describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ReviewPresentationsFacultyCouncilPageComponent],
       providers: [
+        // El componente usa UserService (real), que consulta el backend
+        provideHttpClient(),
+        provideHttpClientTesting(),
         provideNoopAnimations()
       ]
     })

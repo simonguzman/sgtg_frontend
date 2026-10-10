@@ -128,7 +128,7 @@ describe('Service: UserFormFacadeService', () => {
       mockUserService.createUserMock.mockReturnValue(throwError(() => new Error('Error de red')));
       service.createUser(mockUser, onSuccessSpy);
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Error de servidor',
+        title: 'No se registró el usuario',
         type: NotificationType.ERROR
       }));
       expect(console.error).toHaveBeenCalled();

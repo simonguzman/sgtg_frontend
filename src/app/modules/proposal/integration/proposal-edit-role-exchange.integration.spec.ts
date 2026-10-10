@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, flush, tick } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Injector } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
 import { ProposalApiService } from '../services/proposal-api.service';
@@ -51,6 +53,9 @@ describe('Integración [Proposal]: Edición — intercambio real de roles al cam
 
     TestBed.configureTestingModule({
       providers: [
+        // AuthService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         ProposalApiService, ProposalStorageService, ProposalRulesService,
         UserService, UserStorageService, UserApiService, EventBusService
       ]

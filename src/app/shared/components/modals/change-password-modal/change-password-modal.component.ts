@@ -5,6 +5,7 @@ import { DialogModule } from 'primeng/dialog';
 import { ButtonComponent } from '../../button-component/button-component.component';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { ConfirmationActionModalComponent } from "../confirmation-action-modal/confirmation-action-modal.component";
+import { NotificationService } from '../../notifications/services/notification.service';
 
 export const passwordMatchValidator = (control: AbstractControl): ValidationErrors | null => {
   const newPassword = control.get('newPassword');
@@ -29,6 +30,7 @@ export class ChangePasswordModalComponent {
 
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  private readonly notificationService = inject(NotificationService);
 
   isLoading = false;
   isConfirmActionOpen = false;
@@ -66,13 +68,15 @@ export class ChangePasswordModalComponent {
     const { currentPassword, newPassword } = this.passwordForm.value;
 
     this.authService.changePassword(currentPassword, newPassword).subscribe({
-      next: () => {
+      next: (response) => {
         this.isLoading = false;
+        this.notificationService.success('Contraseña actualizada', response.message);
         this.closeModal();
       },
-      error: (err) => {
+      error: (err: Error) => {
+        // El modal sigue abierto para que el usuario corrija los datos
         this.isLoading = false;
-        console.error('Error al cambiar contraseña:', err.message);
+        this.notificationService.error('No se cambió la contraseña', err.message);
       }
     });
   }

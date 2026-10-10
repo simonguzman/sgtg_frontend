@@ -86,6 +86,7 @@ describe('Component: UsersPageComponent', () => {
     updateRoles: jest.Mock<void, [string, UserRoleType[], () => void]>;
     findUserById: jest.Mock<User | undefined, [string]>;
     toggleUserStatus: jest.Mock<void, [string, boolean, () => void]>;
+    loadUsers: jest.Mock<void, []>;
   };
 
   beforeEach(async () => {
@@ -100,7 +101,8 @@ describe('Component: UsersPageComponent', () => {
       usersTableData: signal([createMockUserTableRow()]),
       updateRoles: jest.fn(),
       findUserById: jest.fn().mockReturnValue(createMockUser()),
-      toggleUserStatus: jest.fn()
+      toggleUserStatus: jest.fn(),
+      loadUsers: jest.fn()
     };
 
     await TestBed.configureTestingModule({
@@ -128,6 +130,10 @@ describe('Component: UsersPageComponent', () => {
   afterEach(() => {
     jest.clearAllMocks();
     jest.restoreAllMocks();
+  });
+
+  it('debería refrescar la lista de usuarios al abrir la página', () => {
+    expect(mockFacade.loadUsers).toHaveBeenCalled();
   });
 
   it('debería crearse correctamente', () => {

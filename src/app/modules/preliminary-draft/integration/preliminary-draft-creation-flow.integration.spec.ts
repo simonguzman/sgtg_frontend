@@ -1,5 +1,7 @@
 import 'fake-indexeddb/auto';
 import { TestBed, fakeAsync, flush, tick } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Injector } from '@angular/core';
 import { waitForHydration } from '../../../testing/wait-for-hydration';
 import { PreliminaryDraftService } from '../services/preliminary-draft.service';
@@ -58,6 +60,9 @@ describe('Integración [Anteproyectos]: Flujo de creación y notificación autom
 
     TestBed.configureTestingModule({
       providers: [
+        // AuthService (real) consulta el backend: se simula el cliente HTTP
+        provideHttpClient(),
+        provideHttpClientTesting(),
         PreliminaryDraftService,
         PreliminaryDraftStorageService,
         PreliminaryDraftAssignmentService,

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { stateList } from '../../../../core/enums/state.enum';
 import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
@@ -22,7 +22,7 @@ import { USER_COLUMNS, USER_HEADER_BUTTONS, UserTableRow } from './models/users-
   templateUrl: './users-page.component.html',
   styleUrl: './users-page.component.css',
 })
-export class UsersPageComponent {
+export class UsersPageComponent implements OnInit {
   private readonly router = inject(Router);
   protected readonly facade = inject(UsersFacadeService);
 
@@ -38,6 +38,11 @@ export class UsersPageComponent {
   private pendingRoles: UserRole[] = [];
 
   showDisabledConfirmation = false;
+
+  ngOnInit(): void {
+    // La lista se carga al iniciar sesión; aquí se refresca con los últimos cambios
+    this.facade.loadUsers();
+  }
   idUserToDisabled: string | null = null;
   confirmationMessage = ' ';
 

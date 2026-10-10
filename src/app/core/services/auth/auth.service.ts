@@ -1,13 +1,19 @@
-import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { effect, inject, Injectable } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { catchError, Observable, of } from 'rxjs';
 import { AuthStorageService } from './auth-storage.service';
 import { AuthApiService } from './auth-api.service';
 import { ChangePasswordResponse } from '../../interfaces/change-password-response.interface';
+import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
+import { jwtExpiration } from '../../utils/jwt-utils';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly storage = inject(AuthStorageService);
-  private readonly api     = inject(AuthApiService);
+  private readonly storage      = inject(AuthStorageService);
+  private readonly api          = inject(AuthApiService);
+  private readonly router       = inject(Router);
+  private readonly notification = inject(NotificationService);
 
   // ── Estado reactivo ────────────────────────────────────────────────────────
   // La misma API pública que antes: cualquier componente o servicio que usaba
@@ -16,6 +22,17 @@ export class AuthService {
   readonly currentUser     = this.storage.currentUser;
   readonly isAuthenticated = this.storage.isAuthenticated;
   readonly userRoles       = this.storage.userRoles;
+
+  constructor() {
+    // Cierra la sesión cuando vence el token, aunque el usuario no haga peticiones
+    effect(onCleanup => {
+      const token = this.storage.token();
+      const vencimiento = token ? jwtExpiration(token) : null;
+      if (vencimiento === null) return;
+      const temporizador = setTimeout(() => this.expireSession(), Math.max(vencimiento - Date.now(), 0));
+      onCleanup(() => clearTimeout(temporizador));
+    });
+  }
 
   // ── Operaciones de autenticación ───────────────────────────────────────────
   login(credentials: { email: string; password: string }): Observable<{ success: boolean; message?: string }> {
@@ -28,6 +45,33 @@ export class AuthService {
 
   changePassword(currentPassword: string, newPassword: string): Observable<ChangePasswordResponse> {
     return this.api.changePassword(currentPassword, newPassword);
+  }
+
+  /**
+   * Al arrancar la aplicación: si hay una sesión guardada, refresca el usuario
+   * desde el backend (sus roles o su estado pudieron cambiar). Si el backend
+   * responde 401, el interceptor ya cerró la sesión; ante un error de conexión
+   * se conserva la sesión guardada.
+   */
+  initialize(): Observable<unknown> {
+    if (!this.storage.isAuthenticated()) return of(undefined);
+    return this.api.refreshCurrentUser().pipe(
+      catchError((error: HttpErrorResponse) => {
+        console.warn('No se pudo refrescar el usuario de la sesión', error.status);
+        return of(undefined);
+      })
+    );
+  }
+
+  /**
+   * Termina una sesión que el backend ya no acepta (token vencido o usuario
+   * inactivado): limpia la sesión, avisa al usuario y lo lleva al login.
+   */
+  expireSession(): void {
+    if (!this.storage.isAuthenticated()) return;
+    this.storage.clearUser();
+    this.notification.security('Sesión finalizada', 'Tu sesión expiró. Inicia sesión de nuevo para continuar.');
+    this.router.navigate(['/auth/login']);
   }
 
   // ── Utilidad de roles ──────────────────────────────────────────────────────
