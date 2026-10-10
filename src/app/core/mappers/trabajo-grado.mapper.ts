@@ -45,7 +45,10 @@ export function aPropuesta(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): P
   return {
     id,
     title: trabajo.titulo,
-    description: trabajo.objetivos.join('\n'),
+    description: trabajo.descripcion ?? trabajo.objetivos[0] ?? '',
+    objectives: [...trabajo.objetivos],
+    lineOfResearch: trabajo.lineaInvestigacion ?? undefined,
+    organization: trabajo.asesor?.organizacion ?? undefined,
     modality: trabajo.modalidad === 'PRACTICA_PROFESIONAL' ? Modality.PP : Modality.TI,
     authors: trabajo.estudiantes.map(e => aUsuario(e.usuarioId, e.nombreCompleto, e.email, e.codigo, ctx)),
     director: aUsuario(trabajo.director.usuarioId, trabajo.director.nombreCompleto, trabajo.director.email,

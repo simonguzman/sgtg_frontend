@@ -7,7 +7,7 @@ import { ProposalRulesService } from './proposal-rules.service';
 import { ProposalDocumentService } from './proposal-document.service';
 import { ProposalApiService } from './proposal-api.service';
 import { Proposal } from '../interfaces/proposal.interface';
-import { Evaluation } from '../../../core/interfaces/evaluation.interface';
+import { stateList } from '../../../core/enums/state.enum';
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
 
 describe('ProposalService', () => {
@@ -29,8 +29,8 @@ describe('ProposalService', () => {
       validateProposalRules: jest.fn()
     } as unknown as jest.Mocked<ProposalRulesService>;
     mockDocumentService = {
-      addEvaluationMock: jest.fn(),
-      uploadCorrectionMock: jest.fn()
+      registerCommitteeDecision: jest.fn(),
+      uploadCorrection: jest.fn()
     } as unknown as jest.Mocked<ProposalDocumentService>;
     mockApiService = {
       getProposalByIdMock: jest.fn(),
@@ -105,23 +105,23 @@ describe('ProposalService', () => {
     });
   });
   describe('Delegación: Documentos y Evaluaciones', () => {
-    it('debería delegar addEvaluationMock al documentService', (done) => {
-      const evalPayload = { id: 'ev-1' } as Evaluation;
+    it('debería delegar registerCommitteeDecision al documentService', (done) => {
+      const acta = new File(['%PDF'], 'acta.pdf');
       const updatedProp = { id: '1' } as Proposal;
-      mockDocumentService.addEvaluationMock.mockReturnValue(of(updatedProp));
-      service.addEvaluationMock('1', evalPayload).subscribe(result => {
+      mockDocumentService.registerCommitteeDecision.mockReturnValue(of(updatedProp));
+      service.registerCommitteeDecision('1', stateList.APROBADO, 'Cumple', acta).subscribe(result => {
         expect(result).toEqual(updatedProp);
-        expect(mockDocumentService.addEvaluationMock).toHaveBeenCalledWith('1', evalPayload);
+        expect(mockDocumentService.registerCommitteeDecision).toHaveBeenCalledWith('1', stateList.APROBADO, 'Cumple', acta);
         done();
       });
     });
-    it('debería delegar uploadCorrectionMock al documentService', (done) => {
-      const docPayload = { id: 'doc-1' } as FileDocument;
+    it('debería delegar uploadCorrection al documentService', (done) => {
+      const archivo = new File(['%PDF'], 'v2.pdf');
       const updatedProp = { id: '1' } as Proposal;
-      mockDocumentService.uploadCorrectionMock.mockReturnValue(of(updatedProp));
-      service.uploadCorrectionMock('1', docPayload).subscribe(result => {
+      mockDocumentService.uploadCorrection.mockReturnValue(of(updatedProp));
+      service.uploadCorrection('1', archivo).subscribe(result => {
         expect(result).toEqual(updatedProp);
-        expect(mockDocumentService.uploadCorrectionMock).toHaveBeenCalledWith('1', docPayload);
+        expect(mockDocumentService.uploadCorrection).toHaveBeenCalledWith('1', archivo);
         done();
       });
     });

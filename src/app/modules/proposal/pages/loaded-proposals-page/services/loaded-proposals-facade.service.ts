@@ -8,13 +8,10 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { LoadedProposalsMapperService } from './loaded-proposals-mapper.service';
 import { DocumentTableRow } from '../models/loaded-proposals-page.model';
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
-import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { Proposal } from '../../../interfaces/proposal.interface';
-import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
-import { formatDisplayDate } from '../../../../../core/utils/date-utils';
-import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
 @Injectable({ providedIn: 'root' })
 export class LoadedProposalsFacadeService {
@@ -101,34 +98,15 @@ export class LoadedProposalsFacadeService {
   ): Promise<void> {
     this.showNotification('Subiendo documento', 'Estamos procesando la corrección...', NotificationType.INFO);
 
-    let fileUrl: string;
-    try {
-      fileUrl = await readFileAsDataUrl(fileData.file);
-    } catch (err) {
-      console.error('Error leyendo el archivo seleccionado:', err);
-      this.showNotification('Error de carga', 'No se pudo leer el archivo seleccionado.', NotificationType.ERROR);
-      onError();
-      return;
-    }
-
-    const newDoc: FileDocument = {
-      id: crypto.randomUUID(),
-      name: fileData.fileName.replace('.pdf', ''),
-      url: fileUrl,
-      uploadDate: formatDisplayDate(new Date()),
-      type: DocumentType.CORRECCION,
-      status: stateList.EN_REVISION
-    };
-
-    this.proposalService.uploadCorrectionMock(proposalId, newDoc)
+    this.proposalService.uploadCorrection(proposalId, fileData.file)
       .pipe(first())
       .subscribe({
         next: () => {
           this.showNotification('¡Documento cargado!', 'Enviado a revisión exitosamente.', NotificationType.CONFIRMATION);
           onSuccess();
         },
-        error: () => {
-          this.showNotification('Error de carga', 'No se pudo subir el archivo.', NotificationType.ERROR);
+        error: (err) => {
+          this.showNotification('Error de carga', apiErrorMessage(err, 'No se pudo subir el archivo.'), NotificationType.ERROR);
           onError();
         }
       });

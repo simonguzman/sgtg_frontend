@@ -15,7 +15,7 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
-import * as fileReaderUtils from '../../../../../core/utils/file-reader.utils';
+import { HttpErrorResponse } from '@angular/common/http';
 
 describe('LoadedProposalsFacadeService', () => {
   let service: LoadedProposalsFacadeService;
@@ -26,7 +26,6 @@ describe('LoadedProposalsFacadeService', () => {
   let mockMapper: jest.Mocked<LoadedProposalsMapperService>;
   let mockCurrentUserSignal: WritableSignal<User | null>;
   let mockAllProposalsSignal: WritableSignal<Proposal[]>;
-  let readFileSpy: jest.SpyInstance;
   let consoleErrorSpy: jest.SpyInstance;
   let consoleWarnSpy: jest.SpyInstance;
   const mockUser: User = { id: 'user-director', roles: [UserRoleType.DOCENTE] } as User;
@@ -74,7 +73,7 @@ describe('LoadedProposalsFacadeService', () => {
     mockAllProposalsSignal = signal<Proposal[]>([mockProposal]);
     mockProposalService = {
       allProposals: mockAllProposalsSignal,
-      uploadCorrectionMock: jest.fn()
+      uploadCorrection: jest.fn()
     } as unknown as jest.Mocked<ProposalService>;
     mockAuthService = {
       currentUser: mockCurrentUserSignal,
@@ -89,7 +88,6 @@ describe('LoadedProposalsFacadeService', () => {
     mockMapper = {
       mapDocumentToRow: jest.fn().mockReturnValue(mockMappedRow)
     } as unknown as jest.Mocked<LoadedProposalsMapperService>;
-    readFileSpy = jest.spyOn(fileReaderUtils, 'readFileAsDataUrl').mockResolvedValue('data:application/pdf;base64,mockedbase64');
     TestBed.configureTestingModule({
       providers: [
         LoadedProposalsFacadeService,
@@ -227,47 +225,27 @@ describe('LoadedProposalsFacadeService', () => {
   describe('Método: upload', () => {
     const fileData = { fileName: 'correccion_final.pdf', file: new File([], 'test.pdf') };
 
-    it('debería procesar la carga exitosamente tras leer el archivo, notificar y llamar a onSuccess', async () => {
+    it('debería radicar la nueva versión, notificar y llamar a onSuccess', async () => {
       const onSuccess = jest.fn();
       const onError = jest.fn();
-      mockProposalService.uploadCorrectionMock.mockReturnValue(of(mockProposal));
+      mockProposalService.uploadCorrection.mockReturnValue(of(mockProposal));
       await service.upload('prop-1', fileData, onSuccess, onError);
-      expect(readFileSpy).toHaveBeenCalledWith(fileData.file);
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Subiendo documento' }));
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ title: '¡Documento cargado!' }));
-      expect(mockProposalService.uploadCorrectionMock).toHaveBeenCalledWith(
-        'prop-1',
-        expect.objectContaining({
-          id: 'uuid-1234',
-          name: 'correccion_final',
-          type: DocumentType.CORRECCION,
-          status: stateList.EN_REVISION,
-          url: 'data:application/pdf;base64,mockedbase64',
-          uploadDate: expect.any(String)
-        })
-      );
+      expect(mockProposalService.uploadCorrection).toHaveBeenCalledWith('prop-1', fileData.file);
       expect(onSuccess).toHaveBeenCalled();
       expect(onError).not.toHaveBeenCalled();
     });
 
-    it('debería fallar, notificar error y llamar onError si falla la lectura del archivo (Data URL)', async () => {
+    it('debería mostrar el mensaje del backend y llamar a onError si falla', async () => {
       const onSuccess = jest.fn();
       const onError = jest.fn();
-      readFileSpy.mockRejectedValue(new Error('FileReader Error'));
+      mockProposalService.uploadCorrection.mockReturnValue(throwError(() =>
+        new HttpErrorResponse({ status: 400, error: { message: 'Solo se radica tras un NO APROBADO.' } })));
       await service.upload('prop-1', fileData, onSuccess, onError);
-      expect(consoleErrorSpy).toHaveBeenCalled();
-      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Error de carga' }));
-      expect(mockProposalService.uploadCorrectionMock).not.toHaveBeenCalled();
-      expect(onError).toHaveBeenCalled();
-      expect(onSuccess).not.toHaveBeenCalled();
-    });
-
-    it('debería notificar error y llamar a onError si falla el servicio de propuesta', async () => {
-      const onSuccess = jest.fn();
-      const onError = jest.fn();
-      mockProposalService.uploadCorrectionMock.mockReturnValue(throwError(() => new Error('Upload failed')));
-      await service.upload('prop-1', fileData, onSuccess, onError);
-      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Error de carga', type: NotificationType.ERROR }));
+      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'Error de carga', message: 'Solo se radica tras un NO APROBADO.', type: NotificationType.ERROR
+      }));
       expect(onError).toHaveBeenCalled();
       expect(onSuccess).not.toHaveBeenCalled();
     });

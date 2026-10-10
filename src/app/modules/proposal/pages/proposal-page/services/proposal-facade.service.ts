@@ -3,6 +3,7 @@ import { ProposalService } from '../../../services/proposal.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { ProposalMapperService } from './proposal-mapper.service';
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
@@ -17,9 +18,8 @@ export class ProposalFacadeService {
 
   public readonly proposalsTableData = computed<ProposalTableRow[]>(() => {
     const currentUser = this.authService.currentUser();
-    const isAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
     return this.proposalService.proposals().map(proposal =>
-      this.mapper.mapProposalToTable(proposal, isAdmin, currentUser?.id)
+      this.mapper.mapProposalToTable(proposal, currentUser?.id)
     );
   });
 
@@ -40,8 +40,8 @@ export class ProposalFacadeService {
         this.showNotification('Propuesta eliminada', 'La propuesta fue eliminada correctamente.', NotificationType.CONFIRMATION);
         onSuccess();
       },
-      error: () => {
-        this.showNotification('Error', 'No se pudo completar la eliminación.', NotificationType.ERROR);
+      error: (err) => {
+        this.showNotification('Error', apiErrorMessage(err, 'No se pudo completar la eliminación.'), NotificationType.ERROR);
         onError();
       }
     });

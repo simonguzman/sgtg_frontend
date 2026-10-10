@@ -118,7 +118,6 @@ describe('Integración [Trabajo de Grado]: Correspondencia final — cierre comp
 
     await waitForHydration(thesisStorage.isHydrated, injector);
     await waitForHydration(preliminaryDraftStorage.isHydrated, injector);
-    await waitForHydration(proposalStorage.isHydrated, injector);
 
     const director = createMockUser({ id: directorId, firstName: 'Director' });
     const evaluator = createMockUser({ id: evaluatorId, firstName: 'Evaluador', roles: [UserRoleType.DOCENTE, UserRoleType.EVALUADOR] });
@@ -201,7 +200,7 @@ describe('Integración [Trabajo de Grado]: Correspondencia final — cierre comp
     expect(updatedThesis?.isArchived).toBe(true);
 
     expect(preliminaryDraftStorage.allPreliminaryDrafts().find(d => d.preliminaryDraftId === draftId)?.isArchived).toBe(true);
-    expect(proposalStorage.allProposals().find(p => p.id === proposalId)?.isArchived).toBe(true);
+    // El cierre de la propuesta lo determina el backend (etapa del trabajo); se integra con este módulo
 
     const users = userStorage.getUsersSnapshot();
     expect(users.find(u => u.id === evaluatorId)?.roles).not.toContain(UserRoleType.EVALUADOR);

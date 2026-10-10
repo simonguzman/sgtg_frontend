@@ -29,7 +29,9 @@ describe('trabajo-grado.mapper', () => {
 
       expect(propuesta.id).toBe('15');
       expect(propuesta.title).toBe('Sistema de gestión');
-      expect(propuesta.description).toBe('Objetivo general\nObjetivo específico');
+      // Sin descripción, se muestra el objetivo general
+      expect(propuesta.description).toBe('Objetivo general');
+      expect(propuesta.objectives).toEqual(['Objetivo general', 'Objetivo específico']);
       expect(propuesta.modality).toBe(Modality.TI);
       expect(propuesta.state).toBe(stateList.EN_REVISION);
       expect(propuesta.director).toBe(directoraConocida);
@@ -42,6 +44,12 @@ describe('trabajo-grado.mapper', () => {
       })]);
       expect(propuesta.evaluationDeadline).toEqual(new Date(2026, 2, 16));
       expect(propuesta.isArchived).toBe(false);
+    });
+
+    it('usa la descripción y la línea de investigación si las tiene', () => {
+      const propuesta = aPropuesta(crearTrabajoDePrueba({ descripcion: 'Plataforma web', lineaInvestigacion: 'IA' }), ctx);
+      expect(propuesta.description).toBe('Plataforma web');
+      expect(propuesta.lineOfResearch).toBe('IA');
     });
 
     it('la decisión del Comité es su evaluación y define el estado', () => {
@@ -66,6 +74,7 @@ describe('trabajo-grado.mapper', () => {
       }), ctx);
 
       expect(propuesta.modality).toBe(Modality.PP);
+      expect(propuesta.organization).toBe('Empresa');
       expect(propuesta.advisor).toEqual(expect.objectContaining({ id: 'externo:ana@empresa.com', firstName: 'Ana' }));
       expect(propuesta.documents.map(d => d.name)).toEqual(['propuesta', 'carta']);
     });

@@ -10,8 +10,6 @@ import { FileDocument } from '../../../../core/interfaces/file-document.interfac
 import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../core/enums/state.enum';
 import { SelectOption } from '../../../../shared/components/searchable-select/searchable-select.component';
-jest.mock('../../../../core/utils/file-reader.utils');
-import { readFileAsDataUrl } from '../../../../core/utils/file-reader.utils';
 import { Modality } from '../../enums/modality.enum';
 
 interface MockFormService {
@@ -19,6 +17,7 @@ interface MockFormService {
   initForCreate: jest.Mock;
   initForEdit: jest.Mock;
   buildProposalPayload: jest.Mock;
+  isProfessionalPractice: jest.Mock;
   modalityOptions: SelectOption[];
   student1Options: WritableSignal<SelectOption[]>;
   student2Options: WritableSignal<SelectOption[]>;
@@ -62,7 +61,6 @@ describe('ProposalFormComponent', () => {
   let mockNotificationService: MockNotificationService;
   let mockFormGroup: FormGroup;
 
-  const mockReadFileAsDataUrl = readFileAsDataUrl as jest.MockedFunction<typeof readFileAsDataUrl>;
   const fb = new FormBuilder();
 
   beforeAll(() => {
@@ -83,7 +81,10 @@ describe('ProposalFormComponent', () => {
       student2: [''],
       codirector: [''],
       advisor: [''],
-      document: ['']
+      specificObjectives: [''],
+      generalDescription: [''],
+      lineOfResearch: [''],
+      organization: ['']
     });
 
     mockFormService = {
@@ -91,6 +92,7 @@ describe('ProposalFormComponent', () => {
       initForCreate: jest.fn(),
       initForEdit: jest.fn(),
       buildProposalPayload: jest.fn(),
+      isProfessionalPractice: jest.fn(() => mockFormGroup.get('modality')?.value === Modality.PP),
       modalityOptions: [{ id: '1', label: 'Practica profesional' }],
       student1Options: signal([{ id: 'stu1', label: 'Estudiante 1' }]),
       student2Options: signal([]),
@@ -136,6 +138,7 @@ describe('ProposalFormComponent', () => {
       expect(mockFormService.initForEdit).toHaveBeenCalledWith(mockProposal);
       expect(component.attachedFile.hasFile).toBeTruthy();
       expect(component.attachedFile.name).toBe('DocumentoOriginal.pdf');
+      expect(component.attachedFile.file).toBeNull();
     });
   });
 
@@ -150,7 +153,7 @@ describe('ProposalFormComponent', () => {
 
     it('debería mostrar u ocultar el campo de asesor según la modalidad seleccionada', () => {
       expect(component.showAdvisorField).toBeFalsy();
-      mockFormGroup.get('modality')?.setValue('Practica profesional');
+      mockFormGroup.get('modality')?.setValue(Modality.PP);
       expect(component.showAdvisorField).toBeTruthy();
     });
   });
@@ -231,46 +234,54 @@ describe('ProposalFormComponent', () => {
       expect(mockFormService.buildProposalPayload).not.toHaveBeenCalled();
     });
 
-    it('debería notificar error si ocurre un fallo al leer el nuevo archivo adjunto (Caso 1 de mapDocuments)', async () => {
-      component.handleFileUploaded({ fileName: 'A.pdf', file: new File([''], 'A.pdf') });
-      mockReadFileAsDataUrl.mockRejectedValue(new Error('Fallo de lectura'));
-      await component.submit();
-      expect(mockNotificationService.show).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Error al leer el archivo', type: NotificationType.ERROR })
-      );
-      expect(mockFormService.buildProposalPayload).not.toHaveBeenCalled();
-    });
-
-    it('debería procesar y enviar un DOCUMENTO NUEVO si se adjuntó un archivo (Caso 1 de mapDocuments)', async () => {
+    it('debería enviar el formato A nuevo como adjunto al crear', async () => {
+      fixture.detectChanges();
       const mockPayload = createMockProposal({ id: 'payload-nuevo' });
       mockFormService.buildProposalPayload.mockReturnValue(mockPayload);
-      mockReadFileAsDataUrl.mockResolvedValue('data:application/pdf;base64,m0ck');
-      component.handleFileUploaded({ fileName: 'NUEVO_DOC.pdf', file: new File([''], 'NUEVO_DOC.pdf') });
+      const archivo = new File([''], 'NUEVO_DOC.pdf');
+      component.handleFileUploaded({ fileName: 'NUEVO_DOC.pdf', file: archivo });
       await component.submit();
-      expect(mockReadFileAsDataUrl).toHaveBeenCalledWith(expect.any(File));
-      expect(mockFormService.buildProposalPayload).toHaveBeenCalledWith(null, expect.arrayContaining([
-        expect.objectContaining({ name: 'NUEVO_DOC.pdf', type: DocumentType.PROPUESTA })
-      ]));
+      expect(mockFormService.buildProposalPayload).toHaveBeenCalledWith(null, { proposal: archivo, acceptanceLetter: null });
       expect(component.onSubmit.emit).toHaveBeenCalledWith(mockPayload);
     });
 
-    it('debería reutilizar el DOCUMENTO ORIGINAL si no se reemplazó el archivo en Modo Edición (Caso 2 de mapDocuments)', async () => {
+    it('debería exigir la carta de aceptación en una práctica profesional nueva', async () => {
+      fixture.detectChanges();
+      mockFormGroup.patchValue({ modality: Modality.PP });
+      component.handleFileUploaded({ fileName: 'A.pdf', file: new File([''], 'A.pdf') });
+      await component.submit();
+      expect(component.isLetterFieldInvalid).toBe(true);
+      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'Archivo requerido', message: 'Debe adjuntar la carta de aceptación de la organización.'
+      }));
+      expect(mockFormService.buildProposalPayload).not.toHaveBeenCalled();
+    });
+
+    it('debería enviar la carta de aceptación junto al formato A', async () => {
+      fixture.detectChanges();
+      mockFormGroup.patchValue({ modality: Modality.PP });
+      mockFormService.buildProposalPayload.mockReturnValue(createMockProposal());
+      const formato = new File([''], 'A.pdf');
+      const carta = new File([''], 'carta.pdf');
+      component.handleFileUploaded({ fileName: 'A.pdf', file: formato });
+      component.handleLetterUploaded({ fileName: 'carta.pdf', file: carta });
+      await component.submit();
+      expect(mockFormService.buildProposalPayload).toHaveBeenCalledWith(null, { proposal: formato, acceptanceLetter: carta });
+    });
+
+    it('en edición sin archivo nuevo no adjunta formato A (conserva la versión radicada)', async () => {
       const mockProposal = createMockProposal();
       fixture.componentRef.setInput('proposal', mockProposal);
       fixture.detectChanges();
       const mockPayload = createMockProposal({ id: 'payload-editado' });
       mockFormService.buildProposalPayload.mockReturnValue(mockPayload);
       await component.submit();
-      expect(mockReadFileAsDataUrl).not.toHaveBeenCalled();
-      expect(mockFormService.buildProposalPayload).toHaveBeenCalledWith(
-        mockProposal, mockProposal.documents
-      );
+      expect(mockFormService.buildProposalPayload).toHaveBeenCalledWith(mockProposal, { proposal: null, acceptanceLetter: null });
       expect(component.onSubmit.emit).toHaveBeenCalledWith(mockPayload);
     });
 
     it('debería notificar error si buildProposalPayload retorna null', async () => {
       mockFormService.buildProposalPayload.mockReturnValue(null);
-      mockReadFileAsDataUrl.mockResolvedValue('data:application/pdf;base64,m0ck');
       component.handleFileUploaded({ fileName: 'A.pdf', file: new File([''], 'A.pdf') });
       await component.submit();
       expect(mockNotificationService.show).toHaveBeenCalledWith(

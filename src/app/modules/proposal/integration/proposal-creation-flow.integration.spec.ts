@@ -1,160 +1,84 @@
-import 'fake-indexeddb/auto';
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { ApplicationRef, Injector } from '@angular/core';
-import { toObservable } from '@angular/core/rxjs-interop';
-import { filter, take } from 'rxjs/operators';
-import { firstValueFrom } from 'rxjs';
-import { ProposalApiService } from '../services/proposal-api.service';
-import { ProposalStorageService } from '../services/proposal-storage.service';
-import { ProposalRulesService } from '../services/proposal-rules.service';
-import { UserService } from '../../users/services/user.service';
-import { UserStorageService } from '../../users/services/user-storage.service';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { ProposalService } from '../services/proposal.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { AuthService } from '../../../core/services/auth/auth.service';
 import { Proposal } from '../interfaces/proposal.interface';
 import { Modality } from '../enums/modality.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
+import { stateList } from '../../../core/enums/state.enum';
 import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
 import { User } from '../../users/interfaces/user.interface';
+import { UsuarioResponse } from '../../../core/interfaces/api/auth-api.interface';
+import { iniciarSesionConTrabajos } from '../../../testing/sesion-de-prueba';
+import { crearTrabajoDePrueba } from '../../../testing/trabajo-grado-de-prueba';
 
-if (typeof globalThis.structuredClone === 'undefined') {
-  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
-}
+const API = '/api/v1/sgtg';
 
+const usuario = (overrides: Partial<User>): User => ({
+  id: 'user-default', idType: IdentificationType.CC, idNumber: 123456789, firstName: 'Juan', lastName: 'Perez',
+  secondLastName: '', codeNumber: 1234567890, email: 'juan@test.com', state: UserState.active, roles: [], ...overrides
+});
 
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'user-1',
-  idType: IdentificationType.CC,
-  idNumber: 123456789,
-  firstName: 'Juan',
-  secondName: '',
-  lastName: 'Perez',
-  secondLastName: '',
-  codeNumber: 1234567890,
-  email: 'juan@test.com',
-  password: 'hash',
-  state: UserState.active,
-  roles: [],
-  ...overrides
-} as User);
+const usuarioApi = (roles: string[]): UsuarioResponse => ({
+  id: 1, codigo: '1001', tipoDocumento: 'CC', numeroDocumento: '1', email: 'dora@unicauca.edu.co',
+  primerNombre: 'Dora', segundoNombre: null, primerApellido: 'Directora', segundoApellido: null,
+  roles, activo: true, tipoVinculacion: 'PLANTA', departamento: { id: 1, nombre: 'Sistemas' }, programa: null
+});
 
-describe('Integración [Proposal]: Ciclo de Vida y Cascada de Roles en Creación', () => {
-  let proposalApi: ProposalApiService;
-  let proposalStorage: ProposalStorageService;
-  let userService: UserService;
-  let userStorage: UserStorageService;
+describe('Integración [Proposal]: Creación contra el backend y roles de contexto', () => {
+  let proposalService: ProposalService;
+  let http: HttpTestingController;
   let eventBus: EventBusService;
-  let appRef: ApplicationRef;
-  let injector: Injector;
 
-  beforeAll(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+  beforeEach(() => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-  });
-
-  afterAll(() => {
-    jest.restoreAllMocks();
-  });
-
-  beforeEach(async () => {
-    jest.clearAllMocks();
-
-    TestBed.configureTestingModule({
-      providers: [
-        // AuthService (real) consulta el backend: se simula el cliente HTTP
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        ProposalApiService,
-        ProposalStorageService,
-        ProposalRulesService,
-        UserService,
-        UserStorageService,
-        EventBusService
-      ]
-    });
-
-    proposalApi = TestBed.inject(ProposalApiService);
-    proposalStorage = TestBed.inject(ProposalStorageService);
-    userService = TestBed.inject(UserService);
-    userStorage = TestBed.inject(UserStorageService);
+    localStorage.clear();
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    proposalService = TestBed.inject(ProposalService);
+    http = TestBed.inject(HttpTestingController);
     eventBus = TestBed.inject(EventBusService);
-    appRef = TestBed.inject(ApplicationRef);
-    injector = TestBed.inject(Injector);
-
-    if (!proposalStorage.isHydrated()) {
-      await firstValueFrom(
-        toObservable(proposalStorage.isHydrated, { injector }).pipe(filter(v => v), take(1))
-      );
-    }
-
-    const defaultMockUser = createMockUser({ id: 'user-001', firstName: 'Estudiante' });
-    const defaultDoc1 = createMockUser({ id: 'doc-001', firstName: 'Doc1', roles: [UserRoleType.CODIRECTOR] });
-    const defaultDoc2 = createMockUser({ id: 'doc-002', firstName: 'Doc2', roles: [UserRoleType.ASESOR] });
-    const defaultDoc5 = createMockUser({ id: 'doc-005', firstName: 'Doc5', roles: [UserRoleType.DIRECTOR] });
-
-    userStorage.updateUsersList(() => [defaultMockUser, defaultDoc1, defaultDoc2, defaultDoc5]);
-    proposalStorage.updateProposals(() => []);
   });
 
-  it('debe registrar la propuesta, otorgar roles automáticamente a los docentes y emitir el evento global', fakeAsync(() => {
-    const director = createMockUser({
-      id: 'doc-dir-99',
-      firstName: 'María',
-      roles: []
-    });
+  afterEach(() => jest.restoreAllMocks());
 
-    const codirector = createMockUser({
-      id: 'doc-codir-88',
-      firstName: 'Jorge',
-      roles: []
-    });
+  it('crea el trabajo, radica el formato A, refresca los roles asignados por el backend y lo muestra en la lista', () => {
+    // Docente sin el rol de director: el backend se lo asigna al crear el trabajo
+    iniciarSesionConTrabajos(usuario({ id: '1', roles: [UserRoleType.DOCENTE] }), []);
+    const emitir = jest.spyOn(eventBus, 'emit');
 
-    userStorage.updateUsersList(current => [...current, director, codirector]);
-
-    const newProposalPayloadPartial: Partial<Proposal> = {
-      title: 'Sistema Inteligente de Riego',
-      description: 'IoT para agricultura',
+    let creada: Proposal | undefined;
+    proposalService.createProposalMock({
+      title: 'Sistema de gestión',
+      description: 'Objetivo general',
+      objectives: ['Objetivo general', 'Objetivo específico'],
       modality: Modality.TI,
-      authors: [],
-      director: director,
-      codirector: codirector,
+      authors: [usuario({ id: '10' })],
+      director: usuario({ id: '1' }),
+      state: stateList.EN_REVISION,
       createdAt: new Date(),
       documents: [],
-      evaluations: []
-    };
+      evaluations: [],
+      attachments: { proposal: new File(['%PDF'], 'formato-a.pdf') }
+    } as Proposal).subscribe(propuesta => creada = propuesta);
 
-    const newProposalPayload = newProposalPayloadPartial as Proposal;
+    http.expectOne(`${API}/trabajos-grado/investigacion`)
+      .flush(crearTrabajoDePrueba({ propuesta: { ...crearTrabajoDePrueba().propuesta, estado: null, versiones: [] } }));
+    http.expectOne(req => req.method === 'POST' && req.url === `${API}/trabajos-grado/15/propuesta`)
+      .flush(crearTrabajoDePrueba());
+    http.expectOne(`${API}/usuarios/me`).flush(usuarioApi(['DOCENTE', 'DIRECTOR']));
+    TestBed.tick();
 
-    const eventBusEmitSpy = jest.spyOn(eventBus, 'emit');
-
-    let savedProposalResult: Proposal | undefined;
-    proposalApi.createProposalMock(newProposalPayload).subscribe(res => {
-      savedProposalResult = res;
-    });
-
-    tick(3000);
-    appRef.tick();
-
-    expect(savedProposalResult).toBeDefined();
-    expect(savedProposalResult?.id).toBeDefined();
-    expect(savedProposalResult?.state).toBe('En revisión');
-
-    const updatedDirector = userStorage.getUsersSnapshot().find(u => u.id === 'doc-dir-99');
-    const updatedCodirector = userStorage.getUsersSnapshot().find(u => u.id === 'doc-codir-88');
-
-    expect(updatedDirector?.roles).toContain(UserRoleType.DIRECTOR);
-    expect(updatedCodirector?.roles).toContain(UserRoleType.CODIRECTOR);
-
-    expect(eventBusEmitSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: AppEventType.PROPOSAL_CREATED,
-        payload: expect.objectContaining({
-          proposalTitle: 'Sistema Inteligente de Riego'
-        })
-      })
-    );
-  }));
+    expect(creada?.id).toBe('15');
+    expect(creada?.state).toBe(stateList.EN_REVISION);
+    expect(TestBed.inject(AuthService).currentUser()?.roles).toContain(UserRoleType.DIRECTOR);
+    expect(proposalService.proposals().map(p => p.id)).toEqual(['15']);
+    expect(emitir).toHaveBeenCalledWith(expect.objectContaining({
+      type: AppEventType.PROPOSAL_CREATED,
+      payload: expect.objectContaining({ proposalId: '15', proposalTitle: 'Sistema de gestión' })
+    }));
+  });
 });

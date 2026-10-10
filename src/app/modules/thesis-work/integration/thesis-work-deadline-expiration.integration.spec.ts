@@ -100,7 +100,6 @@ describe('Integración [Trabajo de Grado]: Vencimiento automático de plazo (ver
 
     await waitForHydration(thesisStorage.isHydrated, injector);
     await waitForHydration(preliminaryDraftStorage.isHydrated, injector);
-    await waitForHydration(proposalStorage.isHydrated, injector);
   });
 
   it('debe archivar en cascada un trabajo vencido sin entrega final, y dejar intactos los que no aplican', fakeAsync(() => {
@@ -158,7 +157,7 @@ describe('Integración [Trabajo de Grado]: Vencimiento automático de plazo (ver
     expect(updatedA?.state).toBe(stateList.NO_APROBADO);
     expect(updatedA?.isArchived).toBe(true);
     expect(preliminaryDraftStorage.allPreliminaryDrafts().find(d => d.preliminaryDraftId === 'draft-exp-a')?.isArchived).toBe(true);
-    expect(proposalStorage.allProposals().find(p => p.id === 'prop-exp-a')?.isArchived).toBe(true);
+    // El cierre de la propuesta lo determina el backend (etapa del trabajo); se integra con este módulo
     expect(userStorage.getUsersSnapshot().find(u => u.id === 'eval-exp-1')?.roles).not.toContain(UserRoleType.EVALUADOR);
 
     const updatedB = thesisStorage.allThesisWorks().find(w => w.thesisWorkId === 'thesis-exp-b');

@@ -40,25 +40,33 @@ describe('ProposalMapperService', () => {
   });
 
   describe('mapProposalToTable - Permisos (allowedActions)', () => {
-    it('debe otorgar todos los permisos si el usuario es Administrador', () => {
-      const result = service.mapProposalToTable(mockProposal, true, 'other-user');
-      expect(result.allowedActions).toEqual(['ver descripcion', 'ver', 'editar', 'eliminar']);
+    const radicada = { ...mockProposal, documents: [{ id: 'doc-1' }] } as unknown as Proposal;
+
+    it('el director puede corregir su propuesta antes de radicarla', () => {
+      const result = service.mapProposalToTable(mockProposal, 'user-1');
+      expect(result.allowedActions).toEqual(['ver descripcion', 'ver', 'editar']);
     });
 
-    it('debe otorgar todos los permisos si el usuario es el Dueño (Director)', () => {
-      const result = service.mapProposalToTable(mockProposal, false, 'user-1');
-      expect(result.allowedActions).toEqual(['ver descripcion', 'ver', 'editar', 'eliminar']);
+    it('el director puede corregir su propuesta tras un NO APROBADO', () => {
+      const noAprobada = { ...radicada, state: stateList.NO_APROBADO } as Proposal;
+      const result = service.mapProposalToTable(noAprobada, 'user-1');
+      expect(result.allowedActions).toEqual(['ver descripcion', 'ver', 'editar']);
     });
 
-    it('debe restringir permisos si no es admin ni dueño', () => {
-      const result = service.mapProposalToTable(mockProposal, false, 'other-user');
+    it('el director no puede corregir una propuesta radicada en revisión', () => {
+      const result = service.mapProposalToTable(radicada, 'user-1');
+      expect(result.allowedActions).toEqual(['ver descripcion', 'ver']);
+    });
+
+    it('otros usuarios solo consultan', () => {
+      const result = service.mapProposalToTable(mockProposal, 'other-user');
       expect(result.allowedActions).toEqual(['ver descripcion', 'ver']);
     });
   });
 
   describe('buildHiddenParticipants', () => {
     it('debe concatenar nombres de director, codirector, asesor y autores correctamente', () => {
-      const result = service.mapProposalToTable(mockProposal, false, undefined);
+      const result = service.mapProposalToTable(mockProposal, undefined);
       expect(result.hiddenParticipants).toContain('Juan Pérez');
       expect(result.hiddenParticipants).toContain('Ana Gómez');
     });
@@ -72,12 +80,12 @@ describe('ProposalMapperService', () => {
         evaluations: [{ deadlineStatus: 'Aprobado a tiempo' }]
       } as unknown as Proposal;
 
-      const result = service.mapProposalToTable(evaluatedProposal, false, undefined);
+      const result = service.mapProposalToTable(evaluatedProposal, undefined);
       expect(result.deadlineStatus).toBe('Aprobado a tiempo');
     });
 
     it('debe retornar "Sin límite" si no hay fecha de límite (evaluationDeadline)', () => {
-      const result = service.mapProposalToTable(mockProposal, false, undefined);
+      const result = service.mapProposalToTable(mockProposal, undefined);
       expect(result.deadlineStatus).toBe('Sin límite');
     });
 
@@ -85,7 +93,7 @@ describe('ProposalMapperService', () => {
       (getRemainingBusinessDays as jest.Mock).mockReturnValue(5);
       const pendingWithDate = { ...mockProposal, evaluationDeadline: new Date() };
 
-      const result = service.mapProposalToTable(pendingWithDate, false, undefined);
+      const result = service.mapProposalToTable(pendingWithDate, undefined);
       expect(result.deadlineStatus).toBe('Quedan 5 días hábiles');
     });
 
@@ -93,7 +101,7 @@ describe('ProposalMapperService', () => {
       (getRemainingBusinessDays as jest.Mock).mockReturnValue(-2);
       const pendingWithDate = { ...mockProposal, evaluationDeadline: new Date() };
 
-      const result = service.mapProposalToTable(pendingWithDate, false, undefined);
+      const result = service.mapProposalToTable(pendingWithDate, undefined);
       expect(result.deadlineStatus).toBe('Plazo vencido (2 días hábiles de retraso)');
     });
   });

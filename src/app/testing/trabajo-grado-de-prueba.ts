@@ -11,6 +11,8 @@ export function crearTrabajoDePrueba(overrides: Partial<TrabajoGradoResponse> = 
     modalidad: 'TRABAJO_DE_INVESTIGACION',
     titulo: 'Sistema de gestión',
     objetivos: ['Objetivo general', 'Objetivo específico'],
+    descripcion: null,
+    lineaInvestigacion: null,
     etapa: 'PROPUESTA',
     motivoCierre: null,
     estudiantes: [{ usuarioId: 10, codigo: '1010', nombreCompleto: 'Eva Estudiante', email: 'eva@unicauca.edu.co',

@@ -4,15 +4,19 @@ import { NotificationService } from '../../../../shared/components/notifications
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { ProposalFormService } from './services/proposal-form.service';
 import { Proposal } from '../../interfaces/proposal.interface';
-import { FileDocument } from '../../../../core/interfaces/file-document.interface';
-import { DocumentType } from '../../../../core/enums/document-type.enum';
-import { stateList } from '../../../../core/enums/state.enum';
-import { readFileAsDataUrl } from '../../../../core/utils/file-reader.utils';
-import { formatDisplayDate } from '../../../../core/utils/date-utils';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 import { SearchableSelectComponent, SelectOption } from '../../../../shared/components/searchable-select/searchable-select.component';
+
+/** Archivo elegido en el formulario (aún no enviado al backend). */
+interface AttachedFile {
+  hasFile: boolean;
+  name: string | null;
+  file: File | null;
+}
+
+const SIN_ARCHIVO: AttachedFile = { hasFile: false, name: null, file: null };
 
 @Component({
   selector: 'app-proposal-form',
@@ -29,8 +33,12 @@ export class ProposalFormComponent {
   proposal = input<Proposal | null>(null);
   @Output() onSubmit = new EventEmitter<Proposal>();
 
-  attachedFile = { hasFile: false, name: null as string | null, file: null as File | null };
+  /** Formato A: obligatorio al crear; al corregir, uno nuevo se radica como nueva versión. */
+  attachedFile: AttachedFile = { ...SIN_ARCHIVO };
+  /** Carta de aceptación (práctica profesional, solo al crear). */
+  acceptanceLetter: AttachedFile = { ...SIN_ARCHIVO };
   uploadModalOpen = false;
+  letterModalOpen = false;
 
   readonly isSubmitAttempted = signal(false);
 
@@ -45,23 +53,25 @@ export class ProposalFormComponent {
       const currentProposal = this.proposal();
       if (currentProposal) {
         this.formService.initForEdit(currentProposal);
-        this.attachedFile = {
-          hasFile: currentProposal.documents.length > 0,
-          name: currentProposal.documents[0]?.name ?? null,
-          file: null
-        };
+        // La versión vigente ya está radicada; solo se carga un archivo si hay una nueva versión
+        const vigente = currentProposal.documents[0];
+        this.attachedFile = { hasFile: !!vigente, name: vigente?.name ?? null, file: null };
       } else {
         this.formService.initForCreate();
-        this.attachedFile = { hasFile: false, name: null, file: null };
+        this.attachedFile = { ...SIN_ARCHIVO };
       }
-    }, { allowSignalWrites: true });
+      this.acceptanceLetter = { ...SIN_ARCHIVO };
+    });
   }
 
   get isEditMode(): boolean { return !!this.proposal(); }
   get form() { return this.formService.form; }
-  get showAdvisorField(): boolean { return this.form.get('modality')?.value === 'Practica profesional'; }
+  get showAdvisorField(): boolean { return this.formService.isProfessionalPractice(); }
   get isFileFieldInvalid(): boolean {
     return this.isSubmitAttempted() && !this.attachedFile.hasFile;
+  }
+  get isLetterFieldInvalid(): boolean {
+    return this.isSubmitAttempted() && this.showAdvisorField && !this.isEditMode && !this.acceptanceLetter.hasFile;
   }
 
   isFieldInvalid(fieldName: string): boolean {
@@ -83,11 +93,21 @@ export class ProposalFormComponent {
     this.notificationService.show({ title: 'Archivo cargado', message: 'Documento adjuntado correctamente.', type: NotificationType.CONFIRMATION });
   }
 
-  removeFile(): void {
-    this.attachedFile = { hasFile: false, name: null, file: null };
+  handleLetterUploaded(event: { fileName: string; file: File }): void {
+    this.acceptanceLetter = { hasFile: true, name: event.fileName, file: event.file };
+    this.letterModalOpen = false;
+    this.notificationService.show({ title: 'Archivo cargado', message: 'Carta de aceptación adjuntada correctamente.', type: NotificationType.CONFIRMATION });
   }
 
-  async submit(): Promise<void> {
+  removeFile(): void {
+    this.attachedFile = { ...SIN_ARCHIVO };
+  }
+
+  removeAcceptanceLetter(): void {
+    this.acceptanceLetter = { ...SIN_ARCHIVO };
+  }
+
+  submit(): void {
     this.isSubmitAttempted.set(true);
 
     this.form.markAllAsTouched();
@@ -101,38 +121,19 @@ export class ProposalFormComponent {
       return;
     }
 
-    let documents: FileDocument[];
-    try {
-      documents = await this.mapDocuments();
-    } catch (err) {
-      console.error('Error leyendo el archivo de la propuesta:', err);
-      this.notificationService.show({ title: 'Error al leer el archivo', message: 'No se pudo procesar el archivo adjuntado.', type: NotificationType.ERROR });
+    if (this.isLetterFieldInvalid) {
+      this.notificationService.show({ title: 'Archivo requerido', message: 'Debe adjuntar la carta de aceptación de la organización.', type: NotificationType.ERROR });
       return;
     }
 
-    const payload = this.formService.buildProposalPayload(this.proposal(), documents);
+    const payload = this.formService.buildProposalPayload(this.proposal(), {
+      proposal: this.attachedFile.file,
+      acceptanceLetter: this.acceptanceLetter.file
+    });
     if (!payload) {
       this.notificationService.show({ title: 'Error', message: 'No se pudo identificar al director.', type: NotificationType.ERROR });
       return;
     }
     this.onSubmit.emit(payload);
-  }
-
-  private async mapDocuments(): Promise<FileDocument[]> {
-    if (this.attachedFile.hasFile && this.attachedFile.file) {
-      const fileUrl = await readFileAsDataUrl(this.attachedFile.file);
-      return [{
-        id: crypto.randomUUID(),
-        name: this.attachedFile.name!,
-        url: fileUrl,
-        uploadDate: formatDisplayDate(new Date()),
-        type: DocumentType.PROPUESTA,
-        status: stateList.EN_REVISION
-      }];
-    }
-    if (this.isEditMode && this.attachedFile.hasFile) {
-      return this.proposal()?.documents ?? [];
-    }
-    return [];
   }
 }

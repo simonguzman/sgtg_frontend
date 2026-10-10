@@ -114,14 +114,13 @@ describe('ProposalCreateFacadeService', () => {
       service.save(mockProposal, onSuccessMock, onErrorMock);
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Error de servidor',
+          title: 'No se pudo registrar la propuesta',
           type: NotificationType.ERROR
         })
       );
       expect(onErrorMock).toHaveBeenCalled();
       expect(onSuccessMock).not.toHaveBeenCalled();
       expect(mockRouter.navigate).not.toHaveBeenCalled();
-      expect(console.error).toHaveBeenCalled();
     });
   });
 });

@@ -4,14 +4,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UserService } from '../../../../users/services/user.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { ProposalService } from '../../../services/proposal.service';
-import { Proposal } from '../../../interfaces/proposal.interface';
+import { Proposal, ProposalAttachments } from '../../../interfaces/proposal.interface';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { SelectOption } from '../../../../../shared/components/searchable-select/searchable-select.component';
-import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
-import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { User } from '../../../../users/interfaces/user.interface';
-import { first } from 'rxjs';
+import { Modality } from '../../../enums/modality.enum';
+
+/** Campos de participantes: se fijan al crear el trabajo y no se editan después. */
+const CAMPOS_PARTICIPANTES = ['modality', 'student1', 'student2', 'codirector', 'advisor', 'organization'] as const;
 
 @Injectable()
 export class ProposalFormService {
@@ -23,19 +24,25 @@ export class ProposalFormService {
 
   readonly form = this.fb.nonNullable.group({
     title: ['', Validators.required],
+    /** Objetivo general (primer objetivo del trabajo) */
     description: ['', Validators.required],
+    /** Objetivos específicos, uno por línea */
+    specificObjectives: [''],
+    generalDescription: [''],
+    lineOfResearch: [''],
     modality: ['', Validators.required],
     student1: ['', Validators.required],
     student2: [''],
     codirector: [''],
-    advisor: ['']
+    advisor: [''],
+    organization: ['']
   });
 
   readonly selectedStudent1Id = signal<string>('');
 
   readonly modalityOptions: SelectOption[] = [
-    { id: 'Practica profesional', label: 'Práctica profesional' },
-    { id: 'Trabajo de investigacion', label: 'Trabajo de investigación' }
+    { id: Modality.PP, label: 'Práctica profesional' },
+    { id: Modality.TI, label: 'Trabajo de investigación' }
   ];
 
   private readonly availableTeachers = computed(() => {
@@ -83,18 +90,27 @@ export class ProposalFormService {
     this.setupDynamicLogic();
   }
 
+  /** @returns true si la modalidad elegida es práctica profesional */
+  isProfessionalPractice(): boolean {
+    return this.form.get('modality')?.value === Modality.PP;
+  }
+
   private setupDynamicLogic(): void {
     this.form.get('modality')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(modality => {
-        const advisorControl = this.form.get('advisor');
-        if (modality === 'Practica profesional') {
-          advisorControl?.setValidators(Validators.required);
-        } else {
-          advisorControl?.clearValidators();
-          advisorControl?.setValue('');
+        // La práctica profesional exige asesor de la organización y la organización
+        const esPractica = modality === Modality.PP;
+        for (const campo of ['advisor', 'organization'] as const) {
+          const control = this.form.get(campo);
+          if (esPractica) {
+            control?.setValidators(Validators.required);
+          } else {
+            control?.clearValidators();
+            control?.setValue('', { emitEvent: false });
+          }
+          control?.updateValueAndValidity({ emitEvent: false });
         }
-        advisorControl?.updateValueAndValidity();
       });
 
     this.form.get('student1')?.valueChanges
@@ -110,35 +126,46 @@ export class ProposalFormService {
   initForCreate(): void {
     this.currentProposalId.set(null);
     this.form.reset();
+    CAMPOS_PARTICIPANTES.forEach(campo => this.form.get(campo)?.enable({ emitEvent: false }));
   }
 
   initForEdit(proposal: Proposal): void {
     this.currentProposalId.set(proposal.id ?? null);
     const student1 = proposal.authors[0]?.id ?? '';
     this.selectedStudent1Id.set(student1);
+    const objetivos = proposal.objectives?.length ? proposal.objectives : [proposal.description];
+    const descripcion = proposal.description !== objetivos[0] ? proposal.description : '';
 
     this.form.patchValue({
       title: proposal.title,
-      description: proposal.description,
+      description: objetivos[0] ?? '',
+      specificObjectives: objetivos.slice(1).join('\n'),
+      generalDescription: descripcion,
+      lineOfResearch: proposal.lineOfResearch ?? '',
       modality: proposal.modality,
       codirector: proposal.codirector?.id ?? '',
       student1: student1,
       student2: proposal.authors[1]?.id ?? '',
-      advisor: proposal.advisor?.id ?? ''
+      advisor: proposal.advisor?.id ?? '',
+      organization: proposal.organization ?? ''
     });
+    // Los participantes se fijan al crear el trabajo de grado
+    CAMPOS_PARTICIPANTES.forEach(campo => this.form.get(campo)?.disable({ emitEvent: false }));
   }
 
-  buildProposalPayload(originalProposal: Proposal | null, documents: FileDocument[]): Proposal | null {
+  /**
+   * Arma la propuesta para el backend. Los objetivos son el general y los
+   * específicos (uno por línea); la descripción es opcional.
+   */
+  buildProposalPayload(originalProposal: Proposal | null, attachments: ProposalAttachments): Proposal | null {
     const raw = this.form.getRawValue();
     const currentDirector = this.authService.currentUser();
 
     if (!currentDirector) return null;
 
-    if (raw.codirector) {
-      this.userService.addRoleToUser(raw.codirector, UserRoleType.CODIRECTOR)
-        .pipe(first())
-        .subscribe();
-    }
+    const objetivos = [raw.description, ...raw.specificObjectives.split('\n')]
+      .map(objetivo => objetivo.trim())
+      .filter(objetivo => !!objetivo);
 
     const authorsArray = this.userService.students().filter(student =>
       student.id === raw.student1 || student.id === raw.student2
@@ -147,16 +174,20 @@ export class ProposalFormService {
     return {
       ...(originalProposal ?? undefined),
       title: raw.title,
-      description: raw.description,
-      modality: raw.modality,
-      authors: authorsArray,
-      director: currentDirector,
-      codirector: this.availableTeachers().find(teacher => teacher.id === raw.codirector),
-      advisor: this.availableAdvisors().find(advisor => advisor.id === raw.advisor),
+      description: raw.generalDescription.trim() || objetivos[0],
+      objectives: objetivos,
+      lineOfResearch: raw.lineOfResearch.trim() || undefined,
+      modality: raw.modality as Modality,
+      authors: originalProposal?.authors ?? authorsArray,
+      director: originalProposal?.director ?? currentDirector,
+      codirector: originalProposal ? originalProposal.codirector : this.availableTeachers().find(teacher => teacher.id === raw.codirector),
+      advisor: originalProposal ? originalProposal.advisor : this.availableAdvisors().find(advisor => advisor.id === raw.advisor),
+      organization: raw.organization.trim() || undefined,
       state: originalProposal?.state ?? stateList.EN_REVISION,
       createdAt: originalProposal?.createdAt ?? new Date(),
-      documents: documents,
-      evaluations: originalProposal?.evaluations ?? []
+      documents: originalProposal?.documents ?? [],
+      evaluations: originalProposal?.evaluations ?? [],
+      attachments
     } as Proposal;
   }
 

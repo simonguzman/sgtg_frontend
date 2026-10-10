@@ -1,173 +1,119 @@
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ProposalDocumentService } from './proposal-document.service';
-import { ProposalStorageService } from './proposal-storage.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { UserService } from '../../users/services/user.service';
+import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { Proposal } from '../interfaces/proposal.interface';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
-import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
-import { FileDocument } from '../../../core/interfaces/file-document.interface';
-import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { User } from '../../users/interfaces/user.interface';
-import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
+import { crearTrabajoDePrueba, crearTrabajoEnAnteproyecto } from '../../../testing/trabajo-grado-de-prueba';
 
-const mockBaseUser: User = {
-  id: 'default-id',
-  idType: IdentificationType.CC,
-  idNumber: 123456789,
-  firstName: 'Nombre',
-  lastName: 'Apellido1',
-  secondLastName: 'Apellido2',
-  codeNumber: 102030,
-  roles: [],
-  email: 'test@unicauca.edu.co',
-  password: 'hashedpassword',
-  state: UserState.active
+const API = '/api/v1/sgtg/trabajos-grado';
+
+const miembroComite: User = {
+  id: '30', idType: 'CC', idNumber: 1, firstName: 'Carla', lastName: 'Comité', secondLastName: '', codeNumber: 1,
+  roles: [UserRoleType.DOCENTE, UserRoleType.COMITE], email: 'carla@unicauca.edu.co', state: UserState.active
 };
 
-const createMockEvaluation = (veredict: stateList, overrides?: Partial<Evaluation>): Evaluation => ({
-  id: 'eval-uuid',
-  proposalId: 'prop-uuid',
-  evaluatorId: 'doc-123',
-  evaluatorName: 'Docente Evaluador',
-  evaluatorRole: 'Evaluador Externo',
-  veredict,
-  observations: 'Sin observaciones',
-  date: new Date(),
-  ...overrides
+const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/pdf' });
+
+/** Lee el JSON de la parte `datos` de un multipart. */
+const leerDatos = (body: FormData): Promise<unknown> => new Promise((resolve, reject) => {
+  const lector = new FileReader();
+  lector.onload = () => resolve(JSON.parse(lector.result as string));
+  lector.onerror = reject;
+  lector.readAsText(body.get('datos') as Blob);
 });
 
 describe('ProposalDocumentService', () => {
   let service: ProposalDocumentService;
-  let mockStorageService: jest.Mocked<ProposalStorageService>;
-  let mockEventBusService: jest.Mocked<EventBusService>;
-  let mockUserService: jest.Mocked<UserService>;
+  let http: HttpTestingController;
+  let store: TrabajoGradoStoreService;
+  let eventBus: { emit: jest.Mock };
+
   beforeEach(() => {
-    jest.spyOn(console, 'log').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    if (!window.crypto) {
-      (window as any).crypto = {};
-    }
-    jest.spyOn(window.crypto, 'randomUUID').mockReturnValue('00000000-0000-0000-0000-000000000000');
-    mockStorageService = {
-      getProposalsListSnapshot: jest.fn(),
-      updateProposals: jest.fn()
-    } as unknown as jest.Mocked<ProposalStorageService>;
-    mockEventBusService = {
-      emit: jest.fn()
-    } as unknown as jest.Mocked<EventBusService>;
-    mockUserService = {
-      users: signal([{ ...mockBaseUser, id: 'miembro-comite-1', roles: [UserRoleType.COMITE] }])
-    } as unknown as jest.Mocked<UserService>;
+    localStorage.clear();
+    eventBus = { emit: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
-        ProposalDocumentService,
-        { provide: ProposalStorageService, useValue: mockStorageService },
-        { provide: EventBusService, useValue: mockEventBusService },
-        { provide: UserService, useValue: mockUserService }
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: EventBusService, useValue: eventBus },
+        { provide: UserService, useValue: { users: signal([miembroComite]) } }
       ]
     });
     service = TestBed.inject(ProposalDocumentService);
-  });
-  afterEach(() => {
-    jest.restoreAllMocks();
+    http = TestBed.inject(HttpTestingController);
+    store = TestBed.inject(TrabajoGradoStoreService);
   });
 
-  it('debería crearse correctamente', () => {
-    expect(service).toBeTruthy();
-  });
-  describe('addEvaluationMock', () => {
-    it('debería arrojar error si la propuesta no es encontrada', () => {
-      mockStorageService.getProposalsListSnapshot.mockReturnValue([]);
-      const evaluation = createMockEvaluation(stateList.APROBADO);
-      expect(() => service.addEvaluationMock('99', evaluation))
-        .toThrow('Propuesta con ID 99 no encontrada');
+  afterEach(() => http.verify());
+
+  describe('registerCommitteeDecision', () => {
+    it('envía el concepto del Comité con el acta firmada y actualiza el almacén', async () => {
+      let resultado: Proposal | undefined;
+      service.registerCommitteeDecision('15', stateList.APROBADO, 'Cumple', pdf('acta.pdf'))
+        .subscribe(propuesta => resultado = propuesta);
+
+      const req = http.expectOne(`${API}/15/propuesta/decisiones`);
+      expect(req.request.method).toBe('POST');
+      const body = req.request.body as FormData;
+      expect((body.get('archivo') as File).name).toBe('acta.pdf');
+      expect(await leerDatos(body)).toEqual({ resultado: 'APROBADO', observaciones: 'Cumple' });
+      req.flush(crearTrabajoEnAnteproyecto());
+
+      expect(resultado?.state).toBe(stateList.APROBADO);
+      expect(store.porId().get('15')?.etapa).toBe('ANTEPROYECTO');
+      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
+        type: AppEventType.EVALUATION_ASSIGNED,
+        targetUserIds: expect.arrayContaining(['10', '1']),
+        payload: expect.objectContaining({ proposalId: '15', veredict: stateList.APROBADO })
+      }));
     });
-    it('debería guardar evaluación A TIEMPO, actualizar documento y notificar', fakeAsync(() => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 10);
-      const mockProposal: Proposal = {
-        id: '1',
-        title: 'Sistema AI',
-        evaluationDeadline: futureDate,
-        authors: [{ ...mockBaseUser, id: 'estudiante-1' }],
-        director: { ...mockBaseUser, id: 'director-1' },
-        documents: [{ id: 'doc-1', status: stateList.EN_REVISION } as FileDocument]
-      } as Proposal;
-      mockStorageService.getProposalsListSnapshot.mockReturnValue([mockProposal]);
-      const evaluation = createMockEvaluation(stateList.APROBADO_CON_OBSERVACIONES, {
-        observations: 'Faltan referencias'
-      });
-      let resultProp: Proposal | undefined;
-      service.addEvaluationMock('1', evaluation).subscribe(res => resultProp = res);
-      tick(1000);
-      expect(resultProp?.state).toBe(stateList.APROBADO_CON_OBSERVACIONES);
-      const newEval = resultProp?.evaluations?.[0];
-      expect(newEval?.id).toBe('00000000-0000-0000-0000-000000000000');
-      expect(newEval?.deadlineStatus).toBe(EvaluationDeadlineStatus.ON_TIME);
-      expect(resultProp?.documents?.[0].status).toBe(stateList.APROBADO_CON_OBSERVACIONES);
-      expect(mockStorageService.updateProposals).toHaveBeenCalled();
-      expect(mockEventBusService.emit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: AppEventType.EVALUATION_ASSIGNED,
-          payload: expect.objectContaining({ proposalId: '1', veredict: stateList.APROBADO_CON_OBSERVACIONES })
-        })
-      );
-      const notifiedUsers = mockEventBusService.emit.mock.calls[0][0].targetUserIds;
-      expect(notifiedUsers).toContain('estudiante-1');
-      expect(notifiedUsers).toContain('director-1');
-      expect(notifiedUsers).not.toContain('miembro-comite-1');
-    }));
-    it('debería guardar evaluación RETRASADA si se pasó del deadline', fakeAsync(() => {
-      const pastDate = new Date();
-      pastDate.setDate(pastDate.getDate() - 10);
-      const mockProposal: Proposal = {
-        id: '2',
-        evaluationDeadline: pastDate,
-      } as Proposal;
-      mockStorageService.getProposalsListSnapshot.mockReturnValue([mockProposal]);
-      const evaluation = createMockEvaluation(stateList.NO_APROBADO);
-      let resultProp: Proposal | undefined;
-      service.addEvaluationMock('2', evaluation).subscribe(res => resultProp = res);
-      tick(1000);
-      expect(resultProp?.evaluations?.[0].deadlineStatus).toBe(EvaluationDeadlineStatus.DELAYED);
-    }));
-  });
-  describe('uploadCorrectionMock', () => {
-    it('debería arrojar error si la propuesta no es encontrada', () => {
-      mockStorageService.getProposalsListSnapshot.mockReturnValue([]);
-      const newDoc = { id: 'test-doc' } as FileDocument;
-      expect(() => service.uploadCorrectionMock('99', newDoc))
-        .toThrow('Propuesta con ID 99 no encontrada');
+
+    it('cualquier veredicto distinto de APROBADO se envía como NO_APROBADO', async () => {
+      service.registerCommitteeDecision('15', stateList.NO_APROBADO, 'Ajustar objetivos', pdf('acta.pdf')).subscribe();
+
+      const req = http.expectOne(`${API}/15/propuesta/decisiones`);
+      expect(await leerDatos(req.request.body as FormData))
+        .toEqual({ resultado: 'NO_APROBADO', observaciones: 'Ajustar objetivos' });
+      req.flush(crearTrabajoDePrueba());
     });
-    it('debería agregar documento, cambiar estado a EN_REVISION, extender fecha y notificar al comité', fakeAsync(() => {
-      const mockProposal: Proposal = {
-        id: '1',
-        title: 'Correcciones Finales',
-        state: stateList.APROBADO_CON_OBSERVACIONES,
-        authors: [{ ...mockBaseUser, id: 'estudiante-1' }],
-        documents: [{ id: 'doc-viejo' } as FileDocument]
-      } as Proposal;
-      mockStorageService.getProposalsListSnapshot.mockReturnValue([mockProposal]);
-      const newDoc = { id: 'doc-nuevo', name: 'v2.pdf' } as FileDocument;
-      let resultProp: Proposal | undefined;
-      service.uploadCorrectionMock('1', newDoc).subscribe(res => resultProp = res);
-      tick(1200);
-      expect(resultProp?.state).toBe(stateList.EN_REVISION);
-      expect(resultProp?.documents?.length).toBe(2);
-      expect(resultProp?.documents?.[0].id).toBe('doc-nuevo');
-      expect(resultProp?.evaluationDeadline).toBeDefined();
-      expect(mockStorageService.updateProposals).toHaveBeenCalled();
-      const emitCallArgs = mockEventBusService.emit.mock.calls[0][0];
-      expect(emitCallArgs.type).toBe(AppEventType.PROPOSAL_CORRECTION_UPLOADED);
-      const notifiedUsers = emitCallArgs.targetUserIds;
-      expect(notifiedUsers).toContain('estudiante-1');
-      expect(notifiedUsers).toContain('miembro-comite-1');
-    }));
+
+    it('si el backend falla no emite eventos', () => {
+      let error: unknown;
+      service.registerCommitteeDecision('15', stateList.APROBADO, '', pdf('acta.pdf'))
+        .subscribe({ error: e => error = e });
+
+      http.expectOne(`${API}/15/propuesta/decisiones`)
+        .flush({ mensaje: 'No permitido' }, { status: 403, statusText: 'Forbidden' });
+
+      expect(error).toBeTruthy();
+      expect(eventBus.emit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('uploadCorrection', () => {
+    it('radica la nueva versión del formato A y avisa a participantes y Comité', () => {
+      let resultado: Proposal | undefined;
+      service.uploadCorrection('15', pdf('formato-a-v2.pdf')).subscribe(propuesta => resultado = propuesta);
+
+      const req = http.expectOne(`${API}/15/propuesta`);
+      const body = req.request.body as FormData;
+      expect((body.get('archivo') as File).name).toBe('formato-a-v2.pdf');
+      expect(body.has('datos')).toBe(false);
+      req.flush(crearTrabajoDePrueba());
+
+      expect(resultado?.id).toBe('15');
+      const evento = eventBus.emit.mock.calls[0][0];
+      expect(evento.type).toBe(AppEventType.PROPOSAL_CORRECTION_UPLOADED);
+      expect(evento.targetUserIds).toEqual(expect.arrayContaining(['10', '1', '30']));
+    });
   });
 });

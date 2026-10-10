@@ -221,7 +221,10 @@ export interface TrabajoGradoResponse {
   id: number;
   modalidad: ModalidadApi;
   titulo: string;
+  /** El primero es el objetivo general; los demás, los específicos */
   objetivos: string[];
+  descripcion: string | null;
+  lineaInvestigacion: string | null;
   etapa: ProcesoApi;
   motivoCierre: MotivoCierreApi | null;
   estudiantes: EstudianteApi[];

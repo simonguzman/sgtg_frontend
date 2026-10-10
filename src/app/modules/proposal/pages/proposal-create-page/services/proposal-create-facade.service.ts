@@ -5,6 +5,7 @@ import { ProposalService } from '../../../services/proposal.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { Proposal } from '../../../interfaces/proposal.interface';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
 @Injectable({ providedIn: 'root' })
 export class ProposalCreateFacadeService {
@@ -45,10 +46,9 @@ export class ProposalCreateFacadeService {
           onSuccess();
         },
         error: (err) => {
-          console.error(err);
           this.showNotification(
-            'Error de servidor',
-            'No se pudo completar el registro. Por favor, intente nuevamente más tarde.',
+            'No se pudo registrar la propuesta',
+            apiErrorMessage(err, 'No se pudo completar el registro. Por favor, intente nuevamente más tarde.'),
             NotificationType.ERROR
           );
           onError();

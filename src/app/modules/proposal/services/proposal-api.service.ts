@@ -1,141 +1,151 @@
 import { inject, Injectable } from '@angular/core';
-import { delay, first, Observable, of, tap } from 'rxjs';
+import { catchError, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 
 import { ProposalStorageService } from './proposal-storage.service';
-import { ProposalRulesService } from './proposal-rules.service';
 import { UserService } from '../../users/services/user.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { TrabajoGradoApiService } from '../../../core/services/trabajo-grado/trabajo-grado-api.service';
+import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
+import { TrabajoGradoVistasService } from '../../../core/services/trabajo-grado/trabajo-grado-vistas.service';
+import { AuthApiService } from '../../../core/services/auth/auth-api.service';
+import { aPropuesta } from '../../../core/mappers/trabajo-grado.mapper';
+import { TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado-api.interface';
 
 import { Proposal } from '../interfaces/proposal.interface';
+import { Modality } from '../enums/modality.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-import { stateList } from '../../../core/enums/state.enum';
-import { addBusinessDays } from '../../../core/utils/date-utils';
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
 
+/**
+ * Operaciones de la propuesta contra el backend. La propuesta es la vista de
+ * un trabajo de grado: crearla crea el trabajo y radica el formato A.
+ */
 @Injectable({
   providedIn: 'root'
 })
 export class ProposalApiService {
   private readonly storage = inject(ProposalStorageService);
-  private readonly rulesService = inject(ProposalRulesService);
   private readonly userService = inject(UserService);
   private readonly eventBus = inject(EventBusService);
+  private readonly api = inject(TrabajoGradoApiService);
+  private readonly store = inject(TrabajoGradoStoreService);
+  private readonly vistas = inject(TrabajoGradoVistasService);
+  private readonly authApi = inject(AuthApiService);
 
   getProposalByIdMock(id: string): Observable<Proposal | undefined> {
     return this.storage.getById(id);
   }
 
+  /**
+   * Crea el trabajo de grado (investigación, o práctica profesional con su
+   * carta de aceptación) y radica el formato A. El backend asigna los roles
+   * de director, codirector y asesor: se refrescan la sesión y los usuarios.
+   */
   createProposalMock(proposal: Proposal): Observable<Proposal> {
-    const newProposal: Proposal = {
-      ...proposal,
-      id: crypto.randomUUID(),
-      createdAt: new Date(),
-      evaluationDeadline: addBusinessDays(new Date(), 10),
-      state: stateList.EN_REVISION,
-      documents: proposal.documents ? proposal.documents.map(document => ({
-        ...document,
-        id: document.id || crypto.randomUUID()
-      })) : [],
-      evaluations: []
-    };
+    const formatoA = proposal.attachments?.proposal;
+    if (!formatoA) return throwError(() => new Error('Debe adjuntar el formato de la propuesta.'));
 
-    return of(newProposal).pipe(
-      delay(1000),
-      tap(onSaved => {
-        this.storage.updateProposals(currentProposal => [onSaved, ...currentProposal]);
+    const creacion = proposal.modality === Modality.PP
+      ? this.api.enviarArchivos(null, 'practica-profesional', {
+        ...this.datosDeLaPropuesta(proposal),
+        estudianteId: Number(proposal.authors[0]?.id),
+        codirectorId: this.idNumerico(proposal.codirector?.id),
+        asesor: this.asesor(proposal)
+      }, { archivo: proposal.attachments?.acceptanceLetter })
+      : this.api.enviarJson(null, 'investigacion', {
+        ...this.datosDeLaPropuesta(proposal),
+        estudiantesIds: proposal.authors.map(author => Number(author.id)),
+        codirectorId: this.idNumerico(proposal.codirector?.id),
+        asesor: null
+      });
 
-        // ← FIX: cuarta aparición del mismo bug ya corregido en
-        // ProposalFormService, PreliminaryDraftAssignmentService y
-        // ThesisWorkSustentationService — Observable frío nunca
-        // suscrito, así que el tap() interno de UserApiService.addRoleToUser
-        // nunca llegaba a ejecutarse. Confirmado como causa real del
-        // assert que fallaba en tu test de integración.
-        if (onSaved.director) {
-          this.userService.addRoleToUser(onSaved.director.id, UserRoleType.DIRECTOR).pipe(first()).subscribe();
-        }
-        if (onSaved.codirector) {
-          this.userService.addRoleToUser(onSaved.codirector.id, UserRoleType.CODIRECTOR).pipe(first()).subscribe();
-        }
-        if (onSaved.advisor) {
-          this.userService.addRoleToUser(onSaved.advisor.id, UserRoleType.ASESOR).pipe(first()).subscribe();
-        }
-
-        const notifyUserIds = new Set<string>();
-        onSaved.authors?.forEach(author => { if (author?.id) notifyUserIds.add(author.id); });
-        if (onSaved.director?.id) notifyUserIds.add(onSaved.director.id);
-        if (onSaved.codirector?.id) notifyUserIds.add(onSaved.codirector.id);
-        if (onSaved.advisor?.id) notifyUserIds.add(onSaved.advisor.id);
-
-        this.userService.users()
-          .filter(user => user.roles.includes(UserRoleType.COMITE))
-          .forEach(user => notifyUserIds.add(user.id));
-
-        this.eventBus.emit({
-          type: AppEventType.PROPOSAL_CREATED,
-          targetUserIds: Array.from(notifyUserIds),
-          payload: {
-            proposalId: onSaved.id,
-            proposalTitle: onSaved.title || ''
-          }
-        });
-      })
+    return creacion.pipe(
+      tap(trabajo => this.store.upsert(trabajo)),
+      switchMap(trabajo => this.api.enviarArchivos(trabajo.id, 'propuesta', null, { archivo: formatoA })),
+      tap(trabajo => {
+        this.store.upsert(trabajo);
+        this.refrescarRoles();
+        this.notificarCreacion(trabajo);
+      }),
+      map(trabajo => this.vista(trabajo))
     );
   }
 
+  /**
+   * Corrige título, objetivos, descripción y línea de investigación y, si se
+   * adjuntó un nuevo formato A, lo radica como nueva versión. El backend solo
+   * lo permite antes de radicar o después de un NO APROBADO del Comité.
+   */
   updateProposalMock(id: string, changes: Partial<Proposal>): Observable<Proposal> {
-    const oldProposal = this.storage.getProposalsListSnapshot().find(p => p.id === id);
-    if (!oldProposal) throw new Error(`Propuesta con ID ${id} no encontrada.`);
+    const actual = this.storage.getProposalsListSnapshot().find(p => p.id === id);
+    const propuesta = { ...actual, ...changes } as Proposal;
+    const formatoA = changes.attachments?.proposal;
 
-    const updatedProposal: Proposal = { ...oldProposal, ...changes };
-
-    return of(updatedProposal).pipe(
-      delay(1000),
-      tap((savedProposal) => {
-        // ⚠️ No tengo ProposalRulesService.handleRoleExchange en esta
-        // conversación — no puedo confirmar si internamente suscribe
-        // correctamente cualquier Observable de rol que dispare. Dado el
-        // historial (4 apariciones del mismo bug en 4 archivos distintos),
-        // vale la pena que me lo pases para revisarlo con el mismo rigor.
-        this.rulesService.handleRoleExchange(oldProposal.codirector?.id, changes.codirector?.id, UserRoleType.CODIRECTOR, id);
-        this.rulesService.handleRoleExchange(oldProposal.advisor?.id, changes.advisor?.id, UserRoleType.ASESOR, id);
-
-        this.storage.updateProposals(list => list.map(proposal => (proposal.id === id ? savedProposal : proposal)));
-      })
+    return this.api.actualizar(id, 'propuesta', this.datosDeLaPropuesta(propuesta)).pipe(
+      tap(trabajo => this.store.upsert(trabajo)),
+      switchMap(trabajo => formatoA
+        ? this.api.enviarArchivos(trabajo.id, 'propuesta', null, { archivo: formatoA })
+        : of(trabajo)),
+      tap(trabajo => this.store.upsert(trabajo)),
+      map(trabajo => this.vista(trabajo))
     );
   }
 
-  deleteProposalMock(id: string): Observable<boolean> {
-    const proposalToRemove = this.storage.getProposalsListSnapshot().find(p => p.id === id);
-    if (!proposalToRemove) return of(false);
+  /** El backend no permite eliminar trabajos de grado: se cancelan (Fase 5). */
+  deleteProposalMock(_id: string): Observable<boolean> {
+    return throwError(() => new Error('Las propuestas no se eliminan; un trabajo de grado se cancela ante el Consejo.'));
+  }
 
-    return of(true).pipe(
-      delay(1000),
-      tap(() => {
-        this.storage.updateProposals(list => list.filter(proposal => proposal.id !== id));
+  // ── Apoyo ─────────────────────────────────────────────────────────────────
 
-        const rolesToCheck = [
-          { id: proposalToRemove.codirector?.id, role: UserRoleType.CODIRECTOR },
-          { id: proposalToRemove.advisor?.id, role: UserRoleType.ASESOR }
-        ];
+  /** Título, objetivos (el primero es el general), descripción y línea de investigación. */
+  private datosDeLaPropuesta(proposal: Proposal) {
+    const objetivos = (proposal.objectives?.length ? proposal.objectives : [proposal.description])
+      .map(objetivo => objetivo?.trim())
+      .filter(objetivo => !!objetivo);
+    const descripcion = proposal.description?.trim();
+    return {
+      titulo: proposal.title,
+      objetivos,
+      descripcion: descripcion && descripcion !== objetivos[0] ? descripcion : null,
+      lineaInvestigacion: proposal.lineOfResearch?.trim() || null
+    };
+  }
 
-        rolesToCheck.forEach(({ id: userId, role }) => {
-          if (userId) {
-            const isStillLinked = this.storage.getProposalsListSnapshot().some(proposal =>
-              (role === UserRoleType.CODIRECTOR && proposal.codirector?.id === userId) ||
-              (role === UserRoleType.ASESOR && proposal.advisor?.id === userId)
-            );
+  /** Asesor de la práctica profesional: usuario con rol ASESOR y su organización. */
+  private asesor(proposal: Proposal) {
+    if (!proposal.advisor) return null;
+    return { usuarioId: this.idNumerico(proposal.advisor.id), organizacion: proposal.organization?.trim() || null,
+      externo: false };
+  }
 
-            if (!isStillLinked) {
-              // ← FIX: quinto caso, en la dirección de "quitar rol" —
-              // distinto de removeRolesFromUsersMock (plural), que sí
-              // estaba bien suscrito en todos los usos que revisé antes.
-              // Este removeRoleFromUser (singular) nunca lo había visto
-              // hasta que compartiste este archivo.
-              this.userService.removeRoleFromUser(userId, role).pipe(first()).subscribe();
-            }
-          }
-        });
-      })
-    );
+  private idNumerico(id: string | undefined): number | null {
+    return id ? Number(id) : null;
+  }
+
+  private vista(trabajo: TrabajoGradoResponse): Proposal {
+    return aPropuesta(trabajo, this.vistas.contexto());
+  }
+
+  /** El backend agregó roles de contexto: se refrescan la sesión y la lista de usuarios. */
+  private refrescarRoles(): void {
+    this.authApi.refreshCurrentUser().pipe(catchError(() => of(undefined))).subscribe();
+    this.userService.loadUsers();
+  }
+
+  private notificarCreacion(trabajo: TrabajoGradoResponse): void {
+    const propuesta = this.vista(trabajo);
+    const notifyUserIds = new Set<string>();
+    propuesta.authors?.forEach(author => { if (author?.id) notifyUserIds.add(author.id); });
+    [propuesta.director, propuesta.codirector, propuesta.advisor].forEach(user => { if (user?.id) notifyUserIds.add(user.id); });
+    this.userService.users()
+      .filter(user => user.roles.includes(UserRoleType.COMITE))
+      .forEach(user => notifyUserIds.add(user.id));
+
+    this.eventBus.emit({
+      type: AppEventType.PROPOSAL_CREATED,
+      targetUserIds: Array.from(notifyUserIds),
+      payload: { proposalId: propuesta.id, proposalTitle: propuesta.title || '' }
+    });
   }
 }

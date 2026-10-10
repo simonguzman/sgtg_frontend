@@ -23,6 +23,9 @@ const usuarioApi = (overrides: Partial<UsuarioResponse> = {}): UsuarioResponse =
   segundoApellido: 'Gómez',
   roles: ['DOCENTE', 'JEFE_DEP'],
   activo: true,
+  tipoVinculacion: null,
+  departamento: null,
+  programa: null,
   ...overrides
 });
 

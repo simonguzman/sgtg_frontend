@@ -131,7 +131,7 @@ describe('ProposalFormService', () => {
 
     it('debería tener las opciones de modalidad predefinidas', () => {
       expect(service.modalityOptions).toHaveLength(2);
-      expect(service.modalityOptions[0].id).toBe('Practica profesional');
+      expect(service.modalityOptions[0].id).toBe(Modality.PP);
     });
 
     it('debería inicializar el formulario con los campos requeridos correctamente configurados', () => {
@@ -149,15 +149,15 @@ describe('ProposalFormService', () => {
 
     it('debería hacer obligatorio el campo advisor si la modalidad es "Practica profesional"', () => {
       const advisorControl = service.form.get('advisor');
-      service.form.get('modality')?.setValue('Practica profesional');
+      service.form.get('modality')?.setValue(Modality.PP);
       expect(advisorControl?.hasValidator(Validators.required)).toBe(true);
     });
 
     it('debería remover la validación de advisor y limpiar su valor si la modalidad no es "Practica profesional"', () => {
       const advisorControl = service.form.get('advisor');
-      service.form.get('modality')?.setValue('Practica profesional');
+      service.form.get('modality')?.setValue(Modality.PP);
       advisorControl?.setValue('advisor-1');
-      service.form.get('modality')?.setValue('Trabajo de investigacion');
+      service.form.get('modality')?.setValue(Modality.TI);
       expect(advisorControl?.hasValidator(Validators.required)).toBe(false);
       expect(advisorControl?.value).toBe('');
     });
@@ -230,7 +230,7 @@ describe('ProposalFormService', () => {
       service.initForEdit(mockProposal);
       expect(service.currentProposalId()).toBe('prop-99');
       expect(service.selectedStudent1Id()).toBe('stu-1');
-      expect(service.form.value).toEqual(expect.objectContaining({
+      expect(service.form.getRawValue()).toEqual(expect.objectContaining({
         title: 'Sistema de Información',
         description: 'Descripción detallada',
         modality: Modality.TI,
@@ -242,53 +242,101 @@ describe('ProposalFormService', () => {
     });
   });
 
+  describe('Edición: objetivos y participantes', () => {
+    it('separa el objetivo general, los específicos y la descripción', () => {
+      service.initForEdit(createMockProposal({
+        description: 'Contexto del trabajo',
+        objectives: ['General', 'Específico 1', 'Específico 2'],
+        lineOfResearch: 'IA',
+        organization: 'Empresa'
+      }));
+      expect(service.form.getRawValue()).toEqual(expect.objectContaining({
+        description: 'General',
+        specificObjectives: 'Específico 1\nEspecífico 2',
+        generalDescription: 'Contexto del trabajo',
+        lineOfResearch: 'IA',
+        organization: 'Empresa'
+      }));
+    });
+
+    it('no repite el objetivo general como descripción', () => {
+      service.initForEdit(createMockProposal({ description: 'General', objectives: ['General'] }));
+      expect(service.form.getRawValue().generalDescription).toBe('');
+    });
+
+    it('bloquea los participantes al editar y los habilita al crear', () => {
+      service.initForEdit(createMockProposal());
+      ['modality', 'student1', 'student2', 'codirector', 'advisor', 'organization']
+        .forEach(campo => expect(service.form.get(campo)?.disabled).toBe(true));
+      expect(service.form.get('title')?.enabled).toBe(true);
+
+      service.initForCreate();
+      expect(service.form.get('modality')?.enabled).toBe(true);
+    });
+  });
+
   describe('Construcción del Payload (buildProposalPayload)', () => {
+    const formatoA = new File(['%PDF'], 'formatoA.pdf');
 
     it('debería retornar null si no hay un director autenticado', () => {
       mockAuthService.currentUser.set(null);
-      const payload = service.buildProposalPayload(null, []);
+      const payload = service.buildProposalPayload(null, {});
       expect(payload).toBeNull();
     });
 
-    it('debería construir el payload completo para una propuesta nueva y suscribirse a addRoleToUser', () => {
+    it('debería construir el payload completo para una propuesta nueva', () => {
+      service.form.get('modality')?.setValue(Modality.PP);
       service.form.patchValue({
         title: 'Nueva Propuesta',
-        description: 'Detalle de propuesta',
-        modality: 'Practica profesional',
+        description: 'Objetivo general',
+        specificObjectives: 'Específico 1\n\n  Específico 2  ',
+        generalDescription: '',
+        lineOfResearch: ' Software ',
         student1: 'stu-1',
         student2: 'stu-2',
         codirector: 'teacher-1',
-        advisor: 'advisor-1'
+        advisor: 'advisor-1',
+        organization: 'Empresa S.A.'
       });
-      const mockDocuments = [createMockDocument({ name: 'formatoA.pdf' })];
-      const payload = service.buildProposalPayload(null, mockDocuments);
-      expect(payload).toBeDefined();
+      const payload = service.buildProposalPayload(null, { proposal: formatoA });
       expect(payload?.title).toBe('Nueva Propuesta');
+      expect(payload?.objectives).toEqual(['Objetivo general', 'Específico 1', 'Específico 2']);
+      expect(payload?.description).toBe('Objetivo general');
+      expect(payload?.lineOfResearch).toBe('Software');
+      expect(payload?.modality).toBe(Modality.PP);
       expect(payload?.authors).toEqual([mockStudent1, mockStudent2]);
       expect(payload?.director).toEqual(mockDirector);
       expect(payload?.codirector).toEqual(mockTeacher1);
       expect(payload?.advisor).toEqual(mockAdvisor1);
+      expect(payload?.organization).toBe('Empresa S.A.');
       expect(payload?.state).toBe(stateList.EN_REVISION);
-      expect(payload?.documents).toEqual(mockDocuments);
-      expect(payload?.evaluations).toEqual([]);
-      expect(mockUserService.addRoleToUser).toHaveBeenCalledWith('teacher-1', UserRoleType.CODIRECTOR);
+      expect(payload?.attachments).toEqual({ proposal: formatoA });
     });
 
-    it('debería mantener la metadata original al actualizar una propuesta existente', () => {
+    it('usa la descripción general cuando se diligencia', () => {
+      service.form.patchValue({ title: 'T', description: 'Objetivo', generalDescription: 'Descripción amplia' });
+      expect(service.buildProposalPayload(null, {})?.description).toBe('Descripción amplia');
+    });
+
+    it('debería mantener la metadata y los participantes originales al actualizar', () => {
       const originalProposal = createMockProposal({
         id: 'prop-100',
         createdAt: new Date('2023-01-01'),
-        state: stateList.APROBADO
+        state: stateList.NO_APROBADO,
+        authors: [mockStudent1],
+        codirector: mockTeacher1,
+        documents: [createMockDocument()]
       });
-      service.form.patchValue({
-        title: 'Propuesta Editada',
-        modality: 'Trabajo de investigacion',
-        student1: 'stu-1'
-      });
-      const payload = service.buildProposalPayload(originalProposal, []);
+      service.initForEdit(originalProposal);
+      service.form.patchValue({ title: 'Propuesta Editada' });
+      const payload = service.buildProposalPayload(originalProposal, {});
       expect(payload?.id).toBe('prop-100');
+      expect(payload?.title).toBe('Propuesta Editada');
       expect(payload?.createdAt).toEqual(new Date('2023-01-01'));
-      expect(payload?.state).toBe(stateList.APROBADO);
+      expect(payload?.state).toBe(stateList.NO_APROBADO);
+      expect(payload?.authors).toEqual([mockStudent1]);
+      expect(payload?.codirector).toEqual(mockTeacher1);
+      expect(payload?.documents).toHaveLength(1);
     });
   });
 });

@@ -5,7 +5,8 @@ import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { Proposal } from '../../../interfaces/proposal.interface';
-import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
+import { propuestaEditable } from '../../../services/proposal-rules.service';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
 @Injectable({ providedIn: 'root' })
 export class ProposalEditFacadeService {
@@ -29,12 +30,17 @@ export class ProposalEditFacadeService {
             return;
           }
 
-          const currentUser = this.authService.currentUser();
-          const isAdmin     = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
-          const isOwner     = found.director?.id === currentUser?.id;
+          const isOwner = found.director?.id === this.authService.currentUser()?.id;
+          if (!isOwner) {
+            this.showNotification('Acceso restringido', 'Solo el director puede corregir la propuesta.', NotificationType.ERROR);
+            onForbidden();
+            return;
+          }
 
-          if (!isAdmin && !isOwner) {
-            this.showNotification('Acceso restringido', 'No tienes permisos para editar esta propuesta.', NotificationType.ERROR);
+          if (!propuestaEditable(found)) {
+            this.showNotification('Edición no permitida',
+              'La propuesta solo se puede corregir antes de radicarla o después de que el Comité no la apruebe.',
+              NotificationType.ERROR);
             onForbidden();
             return;
           }
@@ -63,8 +69,9 @@ export class ProposalEditFacadeService {
           this.showNotification('¡Actualización exitosa!', 'La información de la propuesta se ha modificado correctamente.', NotificationType.CONFIRMATION);
           onSuccess();
         },
-        error: () => {
-          this.showNotification('Error de actualización', 'No se pudieron guardar los cambios. Por favor, intente de nuevo.', NotificationType.ERROR);
+        error: (err) => {
+          this.showNotification('Error de actualización',
+            apiErrorMessage(err, 'No se pudieron guardar los cambios. Por favor, intente de nuevo.'), NotificationType.ERROR);
           onError();
         }
       });

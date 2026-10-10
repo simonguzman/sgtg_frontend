@@ -3,7 +3,15 @@ import { inject, Injectable } from '@angular/core';
 import { ProposalStorageService } from './proposal-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { Proposal } from '../interfaces/proposal.interface';
-import { UserRoleType } from '../../../core/enums/user-role-type.enum';
+import { stateList } from '../../../core/enums/state.enum';
+
+/**
+ * La propuesta solo se corrige antes de radicar el formato A o después de
+ * que el Comité no la apruebe (misma regla del backend).
+ */
+export function propuestaEditable(proposal: Pick<Proposal, 'state' | 'documents'>): boolean {
+  return proposal.state === stateList.NO_APROBADO || !proposal.documents?.length;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -30,33 +38,5 @@ export class ProposalRulesService {
       }
     }
     return null;
-  }
-
-  handleRoleExchange(
-    oldId: string | undefined,
-    newId: string | undefined,
-    role: UserRoleType,
-    currentProposalId: string
-  ): void {
-    if (oldId === newId) return;
-
-    // ← FIX: Suscripción limpia sin .pipe(first()) para evitar bloqueos
-    // por EmptyError en los observables fríos anidados.
-    if (newId) {
-      this.userService.addRoleToUser(newId, role).subscribe();
-    }
-
-    if (oldId) {
-      const isStillLinked = this.storage.getProposalsListSnapshot().some(proposal =>
-        proposal.id !== currentProposalId && (
-          (role === UserRoleType.CODIRECTOR && proposal.codirector?.id === oldId) ||
-          (role === UserRoleType.ASESOR && proposal.advisor?.id === oldId)
-        )
-      );
-
-      if (!isStillLinked) {
-        this.userService.removeRoleFromUser(oldId, role).subscribe();
-      }
-    }
   }
 }

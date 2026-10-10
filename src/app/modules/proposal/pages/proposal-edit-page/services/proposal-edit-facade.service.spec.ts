@@ -5,7 +5,7 @@ import { ProposalService } from '../../../services/proposal.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { Proposal } from '../../../interfaces/proposal.interface';
-import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
+import { stateList } from '../../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 
 describe('ProposalEditFacadeService', () => {
@@ -53,15 +53,32 @@ describe('ProposalEditFacadeService', () => {
       expect(onAuthorized).toHaveBeenCalledWith(mockProposal);
       expect(mockNotificationService.show).not.toHaveBeenCalled();
     });
-    it('debe emitir onAuthorized si el usuario es Administrador (aunque no sea dueño)', () => {
+    it('debe emitir onAuthorized tras un NO APROBADO del Comité', () => {
+      const noAprobada = { ...mockProposal, state: stateList.NO_APROBADO, documents: [{ id: 'd1' }] } as unknown as Proposal;
+      mockProposalService.getProposalByIdMock.mockReturnValue(of(noAprobada));
+      const onAuthorized = jest.fn();
+      service.loadAndAuthorize('prop-1', onAuthorized, jest.fn(), jest.fn());
+      expect(onAuthorized).toHaveBeenCalledWith(noAprobada);
+    });
+    it('debe emitir onForbidden si la propuesta ya está radicada y en revisión', () => {
+      const radicada = { ...mockProposal, state: stateList.EN_REVISION, documents: [{ id: 'd1' }] } as unknown as Proposal;
+      mockProposalService.getProposalByIdMock.mockReturnValue(of(radicada));
+      const onForbidden = jest.fn();
+      service.loadAndAuthorize('prop-1', jest.fn(), onForbidden, jest.fn());
+      expect(onForbidden).toHaveBeenCalled();
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({ type: NotificationType.ERROR, title: 'Edición no permitida' })
+      );
+    });
+    it('debe emitir onForbidden aunque sea Administrador si no es el director', () => {
       const otherProposal = { id: 'prop-1', director: { id: 'other-user' } } as unknown as Proposal;
       mockProposalService.getProposalByIdMock.mockReturnValue(of(otherProposal));
       mockAuthService.hasAnyRole.mockReturnValue(true);
-      const onAuthorized = jest.fn();
-      service.loadAndAuthorize('prop-1', onAuthorized, jest.fn(), jest.fn());
-      expect(onAuthorized).toHaveBeenCalledWith(otherProposal);
+      const onForbidden = jest.fn();
+      service.loadAndAuthorize('prop-1', jest.fn(), onForbidden, jest.fn());
+      expect(onForbidden).toHaveBeenCalled();
     });
-    it('debe emitir onForbidden y mostrar error si no es ni admin ni dueño', () => {
+    it('debe emitir onForbidden y mostrar error si no es el director', () => {
       const otherProposal = { id: 'prop-1', director: { id: 'other-user' } } as unknown as Proposal;
       mockProposalService.getProposalByIdMock.mockReturnValue(of(otherProposal));
       mockAuthService.hasAnyRole.mockReturnValue(false);

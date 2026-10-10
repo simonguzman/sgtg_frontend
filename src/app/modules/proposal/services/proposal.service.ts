@@ -7,7 +7,7 @@ import { ProposalDocumentService } from './proposal-document.service';
 import { ProposalApiService } from './proposal-api.service';
 
 import { Proposal } from '../interfaces/proposal.interface';
-import { Evaluation } from '../../../core/interfaces/evaluation.interface';
+import { stateList } from '../../../core/enums/state.enum';
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
 
 @Injectable({
@@ -51,12 +51,15 @@ export class ProposalService {
   // ==========================================
   // DELEGACIÓN: DOCUMENTOS Y EVALUACIONES
   // ==========================================
-  addEvaluationMock(proposalId: string, evaluation: Evaluation): Observable<Proposal> {
-    return this.documentService.addEvaluationMock(proposalId, evaluation);
+  /** Concepto del Comité de Programa con el acta firmada. */
+  registerCommitteeDecision(proposalId: string, veredict: stateList, observations: string,
+    signedFile: File): Observable<Proposal> {
+    return this.documentService.registerCommitteeDecision(proposalId, veredict, observations, signedFile);
   }
 
-  uploadCorrectionMock(proposalId: string, newDocument: FileDocument): Observable<Proposal> {
-    return this.documentService.uploadCorrectionMock(proposalId, newDocument);
+  /** Nueva versión del formato A. */
+  uploadCorrection(proposalId: string, file: File): Observable<Proposal> {
+    return this.documentService.uploadCorrection(proposalId, file);
   }
 
   getDocumentsByProposalId(id: string): FileDocument[] {

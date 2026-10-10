@@ -43,7 +43,31 @@ Los módulos aún usan sus storages simulados: cada fase los conecta al almacén
 - Descarga de archivos: `FileDownloadService` con `GET /{id}/archivos?ruta=` (lleva el token).
 - Traducción de estados: `Proceso` + `Estado` + resultados → `stateList` del front (tabla en el mapeo).
 
-### Fase 1 — Propuesta
+### Fase 1 — Propuesta ✅ (2026-10-09)
+Hecho en el backend: el trabajo guarda `descripcion` y `lineaInvestigacion` (opcionales); al crear asigna los
+roles DIRECTOR / CODIRECTOR / ASESOR (`ManageUserGatewayIntPort.agregarRol`); nuevo `PUT /{id}/propuesta`
+(título, objetivos, descripción y línea) solo para el director y solo antes de radicar o tras un NO APROBADO.
+
+Hecho en el front:
+- `ProposalStorageService` es la vista `propuestas` de `TrabajoGradoVistasService` (sin IndexedDB);
+  `ProposalApiService` crea (TI con JSON, PP multipart con la carta), radica el formato A, corrige con `PUT`
+  y refresca la sesión y los usuarios para tomar los roles nuevos. Eliminar no existe en el backend (se
+  cancela ante el Consejo, Fase 5): la acción se quitó de la tabla.
+- `ProposalDocumentService`: concepto del Comité (`propuesta/decisiones` con el acta firmada) y nueva
+  versión del formato A.
+- Formulario: objetivo general + específicos (uno por línea), descripción, línea de investigación,
+  organización y carta de aceptación (PP). Al editar, los participantes quedan bloqueados.
+- Regla `propuestaEditable` (misma del backend) en la tabla y en la página de edición.
+- Errores del backend visibles con `apiErrorMessage`.
+- Pruebas: specs reescritas contra `HttpTestingController`; ayuda `testing/sesion-de-prueba.ts`
+  (`iniciarSesionConTrabajos`). Se retiraron las de intercambio de roles y eliminación (ahora del backend).
+- Verificado de punta a punta contra Docker: TI (crear, corregir, radicar, NO APROBADO, v2, APROBADO →
+  ANTEPROYECTO, descargas) y PP (carta reubicada, asesor, formato PP-A).
+
+Nota: el backend responde **406** (`NoAccessException`, GC-0008) cuando un usuario no tiene acceso a un
+trabajo o archivo; sus pruebas lo esperan así.
+
+Plan original:
 - Formulario: `title` → `titulo`; **objetivos** (el backend los exige; el front solo tiene `description`);
   estudiantes (1–2 TI, 1 PP), codirector, asesor (obligatorio en PP, interno o externo) y **carta de
   aceptación** (PP).

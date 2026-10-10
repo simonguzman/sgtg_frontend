@@ -1,10 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
-import { ProposalRulesService } from './proposal-rules.service';
+import { ProposalRulesService, propuestaEditable } from './proposal-rules.service';
 import { ProposalStorageService } from './proposal-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { Proposal } from '../interfaces/proposal.interface';
-import { UserRoleType } from '../../../core/enums/user-role-type.enum';
+import { stateList } from '../../../core/enums/state.enum';
+import { FileDocument } from '../../../core/interfaces/file-document.interface';
 
 describe('ProposalRulesService', () => {
   let service: ProposalRulesService;
@@ -71,30 +72,18 @@ describe('ProposalRulesService', () => {
       expect(result).toBeNull();
     });
   });
-  describe('handleRoleExchange', () => {
-    it('no debería hacer nada si el ID antiguo y nuevo son iguales', () => {
-      service.handleRoleExchange('doc-1', 'doc-1', UserRoleType.CODIRECTOR, 'prop-1');
-      expect(mockUserService.addRoleToUser).not.toHaveBeenCalled();
-      expect(mockUserService.removeRoleFromUser).not.toHaveBeenCalled();
-    });
-    it('debería agregar el rol al nuevo docente', () => {
-      service.handleRoleExchange(undefined, 'doc-2', UserRoleType.CODIRECTOR, 'prop-1');
-      expect(mockUserService.addRoleToUser).toHaveBeenCalledWith('doc-2', UserRoleType.CODIRECTOR);
-      expect(mockUserService.removeRoleFromUser).not.toHaveBeenCalled();
-    });
-    it('debería remover el rol del docente antiguo si ya no tiene otras propuestas asociadas', () => {
-      (mockStorageService.getProposalsListSnapshot as jest.Mock).mockReturnValue([]);
-      service.handleRoleExchange('doc-1', 'doc-2', UserRoleType.CODIRECTOR, 'prop-1');
-      expect(mockUserService.addRoleToUser).toHaveBeenCalledWith('doc-2', UserRoleType.CODIRECTOR);
-      expect(mockUserService.removeRoleFromUser).toHaveBeenCalledWith('doc-1', UserRoleType.CODIRECTOR);
-    });
-    it('no debería remover el rol del docente antiguo si aún pertenece a otra propuesta', () => {
-      (mockStorageService.getProposalsListSnapshot as jest.Mock).mockReturnValue([
-        { id: 'prop-2', codirector: { id: 'doc-1' } }
-      ] as Proposal[]);
-      service.handleRoleExchange('doc-1', 'doc-2', UserRoleType.CODIRECTOR, 'prop-1');
-      expect(mockUserService.addRoleToUser).toHaveBeenCalledWith('doc-2', UserRoleType.CODIRECTOR);
-      expect(mockUserService.removeRoleFromUser).not.toHaveBeenCalled();
-    });
+});
+
+describe('propuestaEditable', () => {
+  const documento = { id: 'd1' } as FileDocument;
+
+  it('permite corregir antes de radicar el formato A', () => {
+    expect(propuestaEditable({ state: stateList.EN_REVISION, documents: [] })).toBe(true);
+  });
+  it('permite corregir después de un NO APROBADO del Comité', () => {
+    expect(propuestaEditable({ state: stateList.NO_APROBADO, documents: [documento] })).toBe(true);
+  });
+  it.each([stateList.EN_REVISION, stateList.APROBADO])('no permite corregir una propuesta radicada en estado %s', estado => {
+    expect(propuestaEditable({ state: estado, documents: [documento] })).toBe(false);
   });
 });

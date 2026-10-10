@@ -54,6 +54,11 @@ export class TrabajoGradoApiService {
     return this.http.post<TrabajoGradoResponse>(this.urlOperacion(id, operacion), cuerpo);
   }
 
+  /** Corrección de datos: `PUT /trabajos-grado/{id}/{operacion}` con cuerpo JSON. */
+  actualizar(id: number | string, operacion: string, cuerpo: unknown): Observable<TrabajoGradoResponse> {
+    return this.http.put<TrabajoGradoResponse>(this.urlOperacion(id, operacion), cuerpo);
+  }
+
   /**
    * Operación con archivos: `POST /trabajos-grado{/id}/{operacion}` multipart.
    * `datos` (si no es null) va como JSON en la parte `datos`.

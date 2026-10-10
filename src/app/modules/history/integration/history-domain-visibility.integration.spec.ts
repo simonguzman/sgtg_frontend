@@ -30,6 +30,12 @@ import { DocumentType } from '../../../core/enums/document-type.enum';
 import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
 import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
+import { iniciarSesionConTrabajos } from '../../../testing/sesion-de-prueba';
+import { crearTrabajoEnAnteproyecto } from '../../../testing/trabajo-grado-de-prueba';
+
+/** Trabajo de grado cerrado (cancelado) cuyo director es el usuario 1 */
+const trabajoCerrado = crearTrabajoEnAnteproyecto({ etapa: 'CANCELADO', motivoCierre: 'CANCELACION_DIRECTOR' });
 
 if (typeof globalThis.structuredClone === 'undefined') {
   globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
@@ -47,7 +53,7 @@ describe('Integración [Historial]: Filtrado real de pertenencia y cálculo de p
   let draftsTab: ArchivedPreliminaryDraftsTabService;
   let proposalStorage: ProposalStorageService;
   let draftStorage: PreliminaryDraftStorageService;
-  const ownerId = 'owner-1';
+  const ownerId = '1';
   const outsiderId = 'outsider-1';
   beforeAll(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -76,33 +82,19 @@ describe('Integración [Historial]: Filtrado real de pertenencia y cálculo de p
     proposalStorage = TestBed.inject(ProposalStorageService);
     draftStorage = TestBed.inject(PreliminaryDraftStorageService);
     const injector = TestBed.inject(Injector);
-    await waitForHydration(proposalStorage.isHydrated, injector);
     await waitForHydration(draftStorage.isHydrated, injector);
     localStorage.clear();
   });
   it('un usuario sin ninguna relación NO debe ver una propuesta archivada, sin recurrir a hasGlobalAccess', () => {
-    const owner = createMockUser({ id: ownerId, firstName: 'Dueño' });
-    const archivedProposalPartial: Partial<Proposal> = {
-      id: 'prop-hist-1', title: 'Propuesta archivada', description: 'desc', modality: Modality.TI,
-      authors: [], director: owner, state: stateList.APROBADO, createdAt: new Date(),
-      documents: [], evaluations: [], isArchived: true
-    };
-    const archivedProposal = archivedProposalPartial as Proposal;
-    proposalStorage.updateProposals(() => [archivedProposal]);
+    // Trabajo cerrado del director 1, cargado por un administrador
+    iniciarSesionConTrabajos(createMockUser({ id: '99', roles: [UserRoleType.ADMINISTRADOR] }), [trabajoCerrado]);
     const context: HistoryEvaluationContext = { currentUser: createMockUser({ id: outsiderId }), hasGlobalAccess: false };
-    expect(proposalsTab.getTableData(context).some(r => r['id'] === 'prop-hist-1')).toBe(false);
+    expect(proposalsTab.getTableData(context).some(r => r['id'] === '15')).toBe(false);
   });
   it('el director real de la propuesta SÍ debe verla, aunque esté archivada y sin acceso global', () => {
-    const owner = createMockUser({ id: ownerId, firstName: 'Dueño' });
-    const archivedProposalPartial: Partial<Proposal> = {
-      id: 'prop-hist-2', title: 'Propuesta del dueño', description: 'desc', modality: Modality.TI,
-      authors: [], director: owner, state: stateList.APROBADO, createdAt: new Date(),
-      documents: [], evaluations: [], isArchived: true
-    };
-    const archivedProposal = archivedProposalPartial as Proposal;
-    proposalStorage.updateProposals(() => [archivedProposal]);
+    iniciarSesionConTrabajos(createMockUser({ id: ownerId, roles: [UserRoleType.DOCENTE, UserRoleType.DIRECTOR] }), [trabajoCerrado]);
     const context: HistoryEvaluationContext = { currentUser: createMockUser({ id: ownerId }), hasGlobalAccess: false };
-    expect(proposalsTab.getTableData(context).some(r => r['id'] === 'prop-hist-2')).toBe(true);
+    expect(proposalsTab.getTableData(context).some(r => r['id'] === '15')).toBe(true);
   });
   it('debe elegir el documentId correcto por tipo (Anteproyecto/Corrección), no por índice, para calcular el plazo real', () => {
     const owner = createMockUser({ id: ownerId, firstName: 'Dueño' });

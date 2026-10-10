@@ -1,121 +1,59 @@
-import 'fake-indexeddb/auto';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { Injector } from '@angular/core';
-import { waitForHydration } from '../../../testing/wait-for-hydration';
 import { ProposalStorageService } from '../services/proposal-storage.service';
-import { UserService } from '../../users/services/user.service';
-import { UserStorageService } from '../../users/services/user-storage.service';
-import { AuthService } from '../../../core/services/auth/auth.service';
-import { Proposal } from '../interfaces/proposal.interface';
 import { User } from '../../users/interfaces/user.interface';
-import { stateList } from '../../../core/enums/state.enum';
-import { Modality } from '../enums/modality.enum';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
+import { iniciarSesionConTrabajos } from '../../../testing/sesion-de-prueba';
+import { crearTrabajoDePrueba } from '../../../testing/trabajo-grado-de-prueba';
 
-if (typeof globalThis.structuredClone === 'undefined') {
-  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
-}
+const usuario = (id: string, roles: UserRoleType[]): User => ({
+  id, idType: IdentificationType.CC, idNumber: 123456789, firstName: 'Nombre', lastName: 'Apellido',
+  secondLastName: '', codeNumber: 1234567890, email: 'test@test.com', state: UserState.active, roles
+});
 
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'user-default', idType: IdentificationType.CC, idNumber: 123456789,
-  firstName: 'Nombre', secondName: '', lastName: 'Apellido', secondLastName: '',
-  codeNumber: 1234567890, email: 'test@test.com', password: 'hash',
-  state: UserState.active, roles: [], ...overrides
-} as User);
+/** Trabajo con otro director (usuario 2) */
+const trabajoAjeno = crearTrabajoDePrueba({
+  id: 16,
+  director: { ...crearTrabajoDePrueba().director, usuarioId: 2, nombreCompleto: 'Otro Director' }
+});
 
 describe('Integración [Proposal]: Visibilidad por rol — señal proposals() filtrada', () => {
   let proposalStorage: ProposalStorageService;
 
-  beforeAll(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-  });
-
-  afterAll(() => {
-    jest.restoreAllMocks();
-  });
-
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
     localStorage.clear();
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    proposalStorage = TestBed.inject(ProposalStorageService);
   });
 
-  function buildProposal(id: string, director: User, isArchived = false): Proposal {
-    const proposalPartial: Partial<Proposal> = {
-      id, title: `Propuesta ${id}`, description: 'desc', modality: Modality.TI,
-      authors: [], director, state: stateList.EN_REVISION, createdAt: new Date(),
-      documents: [], evaluations: [], isArchived
-    };
-    return proposalPartial as Proposal;
-  }
+  afterEach(() => jest.restoreAllMocks());
 
-  it('un rol privilegiado (Comité) ve TODAS las propuestas activas, sin importar participación', async () => {
-    TestBed.configureTestingModule({
-      providers: [
-        // UserService (real) consulta el backend: se simula el cliente HTTP
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        ProposalStorageService, UserService, UserStorageService,
-        { provide: AuthService, useValue: { currentUser: () => createMockUser({ id: 'comite-1' }), hasAnyRole: () => true } }
-      ]
-    });
-    proposalStorage = TestBed.inject(ProposalStorageService);
-    const injector = TestBed.inject(Injector);
-    await waitForHydration(proposalStorage.isHydrated, injector);
+  it('un rol privilegiado (Comité) ve TODAS las propuestas activas, sin importar participación', () => {
+    iniciarSesionConTrabajos(usuario('99', [UserRoleType.DOCENTE, UserRoleType.COMITE]),
+      [crearTrabajoDePrueba(), trabajoAjeno]);
 
-    const directorA = createMockUser({ id: 'dir-vis-a' });
-    const directorB = createMockUser({ id: 'dir-vis-b' });
-    proposalStorage.updateProposals(() => [buildProposal('prop-vis-a', directorA), buildProposal('prop-vis-b', directorB)]);
-
-    const visible = proposalStorage.proposals();
-    expect(visible.map(p => p.id)).toEqual(expect.arrayContaining(['prop-vis-a', 'prop-vis-b']));
+    expect(proposalStorage.proposals().map(p => p.id)).toEqual(['15', '16']);
   });
 
-  it('un usuario sin rol privilegiado solo ve las propuestas donde tiene relación real', async () => {
-    const ownDirectorId = 'dir-vis-own';
-    TestBed.configureTestingModule({
-      providers: [
-        // UserService (real) consulta el backend: se simula el cliente HTTP
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        ProposalStorageService, UserService, UserStorageService,
-        { provide: AuthService, useValue: { currentUser: () => createMockUser({ id: ownDirectorId }), hasAnyRole: () => false } }
-      ]
-    });
-    proposalStorage = TestBed.inject(ProposalStorageService);
-    const injector = TestBed.inject(Injector);
-    await waitForHydration(proposalStorage.isHydrated, injector);
+  it('un usuario sin rol privilegiado solo ve las propuestas donde tiene relación real', () => {
+    // El Jefe de departamento recibe todos los trabajos, pero la vista de propuestas filtra por participación
+    iniciarSesionConTrabajos(usuario('1', [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP]),
+      [crearTrabajoDePrueba(), trabajoAjeno]);
 
-    const ownDirector = createMockUser({ id: ownDirectorId });
-    const otherDirector = createMockUser({ id: 'dir-vis-other' });
-    proposalStorage.updateProposals(() => [buildProposal('prop-vis-own', ownDirector), buildProposal('prop-vis-other', otherDirector)]);
-
-    const visible = proposalStorage.proposals();
-    expect(visible.some(p => p.id === 'prop-vis-own')).toBe(true);
-    expect(visible.some(p => p.id === 'prop-vis-other')).toBe(false);
+    const visibles = proposalStorage.proposals().map(p => p.id);
+    expect(visibles).toContain('15');
+    expect(visibles).not.toContain('16');
   });
 
-  it('las propuestas archivadas quedan excluidas incluso para un rol privilegiado', async () => {
-    TestBed.configureTestingModule({
-      providers: [
-        // UserService (real) consulta el backend: se simula el cliente HTTP
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        ProposalStorageService, UserService, UserStorageService,
-        { provide: AuthService, useValue: { currentUser: () => createMockUser({ id: 'consejo-1' }), hasAnyRole: () => true } }
-      ]
-    });
-    proposalStorage = TestBed.inject(ProposalStorageService);
-    const injector = TestBed.inject(Injector);
-    await waitForHydration(proposalStorage.isHydrated, injector);
+  it('las propuestas de trabajos cerrados quedan excluidas incluso para un rol privilegiado', () => {
+    iniciarSesionConTrabajos(usuario('99', [UserRoleType.ADMINISTRADOR]),
+      [crearTrabajoDePrueba({ etapa: 'CANCELADO', motivoCierre: 'CANCELACION_DIRECTOR' })]);
 
-    const director = createMockUser({ id: 'dir-vis-archived' });
-    proposalStorage.updateProposals(() => [buildProposal('prop-vis-archived', director, true)]);
-
-    expect(proposalStorage.proposals().some(p => p.id === 'prop-vis-archived')).toBe(false);
-    expect(proposalStorage.allProposals().some(p => p.id === 'prop-vis-archived')).toBe(true);
+    expect(proposalStorage.proposals()).toEqual([]);
+    expect(proposalStorage.allProposals().map(p => p.isArchived)).toEqual([true]);
   });
 });
