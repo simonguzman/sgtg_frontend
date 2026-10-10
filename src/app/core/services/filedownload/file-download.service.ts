@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../shared/components/notifications/models/notification.model';
+import { environment } from '../../../../environments/environment';
 
 // Margen antes de liberar la Object URL del blob descargado — ver
 // comentario en el catch de download().
@@ -18,8 +19,13 @@ export class FileDownloadService {
   // — el usuario nunca se enteraba de que la descarga había fallado.
   private readonly notificationService = inject(NotificationService);
 
+  /**
+   * Descarga un archivo. Los del backend (`environment.apiUrl`) se piden
+   * siempre como blob por HttpClient, para que el interceptor envíe el token.
+   */
   async download(url: string, fileName: string, useBlob: boolean = false): Promise<void> {
-    if (!useBlob) {
+    const esDelBackend = url.startsWith(environment.apiUrl);
+    if (!useBlob && !esDelBackend) {
       this.directDownload(url, fileName);
       return;
     }
@@ -27,7 +33,7 @@ export class FileDownloadService {
     try {
       const blob = await firstValueFrom(this.http.get(url, { responseType: 'blob' }));
       const objectUrl = window.URL.createObjectURL(blob);
-      this.directDownload(objectUrl, fileName);
+      this.directDownload(objectUrl, nombreConExtension(fileName, blob.type));
 
       // ← FIX: revocar en el mismo tick que el click() puede cancelar la
       // descarga en navegadores que aún no terminaron de leer el blob
@@ -58,4 +64,16 @@ export class FileDownloadService {
   private showNotification(title: string, message: string, type: NotificationType): void {
     this.notificationService.show({ title, message, type });
   }
+}
+
+/**
+ * Nombre de descarga sin extensiones repetidas (`x.pdf.pdf`) y con `.pdf`
+ * cuando el archivo es PDF y el nombre no trae extensión.
+ */
+export function nombreConExtension(fileName: string, tipo: string): string {
+  const sinDuplicado = fileName.replace(/(\.pdf)+$/i, '.pdf');
+  if (tipo === 'application/pdf' && !/\.[a-z0-9]{2,4}$/i.test(sinDuplicado)) {
+    return `${sinDuplicado}.pdf`;
+  }
+  return sinDuplicado;
 }

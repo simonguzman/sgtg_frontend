@@ -26,7 +26,14 @@ Cada fase se cierra con lo mismo: servicios del front contra el backend, ajustes
 si hacen falta, pruebas (Jest con `HttpTestingController`, JUnit/MockMvc), prueba de punta a punta
 contra Docker por el proxy de `ng serve`, y actualización de `integracion-api.md`.
 
-### Fase 0 — Base común
+### Fase 0 — Base común ✅ (2026-10-09)
+Hecho: `core/interfaces/api/trabajo-grado-api.interface.ts`, `core/services/trabajo-grado/trabajo-grado-api.service.ts`
+(consultas, `enviarJson`, `enviarArchivos`, `urlArchivo`), `trabajo-grado-store.service.ts` (carga al iniciar sesión:
+todos los trabajos para Comité/Jefe/Consejo/Administrador con el nuevo `GET /trabajos-grado` sin etapa, los propios
+para los demás), `core/mappers/trabajo-grado.mapper.ts` (las tres vistas con el id del trabajo, estados, documentos,
+evaluaciones y fechas locales) y `FileDownloadService` (los archivos del backend se piden como blob con el token).
+Los módulos aún usan sus storages simulados: cada fase los conecta al almacén.
+
 - `TrabajoGradoApiService` (core): consultas y operaciones del agregado; las operaciones con documento
   envían `FormData` (`archivo` + `datos` JSON).
 - Interfaces de `TrabajoGradoDTOResponse` y mapeo a las tres vistas del front (`Proposal`,

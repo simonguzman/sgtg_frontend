@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { FileDownloadService } from './file-download.service';
+import { FileDownloadService, nombreConExtension } from './file-download.service';
 import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../shared/components/notifications/models/notification.model';
 
@@ -69,6 +69,30 @@ describe('FileDownloadService', () => {
       expect(appendChildSpy).toHaveBeenCalledWith(realAnchor);
       expect(clickSpy).toHaveBeenCalled();
       expect(removeSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('Archivos del backend', () => {
+    it('se piden siempre como blob (para enviar el token) y el nombre lleva la extensión', async () => {
+      const anchor = document.createElement('a');
+      jest.spyOn(anchor, 'click').mockImplementation(() => {});
+      jest.spyOn(document, 'createElement').mockReturnValue(anchor);
+      const url = '/api/v1/sgtg/trabajos-grado/15/archivos?ruta=15%2FTI-A%2Fv1%2Fpropuesta.pdf';
+
+      const descarga = service.download(url, 'propuesta');
+      httpMock.expectOne(url).flush(new Blob(['%PDF'], { type: 'application/pdf' }));
+      await descarga;
+
+      expect(anchor.download).toBe('propuesta.pdf');
+    });
+  });
+
+  describe('nombreConExtension', () => {
+    it('agrega .pdf a un PDF sin extensión y quita la extensión repetida', () => {
+      expect(nombreConExtension('propuesta', 'application/pdf')).toBe('propuesta.pdf');
+      expect(nombreConExtension('propuesta.pdf.pdf', 'application/pdf')).toBe('propuesta.pdf');
+      expect(nombreConExtension('acta.pdf', 'application/pdf')).toBe('acta.pdf');
+      expect(nombreConExtension('datos', 'text/plain')).toBe('datos');
     });
   });
 
