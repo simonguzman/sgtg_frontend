@@ -6,16 +6,20 @@ export interface DocumentTableRow {
   id: string;
   name: string;
   uploadDate: string | Date;
+  /** Estado de la revisión de la versión (En revisión, Aprobado, No aprobado) */
   status?: stateList;
+  /** Número de versión del formato A; vacío en documentos que no son versiones (carta de aceptación) */
+  version?: number;
   type: DocumentType;
   url: string;
   allowedActions: string[];
 }
 
 export const DOCUMENTS_COLUMNS: Column[] = [
-  { field: 'name',       header: 'Nombre de archivo', type: 'text',  width: '35%' },
+  { field: 'name',       header: 'Nombre de archivo', type: 'text',  width: '30%' },
+  { field: 'version',    header: 'Versión',           type: 'text',  width: '10%' },
   { field: 'uploadDate', header: 'Fecha de carga',    type: 'text',  width: '20%' },
-  { field: 'status',     header: 'Estado',            type: 'state', width: '20%' },
+  { field: 'status',     header: 'Estado',            type: 'state', width: '15%' },
   {
     field: 'acciones',
     header: 'Acciones',

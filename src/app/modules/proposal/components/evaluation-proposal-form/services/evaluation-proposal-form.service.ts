@@ -4,7 +4,7 @@ import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
-import { DocumentType } from '../../../../../core/enums/document-type.enum';
+import { versionActual, versionEnRevision } from '../../../services/proposal-rules.service';
 import { Proposal } from '../../../interfaces/proposal.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 
@@ -19,18 +19,14 @@ export class EvaluationProposalFormService {
     comments: ['', Validators.required]
   });
 
+  /** Versión del formato A que el Comité evalúa: la que está En revisión. */
   resolveOriginalDocument(proposal: Proposal): FileDocument | null {
-    return proposal?.documents?.[0] ?? null;
+    return versionEnRevision(proposal);
   }
 
+  /** Última versión radicada (por número de versión). */
   resolveCurrentDocument(proposal: Proposal): FileDocument | null {
-    const evaluable = (proposal?.documents ?? []).filter(document =>
-      document.type === DocumentType.PROPUESTA || document.type === DocumentType.CORRECCION
-    );
-    if (evaluable.length === 0) return null;
-    return [...evaluable].sort((a, b) =>
-      new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
-    )[0];
+    return versionActual(proposal);
   }
 
   formatUploadDate(document: FileDocument | null): string {

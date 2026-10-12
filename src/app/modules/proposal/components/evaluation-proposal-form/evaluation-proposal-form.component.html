@@ -106,7 +106,12 @@
                     <span class="text-size-body font-bold text-primary truncate">
                       {{ originalDocument?.name ?? 'Documento no disponible' }}
                     </span>
-                    <span class="text-size-role-footer text-[#777680] font-sans">Documento de propuesta radicado</span>
+                    <span class="text-size-role-footer text-[#777680] font-sans flex items-center gap-2">
+                      Versión {{ originalDocument?.version ?? 1 }} del formato A
+                      @if (originalDocument?.status) {
+                        <app-state [label]="originalDocument?.status" [state]="originalDocument?.status"></app-state>
+                      }
+                    </span>
                   </div>
                 </div>
                 <app-button-component

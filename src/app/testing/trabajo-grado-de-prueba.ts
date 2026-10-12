@@ -23,10 +23,9 @@ export function crearTrabajoDePrueba(overrides: Partial<TrabajoGradoResponse> = 
     asesor: null,
     cartaAceptacion: null,
     propuesta: {
-      estado: 'RADICADO',
       fechaLimiteConcepto: '2026-03-16',
       versiones: [{ tipo: 'PROPUESTA', formato: 'TI-A', ruta: '15/TI-A/v1/propuesta.pdf', version: 1,
-        fechaCarga: '2026-03-02' }],
+        fechaCarga: '2026-03-02', estado: 'EN_REVISION' }],
       decisiones: []
     },
     anteproyecto: {
@@ -53,7 +52,7 @@ export function crearTrabajoEnAnteproyecto(overrides: Partial<TrabajoGradoRespon
     etapa: 'ANTEPROYECTO',
     propuesta: {
       ...base.propuesta,
-      estado: 'APROBADO',
+      versiones: base.propuesta.versiones.map(version => ({ ...version, estado: 'APROBADO' as const })),
       decisiones: [{ organo: 'COMITE_PROGRAMA', resultado: 'APROBADO', acta: 'Acta 1',
         rutaArchivo: '15/ACTA_COMITE/v1/acta.pdf', observaciones: null, fecha: '2026-03-05' }]
     },

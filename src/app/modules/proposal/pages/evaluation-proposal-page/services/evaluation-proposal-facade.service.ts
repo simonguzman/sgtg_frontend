@@ -8,6 +8,7 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { Proposal } from '../../../interfaces/proposal.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
+import { versionEnRevision } from '../../../services/proposal-rules.service';
 import { SaveProposalEvaluationEvent } from '../../../interfaces/evaluation-proposal-payload.interface';
 
 export type { SaveProposalEvaluationEvent };
@@ -38,7 +39,8 @@ export class EvaluationProposalFacadeService {
   }
 
   public async downloadOriginalDocument(proposal: Proposal): Promise<void> {
-    const document = proposal.documents?.[0] ?? null;
+    // Se descarga la versión que el Comité evalúa (En revisión), no la primera radicada
+    const document = versionEnRevision(proposal);
     if (!document?.url?.trim()) {
       this.showNotification(
         'Error de descarga',

@@ -1,10 +1,17 @@
-version: "3.9"
+# Sistema completo de SGTG: base de datos, backend (Spring Boot) y frontend (Angular + Nginx).
+#
+# Requiere los dos repositorios como carpetas hermanas:
+#   workspace/
+#   ├── sgtg_backend/   (con su archivo .env; ver sgtg_backend/.env.example)
+#   └── sgtg_frontend/  (este archivo)
+#
+# Desde sgtg_frontend:  docker compose up --build -d
+# La aplicación queda en http://localhost:4200 (el frontend reenvía /api al backend).
+name: sgtg
 
 services:
-  # 1. Base de Datos (Configuración de tu compañero)
   mysql:
     image: mysql:8.0
-    container_name: sgtg_mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: oracle
@@ -15,15 +22,19 @@ services:
     command: --port=3307 --bind-address=0.0.0.0
     volumes:
       - mysql_data:/var/lib/mysql
-    networks:
-      - sgtg_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-P", "3307", "-uroot", "-poracle"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
 
-  # 2. Backend (Spring Boot - Configuración de tu compañero)
   backend:
-    build: ./sgtg_backend # <- Cambia por la ruta de la carpeta del backend
-    container_name: sgtg_backend
-    ports:
-      - "8080:8080"
+    build: ../sgtg_backend
+    restart: unless-stopped
+    # Administrador inicial y demás variables del backend (SGTG_ADMIN_EMAIL, SGTG_ADMIN_PASSWORD, ...)
+    env_file:
+      - ../sgtg_backend/.env
     environment:
       SPRING_APPLICATION_NAME: backend
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3307/sgtg?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
@@ -31,26 +42,28 @@ services:
       SPRING_DATASOURCE_PASSWORD: oracle
       SPRING_SECURITY_USER_NAME: admin
       SPRING_SECURITY_USER_PASSWORD: admin
-    depends_on:
-      - mysql
-    networks:
-      - sgtg_network
-
-  # 3. Tu Frontend (Angular + Nginx)
-  web:
-    build: ./sgtg_frontend # PATH a la carpeta de tu frontend
-    container_name: sgtg_frontend
+      # Entorno de desarrollo: reloj ajustable para probar flujos que dependen del tiempo (Thunder Client)
+      SGTG_RELOJ_AJUSTABLE: ${SGTG_RELOJ_AJUSTABLE:-true}
+      # Archivos de los trabajos de grado (PDF), en un volumen para que no se pierdan al recrear el contenedor
+      SGTG_ARCHIVOS_DIRECTORIO: /app/archivos
+    # Expuesto también directamente para Thunder Client y pruebas del API
     ports:
-      - "4200:80" # Tu sistema completo se abrirá en http://localhost:4200
+      - "8080:8080"
+    volumes:
+      - archivos_data:/app/archivos
+    depends_on:
+      # Espera a que MySQL acepte conexiones, no solo a que el contenedor inicie
+      mysql:
+        condition: service_healthy
+
+  web:
+    build: .
     restart: unless-stopped
+    ports:
+      - "4200:80"
     depends_on:
       - backend
-    networks:
-      - sgtg_network
-
-networks:
-  sgtg_network:
-    driver: bridge
 
 volumes:
   mysql_data:
+  archivos_data:

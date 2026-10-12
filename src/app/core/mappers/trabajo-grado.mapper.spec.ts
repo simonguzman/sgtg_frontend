@@ -64,6 +64,28 @@ describe('trabajo-grado.mapper', () => {
       })]);
     });
 
+    it('el estado es de cada versión y el de la propuesta es el de la última', () => {
+      const base = crearTrabajoDePrueba();
+      const propuesta = aPropuesta(crearTrabajoDePrueba({
+        propuesta: {
+          ...base.propuesta,
+          versiones: [
+            { ...base.propuesta.versiones[0], estado: 'NO_APROBADO' },
+            { ...base.propuesta.versiones[0], ruta: '15/TI-A/v2/propuesta.pdf', version: 2, estado: 'EN_REVISION' }
+          ]
+        }
+      }), ctx);
+
+      expect(propuesta.state).toBe(stateList.EN_REVISION);
+      expect(propuesta.documents.map(documento => documento.status))
+        .toEqual([stateList.NO_APROBADO, stateList.EN_REVISION]);
+    });
+
+    it('sin versiones radicadas la propuesta no tiene anteproyecto', () => {
+      const base = crearTrabajoDePrueba();
+      expect(aAnteproyecto(crearTrabajoDePrueba({ propuesta: { ...base.propuesta, versiones: [] } }), ctx)).toBeNull();
+    });
+
     it('una práctica profesional incluye la carta de aceptación y su asesor', () => {
       const propuesta = aPropuesta(crearTrabajoDePrueba({
         modalidad: 'PRACTICA_PROFESIONAL',

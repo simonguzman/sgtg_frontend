@@ -108,7 +108,7 @@ describe('ProposalApiService', () => {
         codirectorId: 2,
         asesor: null
       });
-      creacion.flush(crearTrabajoDePrueba({ propuesta: { ...crearTrabajoDePrueba().propuesta, estado: null, versiones: [] } }));
+      creacion.flush(crearTrabajoDePrueba({ propuesta: { ...crearTrabajoDePrueba().propuesta, versiones: [] } }));
 
       const radicacion = http.expectOne(`${API}/15/propuesta`);
       expect((radicacion.request.body as FormData).get('archivo')).toBeInstanceOf(File);

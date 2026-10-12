@@ -4,6 +4,27 @@ import { ProposalStorageService } from './proposal-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { Proposal } from '../interfaces/proposal.interface';
 import { stateList } from '../../../core/enums/state.enum';
+import { DocumentType } from '../../../core/enums/document-type.enum';
+import { FileDocument } from '../../../core/interfaces/file-document.interface';
+
+/** Versiones del formato A de la propuesta (sin la carta de aceptación), de la más antigua a la más reciente. */
+export function versionesDePropuesta(proposal: Pick<Proposal, 'documents'> | null | undefined): FileDocument[] {
+  return (proposal?.documents ?? [])
+    .filter(documento => documento.type === DocumentType.PROPUESTA || documento.type === DocumentType.CORRECCION)
+    .sort((a, b) => (a.version ?? 0) - (b.version ?? 0));
+}
+
+/** Última versión radicada de la propuesta, null si no hay ninguna. */
+export function versionActual(proposal: Pick<Proposal, 'documents'> | null | undefined): FileDocument | null {
+  const versiones = versionesDePropuesta(proposal);
+  return versiones.length > 0 ? versiones[versiones.length - 1] : null;
+}
+
+/** Versión que el Comité debe evaluar (estado En revisión); si no hay, la última radicada. */
+export function versionEnRevision(proposal: Pick<Proposal, 'documents'> | null | undefined): FileDocument | null {
+  const enRevision = versionesDePropuesta(proposal).filter(documento => documento.status === stateList.EN_REVISION);
+  return enRevision.length > 0 ? enRevision[enRevision.length - 1] : versionActual(proposal);
+}
 
 /**
  * La propuesta solo se corrige antes de radicar el formato A o después de

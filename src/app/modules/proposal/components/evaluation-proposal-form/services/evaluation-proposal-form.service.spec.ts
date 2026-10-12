@@ -6,6 +6,7 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { Proposal } from '../../../interfaces/proposal.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { User } from '../../../../users/interfaces/user.interface';
+import { stateList } from '../../../../../core/enums/state.enum';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 
@@ -63,16 +64,26 @@ describe('EvaluationProposalFormService', () => {
   });
   describe('Gestión y Resolución de Documentos', () => {
     describe('resolveOriginalDocument', () => {
-      it('debería retornar el primer documento de la lista si existe', () => {
+      it('debería retornar la versión que está En revisión, no la primera radicada', () => {
         const mockProposal = {
           documents: [
-            { id: 'doc-original-1', name: 'Original.pdf' },
-            { id: 'doc-original-2', name: 'Anexo.pdf' }
+            { id: 'v1', type: DocumentType.PROPUESTA, version: 1, status: stateList.NO_APROBADO },
+            { id: 'v2', type: DocumentType.PROPUESTA, version: 2, status: stateList.EN_REVISION },
+            { id: 'carta', type: DocumentType.FORMATO, version: 1 }
           ]
         } as Partial<Proposal> as Proposal;
         const result = service.resolveOriginalDocument(mockProposal);
-        expect(result).toBeDefined();
-        expect(result?.id).toBe('doc-original-1');
+        expect(result?.id).toBe('v2');
+        expect(result?.status).toBe(stateList.EN_REVISION);
+      });
+      it('sin versión En revisión retorna la última versión radicada', () => {
+        const mockProposal = {
+          documents: [
+            { id: 'v2', type: DocumentType.PROPUESTA, version: 2, status: stateList.APROBADO },
+            { id: 'v1', type: DocumentType.PROPUESTA, version: 1, status: stateList.NO_APROBADO }
+          ]
+        } as Partial<Proposal> as Proposal;
+        expect(service.resolveOriginalDocument(mockProposal)?.id).toBe('v2');
       });
       it('debería retornar null si la propuesta no contiene documentos', () => {
         const mockProposal = { documents: [] } as Partial<Proposal> as Proposal;
@@ -95,22 +106,18 @@ describe('EvaluationProposalFormService', () => {
         const result = service.resolveCurrentDocument(mockProposal);
         expect(result).toBeNull();
       });
-      it('debería retornar el documento evaluable más reciente según uploadDate', () => {
-        const oldDate = new Date('2024-01-01');
-        const newestDate = new Date('2024-06-15');
-        const middleDate = new Date('2024-03-10');
+      it('debería retornar la versión evaluable con el mayor número de versión', () => {
+        const mismaFecha = new Date('2024-06-15');
         const mockProposal = {
           documents: [
-            { id: 'doc-viejo', type: DocumentType.PROPUESTA, uploadDate: oldDate },
-            { id: 'doc-nuevo', type: DocumentType.CORRECCION, uploadDate: newestDate },
-            { id: 'doc-medio', type: DocumentType.CORRECCION, uploadDate: middleDate },
-            { id: 'doc-ignorado', type: DocumentType.AVANCE, uploadDate: new Date('2024-12-31') }
+            { id: 'doc-v1', type: DocumentType.PROPUESTA, version: 1, uploadDate: mismaFecha },
+            { id: 'doc-v3', type: DocumentType.PROPUESTA, version: 3, uploadDate: mismaFecha },
+            { id: 'doc-v2', type: DocumentType.PROPUESTA, version: 2, uploadDate: mismaFecha },
+            { id: 'doc-ignorado', type: DocumentType.AVANCE, version: 9, uploadDate: new Date('2024-12-31') }
           ]
         } as Partial<Proposal> as Proposal;
         const result = service.resolveCurrentDocument(mockProposal);
-        expect(result).toBeDefined();
-        expect(result?.id).toBe('doc-nuevo');
-        expect(result?.type).toBe(DocumentType.CORRECCION);
+        expect(result?.id).toBe('doc-v3');
       });
     });
     describe('formatUploadDate', () => {

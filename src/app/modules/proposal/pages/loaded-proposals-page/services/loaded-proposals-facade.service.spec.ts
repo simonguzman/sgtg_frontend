@@ -121,6 +121,17 @@ describe('LoadedProposalsFacadeService', () => {
       expect(mockMapper.mapDocumentToRow).toHaveBeenCalledWith(mockDocument, true, false);
       expect(result).toEqual([mockMappedRow]);
     });
+
+    it('debería listar las versiones de la más reciente a la más antigua y después la carta', () => {
+      const v1 = { ...mockDocument, id: 'v1', type: DocumentType.PROPUESTA, version: 1, status: stateList.NO_APROBADO };
+      const v2 = { ...mockDocument, id: 'v2', type: DocumentType.PROPUESTA, version: 2, status: stateList.EN_REVISION };
+      const carta = { ...mockDocument, id: 'carta', type: DocumentType.FORMATO, version: 1, status: undefined };
+      mockAllProposalsSignal.set([{ ...mockProposal, documents: [v1, carta, v2] }]);
+
+      service.buildDocumentsTableData('prop-1');
+
+      expect(mockMapper.mapDocumentToRow.mock.calls.map(([documento]) => documento.id)).toEqual(['v2', 'v1', 'carta']);
+    });
   });
 
   describe('Método: buildHeaderButtons', () => {

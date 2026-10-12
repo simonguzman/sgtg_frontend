@@ -3,7 +3,7 @@
 ############################
 # 1) Build (Angular)       #
 ############################
-FROM node:20-bookworm AS build
+FROM node:22-bookworm AS build
 
 WORKDIR /app
 

@@ -66,7 +66,7 @@ describe('Integración [Proposal]: Creación contra el backend y roles de contex
     } as Proposal).subscribe(propuesta => creada = propuesta);
 
     http.expectOne(`${API}/trabajos-grado/investigacion`)
-      .flush(crearTrabajoDePrueba({ propuesta: { ...crearTrabajoDePrueba().propuesta, estado: null, versiones: [] } }));
+      .flush(crearTrabajoDePrueba({ propuesta: { ...crearTrabajoDePrueba().propuesta, versiones: [] } }));
     http.expectOne(req => req.method === 'POST' && req.url === `${API}/trabajos-grado/15/propuesta`)
       .flush(crearTrabajoDePrueba());
     http.expectOne(`${API}/usuarios/me`).flush(usuarioApi(['DOCENTE', 'DIRECTOR']));

@@ -38,7 +38,10 @@ export interface ContextoMapeo {
 export function aPropuesta(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): Proposal {
   const id = String(trabajo.id);
   const versiones = trabajo.propuesta.versiones;
-  const documentos = versiones.map(version => aDocumento(trabajo.id, version, ctx, DocumentType.PROPUESTA));
+  const documentos: FileDocument[] = versiones.map(version => ({
+    ...aDocumento(trabajo.id, version, ctx, DocumentType.PROPUESTA),
+    status: estadoDeEntrega(version.estado)
+  }));
   if (trabajo.cartaAceptacion) {
     documentos.push(aDocumento(trabajo.id, trabajo.cartaAceptacion, ctx, DocumentType.FORMATO));
   }
@@ -70,7 +73,7 @@ export function aPropuesta(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): P
 
 /** @returns el anteproyecto, o null si la propuesta aún no está aprobada */
 export function aAnteproyecto(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): PreliminaryDraft | null {
-  if (trabajo.propuesta.estado !== 'APROBADO') return null;
+  if (estadoActualPropuesta(trabajo) !== 'APROBADO') return null;
   const id = String(trabajo.id);
   const anteproyecto = trabajo.anteproyecto;
   const documentos = [
@@ -137,9 +140,15 @@ export function estaCerrado(trabajo: TrabajoGradoResponse): boolean {
   return ETAPAS_FINALES.includes(trabajo.etapa);
 }
 
-/** Estado de la propuesta: la última decisión del Comité o, sin decisión, en revisión. */
+/** Estado del backend de la propuesta: el de su última versión, null si aún no se radica. */
+export function estadoActualPropuesta(trabajo: TrabajoGradoResponse): EstadoApi | null {
+  const versiones = trabajo.propuesta.versiones;
+  return versiones.length > 0 ? versiones[versiones.length - 1].estado : null;
+}
+
+/** Estado de la propuesta: el de su última versión (en revisión o el concepto del Comité). */
 export function estadoPropuesta(trabajo: TrabajoGradoResponse): stateList {
-  const estado = estadoDeEntrega(trabajo.propuesta.estado);
+  const estado = estadoDeEntrega(estadoActualPropuesta(trabajo));
   if (estado === stateList.EN_REVISION && trabajo.etapa === 'CANCELADO') return stateList.CANCELADO;
   return estado;
 }
@@ -242,7 +251,8 @@ export function aDocumento(trabajoId: number, documento: DocumentoApi, ctx: Cont
     name: nombreDeRuta(documento.ruta),
     url: ctx.urlArchivo(trabajoId, documento.ruta),
     uploadDate: aFecha(documento.fechaCarga) ?? documento.fechaCarga,
-    type: tipo
+    type: tipo,
+    version: documento.version
   };
 }
 

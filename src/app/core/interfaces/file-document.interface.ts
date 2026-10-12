@@ -8,4 +8,6 @@ export interface FileDocument {
   uploadDate: string | Date;
   type: DocumentType
   status?: stateList;
+  /** Número de versión del documento (iteración), si aplica */
+  version?: number;
 }

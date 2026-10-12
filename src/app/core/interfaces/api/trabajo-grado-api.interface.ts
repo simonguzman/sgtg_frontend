@@ -16,7 +16,7 @@ export type ProcesoApi =
   | 'SUSPENDIDO' | 'SUSTENTACION' | 'APLAZADO' | 'FINALIZADO' | 'NO_APROBADO' | 'CANCELADO';
 
 /** Estado de una entrega dentro de su etapa (`Estado`). */
-export type EstadoApi = 'RADICADO' | 'EN_REVISION' | 'CON_CORRECCIONES' | 'APROBADO' | 'RECHAZADO' | 'NO_APROBADO';
+export type EstadoApi = 'EN_REVISION' | 'CON_CORRECCIONES' | 'APROBADO' | 'RECHAZADO' | 'NO_APROBADO';
 
 export type ResultadoConceptoApi = 'APROBADO' | 'CON_CORRECCIONES' | 'RECHAZADO' | 'EVALUADO' | 'NO_APROBADO';
 export type CalificacionApi = 'APROBADO' | 'APROBADO_CON_OBSERVACIONES' | 'APLAZADO' | 'NO_APROBADO';
@@ -80,10 +80,15 @@ export interface DecisionApi {
   fecha: string;
 }
 
+/** Versión de la propuesta con el estado de su revisión (EN_REVISION, APROBADO o NO_APROBADO). */
+export interface VersionPropuestaApi extends DocumentoApi {
+  estado: EstadoApi;
+}
+
+/** Propuesta: su estado es el de la última versión radicada (sin versiones no hay estado). */
 export interface PropuestaApi {
-  estado: EstadoApi | null;
   fechaLimiteConcepto: string | null;
-  versiones: DocumentoApi[];
+  versiones: VersionPropuestaApi[];
   decisiones: DecisionApi[];
 }
 

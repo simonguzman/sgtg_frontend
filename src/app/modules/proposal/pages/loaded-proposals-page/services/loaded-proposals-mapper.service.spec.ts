@@ -32,6 +32,22 @@ describe('LoadedProposalsMapperService', () => {
     expect(service).toBeTruthy();
   });
   describe('Método: mapDocumentToRow', () => {
+    it('una versión del formato A muestra su número y el estado de su revisión', () => {
+      const result = service.mapDocumentToRow({ ...mockDocument, version: 2, status: stateList.NO_APROBADO }, true, false);
+      expect(result.version).toBe(2);
+      expect(result.status).toBe(stateList.NO_APROBADO);
+      expect(result.allowedActions).toEqual(['download']);
+    });
+    it('formatea la fecha de carga para mostrarla en la tabla', () => {
+      const result = service.mapDocumentToRow({ ...mockDocument, uploadDate: new Date(2026, 9, 11) }, false, false);
+      expect(result.uploadDate).toBe('11 - 10 - 2026');
+    });
+    it('la carta de aceptación no muestra versión ni estado de revisión', () => {
+      const carta: FileDocument = { ...mockDocument, type: DocumentType.FORMATO, version: 1, status: undefined };
+      const result = service.mapDocumentToRow(carta, true, false);
+      expect(result.version).toBeUndefined();
+      expect(result.status).toBeUndefined();
+    });
     it('debe mantener las propiedades originales del documento en la fila mapeada', () => {
       const result = service.mapDocumentToRow(mockDocument, false, false);
       expect(result.id).toBe(mockDocument.id);

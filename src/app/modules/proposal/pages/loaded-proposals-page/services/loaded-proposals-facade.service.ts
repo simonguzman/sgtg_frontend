@@ -6,6 +6,7 @@ import { FileDownloadService } from '../../../../../core/services/filedownload/f
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { LoadedProposalsMapperService } from './loaded-proposals-mapper.service';
+import { versionesDePropuesta } from '../../../services/proposal-rules.service';
 import { DocumentTableRow } from '../models/loaded-proposals-page.model';
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { Proposal } from '../../../interfaces/proposal.interface';
@@ -27,7 +28,10 @@ export class LoadedProposalsFacadeService {
     if (!proposal || !user) return [];
 
     const canEvaluate = this.authService.hasAnyRole([UserRoleType.COMITE, UserRoleType.ADMINISTRADOR]);
-    return proposal.documents.map(document =>
+    // Versiones del formato A de la más reciente a la más antigua; después, los demás documentos (carta)
+    const versiones = versionesDePropuesta(proposal).reverse();
+    const otros = proposal.documents.filter(document => !versiones.includes(document));
+    return [...versiones, ...otros].map(document =>
       this.mapper.mapDocumentToRow(document, canEvaluate, !!proposal.isArchived)
     );
   }
