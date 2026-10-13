@@ -2,13 +2,13 @@ import { signal, WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { FormattedDocument } from '../../../../../core/interfaces/formatted-document.interface';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
-import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
@@ -21,18 +21,13 @@ import { SaveEvaluationPayload } from '../../../components/review-presentations-
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { ReviewPresentationsFacultyCouncilPageFacadeService } from './review-presentations-faculty-council-page-facade.service';
 
-jest.mock('../../../../../core/utils/file-reader.utils', () => ({
-  readFileAsDataUrl: jest.fn().mockResolvedValue('data:application/pdf;base64,mockFileContent')
-}));
-
-const mockReadFileAsDataUrl = readFileAsDataUrl as jest.MockedFunction<typeof readFileAsDataUrl>;
 
 describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
   let facade: ReviewPresentationsFacultyCouncilPageFacadeService;
 
   let mockPreliminaryDraftService: {
     getPreliminaryDraftById: jest.Mock;
-    uploadCouncilResolution: jest.Mock;
+    registerCouncilDecision: jest.Mock;
   };
   let mockAuthService: {
     currentUser: WritableSignal<User | null>;
@@ -119,7 +114,7 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
 
     mockPreliminaryDraftService = {
       getPreliminaryDraftById: jest.fn().mockReturnValue(of(mockDraft)),
-      uploadCouncilResolution: jest.fn().mockReturnValue(of({}))
+      registerCouncilDecision: jest.fn().mockReturnValue(of({}))
     };
 
     mockAuthService = {
@@ -219,26 +214,14 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
       );
     });
 
-    it('debería mostrar notificación de error si falla la lectura del archivo', async () => {
-      mockReadFileAsDataUrl.mockRejectedValueOnce(new Error('Read failed'));
+    it('registra la decisión del Consejo con la resolución y redirige', async () => {
       facade.preliminaryDraftState.set(mockDraft);
       facade.pendingData.set(mockPayload);
 
       await facade.processCouncilDecision();
 
-      expect(mockNotification.show).toHaveBeenCalledWith(
-        expect.objectContaining({ type: NotificationType.ERROR, title: 'Error al leer el archivo' })
-      );
-    });
-
-    it('debería procesar decisión exitosamente y redirigir', async () => {
-      facade.preliminaryDraftState.set(mockDraft);
-      facade.pendingData.set(mockPayload);
-
-      await facade.processCouncilDecision();
-
-      expect(mockReadFileAsDataUrl).toHaveBeenCalledWith(mockPayload.file);
-      expect(mockPreliminaryDraftService.uploadCouncilResolution).toHaveBeenCalled();
+      expect(mockPreliminaryDraftService.registerCouncilDecision)
+        .toHaveBeenCalledWith(mockDraft.preliminaryDraftId, stateList.APROBADO, 'Excelente', mockPayload.file);
       expect(mockNotification.show).toHaveBeenCalledWith(
         expect.objectContaining({ type: NotificationType.CONFIRMATION })
       );
@@ -246,16 +229,27 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(['../../'], { relativeTo: mockRouteValue });
     });
 
-    it('debería mostrar error si falla la subida de la resolución HTTP', async () => {
-      mockPreliminaryDraftService.uploadCouncilResolution.mockReturnValue(throwError(() => new Error('Error')));
+    it('cualquier resultado distinto de APROBADO se registra como NO_APROBADO', async () => {
+      facade.preliminaryDraftState.set(mockDraft);
+      facade.pendingData.set({ ...mockPayload, formValues: { ...mockPayload.formValues, result: stateList.APROBADO_CON_OBSERVACIONES } });
+
+      await facade.processCouncilDecision();
+
+      expect(mockPreliminaryDraftService.registerCouncilDecision)
+        .toHaveBeenCalledWith(mockDraft.preliminaryDraftId, stateList.NO_APROBADO, 'Excelente', mockPayload.file);
+    });
+
+    it('muestra el mensaje del backend si falla el registro', async () => {
+      mockPreliminaryDraftService.registerCouncilDecision.mockReturnValue(throwError(() =>
+        new HttpErrorResponse({ status: 400, error: { message: 'El documento de la resolución es obligatorio.' } })));
       facade.preliminaryDraftState.set(mockDraft);
       facade.pendingData.set(mockPayload);
 
       await facade.processCouncilDecision();
 
-      expect(mockNotification.show).toHaveBeenCalledWith(
-        expect.objectContaining({ type: NotificationType.ERROR, title: 'Error al guardar' })
-      );
+      expect(mockNotification.show).toHaveBeenCalledWith(expect.objectContaining({
+        type: NotificationType.ERROR, title: 'Error al guardar', message: 'El documento de la resolución es obligatorio.'
+      }));
     });
   });
 

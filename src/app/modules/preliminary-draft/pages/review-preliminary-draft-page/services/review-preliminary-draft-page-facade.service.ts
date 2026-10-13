@@ -6,12 +6,10 @@ import { PreliminaryDraftService } from '../../../services/preliminary-draft.ser
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
-import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
-import { FormattedDocument } from '../../../../../core/interfaces/formatted-document.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
-import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { PendingReviewData, ReviewEvaluationFormValues } from '../../../interfaces/review-preliminary-draft-payload.interface';
 
 export type { ReviewEvaluationFormValues, PendingReviewData };
@@ -34,7 +32,8 @@ export class ReviewPreliminaryDraftPageFacadeService {
     if (!preliminaryDraft?.documents) return null;
     return [...preliminaryDraft.documents]
       .filter(document => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION)
-      .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime())[0];
+      // La versión que se evalúa es la más reciente (por número de versión)
+      .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0] ?? null;
   });
 
   init(): void {
@@ -76,38 +75,15 @@ export class ReviewPreliminaryDraftPageFacadeService {
     const data = this.pendingReviewData();
     const preliminaryDraft = this.preliminaryDraftState();
     const user = this.authService.currentUser();
-    const revision = this.activeRevision();
-
-    if (!data || !preliminaryDraft?.preliminaryDraftId || !user || !revision) {
+    if (!data || !preliminaryDraft?.preliminaryDraftId || !user) {
       this.showValidationErrorNotification();
       return;
     }
 
-    let signedDocuments: FormattedDocument[];
-    try {
-      signedDocuments = await this.buildSignedDocuments(data);
-    } catch (err) {
-      console.error('Error leyendo los archivos de la evaluación:', err);
-      this.showFileReadErrorNotification();
-      return;
-    }
-
     const isApproved = data.formValues.result === stateList.APROBADO;
-
-    const evaluation: Evaluation = {
-      id: crypto.randomUUID(),
-      proposalId: preliminaryDraft.proposalId,
-      documentId: revision.id,
-      evaluatorId: user.id,
-      evaluatorName: `${user.firstName} ${user.lastName}`,
-      evaluatorRole: 'Evaluador',
-      veredict: data.formValues.result,
-      observations: data.formValues.comments,
-      signedDocuments,
-      date: new Date()
-    };
-
-    this.preliminaryDraftService.addEvaluation(preliminaryDraft.preliminaryDraftId, evaluation)
+    // Formato B firmado (obligatorio) y, si lo adjuntó, el documento con sus anotaciones
+    this.preliminaryDraftService.registerEvaluatorConcept(preliminaryDraft.preliminaryDraftId,
+      isApproved ? 'APROBADO' : 'CON_CORRECCIONES', data.formValues.comments, data.file, data.annotatedFile ?? null)
       .pipe(first())
       .subscribe({
         next: () => {
@@ -115,18 +91,8 @@ export class ReviewPreliminaryDraftPageFacadeService {
           this.isConfirmModalOpen.set(false);
           this.router.navigate(['../../'], { relativeTo: this.route });
         },
-        error: () => this.showSaveErrorNotification()
+        error: (err) => this.showSaveErrorNotification(err)
       });
-  }
-
-  private async buildSignedDocuments(data: PendingReviewData): Promise<FormattedDocument[]> {
-    const documents: FormattedDocument[] = [
-      { name: data.file.name, url: await readFileAsDataUrl(data.file) }
-    ];
-    if (data.annotatedFile) {
-      documents.push({ name: data.annotatedFile.name, url: await readFileAsDataUrl(data.annotatedFile) });
-    }
-    return documents;
   }
 
   async downloadCurrentDocument(): Promise<void> {
@@ -171,13 +137,14 @@ export class ReviewPreliminaryDraftPageFacadeService {
   private showValidationErrorNotification(): void {
     this.notification.show({ title: 'Datos incompletos', message: 'No se pudo procesar la evaluación debido a que falta información del usuario o del documento.', type: NotificationType.ERROR });
   }
-  private showSaveErrorNotification(): void {
-    this.notification.show({ title: 'Error al guardar', message: 'Ocurrió un error técnico al intentar registrar su evaluación. Intente de nuevo.', type: NotificationType.ERROR });
+  private showSaveErrorNotification(err?: unknown): void {
+    this.notification.show({
+      title: 'Error al guardar',
+      message: apiErrorMessage(err, 'Ocurrió un error técnico al intentar registrar su evaluación. Intente de nuevo.'),
+      type: NotificationType.ERROR
+    });
   }
   private showDownloadErrorNotification(): void {
     this.notification.show({ title: 'Error de descarga', message: 'No se encontró un archivo válido para descargar en la revisión actual.', type: NotificationType.INFO });
-  }
-  private showFileReadErrorNotification(): void {
-    this.notification.show({ title: 'Error al leer el archivo', message: 'No se pudo procesar alguno de los archivos adjuntos. Intente nuevamente.', type: NotificationType.ERROR });
   }
 }

@@ -54,8 +54,8 @@
               <span class="text-size-body font-bold font-sans text-[#777680]">Aprobado</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" formControlName="result" value="No aprobado" [attr.disabled]="facade.isReadOnly() ? true : null">
-              <span class="text-size-body font-bold font-sans text-[#777680]">No aprobado</span>
+              <input type="radio" formControlName="result" value="Requiere correcciones" [attr.disabled]="facade.isReadOnly() ? true : null">
+              <span class="text-size-body font-bold font-sans text-[#777680]">Requiere correcciones</span>
             </label>
           </div>
           @if (facade.isFieldInvalid('result')) {

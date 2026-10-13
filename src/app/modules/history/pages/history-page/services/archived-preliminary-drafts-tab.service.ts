@@ -4,7 +4,7 @@ import { UserService } from '../../../../users/services/user.service';
 import { HistoryTabConfiguration } from '../../../interfaces/history-tab-config.interface';
 import { HistoryEvaluationContext } from '../../../interfaces/history-evaluation-context.interface';
 import { PreliminaryDraft } from '../../../../preliminary-draft/interfaces/preliminary-draft.interface';
-import { DocumentType } from '../../../../../core/enums/document-type.enum';
+import { versionVigente } from '../../../../preliminary-draft/services/preliminary-draft-rules';
 import { hasArchiveAccess } from '../../../helpers/archived-record-access.helper';
 import { getEvaluatorsDeadlineLabel } from '../../../helpers/deadline-status-label.helper';
 import { ARCHIVED_ALLOWED_ACTIONS, buildArchivedTableColumns } from '../models/archived-tab-columns.model';
@@ -26,9 +26,8 @@ export class ArchivedPreliminaryDraftsTabService implements HistoryTabConfigurat
 
     return allowedPreliminaryDrafts.map((preliminaryDraft: PreliminaryDraft) => {
       const proposal = preliminaryDraft.proposalData;
-      const latestAnteproyectoDocId = preliminaryDraft.documents?.find(
-        document => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION
-      )?.id;
+      // Versión vigente: la de mayor número de versión (no la primera de la lista)
+      const latestAnteproyectoDocId = versionVigente(preliminaryDraft)?.id;
 
       return {
         id: preliminaryDraft.preliminaryDraftId,

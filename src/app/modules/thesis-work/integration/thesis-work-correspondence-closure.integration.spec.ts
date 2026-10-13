@@ -117,7 +117,6 @@ describe('Integración [Trabajo de Grado]: Correspondencia final — cierre comp
     const injector = TestBed.inject(Injector);
 
     await waitForHydration(thesisStorage.isHydrated, injector);
-    await waitForHydration(preliminaryDraftStorage.isHydrated, injector);
 
     const director = createMockUser({ id: directorId, firstName: 'Director' });
     const evaluator = createMockUser({ id: evaluatorId, firstName: 'Evaluador', roles: [UserRoleType.DOCENTE, UserRoleType.EVALUADOR] });
@@ -199,7 +198,7 @@ describe('Integración [Trabajo de Grado]: Correspondencia final — cierre comp
 
     expect(updatedThesis?.isArchived).toBe(true);
 
-    expect(preliminaryDraftStorage.allPreliminaryDrafts().find(d => d.preliminaryDraftId === draftId)?.isArchived).toBe(true);
+    // El cierre del anteproyecto lo determina el backend (etapa del trabajo); se integra con este módulo
     // El cierre de la propuesta lo determina el backend (etapa del trabajo); se integra con este módulo
 
     const users = userStorage.getUsersSnapshot();

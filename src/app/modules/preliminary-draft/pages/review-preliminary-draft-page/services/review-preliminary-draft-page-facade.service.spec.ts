@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ReviewPreliminaryDraftPageFacadeService, PendingReviewData } from './review-preliminary-draft-page-facade.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
@@ -13,20 +14,12 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 
-jest.mock('../../../../../core/utils/file-reader.utils', () => ({
-  readFileAsDataUrl: jest.fn().mockResolvedValue('data:application/pdf;base64,mock-data-url')
-}));
-
-import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
-
-const mockReadFileAsDataUrl = readFileAsDataUrl as jest.MockedFunction<typeof readFileAsDataUrl>;
-
 describe('ReviewPreliminaryDraftPageFacadeService', () => {
   let service: ReviewPreliminaryDraftPageFacadeService;
 
   let preliminaryDraftServiceMock: {
     getPreliminaryDraftById: jest.Mock;
-    addEvaluation: jest.Mock;
+    registerEvaluatorConcept: jest.Mock;
   };
   let authServiceMock: { currentUser: jest.Mock };
   let notificationServiceMock: { show: jest.Mock };
@@ -71,7 +64,7 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
 
     preliminaryDraftServiceMock = {
       getPreliminaryDraftById: jest.fn(),
-      addEvaluation: jest.fn()
+      registerEvaluatorConcept: jest.fn()
     };
 
     authServiceMock = {
@@ -112,7 +105,6 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
 
     service = TestBed.inject(ReviewPreliminaryDraftPageFacadeService);
 
-    mockReadFileAsDataUrl.mockResolvedValue('data:application/pdf;base64,mock-data-url');
   });
 
   afterEach(() => {
@@ -206,45 +198,21 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
         type: NotificationType.ERROR,
         title: 'Datos incompletos'
       }));
-      expect(preliminaryDraftServiceMock.addEvaluation).not.toHaveBeenCalled();
+      expect(preliminaryDraftServiceMock.registerEvaluatorConcept).not.toHaveBeenCalled();
     });
 
-    it('debería notificar error si falla la lectura del archivo', async () => {
-      service.preliminaryDraftState.set(createMockDraft());
-      service.pendingReviewData.set({
-        formValues: { result: stateList.APROBADO, comments: 'Todo bien' },
-        file: mockFile
-      });
-
-      mockReadFileAsDataUrl.mockRejectedValueOnce(new Error('File access error'));
-
-      await service.processEvaluation();
-
-      expect(console.error).toHaveBeenCalled();
-      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
-        type: NotificationType.ERROR,
-        title: 'Error al leer el archivo'
-      }));
-    });
-
-    it('debería procesar la evaluación correctamente (Aprobado) y navegar', async () => {
+    it('debería registrar el concepto APROBADO con el formato B y navegar', async () => {
       service.preliminaryDraftState.set(createMockDraft());
       service.pendingReviewData.set({
         formValues: { result: stateList.APROBADO, comments: 'Aprobado sin problemas' },
         file: mockFile
       });
-      preliminaryDraftServiceMock.addEvaluation.mockReturnValue(of(undefined));
+      preliminaryDraftServiceMock.registerEvaluatorConcept.mockReturnValue(of(createMockDraft()));
 
       await service.processEvaluation();
 
-      expect(preliminaryDraftServiceMock.addEvaluation).toHaveBeenCalledWith(
-        'draft-1',
-        expect.objectContaining({
-          veredict: stateList.APROBADO,
-          observations: 'Aprobado sin problemas',
-          signedDocuments: [{ name: 'evaluacion.pdf', url: 'data:application/pdf;base64,mock-data-url' }]
-        })
-      );
+      expect(preliminaryDraftServiceMock.registerEvaluatorConcept)
+        .toHaveBeenCalledWith('draft-1', 'APROBADO', 'Aprobado sin problemas', mockFile, null);
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
         type: NotificationType.CONFIRMATION,
         title: 'Evaluación Registrada',
@@ -254,46 +222,40 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
       expect(routerMock.navigate).toHaveBeenCalledWith(['../../'], expect.any(Object));
     });
 
-    it('debería procesar la evaluación con archivo anotado y veredicto negativo', async () => {
+    it('si pide correcciones envía CON_CORRECCIONES con el formato B y las anotaciones', async () => {
       service.preliminaryDraftState.set(createMockDraft());
       service.pendingReviewData.set({
-        formValues: { result: stateList.NO_APROBADO, comments: 'Requiere ajustes' },
+        formValues: { result: stateList.APROBADO_CON_OBSERVACIONES, comments: 'Requiere ajustes' },
         file: mockFile,
         annotatedFile: mockAnnotatedFile
       });
-      preliminaryDraftServiceMock.addEvaluation.mockReturnValue(of(undefined));
+      preliminaryDraftServiceMock.registerEvaluatorConcept.mockReturnValue(of(createMockDraft()));
 
       await service.processEvaluation();
 
-      expect(preliminaryDraftServiceMock.addEvaluation).toHaveBeenCalledWith(
-        'draft-1',
-        expect.objectContaining({
-          veredict: stateList.NO_APROBADO,
-          signedDocuments: [
-            { name: 'evaluacion.pdf', url: 'data:application/pdf;base64,mock-data-url' },
-            { name: 'anotaciones.pdf', url: 'data:application/pdf;base64,mock-data-url' }
-          ]
-        })
-      );
+      expect(preliminaryDraftServiceMock.registerEvaluatorConcept)
+        .toHaveBeenCalledWith('draft-1', 'CON_CORRECCIONES', 'Requiere ajustes', mockFile, mockAnnotatedFile);
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
         type: NotificationType.CONFIRMATION,
         message: 'Se ha registrado el veredicto negativo y se solicitarán correcciones.'
       }));
     });
 
-    it('debería mostrar notificación de error si falla la subida a la API', async () => {
+    it('debería mostrar el mensaje del backend si falla el registro', async () => {
       service.preliminaryDraftState.set(createMockDraft());
       service.pendingReviewData.set({
         formValues: { result: stateList.APROBADO, comments: 'Ok' },
         file: mockFile
       });
-      preliminaryDraftServiceMock.addEvaluation.mockReturnValue(throwError(() => new Error('API Error')));
+      preliminaryDraftServiceMock.registerEvaluatorConcept.mockReturnValue(throwError(() =>
+        new HttpErrorResponse({ status: 400, error: { message: 'El evaluador ya emitió concepto.' } })));
 
       await service.processEvaluation();
 
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
         type: NotificationType.ERROR,
-        title: 'Error al guardar'
+        title: 'Error al guardar',
+        message: 'El evaluador ya emitió concepto.'
       }));
     });
   });

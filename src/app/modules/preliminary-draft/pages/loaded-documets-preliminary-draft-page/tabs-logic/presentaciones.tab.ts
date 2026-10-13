@@ -2,16 +2,16 @@ import { FileDocument } from '../../../../../core/interfaces/file-document.inter
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { PreliminaryDraftTabConfiguration, PreliminaryDraftEvaluationContext } from './tab-config.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
-import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
-import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
+import { versionVigente } from '../../../services/preliminary-draft-rules';
 
 export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
   tabValue: 'PRESENTACIONES',
 
   columns: [
-    { field: 'name', header: 'Nombre de archivo', type: 'text', width: '35%' },
+    { field: 'name', header: 'Nombre de archivo', type: 'text', width: '30%' },
+    { field: 'version', header: 'Versión remitida', type: 'text', width: '10%' },
     { field: 'uploadDate', header: 'Fecha de carga', type: 'text', width: '20%' },
-    { field: 'status', header: 'Estado', type: 'state', width: '20%' },
+    { field: 'status', header: 'Estado', type: 'state', width: '15%' },
     {
       field: 'acciones', header: 'Acciones', type: 'actions', width: '25%',
       actions: [
@@ -23,67 +23,57 @@ export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
 
   enrichEvaluationContext: (baseContext: PreliminaryDraftEvaluationContext) => baseContext,
 
-  getTableData: (documents: FileDocument[], context: PreliminaryDraftEvaluationContext, preliminaryDraftService: PreliminaryDraftService) => {
+  /**
+   * Formatos C con los que el Jefe remitió cada versión aprobada, del más
+   * reciente al más antiguo, con el estado de la decisión del Consejo. Solo el
+   * Consejo evalúa la remisión vigente mientras está en revisión.
+   */
+  getTableData: (documents: FileDocument[], context: PreliminaryDraftEvaluationContext) => {
     const { preliminaryDraft, latestPresentacionId } = context;
-    const filteredDocs = documents.filter(document => document.type === DocumentType.FORMATO_C);
-
-    return filteredDocs.map(document => {
-      const isLatestDoc = document.id === latestPresentacionId;
-
-      let status = document.status || stateList.EN_REVISION;
-
-      const documentEvaluations = (preliminaryDraft.evaluations || []).filter(evaluation => evaluation.documentId === document.id);
-
-      if (documentEvaluations.length > 0) {
-        status = preliminaryDraftService.calculateDocumentStatus(document.id, preliminaryDraft.evaluations || [], 1);
-      }
-
-      if (isLatestDoc && preliminaryDraft.state === stateList.APROBADO && status !== stateList.NO_APROBADO) {
-        status = stateList.APROBADO;
-      }
-
+    return remisiones(documents).map(document => {
       const allowedActions = ['download'];
-      if (isLatestDoc && (context.isConsejoMember || context.isAdmin) && status === stateList.EN_REVISION && !preliminaryDraft.isArchived) {
+      const status = document.status ?? stateList.EN_REVISION;
+      if (document.id === latestPresentacionId && context.isConsejoMember && status === stateList.EN_REVISION
+        && !preliminaryDraft.isArchived) {
         allowedActions.push('evaluate-presentation');
       }
-
       return { ...document, status, allowedActions };
     });
   },
 
-  getHeaderButtons: (context: PreliminaryDraftEvaluationContext, preliminaryDraftService: PreliminaryDraftService) => {
-    if (context.preliminaryDraft.isArchived) return [];
-    if (!context.isJefe && !context.isAdmin) return [];
+  /**
+   * El Jefe de departamento remite al Consejo la versión vigente del
+   * anteproyecto cuando ambos evaluadores la aprobaron y aún no se ha remitido.
+   */
+  getHeaderButtons: (context: PreliminaryDraftEvaluationContext) => {
+    if (context.preliminaryDraft.isArchived || !context.isJefe) return [];
 
-    const latestAnteproyecto = context.preliminaryDraft.documents?.find((d: FileDocument) => d.type !== DocumentType.FORMATO_C);
-    const anteproyectoStatus = latestAnteproyecto
-      ? preliminaryDraftService.calculateDocumentStatus(latestAnteproyecto.id, context.preliminaryDraft.evaluations || [], context.totalEvaluatorsCount)
-      : null;
-
-    const latestPresentacion = context.preliminaryDraft.documents?.find((d: FileDocument) => d.id === context.latestPresentacionId);
-    const presentacionTieneEvaluacion = latestPresentacion
-      ? (context.preliminaryDraft.evaluations || []).some((ev: Evaluation) => ev.documentId === latestPresentacion.id)
-      : false;
-
-    const isPresentacionEnRevision = latestPresentacion && !presentacionTieneEvaluacion;
-
-    const isPreliminaryDraftFinalized = [stateList.APROBADO, stateList.NO_APROBADO].includes(context.preliminaryDraft.state as stateList);
-
-    const isUploadDisabled = anteproyectoStatus !== stateList.APROBADO || isPresentacionEnRevision || isPreliminaryDraftFinalized;
+    const vigente = versionVigente(context.preliminaryDraft);
+    const yaRemitida = remisiones(context.preliminaryDraft.documents ?? [])
+      .some(remision => remision.version === vigente?.version);
+    const puedeRemitir = vigente?.status === stateList.APROBADO && !yaRemitida
+      && context.preliminaryDraft.state === stateList.EVALUADO;
 
     return [{
-      label: 'Cargar formato de presentación',
+      label: 'Remitir al Consejo (formato C)',
       variant: 'primary',
-      disabled: isUploadDisabled,
+      disabled: !puedeRemitir,
       action: 'upload_document'
     }];
   },
 
   modalConfig: {
-    uploadDescription: 'Seleccione el archivo PDF de la presentación al consejo',
+    uploadDescription: 'Seleccione el formato C (remisión del anteproyecto al Consejo de Facultad)',
     uploadedByText: 'Jefe de Departamento',
-    confirmDescription: '¿Está seguro de cargar esta presentación al consejo?',
+    confirmDescription: '¿Está seguro de remitir el anteproyecto al Consejo de Facultad con este formato C?',
     uploadDocumentType: DocumentType.FORMATO_C,
     emptyMessage: 'No hay presentaciones registradas para este anteproyecto'
   }
 };
+
+/** Formatos C de remisión al Consejo, del más reciente al más antiguo (por versión remitida). */
+function remisiones(documents: FileDocument[]): FileDocument[] {
+  return documents
+    .filter(document => document.type === DocumentType.FORMATO_C)
+    .sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
+}

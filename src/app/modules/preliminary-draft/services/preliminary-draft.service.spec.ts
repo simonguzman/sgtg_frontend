@@ -9,7 +9,6 @@ import { PreliminaryDraftDocumentService } from './preliminary-draft-document.se
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
-import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { stateList } from '../../../core/enums/state.enum';
 
 function createMockDraft(overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft {
@@ -39,15 +38,6 @@ function createMockEvaluation(overrides: Partial<Evaluation> = {}): Evaluation {
   } as Evaluation;
 }
 
-function createMockDocument(overrides: Partial<FileDocument> = {}): FileDocument {
-  return {
-    id: 'doc-default-id',
-    name: 'document_mock.pdf',
-    type: 'Documento',
-    ...overrides
-  } as FileDocument;
-}
-
 describe('PreliminaryDraftService (Facade)', () => {
   let service: PreliminaryDraftService;
 
@@ -65,13 +55,14 @@ describe('PreliminaryDraftService (Facade)', () => {
 
   let mockAssignmentService: {
     validateReviewersRules: jest.Mock;
-    assignReviewersMock: jest.Mock;
+    assignReviewers: jest.Mock;
   };
 
   let mockDocumentService: {
-    addEvaluationMock: jest.Mock;
-    uploadDocumentMock: jest.Mock;
-    uploadCouncilResolutionMock: jest.Mock;
+    registerEvaluatorConcept: jest.Mock;
+    uploadCorrection: jest.Mock;
+    uploadCouncilPresentation: jest.Mock;
+    registerCouncilDecision: jest.Mock;
     calculateDocumentStatus: jest.Mock;
   };
 
@@ -93,13 +84,14 @@ describe('PreliminaryDraftService (Facade)', () => {
 
     mockAssignmentService = {
       validateReviewersRules: jest.fn(),
-      assignReviewersMock: jest.fn()
+      assignReviewers: jest.fn()
     };
 
     mockDocumentService = {
-      addEvaluationMock: jest.fn(),
-      uploadDocumentMock: jest.fn(),
-      uploadCouncilResolutionMock: jest.fn(),
+      registerEvaluatorConcept: jest.fn(),
+      uploadCorrection: jest.fn(),
+      uploadCouncilPresentation: jest.fn(),
+      registerCouncilDecision: jest.fn(),
       calculateDocumentStatus: jest.fn()
     };
 
@@ -187,53 +179,45 @@ describe('PreliminaryDraftService (Facade)', () => {
       expect(mockAssignmentService.validateReviewersRules).toHaveBeenCalledWith(mockProposal, 'eval-1', 'eval-1');
     });
 
-    it('debería delegar assignReviewers al método assignReviewersMock', () => {
-      mockAssignmentService.assignReviewersMock.mockReturnValue(of(undefined));
+    it('debería delegar assignReviewers', () => {
+      mockAssignmentService.assignReviewers.mockReturnValue(of(undefined));
 
       service.assignReviewers('draft-1', ['eval-1', 'eval-2']).subscribe();
 
-      expect(mockAssignmentService.assignReviewersMock).toHaveBeenCalledWith('draft-1', ['eval-1', 'eval-2']);
+      expect(mockAssignmentService.assignReviewers).toHaveBeenCalledWith('draft-1', ['eval-1', 'eval-2']);
     });
   });
 
   describe('Delegación de Documentos y Evaluaciones', () => {
-    it('debería delegar addEvaluation', () => {
-      const mockEval = createMockEvaluation({ id: 'eval-1' });
-      mockDocumentService.addEvaluationMock.mockReturnValue(of(undefined));
+    const pdf = new File(['%PDF'], 'documento.pdf');
+    const draft = createMockDraft({ preliminaryDraftId: 'draft-1' });
 
-      service.addEvaluation('draft-1', mockEval).subscribe();
-
-      expect(mockDocumentService.addEvaluationMock).toHaveBeenCalledWith('draft-1', mockEval);
+    it('debería delegar registerEvaluatorConcept', () => {
+      mockDocumentService.registerEvaluatorConcept.mockReturnValue(of(draft));
+      const notas = new File(['%PDF'], 'notas.pdf');
+      service.registerEvaluatorConcept('draft-1', 'CON_CORRECCIONES', 'Ajustar', pdf, notas).subscribe();
+      expect(mockDocumentService.registerEvaluatorConcept)
+        .toHaveBeenCalledWith('draft-1', 'CON_CORRECCIONES', 'Ajustar', pdf, notas);
     });
 
-    it('debería delegar uploadDocument', () => {
-      const mockDoc = createMockDocument({ id: 'doc-1' });
-      mockDocumentService.uploadDocumentMock.mockReturnValue(of(undefined));
-
-      service.uploadDocument('draft-1', mockDoc).subscribe();
-
-      expect(mockDocumentService.uploadDocumentMock).toHaveBeenCalledWith('draft-1', mockDoc);
+    it('debería delegar uploadCorrection', () => {
+      mockDocumentService.uploadCorrection.mockReturnValue(of(draft));
+      service.uploadCorrection('draft-1', pdf).subscribe();
+      expect(mockDocumentService.uploadCorrection).toHaveBeenCalledWith('draft-1', pdf);
     });
 
-    it('debería delegar uploadCouncilResolution', () => {
-      const mockDoc = createMockDocument({ id: 'doc-resolucion' });
-      const mockEval = createMockEvaluation({ veredict: stateList.APROBADO });
-      const mockDraft = createMockDraft({ preliminaryDraftId: 'draft-1' });
-      const maxDate = new Date('2026-10-10');
+    it('debería delegar uploadCouncilPresentation', () => {
+      mockDocumentService.uploadCouncilPresentation.mockReturnValue(of(draft));
+      service.uploadCouncilPresentation('draft-1', pdf).subscribe();
+      expect(mockDocumentService.uploadCouncilPresentation).toHaveBeenCalledWith('draft-1', pdf);
+    });
 
-      mockDocumentService.uploadCouncilResolutionMock.mockReturnValue(of(mockDraft));
-
-      service.uploadCouncilResolution('draft-1', mockDoc, stateList.APROBADO, mockEval, maxDate).subscribe(res => {
-        expect(res).toEqual(mockDraft);
+    it('debería delegar registerCouncilDecision', () => {
+      mockDocumentService.registerCouncilDecision.mockReturnValue(of(draft));
+      service.registerCouncilDecision('draft-1', stateList.APROBADO, 'Cumple', pdf).subscribe(res => {
+        expect(res).toEqual(draft);
       });
-
-      expect(mockDocumentService.uploadCouncilResolutionMock).toHaveBeenCalledWith(
-        'draft-1',
-        mockDoc,
-        stateList.APROBADO,
-        mockEval,
-        maxDate
-      );
+      expect(mockDocumentService.registerCouncilDecision).toHaveBeenCalledWith('draft-1', stateList.APROBADO, 'Cumple', pdf);
     });
 
     it('debería delegar calculateDocumentStatus', () => {

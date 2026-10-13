@@ -1,251 +1,150 @@
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { signal, WritableSignal } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PreliminaryDraftDocumentService } from './preliminary-draft-document.service';
-import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
 import { UserService } from '../../users/services/user.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
-import { FileDocument } from '../../../core/interfaces/file-document.interface';
-import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
-import { DocumentType } from '../../../core/enums/document-type.enum';
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
-import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
-import { User } from '../../users/interfaces/user.interface';
-import { Proposal } from '../../proposal/interfaces/proposal.interface';
+import { crearTrabajoConAnteproyectoRadicado, crearTrabajoEnCurso, crearTrabajoEnEvaluacion } from '../../../testing/trabajo-grado-de-prueba';
+
+const API = '/api/v1/sgtg/trabajos-grado';
+
+const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/pdf' });
+
+/** Lee el JSON de la parte `datos` de un multipart. */
+const leerDatos = (body: FormData): Promise<unknown> => new Promise((resolve, reject) => {
+  const lector = new FileReader();
+  lector.onload = () => resolve(JSON.parse(lector.result as string));
+  lector.onerror = reject;
+  lector.readAsText(body.get('datos') as Blob);
+});
 
 describe('PreliminaryDraftDocumentService', () => {
   let service: PreliminaryDraftDocumentService;
-
-  let mockStorageService: { updateDraft: jest.Mock };
-  let mockUserService: { users: WritableSignal<User[]> };
-  let mockEventBusService: { emit: jest.Mock };
-
-  const createMockUser = (overrides: Partial<User> = {}): User => ({
-    id: 'default-user', roles: [], ...overrides
-  } as User);
-
-  const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
-    id: 'default-doc', name: 'document.pdf', type: DocumentType.AVANCE, ...overrides
-  } as FileDocument);
-
-  const createMockEvaluation = (overrides: Partial<Evaluation> = {}): Evaluation => ({
-    documentId: 'default-doc', veredict: stateList.EN_REVISION, ...overrides
-  } as Evaluation);
-
-  const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
-    id: 'prop-1', title: 'Propuesta Base', authors: [], ...overrides
-  } as Proposal);
-
-  const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
-    preliminaryDraftId: 'draft-1',
-    state: stateList.EN_REVISION,
-    evaluations: [],
-    documents: [],
-    createdData: new Date(),
-    ...overrides
-  } as PreliminaryDraft);
+  let http: HttpTestingController;
+  let eventBus: { emit: jest.Mock };
 
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    mockStorageService = {
-      updateDraft: jest.fn()
-    };
-
-    mockUserService = {
-      users: signal([
-        createMockUser({ id: 'jefe-1', roles: [UserRoleType.JEFE_DEP] }),
-        createMockUser({ id: 'consejo-1', roles: [UserRoleType.CONSEJO] })
-      ])
-    };
-
-    mockEventBusService = {
-      emit: jest.fn()
-    };
-
+    localStorage.clear();
+    eventBus = { emit: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
-        PreliminaryDraftDocumentService,
-        { provide: PreliminaryDraftStorageService, useValue: mockStorageService },
-        { provide: UserService, useValue: mockUserService },
-        { provide: EventBusService, useValue: mockEventBusService }
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: UserService, useValue: { users: signal([]) } },
+        { provide: EventBusService, useValue: eventBus }
       ]
     });
-
     service = TestBed.inject(PreliminaryDraftDocumentService);
+    http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+  afterEach(() => http.verify());
+
+  describe('registerEvaluatorConcept', () => {
+    it('envía el concepto con el formato B y actualiza el trabajo', async () => {
+      let resultado: PreliminaryDraft | undefined;
+      service.registerEvaluatorConcept('15', 'CON_CORRECCIONES', 'Ajustar el cronograma', pdf('formato-b.pdf'),
+        pdf('notas.pdf'))
+        .subscribe(anteproyecto => resultado = anteproyecto);
+
+      const req = http.expectOne(`${API}/15/anteproyecto/conceptos`);
+      const body = req.request.body as FormData;
+      expect((body.get('archivo') as File).name).toBe('formato-b.pdf');
+      expect((body.get('anotaciones') as File).name).toBe('notas.pdf');
+      expect(await leerDatos(body)).toEqual({ resultado: 'CON_CORRECCIONES', observaciones: 'Ajustar el cronograma' });
+      req.flush(crearTrabajoEnEvaluacion());
+
+      expect(resultado?.preliminaryDraftId).toBe('15');
+      expect(TestBed.inject(TrabajoGradoStoreService).porId().get('15')?.etapa).toBe('EVALUACION');
+      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
+        type: AppEventType.PRELIMINARY_DRAFT_EVALUATION_REGISTERED,
+        payload: expect.objectContaining({ veredict: stateList.APROBADO_CON_OBSERVACIONES })
+      }));
+    });
+
+    it('si el backend lo rechaza no emite eventos', () => {
+      let error: unknown;
+      service.registerEvaluatorConcept('15', 'APROBADO', '', pdf('b.pdf')).subscribe({ error: e => error = e });
+      http.expectOne(`${API}/15/anteproyecto/conceptos`)
+        .flush({ message: 'Solo los evaluadores asignados' }, { status: 406, statusText: 'Not Acceptable' });
+
+      expect(error).toBeTruthy();
+      expect(eventBus.emit).not.toHaveBeenCalled();
+    });
   });
 
-  it('debería crearse correctamente', () => {
-    expect(service).toBeTruthy();
+  it('uploadCorrection radica una nueva versión del anteproyecto', () => {
+    service.uploadCorrection('15', pdf('anteproyecto-v2.pdf')).subscribe();
+
+    const req = http.expectOne(`${API}/15/anteproyecto`);
+    const body = req.request.body as FormData;
+    expect((body.get('archivo') as File).name).toBe('anteproyecto-v2.pdf');
+    expect(body.has('datos')).toBe(false);
+    req.flush(crearTrabajoConAnteproyectoRadicado());
+    expect(eventBus.emit.mock.calls[0][0].type).toBe(AppEventType.PRELIMINARY_DRAFT_CORRECTION_UPLOADED);
+  });
+
+  it('el Jefe remite el anteproyecto al Consejo con el formato C', () => {
+    let resultado: PreliminaryDraft | undefined;
+    service.uploadCouncilPresentation('15', pdf('formato-c.pdf')).subscribe(anteproyecto => resultado = anteproyecto);
+
+    const req = http.expectOne(`${API}/15/anteproyecto/remision`);
+    expect(req.request.method).toBe('POST');
+    const body = req.request.body as FormData;
+    expect((body.get('archivo') as File).name).toBe('formato-c.pdf');
+    expect(body.has('datos')).toBe(false);
+    req.flush(crearTrabajoEnEvaluacion({ etapa: 'APROBACION_CONSEJO' }));
+
+    expect(resultado?.preliminaryDraftId).toBe('15');
+    expect(eventBus.emit.mock.calls[0][0].type).toBe(AppEventType.PRELIMINARY_DRAFT_COUNCIL_PRESENTATION_UPLOADED);
+  });
+
+  describe('registerCouncilDecision', () => {
+    it('envía la decisión del Consejo con la resolución', async () => {
+      let resultado: PreliminaryDraft | undefined;
+      service.registerCouncilDecision('15', stateList.APROBADO, 'Cumple', pdf('resolucion.pdf'))
+        .subscribe(anteproyecto => resultado = anteproyecto);
+
+      const req = http.expectOne(`${API}/15/anteproyecto/decisiones-consejo`);
+      const body = req.request.body as FormData;
+      expect((body.get('archivo') as File).name).toBe('resolucion.pdf');
+      expect(await leerDatos(body)).toEqual({ resultado: 'APROBADO', observaciones: 'Cumple' });
+      req.flush(crearTrabajoEnCurso());
+
+      expect(resultado?.state).toBe(stateList.APROBADO);
+      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
+        type: AppEventType.COUNCIL_RESOLUTION_UPLOADED,
+        payload: expect.objectContaining({ finalState: stateList.APROBADO })
+      }));
+    });
+
+    it('cualquier otro veredicto se envía como NO_APROBADO, sin observaciones vacías', async () => {
+      service.registerCouncilDecision('15', stateList.APROBADO_CON_OBSERVACIONES, '', pdf('r.pdf')).subscribe();
+      const req = http.expectOne(`${API}/15/anteproyecto/decisiones-consejo`);
+      expect(await leerDatos(req.request.body as FormData)).toEqual({ resultado: 'NO_APROBADO', observaciones: null });
+      req.flush(crearTrabajoConAnteproyectoRadicado());
+    });
   });
 
   describe('calculateDocumentStatus', () => {
-    it('debería retornar EN_REVISION si no hay evaluadores', () => {
-      expect(service.calculateDocumentStatus('doc-1', [], 0)).toBe(stateList.EN_REVISION);
+    const evaluacion = (documentId: string, veredict: stateList) => ({ documentId, veredict } as Evaluation);
+
+    it('queda en revisión mientras falten conceptos', () => {
+      expect(service.calculateDocumentStatus('d1', [evaluacion('d1', stateList.APROBADO)], 2)).toBe(stateList.EN_REVISION);
+      expect(service.calculateDocumentStatus('d1', [], 0)).toBe(stateList.EN_REVISION);
     });
 
-    it('debería retornar EN_REVISION si faltan evaluaciones', () => {
-      const evals = [createMockEvaluation({ documentId: 'doc-1', veredict: stateList.APROBADO })];
-      expect(service.calculateDocumentStatus('doc-1', evals, 2)).toBe(stateList.EN_REVISION);
+    it('aprobado si todos aprueban; no aprobado si alguno no', () => {
+      expect(service.calculateDocumentStatus('d1',
+        [evaluacion('d1', stateList.APROBADO), evaluacion('d1', stateList.APROBADO)], 2)).toBe(stateList.APROBADO);
+      expect(service.calculateDocumentStatus('d1',
+        [evaluacion('d1', stateList.APROBADO), evaluacion('d1', stateList.NO_APROBADO)], 2)).toBe(stateList.NO_APROBADO);
     });
-
-    it('debería retornar NO_APROBADO si al menos una evaluación es NO_APROBADO', () => {
-      const evals = [
-        createMockEvaluation({ documentId: 'doc-1', veredict: stateList.APROBADO }),
-        createMockEvaluation({ documentId: 'doc-1', veredict: stateList.NO_APROBADO })
-      ];
-      expect(service.calculateDocumentStatus('doc-1', evals, 2)).toBe(stateList.NO_APROBADO);
-    });
-
-    it('debería retornar APROBADO si todas las evaluaciones son APROBADO', () => {
-      const evals = [
-        createMockEvaluation({ documentId: 'doc-1', veredict: stateList.APROBADO }),
-        createMockEvaluation({ documentId: 'doc-1', veredict: stateList.APROBADO })
-      ];
-      expect(service.calculateDocumentStatus('doc-1', evals, 2)).toBe(stateList.APROBADO);
-    });
-  });
-
-  describe('addEvaluationMock', () => {
-    it('debería añadir evaluación, clasificar el status (ON_TIME) y notificar', fakeAsync(() => {
-      const mockEvaluation = createMockEvaluation({ veredict: stateList.APROBADO });
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 5);
-
-      const mockDraft = createMockDraft({
-        proposalData: createMockProposal({
-          title: 'Tesis',
-          authors: [createMockUser({ id: 'author-1' })]
-        }),
-        evaluationDeadline: futureDate
-      });
-
-      let finalDraft: PreliminaryDraft | undefined;
-      mockStorageService.updateDraft.mockImplementation((id: string, cb: (draft: PreliminaryDraft) => PreliminaryDraft) => {
-        finalDraft = cb(mockDraft);
-      });
-
-      service.addEvaluationMock('draft-1', mockEvaluation).subscribe();
-      tick(1000);
-
-      expect(finalDraft?.evaluations?.[0].deadlineStatus).toBe(EvaluationDeadlineStatus.ON_TIME);
-
-      expect(mockEventBusService.emit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: AppEventType.PRELIMINARY_DRAFT_EVALUATION_REGISTERED,
-          targetUserIds: expect.arrayContaining(['author-1', 'jefe-1'])
-        })
-      );
-    }));
-  });
-
-  describe('uploadDocumentMock', () => {
-    it('debería subir CORRECCION, actualizar deadline y notificar evaluadores', fakeAsync(() => {
-      const document = createMockFileDocument({ type: DocumentType.CORRECCION });
-
-      const mockDraft = createMockDraft({
-        proposalData: createMockProposal({
-          title: 'Correcciones',
-          authors: [createMockUser({ id: 'auth-1' })],
-          director: createMockUser({ id: 'dir-1' })
-        }),
-        evaluators: [createMockUser({ id: 'eval-1' })]
-      });
-
-      let finalDraft: PreliminaryDraft | undefined;
-      mockStorageService.updateDraft.mockImplementation((id: string, cb: (draft: PreliminaryDraft) => PreliminaryDraft) => {
-        finalDraft = cb(mockDraft);
-      });
-
-      service.uploadDocumentMock('draft-1', document).subscribe();
-      tick(1000);
-
-      expect(finalDraft?.evaluationDeadline).toBeDefined();
-      expect(finalDraft?.documents?.[0]).toEqual(document);
-
-      expect(mockEventBusService.emit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: AppEventType.PRELIMINARY_DRAFT_CORRECTION_UPLOADED,
-          targetUserIds: expect.arrayContaining(['eval-1', 'dir-1'])
-        })
-      );
-    }));
-
-    it('debería subir FORMATO_C, limpiar deadline y notificar a consejo/jefes', fakeAsync(() => {
-      const document = createMockFileDocument({ type: DocumentType.FORMATO_C });
-
-      const mockDraft = createMockDraft({
-        proposalData: createMockProposal({
-          title: 'Presentacion',
-          authors: [createMockUser({ id: 'auth-1' })]
-        })
-      });
-
-      let finalDraft: PreliminaryDraft | undefined;
-      mockStorageService.updateDraft.mockImplementation((id: string, cb: (draft: PreliminaryDraft) => PreliminaryDraft) => {
-        finalDraft = cb(mockDraft);
-      });
-
-      service.uploadDocumentMock('draft-1', document).subscribe();
-      tick(1000);
-
-      expect(finalDraft?.evaluationDeadline).toBeUndefined();
-
-      expect(mockEventBusService.emit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: AppEventType.PRELIMINARY_DRAFT_COUNCIL_PRESENTATION_UPLOADED,
-          targetUserIds: expect.arrayContaining(['auth-1', 'jefe-1', 'consejo-1'])
-        })
-      );
-    }));
-  });
-
-  describe('uploadCouncilResolutionMock', () => {
-    it('debería registrar resolución, actualizar estado y setear maximumDeliveryDate si es APROBADO', fakeAsync(() => {
-      const document = createMockFileDocument({ id: 'doc-resolucion' });
-      const evaluation = createMockEvaluation({ veredict: stateList.APROBADO });
-      const maxDate = new Date('2024-12-31');
-
-      const mockDraft = createMockDraft({
-        proposalData: createMockProposal({
-          title: 'Resolucion',
-          authors: [createMockUser({ id: 'auth-1' })]
-        })
-      });
-
-      let finalDraft: PreliminaryDraft | undefined;
-      mockStorageService.updateDraft.mockImplementation((id: string, cb: (draft: PreliminaryDraft) => PreliminaryDraft) => {
-        finalDraft = cb(mockDraft);
-      });
-
-      let returnedDraft: PreliminaryDraft | undefined;
-      service.uploadCouncilResolutionMock('draft-1', document, stateList.APROBADO, evaluation, maxDate)
-        .subscribe(res => returnedDraft = res);
-
-      tick(1000);
-
-      expect(finalDraft?.state).toBe(stateList.APROBADO);
-      expect(finalDraft?.maximumDeliveryDate).toBe(maxDate);
-      expect(finalDraft?.documents).toContain(document);
-      expect(finalDraft?.evaluations).toContain(evaluation);
-
-      expect(returnedDraft).toEqual(finalDraft);
-
-      expect(mockEventBusService.emit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: AppEventType.COUNCIL_RESOLUTION_UPLOADED,
-          targetUserIds: expect.arrayContaining(['auth-1', 'jefe-1', 'consejo-1']),
-          payload: expect.objectContaining({ finalState: stateList.APROBADO })
-        })
-      );
-    }));
   });
 });

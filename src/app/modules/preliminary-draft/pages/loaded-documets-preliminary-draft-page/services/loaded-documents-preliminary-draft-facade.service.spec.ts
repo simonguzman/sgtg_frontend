@@ -3,6 +3,7 @@ import { signal, WritableSignal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { of, throwError } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 import { LoadedDocumentsPreliminaryDraftFacadeService } from './loaded-documents-preliminary-draft-facade.service';
 import { LoadedDocumentsPreliminaryDraftMapperService } from './loaded-documents-preliminary-draft-mapper.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
@@ -53,7 +54,8 @@ describe('LoadedDocumentsPreliminaryDraftFacadeService', () => {
   let mockRouter: { navigate: jest.Mock };
   let mockDraftService: {
     allPreliminaryDrafts: WritableSignal<PreliminaryDraft[]>;
-    uploadDocument: jest.Mock;
+    uploadCorrection: jest.Mock;
+    uploadCouncilPresentation: jest.Mock;
   };
   let mockAuthService: {
     currentUser: WritableSignal<User | null>;
@@ -83,7 +85,8 @@ describe('LoadedDocumentsPreliminaryDraftFacadeService', () => {
 
     mockDraftService = {
       allPreliminaryDrafts: signal([createMockDraft()]),
-      uploadDocument: jest.fn().mockReturnValue(of({}))
+      uploadCorrection: jest.fn().mockReturnValue(of({})),
+      uploadCouncilPresentation: jest.fn().mockReturnValue(of({}))
     };
 
     mockAuthService = {
@@ -169,46 +172,30 @@ describe('LoadedDocumentsPreliminaryDraftFacadeService', () => {
       expect(facade.uploadContext()).toBeNull();
     });
 
-    it('debería confirmar la subida correctamente y mostrar notificación de éxito', async () => {
+    it('en la pestaña de anteproyectos radica la versión corregida y notifica el éxito', async () => {
       facade.preliminaryDraftId.set('draft-123');
       const mockFile = new File([], 'doc.pdf');
       facade.uploadContext.set({ fileName: 'doc.pdf', file: mockFile });
 
-      const newDoc = createMockDocument();
-      mockMapperService.buildNewDocumentRecord.mockResolvedValue(newDoc);
-      mockDraftService.uploadDocument.mockReturnValue(of({}));
-
       await facade.confirmUpload();
 
-      expect(mockMapperService.buildNewDocumentRecord).toHaveBeenCalledWith('doc.pdf', mockFile, expect.any(String));
-      expect(mockDraftService.uploadDocument).toHaveBeenCalledWith('draft-123', newDoc);
+      expect(mockDraftService.uploadCorrection).toHaveBeenCalledWith('draft-123', mockFile);
+      expect(mockDraftService.uploadCouncilPresentation).not.toHaveBeenCalled();
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: 'confirmation' }));
+      expect(facade.uploadContext()).toBeNull();
     });
 
-    it('debería notificar error si la lectura del archivo falla en el mapper', async () => {
+    it('debería mostrar el mensaje del backend si la carga falla', async () => {
       facade.preliminaryDraftId.set('draft-123');
       facade.uploadContext.set({ fileName: 'doc.pdf', file: new File([], 'doc.pdf') });
-      mockMapperService.buildNewDocumentRecord.mockRejectedValue(new Error('Corrupt file'));
+      mockDraftService.uploadCorrection.mockReturnValue(throwError(() =>
+        new HttpErrorResponse({ status: 400, error: { message: 'No se permite radicar en este estado.' } })));
 
       await facade.confirmUpload();
 
-      expect(mockDraftService.uploadDocument).not.toHaveBeenCalled();
-      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
-    });
-
-    it('debería notificar error si la subida mediante servicio HTTP falla', async () => {
-      facade.preliminaryDraftId.set('draft-123');
-      facade.uploadContext.set({ fileName: 'doc.pdf', file: new File([], 'doc.pdf') });
-
-      const newDoc = createMockDocument();
-      mockMapperService.buildNewDocumentRecord.mockResolvedValue(newDoc);
-
-      mockDraftService.uploadDocument.mockReturnValue(throwError(() => new Error('Network error')));
-
-      await facade.confirmUpload();
-
-      expect(mockDraftService.uploadDocument).toHaveBeenCalled();
-      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: 'error' }));
+      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'error', message: 'No se permite radicar en este estado.'
+      }));
     });
   });
 

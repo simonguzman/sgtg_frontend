@@ -5,11 +5,7 @@ import { NotificationService } from '../../../../shared/components/notifications
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { PreliminaryDraftFormService } from './services/preliminary-draft-form.service';
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
-import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../core/enums/document-type.enum';
-import { stateList } from '../../../../core/enums/state.enum';
-import { readFileAsDataUrl } from '../../../../core/utils/file-reader.utils';
-import { formatDisplayDate } from '../../../../core/utils/date-utils';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
@@ -78,46 +74,16 @@ export class PreliminaryDraftFormComponent {
     this.notificationService.show({ title: 'Archivo removido', message: 'Se ha quitado el documento adjunto.', type: NotificationType.INFO });
   }
 
-  async submit(): Promise<void> {
+  submit(): void {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
       this.notificationService.show({ title: 'Datos incompletos', message: 'Por favor, asegúrese de seleccionar una propuesta y adjuntar el anteproyecto.', type: NotificationType.ERROR });
       return;
     }
 
-    let documents: FileDocument[];
-    try {
-      documents = await this.mapDocuments();
-    } catch (err) {
-      console.error('Error leyendo el archivo del anteproyecto:', err);
-      this.notificationService.show({ title: 'Error al leer el archivo', message: 'No se pudo procesar el archivo adjuntado.', type: NotificationType.ERROR });
-      return;
-    }
-
-    const payload = this.formService.buildPreliminaryDraftPayload(this.preliminaryDraft(), documents);
+    // Se envía el PDF elegido; en edición, sin archivo nuevo no hay versión que radicar
+    const payload = this.formService.buildPreliminaryDraftPayload(this.preliminaryDraft(), this.attachedFile.file);
     if (!payload) return;
     this.onSave.emit(payload);
-  }
-
-  private async mapDocuments(): Promise<FileDocument[]> {
-    const existingDocument = this.preliminaryDraft()?.documents.find(d => d.type === DocumentType.ANTEPROYECTO);
-
-    if (this.attachedFile.hasFile && this.attachedFile.name === existingDocument?.name) {
-      return [existingDocument!];
-    }
-
-    if (this.attachedFile.hasFile && this.attachedFile.file) {
-      const fileUrl = await readFileAsDataUrl(this.attachedFile.file);
-      return [{
-        id: crypto.randomUUID(),
-        name: this.attachedFile.name!,
-        url: fileUrl,
-        uploadDate: formatDisplayDate(new Date()),
-        type: DocumentType.ANTEPROYECTO,
-        status: stateList.EN_REVISION
-      }];
-    }
-
-    return [];
   }
 }

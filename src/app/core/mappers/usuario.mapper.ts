@@ -41,11 +41,13 @@ export function mapUsuarioToUser(dto: UsuarioResponse): User {
  * Vinculación que se registra para el docente según sus roles. El formulario
  * no pregunta el tipo de contrato, así que se deduce:
  * - con rol CODIRECTOR (solo o junto con DIRECTOR): PLANTA, no necesita codirector;
- * - con rol DIRECTOR sin CODIRECTOR: OCASIONAL, necesita un codirector de planta;
+ * - con rol JEFE_DEP: PLANTA, con el departamento que dirige (el backend lo exige
+ *   para asignar los evaluadores del anteproyecto);
+ * - con rol DIRECTOR sin CODIRECTOR ni JEFE_DEP: OCASIONAL, necesita un codirector de planta;
  * - con otros roles: sin perfil docente (null).
  */
 export function contractTypeForRoles(roles: UserRoleType[]): ContractType | null {
-  if (roles.includes(UserRoleType.CODIRECTOR)) return ContractType.PLANTA;
+  if (roles.includes(UserRoleType.CODIRECTOR) || roles.includes(UserRoleType.JEFE_DEP)) return ContractType.PLANTA;
   if (roles.includes(UserRoleType.DIRECTOR)) return ContractType.OCASIONAL;
   return null;
 }

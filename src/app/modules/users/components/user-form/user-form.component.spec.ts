@@ -230,8 +230,15 @@ describe('UserFormComponent', () => {
       expect(component.contractTypeDescription).toContain('no requiere codirector');
     });
 
-    it('otros docentes no tienen perfil: no se pide departamento', () => {
+    it('un jefe de departamento es de planta y exige su departamento', () => {
       component.userForm.controls.roles.setValue([UserRoleType.DOCENTE, UserRoleType.JEFE_DEP]);
+      expect(component.showDepartment).toBe(true);
+      expect(component.userForm.get('departmentId')?.hasError('required')).toBe(true);
+      expect(component.contractTypeDescription).toContain('no requiere codirector');
+    });
+
+    it('otros docentes no tienen perfil: no se pide departamento', () => {
+      component.userForm.controls.roles.setValue([UserRoleType.DOCENTE, UserRoleType.EVALUADOR]);
       expect(component.showDepartment).toBe(false);
       expect(component.userForm.get('departmentId')?.hasError('required')).toBe(false);
       expect(component.contractTypeDescription).toBe('');

@@ -76,12 +76,43 @@ Plan original:
 - Editar = radicar una nueva versión (solo tras NO_APROBADO).
 - Listados: director/estudiantes con `mis-trabajos`; Comité con `?etapa=PROPUESTA`.
 
-### Fase 2 — Anteproyecto y evaluación
+### Fase 2 — Anteproyecto y evaluación ✅ (2026-10-11)
+Hecho en el backend: el estado del anteproyecto pertenece a cada versión (`VersionDocumento`, igual que la
+propuesta; `anteproyecto.versiones[i].estado`) y al asignar evaluadores se les agrega el rol EVALUADOR.
+
+Hecho en el front:
+- Prerrequisito (inquietud F): con rol JEFE_DEP el formulario de usuarios pide departamento y lo registra
+  como PLANTA.
+- `PreliminaryDraftStorageService` es la vista `anteproyectos` de `TrabajoGradoVistasService` (sin IndexedDB).
+  Un trabajo tiene anteproyecto desde que se radica su primera versión.
+- Registrar = radicar la versión 1 (`POST /{id}/anteproyecto`); corregir = radicar una nueva versión, solo
+  el director y solo tras correcciones de los evaluadores o un NO APROBADO del Consejo.
+- Jefe: asigna los evaluadores (`/anteproyecto/evaluadores`) y se refresca la lista de usuarios.
+- Evaluador: concepto APROBADO o "Requiere correcciones" (CON_CORRECCIONES; el anteproyecto no se rechaza)
+  con el formato B (`/anteproyecto/conceptos`).
+- "Documentos cargados": columna Versión y el estado de cada versión; solo el evaluador asignado evalúa la
+  versión vigente en revisión.
+- Pruebas contra `HttpTestingController`; se retiró la de "evaluador histórico" (el backend no reemplaza
+  evaluadores). E2E contra Docker por nginx: asignación, correcciones, versión 2, aprobación y Consejo.
+
+Plan original:
 - Registrar = `POST /{id}/anteproyecto` sobre el mismo trabajo (ya en `ANTEPROYECTO`).
 - Jefe de departamento: `?etapa=ANTEPROYECTO` y `POST /anteproyecto/evaluadores` (solo el de su departamento: requiere perfil docente, ver inquietud F).
 - Evaluadores: `POST /anteproyecto/conceptos` (APROBADO / CON_CORRECCIONES + formato B); correcciones = nueva versión.
 
-### Fase 3 — Aprobación del Consejo
+### Fase 3 — Aprobación del Consejo ✅ (2026-10-12)
+Hecho: la decisión del Consejo (`/anteproyecto/decisiones-consejo`, APROBADO o NO_APROBADO con la
+resolución); la fecha máxima de entrega la calcula el backend.
+
+Formato C (decisión del 2026-10-12): aprobado por ambos evaluadores, el anteproyecto queda en el Departamento
+y el **Jefe de departamento lo remite al Consejo con el formato C** (`POST /anteproyecto/remision`), paso
+obligatorio antes de la decisión. En el front es la pestaña "Presentaciones" de "Documentos cargados": el
+jefe remite la versión aprobada y el Consejo evalúa la remisión vigente.
+
+Concepto del evaluador (2026-10-12): el **formato B es obligatorio** y el evaluador puede adjuntar un
+segundo archivo opcional con sus **anotaciones** (parte `anotaciones`).
+
+Plan original:
 - `?etapa=APROBACION_CONSEJO` y `POST /anteproyecto/decisiones-consejo` (resolución obligatoria).
 - Al aprobar, el trabajo pasa a `EN_CURSO`: el front lo muestra como “trabajo de grado”.
 
@@ -130,4 +161,12 @@ Plan original:
 3. **I — Propuesta**: el formulario agrega **objetivos**; el backend guarda además **descripción** y **línea de investigación** (opcionales). Fase 1.
 4. **F — Jefe de departamento**: con rol JEFE_DEP el formulario de usuarios pide departamento y lo registra como **PLANTA** (se amplía la regla: CODIRECTOR o JEFE_DEP → PLANTA; solo DIRECTOR → OCASIONAL). Antes de la Fase 2.
 
-Pendientes de decidir en su fase: C (avances), D (paz y salvo), E (funciones sin equivalente), G (notificaciones), H (estadísticas), K (vencimientos).
+## 5. Decisiones del 2026-10-12
+
+1. **Formato C**: obligatorio; lo carga el Jefe de departamento al remitir al Consejo el anteproyecto aprobado por los evaluadores (Fase 3, hecho).
+2. **Concepto del evaluador**: formato B obligatorio y un segundo archivo opcional con las anotaciones (Fase 2, hecho).
+3. **Título y descripción del anteproyecto**: solo lectura; cambian únicamente por el proceso de cambio de objetivos del reglamento, en sus plazos (Fase 4).
+4. **Eliminar o anular propuestas y anteproyectos** (inquietud E): **pendiente**, se definirá más adelante.
+5. **Avances** (inquietud C): se mapean a los **informes mensuales** de la práctica profesional (opción A); se implementa en la Fase 4.
+
+Pendientes de decidir en su fase: D (paz y salvo), E (funciones sin equivalente, incluida la anulación), G (notificaciones), H (estadísticas), K (vencimientos).

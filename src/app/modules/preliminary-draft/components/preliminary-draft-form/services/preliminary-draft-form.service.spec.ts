@@ -245,7 +245,7 @@ describe('PreliminaryDraftFormService', () => {
       expect(service.form.get('description')?.disabled).toBeTruthy();
     });
 
-    it('initForEdit debería popular el formulario y habilitar campos', () => {
+    it('initForEdit debería popular el formulario; título y descripción quedan solo de lectura', () => {
       const mockDraft = createMockPreliminaryDraft({
         preliminaryDraftId: 'draft-1',
         proposalId: 'p1',
@@ -257,13 +257,15 @@ describe('PreliminaryDraftFormService', () => {
       expect(service.currentPreliminaryDraftId()).toBe('draft-1');
       expect(service.form.get('proposalId')?.value).toBe('p1');
       expect(service.form.get('title')?.value).toBe('Test');
-      expect(service.form.get('title')?.enabled).toBeTruthy();
+      // Pertenecen a la propuesta: el backend no los edita desde el anteproyecto
+      expect(service.form.get('title')?.disabled).toBe(true);
+      expect(service.form.get('description')?.disabled).toBe(true);
     });
   });
 
   describe('buildPreliminaryDraftPayload', () => {
     it('debería retornar null si no hay propuesta seleccionada', () => {
-      const payload = service.buildPreliminaryDraftPayload(null, []);
+      const payload = service.buildPreliminaryDraftPayload(null, null);
       expect(payload).toBeNull();
     });
 
@@ -275,45 +277,36 @@ describe('PreliminaryDraftFormService', () => {
       currentUserSignal.set(mockUser);
       service.form.patchValue({ proposalId: 'p1' });
 
-      const payload = service.buildPreliminaryDraftPayload(null, []);
+      const archivo = new File(['%PDF'], 'anteproyecto.pdf');
+      const payload = service.buildPreliminaryDraftPayload(null, archivo);
 
       expect(payload).toBeTruthy();
+      expect(payload?.attachment).toBe(archivo);
       expect(payload?.proposalId).toBe('p1');
       expect(payload?.state).toBe(stateList.EN_REVISION);
       expect(payload?.proposalData.title).toBe('Prop original');
       expect(payload?.documents).toEqual([]);
     });
 
-    it('debería construir el payload tomando valores del formulario para una edición', () => {
+    it('en edición conserva los documentos y adjunta la nueva versión', () => {
       const mockUser = createMockUser({ id: 'u1' });
-      const proposal = createMockProposal({ id: 'p-edit', title: 'Viejo', director: mockUser });
-      const originalDraft = createMockPreliminaryDraft({ preliminaryDraftId: 'draft-2' });
+      const proposal = createMockProposal({ id: 'p-edit', title: 'Título de la propuesta', director: mockUser });
+      const documentos: FileDocument[] = [{ id: 'v1', name: 'anteproyecto', url: '/a', uploadDate: new Date(),
+        type: DocumentType.ANTEPROYECTO, version: 1 }];
+      const originalDraft = createMockPreliminaryDraft({ preliminaryDraftId: 'draft-2', documents: documentos });
 
       proposalsSignal.set([proposal]);
       currentUserSignal.set(mockUser);
-
       service.currentPreliminaryDraftId.set('draft-2');
-      service.form.patchValue({
-        proposalId: 'p-edit',
-        title: 'Título Editado',
-        description: 'Descripción Editada'
-      });
+      service.form.patchValue({ proposalId: 'p-edit' });
 
-      // FIX: Se eliminó la propiedad 'file: new File(...)' ya que no pertenece a FileDocument
-      const mockDocs: FileDocument[] = [{
-        id: 'doc-1',
-        name: 'doc.pdf',
-        url: 'http://ruta/al/documento.pdf',
-        uploadDate: new Date(),
-        type: DocumentType.ANTEPROYECTO
-      }];
-
-      const payload = service.buildPreliminaryDraftPayload(originalDraft, mockDocs);
+      const archivo = new File(['%PDF'], 'anteproyecto-v2.pdf');
+      const payload = service.buildPreliminaryDraftPayload(originalDraft, archivo);
 
       expect(payload?.preliminaryDraftId).toBe('draft-2');
-      expect(payload?.proposalData.title).toBe('Título Editado');
-      expect(payload?.proposalData.description).toBe('Descripción Editada');
-      expect(payload?.documents).toEqual(mockDocs);
+      expect(payload?.proposalData.title).toBe('Título de la propuesta');
+      expect(payload?.documents).toEqual(documentos);
+      expect(payload?.attachment).toBe(archivo);
     });
   });
 

@@ -6,7 +6,8 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
-import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
+import { anteproyectoCorregible } from '../../../services/preliminary-draft-rules';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
 @Injectable()
 export class PreliminaryDraftEditPageService {
@@ -37,11 +38,15 @@ export class PreliminaryDraftEditPageService {
           const currentUser = this.authService.currentUser();
           const currentUserId = currentUser?.id;
 
-          const hasAdminPrivileges = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
+          // Solo el director radica versiones, y solo tras correcciones o un NO APROBADO del Consejo
           const isDraftOwner = foundPreliminaryDraft.proposalData.director?.id === currentUserId;
-
-          if (!hasAdminPrivileges && !isDraftOwner) {
-            this.handleUpdateError('No cuenta con los permisos necesarios para editar este registro.');
+          if (!isDraftOwner) {
+            this.handleUpdateError('Solo el director puede cargar una nueva versión del anteproyecto.');
+            this.router.navigate(['/preliminary-draft']);
+            return;
+          }
+          if (!anteproyectoCorregible(foundPreliminaryDraft)) {
+            this.handleUpdateError('El anteproyecto solo se corrige cuando los evaluadores piden correcciones o el Consejo no lo aprueba.');
             this.router.navigate(['/preliminary-draft']);
             return;
           }
@@ -74,9 +79,9 @@ export class PreliminaryDraftEditPageService {
 
     this.preliminaryDraftService.updatePreliminaryDraft(currentPreliminaryDraft.preliminaryDraftId, pendingData).subscribe({
       next: () => this.handleUpdateSuccess(),
-      error: () => {
+      error: (err) => {
         this.confirmState.update(state => ({ ...state, isProcessing: false }));
-        this.handleUpdateError();
+        this.handleUpdateError(apiErrorMessage(err, 'No se pudo cargar la nueva versión del anteproyecto.'));
       }
     });
   }

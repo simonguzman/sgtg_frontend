@@ -32,7 +32,7 @@ import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { iniciarSesionConTrabajos } from '../../../testing/sesion-de-prueba';
-import { crearTrabajoEnAnteproyecto } from '../../../testing/trabajo-grado-de-prueba';
+import { crearTrabajoEnAnteproyecto, crearTrabajoEnCurso } from '../../../testing/trabajo-grado-de-prueba';
 
 /** Trabajo de grado cerrado (cancelado) cuyo director es el usuario 1 */
 const trabajoCerrado = crearTrabajoEnAnteproyecto({ etapa: 'CANCELADO', motivoCierre: 'CANCELACION_DIRECTOR' });
@@ -81,8 +81,6 @@ describe('Integración [Historial]: Filtrado real de pertenencia y cálculo de p
     draftsTab = TestBed.inject(ArchivedPreliminaryDraftsTabService);
     proposalStorage = TestBed.inject(ProposalStorageService);
     draftStorage = TestBed.inject(PreliminaryDraftStorageService);
-    const injector = TestBed.inject(Injector);
-    await waitForHydration(draftStorage.isHydrated, injector);
     localStorage.clear();
   });
   it('un usuario sin ninguna relación NO debe ver una propuesta archivada, sin recurrir a hasGlobalAccess', () => {
@@ -96,33 +94,26 @@ describe('Integración [Historial]: Filtrado real de pertenencia y cálculo de p
     const context: HistoryEvaluationContext = { currentUser: createMockUser({ id: ownerId }), hasGlobalAccess: false };
     expect(proposalsTab.getTableData(context).some(r => r['id'] === '15')).toBe(true);
   });
-  it('debe elegir el documentId correcto por tipo (Anteproyecto/Corrección), no por índice, para calcular el plazo real', () => {
-    const owner = createMockUser({ id: ownerId, firstName: 'Dueño' });
-    const proposalDataPartial: Partial<Proposal> = {
-      id: 'prop-x', title: 'Anteproyecto', description: '', modality: Modality.TI,
-      authors: [], director: owner, state: stateList.APROBADO, createdAt: new Date(), documents: [], evaluations: []
-    };
-    const proposalData = proposalDataPartial as Proposal;
-    const draftPartial: Partial<PreliminaryDraft> = {
-      preliminaryDraftId: 'draft-hist-1', proposalId: 'prop-x',
-      proposalData: proposalData,
-      evaluators: [],
-      evaluations: [{
-        id: 'eval-hist-2', proposalId: 'prop-x', documentId: 'doc-anteproyecto-1', evaluatorId: 'ev-1',
-        evaluatorName: 'Evaluador', evaluatorRole: 'Evaluador', veredict: stateList.NO_APROBADO,
-        observations: 'x', date: new Date(), deadlineStatus: EvaluationDeadlineStatus.ON_TIME
-      }],
-      documents: [
-        { id: 'doc-formato-c-1', name: 'Presentación', url: 'data:x', uploadDate: new Date(), type: DocumentType.FORMATO_C, status: stateList.EN_REVISION },
-        { id: 'doc-anteproyecto-1', name: 'Anteproyecto', url: 'data:x', uploadDate: new Date(), type: DocumentType.ANTEPROYECTO, status: stateList.NO_APROBADO }
-      ],
-      state: stateList.NO_APROBADO, createdData: new Date(), isArchived: true
-    };
-    const draft = draftPartial as PreliminaryDraft;
-    draftStorage.addDraft(draft);
+  it('el anteproyecto de un trabajo cerrado se ve en el historial con el plazo de la versión vigente', () => {
+    // Anteproyecto con dos versiones: la 1 con correcciones y la 2 aprobada; el trabajo se canceló después
+    const base = crearTrabajoEnCurso();
+    const trabajo = crearTrabajoEnCurso({
+      etapa: 'CANCELADO',
+      motivoCierre: 'CANCELACION_DIRECTOR',
+      anteproyecto: {
+        ...base.anteproyecto,
+        versiones: [
+          { ...base.anteproyecto.versiones[0], estado: 'CON_CORRECCIONES' },
+          { ...base.anteproyecto.versiones[0], ruta: '15/ANTEPROYECTO/v2/anteproyecto.pdf', version: 2, estado: 'APROBADO' }
+        ],
+        conceptos: base.anteproyecto.conceptos.map(concepto => ({ ...concepto, version: 2 }))
+      }
+    });
+    iniciarSesionConTrabajos(createMockUser({ id: ownerId, roles: [UserRoleType.DOCENTE, UserRoleType.DIRECTOR] }), [trabajo]);
+
     const context: HistoryEvaluationContext = { currentUser: createMockUser({ id: ownerId }), hasGlobalAccess: false };
-    const row = draftsTab.getTableData(context).find(r => r['id'] === 'draft-hist-1');
+    const row = draftsTab.getTableData(context).find(r => r['id'] === '15');
+    expect(row).toBeDefined();
     expect(row?.['deadlineStatus']).toContain('Resolución emitida');
-    expect(row?.['deadlineStatus']).not.toBe('Resolución emitida');
   });
 });

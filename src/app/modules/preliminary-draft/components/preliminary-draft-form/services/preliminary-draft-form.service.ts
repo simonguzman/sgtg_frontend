@@ -8,7 +8,6 @@ import { UserService } from '../../../../users/services/user.service';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { SelectOption } from '../../../../../shared/components/searchable-select/searchable-select.component';
 import { stateList } from '../../../../../core/enums/state.enum';
-import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { FormattedDocument } from '../../../../../core/interfaces/formatted-document.interface';
 import { User } from '../../../../users/interfaces/user.interface';
@@ -86,8 +85,9 @@ export class PreliminaryDraftFormService {
   initForEdit(preliminaryDraft: PreliminaryDraft): void {
     this.currentPreliminaryDraftId.set(preliminaryDraft.preliminaryDraftId ?? null);
     this.selectedProposalId.set(preliminaryDraft.proposalId);
-    this.form.get('title')?.enable();
-    this.form.get('description')?.enable();
+    // El título y la descripción pertenecen a la propuesta: solo se muestran
+    this.form.get('title')?.disable();
+    this.form.get('description')?.disable();
     this.form.patchValue({
       proposalId: preliminaryDraft.proposalId,
       title: preliminaryDraft.proposalData.title,
@@ -97,32 +97,25 @@ export class PreliminaryDraftFormService {
     this.form.updateValueAndValidity();
   }
 
-  buildPreliminaryDraftPayload(originalPreliminaryDraft: PreliminaryDraft | null, documents: FileDocument[]): PreliminaryDraft | null {
+  /**
+   * Arma el anteproyecto para el backend: la propuesta (trabajo) y el PDF que
+   * se radica como nueva versión. El título y la descripción son los de la
+   * propuesta y no se modifican aquí.
+   */
+  buildPreliminaryDraftPayload(originalPreliminaryDraft: PreliminaryDraft | null, attachment: File | null): PreliminaryDraft | null {
     const proposal = this.selectedProposal();
     if (!proposal) return null;
-    const isEdit = !!originalPreliminaryDraft;
-    const mergedDocuments = isEdit
-      ? this.mergePreliminaryDraftDocument(originalPreliminaryDraft!.documents || [], documents)
-      : documents;
 
     return {
       ...(originalPreliminaryDraft ?? undefined),
       proposalId: proposal.id!,
-      proposalData: {
-        ...proposal,
-        title: (isEdit ? this.form.get('title')?.value : proposal.title) ?? '',
-        description: (isEdit ? this.form.get('description')?.value : proposal.description) ?? ''
-      },
-      documents: mergedDocuments,
+      proposalData: proposal,
+      documents: originalPreliminaryDraft?.documents ?? [],
+      attachment,
       state: originalPreliminaryDraft?.state || stateList.EN_REVISION,
       createdData: originalPreliminaryDraft?.createdData || new Date(),
       evaluations: originalPreliminaryDraft?.evaluations || []
     } as PreliminaryDraft;
-  }
-
-  private mergePreliminaryDraftDocument(existingDocuments: FileDocument[], newPreliminaryDraftDocs: FileDocument[]): FileDocument[] {
-    const withoutOldPreliminaryDraft = existingDocuments.filter(document => document.type !== DocumentType.ANTEPROYECTO);
-    return [...newPreliminaryDraftDocs, ...withoutOldPreliminaryDraft];
   }
 
   getMemberName(user: User | undefined): string {

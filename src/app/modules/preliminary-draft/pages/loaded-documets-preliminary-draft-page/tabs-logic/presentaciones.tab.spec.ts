@@ -59,181 +59,72 @@ const createMockDocument = (overrides: Partial<FileDocument> = {}): FileDocument
 } as FileDocument);
 
 describe('PresentacionesTabConfig', () => {
-  let mockContext: PreliminaryDraftEvaluationContext;
-  let mockPreliminaryDraftService: { calculateDocumentStatus: jest.Mock };
+  // La pestaña usa los estados que envía el backend: no necesita el servicio
+  const servicio = {} as PreliminaryDraftService;
 
-  beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    mockContext = createMockContext();
-
-    mockPreliminaryDraftService = {
-      calculateDocumentStatus: jest.fn().mockReturnValue(stateList.APROBADO)
-    };
+  const anteproyecto = (version: number, status: stateList): FileDocument => createMockDocument({
+    id: `ante-v${version}`, type: DocumentType.ANTEPROYECTO, version, status
   });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+  const remision = (version: number, status: stateList): FileDocument => createMockDocument({
+    id: `remision-v${version}`, type: DocumentType.FORMATO_C, version, status
   });
 
   describe('getTableData', () => {
-    it('debería mapear documentos FORMATO_C y permitir evaluar a miembros del consejo si es el último doc y está en revisión', () => {
-      mockContext.isConsejoMember = true;
-      const documents: FileDocument[] = [createMockDocument()];
+    it('muestra las remisiones de la más reciente a la más antigua con su estado', () => {
+      const documentos = [anteproyecto(1, stateList.NO_APROBADO), remision(1, stateList.NO_APROBADO),
+        remision(2, stateList.EN_REVISION)];
 
-      const result = PresentacionesTabConfig.getTableData(
-        documents,
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
+      const result = PresentacionesTabConfig.getTableData(documentos,
+        createMockContext({ latestPresentacionId: 'remision-v2' }), servicio);
 
-      expect(result).toHaveLength(1);
-      expect(result[0].status).toBe(stateList.EN_REVISION);
-      expect(result[0].allowedActions).toContain('download');
-      expect(result[0].allowedActions).toContain('evaluate-presentation');
+      expect(result.map(fila => [fila.id, fila.version, fila.status])).toEqual([
+        ['remision-v2', 2, stateList.EN_REVISION],
+        ['remision-v1', 1, stateList.NO_APROBADO]
+      ]);
     });
 
-    it('debería permitir evaluar también si el usuario es Admin', () => {
-      mockContext.isAdmin = true;
-      const documents: FileDocument[] = [createMockDocument()];
+    it('solo el Consejo evalúa la remisión vigente mientras está en revisión', () => {
+      const documentos = [remision(1, stateList.EN_REVISION)];
+      const contexto = (overrides: Partial<PreliminaryDraftEvaluationContext>) =>
+        createMockContext({ latestPresentacionId: 'remision-v1', ...overrides });
 
-      const result = PresentacionesTabConfig.getTableData(
-        documents,
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result[0].allowedActions).toContain('evaluate-presentation');
-    });
-
-    it('no debería permitir evaluar si el proyecto está archivado', () => {
-      mockContext.isConsejoMember = true;
-      mockContext.preliminaryDraft.isArchived = true;
-
-      const documents: FileDocument[] = [createMockDocument()];
-
-      const result = PresentacionesTabConfig.getTableData(
-        documents,
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result[0].allowedActions).not.toContain('evaluate-presentation');
-    });
-
-    it('debería setear el estado a APROBADO globalmente si el documento es el último y el anteproyecto ya fue aprobado', () => {
-      mockContext.isConsejoMember = true;
-      mockContext.preliminaryDraft.state = stateList.APROBADO;
-
-      const documents: FileDocument[] = [createMockDocument()];
-
-      const result = PresentacionesTabConfig.getTableData(
-        documents,
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result[0].status).toBe(stateList.APROBADO);
-      expect(result[0].allowedActions).not.toContain('evaluate-presentation');
+      expect(PresentacionesTabConfig.getTableData(documentos, contexto({ isConsejoMember: true }), servicio)[0].allowedActions)
+        .toEqual(['download', 'evaluate-presentation']);
+      expect(PresentacionesTabConfig.getTableData(documentos, contexto({ isAdmin: true }), servicio)[0].allowedActions)
+        .toEqual(['download']);
+      expect(PresentacionesTabConfig.getTableData([remision(1, stateList.APROBADO)],
+        contexto({ isConsejoMember: true }), servicio)[0].allowedActions).toEqual(['download']);
     });
   });
 
   describe('getHeaderButtons', () => {
-    it('debería retornar un arreglo vacío si el proyecto está archivado', () => {
-      mockContext.preliminaryDraft.isArchived = true;
-      mockContext.isJefe = true;
+    const conDocumentos = (state: stateList, ...documents: FileDocument[]) =>
+      createMockContext({ isJefe: true, preliminaryDraft: createMockPreliminaryDraft({ state, documents }) });
 
+    it('el Jefe remite cuando ambos evaluadores aprobaron la versión vigente y aún no se remite', () => {
       const result = PresentacionesTabConfig.getHeaderButtons(
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result).toHaveLength(0);
+        conDocumentos(stateList.EVALUADO, anteproyecto(1, stateList.APROBADO)), servicio);
+      expect(result).toEqual([expect.objectContaining({ action: 'upload_document', disabled: false })]);
     });
 
-    it('debería retornar un arreglo vacío si el usuario no es Jefe ni Admin', () => {
-      mockContext.isJefe = false;
-      mockContext.isAdmin = false;
-
-      const result = PresentacionesTabConfig.getHeaderButtons(
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result).toHaveLength(0);
+    it('no se remite una versión ya remitida, ni una que siga en revisión', () => {
+      expect(PresentacionesTabConfig.getHeaderButtons(conDocumentos(stateList.EVALUADO,
+        anteproyecto(1, stateList.APROBADO), remision(1, stateList.EN_REVISION)), servicio)[0].disabled).toBe(true);
+      expect(PresentacionesTabConfig.getHeaderButtons(conDocumentos(stateList.EN_REVISION,
+        anteproyecto(1, stateList.EN_REVISION)), servicio)[0].disabled).toBe(true);
     });
 
-    it('debería retornar el botón deshabilitado si el anteproyecto base NO está APROBADO', () => {
-      mockContext.isJefe = true;
-
-      mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.EN_REVISION);
-      mockContext.preliminaryDraft.documents = [
-        createMockDocument({ id: 'doc-anteproyecto-1', type: DocumentType.ANTEPROYECTO })
-      ];
-
-      const result = PresentacionesTabConfig.getHeaderButtons(
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0].action).toBe('upload_document');
-      expect(result[0].disabled).toBeTruthy();
+    it('tras un NO APROBADO, la nueva versión aprobada se remite de nuevo', () => {
+      const result = PresentacionesTabConfig.getHeaderButtons(conDocumentos(stateList.EVALUADO,
+        anteproyecto(1, stateList.NO_APROBADO), remision(1, stateList.NO_APROBADO), anteproyecto(2, stateList.APROBADO)),
+        servicio);
+      expect(result[0].disabled).toBe(false);
     });
 
-    it('debería retornar el botón deshabilitado si ya hay una presentación pendiente de revisión (sin evaluaciones)', () => {
-      mockContext.isJefe = true;
-
-      mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.APROBADO);
-
-      mockContext.preliminaryDraft.documents = [
-        createMockDocument({ id: 'doc-anteproyecto-1', type: DocumentType.ANTEPROYECTO }),
-        createMockDocument({ id: 'doc-presentacion-1', type: DocumentType.FORMATO_C })
-      ];
-      mockContext.preliminaryDraft.evaluations = [];
-
-      const result = PresentacionesTabConfig.getHeaderButtons(
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0].disabled).toBeTruthy();
-    });
-
-    it('debería retornar el botón deshabilitado si el Anteproyecto en general ya tiene un estado final (APROBADO o NO_APROBADO)', () => {
-      mockContext.isJefe = true;
-      mockContext.preliminaryDraft.state = stateList.APROBADO;
-      mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.APROBADO);
-
-      const result = PresentacionesTabConfig.getHeaderButtons(
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0].disabled).toBeTruthy();
-    });
-
-    it('debería retornar el botón habilitado para el Jefe si el anteproyecto está aprobado, no está finalizado globalmente, y no hay presentaciones pendientes', () => {
-      mockContext.isJefe = true;
-      mockContext.preliminaryDraft.state = stateList.EN_REVISION;
-
-      mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.APROBADO);
-
-      mockContext.preliminaryDraft.documents = [
-        createMockDocument({ id: 'doc-anteproyecto-1', type: DocumentType.ANTEPROYECTO })
-      ];
-
-      const result = PresentacionesTabConfig.getHeaderButtons(
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0].disabled).toBeFalsy();
+    it('otros roles o un anteproyecto archivado no tienen el botón', () => {
+      expect(PresentacionesTabConfig.getHeaderButtons(createMockContext({ isAdmin: true }), servicio)).toEqual([]);
+      const archivado = createMockContext({ isJefe: true, preliminaryDraft: createMockPreliminaryDraft({ isArchived: true }) });
+      expect(PresentacionesTabConfig.getHeaderButtons(archivado, servicio)).toEqual([]);
     });
   });
 });

@@ -276,7 +276,7 @@ describe('ReviewPreliminaryDraftFormFacadeService', () => {
 
     it('debería incluir el archivo anotado en el payload si está disponible', () => {
       const mockAnnotatedFile = new File([''], 'anotado.pdf');
-      facade.evaluationForm.patchValue({ result: 'No aprobado', comments: 'Requiere ajustes' });
+      facade.evaluationForm.patchValue({ result: 'Requiere correcciones', comments: 'Requiere ajustes' });
       facade.uploadedSignedFile.set(mockEvent);
       facade.uploadedAnnotatedFile.set({ fileName: 'anotado.pdf', file: mockAnnotatedFile });
 
@@ -284,7 +284,8 @@ describe('ReviewPreliminaryDraftFormFacadeService', () => {
 
       expect(payload).toEqual({
         formValues: {
-          result: stateList.NO_APROBADO,
+          // El anteproyecto no se rechaza: "Requiere correcciones" (CON_CORRECCIONES en el backend)
+          result: stateList.APROBADO_CON_OBSERVACIONES,
           comments: 'Requiere ajustes'
         },
         file: mockFile,

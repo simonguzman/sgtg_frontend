@@ -16,4 +16,6 @@ export interface PreliminaryDraft extends Archivable {
   createdData: Date;
   evaluationDeadline?: Date | string;
   maximumDeliveryDate?: Date | string;
+  /** Documento del anteproyecto elegido en el formulario (aún no enviado al backend) */
+  attachment?: File | null;
 }

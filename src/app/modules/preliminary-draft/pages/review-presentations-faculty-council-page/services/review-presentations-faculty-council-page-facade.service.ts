@@ -1,27 +1,21 @@
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { FormattedDocument } from '../../../../../core/interfaces/formatted-document.interface';
-import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
-import { UserService } from '../../../../users/services/user.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
-import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
-import { formatDisplayDate, parseDisplayDate } from '../../../../../core/utils/date-utils';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { SaveEvaluationPayload } from '../../../components/review-presentations-faculty-council-form/models/council-evaluation.model';
 
 @Injectable()
 export class ReviewPresentationsFacultyCouncilPageFacadeService {
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
-  private readonly authService = inject(AuthService);
-  private readonly userService = inject(UserService);
   private readonly notification = inject(NotificationService);
   private readonly downloadService = inject(FileDownloadService);
   private readonly route = inject(ActivatedRoute);
@@ -38,7 +32,7 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
 
     const revisionHistoryVersion = [...preliminaryDraft.documents]
       .filter((document) => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION)
-      .sort((a, b) => parseDisplayDate(b.uploadDate).getTime() - parseDisplayDate(a.uploadDate).getTime());
+      .sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
 
     const activeRevisionId = revisionHistoryVersion[0]?.id;
     const currentIterationEvaluations = preliminaryDraft.evaluations?.filter(
@@ -102,48 +96,12 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
     }
 
     const finalState = data.formValues.result === stateList.APROBADO ? stateList.APROBADO : stateList.NO_APROBADO;
-    const presentationDoc = preliminaryDraft.documents.find((document) => document.type === DocumentType.FORMATO_C);
-
-    let resolutionFileUrl: string;
-    try {
-      resolutionFileUrl = await readFileAsDataUrl(data.file);
-    } catch (err) {
-      console.error('Error leyendo el archivo de resolución:', err);
-      this.showFileReadErrorNotification();
-      return;
-    }
-
-    const resolutionDoc: FileDocument = {
-      id: crypto.randomUUID(),
-      name: data.file.name,
-      url: resolutionFileUrl,
-      uploadDate: formatDisplayDate(new Date()),
-      type: DocumentType.RESOLUCION,
-      status: finalState
-    };
-
-    const currentUser = this.authService.currentUser();
-    const currentUserName = currentUser ? this.userService.getUserFullName(currentUser.id) : 'Consejo de Facultad';
-
-    const councilEvaluation: Evaluation = {
-      id: crypto.randomUUID(),
-      documentId: presentationDoc?.id || '',
-      proposalId: preliminaryDraft.preliminaryDraftId,
-      evaluatorId: currentUser?.id || '',
-      evaluatorName: currentUserName,
-      evaluatorRole: 'Consejo de facultad',
-      veredict: finalState,
-      observations: data.formValues.comments || 'Sin observaciones adicionales.',
-      date: new Date(),
-      signedDocuments: [{ name: resolutionDoc.name, url: resolutionFileUrl }]
-    };
-
-    this.preliminaryDraftService.uploadCouncilResolution(
+    // La fecha máxima de entrega la calcula el backend al aprobar (plazo de la modalidad)
+    this.preliminaryDraftService.registerCouncilDecision(
         preliminaryDraft.preliminaryDraftId,
-        resolutionDoc,
         finalState,
-        councilEvaluation,
-        data.formValues.maximumDeliveryDate ?? undefined
+        data.formValues.comments ?? '',
+        data.file
       )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -152,7 +110,7 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
           this.isConfirmModalOpen.set(false);
           this.router.navigate(['../../'], { relativeTo: this.route });
         },
-        error: () => this.showSaveErrorNotification()
+        error: (err) => this.showSaveErrorNotification(err)
       });
   }
 
@@ -181,14 +139,14 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
   private showSuccessNotification(): void {
     this.notification.show({ title: 'Decisión Guardada', message: 'Se ha registrado la resolución del consejo de facultad exitosamente.', type: NotificationType.CONFIRMATION });
   }
-  private showSaveErrorNotification(): void {
-    this.notification.show({ title: 'Error al guardar', message: 'No se pudo registrar la decisión debido a un problema técnico.', type: NotificationType.ERROR });
+  private showSaveErrorNotification(err?: unknown): void {
+    this.notification.show({
+      title: 'Error al guardar',
+      message: apiErrorMessage(err, 'No se pudo registrar la decisión debido a un problema técnico.'),
+      type: NotificationType.ERROR
+    });
   }
   private showValidationErrorNotification(): void {
     this.notification.show({ title: 'Error de validación', message: 'Faltan datos críticos para procesar la resolución.', type: NotificationType.ERROR });
-  }
-
-  private showFileReadErrorNotification(): void {
-    this.notification.show({ title: 'Error al leer el archivo', message: 'No se pudo procesar el documento de resolución adjuntado.', type: NotificationType.ERROR });
   }
 }

@@ -4,10 +4,9 @@ import { Observable } from 'rxjs';
 import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
 import { PreliminaryDraftApiService } from './preliminary-draft-api.service';
 import { PreliminaryDraftAssignmentService } from './preliminary-draft-assignment.service';
-import { PreliminaryDraftDocumentService } from './preliminary-draft-document.service';
+import { PreliminaryDraftDocumentService, ResultadoConceptoEvaluador } from './preliminary-draft-document.service';
 
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
-import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
 import { stateList } from '../../../core/enums/state.enum';
@@ -53,32 +52,39 @@ export class PreliminaryDraftService {
     preliminaryDraftId: string,
     evaluatorsIds: string[]
   ): Observable<void> {
-    return this.assignment.assignReviewersMock(preliminaryDraftId, evaluatorsIds);
+    return this.assignment.assignReviewers(preliminaryDraftId, evaluatorsIds);
   }
 
   // ── Documentos y evaluaciones ──────────────────────────────────────────────
-  addEvaluation(
+  /** Concepto de un evaluador (APROBADO o CON_CORRECCIONES) con el formato B y anotaciones opcionales. */
+  registerEvaluatorConcept(
     preliminaryDraftId: string,
-    evaluation: Evaluation
-  ): Observable<void> {
-    return this.document.addEvaluationMock(preliminaryDraftId, evaluation);
+    resultado: ResultadoConceptoEvaluador,
+    observaciones: string,
+    formatoB: File | null,
+    anotaciones?: File | null
+  ): Observable<PreliminaryDraft> {
+    return this.document.registerEvaluatorConcept(preliminaryDraftId, resultado, observaciones, formatoB, anotaciones);
   }
 
-  uploadDocument(
-    preliminaryDraftId: string,
-    document: FileDocument
-  ): Observable<void> {
-    return this.document.uploadDocumentMock(preliminaryDraftId, document);
+  /** Nueva versión del anteproyecto tras las correcciones. */
+  uploadCorrection(preliminaryDraftId: string, file: File): Observable<PreliminaryDraft> {
+    return this.document.uploadCorrection(preliminaryDraftId, file);
   }
 
-  uploadCouncilResolution(
-    id: string,
-    document: FileDocument,
-    state: stateList,
-    evaluation: Evaluation,
-    maximumDeliveryDate?: Date | string
-  ): Observable<PreliminaryDraft | undefined> {
-    return this.document.uploadCouncilResolutionMock(id, document, state, evaluation, maximumDeliveryDate);
+  /** El Jefe de departamento remite al Consejo con el formato C. */
+  uploadCouncilPresentation(preliminaryDraftId: string, file: File): Observable<PreliminaryDraft> {
+    return this.document.uploadCouncilPresentation(preliminaryDraftId, file);
+  }
+
+  /** Decisión del Consejo de Facultad con la resolución. */
+  registerCouncilDecision(
+    preliminaryDraftId: string,
+    veredict: stateList,
+    observaciones: string,
+    resolucion: File
+  ): Observable<PreliminaryDraft> {
+    return this.document.registerCouncilDecision(preliminaryDraftId, veredict, observaciones, resolucion);
   }
 
   calculateDocumentStatus(

@@ -12,6 +12,7 @@ import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { User } from '../../../../users/interfaces/user.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
+import { DocumentType } from '../../../../../core/enums/document-type.enum';
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -30,8 +31,11 @@ const createMockProposalData = (overrides: Partial<ProposalData> = {}): Proposal
 const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => {
   const base: Partial<PreliminaryDraft> = {
     preliminaryDraftId: 'draft-123',
-    state: stateList.EN_REVISION,
-    proposalData: createMockProposalData(),
+    state: stateList.APROBADO_CON_OBSERVACIONES,
+    proposalData: createMockProposalData({ director: createMockUser({ id: 'user-1' }) }),
+    // Versión vigente con correcciones: el director puede radicar una nueva
+    documents: [{ id: 'v1', name: 'anteproyecto', url: '/a', uploadDate: '09 - 03 - 2026',
+      type: DocumentType.ANTEPROYECTO, version: 1, status: stateList.APROBADO_CON_OBSERVACIONES }],
     ...overrides
   };
   return base as PreliminaryDraft;
@@ -119,17 +123,33 @@ describe('PreliminaryDraftEditPageService', () => {
       expect(service.preliminaryDraftToEdit()).toEqual(mockDraft);
     });
 
-    it('debería setear la data si el usuario es ADMIN (incluso si no es el dueño)', () => {
+    it('no permite cargar una versión mientras la vigente está en revisión', () => {
+      const mockDraft = createMockDraft({
+        documents: [{ id: 'v1', name: 'anteproyecto', url: '/a', uploadDate: '09 - 03 - 2026',
+          type: DocumentType.ANTEPROYECTO, version: 1, status: stateList.EN_REVISION }]
+      });
+      mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
+
+      service.init();
+
+      expect(service.preliminaryDraftToEdit()).toBeNull();
+      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'El anteproyecto solo se corrige cuando los evaluadores piden correcciones o el Consejo no lo aprueba.'
+      }));
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/preliminary-draft']);
+    });
+
+    it('debería redirigir aunque sea ADMIN si no es el director', () => {
       const mockDraft = createMockDraft({
         proposalData: createMockProposalData({ director: createMockUser({ id: 'other-user' }) })
       });
-
       mockPreliminaryDraftService.getPreliminaryDraftById.mockReturnValue(of(mockDraft));
       mockAuthService.hasAnyRole.mockReturnValue(true);
 
       service.init();
 
-      expect(service.preliminaryDraftToEdit()).toEqual(mockDraft);
+      expect(service.preliminaryDraftToEdit()).toBeNull();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/preliminary-draft']);
     });
 
     it('debería redirigir y mostrar error si el usuario NO es dueño ni ADMIN', () => {

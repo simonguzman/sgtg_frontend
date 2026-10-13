@@ -1,5 +1,5 @@
 import {
-  CalificacionApi, DecisionApi, DocumentoApi, EstadoApi, ETAPAS_FINALES, ProcesoApi, ResultadoConceptoApi,
+  CalificacionApi, DecisionApi, DocumentoApi, EstadoApi, VersionDocumentoApi, ETAPAS_FINALES, ProcesoApi, ResultadoConceptoApi,
   TrabajoGradoResponse
 } from '../interfaces/api/trabajo-grado-api.interface';
 import { stateList } from '../enums/state.enum';
@@ -71,13 +71,24 @@ export function aPropuesta(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): P
   };
 }
 
-/** @returns el anteproyecto, o null si la propuesta aún no está aprobada */
+/**
+ * @returns el anteproyecto, o null si la propuesta aún no está aprobada o el
+ * director todavía no radica su primera versión (aún no está registrado)
+ */
 export function aAnteproyecto(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): PreliminaryDraft | null {
-  if (estadoActualPropuesta(trabajo) !== 'APROBADO') return null;
+  if (estadoActualPropuesta(trabajo) !== 'APROBADO' || trabajo.anteproyecto.versiones.length === 0) return null;
   const id = String(trabajo.id);
   const anteproyecto = trabajo.anteproyecto;
   const documentos = [
-    ...anteproyecto.versiones.map(v => aDocumento(trabajo.id, v, ctx, DocumentType.ANTEPROYECTO)),
+    ...anteproyecto.versiones.map(v => ({
+      ...aDocumento(trabajo.id, v, ctx, DocumentType.ANTEPROYECTO),
+      status: estadoDeEntrega(v.estado)
+    })),
+    // Formato C de cada remisión al Consejo, con el estado de su decisión
+    ...anteproyecto.remisiones.map(remision => ({
+      ...aDocumento(trabajo.id, remision, ctx, DocumentType.FORMATO_C),
+      status: estadoRemision(trabajo, remision.version)
+    })),
     ...anteproyecto.decisionesConsejo
       .filter(decision => decision.rutaArchivo)
       .map(decision => aDocumentoDeRuta(trabajo.id, decision.rutaArchivo!, decision.fecha, ctx, DocumentType.RESOLUCION))
@@ -97,7 +108,9 @@ export function aAnteproyecto(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo)
         evaluatorRole: UserRoleType.EVALUADOR,
         veredict: veredicto(concepto.resultado),
         observations: concepto.observaciones ?? '',
-        signedDocuments: concepto.formato ? [aDocumentoFirmado(trabajo.id, concepto.formato.ruta, ctx)] : [],
+        signedDocuments: [concepto.formato, concepto.anotaciones]
+          .filter((documento): documento is DocumentoApi => !!documento)
+          .map(documento => aDocumentoFirmado(trabajo.id, documento.ruta, ctx)),
         date: aFecha(concepto.fecha) ?? new Date()
       })),
       ...anteproyecto.decisionesConsejo.map((decision, i) => evaluacionDeDecision(trabajo, decision, i, ctx))
@@ -142,7 +155,11 @@ export function estaCerrado(trabajo: TrabajoGradoResponse): boolean {
 
 /** Estado del backend de la propuesta: el de su última versión, null si aún no se radica. */
 export function estadoActualPropuesta(trabajo: TrabajoGradoResponse): EstadoApi | null {
-  const versiones = trabajo.propuesta.versiones;
+  return ultimoEstado(trabajo.propuesta.versiones);
+}
+
+/** Estado de la última versión radicada, null si no hay ninguna. */
+function ultimoEstado(versiones: VersionDocumentoApi[]): EstadoApi | null {
   return versiones.length > 0 ? versiones[versiones.length - 1].estado : null;
 }
 
@@ -160,8 +177,23 @@ export function estadoPropuesta(trabajo: TrabajoGradoResponse): stateList {
 export function estadoAnteproyecto(trabajo: TrabajoGradoResponse): stateList {
   if (trabajo.ejecucion) return stateList.APROBADO;
   if (trabajo.etapa === 'APROBACION_CONSEJO') return stateList.EVALUADO;
+  // Aprobado por ambos evaluadores, pendiente de que el Jefe lo remita al Consejo
+  if (trabajo.etapa === 'EVALUACION' && ultimoEstado(trabajo.anteproyecto.versiones) === 'APROBADO') {
+    return stateList.EVALUADO;
+  }
   if (trabajo.etapa === 'CANCELADO') return stateList.CANCELADO;
-  return estadoDeEntrega(trabajo.anteproyecto.estado);
+  return estadoDeEntrega(ultimoEstado(trabajo.anteproyecto.versiones));
+}
+
+/**
+ * Estado de la remisión al Consejo de una versión: en revisión mientras el
+ * Consejo no decide; aprobada o no aprobada según su decisión.
+ */
+function estadoRemision(trabajo: TrabajoGradoResponse, version: number): stateList {
+  const remitida = trabajo.anteproyecto.versiones.find(v => v.version === version);
+  if (remitida?.estado === 'NO_APROBADO') return stateList.NO_APROBADO;
+  if (remitida?.estado === 'APROBADO' && trabajo.ejecucion) return stateList.APROBADO;
+  return stateList.EN_REVISION;
 }
 
 /** Estado del trabajo de grado según su etapa. */

@@ -6,7 +6,7 @@ import { CatalogItem } from '../../interfaces/catalog-item.interface';
 import { UserRole } from '../../../../core/models/user-role';
 import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { IdentificationType } from '../../enum/identification-type.enum';
-import { CONTRACT_TYPE_LABELS } from '../../enum/contract-type.enum';
+import { CONTRACT_TYPE_LABELS, ContractType } from '../../enum/contract-type.enum';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { RolesSelectionModalComponent } from '../../../../shared/components/modals/roles/roles-selection-modal/roles-selection-modal.component';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
@@ -151,9 +151,10 @@ export class UserFormComponent  {
   get contractTypeDescription(): string {
     const contractType = contractTypeForRoles(this.userForm.controls.roles.value);
     if (!contractType) return '';
-    const requiresCodirector = this.userForm.controls.roles.value.includes(UserRoleType.CODIRECTOR)
-      ? 'no requiere codirector'
-      : 'requiere un codirector de planta del mismo departamento al dirigir';
+    // Solo el docente ocasional necesita un codirector de planta (Art. 6)
+    const requiresCodirector = contractType === ContractType.OCASIONAL
+      ? 'requiere un codirector de planta del mismo departamento al dirigir'
+      : 'no requiere codirector';
     return `${CONTRACT_TYPE_LABELS[contractType]} (${requiresCodirector})`;
   }
 

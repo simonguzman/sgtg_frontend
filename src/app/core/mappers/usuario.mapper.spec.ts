@@ -92,8 +92,14 @@ describe('vinculación según los roles', () => {
     expect(contractTypeForRoles([UserRoleType.DOCENTE, UserRoleType.DIRECTOR])).toBe(ContractType.OCASIONAL);
   });
 
+  it('con rol JEFE_DEP es de planta y exige el departamento', () => {
+    expect(contractTypeForRoles([UserRoleType.DOCENTE, UserRoleType.JEFE_DEP])).toBe(ContractType.PLANTA);
+    expect(contractTypeForRoles([UserRoleType.JEFE_DEP, UserRoleType.DIRECTOR])).toBe(ContractType.PLANTA);
+    expect(requiresDepartment([UserRoleType.JEFE_DEP])).toBe(true);
+  });
+
   it('con otros roles no hay perfil docente', () => {
-    expect(contractTypeForRoles([UserRoleType.DOCENTE, UserRoleType.JEFE_DEP, UserRoleType.EVALUADOR])).toBeNull();
+    expect(contractTypeForRoles([UserRoleType.DOCENTE, UserRoleType.EVALUADOR])).toBeNull();
     expect(requiresDepartment([UserRoleType.DOCENTE])).toBe(false);
     expect(requiresDepartment([UserRoleType.DIRECTOR])).toBe(true);
   });
@@ -106,7 +112,7 @@ describe('vinculación según los roles', () => {
 
 describe('mapUserToUsuarioRequest', () => {
   it('envía claves del backend, texto en código y documento, y null en lo opcional vacío', () => {
-    expect(mapUserToUsuarioRequest(user({ roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] }))).toEqual({
+    expect(mapUserToUsuarioRequest(user({ roles: [UserRoleType.DOCENTE, UserRoleType.EVALUADOR] }))).toEqual({
       codigo: '104618021',
       tipoDocumento: 'CC',
       numeroDocumento: '1061000000',
@@ -116,7 +122,7 @@ describe('mapUserToUsuarioRequest', () => {
       segundoNombre: null,
       primerApellido: 'Pérez',
       segundoApellido: 'Gómez',
-      roles: ['DOCENTE', 'JEFE_DEP'],
+      roles: ['DOCENTE', 'EVALUADOR'],
       tipoVinculacion: null,
       departamentoId: null,
       programaId: null
@@ -126,6 +132,12 @@ describe('mapUserToUsuarioRequest', () => {
   it('un director lleva vinculación ocasional y su departamento', () => {
     const request = mapUserToUsuarioRequest(user({ roles: [UserRoleType.DOCENTE, UserRoleType.DIRECTOR] }));
     expect(request.tipoVinculacion).toBe('OCASIONAL');
+    expect(request.departamentoId).toBe(3);
+  });
+
+  it('un jefe de departamento lleva vinculación de planta y su departamento', () => {
+    const request = mapUserToUsuarioRequest(user({ roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] }));
+    expect(request.tipoVinculacion).toBe('PLANTA');
     expect(request.departamentoId).toBe(3);
   });
 

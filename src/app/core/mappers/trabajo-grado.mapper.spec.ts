@@ -2,7 +2,9 @@ import {
   aAnteproyecto, aFecha, aPropuesta, aTrabajoDeGrado, aUsuario, ContextoMapeo, estadoAnteproyecto, estadoTrabajo,
   nombreDeRuta, tipoDocumento, veredicto
 } from './trabajo-grado.mapper';
-import { crearTrabajoDePrueba, crearTrabajoEnAnteproyecto, crearTrabajoEnCurso } from '../../testing/trabajo-grado-de-prueba';
+import {
+  crearTrabajoConAnteproyectoRadicado, crearTrabajoDePrueba, crearTrabajoEnAnteproyecto, crearTrabajoEnCurso
+} from '../../testing/trabajo-grado-de-prueba';
 import { stateList } from '../enums/state.enum';
 import { DocumentType } from '../enums/document-type.enum';
 import { UserRoleType } from '../enums/user-role-type.enum';
@@ -113,13 +115,18 @@ describe('trabajo-grado.mapper', () => {
       expect(aAnteproyecto(crearTrabajoDePrueba(), ctx)).toBeNull();
     });
 
-    it('existe con la propuesta aprobada y comparte el id del trabajo', () => {
-      const anteproyecto = aAnteproyecto(crearTrabajoEnAnteproyecto(), ctx)!;
+    it('no existe hasta que el director radica la primera versión', () => {
+      expect(aAnteproyecto(crearTrabajoEnAnteproyecto(), ctx)).toBeNull();
+    });
+
+    it('existe con la primera versión radicada y comparte el id del trabajo', () => {
+      const anteproyecto = aAnteproyecto(crearTrabajoConAnteproyectoRadicado(), ctx)!;
       expect(anteproyecto.preliminaryDraftId).toBe('15');
       expect(anteproyecto.proposalId).toBe('15');
       expect(anteproyecto.proposalData.id).toBe('15');
       expect(anteproyecto.state).toBe(stateList.EN_REVISION);
-      expect(anteproyecto.createdData).toEqual(new Date('2026-03-05T10:00:00'));
+      // Fecha de radicación de la primera versión
+      expect(anteproyecto.createdData).toEqual(new Date(2026, 2, 9));
     });
 
     it('incluye evaluadores, conceptos con su formato B y la resolución del Consejo', () => {
@@ -133,7 +140,10 @@ describe('trabajo-grado.mapper', () => {
         signedDocuments: [expect.objectContaining({ name: 'formato-b' })]
       }));
       expect(anteproyecto.evaluations[2].evaluatorRole).toBe(UserRoleType.CONSEJO);
-      expect(anteproyecto.documents.map(d => d.type)).toEqual([DocumentType.ANTEPROYECTO, DocumentType.RESOLUCION]);
+      expect(anteproyecto.documents.map(d => d.type))
+        .toEqual([DocumentType.ANTEPROYECTO, DocumentType.FORMATO_C, DocumentType.RESOLUCION]);
+      // La remisión aprobada por el Consejo
+      expect(anteproyecto.documents[1]).toEqual(expect.objectContaining({ version: 1, status: stateList.APROBADO }));
       expect(anteproyecto.maximumDeliveryDate).toEqual(new Date(2026, 11, 20));
     });
   });
@@ -173,10 +183,47 @@ describe('trabajo-grado.mapper', () => {
       expect(estadoAnteproyecto(crearTrabajoEnAnteproyecto({ etapa: 'APROBACION_CONSEJO' }))).toBe(stateList.EVALUADO);
     });
 
-    it('el anteproyecto con correcciones se muestra como aprobado con observaciones', () => {
-      const conCorrecciones = crearTrabajoEnAnteproyecto();
-      conCorrecciones.anteproyecto.estado = 'CON_CORRECCIONES';
+    it('aprobado por los evaluadores queda "Evaluado" mientras el Jefe no lo remite; la remisión queda en revisión', () => {
+      const base = crearTrabajoEnCurso();
+      const aprobado = crearTrabajoEnCurso({ etapa: 'EVALUACION', ejecucion: null,
+        anteproyecto: { ...base.anteproyecto, decisionesConsejo: [], remisiones: [] } });
+      expect(estadoAnteproyecto(aprobado)).toBe(stateList.EVALUADO);
+
+      const remitido = crearTrabajoEnCurso({ etapa: 'APROBACION_CONSEJO', ejecucion: null,
+        anteproyecto: { ...base.anteproyecto, decisionesConsejo: [] } });
+      expect(aAnteproyecto(remitido, ctx)?.documents.find(d => d.type === DocumentType.FORMATO_C)?.status)
+        .toBe(stateList.EN_REVISION);
+    });
+
+    it('el concepto incluye el documento de anotaciones del evaluador', () => {
+      const base = crearTrabajoEnCurso();
+      const conAnotaciones = crearTrabajoEnCurso({
+        anteproyecto: { ...base.anteproyecto, conceptos: [{ ...base.anteproyecto.conceptos[0],
+          anotaciones: { tipo: 'ANOTACIONES_EVALUACION', formato: null, ruta: '15/ANOTACIONES_EVALUACION/v1/notas.pdf',
+            version: 1, fechaCarga: '2026-03-12' } }] }
+      });
+      expect(aAnteproyecto(conAnotaciones, ctx)?.evaluations[0].signedDocuments?.map(d => d.name))
+        .toEqual(['formato-b', 'notas']);
+    });
+
+    it('el estado del anteproyecto es el de su última versión', () => {
+      const base = crearTrabajoEnAnteproyecto();
+      const version = { tipo: 'ANTEPROYECTO', formato: null, ruta: '15/ANTEPROYECTO/v1/a.pdf', version: 1,
+        fechaCarga: '2026-03-10' };
+      const conCorrecciones = crearTrabajoEnAnteproyecto({
+        anteproyecto: { ...base.anteproyecto, versiones: [{ ...version, estado: 'CON_CORRECCIONES' }] }
+      });
       expect(estadoAnteproyecto(conCorrecciones)).toBe(stateList.APROBADO_CON_OBSERVACIONES);
+
+      const enRevision = crearTrabajoEnAnteproyecto({
+        anteproyecto: { ...base.anteproyecto, versiones: [
+          { ...version, estado: 'CON_CORRECCIONES' },
+          { ...version, ruta: '15/ANTEPROYECTO/v2/a.pdf', version: 2, estado: 'EN_REVISION' }
+        ] }
+      });
+      expect(estadoAnteproyecto(enRevision)).toBe(stateList.EN_REVISION);
+      expect(aAnteproyecto(enRevision, ctx)?.documents.map(documento => documento.status))
+        .toEqual([stateList.APROBADO_CON_OBSERVACIONES, stateList.EN_REVISION]);
     });
 
     it('veredictos', () => {

@@ -1,20 +1,19 @@
 import { inject, Injectable } from '@angular/core';
-import { delay, first, Observable, of, tap } from 'rxjs';
-import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
+import { map, Observable, tap } from 'rxjs';
 import { UserService } from '../../users/services/user.service';
+import { TrabajoGradoApiService } from '../../../core/services/trabajo-grado/trabajo-grado-api.service';
+import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
+import { TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado-api.interface';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
-import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-import { User } from '../../users/interfaces/user.interface';
-import { stateList } from '../../../core/enums/state.enum';
-import { addBusinessDays } from '../../../core/utils/date-utils';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
 
 @Injectable({ providedIn: 'root' })
 export class PreliminaryDraftAssignmentService {
-  private readonly storage     = inject(PreliminaryDraftStorageService);
   private readonly userService = inject(UserService);
   private readonly eventBus    = inject(EventBusService);
+  private readonly api         = inject(TrabajoGradoApiService);
+  private readonly store       = inject(TrabajoGradoStoreService);
 
   public validateReviewersRules(
     originalProposal: Proposal,
@@ -43,59 +42,36 @@ export class PreliminaryDraftAssignmentService {
     return null;
   }
 
-  public assignReviewersMock(
+  /**
+   * Asigna los dos evaluadores (`POST /{id}/anteproyecto/evaluadores`). El
+   * backend valida el departamento del jefe, les agrega el rol EVALUADOR y el
+   * trabajo pasa a evaluación con el plazo de 10 días hábiles.
+   */
+  public assignReviewers(
     preliminaryDraftId: string,
     evaluatorsIds: string[]
   ): Observable<void> {
-    return of(undefined).pipe(
-      delay(800),
-      tap(() => {
-        // ← FIX: mismo bug — forEach descartaba el Observable sin suscribirse.
-        // Es la causa raíz de "los evaluadores no quedan con el rol asignado".
-        evaluatorsIds.forEach(id =>
-          this.userService.addRoleToUser(id, UserRoleType.EVALUADOR)
-            .pipe(first())
-            .subscribe()
-        );
-
-        const evaluatorUsers = evaluatorsIds
-          .map(id => this.userService.users().find(user => user.id === id))
-          .filter((user): user is User => !!user);
-
-        const deadline = addBusinessDays(new Date(), 10);
-        let currentDraftTitle = '';
-        const notifyUserIds: string[] = [...evaluatorsIds];
-
-        this.storage.updateDraft(preliminaryDraftId, (preliminaryDraft) => {
-          const proposal = preliminaryDraft.proposalData;
-          if (proposal) {
-            currentDraftTitle = proposal.title || '';
-            proposal.authors?.forEach(author => {
-              const id = typeof author === 'string' ? author : author?.id;
-              if (id) notifyUserIds.push(id);
-            });
-            if (proposal.director?.id)   notifyUserIds.push(proposal.director.id);
-            if (proposal.codirector?.id) notifyUserIds.push(proposal.codirector.id);
-            if (proposal.advisor?.id)    notifyUserIds.push(proposal.advisor.id);
-          }
-          return {
-            ...preliminaryDraft,
-            evaluators: evaluatorUsers,
-            state: stateList.EN_REVISION,
-            evaluationDeadline: deadline
-          };
-        });
-
-        this.eventBus.emit({
-          type: AppEventType.REVIEWERS_ASSIGNED,
-          targetUserIds: [...new Set(notifyUserIds)],
-          payload: {
-            preliminaryDraftId,
-            evaluators: evaluatorsIds,
-            preliminaryDraftTitle: currentDraftTitle
-          }
-        });
-      })
+    const [evaluador1Id, evaluador2Id] = evaluatorsIds.map(id => Number(id));
+    return this.api.enviarJson(preliminaryDraftId, 'anteproyecto/evaluadores', { evaluador1Id, evaluador2Id }).pipe(
+      tap(trabajo => {
+        this.store.upsert(trabajo);
+        // Los evaluadores ganaron el rol EVALUADOR: se refresca la lista de usuarios
+        this.userService.loadUsers();
+        this.notificarAsignacion(trabajo, preliminaryDraftId, evaluatorsIds);
+      }),
+      map(() => undefined)
     );
+  }
+
+  private notificarAsignacion(trabajo: TrabajoGradoResponse, preliminaryDraftId: string, evaluatorsIds: string[]): void {
+    const ids = new Set<string>(evaluatorsIds);
+    trabajo.estudiantes.forEach(estudiante => ids.add(String(estudiante.usuarioId)));
+    [trabajo.director, trabajo.codirector].forEach(docente => { if (docente) ids.add(String(docente.usuarioId)); });
+    if (trabajo.asesor?.usuarioId) ids.add(String(trabajo.asesor.usuarioId));
+    this.eventBus.emit({
+      type: AppEventType.REVIEWERS_ASSIGNED,
+      targetUserIds: Array.from(ids),
+      payload: { preliminaryDraftId, evaluators: evaluatorsIds, preliminaryDraftTitle: trabajo.titulo }
+    });
   }
 }

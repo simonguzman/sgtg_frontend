@@ -12,6 +12,7 @@ import { FileDocument } from '../../../../../core/interfaces/file-document.inter
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { PreliminaryDraftEvaluationContext, PreliminaryDraftTabConfiguration } from '../tabs-logic/tab-config.interface';
 import { AnteproyectosTabConfig } from '../tabs-logic/anteproyectos.tab';
 import { PresentacionesTabConfig } from '../tabs-logic/presentaciones.tab';
@@ -81,8 +82,14 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
       isAssignedEvaluator: preliminaryDraft?.evaluators?.some((evaluation: { id: string }) => evaluation.id === user?.id) ?? false,
       isConsejoMember: this.authService.hasAnyRole([UserRoleType.CONSEJO]),
       totalEvaluatorsCount: preliminaryDraft?.evaluators?.length || 0,
-      latestAnteproyectoId: documents.find(document => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION)?.id,
-      latestPresentacionId: documents.find(document => document.type === DocumentType.FORMATO_C)?.id
+      // Versión vigente del anteproyecto: la de mayor número de versión
+      latestAnteproyectoId: documents
+        .filter(document => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION)
+        .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0]?.id,
+      // Remisión vigente: la de la versión más reciente
+      latestPresentacionId: documents
+        .filter(document => document.type === DocumentType.FORMATO_C)
+        .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0]?.id
     };
     return this.currentStrategy().enrichEvaluationContext(baseContext);
   });
@@ -159,29 +166,22 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
 
     this.showProcessingNotification();
 
-    let newDocumentRecord: FileDocument;
-    try {
-      newDocumentRecord = await this.mapperService.buildNewDocumentRecord(
-        selectedFileData.fileName,
-        selectedFileData.file,
-        this.currentStrategy().modalConfig.uploadDocumentType
-      );
-    } catch (err) {
-      console.error('Error leyendo el archivo seleccionado:', err);
-      this.showErrorReadingFileNotification();
-      return;
-    }
+    // Corrección = nueva versión del anteproyecto; formato C = presentación al Consejo
+    const esFormatoC = this.currentStrategy().modalConfig.uploadDocumentType === DocumentType.FORMATO_C;
+    const carga = esFormatoC
+      ? this.preliminaryDraftService.uploadCouncilPresentation(preliminaryDraft.preliminaryDraftId, selectedFileData.file)
+      : this.preliminaryDraftService.uploadCorrection(preliminaryDraft.preliminaryDraftId, selectedFileData.file);
 
-    this.preliminaryDraftService.uploadDocument(preliminaryDraft.preliminaryDraftId, newDocumentRecord)
+    carga
       .pipe(first())
       .subscribe({
         next: () => {
           this.showSuccessNotification();
           this.cancelUpload();
         },
-        error: (err) => {
-          console.error('Error en carga:', err);
-          this.showErrorNotification();
+        error: (err: unknown) => {
+          this.showNotification('Error de carga',
+            apiErrorMessage(err, 'No se pudo cargar el documento. Intente nuevamente.'), NotificationType.ERROR);
         }
       });
   }
@@ -217,14 +217,6 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
 
   private showSuccessNotification(): void {
     this.showNotification('¡Carga exitosa!', 'El nuevo documento ha sido registrado y está disponible para revisión.', NotificationType.CONFIRMATION);
-  }
-
-  private showErrorNotification(): void {
-    this.showNotification('Error de carga', 'No se pudo completar la subida del archivo. Por favor, intente de nuevo.', NotificationType.ERROR);
-  }
-
-  private showErrorReadingFileNotification(): void {
-    this.showNotification('Error al leer el archivo', 'No se pudo procesar el archivo seleccionado. Intente con otro archivo.', NotificationType.ERROR);
   }
 
   private showRestrictedActionNotification(): void {

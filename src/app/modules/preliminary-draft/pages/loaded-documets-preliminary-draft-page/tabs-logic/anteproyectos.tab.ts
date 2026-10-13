@@ -2,17 +2,17 @@ import { TableButton } from '../../../../../shared/components/table-component/ta
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { PreliminaryDraftTabConfiguration, PreliminaryDraftEvaluationContext } from './tab-config.interface';
+import { anteproyectoCorregible, versionesDelAnteproyecto } from '../../../services/preliminary-draft-rules';
 import { stateList } from '../../../../../core/enums/state.enum';
-import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
-import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 
 export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
   tabValue: 'ANTEPROYECTOS',
 
   columns: [
-    { field: 'name', header: 'Nombre de archivo', type: 'text', width: '35%' },
+    { field: 'name', header: 'Nombre de archivo', type: 'text', width: '30%' },
+    { field: 'version', header: 'Versión', type: 'text', width: '10%' },
     { field: 'uploadDate', header: 'Fecha de carga', type: 'text', width: '20%' },
-    { field: 'status', header: 'Estado', type: 'state', width: '20%' },
+    { field: 'status', header: 'Estado', type: 'state', width: '15%' },
     {
       field: 'acciones', header: 'Acciones', type: 'actions', width: '25%',
       actions: [
@@ -26,41 +26,28 @@ export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
     return { ...baseContext };
   },
 
-  getTableData: (documents: FileDocument[], context: PreliminaryDraftEvaluationContext, preliminaryDraftService: PreliminaryDraftService) => {
-    const { preliminaryDraft, currentUser, isAdmin, isAssignedEvaluator, totalEvaluatorsCount, latestAnteproyectoId } = context;
+  /**
+   * Versiones del anteproyecto, de la más reciente a la más antigua, con el
+   * estado de la revisión que envía el backend para cada una. Solo un evaluador
+   * asignado que aún no concepta evalúa la versión vigente en revisión.
+   */
+  getTableData: (documents: FileDocument[], context: PreliminaryDraftEvaluationContext) => {
+    const { preliminaryDraft, currentUser, isAssignedEvaluator, latestAnteproyectoId } = context;
 
-    const filteredDocs = documents.filter(document => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION);
-
-    return filteredDocs.map(document => {
-      const isLatestDoc = document.id === latestAnteproyectoId;
-      let status = preliminaryDraftService.calculateDocumentStatus(document.id, preliminaryDraft.evaluations || [], totalEvaluatorsCount);
-
-      if (!isLatestDoc) {
-        status = status === stateList.APROBADO ? stateList.NO_APROBADO : status;
-      } else {
-        if (preliminaryDraft.state === stateList.APROBADO) status = stateList.APROBADO;
-        else if (preliminaryDraft.state === stateList.NO_APROBADO) status = stateList.NO_APROBADO;
-        else if (status === stateList.APROBADO) status = stateList.EVALUADO;
-      }
-
+    return versionesDelAnteproyecto(documents).map(document => {
       const allowedActions: string[] = ['download'];
-      if (isLatestDoc && currentUser) {
-        const userFullName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
-        const userAlreadyEvaluated = preliminaryDraft.evaluations?.some(
-          (evaluation: Evaluation) => evaluation.documentId === document.id && evaluation.evaluatorName.trim() === userFullName
-        );
-        const preliminaryDraftHasFinalState = [stateList.APROBADO, stateList.NO_APROBADO].includes(preliminaryDraft.state as stateList);
-
-        if ((isAssignedEvaluator || isAdmin) && !userAlreadyEvaluated && !preliminaryDraftHasFinalState && !preliminaryDraft.isArchived) {
-          allowedActions.push('evaluate');
-        }
+      const esVigenteEnRevision = document.id === latestAnteproyectoId && document.status === stateList.EN_REVISION;
+      const yaConcepto = preliminaryDraft.evaluations?.some(
+        evaluation => evaluation.documentId === document.id && evaluation.evaluatorId === currentUser?.id
+      ) ?? false;
+      if (esVigenteEnRevision && isAssignedEvaluator && !yaConcepto && !preliminaryDraft.isArchived) {
+        allowedActions.push('evaluate');
       }
-
-      return { ...document, status, allowedActions };
+      return { ...document, status: document.status ?? stateList.EN_REVISION, allowedActions };
     });
   },
 
-  getHeaderButtons: (context: PreliminaryDraftEvaluationContext, preliminaryDraftService: PreliminaryDraftService) => {
+  getHeaderButtons: (context: PreliminaryDraftEvaluationContext) => {
     if (context.preliminaryDraft.isArchived) return [];
     const actions: TableButton[] = [];
     const reviewersReady = context.totalEvaluatorsCount > 0;
@@ -75,31 +62,13 @@ export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
       return actions;
     }
 
-    if (context.isDirector || context.isAdmin) {
-      const latestId = context.latestAnteproyectoId;
-
-      let latestDocStatus = latestId
-        ? preliminaryDraftService.calculateDocumentStatus(latestId, context.preliminaryDraft.evaluations || [], context.totalEvaluatorsCount)
-        : null;
-
-      if (context.preliminaryDraft.state === stateList.APROBADO) {
-        latestDocStatus = stateList.APROBADO;
-      } else if (context.preliminaryDraft.state === stateList.NO_APROBADO) {
-        latestDocStatus = stateList.NO_APROBADO;
-      } else if (latestDocStatus === stateList.APROBADO) {
-        latestDocStatus = stateList.EVALUADO;
-      }
-
-      const isUploadDisabled = [
-        stateList.EN_REVISION,
-        stateList.EVALUADO,
-        stateList.APROBADO
-      ].includes(latestDocStatus as stateList);
-
+    if (context.isDirector) {
+      // El director radica una nueva versión tras correcciones de los evaluadores o un NO APROBADO del Consejo
+      const puedeCorregir = anteproyectoCorregible(context.preliminaryDraft);
       actions.push({
         label: 'Cargar anteproyecto corregido',
         variant: 'primary',
-        disabled: isUploadDisabled,
+        disabled: !puedeCorregir,
         action: 'upload_document'
       });
     }

@@ -1,324 +1,86 @@
 import { TestBed } from '@angular/core/testing';
-import { signal, WritableSignal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
-import { AuthService } from '../../../core/services/auth/auth.service';
-import { IndexedDbListStoreService } from '../../../core/services/persistence/indexed-db-list-store.service';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { User } from '../../users/interfaces/user.interface';
+import { UserState } from '../../users/enum/user-state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-import { PRELIMINARY_DRAFTS_LIST } from '../mocks/preliminary-drafts.mock';
+import { iniciarSesionConTrabajos } from '../../../testing/sesion-de-prueba';
+import {
+  crearTrabajoConAnteproyectoRadicado, crearTrabajoEnAnteproyecto, crearTrabajoEnEvaluacion
+} from '../../../testing/trabajo-grado-de-prueba';
 
-type ProposalType = NonNullable<PreliminaryDraft['proposalData']>;
-type EvaluationType = NonNullable<PreliminaryDraft['evaluations']>[number];
-type EvaluatorType = NonNullable<PreliminaryDraft['evaluators']>[number];
+const API = '/api/v1/sgtg/trabajos-grado';
 
-const flushPromises = () => new Promise(resolve => setTimeout(resolve, 0));
+const usuario = (id: string, roles: UserRoleType[]): User => ({
+  id, idType: 'CC', idNumber: 1, firstName: 'U', lastName: 'P', secondLastName: '', codeNumber: 1,
+  roles, email: 'u@unicauca.edu.co', state: UserState.active
+});
 
-interface MockIndexedDbStore {
-  get: jest.Mock<Promise<unknown>, [string]>;
-  set: jest.Mock<Promise<void>, [string, unknown]>;
-}
-
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'user-default-id',
-  name: 'Default User',
-  email: 'user@test.com',
-  role: UserRoleType.ESTUDIANTE,
-  ...overrides
-} as User);
-
-const createMockProposal = (overrides: Partial<ProposalType> = {}): ProposalType => ({
-  title: 'Proposal Title Mock',
-  description: 'Proposal Description Mock',
-  director: createMockUser({ id: 'director-default' }),
-  authors: [],
-  ...overrides
-} as ProposalType);
-
-const createMockEvaluation = (overrides: Partial<EvaluationType> = {}): EvaluationType => ({
-  evaluatorId: 'evaluator-default-id',
-  ...overrides
-} as EvaluationType);
-
-const createMockEvaluator = (overrides: Partial<EvaluatorType> = {}): EvaluatorType => ({
-  id: 'evaluator-default-id',
-  ...overrides
-} as EvaluatorType);
-
-const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => ({
-  preliminaryDraftId: 'draft-default-id',
-  isArchived: false,
-  proposalData: createMockProposal(),
-  evaluators: [],
-  evaluations: [],
-  ...overrides
-} as PreliminaryDraft);
+/** Trabajo 16 de otro director (usuario 2) */
+const ajeno = crearTrabajoConAnteproyectoRadicado({
+  id: 16,
+  director: { ...crearTrabajoConAnteproyectoRadicado().director, usuarioId: 2, nombreCompleto: 'Otro Director' }
+});
 
 describe('PreliminaryDraftStorageService', () => {
   let service: PreliminaryDraftStorageService;
-
-  let authServiceSpy: {
-    currentUser: WritableSignal<User | null>;
-    hasAnyRole: jest.Mock;
-  };
-  let dbStoreSpy: MockIndexedDbStore;
-
-  let localStorageStore: Record<string, string>;
-  let localStorageSetItemSpy: jest.SpyInstance;
-  let localStorageGetItemSpy: jest.SpyInstance;
-  let localStorageRemoveItemSpy: jest.SpyInstance;
+  let http: HttpTestingController;
 
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    localStorageStore = {};
-    localStorageGetItemSpy = jest.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => localStorageStore[key] || null);
-    localStorageSetItemSpy = jest.spyOn(Storage.prototype, 'setItem').mockImplementation((key, value) => { localStorageStore[key] = value; });
-    localStorageRemoveItemSpy = jest.spyOn(Storage.prototype, 'removeItem').mockImplementation((key) => { delete localStorageStore[key]; });
-
-    authServiceSpy = {
-      currentUser: signal<User | null>(null),
-      hasAnyRole: jest.fn().mockReturnValue(false)
-    };
-
-    dbStoreSpy = {
-      get: jest.fn().mockResolvedValue([]),
-      set: jest.fn().mockResolvedValue(undefined)
-    };
-
-    TestBed.configureTestingModule({
-      providers: [
-        PreliminaryDraftStorageService,
-        { provide: AuthService, useValue: authServiceSpy },
-        { provide: IndexedDbListStoreService, useValue: dbStoreSpy }
-      ]
-    });
+    localStorage.clear();
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    service = TestBed.inject(PreliminaryDraftStorageService);
+    http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
+  afterEach(() => jest.restoreAllMocks());
+
+  it('sin sesión no hay anteproyectos ni carga', () => {
+    expect(service.preliminaryDrafts()).toEqual([]);
+    expect(service.isHydrated()).toBe(false);
   });
 
-  describe('Inicialización e Hidratación', () => {
-    it('debería inicializar con los mocks por defecto si DB y LocalStorage están vacíos', async () => {
-      dbStoreSpy.get.mockResolvedValue([]);
+  it('un trabajo tiene anteproyecto solo desde que se radica su primera versión', () => {
+    iniciarSesionConTrabajos(usuario('1', [UserRoleType.DOCENTE, UserRoleType.DIRECTOR]),
+      [crearTrabajoEnAnteproyecto(), crearTrabajoConAnteproyectoRadicado({ id: 17 })]);
 
-      service = TestBed.inject(PreliminaryDraftStorageService);
-
-      expect(service.isHydrated()).toBeFalsy();
-
-      await flushPromises();
-
-      expect(dbStoreSpy.get).toHaveBeenCalledWith('preliminaryDrafts');
-      expect(service.isHydrated()).toBeTruthy();
-
-      expect(service.allPreliminaryDrafts()).toEqual(PRELIMINARY_DRAFTS_LIST);
-    });
-
-    it('debería cargar datos almacenados desde IndexedDB exitosamente', async () => {
-      const storedDrafts = [createMockDraft({ preliminaryDraftId: 'db-draft-1' })];
-      dbStoreSpy.get.mockResolvedValue(storedDrafts);
-
-      service = TestBed.inject(PreliminaryDraftStorageService);
-      await flushPromises();
-
-      expect(service.allPreliminaryDrafts()).toHaveLength(1);
-      expect(service.allPreliminaryDrafts()[0].preliminaryDraftId).toBe('db-draft-1');
-    });
-
-    it('debería ejecutar la migración desde LocalStorage si IndexedDB está vacío', async () => {
-      dbStoreSpy.get.mockResolvedValue([]);
-
-      const legacyDrafts = [createMockDraft({ preliminaryDraftId: 'legacy-1' })];
-      localStorageStore['preliminaryDrafts'] = JSON.stringify(legacyDrafts);
-
-      service = TestBed.inject(PreliminaryDraftStorageService);
-      await flushPromises();
-
-      expect(service.allPreliminaryDrafts()).toHaveLength(1);
-      expect(service.allPreliminaryDrafts()[0].preliminaryDraftId).toBe('legacy-1');
-      expect(localStorageRemoveItemSpy).toHaveBeenCalledWith('preliminaryDrafts');
-    });
-
-    it('debería capturar el error, inicializar con mocks y registrar en consola si IndexedDB falla', async () => {
-      dbStoreSpy.get.mockRejectedValue(new Error('IndexedDB error'));
-
-      service = TestBed.inject(PreliminaryDraftStorageService);
-      await flushPromises();
-
-      expect(console.error).toHaveBeenCalledWith('Error leyendo anteproyectos de IndexedDB', expect.any(Error));
-      expect(service.allPreliminaryDrafts()).toEqual(PRELIMINARY_DRAFTS_LIST);
-      expect(service.isHydrated()).toBeTruthy();
-    });
+    expect(service.isHydrated()).toBe(true);
+    expect(service.allPreliminaryDrafts().map(d => d.preliminaryDraftId)).toEqual(['17']);
   });
 
-  describe('Efectos: Persistencia', () => {
-    it('debería guardar en IndexedDB cuando se actualiza la lista', async () => {
-      dbStoreSpy.get.mockResolvedValue([]);
-      service = TestBed.inject(PreliminaryDraftStorageService);
-      await flushPromises();
+  it('roles de consulta (Jefe de departamento) ven todos los anteproyectos', () => {
+    iniciarSesionConTrabajos(usuario('99', [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP]),
+      [crearTrabajoConAnteproyectoRadicado(), ajeno]);
 
-      const newDraft = createMockDraft({ preliminaryDraftId: 'new-persist' });
-
-      service.addDraft(newDraft);
-      TestBed.flushEffects();
-      await flushPromises();
-
-      expect(dbStoreSpy.set).toHaveBeenCalledWith('preliminaryDrafts', expect.arrayContaining([newDraft]));
-    });
+    expect(service.hasPrivilegedAccess()).toBe(true);
+    expect(service.preliminaryDrafts().map(d => d.preliminaryDraftId)).toEqual(['15', '16']);
   });
 
-  describe('Propiedad computada: preliminaryDrafts (Autorización)', () => {
-    beforeEach(async () => {
-      dbStoreSpy.get.mockResolvedValue([]);
-      service = TestBed.inject(PreliminaryDraftStorageService);
-      await flushPromises();
+  it('los demás solo ven los anteproyectos en los que participan (también como evaluadores)', () => {
+    iniciarSesionConTrabajos(usuario('20', [UserRoleType.DOCENTE, UserRoleType.EVALUADOR]),
+      [crearTrabajoEnEvaluacion(), ajeno]);
 
-      (service as any)['_preliminaryDraftsList'].set([]);
-    });
-
-    it('debería retornar un arreglo vacío si no hay usuario autenticado', () => {
-      authServiceSpy.currentUser.set(null);
-      expect(service.preliminaryDrafts()).toEqual([]);
-    });
-
-    it('debería retornar todos los borradores NO archivados si el usuario tiene rol privilegiado', () => {
-      const mockDrafts = [
-        createMockDraft({ preliminaryDraftId: '1', isArchived: false }),
-        createMockDraft({ preliminaryDraftId: '2', isArchived: false }),
-        createMockDraft({ preliminaryDraftId: '3', isArchived: true })
-      ];
-
-      mockDrafts.forEach(d => service.addDraft(d));
-      authServiceSpy.currentUser.set(createMockUser({ id: 'admin-1' }));
-      authServiceSpy.hasAnyRole.mockReturnValue(true);
-
-      const visibleDrafts = service.preliminaryDrafts();
-
-      expect(visibleDrafts).toHaveLength(2);
-      expect(visibleDrafts.some(d => d.preliminaryDraftId === '3')).toBeFalsy();
-    });
-
-    it('debería permitir acceso directo si el usuario es director, codirector o asesor', () => {
-      const userId = 'professor-1';
-      const mockDrafts = [
-        createMockDraft({
-          preliminaryDraftId: 'dir-draft',
-          proposalData: createMockProposal({ director: createMockUser({ id: userId }) })
-        }),
-        createMockDraft({
-          preliminaryDraftId: 'codir-draft',
-          proposalData: createMockProposal({ codirector: createMockUser({ id: userId }) })
-        }),
-        createMockDraft({
-          preliminaryDraftId: 'adv-draft',
-          proposalData: createMockProposal({ advisor: createMockUser({ id: userId }) })
-        })
-      ];
-
-      mockDrafts.forEach(d => service.addDraft(d));
-      authServiceSpy.currentUser.set(createMockUser({ id: userId }));
-      authServiceSpy.hasAnyRole.mockReturnValue(false);
-
-      expect(service.preliminaryDrafts()).toHaveLength(3);
-    });
-
-    it('debería permitir acceso cuando el usuario es autor', () => {
-      const userId = 'student-1';
-      const draft = createMockDraft({
-        preliminaryDraftId: 'obj-author',
-        proposalData: createMockProposal({ authors: [createMockUser({ id: userId })] })
-      });
-
-      service.addDraft(draft);
-      authServiceSpy.currentUser.set(createMockUser({ id: userId }));
-      authServiceSpy.hasAnyRole.mockReturnValue(false);
-
-      expect(service.preliminaryDrafts()).toHaveLength(1);
-    });
-
-    it('debería permitir acceso cuando el usuario es evaluador asignado o tiene evaluación emitida', () => {
-      const userId = 'evaluator-1';
-      const draft = createMockDraft({
-        preliminaryDraftId: 'eval-draft',
-        evaluators: [createMockEvaluator({ id: userId })],
-        evaluations: [createMockEvaluation({ evaluatorId: userId })]
-      });
-
-      service.addDraft(draft);
-      authServiceSpy.currentUser.set(createMockUser({ id: userId }));
-      authServiceSpy.hasAnyRole.mockReturnValue(false);
-
-      expect(service.preliminaryDrafts()).toHaveLength(1);
-    });
-
-    it('debería denegar el acceso a borradores sin proposalData o donde el usuario no participa', () => {
-      const draftSinParticipacion = createMockDraft({
-        preliminaryDraftId: 'no-access',
-        proposalData: createMockProposal({ authors: [createMockUser({ id: 'otro-user' })] })
-      });
-      const draftVacio = createMockDraft({ preliminaryDraftId: 'no-prop', proposalData: undefined });
-
-      service.addDraft(draftSinParticipacion);
-      service.addDraft(draftVacio);
-
-      authServiceSpy.currentUser.set(createMockUser({ id: 'user-1' }));
-      authServiceSpy.hasAnyRole.mockReturnValue(false);
-
-      expect(service.preliminaryDrafts()).toEqual([]);
-    });
+    expect(service.preliminaryDrafts().map(d => d.preliminaryDraftId)).toEqual(['15']);
   });
 
-  describe('Operaciones CRUD', () => {
-    beforeEach(async () => {
-      dbStoreSpy.get.mockResolvedValue([]);
-      service = TestBed.inject(PreliminaryDraftStorageService);
-      await flushPromises();
+  it('las operaciones simuladas de otros módulos no modifican los datos del backend', () => {
+    iniciarSesionConTrabajos(usuario('1', [UserRoleType.DIRECTOR]), [crearTrabajoConAnteproyectoRadicado()]);
 
-      (service as any)['_preliminaryDraftsList'].set([]);
-    });
+    service.updateDraft('15', draft => ({ ...draft, isArchived: true }));
+    service.addDraft({ preliminaryDraftId: 'x' } as PreliminaryDraft);
+    service.removeDraft('15');
 
-    it('debería actualizar un borrador existente con la función mutadora', () => {
-      const draft = createMockDraft({ preliminaryDraftId: 'update-1', isArchived: false });
-      service.addDraft(draft);
+    expect(service.allPreliminaryDrafts().map(d => [d.preliminaryDraftId, d.isArchived])).toEqual([['15', false]]);
+  });
 
-      service.updateDraft('update-1', d => ({ ...d, isArchived: true }));
+  it('getById consulta el backend si el trabajo no está en memoria', () => {
+    let resultado: PreliminaryDraft | undefined;
+    service.getById('15').subscribe(anteproyecto => resultado = anteproyecto);
+    http.expectOne(`${API}/15`).flush(crearTrabajoEnEvaluacion());
 
-      const updated = service.allPreliminaryDrafts().find(d => d.preliminaryDraftId === 'update-1');
-      expect(updated?.isArchived).toBe(true);
-    });
-
-    it('no debería alterar la lista si se intenta actualizar un ID inexistente', () => {
-      const draft = createMockDraft({ preliminaryDraftId: 'existing-1', isArchived: false });
-      service.addDraft(draft);
-
-      service.updateDraft('non-existent', d => ({ ...d, isArchived: true }));
-
-      const existing = service.allPreliminaryDrafts().find(d => d.preliminaryDraftId === 'existing-1');
-      expect(existing?.isArchived).toBe(false);
-      expect(service.allPreliminaryDrafts()).toHaveLength(1);
-    });
-
-    it('debería remover un borrador por ID', () => {
-      const draft = createMockDraft({ preliminaryDraftId: 'del-1' });
-      service.addDraft(draft);
-
-      expect(service.allPreliminaryDrafts()).toHaveLength(1);
-
-      service.removeDraft('del-1');
-
-      expect(service.allPreliminaryDrafts()).toHaveLength(0);
-    });
-
-    it('debería obtener un borrador por ID asincrónicamente con delay (getById)', async () => {
-      const draft = createMockDraft({ preliminaryDraftId: 'async-1' });
-      service.addDraft(draft);
-
-      const result = await firstValueFrom(service.getById('async-1'));
-
-      expect(result).toEqual(draft);
-    });
+    expect(resultado?.evaluators?.map(e => e.id)).toEqual(['20', '21']);
   });
 });

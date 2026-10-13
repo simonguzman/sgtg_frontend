@@ -13,7 +13,6 @@ import { Proposal } from '../../../proposal/interfaces/proposal.interface';
 import { User } from '../../../users/interfaces/user.interface';
 import { SelectOption, SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select.component';
 import { Modality } from '../../../proposal/enums/modality.enum';
-import { readFileAsDataUrl } from '../../../../core/utils/file-reader.utils';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
@@ -63,10 +62,6 @@ class MockSearchableSelectComponent implements ControlValueAccessor {
   registerOnTouched(fn: unknown): void {}
 }
 
-jest.mock('../../../../core/utils/file-reader.utils', () => ({
-  readFileAsDataUrl: jest.fn()
-}));
-const mockedReadFileAsDataUrl = readFileAsDataUrl as jest.MockedFunction<typeof readFileAsDataUrl>;
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u1',
@@ -142,7 +137,6 @@ describe('PreliminaryDraftFormComponent', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    mockedReadFileAsDataUrl.mockResolvedValue('data:application/pdf;base64,mock');
 
     const form: MockFormType = new FormGroup({
       proposalId: new FormControl<string | null>('', Validators.required),
@@ -297,20 +291,14 @@ describe('PreliminaryDraftFormComponent', () => {
       expect(mockFormService.buildPreliminaryDraftPayload).not.toHaveBeenCalled();
     });
 
-    it('debería usar el documento existente si el archivo no cambió (modo edición)', async () => {
+    it('en edición sin archivo nuevo no adjunta documento (no hay versión que radicar)', async () => {
       const mockExistingDoc = createMockFileDocument({ name: 'doc-existente.pdf' });
       const mockDraft = createMockPreliminaryDraft({ documents: [mockExistingDoc] });
 
       fixture.componentRef.setInput('preliminaryDraft', mockDraft);
       fixture.detectChanges();
 
-      component.form.patchValue({
-        proposalId: 'p1',
-        title: 'Título',
-        description: 'Descripción',
-        document: mockExistingDoc
-      });
-
+      component.form.patchValue({ proposalId: 'p1', title: 'Título', description: 'Descripción', document: mockExistingDoc });
       component.attachedFile = { hasFile: true, name: 'doc-existente.pdf', file: null };
 
       mockFormService.buildPreliminaryDraftPayload.mockReturnValue(mockDraft);
@@ -318,23 +306,14 @@ describe('PreliminaryDraftFormComponent', () => {
 
       await component.submit();
 
-      expect(mockFormService.buildPreliminaryDraftPayload).toHaveBeenCalledWith(
-        mockDraft,
-        [mockExistingDoc]
-      );
+      expect(mockFormService.buildPreliminaryDraftPayload).toHaveBeenCalledWith(mockDraft, null);
       expect(component.onSave.emit).toHaveBeenCalledWith(mockDraft);
     });
 
-    it('debería emitir onSave con nuevo archivo si el formulario es válido y el payload se construye correctamente', async () => {
+    it('envía el PDF elegido como adjunto (sin convertirlo a base64)', async () => {
       const mockFile = new File([''], 'nuevo-anteproyecto.pdf', { type: 'application/pdf' });
 
-      component.form.patchValue({
-        proposalId: 'p1',
-        title: 'Título de Prueba',
-        description: 'Descripción',
-        document: mockFile
-      });
-
+      component.form.patchValue({ proposalId: 'p1', title: 'Título de Prueba', description: 'Descripción', document: mockFile });
       component.attachedFile = { hasFile: true, name: 'nuevo-anteproyecto.pdf', file: mockFile };
 
       const mockPayload = createMockPreliminaryDraft();
@@ -343,33 +322,8 @@ describe('PreliminaryDraftFormComponent', () => {
 
       await component.submit();
 
-      expect(mockedReadFileAsDataUrl).toHaveBeenCalledWith(mockFile);
-      expect(mockFormService.buildPreliminaryDraftPayload).toHaveBeenCalledWith(
-        null,
-        expect.arrayContaining([
-          expect.objectContaining({ name: 'nuevo-anteproyecto.pdf' })
-        ])
-      );
+      expect(mockFormService.buildPreliminaryDraftPayload).toHaveBeenCalledWith(null, mockFile);
       expect(component.onSave.emit).toHaveBeenCalledWith(mockPayload);
-    });
-
-    it('debería mostrar notificación de error y abortar si la lectura del archivo falla', async () => {
-      const mockFile = new File([''], 'error.pdf', { type: 'application/pdf' });
-
-      component.form.patchValue({ proposalId: 'p1', title: 'T', description: 'D', document: mockFile });
-      component.attachedFile = { hasFile: true, name: 'error.pdf', file: mockFile };
-
-      mockedReadFileAsDataUrl.mockRejectedValueOnce(new Error('Fallo de lectura simulado'));
-
-      await component.submit();
-
-      expect(mockNotificationService.show).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: NotificationType.ERROR,
-          title: 'Error al leer el archivo'
-        })
-      );
-      expect(mockFormService.buildPreliminaryDraftPayload).not.toHaveBeenCalled();
     });
 
     it('no debería emitir evento si buildPreliminaryDraftPayload retorna null', async () => {

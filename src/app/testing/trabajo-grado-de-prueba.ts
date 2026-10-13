@@ -29,13 +29,13 @@ export function crearTrabajoDePrueba(overrides: Partial<TrabajoGradoResponse> = 
       decisiones: []
     },
     anteproyecto: {
-      estado: null,
       fechaLimiteEvaluacion: null,
       fechaLimiteCorrecciones: null,
       versiones: [],
       evaluadores: [],
       conceptos: [],
-      decisionesConsejo: []
+      decisionesConsejo: [],
+      remisiones: []
     },
     ejecucion: null,
     sustentacion: null,
@@ -62,17 +62,46 @@ export function crearTrabajoEnAnteproyecto(overrides: Partial<TrabajoGradoRespon
   });
 }
 
+/** El trabajo con la primera versión del anteproyecto radicada, en revisión y sin evaluadores. */
+export function crearTrabajoConAnteproyectoRadicado(overrides: Partial<TrabajoGradoResponse> = {}): TrabajoGradoResponse {
+  const base = crearTrabajoEnAnteproyecto();
+  return crearTrabajoEnAnteproyecto({
+    anteproyecto: {
+      ...base.anteproyecto,
+      versiones: [{ tipo: 'ANTEPROYECTO', formato: null, ruta: '15/ANTEPROYECTO/v1/anteproyecto.pdf', version: 1,
+        fechaCarga: '2026-03-09', estado: 'EN_REVISION' }]
+    },
+    ...overrides
+  });
+}
+
+/** El trabajo con el anteproyecto en evaluación: evaluadores 20 y 21 asignados, sin conceptos. */
+export function crearTrabajoEnEvaluacion(overrides: Partial<TrabajoGradoResponse> = {}): TrabajoGradoResponse {
+  const base = crearTrabajoConAnteproyectoRadicado();
+  return crearTrabajoConAnteproyectoRadicado({
+    etapa: 'EVALUACION',
+    anteproyecto: {
+      ...base.anteproyecto,
+      fechaLimiteEvaluacion: '2026-03-23',
+      evaluadores: [
+        { usuarioId: 20, codigo: '1020', nombreCompleto: 'Vera Evaluadora', email: 'vera@unicauca.edu.co' },
+        { usuarioId: 21, codigo: '1021', nombreCompleto: 'Walter Evaluador', email: 'walter@unicauca.edu.co' }
+      ]
+    },
+    ...overrides
+  });
+}
+
 /** El mismo trabajo aprobado por el Consejo (en curso). */
 export function crearTrabajoEnCurso(overrides: Partial<TrabajoGradoResponse> = {}): TrabajoGradoResponse {
   const base = crearTrabajoEnAnteproyecto();
   return crearTrabajoEnAnteproyecto({
     etapa: 'EN_CURSO',
     anteproyecto: {
-      estado: 'APROBADO',
       fechaLimiteEvaluacion: '2026-04-01',
       fechaLimiteCorrecciones: null,
       versiones: [{ tipo: 'ANTEPROYECTO', formato: null, ruta: '15/ANTEPROYECTO/v1/anteproyecto.pdf', version: 1,
-        fechaCarga: '2026-03-10' }],
+        fechaCarga: '2026-03-10', estado: 'APROBADO' }],
       evaluadores: [
         { usuarioId: 20, codigo: '1020', nombreCompleto: 'Vera Evaluadora', email: 'vera@unicauca.edu.co' },
         { usuarioId: 21, codigo: '1021', nombreCompleto: 'Walter Evaluador', email: 'walter@unicauca.edu.co' }
@@ -80,12 +109,14 @@ export function crearTrabajoEnCurso(overrides: Partial<TrabajoGradoResponse> = {
       conceptos: [
         { version: 1, evaluadorUsuarioId: 20, evaluador: 'Vera Evaluadora', resultado: 'APROBADO', observaciones: null,
           fecha: '2026-03-12', formato: { tipo: 'EVALUACION_ANTEPROYECTO', formato: 'TI-B',
-            ruta: '15/TI-B/v1/formato-b.pdf', version: 1, fechaCarga: '2026-03-12' } },
+            ruta: '15/TI-B/v1/formato-b.pdf', version: 1, fechaCarga: '2026-03-12' }, anotaciones: null },
         { version: 1, evaluadorUsuarioId: 21, evaluador: 'Walter Evaluador', resultado: 'APROBADO', observaciones: null,
-          fecha: '2026-03-13', formato: null }
+          fecha: '2026-03-13', formato: null, anotaciones: null }
       ],
       decisionesConsejo: [{ organo: 'CONSEJO_FACULTAD', resultado: 'APROBADO', acta: null,
-        rutaArchivo: '15/RESOLUCION/v1/resolucion.pdf', observaciones: null, fecha: '2026-03-20' }]
+        rutaArchivo: '15/RESOLUCION/v1/resolucion.pdf', observaciones: null, fecha: '2026-03-20' }],
+      remisiones: [{ tipo: 'REMISION_CONSEJO', formato: 'TI-C', ruta: '15/TI-C/v1/formato-c.pdf', version: 1,
+        fechaCarga: '2026-03-16' }]
     },
     ejecucion: {
       fechaNotificacion: '2026-03-20',

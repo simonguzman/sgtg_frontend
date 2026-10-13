@@ -80,15 +80,18 @@ export interface DecisionApi {
   fecha: string;
 }
 
-/** Versión de la propuesta con el estado de su revisión (EN_REVISION, APROBADO o NO_APROBADO). */
-export interface VersionPropuestaApi extends DocumentoApi {
+/**
+ * Versión de un documento enviado a revisión (propuesta o anteproyecto) con el
+ * estado de su revisión: EN_REVISION, APROBADO, NO_APROBADO o CON_CORRECCIONES.
+ */
+export interface VersionDocumentoApi extends DocumentoApi {
   estado: EstadoApi;
 }
 
 /** Propuesta: su estado es el de la última versión radicada (sin versiones no hay estado). */
 export interface PropuestaApi {
   fechaLimiteConcepto: string | null;
-  versiones: VersionPropuestaApi[];
+  versiones: VersionDocumentoApi[];
   decisiones: DecisionApi[];
 }
 
@@ -99,17 +102,22 @@ export interface ConceptoEvaluacionApi {
   resultado: ResultadoConceptoApi;
   observaciones: string | null;
   fecha: string;
+  /** Formato B del evaluador */
   formato: DocumentoApi | null;
+  /** Documento opcional con las anotaciones del evaluador */
+  anotaciones: DocumentoApi | null;
 }
 
+/** Anteproyecto: su estado es el de la última versión radicada (sin versiones no hay estado). */
 export interface AnteproyectoApi {
-  estado: EstadoApi | null;
   fechaLimiteEvaluacion: string | null;
   fechaLimiteCorrecciones: string | null;
-  versiones: DocumentoApi[];
+  versiones: VersionDocumentoApi[];
   evaluadores: EvaluadorApi[];
   conceptos: ConceptoEvaluacionApi[];
   decisionesConsejo: DecisionApi[];
+  /** Formatos C con los que el Jefe de departamento remitió al Consejo cada versión aprobada (`version` = versión remitida) */
+  remisiones: DocumentoApi[];
 }
 
 export interface CambioObjetivosApi {

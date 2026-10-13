@@ -1,7 +1,7 @@
 import { AnteproyectosTabConfig } from './anteproyectos.tab';
 import { PreliminaryDraftEvaluationContext } from './tab-config.interface';
-import { stateList } from '../../../../../core/enums/state.enum';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
+import { stateList } from '../../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
@@ -51,171 +51,90 @@ const createMockContext = (overrides: Partial<PreliminaryDraftEvaluationContext>
 
 describe('AnteproyectosTabConfig', () => {
   let mockContext: PreliminaryDraftEvaluationContext;
-  let mockPreliminaryDraftService: { calculateDocumentStatus: jest.Mock };
+  // La pestaña de anteproyectos usa el estado que envía el backend: no necesita el servicio
+  const servicio = {} as PreliminaryDraftService;
+
+  const version = (id: string, numero: number, status: stateList): FileDocument => ({
+    id, name: `anteproyecto-v${numero}`, url: `/archivos/${id}`, uploadDate: '09 - 03 - 2026',
+    type: DocumentType.ANTEPROYECTO, version: numero, status
+  });
+  const resolucion: FileDocument = { id: 'res', name: 'resolucion', url: '/archivos/res', uploadDate: '10 - 03 - 2026',
+    type: DocumentType.RESOLUCION };
 
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
     mockContext = createMockContext();
-
-    mockPreliminaryDraftService = {
-      calculateDocumentStatus: jest.fn().mockReturnValue(stateList.EN_REVISION)
-    };
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
   });
 
   describe('getTableData', () => {
-    it('debería mapear documentos de anteproyecto y permitir evaluar a evaluadores asignados', () => {
-      mockContext.isAssignedEvaluator = true;
+    it('muestra las versiones de la más reciente a la más antigua con el estado de cada una', () => {
+      const documentos = [version('doc-1', 1, stateList.APROBADO_CON_OBSERVACIONES), resolucion,
+        version('doc-2', 2, stateList.EN_REVISION)];
 
-      const documents: FileDocument[] = [{
-        id: 'doc-1',
-        name: 'v1',
-        url: 'http://localhost/v1.pdf',
-        uploadDate: new Date(),
-        type: DocumentType.ANTEPROYECTO
-      } as FileDocument];
+      const result = AnteproyectosTabConfig.getTableData(documentos, { ...mockContext, latestAnteproyectoId: 'doc-2' }, servicio);
 
-      const result = AnteproyectosTabConfig.getTableData(
-        documents,
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0].status).toBe(stateList.EN_REVISION);
-      expect(result[0].allowedActions).toContain('download');
-      expect(result[0].allowedActions).toContain('evaluate');
+      expect(result.map(fila => [fila.id, fila.version, fila.status])).toEqual([
+        ['doc-2', 2, stateList.EN_REVISION],
+        ['doc-1', 1, stateList.APROBADO_CON_OBSERVACIONES]
+      ]);
     });
 
-    it('no debería permitir evaluar si el usuario ya realizó la evaluación', () => {
-      mockContext.isAssignedEvaluator = true;
+    it('el evaluador asignado evalúa solo la versión vigente que está en revisión', () => {
+      const documentos = [version('doc-1', 1, stateList.APROBADO_CON_OBSERVACIONES), version('doc-2', 2, stateList.EN_REVISION)];
 
-      const mockEvaluation: Evaluation = {
-        id: 'ev-1',
-        proposalId: 'prop-1',
-        documentId: 'doc-1',
-        evaluatorId: 'u1',
-        evaluatorName: 'Juan Perez',
-        evaluatorRole: 'Evaluador Asignado',
-        veredict: stateList.EN_REVISION,
-        observations: 'Observaciones de prueba',
-        date: new Date()
-      };
+      const result = AnteproyectosTabConfig.getTableData(documentos,
+        { ...mockContext, isAssignedEvaluator: true, latestAnteproyectoId: 'doc-2' }, servicio);
 
-      mockContext.preliminaryDraft.evaluations = [mockEvaluation];
-
-      const documents: FileDocument[] = [{
-        id: 'doc-1',
-        name: 'v1',
-        url: 'http://localhost/v1.pdf',
-        uploadDate: new Date(),
-        type: DocumentType.ANTEPROYECTO
-      } as FileDocument];
-
-      const result = AnteproyectosTabConfig.getTableData(
-        documents,
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result[0].allowedActions).not.toContain('evaluate');
+      expect(result[0].allowedActions).toEqual(['download', 'evaluate']);
+      expect(result[1].allowedActions).toEqual(['download']);
     });
 
-    it('debería setear el estado a NO_APROBADO para documentos antiguos si antes estaban aprobados', () => {
-      const documents: FileDocument[] = [{
-        id: 'doc-old',
-        name: 'old_version',
-        url: 'url',
-        uploadDate: new Date(),
-        type: DocumentType.ANTEPROYECTO
-      } as FileDocument];
+    it('no evalúa quien no es evaluador asignado, ni quien ya conceptuó la versión', () => {
+      const documentos = [version('doc-1', 1, stateList.EN_REVISION)];
+      expect(AnteproyectosTabConfig.getTableData(documentos, { ...mockContext, isAdmin: true }, servicio)[0].allowedActions)
+        .toEqual(['download']);
 
-      mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.APROBADO);
+      const evaluation = { documentId: 'doc-1', evaluatorId: 'u1' } as Evaluation;
+      const yaConcepto = createMockContext({
+        isAssignedEvaluator: true,
+        preliminaryDraft: createMockPreliminaryDraft({ evaluations: [evaluation] })
+      });
+      expect(AnteproyectosTabConfig.getTableData(documentos, yaConcepto, servicio)[0].allowedActions).toEqual(['download']);
+    });
 
-      const result = AnteproyectosTabConfig.getTableData(
-        documents,
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result[0].status).toBe(stateList.NO_APROBADO);
+    it('una versión con correcciones o aprobada ya no se evalúa', () => {
+      const documentos = [version('doc-1', 1, stateList.APROBADO)];
+      expect(AnteproyectosTabConfig.getTableData(documentos, { ...mockContext, isAssignedEvaluator: true }, servicio)[0].allowedActions)
+        .toEqual(['download']);
     });
   });
 
   describe('getHeaderButtons', () => {
-    it('debería retornar el botón de "Asignar evaluadores" para el Jefe si no hay evaluadores', () => {
-      mockContext.isJefe = true;
-      mockContext.totalEvaluatorsCount = 0;
-
-      const result = AnteproyectosTabConfig.getHeaderButtons(
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0].action).toBe('assign_evaluators');
-      expect(result[0].disabled).toBeFalsy();
+    it('el Jefe asigna evaluadores si aún no hay', () => {
+      const result = AnteproyectosTabConfig.getHeaderButtons({ ...mockContext, isJefe: true, totalEvaluatorsCount: 0 }, servicio);
+      expect(result).toEqual([expect.objectContaining({ action: 'assign_evaluators', disabled: false })]);
     });
 
-    it('debería retornar el botón de "Evaluadores ya asignados" deshabilitado para el Jefe si ya existen', () => {
-      mockContext.isJefe = true;
-      mockContext.totalEvaluatorsCount = 2;
-
-      const result = AnteproyectosTabConfig.getHeaderButtons(
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0].action).toBe('assign_evaluators');
-      expect(result[0].label).toBe('Evaluadores ya asignados');
-      expect(result[0].disabled).toBeTruthy();
+    it('si ya hay evaluadores el botón del Jefe queda deshabilitado', () => {
+      const result = AnteproyectosTabConfig.getHeaderButtons({ ...mockContext, isJefe: true, totalEvaluatorsCount: 2 }, servicio);
+      expect(result).toEqual([expect.objectContaining({ label: 'Evaluadores ya asignados', disabled: true })]);
     });
 
-    it('debería retornar botones deshabilitados (vacíos) si el proyecto está archivado', () => {
+    it('un anteproyecto archivado no tiene acciones', () => {
       mockContext.preliminaryDraft.isArchived = true;
-
-      const result = AnteproyectosTabConfig.getHeaderButtons(
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result).toHaveLength(0);
+      expect(AnteproyectosTabConfig.getHeaderButtons({ ...mockContext, isJefe: true }, servicio)).toHaveLength(0);
     });
 
-    it('debería retornar el botón de "Cargar anteproyecto" bloqueado para el Director si está En Revisión', () => {
-      mockContext.isDirector = true;
-      mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.EN_REVISION);
-
-      const result = AnteproyectosTabConfig.getHeaderButtons(
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0].action).toBe('upload_document');
-      expect(result[0].disabled).toBeTruthy();
-    });
-
-    it('debería retornar el botón de "Cargar anteproyecto" habilitado para el Director si el último fue Rechazado', () => {
-      mockContext.isDirector = true;
-      mockContext.preliminaryDraft.state = stateList.NO_APROBADO;
-      mockPreliminaryDraftService.calculateDocumentStatus.mockReturnValue(stateList.NO_APROBADO);
-
-      const result = AnteproyectosTabConfig.getHeaderButtons(
-        mockContext,
-        mockPreliminaryDraftService as Partial<PreliminaryDraftService> as PreliminaryDraftService
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0].action).toBe('upload_document');
-      expect(result[0].disabled).toBeFalsy();
+    it.each([
+      [stateList.EN_REVISION, true],
+      [stateList.APROBADO, true],
+      [stateList.APROBADO_CON_OBSERVACIONES, false],
+      [stateList.NO_APROBADO, false]
+    ])('el director corrige según el estado de la versión vigente (%s → deshabilitado %s)', (estado, deshabilitado) => {
+      const preliminaryDraft = createMockPreliminaryDraft({
+        documents: [version('doc-1', 1, stateList.APROBADO_CON_OBSERVACIONES), version('doc-2', 2, estado)]
+      });
+      const result = AnteproyectosTabConfig.getHeaderButtons({ ...mockContext, isDirector: true, preliminaryDraft }, servicio);
+      expect(result).toEqual([expect.objectContaining({ action: 'upload_document', disabled: deshabilitado })]);
     });
   });
 });
