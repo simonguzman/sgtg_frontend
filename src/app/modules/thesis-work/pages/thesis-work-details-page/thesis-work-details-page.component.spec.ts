@@ -42,6 +42,7 @@ const createMockThesisWorkDetailsView = (overrides: Partial<ThesisWorkDetailsVie
     authors: 'Autor Base',
     director: 'Director Base',
   },
+  deadlines: [],
   mainDocument: null,
   ...overrides
 });
@@ -165,6 +166,29 @@ describe('ThesisWorkDetailsPageComponent', () => {
       const participantsText = fixture.debugElement.query(By.css('.space-y-2')).nativeElement.textContent;
       expect(participantsText).toContain('Juan Pérez');
       expect(participantsText).toContain('Dr. Smith');
+    });
+
+    it('muestra las fechas del trabajo que calcula el backend', () => {
+      facadeMock.details.set(createMockThesisWorkDetailsView({
+        deadlines: [
+          { label: 'Fecha máxima de entrega', date: new Date(2026, 11, 20), hint: 'Incluye la prórroga' },
+          { label: 'Sustentación desde', date: new Date(2026, 5, 20) }
+        ]
+      }));
+      fixture.detectChanges();
+
+      const texto = fixture.nativeElement.textContent as string;
+      expect(texto).toContain('Fechas del trabajo de grado');
+      expect(texto).toContain('Fecha máxima de entrega');
+      expect(texto).toContain('20/12/2026');
+      expect(texto).toContain('Incluye la prórroga');
+      expect(texto).toContain('20/06/2026');
+    });
+
+    it('sin fechas no muestra la sección', () => {
+      facadeMock.details.set(createMockThesisWorkDetailsView());
+      fixture.detectChanges();
+      expect(fixture.nativeElement.textContent).not.toContain('Fechas del trabajo de grado');
     });
 
     it('debe mostrar codirector y asesor únicamente si están presentes', () => {

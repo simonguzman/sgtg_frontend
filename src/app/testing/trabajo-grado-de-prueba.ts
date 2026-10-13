@@ -1,4 +1,6 @@
-import { TrabajoGradoResponse } from '../core/interfaces/api/trabajo-grado-api.interface';
+import {
+  EjecucionApi, InformeMensualApi, RevisionInformeApi, TrabajoGradoResponse
+} from '../core/interfaces/api/trabajo-grado-api.interface';
 
 /**
  * Trabajo de grado de prueba tal como lo devuelve el backend: investigación
@@ -132,4 +134,36 @@ export function crearTrabajoEnCurso(overrides: Partial<TrabajoGradoResponse> = {
     historial: [...base.historial],
     ...overrides
   });
+}
+
+/** Informe mensual del backend (radicado por la estudiante 1010) con las revisiones indicadas. */
+export function informeDePrueba(numero: number, overrides: Partial<InformeMensualApi> = {}): InformeMensualApi {
+  return {
+    numero,
+    rutaArchivo: `15/TI-D/v${numero}/informe-${numero}.pdf`,
+    fecha: `2026-0${3 + numero}-20`,
+    radicadoPor: '1010',
+    observaciones: null,
+    revisiones: [],
+    ...overrides
+  };
+}
+
+/** Revisión de un informe por la directora (usuario 1). */
+export function revisionDePrueba(overrides: Partial<RevisionInformeApi> = {}): RevisionInformeApi {
+  return {
+    revisorUsuarioId: 1,
+    revisor: 'Dora Directora Pérez',
+    observaciones: 'Ajustar el cronograma',
+    rutaArchivo: '15/REVISION_INFORME/v1/notas.pdf',
+    fecha: '2026-04-25',
+    ...overrides
+  };
+}
+
+/** El trabajo en curso con cambios en su ejecución (informes, prórroga, suspensiones...). */
+export function crearTrabajoEnCursoCon(ejecucion: Partial<EjecucionApi>,
+  overrides: Partial<TrabajoGradoResponse> = {}): TrabajoGradoResponse {
+  const base = crearTrabajoEnCurso();
+  return crearTrabajoEnCurso({ ejecucion: { ...base.ejecucion!, ...ejecucion }, ...overrides });
 }

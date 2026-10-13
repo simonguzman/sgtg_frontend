@@ -9,6 +9,21 @@ import { PazYSalvoRegistry } from "./paz-y-salvo-registry.interface";
 import { CorrectedDelivery } from "./corrected-delivery.interface";
 import { SustentationRegistry } from "./sustentation-registry.interface";
 import { SpecialRequest } from "./special-request.interface";
+import { ProcesoApi } from "../../../core/interfaces/api/trabajo-grado-api.interface";
+
+/** Fechas del trabajo en curso calculadas por el backend. */
+export interface ThesisWorkDeadlines {
+  /** Notificación de la aprobación del anteproyecto (inicio del trabajo) */
+  startDate: Date | null;
+  /** Fecha máxima de entrega (incluye prórroga y suspensiones) */
+  maximumDeliveryDate: Date | null;
+  /** Desde cuándo se puede solicitar la sustentación */
+  minimumSustentationDate: Date | null;
+  /** Hasta cuándo se puede solicitar el cambio de título y objetivos (null si ya no aplica) */
+  objectivesChangeDeadline: Date | null;
+  /** Hasta cuándo se puede solicitar la prórroga (null si ya no aplica) */
+  extensionRequestDeadline: Date | null;
+}
 
 export interface ThesisWork extends Archivable {
   thesisWorkId: string;
@@ -24,4 +39,7 @@ export interface ThesisWork extends Archivable {
   specialRequests: SpecialRequest[];
   state: stateList;
   createdDate: Date;
+  /** Etapa del trabajo en el backend (EN_CURSO, PRORROGA, SUSPENDIDO…) */
+  stage?: ProcesoApi;
+  deadlines?: ThesisWorkDeadlines;
 }

@@ -2,12 +2,11 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SpecialRequest } from '../../interfaces/special-request.interface';
-import { stateList } from '../../../../core/enums/state.enum';
+import { SpecialRequestDecision } from '../../services/thesis-work-special-request.service';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { EvaluateSpecialRequestFacadeService } from './services/evaluate-special-request-facade.service';
 import { EvaluateSpecialRequestFormComponent } from '../../components/evaluate-special-request-form/evaluate-special-request-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
-
-type SpecialRequestVerdict = stateList.APROBADO | stateList.NO_APROBADO;
 
 @Component({
   selector: 'app-evaluate-special-request-page',
@@ -24,7 +23,7 @@ export class EvaluateSpecialRequestPageComponent implements OnInit {
   readonly specialRequestState = signal<SpecialRequest | null>(null);
   readonly isConfirmModalOpen = signal(false);
   readonly isSubmitting = signal(false);
-  readonly pendingData = signal<{ status: SpecialRequestVerdict; resolutionDetails: string; grantedDeadline?: Date } | null>(null);
+  readonly pendingData = signal<SpecialRequestDecision | null>(null);
 
   ngOnInit(): void {
     const requestId = this.route.snapshot.paramMap.get('requestId');
@@ -51,7 +50,7 @@ export class EvaluateSpecialRequestPageComponent implements OnInit {
     );
   }
 
-  handleSaveTriggered(data: { status: SpecialRequestVerdict; resolutionDetails: string; grantedDeadline?: Date }): void {
+  handleSaveTriggered(data: SpecialRequestDecision): void {
     this.pendingData.set(data);
     this.isConfirmModalOpen.set(true);
   }
@@ -59,17 +58,21 @@ export class EvaluateSpecialRequestPageComponent implements OnInit {
   processSpecialRequestEvaluation(): void {
     const data = this.pendingData();
     const thesisId = this.thesisWorkState()?.thesisWorkId;
-    const reqId = this.specialRequestState()?.id;
-    if (!data || !thesisId || !reqId) return;
+    const request = this.specialRequestState();
+    if (!data || !thesisId || !request) return;
 
     this.isSubmitting.set(true);
     this.isConfirmModalOpen.set(false);
 
     this.facade.processEvaluation(
-      thesisId, reqId, data,
+      thesisId, request, data,
       () => { this.isSubmitting.set(false); this.goBack(); },
       () => { this.isSubmitting.set(false); }
     );
+  }
+
+  downloadDocument(document: FileDocument): void {
+    void this.facade.downloadDocument(document);
   }
 
   goBack(): void {

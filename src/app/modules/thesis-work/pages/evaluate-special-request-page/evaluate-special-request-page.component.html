@@ -12,13 +12,14 @@
         [specialRequest]="specialRequestState()!"
         [isSubmitting]="isSubmitting()"
         (onSave)="handleSaveTriggered($event)"
-        (onBack)="goBack()">
+        (onBack)="goBack()"
+        (onDownloadDocument)="downloadDocument($event)">
       </app-evaluate-special-request-form>
     }
 
     <app-confirmation-action-modal
       [isOpen]="isConfirmModalOpen()"
-      description="¿Está seguro de registrar esta evaluación para la solicitud especial? Esta acción notificará al estudiante y actualizará el estado del proceso."
+      description="¿Está seguro de registrar la decisión del Consejo sobre esta solicitud? Se notificará a los participantes y se actualizará el trabajo de grado."
       (onClose)="isConfirmModalOpen.set(false)"
       (confirm)="processSpecialRequestEvaluation()">
     </app-confirmation-action-modal>

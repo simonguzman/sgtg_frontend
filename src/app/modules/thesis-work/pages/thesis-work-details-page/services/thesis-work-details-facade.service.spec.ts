@@ -50,6 +50,7 @@ const createMockThesisWorkDetailsView = (overrides: Partial<ThesisWorkDetailsVie
   description: 'Descripción de Prueba',
   modality: 'Trabajo de investigación',
   state: 'En Desarrollo',
+  deadlines: [],
   participants: {
     authors: 'Estudiante 1',
     director: 'Director 1'

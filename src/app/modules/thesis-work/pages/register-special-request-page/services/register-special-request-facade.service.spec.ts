@@ -1,216 +1,91 @@
 import { TestBed } from '@angular/core/testing';
-import { of, throwError, Observable } from 'rxjs';
-import { RegisterSpecialRequestFacadeService, SpecialRequestPayload } from './register-special-request-facade.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { of, throwError } from 'rxjs';
+import { RegisterSpecialRequestFacadeService } from './register-special-request-facade.service';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
-import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { SpecialRequestType } from '../../../enums/special-request-type.enum';
-import { stateList } from '../../../../../core/enums/state.enum';
-import { User } from '../../../../users/interfaces/user.interface';
-import { IdentificationType } from '../../../../users/enum/identification-type.enum';
-import { UserState } from '../../../../users/enum/user-state.enum';
-import { Modality } from '../../../../proposal/enums/modality.enum';
+import { thesisWorkDePrueba } from '../../../../../testing/vista-de-prueba';
 
-interface MockThesisWorkService {
-  getThesisWorkByIdMock: jest.Mock<Observable<ThesisWork | null | undefined>, [string]>;
-  createSpecialRequestMock: jest.Mock<Observable<void>, [SpecialRequestPayload & { thesisId: string }]>;
-}
-
-interface MockNotificationService {
-  show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
-}
-
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'u-1',
-  idType: IdentificationType.CC,
-  idNumber: 123456789,
-  firstName: 'Juan',
-  secondName: '',
-  lastName: 'Perez',
-  secondLastName: '',
-  codeNumber: 1234567890,
-  email: 'juan@test.com',
-  password: 'hash',
-  state: UserState.active,
-  roles: [],
-  ...overrides
-});
-
-const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
-  const baseUser = createMockUser();
-  const baseThesis: ThesisWork = {
-    thesisWorkId: '123',
-    preliminaryDraftId: 'draft-1',
-    documents: [],
-    evaluations: [],
-    specialRequests: [],
-    state: stateList.EN_DESARROLLO,
-    createdDate: new Date(),
-    preliminaryDraftData: {
-      preliminaryDraftId: 'draft-1',
-      proposalId: 'prop-1',
-      state: stateList.APROBADO,
-      createdData: new Date(),
-      evaluations: [],
-      documents: [],
-      proposalData: {
-        id: 'prop-1',
-        title: 'Título Mock',
-        description: 'Desc',
-        modality: Modality.TI,
-        authors: [baseUser],
-        director: baseUser,
-        state: stateList.APROBADO,
-        createdAt: new Date(),
-        documents: [],
-        evaluations: []
-      }
-    }
-  };
-  return { ...baseThesis, ...overrides };
-};
+const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/pdf' });
 
 describe('RegisterSpecialRequestFacadeService', () => {
-  let service: RegisterSpecialRequestFacadeService;
-
-  let thesisWorkServiceMock: MockThesisWorkService;
-  let notificationServiceMock: MockNotificationService;
-
-  const mockThesisWork = createMockThesisWork();
+  let facade: RegisterSpecialRequestFacadeService;
+  let thesisWorkService: { getThesisWorkByIdMock: jest.Mock; createSpecialRequest: jest.Mock };
+  let notification: { show: jest.Mock };
 
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    thesisWorkServiceMock = {
-      getThesisWorkByIdMock: jest.fn(),
-      createSpecialRequestMock: jest.fn()
-    };
-
-    notificationServiceMock = {
-      show: jest.fn()
-    };
-
+    thesisWorkService = { getThesisWorkByIdMock: jest.fn(), createSpecialRequest: jest.fn() };
+    notification = { show: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
-        RegisterSpecialRequestFacadeService,
-        { provide: ThesisWorkService, useValue: thesisWorkServiceMock },
-        { provide: NotificationService, useValue: notificationServiceMock }
+        { provide: ThesisWorkService, useValue: thesisWorkService },
+        { provide: NotificationService, useValue: notification }
       ]
     });
-
-    service = TestBed.inject(RegisterSpecialRequestFacadeService);
+    facade = TestBed.inject(RegisterSpecialRequestFacadeService);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
-  });
+  afterEach(() => jest.restoreAllMocks());
 
-  describe('Flujo de Carga (loadThesisWork)', () => {
-    it('debería llamar a onSuccess cuando el trabajo existe', () => {
-      thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(of(mockThesisWork));
-      const onSuccessSpy = jest.fn();
-      const onNotFoundSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.loadThesisWork('123', onSuccessSpy, onNotFoundSpy, onErrorSpy);
-
-      expect(thesisWorkServiceMock.getThesisWorkByIdMock).toHaveBeenCalledWith('123');
-      expect(onSuccessSpy).toHaveBeenCalledWith(mockThesisWork);
-      expect(onNotFoundSpy).not.toHaveBeenCalled();
-      expect(onErrorSpy).not.toHaveBeenCalled();
-      expect(notificationServiceMock.show).not.toHaveBeenCalled();
+  describe('loadThesisWork', () => {
+    it('entrega el trabajo encontrado', () => {
+      const thesis = thesisWorkDePrueba();
+      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(thesis));
+      const onSuccess = jest.fn();
+      facade.loadThesisWork('15', onSuccess, jest.fn(), jest.fn());
+      expect(onSuccess).toHaveBeenCalledWith(thesis);
     });
 
-    it('debería notificar y llamar a onNotFound cuando la data retorna null', () => {
-      thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(of(null));
-      const onSuccessSpy = jest.fn();
-      const onNotFoundSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.loadThesisWork('123', onSuccessSpy, onNotFoundSpy, onErrorSpy);
-
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'No encontrado',
-        message: 'El trabajo de grado especificado no existe.',
-        type: NotificationType.ERROR
-      });
-      expect(onNotFoundSpy).toHaveBeenCalled();
-      expect(onSuccessSpy).not.toHaveBeenCalled();
-      expect(onErrorSpy).not.toHaveBeenCalled();
-    });
-
-    it('debería notificar, registrar el error y llamar a onError cuando la petición falla', () => {
-      const errorMock = new Error('Network error');
-      thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(throwError(() => errorMock));
-
-      const onSuccessSpy = jest.fn();
-      const onNotFoundSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.loadThesisWork('123', onSuccessSpy, onNotFoundSpy, onErrorSpy);
-
-      expect(console.error).toHaveBeenCalledWith(errorMock);
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Error',
-        message: 'No se pudo cargar la información del trabajo de grado.',
-        type: NotificationType.ERROR
-      });
-      expect(onErrorSpy).toHaveBeenCalled();
-      expect(onSuccessSpy).not.toHaveBeenCalled();
-      expect(onNotFoundSpy).not.toHaveBeenCalled();
+    it('distingue "no encontrado" del error de conexión', () => {
+      const onNotFound = jest.fn();
+      const onError = jest.fn();
+      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(undefined));
+      facade.loadThesisWork('99', jest.fn(), onNotFound, onError);
+      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('x')));
+      facade.loadThesisWork('15', jest.fn(), onNotFound, onError);
+      expect(onNotFound).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('Flujo de Guardado (processSaveRequest)', () => {
-    let requestData: SpecialRequestPayload;
+  describe('processSaveRequest', () => {
+    it('registra la solicitud y avisa que irá al Consejo', () => {
+      const solicitud = { requestType: SpecialRequestType.SUSPENSION as const, document: pdf('s.pdf') };
+      thesisWorkService.createSpecialRequest.mockReturnValue(of(thesisWorkDePrueba()));
+      const onSuccess = jest.fn();
+      facade.processSaveRequest('15', solicitud, onSuccess, jest.fn());
 
-    beforeEach(() => {
-      requestData = {
-        requestType: Object.values(SpecialRequestType)[0],
-        comments: 'Test request comments'
-      };
+      expect(thesisWorkService.createSpecialRequest).toHaveBeenCalledWith('15', solicitud);
+      expect(onSuccess).toHaveBeenCalled();
+      expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'La solicitud quedó registrada y se notificó al Consejo de Facultad.'
+      }));
     });
 
-    it('debería registrar exitosamente, notificar y llamar a onSuccess', () => {
-      thesisWorkServiceMock.createSpecialRequestMock.mockReturnValue(of(void 0));
-      const onSuccessSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.processSaveRequest('123', requestData, onSuccessSpy, onErrorSpy);
-
-      expect(thesisWorkServiceMock.createSpecialRequestMock).toHaveBeenCalledWith({
-        ...requestData,
-        thesisId: '123'
-      });
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Éxito',
-        message: 'La solicitud especial ha sido registrada correctamente.',
-        type: NotificationType.CONFIRMATION
-      });
-      expect(onSuccessSpy).toHaveBeenCalled();
-      expect(onErrorSpy).not.toHaveBeenCalled();
+    it('la reanudación confirma que el trabajo se reanudó', () => {
+      thesisWorkService.createSpecialRequest.mockReturnValue(of(thesisWorkDePrueba()));
+      facade.processSaveRequest('15', { requestType: SpecialRequestType.REANUDACION, document: pdf('r.pdf') },
+        jest.fn(), jest.fn());
+      expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'El trabajo de grado se reanudó correctamente.'
+      }));
     });
 
-    it('debería notificar error, registrar en consola y llamar a onError cuando el guardado falla', () => {
-      const errorMock = new Error('Server error');
-      thesisWorkServiceMock.createSpecialRequestMock.mockReturnValue(throwError(() => errorMock));
+    it('muestra el mensaje del backend si la rechaza', () => {
+      thesisWorkService.createSpecialRequest.mockReturnValue(throwError(() => new HttpErrorResponse({
+        status: 400, error: { message: 'La prórroga ya fue solicitada' }
+      })));
+      const onError = jest.fn();
+      facade.processSaveRequest('15', { requestType: SpecialRequestType.PRORROGA, months: 1, document: pdf('p.pdf') },
+        jest.fn(), onError);
 
-      const onSuccessSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.processSaveRequest('123', requestData, onSuccessSpy, onErrorSpy);
-
-      expect(console.error).toHaveBeenCalledWith(errorMock);
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Error al guardar',
-        message: 'Hubo un problema registrando la solicitud. Intente nuevamente.',
-        type: NotificationType.ERROR
-      });
-      expect(onErrorSpy).toHaveBeenCalled();
-      expect(onSuccessSpy).not.toHaveBeenCalled();
+      expect(onError).toHaveBeenCalled();
+      expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'La prórroga ya fue solicitada', type: NotificationType.ERROR
+      }));
     });
   });
 });

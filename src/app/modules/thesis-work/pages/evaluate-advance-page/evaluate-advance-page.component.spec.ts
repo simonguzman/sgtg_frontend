@@ -7,7 +7,7 @@ import { AuthService } from '../../../../core/services/auth/auth.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { Advance } from '../../interfaces/advance.interface';
 import { User } from '../../../users/interfaces/user.interface';
-import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playload.interface';
+import { SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playload.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
 import { UserState } from '../../../users/enum/user-state.enum';
@@ -21,10 +21,13 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 class MockEvaluateAdvanceFormComponent {
   @Input({ required: true }) advanceData!: Advance;
   @Input({ required: true }) thesisWork!: ThesisWork;
+  @Input() isSubmitting = false;
+  @Input() alreadyEvaluated = false;
   @Output() onBack = new EventEmitter<void>();
   @Output() onSaveEvaluation = new EventEmitter<SubmitAdvanceEvaluationPayload>();
 
   @Output() onDownloadAdvance = new EventEmitter<FileDocument>();
+  @Output() onDownloadNotes = new EventEmitter<FileDocument>();
 }
 
 @Component({ selector: 'app-confirmation-action-modal', template: '', standalone: true })
@@ -37,7 +40,7 @@ class MockConfirmationActionModalComponent {
 
 interface MockEvaluateAdvanceFacadeService {
   loadThesisWork: jest.Mock<void, [string, (t: ThesisWork) => void, () => void]>;
-  saveEvaluation: jest.Mock<Promise<void>, [ThesisWork, Advance, User, SubmitAdvanceEvaluationPayload, () => void, () => void]>;
+  saveEvaluation: jest.Mock<void, [ThesisWork, Advance, SubmitAdvanceEvaluationPayload, () => void, () => void]>;
 
   downloadAdvance: jest.Mock<Promise<void>, [FileDocument]>;
   showNavigationError: jest.Mock<void, []>;
@@ -246,14 +249,23 @@ describe('EvaluateAdvancePageComponent', () => {
 
       expect(component.currentAdvance()).toEqual(mockAdvance);
     });
+
+    it('alreadyEvaluated indica si el usuario en sesión ya revisó el informe', () => {
+      component.advanceId.set('adv-1');
+      component.thesisWorkState.set({
+        ...mockThesis,
+        evaluations: [{ id: 'r', proposalId: 'p', advanceId: 'adv-1', evaluatorId: mockUser.id, evaluatorName: 'J',
+          evaluatorRole: 'Director', veredict: stateList.EVALUADO, observations: '', date: new Date() }]
+      });
+      expect(component.alreadyEvaluated()).toBe(true);
+      component.advanceId.set('adv-2');
+      expect(component.alreadyEvaluated()).toBe(false);
+    });
   });
 
   describe('Interacciones y Manejo de Modal', () => {
     it('handleRequestConfirmation debe settear la data pendiente y abrir el modal', () => {
-      const payload: SubmitAdvanceEvaluationPayload = {
-        formValues: { result: AdvanceEvaluationResult.EVALUADO, comments: 'Excelente' },
-        files: []
-      };
+      const payload: SubmitAdvanceEvaluationPayload = { comments: 'Excelente', notes: null };
 
       component.handleRequestConfirmation(payload);
 
@@ -277,10 +289,7 @@ describe('EvaluateAdvancePageComponent', () => {
   });
 
   describe('Flujo de Guardado (processAdvanceEvaluation)', () => {
-    const payloadMock: SubmitAdvanceEvaluationPayload = {
-      formValues: { result: AdvanceEvaluationResult.EN_REVISION, comments: '' },
-      files: []
-    };
+    const payloadMock: SubmitAdvanceEvaluationPayload = { comments: 'Revisado', notes: null };
 
     beforeEach(() => {
       component.advanceId.set('adv-1');
@@ -303,7 +312,6 @@ describe('EvaluateAdvancePageComponent', () => {
       expect(facadeSpy.saveEvaluation).toHaveBeenCalledWith(
         mockThesis,
         mockAdvance,
-        mockUser,
         payloadMock,
         expect.any(Function),
         expect.any(Function)
@@ -311,15 +319,23 @@ describe('EvaluateAdvancePageComponent', () => {
     });
 
     it('al ejecutar el callback de éxito de saveEvaluation, debe cerrar el modal y navegar hacia atrás', async () => {
-      facadeSpy.saveEvaluation.mockImplementation(async (t, a, u, d, onSuccess) => {
-        onSuccess();
-        return Promise.resolve();
-      });
+      facadeSpy.saveEvaluation.mockImplementation((_t, _a, _d, onSuccess) => onSuccess());
 
       component.processAdvanceEvaluation();
 
+      expect(component.isSaving()).toBe(false);
       expect(component.isConfirmModalOpen()).toBe(false);
       expect(routerSpy.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: mockActivatedRoute.parent });
+    });
+
+    it('si falla, cierra el modal sin navegar', () => {
+      facadeSpy.saveEvaluation.mockImplementation((_t, _a, _d, _onSuccess, onError) => onError());
+
+      component.processAdvanceEvaluation();
+
+      expect(component.isSaving()).toBe(false);
+      expect(component.isConfirmModalOpen()).toBe(false);
+      expect(routerSpy.navigate).not.toHaveBeenCalled();
     });
   });
 });

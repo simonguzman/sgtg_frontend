@@ -74,12 +74,11 @@ export class ThesisWorkPageMapperService {
     const isOwnerOrAdmin = isAdmin || isDirector;
     const isSuspended = thesisWork.state === stateList.SUSPENDIDO;
 
-    let allowed: string[] = ['ver descripción'];
-    if (hasViewPermission && !isSuspended) allowed.push('ver');
+    const allowed: string[] = ['ver descripción'];
+    if (hasViewPermission) allowed.push('ver');
     if (isOwnerOrAdmin) allowed.push('editar');
-    if (isSuspended && (isAdmin || isConsejo)) {
-      allowed.push('reactivar');
-    }
+    // Reanudar un trabajo suspendido: solo el director, con el documento de reanudación
+    if (isSuspended && isDirector) allowed.push('reactivar');
     return allowed;
   }
 }

@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { ThesisWorkPageComponent } from './pages/thesis-work-page/thesis-work-page.component';
 import { ThesisWorkDetailsPageComponent } from './pages/thesis-work-details-page/thesis-work-details-page.component';
 import { roleGuard } from '../../core/guards/role.guard';
-import { thesisRestrictedStatusGuard, thesisSuspendedViewGuard } from '../../core/guards/thesis-status.guard';
+import { thesisCanceledGuard, thesisRestrictedStatusGuard } from '../../core/guards/thesis-status.guard';
 import { UserRoleType } from '../../core/enums/user-role-type.enum';
 import { EvaluationsPerformedPageComponent } from '../../shared/pages/evaluations-performed-page/evaluations-performed-page.component';
 import { LoadedDocumentsThesisWorkPageComponent } from './pages/loaded-documents-thesis-work-page/loaded-documents-thesis-work-page.component';
@@ -47,7 +47,7 @@ export const thesisWorkRoutes: Routes = [
           {
             path: '',
             component: ThesisWorkDetailsPageComponent,
-            canActivate: [roleGuard, thesisSuspendedViewGuard],
+            canActivate: [roleGuard],
             title: 'Información del trabajo de grado',
             data: {
               breadcrumb: null,
@@ -61,7 +61,7 @@ export const thesisWorkRoutes: Routes = [
           {
             path: 'evaluations_performed',
             component: EvaluationsPerformedPageComponent,
-            canActivate: [roleGuard, thesisSuspendedViewGuard],
+            canActivate: [roleGuard],
             title: 'Evaluaciones realizadas',
             data: {
               breadcrumb: 'Evaluaciones realizadas',
@@ -75,7 +75,7 @@ export const thesisWorkRoutes: Routes = [
           {
             path: 'loaded_documents',
             component: LoadedDocumentsThesisWorkPageComponent,
-            canActivate: [roleGuard, thesisSuspendedViewGuard],
+            canActivate: [roleGuard],
             title: 'Documentos cargados',
             data: {
               breadcrumb: 'Documentos cargados',
@@ -90,19 +90,20 @@ export const thesisWorkRoutes: Routes = [
             path: 'upload_advance',
             component: UploadAdvancePageComponent,
             canActivate: [roleGuard, thesisRestrictedStatusGuard],
-            title: 'Cargar avances',
+            title: 'Cargar informe mensual',
             data: {
-              breadcrumb: 'Cargar avances',
-              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.ESTUDIANTE]
+              breadcrumb: 'Cargar informe mensual',
+              // En práctica profesional el director también radica los informes
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.ESTUDIANTE, UserRoleType.DIRECTOR]
             }
           },
           {
             path: 'evaluate_advance/:advanceId',
             component: EvaluateAdvancePageComponent,
             canActivate: [roleGuard, thesisRestrictedStatusGuard],
-            title: 'Evaluar avances',
+            title: 'Revisar informe mensual',
             data: {
-              breadcrumb: 'Evaluar avances',
+              breadcrumb: 'Revisar informe mensual',
               roles: [UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR]
             }
           },
@@ -149,7 +150,7 @@ export const thesisWorkRoutes: Routes = [
           {
             path: 'view_sustentation_details/:sustentationId',
             component: SustentationDetailsPageComponent,
-            canActivate: [roleGuard, thesisSuspendedViewGuard],
+            canActivate: [roleGuard],
             title: 'Detalles de la sustentación',
             data: {
               breadcrumb: 'Detalles de la sustentación',
@@ -173,7 +174,8 @@ export const thesisWorkRoutes: Routes = [
           {
             path: 'register_special_request',
             component: RegisterSpecialRequestPageComponent,
-            canActivate: [roleGuard, thesisRestrictedStatusGuard],
+            // Abierta también con el trabajo suspendido: allí se registra la reanudación
+            canActivate: [roleGuard, thesisCanceledGuard],
             title: 'Registrar solicitud especial',
             data: {
               breadcrumb: 'Registrar solicitud especial',
@@ -193,7 +195,7 @@ export const thesisWorkRoutes: Routes = [
           {
             path: 'corrected_documents',
             component: CorrectedDocumentsPageComponent,
-            canActivate: [roleGuard, thesisSuspendedViewGuard],
+            canActivate: [roleGuard],
             title: 'Documentos corregidos',
             data: {
               breadcrumb: 'Documentos corregidos',

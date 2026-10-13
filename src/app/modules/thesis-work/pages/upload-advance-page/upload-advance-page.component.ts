@@ -1,6 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '../../../../core/services/auth/auth.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { UploadAdvancePayload } from '../../interfaces/advance-playload.interface';
 import { UploadAdvancePageFacadeService } from './services/upload-advance-page-facade.service';
@@ -16,7 +15,6 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 export class UploadAdvancePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly authService = inject(AuthService);
   protected readonly facade = inject(UploadAdvancePageFacadeService);
 
   readonly thesisWorkState = signal<ThesisWork | null>(null);
@@ -53,12 +51,10 @@ export class UploadAdvancePageComponent implements OnInit {
   processAdvance(): void {
     const data = this.pendingAdvanceData();
     const thesis = this.thesisWorkState();
-    const user = this.authService.currentUser();
-    if (!data || !thesis || !user) return;
+    if (!data || !thesis) return;
     this.isSaving.set(true);
-    void this.facade.processAdvance(
+    this.facade.processAdvance(
       thesis.thesisWorkId,
-      user.id,
       data,
       () => {
         this.isSaving.set(false);

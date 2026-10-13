@@ -32,7 +32,7 @@ class MockConfirmationActionModalComponent {
 
 interface MockUploadAdvancePageFacadeService {
   loadThesisWork: jest.Mock<void, [string, (t: ThesisWork) => void, () => void]>;
-  processAdvance: jest.Mock<Promise<void>, [string, string, UploadAdvancePayload, () => void, () => void]>;
+  processAdvance: jest.Mock<void, [string, UploadAdvancePayload, () => void, () => void]>;
   showNavigationError: jest.Mock<void, []>;
 }
 
@@ -97,8 +97,8 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
 };
 
 const createMockPayload = (): UploadAdvancePayload => ({
-  formValues: { title: 'Avance T', comments: 'Avance C' },
-  files: []
+  comments: 'Avance C',
+  file: new File(['%PDF'], 'informe.pdf', { type: 'application/pdf' })
 });
 
 describe('UploadAdvancePageComponent', () => {
@@ -225,7 +225,7 @@ describe('UploadAdvancePageComponent', () => {
       component.isConfirmModalOpen.set(true);
     });
 
-    it('debe abortar la ejecución si falta el payload, el trabajo de grado o el usuario', () => {
+    it('debe abortar la ejecución si falta el payload o el trabajo de grado', () => {
       component.pendingAdvanceData.set(null);
 
       component.processAdvance();
@@ -239,7 +239,6 @@ describe('UploadAdvancePageComponent', () => {
       expect(component.isSaving()).toBe(true);
       expect(facadeSpy.processAdvance).toHaveBeenCalledWith(
         mockThesis.thesisWorkId,
-        mockUser.id,
         mockPayload,
         expect.any(Function),
         expect.any(Function)
@@ -247,10 +246,7 @@ describe('UploadAdvancePageComponent', () => {
     });
 
     it('debe limpiar estados y redirigir cuando el guardado es exitoso', () => {
-      facadeSpy.processAdvance.mockImplementation((_tId, _uId, _data, onSuccess): Promise<void> => {
-        onSuccess();
-        return Promise.resolve();
-      });
+      facadeSpy.processAdvance.mockImplementation((_tId, _data, onSuccess) => onSuccess());
 
       component.processAdvance();
 
@@ -260,10 +256,7 @@ describe('UploadAdvancePageComponent', () => {
     });
 
     it('debe limpiar estados pero NO redirigir cuando ocurre un error en el guardado', () => {
-      facadeSpy.processAdvance.mockImplementation((_tId, _uId, _data, _onSuccess, onError): Promise<void> => {
-        onError();
-        return Promise.resolve();
-      });
+      facadeSpy.processAdvance.mockImplementation((_tId, _data, _onSuccess, onError) => onError());
 
       component.processAdvance();
 

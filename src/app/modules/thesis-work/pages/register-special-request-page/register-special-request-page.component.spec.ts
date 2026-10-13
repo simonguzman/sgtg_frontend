@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { RegisterSpecialRequestPageComponent, SpecialRequestData } from './register-special-request-page.component';
+import { RegisterSpecialRequestPageComponent } from './register-special-request-page.component';
+import { SpecialRequestSubmission } from '../../services/thesis-work-special-request.service';
 import { RegisterSpecialRequestFacadeService } from './services/register-special-request-facade.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SpecialRequestType } from '../../enums/special-request-type.enum';
@@ -24,14 +25,14 @@ interface MockRouter {
 
 interface MockFacadeService {
   loadThesisWork: jest.Mock<void, [string, (work: ThesisWork) => void, () => void, () => void]>;
-  processSaveRequest: jest.Mock<void, [string, SpecialRequestData, () => void, () => void]>;
+  processSaveRequest: jest.Mock<void, [string, SpecialRequestSubmission, () => void, () => void]>;
 }
 
 @Component({ selector: 'app-register-special-request-form', standalone: true, template: '' })
 class MockRegisterSpecialRequestFormComponent {
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
-  @Output() onSaveRequest = new EventEmitter<SpecialRequestData>();
+  @Output() onSaveRequest = new EventEmitter<SpecialRequestSubmission>();
 }
 
 @Component({ selector: 'app-confirmation-action-modal', standalone: true, template: '' })
@@ -198,10 +199,10 @@ describe('RegisterSpecialRequestPageComponent', () => {
   });
 
   describe('Flujo de Confirmación y Guardado', () => {
-    let payload: SpecialRequestData;
+    let payload: SpecialRequestSubmission;
 
     beforeEach(() => {
-      payload = { requestType: Object.values(SpecialRequestType)[0], comments: 'Prueba' };
+      payload = { requestType: SpecialRequestType.SUSPENSION, document: new File(['%PDF'], 's.pdf') };
 
       facadeMock.loadThesisWork.mockImplementation((id, onSuccess) => onSuccess(mockThesisWork));
       fixture.detectChanges();

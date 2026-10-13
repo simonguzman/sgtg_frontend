@@ -16,16 +16,16 @@ export class EvaluateSpecialRequestFormService {
 
   notifyMissingVerdict(): void {
     this.notificationService.show({
-      title: 'Falta calificación',
-      message: 'Debe seleccionar si la solicitud cumple o no con los requisitos.',
+      title: 'Falta la decisión',
+      message: 'Debe seleccionar si la solicitud se aprueba o no se aprueba.',
       type: NotificationType.ERROR
     });
   }
 
-  notifyMissingDeadline(): void {
+  notifyMissingResolution(): void {
     this.notificationService.show({
-      title: 'Fecha requerida',
-      message: 'Debe asignar la nueva fecha límite de entrega para autorizar la solicitud.',
+      title: 'Resolución requerida',
+      message: 'Debe adjuntar la resolución del Consejo de Facultad en PDF.',
       type: NotificationType.ERROR
     });
   }

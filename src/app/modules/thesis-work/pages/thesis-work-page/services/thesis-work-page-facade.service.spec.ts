@@ -159,50 +159,6 @@ describe('ThesisWorkPageFacadeService', () => {
     });
   });
 
-  describe('Flujos de Acción (reactivateThesis)', () => {
-    it('debe mostrar notificación de procesamiento, confirmación y ejecutar onSuccess si la API responde bien', () => {
-      thesisWorkMock.reactivateThesisWorkMock.mockReturnValue(of(void 0));
-      const successCb = jest.fn();
-      const errorCb = jest.fn();
-
-      service.reactivateThesis('tw-1', successCb, errorCb);
-
-      expect(thesisWorkMock.reactivateThesisWorkMock).toHaveBeenCalledWith('tw-1');
-      expect(successCb).toHaveBeenCalledTimes(1);
-      expect(errorCb).not.toHaveBeenCalled();
-
-      expect(notificationMock.show).toHaveBeenCalledTimes(2);
-      expect(notificationMock.show).toHaveBeenNthCalledWith(1, {
-        title: 'Reactivando trabajo',
-        message: 'Procesando la solicitud...',
-        type: NotificationType.INFO
-      });
-      expect(notificationMock.show).toHaveBeenNthCalledWith(2, {
-        title: 'Trabajo Reactivado',
-        message: 'El trabajo ha sido reactivado correctamente.',
-        type: NotificationType.CONFIRMATION
-      });
-    });
-
-    it('debe mostrar notificación de error y ejecutar onError si la reactivación falla', () => {
-      thesisWorkMock.reactivateThesisWorkMock.mockReturnValue(throwError(() => new Error('Error de conexión')));
-      const successCb = jest.fn();
-      const errorCb = jest.fn();
-
-      service.reactivateThesis('tw-1', successCb, errorCb);
-
-      expect(errorCb).toHaveBeenCalledTimes(1);
-      expect(successCb).not.toHaveBeenCalled();
-
-      expect(notificationMock.show).toHaveBeenCalledTimes(2);
-      expect(notificationMock.show).toHaveBeenNthCalledWith(2, {
-        title: 'Error',
-        message: 'Hubo un error al reactivar el trabajo.',
-        type: NotificationType.ERROR
-      });
-    });
-  });
-
   describe('Notificaciones Utilitarias', () => {
     it('debe mostrar alerta estándar de restricción de acceso (showRestrictedAccessNotification)', () => {
       service.showRestrictedAccessNotification();

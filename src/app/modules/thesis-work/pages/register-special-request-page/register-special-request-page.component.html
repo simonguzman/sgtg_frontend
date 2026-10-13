@@ -28,7 +28,7 @@
 <!-- ✅ Modal de confirmación -->
 <app-confirmation-action-modal
   [isOpen]="isConfirmModalOpen()"
-  description="¿Está seguro de registrar esta solicitud especial? Una vez enviada, será revisada por el consejo de facultad y no podrá modificarse."
+  description="¿Está seguro de registrar esta solicitud? Una vez enviada no podrá modificarse; si requiere decisión, la revisará el Consejo de Facultad."
   (onClose)="isConfirmModalOpen.set(false)"
   (confirm)="processSaveRequest()">
 </app-confirmation-action-modal>

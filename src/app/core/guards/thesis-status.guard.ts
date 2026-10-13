@@ -35,7 +35,11 @@ export const thesisRestrictedStatusGuard: CanActivateFn = (route) => {
 };
 
 
-export const thesisSuspendedViewGuard: CanActivateFn = (route) => {
+/**
+ * Solo bloquea los trabajos cancelados. Se usa en el registro de solicitudes,
+ * que con el trabajo suspendido sigue abierto para registrar la reanudación.
+ */
+export const thesisCanceledGuard: CanActivateFn = (route) => {
   const router = inject(Router);
   const thesisStorage = inject(ThesisWorkStorageService);
   const notificationService = inject(NotificationService);
@@ -50,10 +54,10 @@ export const thesisSuspendedViewGuard: CanActivateFn = (route) => {
     work => work.thesisWorkId === id,
     injector
   ).then(currentWork => {
-    if (currentWork?.state === stateList.SUSPENDIDO) {
+    if (currentWork?.state === stateList.CANCELADO) {
       notificationService.show({
         title: 'Acceso Restringido',
-        message: 'No es posible consultar este trabajo de grado mientras se encuentre suspendido.',
+        message: 'La acción no está permitida porque el trabajo de grado se encuentra cancelado.',
         type: NotificationType.ERROR
       });
       return router.createUrlTree(['/thesis-work']);

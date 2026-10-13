@@ -1,14 +1,11 @@
 import { inject, Injectable } from '@angular/core';
-import { forkJoin } from 'rxjs';
 import { first } from 'rxjs/operators';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
-import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
-import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { UploadAdvancePayload } from '../../../interfaces/advance-playload.interface';
-import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
 @Injectable({ providedIn: 'root' })
 export class UploadAdvancePageFacadeService {
@@ -38,61 +35,33 @@ export class UploadAdvancePageFacadeService {
       });
   }
 
-  public async processAdvance(
+  /** Radica el informe mensual en el backend. */
+  public processAdvance(
     thesisId: string,
-    userId: string,
     data: UploadAdvancePayload,
     onSuccess: () => void,
     onError: () => void
-  ): Promise<void> {
-    const advanceBlockId = crypto.randomUUID();
-    const advanceMeta = {
-      title: data.formValues.title,
-      comments: data.formValues.comments,
-      studentId: userId,
-      advanceId: advanceBlockId
-    };
-
-    let documentsToUpload: FileDocument[];
-    try {
-      documentsToUpload = await Promise.all(
-        data.files.map(async (file) => ({
-          id: crypto.randomUUID(),
-          name: `${data.formValues.title} - ${file.name}`,
-          url: await readFileAsDataUrl(file),
-          type: DocumentType.AVANCE,
-          uploadDate: new Date().toISOString()
-        }))
-      );
-    } catch (err) {
-      console.error('Error leyendo los archivos del avance:', err);
-      this.showNotification('Error al leer el archivo', 'No se pudo procesar uno de los archivos seleccionados.', NotificationType.ERROR);
-      onError();
-      return;
-    }
-
-    forkJoin(
-      documentsToUpload.map(document =>
-        this.thesisWorkService.uploadDocumentMock(thesisId, document, advanceMeta)
-      )
-    ).pipe(first()).subscribe({
-      next: () => {
-        this.showNotification(
-          'Avance registrado',
-          'Los archivos del avance han sido guardados y puestos en revisión exitosamente.',
-          NotificationType.CONFIRMATION
-        );
-        onSuccess();
-      },
-      error: () => {
-        this.showNotification(
-          'Error al guardar',
-          'Ocurrió un problema al subir los documentos del avance. Intente nuevamente.',
-          NotificationType.ERROR
-        );
-        onError();
-      }
-    });
+  ): void {
+    this.thesisWorkService.radicarInforme(thesisId, data.file, data.comments)
+      .pipe(first())
+      .subscribe({
+        next: () => {
+          this.showNotification(
+            'Informe radicado',
+            'El informe mensual quedó registrado y se notificó al director para su revisión.',
+            NotificationType.CONFIRMATION
+          );
+          onSuccess();
+        },
+        error: (error: unknown) => {
+          this.showNotification(
+            'No se pudo radicar el informe',
+            apiErrorMessage(error, 'Ocurrió un problema al subir el informe mensual. Intente nuevamente.'),
+            NotificationType.ERROR
+          );
+          onError();
+        }
+      });
   }
 
   public showNavigationError(): void {

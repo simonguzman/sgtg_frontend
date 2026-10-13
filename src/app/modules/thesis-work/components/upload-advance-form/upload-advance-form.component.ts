@@ -5,10 +5,11 @@ import { ButtonComponent } from '../../../../shared/components/button-component/
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
-import { UploadAdvanceFormService } from './services/upload-advance-form.service';
+import { MAX_ADVANCE_COMMENTS, UploadAdvanceFormService } from './services/upload-advance-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { UploadAdvancePayload } from '../../interfaces/advance-playload.interface';
 
+/** Formulario para radicar un informe mensual: un PDF (formato D) y observaciones opcionales. */
 @Component({
   selector: 'app-upload-advance-form',
   imports: [NgClass, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],
@@ -18,16 +19,19 @@ import { UploadAdvancePayload } from '../../interfaces/advance-playload.interfac
 })
 export class UploadAdvanceFormComponent {
   protected readonly formService = inject(UploadAdvanceFormService);
+  protected readonly maxComments = MAX_ADVANCE_COMMENTS;
 
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
   @Output() onSaveAdvance = new EventEmitter<UploadAdvancePayload>();
   @Output() onGoBack = new EventEmitter<void>();
 
-  readonly uploadedFiles = signal<{ fileName: string; file: File }[]>([]);
+  readonly uploadedFile = signal<{ fileName: string; file: File } | null>(null);
   readonly isUploadModalOpen = signal(false);
 
   get advanceForm() { return this.formService.advanceForm; }
+  /** Número que tendrá el informe: el siguiente al último radicado. */
+  get nextReportNumber(): number { return (this.thesisWork.advances?.length ?? 0) + 1; }
   getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }
   getDirectorName(): string { return this.formService.getDirectorName(this.thesisWork); }
   getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
@@ -39,12 +43,12 @@ export class UploadAdvanceFormComponent {
   }
 
   handleFileUploaded(event: { fileName: string; file: File }): void {
-    this.uploadedFiles.update(files => [...files, event]);
+    this.uploadedFile.set(event);
     this.isUploadModalOpen.set(false);
   }
 
-  removeFile(index: number): void {
-    this.uploadedFiles.update(files => files.filter((_, indexFile) => indexFile !== index));
+  removeFile(): void {
+    this.uploadedFile.set(null);
   }
 
   submit(): void {
@@ -53,14 +57,11 @@ export class UploadAdvanceFormComponent {
       this.formService.notifyIncompleteForm();
       return;
     }
-    if (this.uploadedFiles().length === 0) {
+    const uploaded = this.uploadedFile();
+    if (!uploaded) {
       this.formService.notifyMissingFiles();
       return;
     }
-    const { title, comments } = this.advanceForm.getRawValue();
-    this.onSaveAdvance.emit({
-      formValues: { title, comments },
-      files: this.uploadedFiles().map(item => item.file)
-    });
+    this.onSaveAdvance.emit({ comments: this.advanceForm.getRawValue().comments, file: uploaded.file });
   }
 }

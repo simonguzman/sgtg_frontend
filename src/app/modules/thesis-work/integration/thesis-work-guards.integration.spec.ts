@@ -1,245 +1,119 @@
-import 'fake-indexeddb/auto';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Injector, runInInjectionContext } from '@angular/core';
-import { Router, UrlTree, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
-import { waitForHydration } from '../../../testing/wait-for-hydration';
+import { ActivatedRouteSnapshot, CanActivateFn, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { thesisWorkOwnershipGuard } from '../../../core/guards/thesis-work-ownership.guard';
-import { thesisRestrictedStatusGuard, thesisSuspendedViewGuard } from '../../../core/guards/thesis-status.guard';
-import { ThesisWorkStorageService } from '../services/thesis-work-storage.service';
-import { PreliminaryDraftStorageService } from '../../preliminary-draft/services/preliminary-draft-storage.service';
-import { PreliminaryDraftService } from '../../preliminary-draft/services/preliminary-draft.service';
-import { PreliminaryDraftApiService } from '../../preliminary-draft/services/preliminary-draft-api.service';
-import { PreliminaryDraftAssignmentService } from '../../preliminary-draft/services/preliminary-draft-assignment.service';
-import { PreliminaryDraftDocumentService } from '../../preliminary-draft/services/preliminary-draft-document.service';
-import { ProposalStorageService } from '../../proposal/services/proposal-storage.service';
-import { UserService } from '../../users/services/user.service';
-import { UserStorageService } from '../../users/services/user-storage.service';
-import { UserApiService } from '../../users/services/user-api.service';
-import { AuthService } from '../../../core/services/auth/auth.service';
+import { thesisCanceledGuard, thesisRestrictedStatusGuard } from '../../../core/guards/thesis-status.guard';
 import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
-import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { User } from '../../users/interfaces/user.interface';
-import { stateList } from '../../../core/enums/state.enum';
-import { Modality } from '../../proposal/enums/modality.enum';
-import { Proposal } from '../../proposal/interfaces/proposal.interface';
-import { PreliminaryDraft } from '../../preliminary-draft/interfaces/preliminary-draft.interface';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
+import { iniciarSesionConTrabajos } from '../../../testing/sesion-de-prueba';
+import { crearTrabajoEnCurso } from '../../../testing/trabajo-grado-de-prueba';
 
-if (typeof globalThis.structuredClone === 'undefined') {
-  globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
-}
+const usuario = (id: string, roles: UserRoleType[]): User => ({
+  id, idType: IdentificationType.CC, idNumber: 123456789, firstName: 'Nombre', lastName: 'Apellido',
+  secondLastName: '', codeNumber: 1234567890, email: 'test@test.com', state: UserState.active, roles
+});
 
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'user-default', idType: IdentificationType.CC, idNumber: 123456789,
-  firstName: 'Nombre', secondName: '', lastName: 'Apellido', secondLastName: '',
-  codeNumber: 1234567890, email: 'test@test.com', password: 'hash',
-  state: UserState.active, roles: [], ...overrides
-} as User);
+const directora = usuario('1', [UserRoleType.DOCENTE, UserRoleType.DIRECTOR]);
 
-const buildRoute = (id: string): ActivatedRouteSnapshot => {
-  const mockRoute: Partial<ActivatedRouteSnapshot> = {
-    paramMap: {
-      get: (key: string) => (key === 'id' ? id : null),
-      has: () => true,
-      getAll: () => [],
-      keys: []
-    },
-    parent: null
-  };
-  return mockRoute as ActivatedRouteSnapshot;
-};
+const buildRoute = (id: string): ActivatedRouteSnapshot => ({
+  paramMap: { get: (key: string) => (key === 'id' ? id : null), has: () => true, getAll: () => [], keys: [] }
+} as unknown as ActivatedRouteSnapshot);
 
-const buildRouterState = (): RouterStateSnapshot => {
-  const mockState: Partial<RouterStateSnapshot> = { url: '/dummy-url' };
-  return mockState as RouterStateSnapshot;
-};
+const routerState = { url: '/dummy-url' } as RouterStateSnapshot;
 
-describe('Integración [Trabajo de Grado]: Guards de pertenencia y estado contra storage real', () => {
-  let thesisStorage: ThesisWorkStorageService;
-  let injector: Injector;
-
+describe('Integración [Trabajo de Grado]: Guards contra los trabajos del backend', () => {
   let routerMock: { createUrlTree: jest.Mock<UrlTree, [string[]]> };
   let notificationMock: { show: jest.Mock };
-  let authServiceMock: { currentUser: jest.Mock<User | null, []>; hasAnyRole: jest.Mock<boolean, [any?]> };
+  let injector: Injector;
 
-  const thesisId = 'thesis-guard-1';
-  const directorId = 'dir-1';
-  const outsiderId = 'outsider-1';
-
-  beforeAll(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+  beforeEach(() => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-  });
-
-  afterAll(() => {
-    jest.restoreAllMocks();
-  });
-
-  beforeEach(async () => {
-    jest.clearAllMocks();
     localStorage.clear();
-
-    routerMock = {
-      createUrlTree: jest.fn((commands: string[]) => {
-        const mockTree: Partial<UrlTree> = { fragment: commands.join('/') };
-        return mockTree as UrlTree;
-      })
-    };
+    routerMock = { createUrlTree: jest.fn((commands: string[]) => ({ fragment: commands.join('/') }) as UrlTree) };
     notificationMock = { show: jest.fn() };
-
-    authServiceMock = {
-      currentUser: jest.fn().mockReturnValue(createMockUser({ id: outsiderId })),
-      hasAnyRole: jest.fn().mockReturnValue(false)
-    };
-
     TestBed.configureTestingModule({
       providers: [
-        // UserService (real) consulta el backend: se simula el cliente HTTP
         provideHttpClient(),
         provideHttpClientTesting(),
-        ThesisWorkStorageService,
-        PreliminaryDraftStorageService, PreliminaryDraftService, PreliminaryDraftApiService,
-        PreliminaryDraftAssignmentService, PreliminaryDraftDocumentService,
-        ProposalStorageService,
-        UserService, UserStorageService, UserApiService,
         { provide: Router, useValue: routerMock },
-        { provide: NotificationService, useValue: notificationMock },
-        { provide: AuthService, useValue: authServiceMock }
+        { provide: NotificationService, useValue: notificationMock }
       ]
     });
-
-    thesisStorage = TestBed.inject(ThesisWorkStorageService);
     injector = TestBed.inject(Injector);
-    await waitForHydration(thesisStorage.isHydrated, injector);
-
-    const director = createMockUser({ id: directorId, firstName: 'Director' });
-
-    const proposalPartial: Partial<Proposal> = {
-      id: 'prop-guard-1', title: 'Tesis protegida', description: 'desc', modality: Modality.TI,
-      authors: [], director, state: stateList.APROBADO, createdAt: new Date(),
-      documents: [], evaluations: [], isArchived: false
-    };
-    const proposal = proposalPartial as Proposal;
-
-    const draftPartial: Partial<PreliminaryDraft> = {
-      preliminaryDraftId: 'draft-guard-1', proposalId: proposal.id, proposalData: proposal,
-      evaluators: [], evaluations: [], documents: [],
-      state: stateList.APROBADO, createdData: new Date(), isArchived: false
-    };
-    const draft = draftPartial as PreliminaryDraft;
-
-    const thesisWorkPartial: Partial<ThesisWork> = {
-      thesisWorkId: thesisId, preliminaryDraftId: draft.preliminaryDraftId, preliminaryDraftData: draft,
-      createdDate: new Date(), state: stateList.EN_DESARROLLO,
-      advances: [], evaluations: [], finalDeliveries: [], documents: [],
-      sustentations: [], pazYSalvos: [], specialRequests: [], isArchived: false
-    };
-    const thesisWork = thesisWorkPartial as ThesisWork;
-
-    if ('updateThesisWorks' in thesisStorage) {
-      (thesisStorage as unknown as { updateThesisWorks: (cb: () => ThesisWork[]) => void }).updateThesisWorks(() => [thesisWork]);
-    } else {
-      const storageAsRecord = thesisStorage as Record<string, any>;
-      if (storageAsRecord['_thesisWorksList']) {
-        storageAsRecord['_thesisWorksList'].set([thesisWork]);
-      }
-    }
   });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  const activar = (guard: CanActivateFn, id = '15') =>
+    runInInjectionContext(injector, () => guard(buildRoute(id), routerState));
 
   describe('thesisWorkOwnershipGuard', () => {
-    it('permite el paso al director real del trabajo de grado', async () => {
-      authServiceMock.currentUser.mockReturnValue(createMockUser({ id: directorId }));
-      authServiceMock.hasAnyRole.mockReturnValue(false);
-
-      const result = await runInInjectionContext(injector, () =>
-        thesisWorkOwnershipGuard(buildRoute(thesisId), buildRouterState())
-      );
-      expect(result).toBe(true);
+    it('permite el paso a la directora del trabajo', async () => {
+      iniciarSesionConTrabajos(directora, [crearTrabajoEnCurso()]);
+      expect(await activar(thesisWorkOwnershipGuard)).toBe(true);
     });
 
-    it('bloquea y redirige a un usuario sin ninguna relación con el trabajo', async () => {
-      const result = await runInInjectionContext(injector, () =>
-        thesisWorkOwnershipGuard(buildRoute(thesisId), buildRouterState())
-      );
-      expect(result).not.toBe(true);
+    it('permite el paso a la estudiante del trabajo', async () => {
+      iniciarSesionConTrabajos(usuario('10', [UserRoleType.ESTUDIANTE]), [crearTrabajoEnCurso()]);
+      expect(await activar(thesisWorkOwnershipGuard)).toBe(true);
+    });
+
+    it('bloquea y redirige a un usuario sin relación con el trabajo', async () => {
+      iniciarSesionConTrabajos(usuario('99', [UserRoleType.DOCENTE]), [crearTrabajoEnCurso()]);
+
+      expect(await activar(thesisWorkOwnershipGuard)).not.toBe(true);
       expect(routerMock.createUrlTree).toHaveBeenCalledWith(['/thesis-work']);
-      expect(notificationMock.show).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Acceso restringido' })
-      );
+      expect(notificationMock.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Acceso restringido' }));
     });
 
-    it('permite el paso a un rol privilegiado (Consejo) aunque no participe en el trabajo', async () => {
-      authServiceMock.currentUser.mockReturnValue(createMockUser({ id: 'consejo-x' }));
-      authServiceMock.hasAnyRole.mockReturnValue(true);
-
-      const result = await runInInjectionContext(injector, () =>
-        thesisWorkOwnershipGuard(buildRoute(thesisId), buildRouterState())
-      );
-      expect(result).toBe(true);
+    it('permite el paso al Consejo aunque no participe', async () => {
+      iniciarSesionConTrabajos(usuario('50', [UserRoleType.CONSEJO]), [crearTrabajoEnCurso()]);
+      expect(await activar(thesisWorkOwnershipGuard)).toBe(true);
     });
 
-    it('deja pasar si el id no existe (el componente maneja "no encontrado")', async () => {
-      const result = await runInInjectionContext(injector, () =>
-        thesisWorkOwnershipGuard(buildRoute('id-inexistente'), buildRouterState())
-      );
-      expect(result).toBe(true);
+    it('deja pasar si el trabajo no existe (la página muestra "no encontrado")', async () => {
+      iniciarSesionConTrabajos(directora, [crearTrabajoEnCurso()]);
+      expect(await activar(thesisWorkOwnershipGuard, '99')).toBe(true);
     });
   });
 
-  describe('thesisRestrictedStatusGuard', () => {
-    it('bloquea si el trabajo está SUSPENDIDO', async () => {
-      if ('updateWork' in thesisStorage) {
-        thesisStorage.updateWork(thesisId, w => ({ ...w, state: stateList.SUSPENDIDO }));
-      }
+  describe('thesisRestrictedStatusGuard (acciones del trabajo)', () => {
+    it('bloquea las acciones si el trabajo está suspendido', async () => {
+      iniciarSesionConTrabajos(directora, [crearTrabajoEnCurso({ etapa: 'SUSPENDIDO' })]);
 
-      const result = await runInInjectionContext(injector, () =>
-        thesisRestrictedStatusGuard(buildRoute(thesisId), buildRouterState())
-      );
-      expect(result).not.toBe(true);
+      expect(await activar(thesisRestrictedStatusGuard)).not.toBe(true);
+      expect(notificationMock.show).toHaveBeenCalledWith(expect.objectContaining({
+        message: expect.stringContaining('Suspendido')
+      }));
     });
 
-    it('bloquea si el trabajo está CANCELADO, usando allThesisWorks() y no la señal filtrada', async () => {
-      if ('updateWork' in thesisStorage) {
-        thesisStorage.updateWork(thesisId, w => ({ ...w, state: stateList.CANCELADO, isArchived: true }));
-      }
-      expect(thesisStorage.allThesisWorks().find(w => w.thesisWorkId === thesisId)?.isArchived).toBe(true);
-
-      const result = await runInInjectionContext(injector, () =>
-        thesisRestrictedStatusGuard(buildRoute(thesisId), buildRouterState())
-      );
-      expect(result).not.toBe(true);
+    it('bloquea las acciones si el trabajo está cancelado (aunque esté fuera de la lista activa)', async () => {
+      iniciarSesionConTrabajos(directora, [crearTrabajoEnCurso({ etapa: 'CANCELADO' })]);
+      expect(await activar(thesisRestrictedStatusGuard)).not.toBe(true);
     });
 
-    it('permite el paso si el trabajo está EN_DESARROLLO', async () => {
-      const result = await runInInjectionContext(injector, () =>
-        thesisRestrictedStatusGuard(buildRoute(thesisId), buildRouterState())
-      );
-      expect(result).toBe(true);
+    it('permite las acciones en curso', async () => {
+      iniciarSesionConTrabajos(directora, [crearTrabajoEnCurso()]);
+      expect(await activar(thesisRestrictedStatusGuard)).toBe(true);
     });
   });
 
-  describe('thesisSuspendedViewGuard', () => {
-    it('bloquea la visualización si está SUSPENDIDO', async () => {
-      if ('updateWork' in thesisStorage) {
-        thesisStorage.updateWork(thesisId, w => ({ ...w, state: stateList.SUSPENDIDO }));
-      }
-      const result = await runInInjectionContext(injector, () =>
-        thesisSuspendedViewGuard(buildRoute(thesisId), buildRouterState())
-      );
-      expect(result).not.toBe(true);
+  describe('thesisCanceledGuard (registro de solicitudes)', () => {
+    it('permite registrar la reanudación de un trabajo suspendido', async () => {
+      iniciarSesionConTrabajos(directora, [crearTrabajoEnCurso({ etapa: 'SUSPENDIDO' })]);
+      expect(await activar(thesisCanceledGuard)).toBe(true);
     });
 
-    it('NO bloquea si está CANCELADO — un registro archivado sigue siendo consultable en Historial', async () => {
-      if ('updateWork' in thesisStorage) {
-        thesisStorage.updateWork(thesisId, w => ({ ...w, state: stateList.CANCELADO, isArchived: true }));
-      }
-      const result = await runInInjectionContext(injector, () =>
-        thesisSuspendedViewGuard(buildRoute(thesisId), buildRouterState())
-      );
-      expect(result).toBe(true);
+    it('bloquea si el trabajo está cancelado', async () => {
+      iniciarSesionConTrabajos(directora, [crearTrabajoEnCurso({ etapa: 'CANCELADO' })]);
+
+      expect(await activar(thesisCanceledGuard)).not.toBe(true);
+      expect(routerMock.createUrlTree).toHaveBeenCalledWith(['/thesis-work']);
     });
   });
 });

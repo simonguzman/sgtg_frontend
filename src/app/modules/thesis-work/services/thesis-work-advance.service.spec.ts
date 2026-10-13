@@ -1,230 +1,114 @@
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ThesisWorkAdvanceService } from './thesis-work-advance.service';
-import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
-import { FileDocument } from '../../../core/interfaces/file-document.interface';
-import { DocumentType } from '../../../core/enums/document-type.enum';
-import { stateList } from '../../../core/enums/state.enum';
+import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
-import { CreateAdvanceRequest } from '../interfaces/advance-playload.interface';
+import { stateList } from '../../../core/enums/state.enum';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
-import { User } from '../../users/interfaces/user.interface';
+import {
+  crearTrabajoEnAnteproyecto, crearTrabajoEnCursoCon, informeDePrueba, revisionDePrueba
+} from '../../../testing/trabajo-grado-de-prueba';
 
-type PreliminaryDraftData = NonNullable<ThesisWork['preliminaryDraftData']>;
+const API = '/api/v1/sgtg/trabajos-grado';
+
+const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/pdf' });
+
+/** Lee el JSON de la parte `datos` de un multipart. */
+const leerDatos = (body: FormData): Promise<unknown> => new Promise((resolve, reject) => {
+  const lector = new FileReader();
+  lector.onload = () => resolve(JSON.parse(lector.result as string));
+  lector.onerror = reject;
+  lector.readAsText(body.get('datos') as Blob);
+});
 
 describe('ThesisWorkAdvanceService', () => {
   let service: ThesisWorkAdvanceService;
-
-  let storageSpy: { updateWork: jest.Mock };
-  let eventBusSpy: { emit: jest.Mock };
-
-  const mockAvanceDocument: FileDocument = {
-    id: 'doc-avance-1',
-    name: 'Primer_Avance.pdf',
-    url: 'uploads/avance1.pdf',
-    uploadDate: '2026-03-01T10:00:00Z',
-    type: DocumentType.AVANCE,
-    status: stateList.EN_REVISION,
-  };
-
-  const mockFormatoDocument: FileDocument = {
-    id: 'doc-formato-1',
-    name: 'FormatoA.pdf',
-    url: 'uploads/formato.pdf',
-    uploadDate: '2026-03-01T10:00:00Z',
-    type: DocumentType.FORMATO,
-    status: stateList.EN_REVISION,
-  };
-
-  const mockOtherDocument: FileDocument = {
-    id: 'doc-pys-1',
-    name: 'PazYSalvo.pdf',
-    url: 'uploads/pys.pdf',
-    uploadDate: '2026-03-01T10:00:00Z',
-    type: DocumentType.PAZ_Y_SALVO,
-    status: stateList.EN_REVISION,
-  };
-
-  const mockThesisWork = {
-    id: 'thesis-123',
-    thesisWorkId: 'thesis-123',
-    state: stateList.EN_DESARROLLO,
-    documents: [],
-    advances: [],
-    preliminaryDraftData: {
-      proposalData: {
-        title: 'Sistema de Gestión Tesis',
-        authors: [{ id: 'author-1' } as Partial<User> as User],
-        director: { id: 'director-1' } as Partial<User> as User,
-      },
-    } as Partial<PreliminaryDraftData> as PreliminaryDraftData,
-  } as Partial<ThesisWork> as ThesisWork;
+  let http: HttpTestingController;
+  let eventBus: { emit: jest.Mock };
 
   beforeEach(() => {
-    storageSpy = {
-      updateWork: jest.fn(),
-    };
-
-    eventBusSpy = {
-      emit: jest.fn(),
-    };
-
+    localStorage.clear();
+    eventBus = { emit: jest.fn() };
     TestBed.configureTestingModule({
-      providers: [
-        ThesisWorkAdvanceService,
-        { provide: ThesisWorkStorageService, useValue: storageSpy },
-        { provide: EventBusService, useValue: eventBusSpy },
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: EventBusService, useValue: eventBus }]
+    });
+    service = TestBed.inject(ThesisWorkAdvanceService);
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => http.verify());
+
+  describe('radicarInforme', () => {
+    it('envía el informe con las observaciones y actualiza el trabajo', async () => {
+      let resultado: ThesisWork | undefined;
+      service.radicarInforme('15', pdf('informe.pdf'), '  Primer mes  ').subscribe(t => resultado = t);
+
+      const req = http.expectOne(`${API}/15/informes-mensuales`);
+      const body = req.request.body as FormData;
+      expect((body.get('archivo') as File).name).toBe('informe.pdf');
+      expect(await leerDatos(body)).toEqual({ observaciones: 'Primer mes' });
+      req.flush(crearTrabajoEnCursoCon({ informesMensuales: [informeDePrueba(1, { observaciones: 'Primer mes' })] }));
+
+      expect(resultado?.advances?.[0]).toEqual(expect.objectContaining({ id: '1', status: stateList.EN_REVISION }));
+      expect(TestBed.inject(TrabajoGradoStoreService).porId().get('15')?.ejecucion?.informesMensuales).toHaveLength(1);
+      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
+        type: AppEventType.THESIS_ADVANCE_UPLOADED,
+        targetUserIds: ['10', '1'],
+        payload: expect.objectContaining({ thesisWorkId: '15', title: 'Informe mensual 1' })
+      }));
     });
 
-    service = TestBed.inject(ThesisWorkAdvanceService);
+    it('sin observaciones no envía la parte datos', () => {
+      service.radicarInforme('15', pdf('informe.pdf'), '   ').subscribe();
+      const req = http.expectOne(`${API}/15/informes-mensuales`);
+      expect((req.request.body as FormData).has('datos')).toBe(false);
+      req.flush(crearTrabajoEnCursoCon({ informesMensuales: [informeDePrueba(1)] }));
+    });
+
+    it('si el backend lo rechaza no emite eventos', () => {
+      let error: unknown;
+      service.radicarInforme('15', pdf('informe.pdf'), '').subscribe({ error: e => error = e });
+      http.expectOne(`${API}/15/informes-mensuales`)
+        .flush({ message: 'Los informes mensuales los radican los estudiantes del trabajo' },
+          { status: 406, statusText: 'Not Acceptable' });
+
+      expect(error).toBeTruthy();
+      expect(eventBus.emit).not.toHaveBeenCalled();
+    });
+
+    it('falla si la respuesta no corresponde a un trabajo en curso', () => {
+      let error: unknown;
+      service.radicarInforme('15', pdf('informe.pdf'), '').subscribe({ error: e => error = e });
+      http.expectOne(`${API}/15/informes-mensuales`).flush(crearTrabajoEnAnteproyecto());
+      expect(error).toEqual(new Error('El trabajo de grado no está en curso.'));
+    });
   });
 
-  it('debe crearse correctamente', () => {
-    expect(service).toBeTruthy();
-  });
+  describe('revisarInforme', () => {
+    it('envía las observaciones y las notas al informe indicado', async () => {
+      let resultado: ThesisWork | undefined;
+      service.revisarInforme('15', '1', 'Ajustar el cronograma', pdf('notas.pdf')).subscribe(t => resultado = t);
 
-  describe('uploadDocumentMock', () => {
-    it('debe agregar un documento que NO es AVANCE ni FORMATO sin alterar el estado del trabajo', fakeAsync(() => {
-      let updatedResult: ThesisWork | undefined;
+      const req = http.expectOne(`${API}/15/informes-mensuales/1/revisiones`);
+      const body = req.request.body as FormData;
+      expect((body.get('archivo') as File).name).toBe('notas.pdf');
+      expect(await leerDatos(body)).toEqual({ observaciones: 'Ajustar el cronograma' });
+      req.flush(crearTrabajoEnCursoCon({ informesMensuales: [informeDePrueba(1, { revisiones: [revisionDePrueba()] })] }));
 
-      storageSpy.updateWork.mockImplementation((id: string, updateFn: (work: ThesisWork) => ThesisWork) => {
-        updatedResult = updateFn(mockThesisWork);
-      });
+      expect(resultado?.advances?.[0].status).toBe(stateList.EVALUADO);
+      expect(resultado?.evaluations).toHaveLength(1);
+      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({ type: AppEventType.THESIS_ADVANCE_EVALUATED }));
+    });
 
-      let completed = false;
-
-      service.uploadDocumentMock('thesis-123', mockOtherDocument).subscribe(() => {
-        completed = true;
-      });
-
-      tick(800);
-
-      expect(completed).toBe(true);
-      expect(storageSpy.updateWork).toHaveBeenCalledWith('thesis-123', expect.any(Function));
-      expect(updatedResult?.documents).toContainEqual(mockOtherDocument);
-      expect(updatedResult?.state).toBe(stateList.EN_DESARROLLO);
-      expect(eventBusSpy.emit).not.toHaveBeenCalled();
-    }));
-
-    it('debe actualizar el estado a EN_REVISION si se carga un documento de tipo FORMATO', fakeAsync(() => {
-      let updatedResult: ThesisWork | undefined;
-
-      storageSpy.updateWork.mockImplementation((id: string, updateFn: (work: ThesisWork) => ThesisWork) => {
-        updatedResult = updateFn(mockThesisWork);
-      });
-
-      service.uploadDocumentMock('thesis-123', mockFormatoDocument).subscribe();
-      tick(800);
-
-      expect(updatedResult?.documents).toContainEqual(mockFormatoDocument);
-      expect(updatedResult?.state).toBe(stateList.EN_REVISION);
-      expect(eventBusSpy.emit).not.toHaveBeenCalled();
-    }));
-
-    it('debe crear un nuevo avance y emitir el evento THESIS_ADVANCE_UPLOADED cuando el documento es AVANCE', fakeAsync(() => {
-      const advanceMeta: CreateAdvanceRequest = {
-        advanceId: 'adv-new-1',
-        title: 'Entrega de Capitulo 1',
-        comments: 'Revisión inicial de requerimientos',
-        studentId: 'student-100',
-      };
-
-      let updatedResult: ThesisWork | undefined;
-
-      storageSpy.updateWork.mockImplementation((id: string, updateFn: (work: ThesisWork) => ThesisWork) => {
-        updatedResult = updateFn(mockThesisWork);
-      });
-
-      service.uploadDocumentMock('thesis-123', mockAvanceDocument, advanceMeta).subscribe();
-      tick(800);
-
-      expect(updatedResult?.advances).toHaveLength(1);
-      expect(updatedResult?.advances?.[0]).toEqual({
-        id: 'adv-new-1',
-        title: 'Entrega de Capitulo 1',
-        comments: 'Revisión inicial de requerimientos',
-        uploadDate: new Date('2026-03-01T10:00:00Z'),
-        studentId: 'student-100',
-        status: stateList.EN_REVISION,
-        documents: [mockAvanceDocument],
-      });
-
-      expect(eventBusSpy.emit).toHaveBeenCalledWith({
-        type: AppEventType.THESIS_ADVANCE_UPLOADED,
-        targetUserIds: expect.arrayContaining(['author-1', 'director-1']),
-        payload: {
-          thesisId: 'thesis-123',
-          thesisWorkId: 'thesis-123',
-          title: 'Entrega de Capitulo 1',
-          thesisTitle: 'Sistema de Gestión Tesis',
-        },
-      });
-    }));
-
-    it('debe anexar el documento a un avance existente si el advanceId coincide', fakeAsync(() => {
-      const existingThesisWithAdvance = {
-        ...mockThesisWork,
-        advances: [
-          {
-            id: 'adv-existente-1',
-            title: 'Avance 1 Existente',
-            comments: 'Comentarios previos',
-            uploadDate: new Date('2026-02-01T10:00:00Z'),
-            studentId: 'student-100',
-            status: stateList.EN_REVISION,
-            documents: [],
-          },
-        ],
-      } as Partial<ThesisWork> as ThesisWork;
-
-      const advanceMeta: CreateAdvanceRequest = {
-        advanceId: 'adv-existente-1',
-        title: 'Documento Adicional',
-        comments: 'Anexando nuevo archivo',
-        studentId: 'student-100'
-      };
-
-      let updatedResult: ThesisWork | undefined;
-
-      storageSpy.updateWork.mockImplementation((id: string, updateFn: (work: ThesisWork) => ThesisWork) => {
-        updatedResult = updateFn(existingThesisWithAdvance);
-      });
-
-      service.uploadDocumentMock('thesis-123', mockAvanceDocument, advanceMeta).subscribe();
-      tick(800);
-
-      expect(updatedResult?.advances).toHaveLength(1);
-      expect(updatedResult?.advances?.[0].documents).toContainEqual(mockAvanceDocument);
-      expect(eventBusSpy.emit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: AppEventType.THESIS_ADVANCE_UPLOADED,
-          payload: expect.objectContaining({
-            title: 'Documento Adicional',
-          }),
-        })
-      );
-    }));
-
-    it('debe tomar el id y nombre del documento como valores por defecto si no se pasa advanceMeta', fakeAsync(() => {
-      let updatedResult: ThesisWork | undefined;
-
-      storageSpy.updateWork.mockImplementation((id: string, updateFn: (work: ThesisWork) => ThesisWork) => {
-        updatedResult = updateFn(mockThesisWork);
-      });
-
-      service.uploadDocumentMock('thesis-123', mockAvanceDocument).subscribe();
-      tick(800);
-
-      expect(updatedResult?.advances?.[0].id).toBe(mockAvanceDocument.id);
-      expect(updatedResult?.advances?.[0].title).toBe(mockAvanceDocument.name);
-      expect(eventBusSpy.emit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          payload: expect.objectContaining({
-            title: mockAvanceDocument.name,
-          }),
-        })
-      );
-    }));
+    it('solo con el PDF de notas no envía observaciones', () => {
+      service.revisarInforme('15', '2', '', pdf('notas.pdf')).subscribe();
+      const req = http.expectOne(`${API}/15/informes-mensuales/2/revisiones`);
+      const body = req.request.body as FormData;
+      expect(body.has('datos')).toBe(false);
+      expect(body.has('archivo')).toBe(true);
+      req.flush(crearTrabajoEnCursoCon({ informesMensuales: [informeDePrueba(1), informeDePrueba(2)] }));
+    });
   });
 });

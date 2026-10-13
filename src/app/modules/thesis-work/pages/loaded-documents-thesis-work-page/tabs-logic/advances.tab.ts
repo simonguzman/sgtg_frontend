@@ -6,6 +6,7 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { Advance } from '../../../interfaces/advance.interface';
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
 import { formatThesisDate } from '../../../helpers/thesis-date.helper';
+import { Modality } from '../../../../proposal/enums/modality.enum';
 
 export interface AdvanceTableRow {
   id: string;
@@ -18,18 +19,26 @@ export interface AdvanceTableRow {
   allowedActions: string[];
 }
 
+/** Etapas del backend en las que se radican informes mensuales. */
+const ETAPAS_CON_INFORMES = ['EN_CURSO', 'PRORROGA'];
+
+/**
+ * Informes mensuales (formato D). Los radica un estudiante (en práctica
+ * profesional también el director) mientras el trabajo está en curso o en
+ * prórroga; los revisan el director, el codirector o el asesor, una vez cada uno.
+ */
 export const AdvancesTabConfig: TabConfiguration<AdvanceTableRow> = {
   tabValue: 'AVANCES',
   headerActionRoute: 'upload_advance',
   columns: [
-    { field: 'name', header: 'Nombre del Avance', type: 'text', width: '35%' },
+    { field: 'name', header: 'Informe', type: 'text', width: '35%' },
     { field: 'uploadDate', header: 'Fecha', type: 'text', width: '20%' },
     { field: 'status', header: 'Estado', type: 'state', width: '20%' },
     {
       field: 'acciones', header: 'Acciones', type: 'actions', width: '25%',
       actions: [
         { action: 'view-details', label: 'Ver detalles', icon: 'visibility', variant: 'primary', disabled: false },
-        { action: 'evaluate-advance', label: 'Evaluar avance', icon: 'assignment', variant: 'primary', disabled: false }
+        { action: 'evaluate-advance', label: 'Revisar informe', icon: 'assignment', variant: 'primary', disabled: false }
       ]
     }
   ],
@@ -38,50 +47,31 @@ export const AdvancesTabConfig: TabConfiguration<AdvanceTableRow> = {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
 
-    const proposal = thesis.preliminaryDraftData?.proposalData;
-    let requiredEvaluatorsCount = 0;
-    if (proposal?.director) requiredEvaluatorsCount++;
-    if (proposal?.codirector) requiredEvaluatorsCount++;
-    if (proposal?.advisor) requiredEvaluatorsCount++;
-
     const advances: Advance[] = thesis.advances || [];
     const latestAdvance = advances.length > 0 ? advances[0] : null;
-    const isLatestAdvancePending = latestAdvance?.status === stateList.EN_REVISION;
-
-    const hasFinalDelivery = thesis.documents?.some(
-      (document: FileDocument) => document.type === DocumentType.FORMATO_E
-    ) ?? false;
-
-    const isSuspendedOrCanceled = thesis.state === stateList.SUSPENDIDO || thesis.state === stateList.CANCELADO;
+    const isPracticaProfesional = thesis.preliminaryDraftData?.proposalData?.modality === Modality.PP;
 
     return {
       ...baseContext,
       latestAdvanceId: latestAdvance?.id || null,
-      isLatestAdvancePending,
-      requiredEvaluatorsCount,
-      hasFinalDelivery,
-      isSuspendedOrCanceled
+      isLatestAdvancePending: latestAdvance?.status === stateList.EN_REVISION,
+      canUploadReport: baseContext.isStudent || (baseContext.isDirector && isPracticaProfesional),
+      acceptsReports: ETAPAS_CON_INFORMES.includes(thesis.stage ?? 'EN_CURSO')
     };
   },
 
-  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): AdvanceTableRow[] => {
+  getTableData: (_documents: FileDocument[], context: ThesisEvaluationContext): AdvanceTableRow[] => {
     const activeAdvances: Advance[] = context.thesisWork?.advances || [];
-    const hasFinalDelivery = context.hasFinalDelivery ?? false;
     const isArchived = context.isArchived ?? false;
+    const isReviewer = context.isDirector || context.isCodirector || context.isAdvisor;
 
     return activeAdvances.map((advance: Advance): AdvanceTableRow => {
       const allowedActions = new Set<string>(['view-details']);
 
-      const evaluationsForThisAdvance: Evaluation[] = context.thesisWork?.evaluations?.filter(
-        (evaluation: Evaluation) => evaluation.advanceId === advance.id
-      ) || [];
-
-      const alreadyEvaluated = evaluationsForThisAdvance.some(
-        evaluation => evaluation.evaluatorId === context.currentUser?.id
+      const alreadyReviewed = (context.thesisWork?.evaluations ?? []).some(
+        (evaluation: Evaluation) => evaluation.advanceId === advance.id && evaluation.evaluatorId === context.currentUser?.id
       );
-      const isAssignedEvaluator = context.isDirector || context.isCodirector || context.isAdvisor || context.isAdmin;
-
-      if (!isArchived && isAssignedEvaluator && !alreadyEvaluated && !hasFinalDelivery && advance.status !== stateList.EVALUADO) {
+      if (!isArchived && isReviewer && !alreadyReviewed) {
         allowedActions.add('evaluate-advance');
       }
 
@@ -105,41 +95,20 @@ export const AdvancesTabConfig: TabConfiguration<AdvanceTableRow> = {
   },
 
   getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
-    if (context.isArchived) return [];
-
-    const buttons: TableButton[] = [];
-    const hasFinalDelivery = context.hasFinalDelivery ?? false;
-    const isSuspendedOrCanceled = context.isSuspendedOrCanceled ?? false;
-
-    if (context.isStudent || context.isAdmin) {
-      let buttonLabel = 'Cargar nuevo avance';
-      let buttonDisabled = context.isLatestAdvancePending ?? false;
-
-      if (hasFinalDelivery) {
-        buttonLabel = 'Entrega final registrada';
-        buttonDisabled = true;
-      } else if (context.isLatestAdvancePending) {
-        buttonLabel = 'Avance en revisión';
-      }
-
-      if (isSuspendedOrCanceled) {
-        buttonDisabled = true;
-      }
-
-      buttons.push({
-        action: 'upload_advance',
-        label: buttonLabel,
-        variant: 'primary',
-        disabled: buttonDisabled
-      });
-    }
-    return buttons;
+    if (context.isArchived || !context['canUploadReport']) return [];
+    const acceptsReports = !!context['acceptsReports'];
+    return [{
+      action: 'upload_advance',
+      label: acceptsReports ? 'Cargar informe mensual' : 'Informes no disponibles en esta etapa',
+      variant: 'primary',
+      disabled: !acceptsReports
+    }];
   },
 
   modalConfig: {
-    uploadDescription: 'Seleccione el archivo PDF del avance de desarrollo',
+    uploadDescription: 'Seleccione el PDF del informe mensual (formato D)',
     uploadedByText: 'Estudiante',
-    confirmDescription: '¿Está seguro de cargar este avance? Se notificará al director, codirector y asesor (si aplican).',
+    confirmDescription: '¿Está seguro de radicar este informe mensual? Se notificará al director, codirector y asesor (si aplican).',
     uploadDocumentType: DocumentType.AVANCE
   }
 };

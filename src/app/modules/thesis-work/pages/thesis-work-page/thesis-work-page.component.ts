@@ -2,14 +2,13 @@ import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { TableButton, TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { DescriptionModalComponent } from '../../../../shared/components/modals/description-modal/description-modal.component';
-import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { ThesisWorkPageFacadeService } from './services/thesis-work-page-facade.service';
 import { THESIS_WORK_COLUMNS, ThesisWorkTableRow } from './models/thesis-work-page.model';
 
 @Component({
   selector: 'app-thesis-work-page',
   standalone: true,
-  imports: [TableComponent, DescriptionModalComponent, ConfirmationActionModalComponent],
+  imports: [TableComponent, DescriptionModalComponent],
   templateUrl: './thesis-work-page.component.html',
   styleUrl: './thesis-work-page.component.css',
 })
@@ -21,7 +20,6 @@ export class ThesisWorkPageComponent {
   protected readonly filterFields = ['title', 'modality', 'state', 'maxDeliveryDate', 'hiddenParticipants'];
 
   readonly descriptionModal = signal({ show: false, title: '', content: '' });
-  readonly reactivateState  = signal({ show: false, id: null as string | null, loading: false });
 
   handleTableAction(event: { action: string; row: ThesisWorkTableRow }): void {
     if (!event.row.allowedActions.includes(event.action)) {
@@ -39,7 +37,8 @@ export class ThesisWorkPageComponent {
         this.router.navigate(['/thesis-work/edit', event.row.id]);
         break;
       case 'reactivar':
-        this.reactivateState.set({ show: true, id: event.row.id, loading: false });
+        // Reanudación: el director la registra con su documento como solicitud del trabajo
+        this.router.navigate(['/thesis-work/details', event.row.id, 'register_special_request']);
         break;
     }
   }
@@ -50,20 +49,4 @@ export class ThesisWorkPageComponent {
     }
   }
 
-  confirmReactivation(): void {
-    const { id, loading } = this.reactivateState();
-    if (!id || loading) return;
-
-    this.reactivateState.update(s => ({ ...s, loading: true }));
-
-    this.facade.reactivateThesis(
-      id,
-      () => this.reactivateState.set({ show: false, id: null, loading: false }),
-      () => this.reactivateState.update(s => ({ ...s, loading: false }))
-    );
-  }
-
-  cancelReactivation(): void {
-    this.reactivateState.set({ show: false, id: null, loading: false });
-  }
 }

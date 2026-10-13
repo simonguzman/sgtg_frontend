@@ -17,9 +17,12 @@
       <app-evaluate-advance-form
         [advanceData]="currentAdvance()!"
         [thesisWork]="thesisWorkState()!"
+        [isSubmitting]="isSaving()"
+        [alreadyEvaluated]="alreadyEvaluated()"
         (onBack)="navigateBack()"
         (onSaveEvaluation)="handleRequestConfirmation($event)"
-        (onDownloadAdvance)="downloadCurrentAdvance($event)">
+        (onDownloadAdvance)="downloadCurrentAdvance($event)"
+        (onDownloadNotes)="downloadCurrentAdvance($event)">
       </app-evaluate-advance-form>
     }
 
@@ -29,7 +32,7 @@
 
 <app-confirmation-action-modal
   [isOpen]="isConfirmModalOpen()"
-  description="¿Desea guardar la evaluación de este avance? La retroalimentación y el estado se notificarán de inmediato al estudiante."
+  description="¿Desea registrar su revisión de este informe mensual? Solo puede registrar una revisión por informe y se notificará a los participantes del trabajo."
   (onClose)="isConfirmModalOpen.set(false)"
   (confirm)="processAdvanceEvaluation()">
 </app-confirmation-action-modal>

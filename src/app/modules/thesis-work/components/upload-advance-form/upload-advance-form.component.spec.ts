@@ -1,221 +1,72 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { By } from '@angular/platform-browser';
 import { UploadAdvanceFormComponent } from './upload-advance-form.component';
-import { UploadAdvanceFormService } from './services/upload-advance-form.service';
-import { ThesisWork } from '../../interfaces/thesis-work.interface';
-import { stateList } from '../../../../core/enums/state.enum';
-import { IdentificationType } from '../../../users/enum/identification-type.enum';
-import { UserState } from '../../../users/enum/user-state.enum';
-import { User } from '../../../users/interfaces/user.interface';
-import { Modality } from '../../../proposal/enums/modality.enum';
-import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
+import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
+import { ThesisParticipantsFormatterService } from '../../services/thesis-participants-formatter.service';
+import { UploadAdvancePayload } from '../../interfaces/advance-playload.interface';
+import { thesisWorkDePrueba } from '../../../../testing/vista-de-prueba';
+import { crearTrabajoEnCursoCon, informeDePrueba } from '../../../../testing/trabajo-grado-de-prueba';
 
-interface MockUploadAdvanceFormService {
-  advanceForm: FormGroup;
-  getStudentNames: jest.Mock<string, [ThesisWork]>;
-  getDirectorName: jest.Mock<string, [ThesisWork]>;
-  getCodirectorName: jest.Mock<string, [ThesisWork]>;
-  getAdvisorName: jest.Mock<string, [ThesisWork]>;
-  notifyIncompleteForm: jest.Mock<void, []>;
-  notifyMissingFiles: jest.Mock<void, []>;
-}
-
-const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
-  const baseUser: User = {
-    id: 'user-1',
-    idType: IdentificationType.CC,
-    idNumber: 123456789,
-    firstName: 'Ana',
-    secondName: '',
-    lastName: 'López',
-    secondLastName: 'Díaz',
-    codeNumber: 20262002,
-    roles: [],
-    email: 'ana@universidad.edu.co',
-    password: 'hash',
-    state: UserState.active
-  };
-
-  const baseThesis = {
-    thesisWorkId: 'thesis-1',
-    preliminaryDraftId: 'draft-1',
-    documents: [],
-    evaluations: [],
-    specialRequests: [],
-    state: stateList.EN_DESARROLLO,
-    createdDate: new Date(),
-    preliminaryDraftData: {
-      preliminaryDraftId: 'draft-1',
-      proposalId: 'prop-1',
-      state: stateList.APROBADO,
-      createdData: new Date(),
-      evaluations: [],
-      documents: [],
-      proposalData: {
-        id: 'prop-1',
-        title: 'Título de Prueba del Avance',
-        description: 'Descripción detallada de prueba',
-        modality: Modality.TI,
-        authors: [baseUser],
-        director: baseUser,
-        state: stateList.APROBADO,
-        createdAt: new Date(),
-        documents: [],
-        evaluations: []
-      }
-    }
-  };
-
-  return { ...baseThesis, ...overrides } as ThesisWork;
-};
+const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/pdf' });
 
 describe('UploadAdvanceFormComponent', () => {
-  let component: UploadAdvanceFormComponent;
   let fixture: ComponentFixture<UploadAdvanceFormComponent>;
-  let formServiceSpy: MockUploadAdvanceFormService;
-
-  const mockThesisWork = createMockThesisWork();
+  let component: UploadAdvanceFormComponent;
+  let notification: { show: jest.Mock };
+  let emitted: UploadAdvancePayload[];
 
   beforeEach(async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    const fb = new FormBuilder();
-    const mockForm = fb.nonNullable.group({
-      title: ['', Validators.required],
-      comments: ['', Validators.required]
-    });
-
-    formServiceSpy = {
-      advanceForm: mockForm,
-      getStudentNames: jest.fn().mockReturnValue('Ana López'),
-      getDirectorName: jest.fn().mockReturnValue('Director Test'),
-      getCodirectorName: jest.fn().mockReturnValue(''),
-      getAdvisorName: jest.fn().mockReturnValue(''),
-      notifyIncompleteForm: jest.fn(),
-      notifyMissingFiles: jest.fn()
-    };
-
+    notification = { show: jest.fn() };
     await TestBed.configureTestingModule({
-      imports: [UploadAdvanceFormComponent, ReactiveFormsModule]
-    })
-    .overrideComponent(UploadAdvanceFormComponent, {
-      set: { providers: [{ provide: UploadAdvanceFormService, useValue: formServiceSpy }] }
-    })
-    .compileComponents();
+      imports: [UploadAdvanceFormComponent],
+      providers: [
+        { provide: NotificationService, useValue: notification },
+        { provide: ThesisParticipantsFormatterService, useValue: {
+          getStudentNames: () => 'Eva Estudiante', getDirectorName: () => 'Dora Directora',
+          getCodirectorName: () => '', getAdvisorName: () => ''
+        } }
+      ]
+    }).compileComponents();
 
     fixture = TestBed.createComponent(UploadAdvanceFormComponent);
     component = fixture.componentInstance;
-
-    fixture.componentRef.setInput('thesisWork', mockThesisWork);
+    component.thesisWork = thesisWorkDePrueba(crearTrabajoEnCursoCon({ informesMensuales: [informeDePrueba(1)] }));
+    emitted = [];
+    component.onSaveAdvance.subscribe(payload => emitted.push(payload));
     fixture.detectChanges();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+  it('muestra el número del siguiente informe', () => {
+    expect(component.nextReportNumber).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain('Informe mensual 2');
   });
 
-  describe('Inicialización', () => {
-    it('debería crearse correctamente', () => {
-      expect(component).toBeTruthy();
-    });
-
-    it('debería renderizar la información de solo lectura usando los componentes ReadonlyFieldComponent', () => {
-      const readonlyFields = fixture.debugElement.queryAll(By.directive(ReadonlyFieldComponent));
-      expect(readonlyFields[0].componentInstance.value).toBe('Título de Prueba del Avance');
-      expect(readonlyFields[1].componentInstance.value).toBe('Descripción detallada de prueba');
-      expect(readonlyFields[2].componentInstance.value).toBe(mockThesisWork.preliminaryDraftData.proposalData.modality);
-      expect(readonlyFields[3].componentInstance.value).toBe('Ana López');
-      expect(readonlyFields[4].componentInstance.value).toBe('Director Test');
-      expect(readonlyFields[5].componentInstance.value).toBe(stateList.EN_DESARROLLO);
-    });
+  it('sin el PDF no envía y avisa', () => {
+    component.submit();
+    expect(emitted).toEqual([]);
+    expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Archivo requerido' }));
   });
 
-  describe('Validación visual del formulario (isFieldInvalid)', () => {
-    it('debería retornar true si el campo es inválido y fue tocado', () => {
-      const titleControl = component.advanceForm.controls['title'];
-      titleControl.setValue('');
-      titleControl.markAsTouched();
-
-      expect(component.isFieldInvalid('title')).toBe(true);
-    });
-
-    it('debería retornar false si el campo es inválido pero NO fue tocado', () => {
-      const titleControl = component.advanceForm.controls['title'];
-      titleControl.setValue('');
-      titleControl.markAsUntouched();
-
-      expect(component.isFieldInvalid('title')).toBe(false);
-    });
+  it('con el PDF envía el archivo y las observaciones (opcionales)', () => {
+    const informe = pdf('informe.pdf');
+    component.handleFileUploaded({ fileName: 'informe.pdf', file: informe });
+    component.advanceForm.controls.comments.setValue('Primer mes');
+    component.submit();
+    expect(emitted).toEqual([{ comments: 'Primer mes', file: informe }]);
   });
 
-  describe('Gestión de Archivos (Signals)', () => {
-    it('handleFileUploaded debería agregar el archivo al signal y cerrar el modal', () => {
-      const mockFileEvent = { fileName: 'documento.pdf', file: new File([], 'documento.pdf') };
-
-      component.isUploadModalOpen.set(true);
-      component.handleFileUploaded(mockFileEvent);
-
-      expect(component.uploadedFiles()).toHaveLength(1);
-      expect(component.uploadedFiles()[0]).toEqual(mockFileEvent);
-      expect(component.isUploadModalOpen()).toBe(false);
-    });
-
-    it('removeFile debería eliminar el archivo correspondiente por su índice', () => {
-      const file1 = { fileName: '1.pdf', file: new File([], '1.pdf') };
-      const file2 = { fileName: '2.pdf', file: new File([], '2.pdf') };
-
-      component.uploadedFiles.set([file1, file2]);
-      component.removeFile(0);
-
-      expect(component.uploadedFiles()).toHaveLength(1);
-      expect(component.uploadedFiles()[0].fileName).toBe('2.pdf');
-    });
+  it('el PDF se puede reemplazar y quitar', () => {
+    component.handleFileUploaded({ fileName: 'a.pdf', file: pdf('a.pdf') });
+    component.handleFileUploaded({ fileName: 'b.pdf', file: pdf('b.pdf') });
+    expect(component.uploadedFile()?.fileName).toBe('b.pdf');
+    component.removeFile();
+    expect(component.uploadedFile()).toBeNull();
   });
 
-  describe('Envío del formulario (submit)', () => {
-    it('debería bloquear el envío, marcar campos como tocados y notificar si el formulario es inválido', () => {
-      jest.spyOn(component.onSaveAdvance, 'emit');
-
-      component.advanceForm.controls['title'].setValue('');
-
-      component.submit();
-
-      expect(component.advanceForm.touched).toBe(true);
-      expect(formServiceSpy.notifyIncompleteForm).toHaveBeenCalledTimes(1);
-      expect(component.onSaveAdvance.emit).not.toHaveBeenCalled();
-    });
-
-    it('debería bloquear el envío y notificar si no hay archivos cargados', () => {
-      jest.spyOn(component.onSaveAdvance, 'emit');
-
-      component.advanceForm.setValue({ title: 'Avance 1', comments: 'Todo bien' });
-      component.uploadedFiles.set([]);
-
-      component.submit();
-
-      expect(formServiceSpy.notifyMissingFiles).toHaveBeenCalledTimes(1);
-      expect(component.onSaveAdvance.emit).not.toHaveBeenCalled();
-    });
-
-    it('debería emitir onSaveAdvance con el payload correcto si todo es válido', () => {
-      jest.spyOn(component.onSaveAdvance, 'emit');
-      const mockFile = new File([], 'avance_final.pdf');
-
-      component.advanceForm.setValue({ title: 'Avance Final', comments: 'Revisar capítulo 3' });
-      component.uploadedFiles.set([{ fileName: 'avance_final.pdf', file: mockFile }]);
-
-      component.submit();
-
-      expect(component.onSaveAdvance.emit).toHaveBeenCalledWith({
-        formValues: { title: 'Avance Final', comments: 'Revisar capítulo 3' },
-        files: [mockFile]
-      });
-
-      expect(formServiceSpy.notifyIncompleteForm).not.toHaveBeenCalled();
-      expect(formServiceSpy.notifyMissingFiles).not.toHaveBeenCalled();
-    });
+  it('observaciones demasiado largas no se envían', () => {
+    component.handleFileUploaded({ fileName: 'a.pdf', file: pdf('a.pdf') });
+    component.advanceForm.controls.comments.setValue('x'.repeat(2001));
+    component.submit();
+    expect(emitted).toEqual([]);
+    expect(component.isFieldInvalid('comments')).toBe(true);
   });
 });

@@ -130,10 +130,25 @@ export interface CambioObjetivosApi {
   decision: DecisionApi | null;
 }
 
+/** Revisión de un informe mensual por el director, el codirector o el asesor (no cambia la etapa). */
+export interface RevisionInformeApi {
+  revisorUsuarioId: number;
+  revisor: string;
+  observaciones: string | null;
+  /** PDF con las notas del revisor, null si no adjuntó */
+  rutaArchivo: string | null;
+  fecha: string;
+}
+
+/** Informe mensual (formato D): lo radica un estudiante (en práctica profesional también el director). */
 export interface InformeMensualApi {
   numero: number;
   rutaArchivo: string;
   fecha: string;
+  /** Código de quien lo radicó */
+  radicadoPor: string | null;
+  observaciones: string | null;
+  revisiones: RevisionInformeApi[];
 }
 
 export interface SuspensionApi {

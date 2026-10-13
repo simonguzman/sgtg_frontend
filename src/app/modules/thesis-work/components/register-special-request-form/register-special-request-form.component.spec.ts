@@ -1,216 +1,131 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component, Input } from '@angular/core';
 import { RegisterSpecialRequestFormComponent } from './register-special-request-form.component';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { ThesisParticipantsFormatterService } from '../../services/thesis-participants-formatter.service';
 import { SpecialRequestType } from '../../enums/special-request-type.enum';
+import { SpecialRequestSubmission } from '../../services/thesis-work-special-request.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
-import { User } from '../../../users/interfaces/user.interface';
-import { IdentificationType } from '../../../users/enum/identification-type.enum';
-import { UserState } from '../../../users/enum/user-state.enum';
-import { Modality } from '../../../proposal/enums/modality.enum';
-import { stateList } from '../../../../core/enums/state.enum';
-import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
-import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { thesisWorkDePrueba } from '../../../../testing/vista-de-prueba';
+import { crearTrabajoEnCurso } from '../../../../testing/trabajo-grado-de-prueba';
 
-interface MockNotificationService {
-  show: jest.Mock;
-}
-
-interface MockFormatterService {
-  getStudentNames: jest.Mock<string, [ThesisWork]>;
-  getDirectorName: jest.Mock<string, [ThesisWork]>;
-  getCodirectorName: jest.Mock<string, [ThesisWork]>;
-  getAdvisorName: jest.Mock<string, [ThesisWork]>;
-}
-
-@Component({ selector: 'app-button-component', standalone: true, template: '' })
-class MockButtonComponent {
-  @Input() label = '';
-  @Input() variant = '';
-  @Input() type = 'button';
-  @Input() disabled: boolean | null = false;
-}
-
-@Component({ selector: 'app-info-banner', standalone: true, template: '' })
-class MockInfoBannerComponent {
-  @Input() title = '';
-}
-
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'u-1',
-  idType: IdentificationType.CC,
-  idNumber: 123456789,
-  firstName: 'Juan',
-  secondName: '',
-  lastName: 'Perez',
-  secondLastName: '',
-  codeNumber: 1234567890,
-  email: 'juan@test.com',
-  password: 'hash',
-  state: UserState.active,
-  roles: [],
-  ...overrides
-});
-
-const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
-  const baseUser = createMockUser();
-  const baseThesis: ThesisWork = {
-    thesisWorkId: 'TW-001',
-    preliminaryDraftId: 'draft-1',
-    documents: [],
-    evaluations: [],
-    specialRequests: [],
-    state: stateList.EN_DESARROLLO,
-    createdDate: new Date(),
-    preliminaryDraftData: {
-      preliminaryDraftId: 'draft-1',
-      proposalId: 'prop-1',
-      state: stateList.APROBADO,
-      createdData: new Date(),
-      evaluations: [],
-      documents: [],
-      proposalData: {
-        id: 'prop-1',
-        title: 'Tesis de Prueba',
-        description: 'Descripción de prueba',
-        modality: Modality.TI,
-        authors: [baseUser],
-        director: baseUser,
-        state: stateList.APROBADO,
-        createdAt: new Date(),
-        documents: [],
-        evaluations: []
-      }
-    }
-  };
-  return { ...baseThesis, ...overrides };
-};
+const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/pdf' });
 
 describe('RegisterSpecialRequestFormComponent', () => {
-  let component: RegisterSpecialRequestFormComponent;
   let fixture: ComponentFixture<RegisterSpecialRequestFormComponent>;
+  let component: RegisterSpecialRequestFormComponent;
+  let notification: { show: jest.Mock };
+  let emitted: SpecialRequestSubmission[];
 
-  let notificationServiceMock: MockNotificationService;
-  let formatterMock: MockFormatterService;
+  const crear = (thesis: ThesisWork = thesisWorkDePrueba()) => {
+    fixture = TestBed.createComponent(RegisterSpecialRequestFormComponent);
+    component = fixture.componentInstance;
+    component.thesisWork = thesis;
+    emitted = [];
+    component.onSaveRequest.subscribe(payload => emitted.push(payload));
+    fixture.detectChanges();
+  };
 
-  const mockThesisWork = createMockThesisWork();
+  const elegir = (tipo: SpecialRequestType) => {
+    component.requestForm.controls.requestType.setValue(tipo);
+    fixture.detectChanges();
+  };
 
   beforeEach(async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    notificationServiceMock = {
-      show: jest.fn()
-    };
-
-    formatterMock = {
-      getStudentNames: jest.fn().mockReturnValue('Estudiante 1'),
-      getDirectorName: jest.fn().mockReturnValue('Director 1'),
-      getCodirectorName: jest.fn().mockReturnValue('Codirector 1'),
-      getAdvisorName: jest.fn().mockReturnValue('Asesor 1'),
-    };
-
+    notification = { show: jest.fn() };
     await TestBed.configureTestingModule({
       imports: [RegisterSpecialRequestFormComponent],
       providers: [
-        { provide: NotificationService, useValue: notificationServiceMock },
-        { provide: ThesisParticipantsFormatterService, useValue: formatterMock }
+        { provide: NotificationService, useValue: notification },
+        { provide: ThesisParticipantsFormatterService, useValue: {
+          getStudentNames: () => 'Eva Estudiante', getDirectorName: () => 'Dora Directora',
+          getCodirectorName: () => '', getAdvisorName: () => ''
+        } }
       ]
-    })
-    .overrideComponent(RegisterSpecialRequestFormComponent, {
-      remove: {
-        imports: [ButtonComponent, InfoBannerComponent]
-      },
-      add: {
-        imports: [MockButtonComponent, MockInfoBannerComponent]
-      }
-    })
-    .compileComponents();
-
-    fixture = TestBed.createComponent(RegisterSpecialRequestFormComponent);
-    component = fixture.componentInstance;
-
-    fixture.componentRef.setInput('thesisWork', mockThesisWork);
-    fixture.componentRef.setInput('isSubmitting', false);
-
-    fixture.detectChanges();
+    }).compileComponents();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+  it('ofrece solo las solicitudes disponibles en la etapa', () => {
+    crear(thesisWorkDePrueba(crearTrabajoEnCurso({ etapa: 'SUSPENDIDO' })));
+    expect(component.requestOptions).toEqual([SpecialRequestType.REANUDACION, SpecialRequestType.CANCELACION]);
   });
 
-  describe('Renderizado Condicional del Template', () => {
-    it('debería mostrar campos opcionales si existen (Codirector y Asesor)', () => {
-      const html = fixture.nativeElement.innerHTML;
-
-      expect(html).toContain('Codirector');
-      expect(html).toContain('Asesor');
-    });
-
-    it('no debería renderizar Codirector ni Asesor si los valores vienen vacíos', () => {
-      formatterMock.getCodirectorName.mockReturnValue('');
-      formatterMock.getAdvisorName.mockReturnValue('');
-
-      fixture.detectChanges();
-
-      const html = fixture.nativeElement.innerHTML;
-      expect(html).not.toContain('Codirector');
-      expect(html).not.toContain('Asesor');
-    });
+  it('sin tipo no envía', () => {
+    crear();
+    component.submit();
+    expect(emitted).toEqual([]);
+    expect(component.isFieldInvalid('requestType')).toBe(true);
   });
 
-  describe('Validación Visual de Campos (isFieldInvalid)', () => {
-    it('debería retornar true si el campo es tocado y es inválido', () => {
-      const typeControl = component.requestForm.get('requestType');
+  it('el cambio de título muestra el título y los objetivos vigentes y exige la justificación', () => {
+    crear();
+    elegir(SpecialRequestType.CAMBIO_TITULO);
+    expect((fixture.nativeElement.querySelector('#newTitle') as HTMLInputElement).value).toBe('Sistema de gestión');
+    expect(fixture.nativeElement.textContent).toContain('hasta el 20/09/2026');
 
-      typeControl?.markAsTouched();
+    component.submit();
+    expect(emitted).toEqual([]);
+    expect(component.isFieldInvalid('justification')).toBe(true);
 
-      expect(component.isFieldInvalid('requestType')).toBe(true);
-    });
-
-    it('debería retornar true si se intentó enviar el formulario (submit) aunque el campo no se haya tocado', () => {
-      component.isSubmitAttempted.set(true);
-
-      expect(component.isFieldInvalid('comments')).toBe(true);
-    });
-
-    it('debería retornar false si el campo está intacto y no ha habido intento de envío', () => {
-      expect(component.isFieldInvalid('comments')).toBe(false);
-    });
+    component.requestForm.controls.title.setValue('Nuevo título');
+    component.objectives.at(1).setValue('Nuevo específico');
+    component.requestForm.controls.justification.setValue('Cambio de alcance');
+    component.submit();
+    expect(emitted).toEqual([{
+      requestType: SpecialRequestType.CAMBIO_TITULO, title: 'Nuevo título',
+      objectives: ['Objetivo general', 'Nuevo específico'], justification: 'Cambio de alcance'
+    }]);
   });
 
-  describe('Flujo de Envío (Submit)', () => {
-    it('debería notificar el error y no emitir evento si el formulario es inválido', () => {
-      jest.spyOn(component.onSaveRequest, 'emit');
+  it('un objetivo vacío no se envía', () => {
+    crear();
+    elegir(SpecialRequestType.CAMBIO_TITULO);
+    component.addObjective();
+    component.requestForm.controls.justification.setValue('J');
+    component.submit();
+    expect(emitted).toEqual([]);
+    expect(component.isObjectiveInvalid(2)).toBe(true);
+  });
 
-      component.submit();
+  it('la prórroga pide los meses y el documento', () => {
+    crear();
+    elegir(SpecialRequestType.PRORROGA);
+    expect(component.requiresDocument).toBe(true);
+    component.submit();
+    expect(emitted).toEqual([]);
+    expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'Adjunte el documento de la solicitud en PDF.'
+    }));
 
-      expect(component.isSubmitAttempted()).toBe(true);
-      expect(component.requestForm.touched).toBe(true);
+    const documento = pdf('prorroga.pdf');
+    component.handleFileUploaded({ fileName: 'prorroga.pdf', file: documento });
+    component.requestForm.controls.months.setValue(3);
+    component.submit();
+    expect(emitted).toEqual([{ requestType: SpecialRequestType.PRORROGA, months: 3, document: documento }]);
+  });
 
-      expect(notificationServiceMock.show).toHaveBeenCalledTimes(1);
-      expect(component.onSaveRequest.emit).not.toHaveBeenCalled();
-    });
+  it.each([SpecialRequestType.SUSPENSION, SpecialRequestType.CANCELACION])('%s pide solo el documento', tipo => {
+    crear();
+    elegir(tipo);
+    const documento = pdf('doc.pdf');
+    component.handleFileUploaded({ fileName: 'doc.pdf', file: documento });
+    component.submit();
+    expect(emitted).toEqual([{ requestType: tipo, document: documento }]);
+  });
 
-    it('debería emitir onSaveRequest con los datos correctos si el formulario es válido', () => {
-      jest.spyOn(component.onSaveRequest, 'emit');
-      const validRequestType = Object.values(SpecialRequestType)[0];
+  it('la reanudación (trabajo suspendido) pide el documento', () => {
+    crear(thesisWorkDePrueba(crearTrabajoEnCurso({ etapa: 'SUSPENDIDO' })));
+    elegir(SpecialRequestType.REANUDACION);
+    const documento = pdf('reanudacion.pdf');
+    component.handleFileUploaded({ fileName: 'reanudacion.pdf', file: documento });
+    component.submit();
+    expect(emitted).toEqual([{ requestType: SpecialRequestType.REANUDACION, document: documento }]);
+  });
 
-      component.requestForm.patchValue({
-        requestType: validRequestType,
-        comments: 'Razón válida de prueba para la solicitud especial'
-      });
-
-      component.submit();
-
-      expect(notificationServiceMock.show).not.toHaveBeenCalled();
-      expect(component.onSaveRequest.emit).toHaveBeenCalledWith({
-        requestType: validRequestType,
-        comments: 'Razón válida de prueba para la solicitud especial'
-      });
-    });
+  it('al cambiar de tipo se descarta el documento elegido', () => {
+    crear();
+    elegir(SpecialRequestType.SUSPENSION);
+    component.handleFileUploaded({ fileName: 'doc.pdf', file: pdf('doc.pdf') });
+    elegir(SpecialRequestType.CANCELACION);
+    expect(component.document()).toBeNull();
   });
 });

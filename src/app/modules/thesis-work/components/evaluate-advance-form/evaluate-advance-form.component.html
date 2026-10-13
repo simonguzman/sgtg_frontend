@@ -2,8 +2,8 @@
   <div class="flex flex-col gap-8">
 
     @if (!isReadOnly) {
-      <app-info-banner title="Evaluación de avance de trabajo de grado">
-        Revise los documentos adjuntos por el estudiante y registre su veredicto. Opcionalmente, puede adjuntar un documento con sus respectivas anotaciones o correcciones detalladas como retroalimentación directa.
+      <app-info-banner title="Revisión del informe mensual">
+        Revise el informe cargado y registre sus observaciones y/o adjunte un PDF con sus notas. La revisión queda en el historial del trabajo de grado y no cambia su estado.
       </app-info-banner>
     }
 
@@ -38,122 +38,124 @@
 
     <section>
       <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">
-        Detalles del avance entregado
+        {{ advanceData.title }}
       </h3>
 
       <div class="flex flex-col gap-4">
-        <app-readonly-field label="Nombre del avance" [value]="advanceData.title"></app-readonly-field>
-        <app-readonly-field label="Comentarios del estudiante" [value]="advanceData.comments"></app-readonly-field>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <app-readonly-field label="Radicado por" [value]="advanceData.uploadedBy ?? ''" emptyText="Sin dato"></app-readonly-field>
+          <app-readonly-field label="Fecha de radicación" [value]="(advanceData.uploadDate | date:'dd/MM/yyyy') ?? ''"></app-readonly-field>
+        </div>
+        <app-readonly-field label="Observaciones de quien radica" [value]="advanceData.comments" emptyText="Sin observaciones"></app-readonly-field>
 
         <div class="flex flex-col gap-2 mt-2">
-          <span class="font-display font-semibold text-primary text-size-section">Archivos de Evidencia</span>
+          <span class="font-display font-semibold text-primary text-size-section">Informe</span>
           @for (doc of advanceDocuments; track doc.id) {
             <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm mb-2">
               <div class="flex items-center gap-3 overflow-hidden">
                 <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
                 <div class="flex flex-col overflow-hidden">
                   <span class="text-size-body font-bold text-primary truncate">{{ doc.name }}</span>
-                  <span class="text-size-role-footer text-[#777680]">Cargado por el estudiante</span>
+                  <span class="text-size-role-footer text-[#777680]">Formato D</span>
                 </div>
               </div>
               <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadAdvance.emit(doc)"></app-button-component>
             </div>
           } @empty {
             <div class="p-6 border border-dashed border-gray-300 rounded-xl text-center bg-gray-50/50">
-              <span class="text-size-body text-[#777680] italic">No se encontraron archivos adjuntos en este avance.</span>
+              <span class="text-size-body text-[#777680] italic">No se encontró el archivo del informe.</span>
             </div>
           }
         </div>
       </div>
     </section>
 
-    <section [class.opacity-60]="isReadOnly">
-      <h3 class="font-display font-semibold text-primary text-size-header-title mb-6 border-b pb-2">
-        Resultado de la evaluación
+    <section>
+      <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">
+        Revisiones registradas
       </h3>
 
-      <form [formGroup]="evaluationForm" (ngSubmit)="submit()" class="flex flex-col gap-6">
-
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center justify-center gap-8">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" formControlName="result" value="Evaluado" [attr.disabled]="isReadOnly ? true : null" class="w-4 h-4 text-primary focus:ring-primary">
-              <span class="text-size-body font-bold font-sans text-[#777680]">Aprobado / Evaluado</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" formControlName="result" value="En revisión" [attr.disabled]="isReadOnly ? true : null" class="w-4 h-4 text-primary focus:ring-primary">
-              <span class="text-size-body font-bold font-sans text-[#777680]">Requiere Correcciones</span>
-            </label>
+      <div class="flex flex-col gap-3">
+        @for (review of reviews; track review.id) {
+          <div class="p-4 bg-white border border-gray-200 border-l-4 border-l-state-in-development rounded-xl shadow-sm flex flex-col gap-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-size-body font-bold text-primary">{{ review.evaluatorName }} · {{ review.evaluatorRole }}</span>
+              <span class="text-size-role-footer text-[#777680]">{{ review.date | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <p class="text-size-body text-[#777680] font-sans whitespace-pre-line">{{ review.observations || 'Sin observaciones escritas' }}</p>
+            @for (notes of review.signedDocuments ?? []; track notes.url) {
+              <div class="flex justify-end">
+                <app-button-component label="Descargar notas" variant="secondary" (onClick)="onDownloadNotes.emit(notes)"></app-button-component>
+              </div>
+            }
           </div>
-          @if (isFieldInvalid('result')) {
-            <span class="text-textbox-alert text-center">Seleccione un veredicto válido</span>
-          }
-        </div>
+        } @empty {
+          <div class="p-4 border border-dashed border-gray-300 rounded-xl text-center bg-gray-50/50">
+            <span class="text-size-body text-[#777680] italic">Este informe aún no tiene revisiones.</span>
+          </div>
+        }
+      </div>
+    </section>
 
-        <div class="flex flex-col gap-1">
-          <label for="evaluationComments" class="font-display font-semibold text-size-section title-textbox">
-            Comentarios <span class="text-[#ED7D31]">*</span>
-          </label>
+    @if (!isReadOnly) {
+      <section>
+        <h3 class="font-display font-semibold text-primary text-size-header-title mb-6 border-b pb-2">
+          Su revisión
+        </h3>
 
-          <textarea id="evaluationComments" formControlName="comments" rows="4"
-                    class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 font-sans resize-none"
-                    [ngClass]="{
-                      'bg-gray-50': isReadOnly,
-                      'border-[#ED7D31] focus:ring-[#ED7D31] focus:border-[#ED7D31]': isFieldInvalid('comments'),
-                      'border-gray-300 focus:ring-primary': !isFieldInvalid('comments')
-                    }"
-                    [attr.disabled]="isReadOnly ? true : null"
-                    placeholder="Incluya los aspectos a mejorar o razones de su evaluación"></textarea>
-
-          @if (isFieldInvalid('comments')) {
-            <span class="text-textbox-alert">Las observaciones son obligatorias</span>
-          }
-        </div>
-
-        <div class="flex flex-col gap-4 mt-2">
+        <form [formGroup]="evaluationForm" (ngSubmit)="submit()" class="flex flex-col gap-6">
           <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-primary text-size-section">Documentos de retroalimentación (Opcional)</span>
+            <label for="evaluationComments" class="font-display font-semibold text-size-section title-textbox">
+              Observaciones
+            </label>
+            <textarea id="evaluationComments" formControlName="comments" rows="4"
+                      class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 font-sans resize-none"
+                      [ngClass]="{
+                        'border-[#ED7D31] focus:ring-[#ED7D31] focus:border-[#ED7D31]': isFieldInvalid('comments'),
+                        'border-gray-300 focus:ring-primary': !isFieldInvalid('comments')
+                      }"
+                      placeholder="Registre sus observaciones sobre el informe (opcional si adjunta el PDF de notas)"></textarea>
+            @if (isFieldInvalid('comments')) {
+              <span class="text-textbox-alert">Las observaciones no pueden superar los {{ maxComments }} caracteres</span>
+            }
           </div>
 
-          <div class="flex flex-col gap-3">
-            @for (feedback of uploadedFeedbackFiles(); track $index) {
+          <div class="flex flex-col gap-4 mt-2">
+            <span class="font-display font-semibold text-primary text-size-section">Notas en PDF (opcional)</span>
+            @if (notesFile(); as feedback) {
               <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-state-in-development rounded-xl shadow-sm transition-all hover:shadow-md">
                 <div class="flex items-center gap-3 overflow-hidden">
                   <span class="material-symbols-outlined text-state-in-development text-file shrink-0">edit_note</span>
-                  <div class="flex flex-col overflow-hidden">
-                    <span class="text-size-body font-bold text-primary truncate">{{ feedback.fileName }}</span>
-                  </div>
+                  <span class="text-size-body font-bold text-primary truncate">{{ feedback.fileName }}</span>
                 </div>
-                @if (!isReadOnly) {
-                  <button type="button" (click)="removeFeedbackFile($index)" class="text-[#777680] hover:text-[#DB141C] transition-colors shrink-0">
-                    <span class="material-symbols-outlined">delete</span>
-                  </button>
-                }
+                <button type="button" (click)="removeFeedbackFile()" class="text-[#777680] hover:text-[#DB141C] transition-colors shrink-0">
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
               </div>
-            } @empty {
+            } @else {
               <div class="information-block flex items-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm transition-colors">
                 <div class="flex items-center gap-3">
                   <span class="material-symbols-outlined text-gray-400 text-4xl shrink-0">upload_file</span>
-                  <span class="text-size-body text-[#777680] font-sans">No hay documentos de retroalimentación. Haga clic en "Cargar anotaciones" para agregar archivos.</span>
+                  <span class="text-size-body text-[#777680] font-sans">Sin notas adjuntas. Use "Cargar notas" para agregar el PDF.</span>
                 </div>
               </div>
             }
           </div>
-        </div>
 
-        <div class="flex gap-4 justify-end mt-10">
-          <app-button-component label="Cargar anotaciones" variant="secondary" type="button" (onClick)="isFeedbackModalOpen.set(true)" [disabled]="isReadOnly"></app-button-component>
-          <app-button-component label="Guardar evaluación" variant="primary" type="submit" [disabled]="isReadOnly"></app-button-component>
-        </div>
-      </form>
-    </section>
+          <div class="flex gap-4 justify-end mt-10">
+            <app-button-component [label]="notesFile() ? 'Reemplazar notas' : 'Cargar notas'" variant="secondary" type="button" (onClick)="isFeedbackModalOpen.set(true)"></app-button-component>
+            <app-button-component label="Guardar revisión" variant="primary" type="submit" [disabled]="isSubmitting"></app-button-component>
+          </div>
+        </form>
+      </section>
+    }
 
   </div>
 </div>
 
 <app-file-upload-modal
   [isOpen]="isFeedbackModalOpen()"
-  description="Subir documento de retroalimentación u observaciones (Opcional)"
+  description="Subir el PDF con sus notas sobre el informe (opcional)"
   (onFileUploaded)="handleFeedbackUploaded($event)"
   (onClose)="isFeedbackModalOpen.set(false)">
 </app-file-upload-modal>

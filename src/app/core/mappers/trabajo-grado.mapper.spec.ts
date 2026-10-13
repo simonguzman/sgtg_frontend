@@ -3,8 +3,11 @@ import {
   nombreDeRuta, tipoDocumento, veredicto
 } from './trabajo-grado.mapper';
 import {
-  crearTrabajoConAnteproyectoRadicado, crearTrabajoDePrueba, crearTrabajoEnAnteproyecto, crearTrabajoEnCurso
+  crearTrabajoConAnteproyectoRadicado, crearTrabajoDePrueba, crearTrabajoEnAnteproyecto, crearTrabajoEnCurso,
+  crearTrabajoEnCursoCon, informeDePrueba, revisionDePrueba
 } from '../../testing/trabajo-grado-de-prueba';
+import { SpecialRequestType } from '../../modules/thesis-work/enums/special-request-type.enum';
+import { SustentationStatus } from '../../modules/thesis-work/enums/sustentation-status.enum';
 import { stateList } from '../enums/state.enum';
 import { DocumentType } from '../enums/document-type.enum';
 import { UserRoleType } from '../enums/user-role-type.enum';
@@ -166,6 +169,96 @@ describe('trabajo-grado.mapper', () => {
       expect(aPropuesta(cerrado, ctx).isArchived).toBe(true);
       expect(aAnteproyecto(cerrado, ctx)!.isArchived).toBe(true);
       expect(aTrabajoDeGrado(cerrado, ctx)!.isArchived).toBe(true);
+    });
+
+    it('lleva la etapa y las fechas que calcula el backend', () => {
+      const trabajo = aTrabajoDeGrado(crearTrabajoEnCurso(), ctx)!;
+      expect(trabajo.stage).toBe('EN_CURSO');
+      expect(trabajo.deadlines).toEqual({
+        startDate: new Date(2026, 2, 20),
+        maximumDeliveryDate: new Date(2026, 11, 20),
+        minimumSustentationDate: new Date(2026, 5, 20),
+        objectivesChangeDeadline: new Date(2026, 8, 20),
+        extensionRequestDeadline: new Date(2026, 11, 5)
+      });
+    });
+
+    it('los informes mensuales son sus avances (el más reciente primero) y sus revisiones, las evaluaciones', () => {
+      const trabajo = aTrabajoDeGrado(crearTrabajoEnCursoCon({
+        informesMensuales: [
+          informeDePrueba(1, { observaciones: 'Primer mes', revisiones: [revisionDePrueba()] }),
+          informeDePrueba(2)
+        ]
+      }), ctx)!;
+
+      expect(trabajo.advances?.map(a => [a.id, a.title, a.status])).toEqual([
+        ['2', 'Informe mensual 2', stateList.EN_REVISION],
+        ['1', 'Informe mensual 1', stateList.EVALUADO]
+      ]);
+      const primero = trabajo.advances![1];
+      expect(primero).toEqual(expect.objectContaining({
+        comments: 'Primer mes', studentId: '10', uploadedBy: 'Eva Estudiante'
+      }));
+      expect(primero.documents[0]).toEqual(expect.objectContaining({ name: 'informe-1', type: DocumentType.AVANCE }));
+      expect(trabajo.evaluations).toEqual([expect.objectContaining({
+        advanceId: '1', evaluatorId: '1', evaluatorName: 'Dora Directora Pérez', evaluatorRole: UserRoleType.DIRECTOR,
+        veredict: stateList.EVALUADO, observations: 'Ajustar el cronograma',
+        signedDocuments: [expect.objectContaining({ name: 'notas' })]
+      })]);
+    });
+
+    it('las solicitudes del director son sus solicitudes especiales, con la decisión del Consejo', () => {
+      const decision = { organo: 'CONSEJO_FACULTAD' as const, resultado: 'APROBADO' as const, acta: null,
+        rutaArchivo: '15/RESOLUCION/v2/resolucion.pdf', observaciones: 'Procede', fecha: '2026-05-10' };
+      const trabajo = aTrabajoDeGrado(crearTrabajoEnCursoCon({
+        cambiosObjetivos: [{ tituloAnterior: 'Sistema de gestión', objetivosAnteriores: ['G'], tituloPropuesto: 'Nuevo',
+          objetivosPropuestos: ['G2', 'E2'], justificacion: 'Cambio de alcance', fechaSolicitud: '2026-05-01', decision }],
+        prorroga: { meses: 2, rutaSolicitud: '15/SOLICITUD_PRORROGA/v1/prorroga.pdf', fechaSolicitud: '2026-11-01',
+          decision: null },
+        suspensiones: [{ rutaSolicitud: '15/SOLICITUD_SUSPENSION/v1/s.pdf', fechaSolicitud: '2026-06-01',
+          decision: { ...decision, fecha: '2026-06-05' }, fechaInicio: '2026-06-05', etapaPrevia: 'EN_CURSO',
+          diasRestantes: 100, fechaMaximaReanudacion: '2026-12-05', fechaReanudacion: '2026-07-01',
+          rutaReanudacion: '15/REANUDACION/v1/r.pdf', reanudacionAutomatica: false }]
+      }), ctx)!;
+
+      expect(trabajo.specialRequests.map(s => [s.id, s.requestType, s.status])).toEqual([
+        ['prorroga-0', SpecialRequestType.PRORROGA, stateList.EN_REVISION],
+        ['reanudacion-0', SpecialRequestType.REANUDACION, stateList.APROBADO],
+        ['suspension-0', SpecialRequestType.SUSPENSION, stateList.APROBADO],
+        ['cambio-objetivos-0', SpecialRequestType.CAMBIO_TITULO, stateList.APROBADO]
+      ]);
+      const [prorroga, , suspension, cambio] = trabajo.specialRequests;
+      expect(prorroga).toEqual(expect.objectContaining({ months: 2, description: 'Prórroga de 2 meses' }));
+      expect(prorroga.documents?.[0].name).toBe('prorroga');
+      expect(suspension.grantedDeadline).toEqual(new Date(2026, 11, 5));
+      expect(cambio).toEqual(expect.objectContaining({
+        description: 'Cambio de alcance', proposedTitle: 'Nuevo', proposedObjectives: ['G2', 'E2'],
+        resolutionDetails: 'Procede', resolutionDate: new Date(2026, 4, 10)
+      }));
+      expect(cambio.resolution?.name).toBe('resolucion');
+    });
+
+    it('muestra la sustentación del backend en solo lectura (entrega final, paz y salvo y sesiones)', () => {
+      const trabajo = aTrabajoDeGrado(crearTrabajoEnCurso({
+        etapa: 'SUSTENTACION',
+        sustentacion: {
+          estado: 'PROGRAMADA', rutaDocumentoFinal: '15/TI-E/v1/final.pdf', rutaPazYSalvo: '15/PAZ_Y_SALVO/v1/pys.pdf',
+          rutaConceptoAsesor: null, fechaSolicitud: '2026-07-01',
+          sesiones: [{ numero: 1, jurados: [{ usuarioId: 30, codigo: '1030', nombreCompleto: 'Juan Jurado',
+            email: 'j@u.edu.co' }], fechaHora: '2026-07-15T09:30:00', salon: 'Sala 1', fechaProgramacion: '2026-07-05' }],
+          calificaciones: [], inasistencias: [], verificaciones: [], rutaAjustes: null, fechaAjustes: null,
+          fechaLimiteAjustes: null, fechaLimiteSegundaSesion: null, rutaVersionDefinitiva: null,
+          fechaVersionDefinitiva: null, motivoNoAprobacion: null
+        }
+      }), ctx)!;
+
+      expect(trabajo.finalDeliveries?.[0]).toEqual(expect.objectContaining({ status: stateList.EN_REVISION }));
+      expect(trabajo.finalDeliveries?.[0].formatE.name).toBe('final');
+      expect(trabajo.pazYSalvos?.[0].document.name).toBe('pys');
+      expect(trabajo.sustentations?.[0]).toEqual(expect.objectContaining({
+        status: SustentationStatus.PROGRAMADA, sustentationTime: '09:30', location: 'Sala 1'
+      }));
+      expect(trabajo.sustentations?.[0].assignedJurors.map(j => j.id)).toEqual(['30']);
     });
   });
 

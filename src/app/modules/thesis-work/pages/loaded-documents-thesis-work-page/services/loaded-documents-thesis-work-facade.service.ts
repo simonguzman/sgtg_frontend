@@ -1,68 +1,14 @@
 import { inject, Injectable } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
-import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
-import { DocumentType } from '../../../../../core/enums/document-type.enum';
-import { stateList } from '../../../../../core/enums/state.enum';
-import { Advance } from '../../../interfaces/advance.interface';;
-import { formatThesisDate } from '../../../helpers/thesis-date.helper';
-import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
+import { Advance } from '../../../interfaces/advance.interface';
 
 @Injectable({ providedIn: 'root' })
 export class LoadedDocumentsThesisWorkFacadeService {
-  private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
-
-  public async uploadDocument(
-    thesisId: string,
-    fileData: { fileName: string; file: File },
-    documentType: DocumentType,
-    onSuccess: () => void,
-    onError: () => void
-  ): Promise<void> {
-    this.showNotification(
-      'Subiendo documento',
-      'Procesando el archivo PDF y actualizando los registros...',
-      NotificationType.INFO
-    );
-
-    let fileUrl: string;
-    try {
-      fileUrl = await readFileAsDataUrl(fileData.file);
-    } catch (err) {
-      console.error('Error leyendo el archivo seleccionado:', err);
-      this.showNotification('Error al leer el archivo', 'No se pudo procesar el archivo seleccionado.', NotificationType.ERROR);
-      onError();
-      return;
-    }
-
-    const newDoc: FileDocument = {
-      id: crypto.randomUUID(),
-      name: fileData.fileName.replace('.pdf', ''),
-      url: fileUrl,
-      uploadDate: formatThesisDate(),
-      type: documentType,
-      status: stateList.EN_REVISION
-    };
-
-    try {
-      await firstValueFrom(this.thesisWorkService.uploadDocumentMock(thesisId, newDoc));
-      this.showNotification(
-        '¡Carga exitosa!',
-        'El documento se cargó correctamente y el flujo de estados ha sido actualizado.',
-        NotificationType.CONFIRMATION
-      );
-      onSuccess();
-    } catch (err) {
-      console.error('Error detectado en la carga de archivos:', err);
-      this.showNotification('Error de carga', 'Hubo un problema al subir el archivo. Inténtelo de nuevo.', NotificationType.ERROR);
-      onError();
-    }
-  }
 
   public async downloadDocument(document: FileDocument): Promise<void> {
     if (!document.url) {

@@ -16,6 +16,13 @@
       (tabChange)="activeTab.set($event)"
     ></app-tabs>
 
+    @if (isPhase6Tab()) {
+      <app-info-banner title="Sección en solo lectura" class="mt-6 block">
+        Aquí se muestra la información registrada en el sistema. Las acciones de entrega final, paz y salvo,
+        sustentación y correspondencia se habilitarán en la fase 6 de la integración.
+      </app-info-banner>
+    }
+
     <div class="mt-6">
       <app-table-component
         [value]="currentTableData()"
@@ -30,21 +37,6 @@
 
   </div>
 </div>
-
-<app-file-upload-modal
-  [isOpen]="isUploadModalOpen()"
-  [description]="currentStrategy().modalConfig.uploadDescription"
-  [uploadedBy]="currentStrategy().modalConfig.uploadedByText"
-  (onFileUploaded)="onFileSelected($event)"
-  (onClose)="isUploadModalOpen.set(false)"
-></app-file-upload-modal>
-
-<app-confirmation-action-modal
-  [isOpen]="isConfirmModalOpen()"
-  [description]="currentStrategy().modalConfig.confirmDescription"
-  (confirm)="confirmUpload()"
-  (onClose)="cancelUpload()"
-></app-confirmation-action-modal>
 
 <app-register-information-modal
   [isOpen]="isDetailsModalOpen()"

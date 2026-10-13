@@ -1,4 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { ThesisWorkDetailsFacadeService } from './services/thesis-work-details-facade.service';
@@ -8,7 +9,7 @@ import { ThesisWorkDetailsFacadeService } from './services/thesis-work-details-f
   standalone: true,
   templateUrl: './thesis-work-details-page.component.html',
   styleUrls: ['./thesis-work-details-page.component.css'],
-  imports: [ButtonComponent]
+  imports: [ButtonComponent, DatePipe]
 })
 export class ThesisWorkDetailsPageComponent implements OnInit {
   protected readonly route = inject(ActivatedRoute);

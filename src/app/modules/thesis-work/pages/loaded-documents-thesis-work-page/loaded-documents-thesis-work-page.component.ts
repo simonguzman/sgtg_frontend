@@ -16,8 +16,7 @@ import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcru
 import { ThesisParticipantsFormatterService } from '../../services/thesis-participants-formatter.service';
 import { TabsComponent } from '../../../../shared/components/tabs/tabs.component';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
-import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
-import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
 import { Advance } from '../../interfaces/advance.interface';
 import { User } from '../../../users/interfaces/user.interface';
@@ -25,6 +24,8 @@ import { LoadedDocumentsThesisWorkFacadeService } from './services/loaded-docume
 import { ThesisWorkDetailsModalResolverService } from './services/thesis-work-details-modal-resolver.service';
 import { ensureDate } from '../../helpers/thesis-date.helper';
 import {
+  PHASE_6_READONLY_ACTIONS,
+  PHASE_6_TABS,
   THESIS_TABS_CONFIG,
   TAB_MODAL_HEADERS,
   TAB_MODAL_SUBTITLES
@@ -35,8 +36,7 @@ import {
   templateUrl: './loaded-documents-thesis-work-page.component.html',
   styleUrls: ['./loaded-documents-thesis-work-page.component.css'],
   imports: [
-    FileUploadModalComponent,
-    ConfirmationActionModalComponent,
+    InfoBannerComponent,
     TableComponent,
     TabsComponent,
     RegisterInformationModalComponent
@@ -66,9 +66,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
 
   readonly activeTab = signal<string>('AVANCES');
   readonly thesisWorkId = signal<string | null>(null);
-  readonly isUploadModalOpen = signal(false);
-  readonly isConfirmModalOpen = signal(false);
-  readonly uploadContext = signal<{ fileName: string; file: File } | null>(null);
   readonly isDetailsModalOpen = signal(false);
   readonly selectedAdvance = signal<Advance | null>(null);
 
@@ -137,15 +134,31 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     return this.currentStrategy().enrichEvaluationContext(baseContext);
   });
 
+  /**
+   * true en las pestañas de la fase 6 (entrega final, paz y salvo,
+   * sustentación, correspondencia): muestran lo que trae el backend, pero sus
+   * acciones se habilitan cuando se integre esa fase.
+   */
+  readonly isPhase6Tab = computed(() => PHASE_6_TABS.includes(this.activeTab()));
+
   readonly currentColumns = computed(() => this.currentStrategy().columns);
-  readonly currentHeaderButtons = computed(() => this.currentStrategy().getHeaderButtons(this.evaluationContext()));
+  readonly currentHeaderButtons = computed<TableButton[]>(() => {
+    const buttons = this.currentStrategy().getHeaderButtons(this.evaluationContext());
+    return this.isPhase6Tab() ? buttons.map(button => ({ ...button, disabled: true })) : buttons;
+  });
 
   readonly currentTableData = computed(() => {
     const context = this.evaluationContext();
     const thesis = context.thesisWork;
     if (!thesis) return [];
     const docs = this.activeTab() === 'AVANCES' ? [] : (thesis.documents ?? []);
-    return this.currentStrategy().getTableData(docs, context);
+    const rows = this.currentStrategy().getTableData(docs, context) as Record<string, unknown>[];
+    if (!this.isPhase6Tab()) return rows;
+    return rows.map(row => ({
+      ...row,
+      allowedActions: ((row['allowedActions'] as string[] | undefined) ?? [])
+        .filter(action => PHASE_6_READONLY_ACTIONS.includes(action))
+    }));
   });
 
   readonly selectedAdvanceDocuments = computed<string[]>(() =>
@@ -181,12 +194,9 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   );
 
   handleHeaderButton(_button: TableButton): void {
+    if (this.isPhase6Tab()) return;
     const routePath = this.currentStrategy().headerActionRoute;
-    if (routePath) {
-      this.router.navigate([routePath], { relativeTo: this.route.parent });
-    } else {
-      this.isUploadModalOpen.set(true);
-    }
+    if (routePath) this.router.navigate([routePath], { relativeTo: this.route.parent });
   }
 
   handleTableAction(event: { action: string; row: Record<string, unknown> }): void {
@@ -224,31 +234,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
         this.router.navigate([event.action], { relativeTo: this.route.parent });
         break;
     }
-  }
-
-  onFileSelected(event: { fileName: string; file: File }): void {
-    this.uploadContext.set(event);
-    this.isUploadModalOpen.set(false);
-    this.isConfirmModalOpen.set(true);
-  }
-
-  confirmUpload(): void {
-    const fileData = this.uploadContext();
-    const thesisId = this.thesisWorkId();
-    const docType  = this.currentStrategy().modalConfig.uploadDocumentType;
-    if (!fileData || !thesisId || !docType) return;
-    void this.facade.uploadDocument(
-      thesisId,
-      fileData,
-      docType,
-      () => this.cancelUpload(),
-      () => { }
-    );
-  }
-
-  cancelUpload(): void {
-    this.isConfirmModalOpen.set(false);
-    this.uploadContext.set(null);
   }
 
   private openDetailsModal(rowId: string): void {

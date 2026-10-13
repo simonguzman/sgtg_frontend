@@ -1,15 +1,10 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
-import { SpecialRequestType } from '../../enums/special-request-type.enum';
+import { SpecialRequestSubmission } from '../../services/thesis-work-special-request.service';
 import { RegisterSpecialRequestFacadeService } from './services/register-special-request-facade.service';
 import { RegisterSpecialRequestFormComponent } from '../../components/register-special-request-form/register-special-request-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
-
-export interface SpecialRequestData {
-  requestType: SpecialRequestType;
-  comments: string;
-}
 
 @Component({
   selector: 'app-register-special-request-page',
@@ -26,7 +21,7 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
   public readonly isSubmitting = signal(false);
   public readonly thesisWorkData = signal<ThesisWork | undefined>(undefined);
   public readonly isConfirmModalOpen = signal(false);
-  public readonly pendingData = signal<SpecialRequestData | null>(null);
+  public readonly pendingData = signal<SpecialRequestSubmission | null>(null);
 
   ngOnInit(): void {
     const thesisId = this.route.snapshot.paramMap.get('id') ?? this.route.parent?.snapshot.paramMap.get('id');
@@ -44,7 +39,7 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
     );
   }
 
-  public handleRequestConfirmation(event: SpecialRequestData): void {
+  public handleRequestConfirmation(event: SpecialRequestSubmission): void {
     this.pendingData.set(event);
     this.isConfirmModalOpen.set(true);
   }

@@ -1,8 +1,8 @@
 <div class="p-6 bg-white rounded-lg w-full">
   <form [formGroup]="advanceForm" (ngSubmit)="submit()" class="flex flex-col gap-8">
 
-    <app-info-banner title="Carga de avance de trabajo de grado">
-      En este espacio podrá registrar los avances de su trabajo de grado. Recuerde cargar sus documentos de desarrollo y redactar los comentarios relevantes para que sus directores y/o asesores puedan realizar la evaluación correspondiente.
+    <app-info-banner title="Carga del informe mensual">
+      Cargue el informe mensual del trabajo de grado (formato D) en PDF. Si lo considera necesario, agregue observaciones para el director, el codirector o el asesor, quienes podrán revisarlo y registrar sus notas.
     </app-info-banner>
 
     <section>
@@ -36,73 +36,55 @@
 
     <section>
       <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">
-        Detalles del avance
+        Informe mensual {{ nextReportNumber }}
       </h3>
 
       <div class="flex flex-col gap-6">
 
         <div class="flex flex-col gap-1">
-          <label for="advanceTitle" class="font-display font-semibold text-primary text-size-section">Título del avance <span class="text-[#ED7D31]">*</span></label>
-          <input id="advanceTitle" type="text" formControlName="title"
-                 class="font-sans font-normal text-size-body p-3 border rounded-md bg-white w-full focus:outline-none focus:ring-1 transition-all"
-                 placeholder="Ej: Avance(3)_Capitulo_1_y_2"
-                 [ngClass]="{
-                   'border-[#ED7D31] focus:ring-[#ED7D31] focus:border-[#ED7D31]': isFieldInvalid('title'),
-                   'border-gray-300 focus:ring-primary': !isFieldInvalid('title')
-                 }">
-          @if (isFieldInvalid('title')) {
-            <span class="text-textbox-alert">El título del avance es obligatorio</span>
-          }
-        </div>
-
-        <div class="flex flex-col gap-1">
-          <label for="advanceComments" class="font-display font-semibold text-primary text-size-section">Comentarios o descripción <span class="text-[#ED7D31]">*</span></label>
+          <label for="advanceComments" class="font-display font-semibold text-primary text-size-section">Observaciones (opcional)</label>
           <textarea id="advanceComments" formControlName="comments" rows="5"
                     class="font-sans font-normal text-size-body p-3 border rounded-md bg-white w-full focus:outline-none focus:ring-1 transition-all resize-none"
-                    placeholder="Describa brevemente los puntos a evaluar en este avance..."
+                    placeholder="Describa brevemente lo desarrollado en el periodo o los puntos que desea que revisen..."
                     [ngClass]="{
                       'border-[#ED7D31] focus:ring-[#ED7D31] focus:border-[#ED7D31]': isFieldInvalid('comments'),
                       'border-gray-300 focus:ring-primary': !isFieldInvalid('comments')
                     }"></textarea>
           @if (isFieldInvalid('comments')) {
-            <span class="text-textbox-alert">La descripción del avance es obligatoria</span>
+            <span class="text-textbox-alert">Las observaciones no pueden superar los {{ maxComments }} caracteres</span>
           }
         </div>
 
         <div class="flex flex-col gap-4 mt-2">
-          <div class="flex flex-col gap-1">
-            <span class="font-display font-semibold text-primary text-size-section">Archivos adjuntos <span class="text-[#ED7D31]">*</span></span>
-          </div>
+          <span class="font-display font-semibold text-primary text-size-section">Informe (formato D) <span class="text-[#ED7D31]">*</span></span>
 
-          <div class="flex flex-col gap-3">
-            @for (item of uploadedFiles(); track $index) {
-              <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-all hover:shadow-md">
-                <div class="flex items-center gap-3 overflow-hidden">
-                  <span class="material-symbols-outlined text-primary text-file shrink-0">description</span>
-                  <div class="flex flex-col overflow-hidden">
-                    <span class="text-size-body font-bold text-primary truncate">{{ item.fileName }}</span>
-                    <span class="text-size-role-footer text-[#777680]">Documento listo para enviar</span>
-                  </div>
-                </div>
-                <button type="button" (click)="removeFile($index)" class="text-[#777680] hover:text-[#DB141C] transition-colors shrink-0">
-                  <span class="material-symbols-outlined">delete</span>
-                </button>
-              </div>
-            } @empty {
-              <div class="information-block flex items-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm transition-colors">
-                <div class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-gray-400 text-4xl shrink-0">upload_file</span>
-                  <span class="text-size-body text-[#777680] font-sans">No hay archivos adjuntos. Cargue sus evidencias utilizando el botón "Cargar archivo" al final del formulario.</span>
+          @if (uploadedFile(); as item) {
+            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-all hover:shadow-md">
+              <div class="flex items-center gap-3 overflow-hidden">
+                <span class="material-symbols-outlined text-primary text-file shrink-0">description</span>
+                <div class="flex flex-col overflow-hidden">
+                  <span class="text-size-body font-bold text-primary truncate">{{ item.fileName }}</span>
+                  <span class="text-size-role-footer text-[#777680]">Documento listo para enviar</span>
                 </div>
               </div>
-            }
-          </div>
+              <button type="button" (click)="removeFile()" class="text-[#777680] hover:text-[#DB141C] transition-colors shrink-0">
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
+          } @else {
+            <div class="information-block flex items-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm transition-colors">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-gray-400 text-4xl shrink-0">upload_file</span>
+                <span class="text-size-body text-[#777680] font-sans">No ha adjuntado el informe. Cárguelo con el botón "Cargar informe" al final del formulario.</span>
+              </div>
+            </div>
+          }
         </div>
       </div>
 
       <div class="flex justify-end gap-4 mt-10">
-        <app-button-component label="Cargar archivo" variant="secondary" type="button" (onClick)="isUploadModalOpen.set(true)"></app-button-component>
-        <app-button-component label="Guardar y enviar avance" variant="primary" type="submit" [disabled]="isSubmitting"></app-button-component>
+        <app-button-component [label]="uploadedFile() ? 'Reemplazar informe' : 'Cargar informe'" variant="secondary" type="button" (onClick)="isUploadModalOpen.set(true)"></app-button-component>
+        <app-button-component label="Radicar informe" variant="primary" type="submit" [disabled]="isSubmitting"></app-button-component>
       </div>
 
     </section>
@@ -111,7 +93,7 @@
 
 <app-file-upload-modal
   [isOpen]="isUploadModalOpen()"
-  description="Subir archivo del avance (Documentos, presentaciones, etc.)"
+  description="Subir el informe mensual (formato D) en PDF"
   (onFileUploaded)="handleFileUploaded($event)"
   (onClose)="isUploadModalOpen.set(false)">
 </app-file-upload-modal>

@@ -1,310 +1,106 @@
 import { TestBed } from '@angular/core/testing';
-import { Observable, of, throwError } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { of, throwError } from 'rxjs';
 import { EvaluateAdvanceFacadeService } from './evaluate-advance-facade.service';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
-import { stateList } from '../../../../../core/enums/state.enum';
-import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
-import { DocumentType } from '../../../../../core/enums/document-type.enum';
-import { IdentificationType } from '../../../../users/enum/identification-type.enum';
-import { UserState } from '../../../../users/enum/user-state.enum';
-import { Modality } from '../../../../proposal/enums/modality.enum';
-import { ThesisWork } from '../../../interfaces/thesis-work.interface';
-import { Advance } from '../../../interfaces/advance.interface';
-import { User } from '../../../../users/interfaces/user.interface';
-import { AdvanceEvaluationResult, SubmitAdvanceEvaluationPayload } from '../../../interfaces/advance-playload.interface';
-import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
-import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { thesisWorkDePrueba } from '../../../../../testing/vista-de-prueba';
+import { crearTrabajoEnCursoCon, informeDePrueba } from '../../../../../testing/trabajo-grado-de-prueba';
 
-jest.mock('../../../../../core/utils/file-reader.utils', () => ({
-  readFileAsDataUrl: jest.fn()
-}));
-
-interface MockThesisWorkService {
-  getThesisWorkByIdMock: jest.Mock<Observable<ThesisWork | undefined | null>, [string]>;
-  addEvaluationMock: jest.Mock<Observable<void>, [string, Evaluation]>;
-}
-
-interface MockFileDownloadService {
-  download: jest.Mock<Promise<void>, [string, string]>;
-}
-
-interface MockNotificationService {
-  show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
-}
-
-const createMockUser = (overrides: Partial<User> = {}): User => {
-  const base: Partial<User> = {
-    id: 'u-1',
-    idType: IdentificationType.CC,
-    idNumber: 123456789,
-    firstName: 'Juan',
-    secondName: '',
-    lastName: 'Perez',
-    secondLastName: '',
-    codeNumber: 1234567890,
-    email: 'juan@test.com',
-    password: 'hash',
-    state: UserState.active,
-    roles: [],
-    ...overrides
-  };
-  return base as User;
-};
-
-const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
-  const baseUser = createMockUser();
-  const baseThesis: Partial<ThesisWork> = {
-    thesisWorkId: 't-1',
-    preliminaryDraftId: 'draft-1',
-    documents: [],
-    evaluations: [],
-    specialRequests: [],
-    state: stateList.EN_DESARROLLO,
-    createdDate: new Date(),
-    preliminaryDraftData: {
-      preliminaryDraftId: 'draft-1',
-      proposalId: 'p-1',
-      state: stateList.APROBADO,
-      createdData: new Date(),
-      evaluators: [],
-      evaluations: [],
-      documents: [],
-      proposalData: {
-        id: 'p-1',
-        title: 'Título',
-        description: 'Desc',
-        modality: Modality.TI,
-        authors: [baseUser],
-        director: baseUser,
-        state: stateList.APROBADO,
-        createdAt: new Date(),
-        documents: [],
-        evaluations: []
-      } as NonNullable<ThesisWork['preliminaryDraftData']>['proposalData']
-    } as NonNullable<ThesisWork['preliminaryDraftData']>
-  };
-  return { ...baseThesis, ...overrides } as ThesisWork;
-};
-
-const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => {
-  const base: Partial<FileDocument> = {
-    id: 'doc-1',
-    name: 'doc1.pdf',
-    url: 'http://test/doc.pdf',
-    type: DocumentType.AVANCE,
-    uploadDate: new Date(),
-    status: stateList.EN_REVISION,
-    ...overrides
-  };
-  return base as FileDocument;
-};
-
-const createMockAdvance = (overrides: Partial<Advance> = {}): Advance => {
-  const base: Partial<Advance> = {
-    id: 'a-1',
-    title: 'Avance 1',
-    comments: 'Comentarios',
-    uploadDate: new Date(),
-    studentId: 'u-1',
-    status: stateList.EN_REVISION,
-    documents: [createMockFileDocument()],
-    ...overrides
-  };
-  return base as Advance;
-};
+const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/pdf' });
 
 describe('EvaluateAdvanceFacadeService', () => {
-  let service: EvaluateAdvanceFacadeService;
+  let facade: EvaluateAdvanceFacadeService;
+  let thesisWorkService: { getThesisWorkByIdMock: jest.Mock; revisarInforme: jest.Mock };
+  let download: { download: jest.Mock };
+  let notification: { show: jest.Mock };
 
-  let thesisServiceSpy: MockThesisWorkService;
-  let downloadServiceSpy: MockFileDownloadService;
-  let notificationSpy: MockNotificationService;
-
-  beforeAll(() => {
-    Object.defineProperty(globalThis, 'crypto', {
-      value: { randomUUID: () => 'mock-uuid-1234' },
-      writable: true,
-      configurable: true
-    });
-  });
+  const thesis = thesisWorkDePrueba(crearTrabajoEnCursoCon({ informesMensuales: [informeDePrueba(1)] }));
 
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    thesisServiceSpy = {
-      getThesisWorkByIdMock: jest.fn(),
-      addEvaluationMock: jest.fn()
-    };
-
-    downloadServiceSpy = {
-      download: jest.fn()
-    };
-
-    notificationSpy = {
-      show: jest.fn()
-    };
-
+    thesisWorkService = { getThesisWorkByIdMock: jest.fn(), revisarInforme: jest.fn() };
+    download = { download: jest.fn().mockResolvedValue(undefined) };
+    notification = { show: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
-        EvaluateAdvanceFacadeService,
-        { provide: ThesisWorkService, useValue: thesisServiceSpy },
-        { provide: FileDownloadService, useValue: downloadServiceSpy },
-        { provide: NotificationService, useValue: notificationSpy }
+        { provide: ThesisWorkService, useValue: thesisWorkService },
+        { provide: FileDownloadService, useValue: download },
+        { provide: NotificationService, useValue: notification }
       ]
     });
-
-    service = TestBed.inject(EvaluateAdvanceFacadeService);
+    facade = TestBed.inject(EvaluateAdvanceFacadeService);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
-  });
+  afterEach(() => jest.restoreAllMocks());
 
-  describe('Carga de Proyecto (loadThesisWork)', () => {
-    it('debe emitir onSuccess si el proyecto se encuentra en la base de datos', () => {
-      const mockThesis = createMockThesisWork();
-      thesisServiceSpy.getThesisWorkByIdMock.mockReturnValue(of(mockThesis));
-
-      const successCb = jest.fn();
-      const errorCb = jest.fn();
-
-      service.loadThesisWork('1', successCb, errorCb);
-
-      expect(successCb).toHaveBeenCalledWith(mockThesis);
-      expect(errorCb).not.toHaveBeenCalled();
+  describe('loadThesisWork', () => {
+    it('entrega el trabajo encontrado', () => {
+      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(thesis));
+      const onSuccess = jest.fn();
+      facade.loadThesisWork('15', onSuccess, jest.fn());
+      expect(onSuccess).toHaveBeenCalledWith(thesis);
     });
 
-    it('debe emitir onError y mostrar notificación INFO si el proyecto es null (no encontrado)', () => {
-      thesisServiceSpy.getThesisWorkByIdMock.mockReturnValue(of(null));
-      const successCb = jest.fn();
-      const errorCb = jest.fn();
-
-      service.loadThesisWork('1', successCb, errorCb);
-
-      expect(errorCb).toHaveBeenCalled();
-      expect(notificationSpy.show).toHaveBeenCalledWith(
-        expect.objectContaining({ type: NotificationType.INFO })
-      );
-    });
-
-    it('debe emitir onError y mostrar notificación ERROR si falla la petición HTTP', () => {
-      thesisServiceSpy.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('Network Error')));
-      const successCb = jest.fn();
-      const errorCb = jest.fn();
-
-      service.loadThesisWork('1', successCb, errorCb);
-
-      expect(errorCb).toHaveBeenCalled();
-      expect(notificationSpy.show).toHaveBeenCalledWith(
-        expect.objectContaining({ type: NotificationType.ERROR })
-      );
+    it('avisa si no existe o falla la consulta', () => {
+      const onError = jest.fn();
+      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(undefined));
+      facade.loadThesisWork('99', jest.fn(), onError);
+      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('x')));
+      facade.loadThesisWork('15', jest.fn(), onError);
+      expect(onError).toHaveBeenCalledTimes(2);
     });
   });
 
-  describe('Guardado de Evaluación (saveEvaluation)', () => {
-    const mockThesis = createMockThesisWork();
-    const mockAdvance = createMockAdvance();
-    const mockUser = createMockUser();
+  describe('saveEvaluation', () => {
+    it('registra la revisión del informe y confirma', () => {
+      const notas = pdf('notas.pdf');
+      thesisWorkService.revisarInforme.mockReturnValue(of(thesis));
+      const onSuccess = jest.fn();
+      facade.saveEvaluation(thesis, thesis.advances![0], { comments: 'Bien', notes: notas }, onSuccess, jest.fn());
 
-    it('debe convertir archivos a DataUrl, mapear a EVALUADO y notificar éxito', async () => {
-      (readFileAsDataUrl as jest.Mock).mockResolvedValue('data:application/pdf;base64,mocked');
-      thesisServiceSpy.addEvaluationMock.mockReturnValue(of(void 0));
+      expect(thesisWorkService.revisarInforme).toHaveBeenCalledWith('15', '1', 'Bien', notas);
+      expect(onSuccess).toHaveBeenCalled();
+      expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Revisión registrada' }));
+    });
 
-      const mockFile = new File([''], 'feedback.pdf', { type: 'application/pdf' });
-      const payload: SubmitAdvanceEvaluationPayload = {
-        formValues: { result: AdvanceEvaluationResult.EVALUADO, comments: 'Excelente' },
-        files: [mockFile]
-      };
+    it('muestra el mensaje del backend si la rechaza', () => {
+      thesisWorkService.revisarInforme.mockReturnValue(throwError(() => new HttpErrorResponse({
+        status: 400, error: { message: 'Ya registró una revisión de este informe mensual.' }
+      })));
+      const onError = jest.fn();
+      facade.saveEvaluation(thesis, thesis.advances![0], { comments: 'Otra', notes: null }, jest.fn(), onError);
 
-      const successCb = jest.fn();
-      const errorCb = jest.fn();
-
-      await service.saveEvaluation(mockThesis, mockAdvance, mockUser, payload, successCb, errorCb);
-
-      expect(readFileAsDataUrl).toHaveBeenCalledWith(mockFile);
-      expect(thesisServiceSpy.addEvaluationMock).toHaveBeenCalledWith('t-1', expect.objectContaining({
-        veredict: stateList.EVALUADO,
-        signedDocuments: [{ name: 'feedback.pdf', url: 'data:application/pdf;base64,mocked' }],
-        evaluatorName: 'Juan Perez'
+      expect(onError).toHaveBeenCalled();
+      expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Ya registró una revisión de este informe mensual.', type: NotificationType.ERROR
       }));
-      expect(successCb).toHaveBeenCalled();
-      expect(notificationSpy.show).toHaveBeenCalledWith(
-        expect.objectContaining({ type: NotificationType.CONFIRMATION })
-      );
-    });
-
-    it('debe emitir onError y notificar si ocurre un error al procesar (leer) los documentos locales', async () => {
-      const readError = new Error('File Read Error');
-      (readFileAsDataUrl as jest.Mock).mockRejectedValue(readError);
-
-      const mockFile = new File([''], 'corrupt.pdf');
-      const payload: SubmitAdvanceEvaluationPayload = {
-        formValues: { result: AdvanceEvaluationResult.EN_REVISION, comments: 'Revisar' },
-        files: [mockFile]
-      };
-
-      const successCb = jest.fn();
-      const errorCb = jest.fn();
-
-      await service.saveEvaluation(mockThesis, mockAdvance, mockUser, payload, successCb, errorCb);
-
-      expect(console.error).toHaveBeenCalledWith('Error leyendo los documentos de retroalimentación:', readError);
-      expect(thesisServiceSpy.addEvaluationMock).not.toHaveBeenCalled();
-      expect(errorCb).toHaveBeenCalled();
-      expect(notificationSpy.show).toHaveBeenCalledWith(
-        expect.objectContaining({ type: NotificationType.ERROR })
-      );
     });
   });
 
-  describe('Descarga de Archivos (downloadAdvance)', () => {
-    it('debe llamar a downloadService si el documento es válido y tiene URL', async () => {
-      downloadServiceSpy.download.mockResolvedValue();
-      const mockDocument = createMockFileDocument({ url: 'http://test/doc.pdf', name: 'doc1.pdf' });
-
-      await service.downloadAdvance(mockDocument);
-
-      expect(downloadServiceSpy.download).toHaveBeenCalledWith('http://test/doc.pdf', 'doc1.pdf');
+  describe('downloadAdvance', () => {
+    it('descarga el PDF con su nombre', async () => {
+      await facade.downloadAdvance({ name: 'informe-1', url: '/api/x' });
+      expect(download.download).toHaveBeenCalledWith('/api/x', 'informe-1.pdf');
     });
 
-    it('debe notificar error si el documento no tiene url (detiene el flujo temprano)', async () => {
-      const mockDocument = createMockFileDocument({ url: '' });
-
-      await service.downloadAdvance(mockDocument);
-
-      expect(downloadServiceSpy.download).not.toHaveBeenCalled();
-      expect(notificationSpy.show).toHaveBeenCalledWith(
-        expect.objectContaining({ type: NotificationType.ERROR })
-      );
+    it('sin URL avisa y no descarga', async () => {
+      await facade.downloadAdvance({ name: 'x', url: '' });
+      expect(download.download).not.toHaveBeenCalled();
+      expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Error de descarga' }));
     });
 
-    it('debe capturar el error (catch) y notificar si la descarga falla', async () => {
-      const downloadError = new Error('Download Failed');
-      downloadServiceSpy.download.mockRejectedValue(downloadError);
-
-      const mockDocument = createMockFileDocument();
-
-      await service.downloadAdvance(mockDocument);
-
-      expect(console.error).toHaveBeenCalledWith('Error al descargar el avance:', downloadError);
-      expect(notificationSpy.show).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Error de descarga' })
-      );
+    it('si la descarga falla, avisa', async () => {
+      download.download.mockRejectedValue(new Error('red'));
+      await facade.downloadAdvance({ name: 'x', url: '/api/x' });
+      expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Error de descarga' }));
     });
   });
 
-  describe('Errores de UI (showNavigationError)', () => {
-    it('debe invocar la notificación de error estándar', () => {
-      service.showNavigationError();
-
-      expect(notificationSpy.show).toHaveBeenCalledWith(
-        expect.objectContaining({ type: NotificationType.ERROR })
-      );
-    });
+  it('showNavigationError avisa del error de navegación', () => {
+    facade.showNavigationError();
+    expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Error de navegación' }));
   });
 });

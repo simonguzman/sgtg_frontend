@@ -1,9 +1,8 @@
 <div class="p-6 bg-white rounded-lg w-full">
 
-  <app-info-banner title="Registro de Solicitud Especial" class="mb-6 block">
-    Complete el formulario para registrar una solicitud especial asociada al trabajo de grado.
-    Seleccione el <strong>tipo de solicitud</strong> e incluya una <strong>justificación detallada</strong>
-    para que pueda ser evaluada por el consejo de facultad.
+  <app-info-banner title="Registro de solicitud" class="mb-6 block">
+    Seleccione el <strong>tipo de solicitud</strong> y complete los datos que se piden. El Consejo de Facultad
+    decidirá la solicitud con una resolución; la reanudación de un trabajo suspendido se registra de inmediato.
   </app-info-banner>
 
   <section class="mb-10">
@@ -25,43 +24,135 @@
       }
 
       <app-readonly-field label="Estado" [value]="thesisWork.state" [emphasize]="true"></app-readonly-field>
+      @if (thesisWork.deadlines?.maximumDeliveryDate) {
+        <app-readonly-field label="Fecha máxima de entrega" [value]="(thesisWork.deadlines?.maximumDeliveryDate | date:'dd/MM/yyyy') ?? ''"></app-readonly-field>
+      }
     </div>
   </section>
 
   <section>
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Solicitudes especiales</h3>
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Solicitud</h3>
 
     <form [formGroup]="requestForm" (ngSubmit)="submit()" class="flex flex-col gap-6 pl-4">
 
       <div class="flex flex-col gap-1">
-        <label for="requestType" class="font-display font-semibold text-primary text-size-section">Solicitud especial</label>
+        <label for="requestType" class="font-display font-semibold text-primary text-size-section">Tipo de solicitud <span class="text-[#ED7D31]">*</span></label>
         <select id="requestType" formControlName="requestType"
                 class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-sm text-[#777680]"
                 [class.border-orange-500]="isFieldInvalid('requestType')">
-          <option value="" disabled selected>Seleccione una solicitud especial</option>
+          <option value="" disabled>Seleccione el tipo de solicitud</option>
           @for (option of requestOptions; track option) {
             <option [value]="option">{{ option }}</option>
           }
         </select>
+        @if (requestOptions.length === 0) {
+          <span class="text-size-role-footer text-[#777680]">No hay solicitudes disponibles para la etapa actual del trabajo de grado.</span>
+        }
         @if (isFieldInvalid('requestType')) {
           <span class="text-textbox-alert text-sm">Debe seleccionar un tipo de solicitud</span>
         }
       </div>
 
-      <div class="flex flex-col gap-1">
-        <label for="comments" class="font-display font-semibold text-primary text-size-section">Comentarios</label>
-        <textarea id="comments" formControlName="comments" rows="4"
-          class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-sm resize-none"
-          [class.border-orange-500]="isFieldInvalid('comments')"
-          placeholder="Incluya la justificación de la petición de la solicitud"></textarea>
-        @if (isFieldInvalid('comments')) {
-          <span class="text-textbox-alert text-sm">La justificación es requerida</span>
+      @switch (selectedType()) {
+        @case (types.CAMBIO_TITULO) {
+          @if (thesisWork.deadlines?.objectivesChangeDeadline) {
+            <p class="text-size-role-footer text-[#777680]">
+              Se puede solicitar una sola vez, hasta el {{ thesisWork.deadlines?.objectivesChangeDeadline | date:'dd/MM/yyyy' }}.
+            </p>
+          }
+          <div class="flex flex-col gap-1">
+            <label for="newTitle" class="font-display font-semibold text-primary text-size-section">Título propuesto <span class="text-[#ED7D31]">*</span></label>
+            <input id="newTitle" type="text" formControlName="title"
+                   class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-sm"
+                   [class.border-orange-500]="isFieldInvalid('title')">
+            @if (isFieldInvalid('title')) {
+              <span class="text-textbox-alert text-sm">El título es obligatorio</span>
+            }
+          </div>
+
+          <div class="flex flex-col gap-2" formArrayName="objectives">
+            <span class="font-display font-semibold text-primary text-size-section">Objetivos propuestos <span class="text-[#ED7D31]">*</span></span>
+            @for (objective of objectives.controls; track $index) {
+              <div class="flex items-start gap-2">
+                <label [for]="'objective-' + $index" class="sr-only">{{ $index === 0 ? 'Objetivo general' : 'Objetivo específico ' + $index }}</label>
+                <textarea [id]="'objective-' + $index" [formControlName]="$index" rows="2"
+                          class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-sm resize-none"
+                          [class.border-orange-500]="isObjectiveInvalid($index)"
+                          [placeholder]="$index === 0 ? 'Objetivo general' : 'Objetivo específico ' + $index"></textarea>
+                @if ($index > 0) {
+                  <button type="button" (click)="removeObjective($index)" class="text-[#777680] hover:text-[#DB141C] transition-colors mt-2" aria-label="Quitar objetivo">
+                    <span class="material-symbols-outlined">delete</span>
+                  </button>
+                }
+              </div>
+            }
+            <div>
+              <app-button-component label="Agregar objetivo específico" variant="secondary" type="button" (onClick)="addObjective()"></app-button-component>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label for="justification" class="font-display font-semibold text-primary text-size-section">Justificación <span class="text-[#ED7D31]">*</span></label>
+            <textarea id="justification" formControlName="justification" rows="4"
+                      class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-sm resize-none"
+                      [class.border-orange-500]="isFieldInvalid('justification')"
+                      placeholder="Explique el motivo del cambio de título y objetivos"></textarea>
+            @if (isFieldInvalid('justification')) {
+              <span class="text-textbox-alert text-sm">La justificación es obligatoria</span>
+            }
+          </div>
         }
-      </div>
+        @case (types.PRORROGA) {
+          @if (thesisWork.deadlines?.extensionRequestDeadline) {
+            <p class="text-size-role-footer text-[#777680]">
+              Se puede solicitar una sola vez, hasta el {{ thesisWork.deadlines?.extensionRequestDeadline | date:'dd/MM/yyyy' }}.
+            </p>
+          }
+          <div class="flex flex-col gap-1 max-w-xs">
+            <label for="months" class="font-display font-semibold text-primary text-size-section">Meses de prórroga <span class="text-[#ED7D31]">*</span></label>
+            <select id="months" formControlName="months"
+                    class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-sm text-[#777680]">
+              @for (month of monthOptions; track month) {
+                <option [ngValue]="month">{{ month }} {{ month === 1 ? 'mes' : 'meses' }}</option>
+              }
+            </select>
+          </div>
+        }
+      }
+
+      @if (requiresDocument) {
+        <div class="flex flex-col gap-2">
+          <span class="font-display font-semibold text-primary text-size-section">Documento de la solicitud <span class="text-[#ED7D31]">*</span></span>
+          @if (document(); as item) {
+            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+              <div class="flex items-center gap-3 overflow-hidden">
+                <span class="material-symbols-outlined text-primary text-file shrink-0">description</span>
+                <span class="text-size-body font-bold text-primary truncate">{{ item.fileName }}</span>
+              </div>
+              <button type="button" (click)="document.set(null)" class="text-[#777680] hover:text-[#DB141C] transition-colors shrink-0" aria-label="Quitar documento">
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
+          } @else {
+            <div class="information-block flex items-center justify-between gap-3 p-4 bg-white border rounded-xl shadow-sm"
+                 [class.border-orange-500]="isSubmitAttempted()" [class.border-gray-200]="!isSubmitAttempted()">
+              <span class="text-size-body text-[#777680] font-sans">{{ documentHint }}</span>
+              <app-button-component label="Cargar documento" variant="secondary" type="button" (onClick)="isUploadModalOpen.set(true)"></app-button-component>
+            </div>
+          }
+        </div>
+      }
 
       <div class="flex justify-end mt-4">
-        <app-button-component label="Guardar" variant="primary" type="submit" [disabled]="isSubmitting"></app-button-component>
+        <app-button-component label="Guardar" variant="primary" type="submit" [disabled]="isSubmitting || requestOptions.length === 0"></app-button-component>
       </div>
     </form>
   </section>
 </div>
+
+<app-file-upload-modal
+  [isOpen]="isUploadModalOpen()"
+  [description]="documentHint"
+  (onFileUploaded)="handleFileUploaded($event)"
+  (onClose)="isUploadModalOpen.set(false)">
+</app-file-upload-modal>

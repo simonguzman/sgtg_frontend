@@ -191,37 +191,27 @@ describe('ThesisWorkPageMapperService', () => {
       expect(result.allowedActions).toEqual(['ver descripción', 'ver']);
     });
 
-    it('debe OCULTAR "ver" pero mantener "editar" y agregar "reactivar" para el Administrador si está suspendido', () => {
-      baseWork.state = stateList.SUSPENDIDO;
-
-      const result = service.mapThesisWorkToTable(baseWork, true, true, false, 'admin-id');
-
-      expect(result.allowedActions).toContain('ver descripción');
-      expect(result.allowedActions).toContain('editar');
-      expect(result.allowedActions).toContain('reactivar');
-      expect(result.allowedActions).not.toContain('ver');
-    });
-
-    it('debe OCULTAR "ver" y agregar "reactivar" para el Consejo (no es owner ni admin) si está suspendido', () => {
-      baseWork.state = stateList.SUSPENDIDO;
-
-      const result = service.mapThesisWorkToTable(baseWork, true, false, true, 'consejo-id');
-
-      expect(result.allowedActions).toContain('ver descripción');
-      expect(result.allowedActions).toContain('reactivar');
-      expect(result.allowedActions).not.toContain('ver');
-      expect(result.allowedActions).not.toContain('editar');
-    });
-
-    it('debe OCULTAR "ver" al propio director y NO agregar "reactivar" si está suspendido', () => {
+    it('un trabajo suspendido se puede consultar y el director puede reanudarlo ("reactivar")', () => {
       baseWork.state = stateList.SUSPENDIDO;
 
       const result = service.mapThesisWorkToTable(baseWork, false, false, false, 'director-id');
 
-      expect(result.allowedActions).toContain('ver descripción');
-      expect(result.allowedActions).toContain('editar');
-      expect(result.allowedActions).not.toContain('ver');
-      expect(result.allowedActions).not.toContain('reactivar');
+      expect(result.allowedActions).toEqual(['ver descripción', 'ver', 'editar', 'reactivar']);
+    });
+
+    it('el Consejo y el Administrador consultan el trabajo suspendido, pero no lo reanudan', () => {
+      baseWork.state = stateList.SUSPENDIDO;
+
+      expect(service.mapThesisWorkToTable(baseWork, true, false, true, 'consejo-id').allowedActions)
+        .toEqual(['ver descripción', 'ver']);
+      expect(service.mapThesisWorkToTable(baseWork, true, true, false, 'admin-id').allowedActions)
+        .toEqual(['ver descripción', 'ver', 'editar']);
+    });
+
+    it('el estudiante consulta el trabajo suspendido pero no lo reanuda', () => {
+      baseWork.state = stateList.SUSPENDIDO;
+      expect(service.mapThesisWorkToTable(baseWork, false, false, false, 'student-id').allowedActions)
+        .toEqual(['ver descripción', 'ver']);
     });
   });
 });

@@ -2,29 +2,37 @@ import { TableButton } from '../../../../../shared/components/table-component/ta
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { ThesisEvaluationContext, TabConfiguration } from './tab-config.interface';
 import { SpecialRequest } from '../../../interfaces/special-request.interface';
-import { JurorVerdict } from '../../../interfaces/juror-verdict.interface';
+import { SpecialRequestType } from '../../../enums/special-request-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
+import { availableRequestTypes } from '../../../helpers/special-request-availability.helper';
 
 interface SpecialRequestTableRow {
   id: string;
+  type: string;
   description: string;
   date: string;
   status: stateList;
   allowedActions: string[];
 }
 
+/**
+ * Solicitudes del director (cambio de título y objetivos, prórroga,
+ * suspensión, reanudación, cancelación). El Consejo decide las pendientes con
+ * una resolución; la reanudación solo se registra.
+ */
 export const SpecialRequestTabConfig: TabConfiguration<SpecialRequestTableRow> = {
   tabValue: 'SOLICITUDES',
   headerActionRoute: 'register_special_request',
   columns: [
-    { field: 'description', header: 'Descripción de la Solicitud', type: 'text', width: '35%' },
-    { field: 'date', header: 'Fecha de Registro', type: 'text', width: '20%' },
-    { field: 'status', header: 'Estado', type: 'state', width: '20%' },
+    { field: 'type', header: 'Solicitud', type: 'text', width: '20%' },
+    { field: 'description', header: 'Descripción', type: 'text', width: '30%' },
+    { field: 'date', header: 'Fecha de registro', type: 'text', width: '15%' },
+    { field: 'status', header: 'Estado', type: 'state', width: '15%' },
     {
-      field: 'acciones', header: 'Acciones', type: 'actions', width: '25%',
+      field: 'acciones', header: 'Acciones', type: 'actions', width: '20%',
       actions: [
         { action: 'view-details', label: 'Ver detalles', icon: 'visibility', variant: 'primary', disabled: false },
-        { action: 'evaluate_special_request', label: 'Evaluar Solicitud', icon: 'gavel', variant: 'primary', disabled: false }
+        { action: 'evaluate_special_request', label: 'Evaluar solicitud', icon: 'gavel', variant: 'primary', disabled: false }
       ]
     }
   ],
@@ -32,34 +40,27 @@ export const SpecialRequestTabConfig: TabConfiguration<SpecialRequestTableRow> =
   enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
-
-    const verdictsList: JurorVerdict[] = thesis.sustentations?.[0]?.verdicts || [];
-    const isSustentationEvaluated = verdictsList.length > 0;
-    const lastVerdict = verdictsList.at(-1)?.veredict ?? null;
-    const isSustentationFinalized = isSustentationEvaluated && lastVerdict !== stateList.APLAZADO;
-
-    return { ...baseContext, isSustentationFinalized };
+    return { ...baseContext, availableRequestTypes: availableRequestTypes(thesis) };
   },
 
-  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): SpecialRequestTableRow[] => {
+  getTableData: (_documents: FileDocument[], context: ThesisEvaluationContext): SpecialRequestTableRow[] => {
     const thesis = context.thesisWork;
     if (!thesis?.specialRequests) return [];
 
-    const isConsejo = context.isConsejo;
     const isArchived = context.isArchived ?? false;
 
     return thesis.specialRequests.map((request: SpecialRequest): SpecialRequestTableRow => {
-      const dateStr = request.requestDate ? new Date(request.requestDate).toLocaleDateString('es-ES') : 'Sin fecha';
       const allowedActions: string[] = ['view-details'];
-
-      if (!isArchived && isConsejo && request.status === stateList.EN_REVISION) {
+      if (!isArchived && context.isConsejo && request.status === stateList.EN_REVISION
+        && request.requestType !== SpecialRequestType.REANUDACION) {
         allowedActions.push('evaluate_special_request');
       }
 
       return {
         id: request.id,
+        type: request.requestType,
         description: request.description,
-        date: dateStr,
+        date: request.requestDate ? new Date(request.requestDate).toLocaleDateString('es-ES') : 'Sin fecha',
         status: request.status,
         allowedActions
       };
@@ -67,20 +68,14 @@ export const SpecialRequestTabConfig: TabConfiguration<SpecialRequestTableRow> =
   },
 
   getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
-    const buttons: TableButton[] = [];
-    if (context.isArchived) return buttons;
-
-    const isSustentationFinalized = context.isSustentationFinalized ?? false;
-
-    if (context.isDirector || context.isAdmin) {
-      buttons.push({
-        action: 'register_special_request',
-        label: isSustentationFinalized ? 'Sustentación Finalizada' : 'Registrar Solicitud Especial',
-        variant: 'primary',
-        disabled: isSustentationFinalized
-      });
-    }
-    return buttons;
+    if (context.isArchived || !context.isDirector) return [];
+    const available = (context['availableRequestTypes'] as SpecialRequestType[] | undefined) ?? [];
+    return [{
+      action: 'register_special_request',
+      label: available.length > 0 ? 'Registrar solicitud' : 'Sin solicitudes disponibles',
+      variant: 'primary',
+      disabled: available.length === 0
+    }];
   },
 
   modalConfig: {

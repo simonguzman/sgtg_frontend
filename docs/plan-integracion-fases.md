@@ -116,16 +116,34 @@ Plan original:
 - `?etapa=APROBACION_CONSEJO` y `POST /anteproyecto/decisiones-consejo` (resolución obligatoria).
 - Al aprobar, el trabajo pasa a `EN_CURSO`: el front lo muestra como “trabajo de grado”.
 
-### Fase 4 — Trabajo en curso
-- Detalle con `ejecucion` (fechas de notificación, fin, mínima de sustentación, límites).
-- Cambio de título u objetivos (director) y su decisión (Consejo).
-- Informes mensuales (solo PP, director) — ver inquietud C sobre los “avances”.
-
-### Fase 5 — Solicitudes al Consejo
-- “Solicitud especial” del front → endpoint por tipo: prórroga (meses 1–3), suspensión (+ reanudación),
-  cancelación, cambio de título/objetivos. Evaluación del Consejo → `/decisiones-consejo` de cada uno.
+### Fases 4 y 5 — Trabajo en curso y solicitudes al Consejo ✅ (2026-10-12)
+Se integraron juntas (decisión §6.4). Hecho:
+- **Trabajo de grado = vista del backend**: `ThesisWorkStorageService` ya no usa IndexedDB; es la vista
+  `trabajosDeGrado` (un trabajo existe desde que el Consejo aprueba el anteproyecto). Se eliminaron
+  `ThesisWorkApiService` (con `verifyDeliveryDeadlinesMock` y la reactivación simulada) y
+  `ThesisWorkEvaluationService`.
+- **Detalle**: muestra las fechas que calcula el backend (inicio, fecha máxima de entrega, sustentación
+  desde, límite del cambio de objetivos y de la prórroga). El navegador ya no calcula vencimientos (§6.6).
+- **Informes mensuales** (antes "avances", §6.1–6.2): pestaña "Informes mensuales". Los radica el
+  estudiante en ambas modalidades (en práctica profesional también el director) con un PDF (formato D) y
+  observaciones opcionales; los revisan el director, el codirector o el asesor —una vez cada uno— con
+  observaciones y/o un PDF de notas (`POST /informes-mensuales/{numero}/revisiones`). La revisión es una
+  formalidad: no cambia la etapa. Solo en `EN_CURSO` o `PRORROGA`.
+- **Solicitudes** (§6.3–6.4): formulario según el tipo, con las opciones que permite la etapa:
+  cambio de título y objetivos (título y objetivos editables + justificación, una vez, dentro de los
+  6 meses), prórroga (1–3 meses + PDF), suspensión (PDF), **reanudación** (PDF; reemplaza a "reactivar",
+  también desde la lista de trabajos) y cancelación (PDF). "Nueva fecha de sustentación" queda oculta
+  hasta la Fase 6.
+- **Decisión del Consejo** (§6.5): sin selector de fecha; aprueba o no aprueba con la **resolución en PDF
+  obligatoria** y observaciones opcionales. Las fechas resultantes las calcula el backend.
+- Un trabajo **suspendido se puede consultar** (antes se bloqueaba); sus acciones siguen bloqueadas salvo
+  el registro de la reanudación.
 
 ### Fase 6 — Sustentación
+Mientras tanto (§6.7): las pestañas entrega final, paz y salvo, sustentación y correspondencia, y la
+página de documentos corregidos, muestran lo que trae el backend en **solo lectura**, con las acciones
+deshabilitadas y un aviso de que se habilitan en esta fase.
+
 - Entrega final (director) = `POST /sustentacion` con formato E, paz y salvo (F) y concepto del asesor (PP).
 - Programar (Consejo): jurados, fecha y hora, salón. Calificar (jurado) con acta G; inasistencia.
 - Documentos corregidos = ajustes (director) y verificación (jurado). Correspondencia final = versión definitiva H (jurado).
@@ -144,7 +162,7 @@ Plan original:
 |---|---|---|
 | A | El front maneja propuesta, anteproyecto y trabajo como **tres entidades** con ids propios; el backend tiene **un solo trabajo** que cambia de etapa. | Usar el **id del trabajo** en las tres vistas (`/proposal/details/15`, `/preliminary-draft/details/15`, `/thesis-work/details/15`) y construir cada vista desde la misma respuesta. Fase 0. |
 | B | **Roles de contexto**: el front da acceso a pantallas por roles (EVALUADOR, JURADO, DIRECTOR, CODIRECTOR) que hoy “gana” al participar (simulado). El backend no asigna roles: autoriza por participación. Un docente asignado como evaluador sin rol EVALUADOR no vería “Evaluar anteproyecto”. | Que el **backend agregue el rol** al asignar (director/codirector al crear, evaluador al asignar, jurado al programar) y el front refresque la sesión. Alternativa: guards del front por participación. Antes de la Fase 1. |
-| C | **Avances**: el front los carga el estudiante y los evalúan director/codirector/asesor; el backend solo tiene **informes mensuales de PP** que radica el director, sin evaluación. | Decidir: mapear avances a informes mensuales (y quitar la evaluación) o ampliar el backend. Fase 4. |
+| C | **Avances**: el front los carga el estudiante y los evalúan director/codirector/asesor; el backend solo tiene **informes mensuales de PP** que radica el director, sin evaluación. | ✅ Resuelta (§5.5 y §6.1–6.2): informes mensuales en ambas modalidades con revisiones. |
 | D | **Paz y salvo**: en el front lo registra DECANATURA con aprobación académica/financiera; en el backend es un archivo (formato F) que adjunta el director al solicitar la sustentación. DECANATURA no tiene permisos en el backend. | Ajustar el front al flujo del backend, o agregar el registro por Decanatura al backend. Fase 6. |
 | E | Funciones del front **sin equivalente** en el backend: eliminar propuesta, editar propuesta en cualquier momento, solicitud especial “nueva fecha de sustentación”, evaluación “Aprobado con observaciones” en la propuesta. | Ocultarlas o adaptarlas al reglamento implementado (p. ej. la segunda sesión la programa el Consejo tras un aplazamiento). Se revisa en cada fase. |
 | F | Un **Jefe de departamento** sin rol DIRECTOR/CODIRECTOR no tiene perfil docente (decisión de usuarios) y el backend exige su departamento para asignar evaluadores. | Darle perfil docente (departamento) al Jefe en el formulario de usuarios. Antes de la Fase 2. |
@@ -152,7 +170,7 @@ Plan original:
 | H | **Estadísticas** necesitan todos los trabajos; el backend solo lista por participante o por etapa. | Agregar un endpoint de consulta general (o de estadísticas) para Comité/Consejo/Administrador. Fase 7. |
 | I | **Datos de la propuesta**: el backend exige `objetivos` y no guarda `description` ni `lineOfResearch`. | Agregar objetivos al formulario; decidir si el backend guarda descripción y línea de investigación. Fase 1. |
 | J | **Descarga**: los archivos ya no son base64; el front debe pedirlos con el token. | Resolver en la Fase 0 con `FileDownloadService`. |
-| K | **Vencimientos**: el front los calcula en el navegador (`verifyDeliveryDeadlinesMock`); el backend tiene la tarea programada diaria. | Quitar el cálculo local y confiar en el backend. Fase 7/8. |
+| K | **Vencimientos**: el front los calcula en el navegador (`verifyDeliveryDeadlinesMock`); el backend tiene la tarea programada diaria. | ✅ Resuelta (§6.6): se quitó el cálculo local; el front muestra las fechas del backend. Queda el `deadline-monitor` de notificaciones (Fase 7). |
 
 ## 4. Decisiones tomadas (2026-10-09)
 
@@ -169,4 +187,14 @@ Plan original:
 4. **Eliminar o anular propuestas y anteproyectos** (inquietud E): **pendiente**, se definirá más adelante.
 5. **Avances** (inquietud C): se mapean a los **informes mensuales** de la práctica profesional (opción A); se implementa en la Fase 4.
 
-Pendientes de decidir en su fase: D (paz y salvo), E (funciones sin equivalente, incluida la anulación), G (notificaciones), H (estadísticas), K (vencimientos).
+## 6. Decisiones del 2026-10-12 (fases 4 y 5)
+
+1. **Revisión de informes (opción C)**: el director, el codirector o el asesor registran observaciones y/o un PDF de notas; es una formalidad que **no cambia el estado ni el flujo** del trabajo.
+2. **Informes en investigación**: también aplican; los carga el estudiante y los revisan el director o el codirector con sus notas u observaciones (PDF). En práctica profesional el director también puede radicarlos.
+3. **Cambio de título y objetivos**: el formulario muestra el título y los objetivos editables; los comentarios son la justificación; solo una vez y dentro de los 6 meses; el Consejo exige la resolución en PDF.
+4. **Fases 4 y 5 juntas**: formulario de solicitudes según el tipo; "reactivar" = reanudación; "nueva fecha de sustentación" oculta hasta la Fase 6.
+5. **Decisión del Consejo**: sin selector de fecha; aprueba o no aprueba con resolución PDF obligatoria y observaciones opcionales.
+6. **Vencimientos**: se quita `verifyDeliveryDeadlinesMock`; el detalle muestra las fechas del backend.
+7. **Pestañas de la fase 6**: muestran los datos del backend con las acciones deshabilitadas y un aviso.
+
+Pendientes de decidir en su fase: D (paz y salvo), E (funciones sin equivalente, incluida la anulación), G (notificaciones), H (estadísticas).

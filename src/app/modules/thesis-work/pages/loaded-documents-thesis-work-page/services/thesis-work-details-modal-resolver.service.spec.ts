@@ -169,6 +169,22 @@ describe('ThesisWorkDetailsModalResolverService', () => {
       expect(result?.title).toBe('Avance Especial');
     });
 
+    it('resume quién radicó el informe, sus observaciones y sus revisiones', () => {
+      (formatThesisDate as jest.Mock).mockReturnValue('25 - 04 - 2026');
+      const advance = createMockAdvance({ id: '1', comments: 'Primer mes', uploadedBy: 'Eva Estudiante' });
+      const thesis = createMockThesisWork({
+        advances: [advance],
+        evaluations: [{ id: 'r', proposalId: 'p', advanceId: '1', evaluatorId: '1', evaluatorName: 'Dora Directora',
+          evaluatorRole: 'Director', veredict: stateList.EVALUADO, observations: '', date: new Date(2026, 3, 25) }]
+      });
+
+      const result = service.resolve('1', 'AVANCES', thesis);
+
+      expect(result?.comments).toContain('Radicado por: Eva Estudiante');
+      expect(result?.comments).toContain('Observaciones: Primer mes');
+      expect(result?.comments).toContain('Revisión de Dora Directora (25 - 04 - 2026): ver notas adjuntas');
+    });
+
     it('debe retornar null si no encuentra el avance o el array no existe/está vacío', () => {
       const emptyThesis = createMockThesisWork({ advances: [] });
       const undefinedThesis = createMockThesisWork();
@@ -303,8 +319,28 @@ describe('ThesisWorkDetailsModalResolverService', () => {
       expect(result?.title).toBe(SpecialRequestType.PRORROGA);
       expect(result?.studentId).toBe('dir-1');
       expect(result?.comments).toContain('Motivos de salud');
-      expect(result?.comments).toContain('Resolución del comité: Aprobado por comité');
-      expect(result?.comments).toContain('Fecha concedida: 27 - 07 - 2026');
+      expect(result?.comments).toContain('Observaciones del Consejo: Aprobado por comité');
+      expect(result?.comments).toContain('Reanudación a más tardar: 27 - 07 - 2026');
+    });
+
+    it('el cambio de título muestra lo propuesto, la decisión del Consejo y los documentos con la resolución', () => {
+      (formatThesisDate as jest.Mock).mockReturnValue('10 - 05 - 2026');
+      const solicitud = { id: 'a', name: 'solicitud', url: '/s', uploadDate: '2026-05-01', type: DocumentType.FORMATO };
+      const resolucion = { id: 'b', name: 'resolucion', url: '/r', uploadDate: '2026-05-10', type: DocumentType.RESOLUCION };
+      const request = createMockSpecialRequest({
+        id: 'cambio-objetivos-0', requestType: SpecialRequestType.CAMBIO_TITULO, description: 'Cambio de alcance',
+        proposedTitle: 'Nuevo título', proposedObjectives: ['General', 'Específico'], status: stateList.APROBADO,
+        resolutionDate: new Date(2026, 4, 10), documents: [solicitud], resolution: resolucion
+      });
+
+      const result = service.resolve('cambio-objetivos-0', 'SOLICITUDES', createMockThesisWork({ specialRequests: [request] }));
+
+      expect(result?.comments).toContain('Título propuesto: Nuevo título');
+      expect(result?.comments).toContain('Objetivo general: General');
+      expect(result?.comments).toContain('Objetivo específico 1: Específico');
+      expect(result?.comments).toContain('Justificación: Cambio de alcance');
+      expect(result?.comments).toContain('Decisión del Consejo (10 - 05 - 2026): Aprobado');
+      expect(result?.documents).toEqual([solicitud, resolucion]);
     });
 
     it('debe resolver SOLICITUDES solo con la descripción básica (sin resolución ni fecha)', () => {
@@ -318,8 +354,8 @@ describe('ThesisWorkDetailsModalResolverService', () => {
       const result = service.resolve('req-2', 'SOLICITUDES', thesis);
 
       expect(result?.comments).toBe('Solo descripción sin respuesta aún');
-      expect(result?.comments).not.toContain('Resolución del comité');
-      expect(result?.comments).not.toContain('Fecha concedida');
+      expect(result?.comments).not.toContain('Observaciones del Consejo');
+      expect(result?.comments).not.toContain('Reanudación a más tardar');
     });
 
     it('debe retornar null si no encuentra la solicitud especial', () => {

@@ -1,32 +1,11 @@
-export enum AdvanceEvaluationResult {
-  EVALUADO = 'Evaluado',
-  EN_REVISION = 'En revisión'
-}
-
-export interface AdvanceBaseData {
-  title: string;
-  comments: string;
-}
-
-export interface UploadAdvanceFormValues extends AdvanceBaseData {}
-
+/** Datos para radicar un informe mensual: el PDF (formato D) y observaciones opcionales. */
 export interface UploadAdvancePayload {
-  formValues: UploadAdvanceFormValues;
-  files: File[];
-}
-
-export interface CreateAdvanceRequest extends AdvanceBaseData {
-  studentId: string;
-  advanceId: string;
-}
-export interface EvaluateAdvanceFormValues {
-  result: AdvanceEvaluationResult;
   comments: string;
+  file: File;
 }
 
+/** Revisión de un informe mensual: observaciones y/o PDF de notas (al menos uno). */
 export interface SubmitAdvanceEvaluationPayload {
-  formValues: EvaluateAdvanceFormValues;
-  files?: File[];
+  comments: string;
+  notes: File | null;
 }
-
-

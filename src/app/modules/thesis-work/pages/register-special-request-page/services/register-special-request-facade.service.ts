@@ -5,11 +5,8 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { SpecialRequestType } from '../../../enums/special-request-type.enum';
-
-export interface SpecialRequestPayload {
-  requestType: SpecialRequestType;
-  comments: string;
-}
+import { SpecialRequestSubmission } from '../../../services/thesis-work-special-request.service';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
 @Injectable({ providedIn: 'root' })
 export class RegisterSpecialRequestFacadeService {
@@ -41,22 +38,29 @@ export class RegisterSpecialRequestFacadeService {
       });
   }
 
+  /** Registra la solicitud en el backend. */
   public processSaveRequest(
     thesisId: string,
-    data: SpecialRequestPayload,
+    data: SpecialRequestSubmission,
     onSuccess: () => void,
     onError: () => void
   ): void {
-    this.thesisWorkService.createSpecialRequestMock({ ...data, thesisId })
+    this.thesisWorkService.createSpecialRequest(thesisId, data)
       .pipe(first())
       .subscribe({
         next: () => {
-          this.showNotification('Éxito', 'La solicitud especial ha sido registrada correctamente.', NotificationType.CONFIRMATION);
+          const message = data.requestType === SpecialRequestType.REANUDACION
+            ? 'El trabajo de grado se reanudó correctamente.'
+            : 'La solicitud quedó registrada y se notificó al Consejo de Facultad.';
+          this.showNotification('Solicitud registrada', message, NotificationType.CONFIRMATION);
           onSuccess();
         },
-        error: (err: unknown) => {
-          console.error(err);
-          this.showNotification('Error al guardar', 'Hubo un problema registrando la solicitud. Intente nuevamente.', NotificationType.ERROR);
+        error: (error: unknown) => {
+          this.showNotification(
+            'No se pudo registrar la solicitud',
+            apiErrorMessage(error, 'Hubo un problema registrando la solicitud. Intente nuevamente.'),
+            NotificationType.ERROR
+          );
           onError();
         }
       });

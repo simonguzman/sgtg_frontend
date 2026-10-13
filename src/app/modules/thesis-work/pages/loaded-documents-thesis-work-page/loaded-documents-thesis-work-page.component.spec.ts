@@ -18,8 +18,6 @@ import { stateList } from '../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
 import { UserState } from '../../../users/enum/user-state.enum';
 import { Modality } from '../../../proposal/enums/modality.enum';
-import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
-import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
 import { TableComponent, TableButton } from '../../../../shared/components/table-component/table-component.component';
 import { TabsComponent } from '../../../../shared/components/tabs/tabs.component';
@@ -40,23 +38,6 @@ class MockTabsComponent {
   @Input() tabs: unknown[] = [];
   @Input() activeTab = '';
   @Output() tabChange = new EventEmitter<string>();
-}
-
-@Component({ selector: 'app-file-upload-modal', template: '', standalone: true })
-class MockFileUploadModalComponent {
-  @Input() isOpen = false;
-  @Input() description = '';
-  @Input() uploadedBy = '';
-  @Output() onFileUploaded = new EventEmitter<{ fileName: string; file: File }>();
-  @Output() onClose = new EventEmitter<void>();
-}
-
-@Component({ selector: 'app-confirmation-action-modal', template: '', standalone: true })
-class MockConfirmationActionModalComponent {
-  @Input() isOpen = false;
-  @Input() description = '';
-  @Output() confirm = new EventEmitter<void>();
-  @Output() onClose = new EventEmitter<void>();
 }
 
 @Component({ selector: 'app-register-information-modal', template: '', standalone: true })
@@ -85,7 +66,6 @@ type DeepPartialActivatedRoute = {
 };
 
 interface MockLoadedDocumentsFacade {
-  uploadDocument: jest.Mock;
   downloadDocument: jest.Mock;
   downloadDocumentByName: jest.Mock;
   showRestrictedActionNotification: jest.Mock;
@@ -187,7 +167,6 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
     routerSpy = { navigate: jest.fn() };
 
     facadeSpy = {
-      uploadDocument: jest.fn((id, file, type, onSuccess, _onError) => onSuccess()),
       downloadDocument: jest.fn().mockResolvedValue(undefined),
       downloadDocumentByName: jest.fn().mockResolvedValue(undefined),
       showRestrictedActionNotification: jest.fn(),
@@ -247,8 +226,6 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
     .overrideComponent(LoadedDocumentsThesisWorkPageComponent, {
       remove: {
         imports: [
-          FileUploadModalComponent,
-          ConfirmationActionModalComponent,
           TableComponent,
           TabsComponent,
           RegisterInformationModalComponent
@@ -256,8 +233,6 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
       },
       add: {
         imports: [
-          MockFileUploadModalComponent,
-          MockConfirmationActionModalComponent,
           MockTableComponent,
           MockTabsComponent,
           MockRegisterInformationModalComponent
@@ -348,26 +323,6 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
   });
 
   describe('Acciones de Header (handleHeaderButton)', () => {
-    it('debe abrir el modal de subida si la estrategia actual no tiene un headerActionRoute configurado', (done) => {
-      component['tabStrategies']['AVANCES'] = {
-        ...originalAdvancesStrategy,
-        headerActionRoute: undefined
-      } as TabConfiguration<unknown>;
-
-      component.activeTab.set('OTRA_PESTAÑA');
-      fixture.detectChanges();
-      component.activeTab.set('AVANCES');
-      fixture.detectChanges();
-
-      setTimeout(() => {
-        const button: TableButton = { label: 'Subir', action: 'upload', variant: 'primary' };
-        component.handleHeaderButton(button);
-
-        expect(component.isUploadModalOpen()).toBe(true);
-        expect(routerSpy.navigate).not.toHaveBeenCalled();
-        done();
-      }, 10);
-    });
 
     it('debe navegar si la estrategia actual tiene un headerActionRoute configurado', (done) => {
       component['tabStrategies']['AVANCES'] = {
@@ -461,53 +416,39 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
     });
   });
 
-  describe('Manejo de archivos (Uploads)', () => {
-    it('confirmUpload debe delegar al facade usando el tipo de documento configurado y luego cerrar el modal de confirmación', () => {
-      const fileData = { fileName: 'doc.pdf', file: new File([], 'doc.pdf') };
-      component.uploadContext.set(fileData);
+  describe('Pestañas de la fase 6 (solo lectura)', () => {
+    it('deshabilitan los botones de registro y muestran el aviso', () => {
+      authSpy.hasAnyRole = jest.fn().mockReturnValue(true);
+      thesisWorksSignal.set([createMockThesisWork({ thesisWorkId: 'id-from-child' })]);
+      component.activeTab.set('ENTREGA FINAL');
+      fixture.detectChanges();
 
-      component['tabStrategies']['AVANCES'] = {
-        ...originalAdvancesStrategy,
-        modalConfig: {
-          ...originalAdvancesStrategy.modalConfig,
-          uploadDocumentType: DocumentType.AVANCE
-        }
+      expect(component.isPhase6Tab()).toBe(true);
+      expect(component.currentHeaderButtons().every(button => button.disabled)).toBe(true);
+      expect(fixture.nativeElement.textContent).toContain('Sección en solo lectura');
+    });
+
+    it('solo dejan las acciones de consulta en las filas', () => {
+      component['tabStrategies']['SUSTENTACION'] = {
+        ...component['tabStrategies']['SUSTENTACION'],
+        getTableData: () => [{ id: 's1', allowedActions: ['view_sustentation_details', 'evaluate_sustentation'] }]
       } as TabConfiguration<unknown>;
+      component.activeTab.set('SUSTENTACION');
 
-      component.confirmUpload();
-
-      expect(facadeSpy.uploadDocument).toHaveBeenCalledWith(
-        'id-from-child',
-        fileData,
-        DocumentType.AVANCE,
-        expect.any(Function),
-        expect.any(Function)
-      );
+      expect(component.currentTableData()).toEqual([{ id: 's1', allowedActions: ['view_sustentation_details'] }]);
     });
 
-    it('confirmUpload debe retornar tempranamente si falta el fileData, el thesisId o el docType', () => {
-      component.uploadContext.set(null);
-      component.confirmUpload();
-
-      expect(facadeSpy.uploadDocument).not.toHaveBeenCalled();
+    it('el botón de encabezado no navega', () => {
+      component.activeTab.set('CORRESPONDENCIA');
+      component.handleHeaderButton({ label: 'Registrar', action: 'register_correspondence', variant: 'primary' });
+      expect(routerSpy.navigate).not.toHaveBeenCalled();
     });
 
-    it('onFileSelected debe establecer el contexto, cerrar el modal de carga y abrir el modal de confirmación', () => {
-      component.onFileSelected({ fileName: 'test.pdf', file: new File([], 'test.pdf') });
-
-      expect(component.uploadContext()?.fileName).toBe('test.pdf');
-      expect(component.isUploadModalOpen()).toBe(false);
-      expect(component.isConfirmModalOpen()).toBe(true);
-    });
-
-    it('cancelUpload debe cerrar el modal de confirmación y limpiar el contexto', () => {
-      component.uploadContext.set({ fileName: 'doc.pdf', file: new File([], 'doc.pdf') });
-      component.isConfirmModalOpen.set(true);
-
-      component.cancelUpload();
-
-      expect(component.isConfirmModalOpen()).toBe(false);
-      expect(component.uploadContext()).toBeNull();
+    it('informes mensuales y solicitudes no son de la fase 6', () => {
+      component.activeTab.set('AVANCES');
+      expect(component.isPhase6Tab()).toBe(false);
+      component.activeTab.set('SOLICITUDES');
+      expect(component.isPhase6Tab()).toBe(false);
     });
   });
 

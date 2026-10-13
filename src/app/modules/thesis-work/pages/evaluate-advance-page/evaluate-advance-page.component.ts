@@ -7,7 +7,7 @@ import { SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playloa
 import { EvaluateAdvanceFacadeService } from './services/evaluate-advance-facade.service';
 import { EvaluateAdvanceFormComponent } from '../../components/evaluate-advance-form/evaluate-advance-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
-import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
 
 @Component({
   selector: 'app-evaluate-advance-page',
@@ -31,6 +31,14 @@ export class EvaluateAdvancePageComponent implements OnInit {
     if (!thesisWork || !advId || !thesisWork.advances) return null;
     return thesisWork.advances.find(advance => advance.id === advId) ?? null;
   });
+  /** true si el usuario en sesión ya revisó el informe (una revisión por revisor). */
+  readonly alreadyEvaluated = computed<boolean>(() => {
+    const userId = this.authService.currentUser()?.id;
+    const advId = this.advanceId();
+    return (this.thesisWorkState()?.evaluations ?? [])
+      .some(evaluation => evaluation.advanceId === advId && evaluation.evaluatorId === userId);
+  });
+  readonly isSaving = signal(false);
 
   ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
@@ -63,19 +71,23 @@ export class EvaluateAdvancePageComponent implements OnInit {
     const data = this.pendingReviewData();
     const thesisWork = this.thesisWorkState();
     const advance = this.currentAdvance();
-    const user = this.authService.currentUser();
-    if (!data || !thesisWork || !advance || !user) return;
-    void this.facade.saveEvaluation(
-      thesisWork, advance, user, data,
+    if (!data || !thesisWork || !advance) return;
+    this.isSaving.set(true);
+    this.facade.saveEvaluation(
+      thesisWork, advance, data,
       () => {
+        this.isSaving.set(false);
         this.isConfirmModalOpen.set(false);
         this.navigateBack();
       },
-      () => { }
+      () => {
+        this.isSaving.set(false);
+        this.isConfirmModalOpen.set(false);
+      }
     );
   }
 
-  downloadCurrentAdvance(document: FileDocument): void {
+  downloadCurrentAdvance(document: FormattedDocument): void {
     void this.facade.downloadAdvance(document);
   }
 

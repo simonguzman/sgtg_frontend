@@ -1,33 +1,27 @@
-import { computed, effect, inject, Injectable, signal } from '@angular/core';
-import { delay, Observable, of } from 'rxjs';
+import { computed, inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 import { AuthService } from '../../../core/services/auth/auth.service';
-import { PreliminaryDraftService } from '../../preliminary-draft/services/preliminary-draft.service';
-import { stateList } from '../../../core/enums/state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
+import { TrabajoGradoVistasService } from '../../../core/services/trabajo-grado/trabajo-grado-vistas.service';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { User } from '../../users/interfaces/user.interface';
-import { PreliminaryDraftStorageService } from '../../preliminary-draft/services/preliminary-draft-storage.service';
-import { ProposalStorageService } from '../../proposal/services/proposal-storage.service';
-import { IndexedDbListStoreService } from '../../../core/services/persistence/indexed-db-list-store.service';
 
-const STORE_KEY = 'thesisWorks';
-const LEGACY_LOCALSTORAGE_KEY = 'thesisWorks';
-
+/**
+ * Trabajos de grado del usuario en sesión. Ya no se guardan en el navegador:
+ * son la vista "trabajo de grado" de los trabajos del backend
+ * (`TrabajoGradoVistasService`), con el id del trabajo. Un trabajo existe
+ * desde que el Consejo aprueba su anteproyecto.
+ */
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkStorageService {
   private readonly authService = inject(AuthService);
-  private readonly preliminaryDraftService = inject(PreliminaryDraftService);
-  private readonly preliminaryDraftStorage = inject(PreliminaryDraftStorageService);
-  private readonly proposalStorage = inject(ProposalStorageService);
-  private readonly dbStore = inject(IndexedDbListStoreService);
+  private readonly vistas = inject(TrabajoGradoVistasService);
 
-  private readonly _thesisWorksList = signal<ThesisWork[]>([]);
-  private readonly hydrated = signal(false);
+  /** Todos los trabajos cargados (incluidos los cerrados). */
+  public readonly allThesisWorks = this.vistas.trabajosDeGrado;
+  /** true cuando terminó la primera carga desde el backend. */
+  public readonly isHydrated = this.vistas.cargado;
 
-  public allThesisWorks = this._thesisWorksList.asReadonly();
-  // ← NUEVO: expone la señal de hidratación para que los guards puedan
-  // esperar a que IndexedDB termine de cargar antes de decidir.
-  public readonly isHydrated = this.hydrated.asReadonly();
   private readonly PRIVILEGED_ROLES = [
     UserRoleType.ADMINISTRADOR,
     UserRoleType.DECANATURA,
@@ -42,155 +36,31 @@ export class ThesisWorkStorageService {
     return this.hasPrivilegedAccess() || this.canUserAccessThesisWork(work, userId);
   }
 
-  public thesisWorks = computed(() => {
+  /** Trabajos activos visibles para el usuario, del más reciente al más antiguo. */
+  public readonly thesisWorks = computed(() => {
     const currentUser = this.authService.currentUser();
-    const activeWorks = this._thesisWorksList().filter(thesisWork => !thesisWork.isArchived);
     if (!currentUser) return [];
-    let filteredWorks: ThesisWork[] = [];
-    if (this.authService.hasAnyRole([
-      UserRoleType.ADMINISTRADOR,
-      UserRoleType.DECANATURA,
-      UserRoleType.CONSEJO
-    ])) {
-      filteredWorks = activeWorks;
-    } else {
-      filteredWorks = activeWorks.filter(thesisWork => this.canUserAccessThesisWork(thesisWork, currentUser.id));
-    }
+    const activeWorks = this.allThesisWorks().filter(thesisWork => !thesisWork.isArchived);
+    const filteredWorks = this.hasPrivilegedAccess()
+      ? activeWorks
+      : activeWorks.filter(thesisWork => this.canUserAccessThesisWork(thesisWork, currentUser.id));
     return [...filteredWorks].sort((a, b) =>
       new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
     );
   });
 
-  constructor() {
-    void this.hydrateFromIndexedDb();
-
-    effect(() => {
-      if (!this.hydrated()) return;
-      const currentList = this._thesisWorksList();
-      void this.dbStore.set(STORE_KEY, currentList).catch(error => {
-        console.error('Error guardando trabajos de grado en IndexedDB', error);
-      });
-    });
-
-    effect(() => {
-      // ← FIX: mismo guard que el effect de persistencia. Sin esto, este
-      // effect podía correr con _thesisWorksList todavía vacío (antes de
-      // que su propia hidratación terminara) mientras
-      // preliminaryDraftService ya tenía datos reales, creando entradas
-      // "fantasma" con thesisWorkId nuevos para anteproyectos que ya
-      // tenían un ThesisWork real esperando en IndexedDB.
-      if (!this.hydrated()) return;
-      const approvedDrafts = this.preliminaryDraftService.allPreliminaryDrafts()
-        .filter(draft => draft.state === stateList.APROBADO);
-      this._thesisWorksList.update(currentWorks => {
-        let hasChanges = false;
-        const updatedWorks = [...currentWorks];
-        approvedDrafts.forEach(draft => {
-          const existingIndex = updatedWorks.findIndex(w => w.preliminaryDraftId === draft.preliminaryDraftId);
-          if (existingIndex === -1) {
-            updatedWorks.unshift({
-              thesisWorkId: crypto.randomUUID(),
-              preliminaryDraftId: draft.preliminaryDraftId!,
-              preliminaryDraftData: draft,
-              documents: [],
-              advances: [],
-              evaluations: [],
-              sustentations: [],
-              specialRequests: [],
-              state: stateList.EN_DESARROLLO,
-              createdDate: new Date(),
-              isArchived: false
-            });
-            hasChanges = true;
-          } else {
-            const currentDraftData = updatedWorks[existingIndex].preliminaryDraftData;
-            if (currentDraftData.maximumDeliveryDate !== draft.maximumDeliveryDate) {
-              updatedWorks[existingIndex] = {
-                ...updatedWorks[existingIndex],
-                preliminaryDraftData: draft
-              };
-              hasChanges = true;
-            }
-          }
-        });
-        return hasChanges ? updatedWorks : currentWorks;
-      });
-    });
+  /**
+   * Sin efecto: el estado de los trabajos lo define el backend. Se conserva
+   * para los flujos simulados de la fase 6 (entrega final, sustentación), que
+   * se reemplazarán en esa fase.
+   */
+  public updateWork(_id: string, _mutator: (work: ThesisWork) => ThesisWork): void {
+    // Intencionalmente vacío
   }
 
-  private async hydrateFromIndexedDb(): Promise<void> {
-    try {
-      const stored = await this.dbStore.get<ThesisWork[]>(STORE_KEY);
-      if (stored && stored.length > 0) {
-        this._thesisWorksList.set(stored);
-      } else {
-        const migrated = this.migrateFromLegacyLocalStorage();
-        this._thesisWorksList.set(migrated ?? []);
-      }
-    } catch (error) {
-      console.error('Error leyendo trabajos de grado de IndexedDB', error);
-      this._thesisWorksList.set([]);
-    } finally {
-      this.hydrated.set(true);
-    }
-  }
-
-  private migrateFromLegacyLocalStorage(): ThesisWork[] | null {
-    const stored = localStorage.getItem(LEGACY_LOCALSTORAGE_KEY);
-    if (!stored) return null;
-    try {
-      const parsed = JSON.parse(stored) as ThesisWork[];
-      localStorage.removeItem(LEGACY_LOCALSTORAGE_KEY);
-      return parsed;
-    } catch {
-      localStorage.removeItem(LEGACY_LOCALSTORAGE_KEY);
-      return null;
-    }
-  }
-
-  public updateWork(id: string, mutator: (work: ThesisWork) => ThesisWork): void {
-    this._thesisWorksList.update(list =>
-      list.map(work => {
-        if (work.thesisWorkId === id) {
-          const updatedWork = mutator(work);
-          if (updatedWork.state === stateList.CANCELADO && !updatedWork.isArchived) {
-            updatedWork.isArchived = true;
-          }
-          if (updatedWork.isArchived && !work.isArchived) {
-            this.triggerCascadeArchive(updatedWork);
-          }
-          return updatedWork;
-        }
-        return work;
-      })
-    );
-  }
-
-  private triggerCascadeArchive(work: ThesisWork): void {
-    try {
-      const draftId = work.preliminaryDraftId;
-      const proposalId = work.preliminaryDraftData?.proposalId;
-      const now = new Date();
-      if (draftId && this.preliminaryDraftStorage) {
-        this.preliminaryDraftStorage.updateDraft(draftId, draft => ({
-          ...draft,
-          isArchived: true,
-          archivedAt: now
-        }));
-      }
-      if (proposalId && this.proposalStorage) {
-        this.proposalStorage.updateProposals(list =>
-          list.map(p => p.id === proposalId ? { ...p, isArchived: true, archivedAt: now } : p)
-        );
-      }
-    } catch (error) {
-      console.error('Error al ejecutar el archivado en cascada:', error);
-    }
-  }
-
+  /** Trabajo de grado por id (de memoria o del backend). */
   public getById(id: string): Observable<ThesisWork | undefined> {
-    const work = this._thesisWorksList().find(w => w.thesisWorkId === id);
-    return of(work).pipe(delay(500));
+    return this.vistas.trabajoDeGrado(id);
   }
 
   private canUserAccessThesisWork(work: ThesisWork, userId: string): boolean {

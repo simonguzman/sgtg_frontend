@@ -1,45 +1,48 @@
-import { Component, computed, EventEmitter, inject, Input, Output, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { DatePicker } from 'primeng/datepicker';
+import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
+import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { EvaluateSpecialRequestFormService } from './services/evaluate-special-request-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SpecialRequest } from '../../interfaces/special-request.interface';
 import { SpecialRequestType } from '../../enums/special-request-type.enum';
+import { SpecialRequestDecision } from '../../services/thesis-work-special-request.service';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 
 type SpecialRequestVerdict = stateList.APROBADO | stateList.NO_APROBADO;
 
+/**
+ * Decisión del Consejo de Facultad sobre una solicitud del director: aprueba o
+ * no aprueba, con la resolución en PDF (obligatoria) y observaciones opcionales.
+ * Las fechas resultantes (nuevo plazo, reanudación) las calcula el backend.
+ */
 @Component({
   selector: 'app-evaluate-special-request-form',
   templateUrl: './evaluate-special-request-form.component.html',
   styleUrls: ['./evaluate-special-request-form.component.css'],
-  imports: [ButtonComponent, DatePicker, FormsModule, InfoBannerComponent, ReadonlyFieldComponent],
+  imports: [ButtonComponent, InfoBannerComponent, ReadonlyFieldComponent, FileUploadModalComponent],
   providers: [EvaluateSpecialRequestFormService]
 })
 export class EvaluateSpecialRequestFormComponent {
   protected readonly formService = inject(EvaluateSpecialRequestFormService);
+  protected readonly types = SpecialRequestType;
 
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input({ required: true }) specialRequest!: SpecialRequest;
   @Input() isSubmitting = false;
-  @Output() onSave = new EventEmitter<{ status: SpecialRequestVerdict; resolutionDetails: string; grantedDeadline?: Date }>();
+  @Output() onSave = new EventEmitter<SpecialRequestDecision>();
   @Output() onBack = new EventEmitter<void>();
+  @Output() onDownloadDocument = new EventEmitter<FileDocument>();
 
   readonly verdictSelected  = signal<SpecialRequestVerdict | null>(null);
   readonly observations = signal<string>('');
-  readonly grantedDeadline  = signal<Date | null>(null);
+  readonly resolution = signal<{ fileName: string; file: File } | null>(null);
+  readonly isUploadModalOpen = signal(false);
   readonly isSubmitAttempted = signal(false);
 
   get states(): typeof stateList { return stateList; }
-
-  readonly requiresNewDeadline = computed(() => {
-    const isApproved = this.verdictSelected() === stateList.APROBADO;
-    const type = this.getRequestType();
-    return isApproved && (type === SpecialRequestType.PRORROGA || type === SpecialRequestType.SUSPENSION);
-  });
 
   getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }
   getDirectorName(): string { return this.formService.getDirectorName(this.thesisWork); }
@@ -54,6 +57,11 @@ export class EvaluateSpecialRequestFormComponent {
     this.observations.set((event.target as HTMLTextAreaElement).value);
   }
 
+  handleResolutionUploaded(event: { fileName: string; file: File }): void {
+    this.resolution.set(event);
+    this.isUploadModalOpen.set(false);
+  }
+
   submit(): void {
     this.isSubmitAttempted.set(true);
     const verdict = this.verdictSelected();
@@ -62,15 +70,12 @@ export class EvaluateSpecialRequestFormComponent {
       this.formService.notifyMissingVerdict();
       return;
     }
-    if (this.requiresNewDeadline() && !this.grantedDeadline()) {
-      this.formService.notifyMissingDeadline();
+    const resolution = this.resolution()?.file;
+    if (!resolution) {
+      this.formService.notifyMissingResolution();
       return;
     }
 
-    this.onSave.emit({
-      status: verdict,
-      resolutionDetails: this.observations(),
-      grantedDeadline: this.grantedDeadline() ?? undefined
-    });
+    this.onSave.emit({ status: verdict, resolutionDetails: this.observations(), resolution });
   }
 }

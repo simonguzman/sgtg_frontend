@@ -3,10 +3,8 @@ import { signal, Signal } from '@angular/core';
 import { of } from 'rxjs';
 import { ThesisWorkService } from './thesis-work.service';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
-import { ThesisWorkApiService } from './thesis-work-api.service';
 import { ThesisWorkAdvanceService } from './thesis-work-advance.service';
 import { ThesisWorkDeliveryService } from './thesis-work-delivery.service';
-import { ThesisWorkEvaluationService } from './thesis-work-evaluation.service';
 import { ThesisWorkSpecialRequestService } from './thesis-work-special-request.service';
 import { ThesisWorkSustentationService, SustentationVeredict } from './thesis-work-sustentation.service';
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
@@ -14,7 +12,6 @@ import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { DocumentType } from '../../../core/enums/document-type.enum';
-import { CreateAdvanceRequest } from '../interfaces/advance-playload.interface';
 import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
 import { SpecialRequestType } from '../enums/special-request-type.enum';
 import { SustentationFormData } from '../interfaces/sustentation-form-data.interface';
@@ -24,6 +21,7 @@ interface MockThesisWorkStorageService {
   thesisWorks: Signal<ThesisWork[]>;
   allThesisWorks: Signal<ThesisWork[]>;
   isHydrated: Signal<boolean>;
+  getById: jest.Mock;
 }
 
 const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
@@ -35,11 +33,6 @@ const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocu
   status: stateList.EN_REVISION,
   ...overrides
 } as FileDocument);
-
-const createMockAdvanceRequest = (overrides: Partial<CreateAdvanceRequest> = {}): CreateAdvanceRequest => ({
-  comments: 'Primer avance',
-  ...overrides
-} as CreateAdvanceRequest);
 
 const createMockEvaluation = (overrides: Partial<Evaluation> = {}): Evaluation => ({
   id: 'eval-1',
@@ -67,10 +60,8 @@ describe('ThesisWorkService (Facade)', () => {
   let service: ThesisWorkService;
 
   let storageMock: MockThesisWorkStorageService;
-  let apiMock: jest.Mocked<Partial<ThesisWorkApiService>>;
   let advanceMock: jest.Mocked<Partial<ThesisWorkAdvanceService>>;
   let deliveryMock: jest.Mocked<Partial<ThesisWorkDeliveryService>>;
-  let evaluationMock: jest.Mocked<Partial<ThesisWorkEvaluationService>>;
   let specialRequestMock: jest.Mocked<Partial<ThesisWorkSpecialRequestService>>;
   let sustentationMock: jest.Mocked<Partial<ThesisWorkSustentationService>>;
 
@@ -81,17 +72,13 @@ describe('ThesisWorkService (Facade)', () => {
     storageMock = {
       thesisWorks: signal([]),
       allThesisWorks: signal([]),
-      isHydrated: signal(true)
-    };
-
-    apiMock = {
-      verifyDeliveryDeadlinesMock: jest.fn().mockReturnValue(of(undefined)),
-      getThesisWorkByIdMock: jest.fn().mockReturnValue(of(undefined)),
-      reactivateThesisWorkMock: jest.fn().mockReturnValue(of(undefined))
+      isHydrated: signal(true),
+      getById: jest.fn().mockReturnValue(of(undefined))
     };
 
     advanceMock = {
-      uploadDocumentMock: jest.fn().mockReturnValue(of(undefined))
+      radicarInforme: jest.fn().mockReturnValue(of(undefined)),
+      revisarInforme: jest.fn().mockReturnValue(of(undefined))
     };
 
     deliveryMock = {
@@ -101,13 +88,9 @@ describe('ThesisWorkService (Facade)', () => {
       registerPazYSalvoMock: jest.fn().mockReturnValue(of(undefined))
     };
 
-    evaluationMock = {
-      addEvaluationMock: jest.fn().mockReturnValue(of(undefined))
-    };
-
     specialRequestMock = {
-      createSpecialRequestMock: jest.fn().mockReturnValue(of(undefined)),
-      evaluateSpecialRequestMock: jest.fn().mockReturnValue(of(undefined))
+      createSpecialRequest: jest.fn().mockReturnValue(of(undefined)),
+      evaluateSpecialRequest: jest.fn().mockReturnValue(of(undefined))
     };
 
     sustentationMock = {
@@ -120,10 +103,8 @@ describe('ThesisWorkService (Facade)', () => {
       providers: [
         ThesisWorkService,
         { provide: ThesisWorkStorageService, useValue: storageMock },
-        { provide: ThesisWorkApiService, useValue: apiMock },
         { provide: ThesisWorkAdvanceService, useValue: advanceMock },
         { provide: ThesisWorkDeliveryService, useValue: deliveryMock },
-        { provide: ThesisWorkEvaluationService, useValue: evaluationMock },
         { provide: ThesisWorkSpecialRequestService, useValue: specialRequestMock },
         { provide: ThesisWorkSustentationService, useValue: sustentationMock }
       ]
@@ -137,10 +118,6 @@ describe('ThesisWorkService (Facade)', () => {
   });
 
   describe('Inicialización y Propiedades de Estado', () => {
-    it('debe ejecutar verifyDeliveryDeadlinesMock al instanciarse el servicio', () => {
-      expect(apiMock.verifyDeliveryDeadlinesMock).toHaveBeenCalledTimes(1);
-    });
-
     it('debe exponer los Signals de almacenamiento expuestos por el StorageService', () => {
       expect(service.thesisWorks).toBe(storageMock.thesisWorks);
       expect(service.allThesisWorks).toBe(storageMock.allThesisWorks);
@@ -148,25 +125,24 @@ describe('ThesisWorkService (Facade)', () => {
     });
   });
 
-  describe('Lifecycle', () => {
-    it('debe delegar getThesisWorkByIdMock al ApiService', () => {
-      service.getThesisWorkByIdMock('thesis-101');
-      expect(apiMock.getThesisWorkByIdMock).toHaveBeenCalledWith('thesis-101');
-    });
-
-    it('debe delegar reactivateThesisWorkMock al ApiService', () => {
-      service.reactivateThesisWorkMock('thesis-101');
-      expect(apiMock.reactivateThesisWorkMock).toHaveBeenCalledWith('thesis-101');
+  describe('Consulta', () => {
+    it('debe delegar getThesisWorkByIdMock al StorageService (vista del backend)', () => {
+      service.getThesisWorkByIdMock('15');
+      expect(storageMock.getById).toHaveBeenCalledWith('15');
     });
   });
 
-  describe('Avances', () => {
-    it('debe delegar uploadDocumentMock al AdvanceService', () => {
-      const doc = createMockFileDocument({ id: 'doc-1', name: 'Avance.pdf' });
-      const meta = createMockAdvanceRequest({ comments: 'Primer avance' });
+  describe('Informes mensuales', () => {
+    it('debe delegar radicarInforme al AdvanceService', () => {
+      const informe = new File([''], 'informe.pdf');
+      service.radicarInforme('15', informe, 'Primer mes');
+      expect(advanceMock.radicarInforme).toHaveBeenCalledWith('15', informe, 'Primer mes');
+    });
 
-      service.uploadDocumentMock('thesis-101', doc, meta);
-      expect(advanceMock.uploadDocumentMock).toHaveBeenCalledWith('thesis-101', doc, meta);
+    it('debe delegar revisarInforme al AdvanceService', () => {
+      const notas = new File([''], 'notas.pdf');
+      service.revisarInforme('15', '1', 'Ajustar', notas);
+      expect(advanceMock.revisarInforme).toHaveBeenCalledWith('15', '1', 'Ajustar', notas);
     });
   });
 
@@ -207,15 +183,6 @@ describe('ThesisWorkService (Facade)', () => {
     });
   });
 
-  describe('Evaluación de avances', () => {
-    it('debe delegar addEvaluationMock al EvaluationService', () => {
-      const evalData = createMockEvaluation();
-
-      service.addEvaluationMock('thesis-101', evalData);
-      expect(evaluationMock.addEvaluationMock).toHaveBeenCalledWith('thesis-101', evalData);
-    });
-  });
-
   describe('Sustentación', () => {
     it('debe delegar saveSustentationRegistryMock al SustentationService', () => {
       const formData = createMockSustentationFormData({ location: 'Auditorio A' });
@@ -253,25 +220,18 @@ describe('ThesisWorkService (Facade)', () => {
   });
 
   describe('Solicitudes especiales', () => {
-    it('debe delegar createSpecialRequestMock al SpecialRequestService', () => {
-      const payload = {
-        requestType: SpecialRequestType.PRORROGA,
-        comments: 'Extensión de tiempo',
-        thesisId: 'thesis-101'
-      };
-
-      service.createSpecialRequestMock(payload);
-      expect(specialRequestMock.createSpecialRequestMock).toHaveBeenCalledWith(payload);
+    it('debe delegar createSpecialRequest al SpecialRequestService', () => {
+      const solicitud = { requestType: SpecialRequestType.SUSPENSION as const, document: new File([''], 's.pdf') };
+      service.createSpecialRequest('15', solicitud);
+      expect(specialRequestMock.createSpecialRequest).toHaveBeenCalledWith('15', solicitud);
     });
 
-    it('debe delegar evaluateSpecialRequestMock al SpecialRequestService', () => {
-      const payload = {
-        status: stateList.APROBADO as stateList.APROBADO | stateList.NO_APROBADO,
-        resolutionDetails: 'Resolución aprobada'
-      };
-
-      service.evaluateSpecialRequestMock('thesis-101', 'req-50', payload);
-      expect(specialRequestMock.evaluateSpecialRequestMock).toHaveBeenCalledWith('thesis-101', 'req-50', payload);
+    it('debe delegar evaluateSpecialRequest al SpecialRequestService', () => {
+      const request = { id: 'prorroga-0', directorId: '1', requestType: SpecialRequestType.PRORROGA,
+        requestDate: new Date(), description: '', status: stateList.EN_REVISION as const };
+      const decision = { status: stateList.APROBADO as const, resolutionDetails: '', resolution: new File([''], 'r.pdf') };
+      service.evaluateSpecialRequest('15', request, decision);
+      expect(specialRequestMock.evaluateSpecialRequest).toHaveBeenCalledWith('15', request, decision);
     });
   });
 });

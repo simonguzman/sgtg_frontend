@@ -53,6 +53,24 @@
       }
     </div>
 
+    @if (work.deadlines.length > 0) {
+      <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
+        Fechas del trabajo de grado
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        @for (deadline of work.deadlines; track deadline.label) {
+          <div class="p-3 information-block rounded">
+            <span class="font-semibold font-display text-size-section text-primary">{{ deadline.label }}</span>
+            <p class="font-normal font-sans text-size-section text-[#777680]">{{ deadline.date | date:'dd/MM/yyyy' }}</p>
+            @if (deadline.hint) {
+              <p class="font-sans text-size-role-footer text-[#777680]">{{ deadline.hint }}</p>
+            }
+          </div>
+        }
+      </div>
+    }
+
     <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
       Participantes del trabajo de grado
     </h3>

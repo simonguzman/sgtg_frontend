@@ -1,3 +1,10 @@
+/** Fecha clave del trabajo calculada por el backend. */
+export interface ThesisWorkDeadlineItem {
+  label: string;
+  date: Date;
+  hint?: string;
+}
+
 export interface ThesisWorkDetailsView {
   id: string;
   title: string;
@@ -10,6 +17,8 @@ export interface ThesisWorkDetailsView {
     codirector?: string;
     advisor?: string;
   };
+  /** Fechas del trabajo en curso (las que aplican en su etapa) */
+  deadlines: ThesisWorkDeadlineItem[];
   mainDocument: {
     name: string;
     url: string;

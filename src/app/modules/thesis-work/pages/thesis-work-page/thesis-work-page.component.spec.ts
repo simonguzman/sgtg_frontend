@@ -7,13 +7,11 @@ import { ThesisWorkTableRow } from './models/thesis-work-page.model';
 import { stateList } from '../../../../core/enums/state.enum';
 import { TableButton, TableComponent, Column } from '../../../../shared/components/table-component/table-component.component';
 import { DescriptionModalComponent } from '../../../../shared/components/modals/description-modal/description-modal.component';
-import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 
 interface MockThesisWorkPageFacadeService {
   tableData: WritableSignal<ThesisWorkTableRow[]>;
   headerButtons: WritableSignal<TableButton[]>;
   showRestrictedAccessNotification: jest.Mock<void, []>;
-  reactivateThesis: jest.Mock<void, [string, () => void, () => void]>;
 }
 
 interface MockRouter {
@@ -40,14 +38,6 @@ class MockDescriptionModalComponent {
   @Output() onClose = new EventEmitter<void>();
 }
 
-@Component({ selector: 'app-confirmation-action-modal', standalone: true, template: '' })
-class MockConfirmationActionModalComponent {
-  @Input() isOpen = false;
-  @Input() description = '';
-  @Output() onClose = new EventEmitter<void>();
-  @Output() confirm = new EventEmitter<void>();
-}
-
 describe('ThesisWorkPageComponent', () => {
   let component: ThesisWorkPageComponent;
   let fixture: ComponentFixture<ThesisWorkPageComponent>;
@@ -63,8 +53,7 @@ describe('ThesisWorkPageComponent', () => {
     facadeMock = {
       tableData: signal([]),
       headerButtons: signal([]),
-      showRestrictedAccessNotification: jest.fn(),
-      reactivateThesis: jest.fn()
+      showRestrictedAccessNotification: jest.fn()
     };
 
     routerMock = {
@@ -79,8 +68,8 @@ describe('ThesisWorkPageComponent', () => {
       ]
     })
     .overrideComponent(ThesisWorkPageComponent, {
-      remove: { imports: [TableComponent, DescriptionModalComponent, ConfirmationActionModalComponent] },
-      add: { imports: [MockTableComponent, MockDescriptionModalComponent, MockConfirmationActionModalComponent] }
+      remove: { imports: [TableComponent, DescriptionModalComponent] },
+      add: { imports: [MockTableComponent, MockDescriptionModalComponent] }
     })
     .compileComponents();
 
@@ -139,12 +128,10 @@ describe('ThesisWorkPageComponent', () => {
       expect(routerMock.navigate).toHaveBeenCalledWith(['/thesis-work/edit', 'tw-1']);
     });
 
-    it('debe preparar el estado para reactivación al ejecutar "reactivar"', () => {
+    it('"reactivar" lleva al director al registro de la reanudación del trabajo', () => {
       component.handleTableAction({ action: 'reactivar', row: mockRow });
 
-      expect(component.reactivateState().show).toBe(true);
-      expect(component.reactivateState().id).toBe('tw-1');
-      expect(component.reactivateState().loading).toBe(false);
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/thesis-work/details', 'tw-1', 'register_special_request']);
     });
   });
 
@@ -166,46 +153,4 @@ describe('ThesisWorkPageComponent', () => {
     });
   });
 
-  describe('Flujo de Reactivación (confirmReactivation & cancelReactivation)', () => {
-    it('debe cancelar la reactivación y limpiar el estado por completo', () => {
-      component.reactivateState.set({ show: true, id: 'tw-1', loading: true });
-
-      component.cancelReactivation();
-
-      expect(component.reactivateState()).toEqual({ show: false, id: null, loading: false });
-    });
-
-    it('debe retornar tempranamente si no hay ID o si ya está en estado de carga', () => {
-      component.reactivateState.set({ show: true, id: null, loading: false });
-
-      component.confirmReactivation();
-
-      expect(facadeMock.reactivateThesis).not.toHaveBeenCalled();
-
-      component.reactivateState.set({ show: true, id: 'tw-1', loading: true });
-
-      component.confirmReactivation();
-
-      expect(facadeMock.reactivateThesis).not.toHaveBeenCalled();
-    });
-
-    it('debe llamar al facade y manejar el estado de carga y cierre tras un ÉXITO (onSuccess)', () => {
-      component.reactivateState.set({ show: true, id: 'tw-1', loading: false });
-      facadeMock.reactivateThesis.mockImplementation((id, onSuccess) => onSuccess());
-
-      component.confirmReactivation();
-
-      expect(facadeMock.reactivateThesis).toHaveBeenCalledWith('tw-1', expect.any(Function), expect.any(Function));
-      expect(component.reactivateState()).toEqual({ show: false, id: null, loading: false });
-    });
-
-    it('debe llamar al facade y restablecer el estado de carga (manteniendo el modal abierto) tras un ERROR (onError)', () => {
-      component.reactivateState.set({ show: true, id: 'tw-1', loading: false });
-      facadeMock.reactivateThesis.mockImplementation((id, onSuccess, onError) => onError());
-
-      component.confirmReactivation();
-
-      expect(component.reactivateState()).toEqual({ show: true, id: 'tw-1', loading: false });
-    });
-  });
 });

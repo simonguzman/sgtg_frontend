@@ -1,58 +1,44 @@
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
-import { ThesisWorkApiService } from './thesis-work-api.service';
 import { ThesisWorkAdvanceService } from './thesis-work-advance.service';
 import { ThesisWorkDeliveryService } from './thesis-work-delivery.service';
-import { ThesisWorkEvaluationService } from './thesis-work-evaluation.service';
-import { ThesisWorkSpecialRequestService } from './thesis-work-special-request.service';
+import {
+  SpecialRequestDecision, SpecialRequestSubmission, ThesisWorkSpecialRequestService
+} from './thesis-work-special-request.service';
 import { SustentationVeredict, ThesisWorkSustentationService } from './thesis-work-sustentation.service';
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
-import { stateList } from '../../../core/enums/state.enum';
-import { CreateAdvanceRequest } from '../interfaces/advance-playload.interface';
 import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
-import { SpecialRequestType } from '../enums/special-request-type.enum';
+import { ThesisWork } from '../interfaces/thesis-work.interface';
+import { SpecialRequest } from '../interfaces/special-request.interface';
 import { SustentationFormData } from '../interfaces/sustentation-form-data.interface';
 
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkService {
   private readonly storage             = inject(ThesisWorkStorageService);
-  private readonly api                 = inject(ThesisWorkApiService);
   private readonly advanceService      = inject(ThesisWorkAdvanceService);
   private readonly deliveryService     = inject(ThesisWorkDeliveryService);
-  private readonly evaluationService   = inject(ThesisWorkEvaluationService);
   private readonly specialRequestService = inject(ThesisWorkSpecialRequestService);
   private readonly sustentationService = inject(ThesisWorkSustentationService);
-  // ← EventBusService y UserApiService eliminados: sus responsabilidades
-  //   están en ThesisWorkApiService y los sub-servicios especializados.
 
   readonly thesisWorks    = this.storage.thesisWorks;
   readonly allThesisWorks = this.storage.allThesisWorks;
   readonly isHydrated     = this.storage.isHydrated;
 
-  constructor() {
-    // verifyDeliveryDeadlinesMock se ejecuta una vez al iniciar la app.
-    // of() completa automáticamente tras emitir, no hay memory leak.
-    this.api.verifyDeliveryDeadlinesMock().subscribe();
+  // ── Consulta ──────────────────────────────────────────────────────────────
+  /** Trabajo de grado por id (vista del backend). */
+  getThesisWorkByIdMock(id: string): Observable<ThesisWork | undefined> {
+    return this.storage.getById(id);
   }
 
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
-  getThesisWorkByIdMock(id: string) {
-    return this.api.getThesisWorkByIdMock(id);
+  // ── Informes mensuales ────────────────────────────────────────────────────
+  radicarInforme(thesisWorkId: string, informe: File, observaciones: string): Observable<ThesisWork> {
+    return this.advanceService.radicarInforme(thesisWorkId, informe, observaciones);
   }
 
-  reactivateThesisWorkMock(thesisWorkId: string): Observable<void> {
-    return this.api.reactivateThesisWorkMock(thesisWorkId);
-  }
-
-  // ── Avances ───────────────────────────────────────────────────────────────
-  uploadDocumentMock(
-    thesisWorkId: string,
-    document: FileDocument,
-    advanceMeta?: CreateAdvanceRequest
-  ): Observable<void> {
-    return this.advanceService.uploadDocumentMock(thesisWorkId, document, advanceMeta);
+  revisarInforme(thesisWorkId: string, numero: string, observaciones: string, notas: File | null): Observable<ThesisWork> {
+    return this.advanceService.revisarInforme(thesisWorkId, numero, observaciones, notas);
   }
 
   // ── Entregas ──────────────────────────────────────────────────────────────
@@ -75,11 +61,6 @@ export class ThesisWorkService {
 
   registerPazYSalvoMock(thesisWorkId: string, payload: PazYSalvoPayload, file: File): Observable<void> {
     return this.deliveryService.registerPazYSalvoMock(thesisWorkId, payload, file);
-  }
-
-  // ── Evaluación de avances ─────────────────────────────────────────────────
-  addEvaluationMock(thesisWorkId: string, evaluation: Evaluation): Observable<void> {
-    return this.evaluationService.addEvaluationMock(thesisWorkId, evaluation);
   }
 
   // ── Sustentación ──────────────────────────────────────────────────────────
@@ -107,21 +88,12 @@ export class ThesisWorkService {
   }
 
   // ── Solicitudes especiales ────────────────────────────────────────────────
-  createSpecialRequestMock(
-    payload: { requestType: SpecialRequestType; comments: string; thesisId: string }
-  ): Observable<void> {
-    return this.specialRequestService.createSpecialRequestMock(payload);
+  createSpecialRequest(thesisWorkId: string, solicitud: SpecialRequestSubmission): Observable<ThesisWork> {
+    return this.specialRequestService.createSpecialRequest(thesisWorkId, solicitud);
   }
 
-  evaluateSpecialRequestMock(
-    thesisWorkId: string,
-    requestId: string,
-    payload: {
-      status: stateList.APROBADO | stateList.NO_APROBADO;
-      resolutionDetails: string;
-      grantedDeadline?: Date;
-    }
-  ): Observable<void> {
-    return this.specialRequestService.evaluateSpecialRequestMock(thesisWorkId, requestId, payload);
+  evaluateSpecialRequest(thesisWorkId: string, request: SpecialRequest,
+    decision: SpecialRequestDecision): Observable<ThesisWork> {
+    return this.specialRequestService.evaluateSpecialRequest(thesisWorkId, request, decision);
   }
 }

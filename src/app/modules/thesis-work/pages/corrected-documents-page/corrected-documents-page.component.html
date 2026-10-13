@@ -6,6 +6,11 @@
     emitirán el veredicto definitivo sobre dichas correcciones.
   </app-info-banner>
 
+  <app-info-banner title="Sección en solo lectura" class="mb-6 block">
+    Aquí se muestran los ajustes registrados en el sistema. La carga y la verificación de los documentos
+    corregidos se habilitarán en la fase 6 de la integración.
+  </app-info-banner>
+
   <div class="flex justify-between items-center mb-6">
     <button
       (click)="goBack()"
@@ -22,6 +27,7 @@
         <app-button-component
           label="Cargar documentos corregidos"
           variant="primary"
+          [disabled]="true"
           (onClick)="navigateToUploadCorrections()">
         </app-button-component>
       }
@@ -30,6 +36,7 @@
         <app-button-component
           label="Evaluar documentos corregidos"
           variant="primary"
+          [disabled]="true"
           (onClick)="navigateToEvaluateCorrections()">
         </app-button-component>
       }

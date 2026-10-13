@@ -7,6 +7,7 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SpecialRequest } from '../../interfaces/special-request.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { SpecialRequestType } from '../../enums/special-request-type.enum';
+import { SpecialRequestDecision } from '../../services/thesis-work-special-request.service';
 import { User } from '../../../users/interfaces/user.interface';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
 import { UserState } from '../../../users/enum/user-state.enum';
@@ -27,7 +28,8 @@ interface MockRouter {
 
 interface MockFacadeService {
   loadThesisWorkAndRequest: jest.Mock<void, [string, string, (w: ThesisWork, r: SpecialRequest) => void, () => void]>;
-  processEvaluation: jest.Mock<void, [string, string, { status: SpecialRequestVerdict; resolutionDetails: string; grantedDeadline?: Date }, () => void, () => void]>;
+  processEvaluation: jest.Mock<void, [string, SpecialRequest, SpecialRequestDecision, () => void, () => void]>;
+  downloadDocument: jest.Mock;
 }
 
 @Component({ selector: 'app-evaluate-special-request-form', standalone: true, template: '' })
@@ -35,8 +37,9 @@ class MockEvaluateSpecialRequestFormComponent {
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input({ required: true }) specialRequest!: SpecialRequest;
   @Input() isSubmitting = false;
-  @Output() onSave = new EventEmitter<{ status: SpecialRequestVerdict; resolutionDetails: string; grantedDeadline?: Date }>();
+  @Output() onSave = new EventEmitter<SpecialRequestDecision>();
   @Output() onBack = new EventEmitter<void>();
+  @Output() onDownloadDocument = new EventEmitter<unknown>();
 }
 
 @Component({ selector: 'app-confirmation-action-modal', standalone: true, template: '' })
@@ -125,7 +128,8 @@ describe('EvaluateSpecialRequestPageComponent', () => {
 
     facadeMock = {
       loadThesisWorkAndRequest: jest.fn(),
-      processEvaluation: jest.fn()
+      processEvaluation: jest.fn(),
+      downloadDocument: jest.fn()
     };
 
     routerMock = {
@@ -208,7 +212,10 @@ describe('EvaluateSpecialRequestPageComponent', () => {
   });
 
   describe('Flujo de evaluación', () => {
-    const payload = { status: stateList.APROBADO as SpecialRequestVerdict, resolutionDetails: 'Aprobado' };
+    const payload: SpecialRequestDecision = {
+      status: stateList.APROBADO as SpecialRequestVerdict, resolutionDetails: 'Aprobado',
+      resolution: new File(['%PDF'], 'resolucion.pdf', { type: 'application/pdf' })
+    };
 
     beforeEach(() => {
       facadeMock.loadThesisWorkAndRequest.mockImplementation((tId, rId, onSuccess) => onSuccess(mockThesisWork, mockSpecialRequest));
@@ -240,7 +247,7 @@ describe('EvaluateSpecialRequestPageComponent', () => {
       expect(component.isConfirmModalOpen()).toBe(false);
       expect(facadeMock.processEvaluation).toHaveBeenCalledWith(
         'thesis-123',
-        'req-456',
+        mockSpecialRequest,
         payload,
         expect.any(Function),
         expect.any(Function)
@@ -256,6 +263,12 @@ describe('EvaluateSpecialRequestPageComponent', () => {
 
       expect(component.isSubmitting()).toBe(false);
       expect(routerMock.navigate).not.toHaveBeenCalled();
+    });
+
+    it('downloadDocument delega la descarga al facade', () => {
+      const documento = { id: 'r', name: 'solicitud', url: '/x', uploadDate: '2026-05-01' } as never;
+      component.downloadDocument(documento);
+      expect(facadeMock.downloadDocument).toHaveBeenCalledWith(documento);
     });
   });
 });

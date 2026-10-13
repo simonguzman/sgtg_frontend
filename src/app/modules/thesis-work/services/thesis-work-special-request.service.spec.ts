@@ -1,279 +1,152 @@
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { Observable, of } from 'rxjs';
+import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ThesisWorkSpecialRequestService } from './thesis-work-special-request.service';
-import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { UserService } from '../../users/services/user.service';
-import { AuthService } from '../../../core/services/auth/auth.service';
-import { SpecialRequestType } from '../enums/special-request-type.enum';
-import { SustentationStatus } from '../enums/sustentation-status.enum';
-import { stateList } from '../../../core/enums/state.enum';
+import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-import { ThesisWork } from '../interfaces/thesis-work.interface';
-import { User } from '../../users/interfaces/user.interface';
+import { stateList } from '../../../core/enums/state.enum';
+import { SpecialRequestType } from '../enums/special-request-type.enum';
 import { SpecialRequest } from '../interfaces/special-request.interface';
-import { FileDocument } from '../../../core/interfaces/file-document.interface';
+import { ThesisWork } from '../interfaces/thesis-work.interface';
+import { crearTrabajoEnCurso, crearTrabajoEnCursoCon } from '../../../testing/trabajo-grado-de-prueba';
 
-type MockThesisWorkStorageService = {
-  updateWork: jest.Mock<void, [string, (w: ThesisWork) => ThesisWork]>;
-};
+const API = '/api/v1/sgtg/trabajos-grado';
 
-type MockEventBusService = {
-  emit: jest.Mock<void, [object]>;
-};
+const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/pdf' });
 
-type MockUserService = {
-  users: jest.Mock<User[], []>;
-  removeRolesFromUsersMock: jest.Mock<Observable<void>, [string[], UserRoleType[]]>;
-};
+/** Lee el JSON de la parte `datos` de un multipart. */
+const leerDatos = (body: FormData): Promise<unknown> => new Promise((resolve, reject) => {
+  const lector = new FileReader();
+  lector.onload = () => resolve(JSON.parse(lector.result as string));
+  lector.onerror = reject;
+  lector.readAsText(body.get('datos') as Blob);
+});
 
-type MockAuthService = {
-  currentUser: jest.Mock<User | null, []>;
-};
-
-type PreliminaryDraftType = NonNullable<ThesisWork['preliminaryDraftData']>;
-type ProposalType = NonNullable<PreliminaryDraftType['proposalData']>;
-type SustentationType = NonNullable<ThesisWork['sustentations']>[number];
-
-const asMock = <T>(data: Partial<T>): T => data as T;
-
-jest.mock('../helpers/thesis-participants.helper', () => ({
-  collectParticipantIds: jest.fn().mockReturnValue(['participant-1', 'participant-2'])
-}));
+const solicitud = (requestType: SpecialRequestType): SpecialRequest => ({
+  id: 'x-0', directorId: '1', requestType, requestDate: new Date(), description: '', status: stateList.EN_REVISION
+});
 
 describe('ThesisWorkSpecialRequestService', () => {
   let service: ThesisWorkSpecialRequestService;
-  let storageMock: MockThesisWorkStorageService;
-  let eventBusMock: MockEventBusService;
-  let userServiceMock: MockUserService;
-  let authServiceMock: MockAuthService;
-
-  const buildUser = (id: string, roles: UserRoleType[] = []): User => asMock<User>({ id, roles });
-
-  const createMockThesisWork = (overrides?: Partial<ThesisWork>): ThesisWork => asMock<ThesisWork>({
-    thesisWorkId: 'thesis-1',
-    state: stateList.EN_DESARROLLO,
-    isArchived: false,
-    documents: [],
-    sustentations: [],
-    specialRequests: [],
-    preliminaryDraftData: asMock<PreliminaryDraftType>({
-      evaluators: [],
-      proposalData: asMock<ProposalType>({
-        title: 'Tesis de Prueba',
-        director: buildUser('dir-1')
-      })
-    }),
-    ...overrides
-  });
+  let http: HttpTestingController;
+  let eventBus: { emit: jest.Mock };
 
   beforeEach(() => {
-    storageMock = {
-      updateWork: jest.fn()
-    };
-
-    eventBusMock = {
-      emit: jest.fn()
-    };
-
-    userServiceMock = {
-      users: jest.fn().mockReturnValue([buildUser('consejo-1', [UserRoleType.CONSEJO])]),
-      removeRolesFromUsersMock: jest.fn().mockReturnValue(of(undefined))
-    };
-
-    authServiceMock = {
-      currentUser: jest.fn().mockReturnValue(buildUser('auth-user-1'))
-    };
-
+    localStorage.clear();
+    eventBus = { emit: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
-        ThesisWorkSpecialRequestService,
-        { provide: ThesisWorkStorageService, useValue: storageMock },
-        { provide: EventBusService, useValue: eventBusMock },
-        { provide: UserService, useValue: userServiceMock },
-        { provide: AuthService, useValue: authServiceMock }
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: EventBusService, useValue: eventBus },
+        { provide: UserService, useValue: { users: signal([{ id: '50', roles: [UserRoleType.CONSEJO] }]) } }
       ]
     });
-
     service = TestBed.inject(ThesisWorkSpecialRequestService);
+    http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  afterEach(() => http.verify());
 
-  it('debería crearse correctamente', () => {
-    expect(service).toBeTruthy();
-  });
+  describe('createSpecialRequest', () => {
+    it('el cambio de título y objetivos se envía como JSON y notifica al Consejo', () => {
+      let resultado: ThesisWork | undefined;
+      service.createSpecialRequest('15', {
+        requestType: SpecialRequestType.CAMBIO_TITULO, title: 'Nuevo', objectives: ['G', 'E'], justification: 'Alcance'
+      }).subscribe(t => resultado = t);
 
-  describe('createSpecialRequestMock', () => {
-    it('debería agregar una nueva solicitud especial y emitir evento a participantes y consejo', fakeAsync(() => {
-      const payload = {
-        requestType: SpecialRequestType.PRORROGA,
-        comments: 'Necesito más tiempo',
-        thesisId: 'thesis-1'
-      };
+      const req = http.expectOne(`${API}/15/cambio-objetivos`);
+      expect(req.request.body).toEqual({ titulo: 'Nuevo', objetivos: ['G', 'E'], justificacion: 'Alcance' });
+      req.flush(crearTrabajoEnCursoCon({ cambiosObjetivos: [{ tituloAnterior: 'Sistema de gestión',
+        objetivosAnteriores: [], tituloPropuesto: 'Nuevo', objetivosPropuestos: ['G', 'E'], justificacion: 'Alcance',
+        fechaSolicitud: '2026-05-01', decision: null }] }));
 
-      const baseThesis = createMockThesisWork();
-      let updatedThesisWork: ThesisWork | undefined;
-
-      storageMock.updateWork.mockImplementation((id: string, updateFn: (w: ThesisWork) => ThesisWork) => {
-        updatedThesisWork = updateFn(baseThesis);
-      });
-
-      service.createSpecialRequestMock(payload).subscribe();
-      tick(800);
-
-      expect(storageMock.updateWork).toHaveBeenCalledWith('thesis-1', expect.any(Function));
-      expect(updatedThesisWork?.specialRequests).toHaveLength(1);
-      expect(updatedThesisWork?.specialRequests?.[0]).toEqual(expect.objectContaining({
-        id: expect.any(String),
-        directorId: 'dir-1',
-        requestType: SpecialRequestType.PRORROGA,
-        description: 'Necesito más tiempo',
-        status: stateList.EN_REVISION
-      }));
-
-      expect(eventBusMock.emit).toHaveBeenCalledWith({
+      expect(resultado?.specialRequests[0].requestType).toBe(SpecialRequestType.CAMBIO_TITULO);
+      expect(TestBed.inject(TrabajoGradoStoreService).porId().get('15')).toBeTruthy();
+      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
         type: AppEventType.SPECIAL_REQUEST_CREATED,
-        targetUserIds: ['participant-1', 'participant-2', 'consejo-1'],
-        payload: {
-          thesisId: 'thesis-1',
-          thesisWorkId: 'thesis-1',
-          type: SpecialRequestType.PRORROGA,
-          thesisTitle: 'Tesis de Prueba'
-        }
-      });
-    }));
-  });
-
-  describe('evaluateSpecialRequestMock', () => {
-    let baseThesisWork: ThesisWork;
-
-    beforeEach(() => {
-      baseThesisWork = createMockThesisWork({
-        preliminaryDraftData: asMock<PreliminaryDraftType>({
-          evaluators: [buildUser('eval-1', [UserRoleType.EVALUADOR])],
-          proposalData: asMock<ProposalType>({ title: 'Tesis de Prueba' })
-        }),
-        specialRequests: [
-          asMock<SpecialRequest>({
-            id: 'req-1',
-            requestType: SpecialRequestType.CANCELACION,
-            status: stateList.EN_REVISION
-          })
-        ],
-        sustentations: [
-          asMock<SustentationType>({
-            id: 'sus-1',
-            status: SustentationStatus.PROGRAMADA,
-            formatEDocument: asMock<FileDocument>({ id: 'doc-1', status: stateList.EN_REVISION })
-          })
-        ],
-        documents: [
-          asMock<FileDocument>({ id: 'doc-1', status: stateList.EN_REVISION })
-        ]
-      });
+        targetUserIds: ['10', '1', '50'],
+        payload: expect.objectContaining({ type: SpecialRequestType.CAMBIO_TITULO })
+      }));
     });
 
-    it('debería procesar APROBADO para CANCELACION de manera reactiva y limpiar evaluadores', fakeAsync(() => {
-      let updatedThesisWork: ThesisWork | undefined;
-
-      storageMock.updateWork.mockImplementation((id: string, updateFn: (w: ThesisWork) => ThesisWork) => {
-        updatedThesisWork = updateFn(baseThesisWork);
-      });
-
-      const payload = {
-        status: stateList.APROBADO as stateList.APROBADO | stateList.NO_APROBADO,
-        resolutionDetails: 'Aprobado en sesión'
-      };
-
-      service.evaluateSpecialRequestMock('thesis-1', 'req-1', payload).subscribe();
-
-      expect(storageMock.updateWork).not.toHaveBeenCalled();
-
-      tick(900);
-
-      expect(updatedThesisWork?.state).toBe(stateList.CANCELADO);
-      expect(updatedThesisWork?.isArchived).toBe(true);
-
-      const updatedReq = updatedThesisWork?.specialRequests?.find(r => r.id === 'req-1');
-      expect(updatedReq?.status).toBe(stateList.APROBADO);
-      expect(updatedReq?.evaluatorId).toBe('auth-user-1');
-
-      expect(userServiceMock.removeRolesFromUsersMock).toHaveBeenCalledWith(['eval-1'], [UserRoleType.EVALUADOR]);
-      expect(eventBusMock.emit).toHaveBeenCalledTimes(1);
-    }));
-
-    it('debería procesar APROBADO para NUEVA_SUSTENTACION modificando documentos y sustentaciones', fakeAsync(() => {
-      if (baseThesisWork.specialRequests) {
-        baseThesisWork.specialRequests[0].requestType = SpecialRequestType.NUEVA_SUSTENTACION;
-      }
-
-      let updatedThesisWork: ThesisWork | undefined;
-      storageMock.updateWork.mockImplementation((id: string, updateFn: (w: ThesisWork) => ThesisWork) => {
-        updatedThesisWork = updateFn(baseThesisWork);
-      });
-
-      service.evaluateSpecialRequestMock('thesis-1', 'req-1', {
-        status: stateList.APROBADO,
-        resolutionDetails: 'Aprobado nueva sustentación'
+    it('la prórroga envía los meses y el documento', async () => {
+      service.createSpecialRequest('15', {
+        requestType: SpecialRequestType.PRORROGA, months: 2, document: pdf('prorroga.pdf')
       }).subscribe();
 
-      tick(900);
+      const req = http.expectOne(`${API}/15/prorroga`);
+      const body = req.request.body as FormData;
+      expect(await leerDatos(body)).toEqual({ meses: 2 });
+      expect((body.get('archivo') as File).name).toBe('prorroga.pdf');
+      req.flush(crearTrabajoEnCurso());
+    });
 
-      const pendingSus = updatedThesisWork?.sustentations?.[0];
-      expect(pendingSus?.status).toBe(SustentationStatus.APLAZADA);
-      expect(pendingSus?.formatEDocument?.status).toBe(stateList.APLAZADO);
+    it.each([
+      [SpecialRequestType.SUSPENSION, 'suspension'],
+      [SpecialRequestType.CANCELACION, 'cancelacion'],
+      [SpecialRequestType.REANUDACION, 'suspension/reanudacion']
+    ] as const)('%s envía solo el documento a %s', (requestType, operacion) => {
+      service.createSpecialRequest('15', { requestType, document: pdf('doc.pdf') }).subscribe();
 
-      const updatedDoc = updatedThesisWork?.documents?.find(d => d.id === 'doc-1');
-      expect(updatedDoc?.status).toBe(stateList.APLAZADO);
-    }));
+      const req = http.expectOne(`${API}/15/${operacion}`);
+      const body = req.request.body as FormData;
+      expect(body.has('datos')).toBe(false);
+      expect((body.get('archivo') as File).name).toBe('doc.pdf');
+      req.flush(crearTrabajoEnCurso());
+    });
 
-    it('debería procesar APROBADO para SUSPENSION con fecha límite', fakeAsync(() => {
-      if (baseThesisWork.specialRequests) {
-        baseThesisWork.specialRequests[0].requestType = SpecialRequestType.SUSPENSION;
-      }
+    it('la reanudación notifica la reactivación a los participantes (sin el Consejo)', () => {
+      service.createSpecialRequest('15', { requestType: SpecialRequestType.REANUDACION, document: pdf('r.pdf') })
+        .subscribe();
+      http.expectOne(`${API}/15/suspension/reanudacion`).flush(crearTrabajoEnCurso());
 
-      let updatedThesisWork: ThesisWork | undefined;
-      storageMock.updateWork.mockImplementation((id: string, updateFn: (w: ThesisWork) => ThesisWork) => {
-        updatedThesisWork = updateFn(baseThesisWork);
-      });
+      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
+        type: AppEventType.THESIS_REACTIVATED, targetUserIds: ['10', '1']
+      }));
+    });
+  });
 
-      const deadline = new Date('2027-01-01');
-      service.evaluateSpecialRequestMock('thesis-1', 'req-1', {
-        status: stateList.APROBADO,
-        resolutionDetails: 'Suspendido temporalmente',
-        grantedDeadline: deadline
+  describe('evaluateSpecialRequest', () => {
+    it.each([
+      [SpecialRequestType.CAMBIO_TITULO, 'cambio-objetivos'],
+      [SpecialRequestType.PRORROGA, 'prorroga'],
+      [SpecialRequestType.SUSPENSION, 'suspension'],
+      [SpecialRequestType.CANCELACION, 'cancelacion']
+    ] as const)('la decisión sobre %s va a %s/decisiones-consejo con la resolución', async (tipo, operacion) => {
+      service.evaluateSpecialRequest('15', solicitud(tipo), {
+        status: stateList.NO_APROBADO, resolutionDetails: ' ', resolution: pdf('resolucion.pdf')
       }).subscribe();
 
-      tick(900);
+      const req = http.expectOne(`${API}/15/${operacion}/decisiones-consejo`);
+      const body = req.request.body as FormData;
+      expect(await leerDatos(body)).toEqual({ resultado: 'NO_APROBADO', observaciones: null });
+      expect((body.get('archivo') as File).name).toBe('resolucion.pdf');
+      req.flush(crearTrabajoEnCurso());
 
-      expect(updatedThesisWork?.state).toBe(stateList.SUSPENDIDO);
-      expect(updatedThesisWork?.preliminaryDraftData?.maximumDeliveryDate).toBe(deadline);
-    }));
+      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
+        type: AppEventType.SPECIAL_REQUEST_RESOLVED,
+        payload: expect.objectContaining({ status: stateList.NO_APROBADO })
+      }));
+    });
 
-    it('debería procesar NO_APROBADO sin mutar el estado global de la tesis', fakeAsync(() => {
-      let updatedThesisWork: ThesisWork | undefined;
-      storageMock.updateWork.mockImplementation((id: string, updateFn: (w: ThesisWork) => ThesisWork) => {
-        updatedThesisWork = updateFn(baseThesisWork);
-      });
-
-      service.evaluateSpecialRequestMock('thesis-1', 'req-1', {
-        status: stateList.NO_APROBADO,
-        resolutionDetails: 'No hay justificación suficiente'
+    it('envía APROBADO con las observaciones', async () => {
+      service.evaluateSpecialRequest('15', solicitud(SpecialRequestType.PRORROGA), {
+        status: stateList.APROBADO, resolutionDetails: 'Procede', resolution: pdf('r.pdf')
       }).subscribe();
+      const req = http.expectOne(`${API}/15/prorroga/decisiones-consejo`);
+      expect(await leerDatos(req.request.body as FormData)).toEqual({ resultado: 'APROBADO', observaciones: 'Procede' });
+      req.flush(crearTrabajoEnCurso());
+    });
 
-      tick(900);
-
-      expect(updatedThesisWork?.state).toBe(stateList.EN_DESARROLLO);
-      expect(updatedThesisWork?.isArchived).toBe(false);
-
-      const updatedReq = updatedThesisWork?.specialRequests?.find(r => r.id === 'req-1');
-      expect(updatedReq?.status).toBe(stateList.NO_APROBADO);
-
-      expect(userServiceMock.removeRolesFromUsersMock).not.toHaveBeenCalled();
-    }));
+    it('la reanudación no la decide el Consejo', () => {
+      expect(() => service.evaluateSpecialRequest('15', solicitud(SpecialRequestType.REANUDACION), {
+        status: stateList.APROBADO, resolutionDetails: '', resolution: pdf('r.pdf')
+      })).toThrow('no la decide el Consejo');
+    });
   });
 });

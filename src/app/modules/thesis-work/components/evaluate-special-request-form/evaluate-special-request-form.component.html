@@ -1,6 +1,7 @@
 <div class="p-6 bg-white rounded-lg w-full">
-  <app-info-banner title="Evaluación de Solicitud Especial" class="mb-6 block">
-    Revise la solicitud especial radicada por el director, seleccione si cumple o no con los requisitos institucionales e ingrese las observaciones correspondientes para completar el registro.
+  <app-info-banner title="Evaluación de solicitud" class="mb-6 block">
+    Revise la solicitud radicada por el director y registre la decisión del Consejo de Facultad con su resolución en PDF.
+    Las fechas que resulten (nuevo plazo de entrega o reanudación) las calcula el sistema según el reglamento.
   </app-info-banner>
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
@@ -25,67 +26,103 @@
   </section>
 
   <section class="mb-10">
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Solicitudes especiales</h3>
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Solicitud</h3>
 
     <div class="flex flex-col gap-6 pl-4">
-      <app-readonly-field label="Solicitud especial" [value]="getRequestType()"></app-readonly-field>
-      <app-readonly-field label="Comentarios" [value]="specialRequest.description"></app-readonly-field>
+      <app-readonly-field label="Tipo de solicitud" [value]="getRequestType()"></app-readonly-field>
+
+      @if (getRequestType() === types.CAMBIO_TITULO) {
+        <app-readonly-field label="Título vigente" [value]="specialRequest.previousTitle ?? ''"></app-readonly-field>
+        <app-readonly-field label="Título propuesto" [value]="specialRequest.proposedTitle ?? ''"></app-readonly-field>
+        <div class="flex flex-col gap-2">
+          <span class="font-display font-semibold text-primary text-size-section">Objetivos propuestos</span>
+          <ol class="list-decimal pl-6 font-sans text-size-body text-[#777680] flex flex-col gap-1">
+            @for (objective of specialRequest.proposedObjectives ?? []; track $index) {
+              <li><span class="font-semibold">{{ $index === 0 ? 'General' : 'Específico' }}:</span> {{ objective }}</li>
+            }
+          </ol>
+        </div>
+        <app-readonly-field label="Justificación" [value]="specialRequest.description"></app-readonly-field>
+      } @else {
+        <app-readonly-field label="Descripción" [value]="specialRequest.description"></app-readonly-field>
+      }
+
+      @for (doc of specialRequest.documents ?? []; track doc.id) {
+        <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+          <div class="flex items-center gap-3 overflow-hidden">
+            <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+            <div class="flex flex-col overflow-hidden">
+              <span class="text-size-body font-bold text-primary truncate">{{ doc.name }}</span>
+              <span class="text-size-role-footer text-[#777680]">Documento de la solicitud</span>
+            </div>
+          </div>
+          <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadDocument.emit(doc)"></app-button-component>
+        </div>
+      }
     </div>
   </section>
 
   <section>
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Resultado de la evaluación</h3>
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Decisión del Consejo de Facultad</h3>
 
-    <div class="pl-4">
-      <div class="flex flex-col sm:flex-row gap-8 mb-6 justify-center">
+    <div class="pl-4 flex flex-col gap-6">
+      <div class="flex flex-col sm:flex-row gap-8 justify-center">
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="verdictSelected() === states.APROBADO" (change)="verdictSelected.set(states.APROBADO)">
-          <span class="text-size-body font-medium text-[#777680]">Cumple con los requisitos</span>
+          <span class="text-size-body font-medium text-[#777680]">Aprobar</span>
         </label>
 
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="verdictSelected() === states.NO_APROBADO" (change)="verdictSelected.set(states.NO_APROBADO)">
-          <span class="text-size-body font-medium text-[#777680]">No cumple con los requisitos</span>
+          <span class="text-size-body font-medium text-[#777680]">No aprobar</span>
         </label>
       </div>
 
-      @if(isSubmitAttempted() && verdictSelected() === null) {
-        <p class="text-size-role-footer text-red-500 mb-4 text-center">Debe seleccionar un resultado para proceder</p>
+      @if (isSubmitAttempted() && verdictSelected() === null) {
+        <p class="text-size-role-footer text-red-500 text-center">Debe seleccionar la decisión para continuar</p>
       }
 
-      @if (requiresNewDeadline()) {
-        <div class="flex flex-col gap-1 max-w-md mx-auto w-full bg-blue-50/50 p-6 rounded-xl border border-blue-100 transition-all shadow-sm mb-6">
-          <label for="newDeadline" class="font-display font-semibold text-size-section text-primary mb-2 flex items-center gap-1">
-            Asignar nueva fecha límite de entrega <span class="text-[#ED7D31]">*</span>
-          </label>
-          <p-datepicker
-            inputId="newDeadline"
-            [ngModel]="grantedDeadline()"
-            (ngModelChange)="grantedDeadline.set($event)"
-            [showIcon]="true"
-            placeholder="Seleccione la nueva fecha límite"
-            styleClass="w-full"
-            [inputStyleClass]="'font-sans font-normal text-size-body p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary ' + ((isSubmitAttempted() && !grantedDeadline()) ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white')">
-          </p-datepicker>
-          @if (isSubmitAttempted() && !grantedDeadline()) {
-            <span class="text-textbox-alert text-xs mt-1">La asignación de la nueva fecha es obligatoria</span>
-          }
-        </div>
-      }
+      <div class="flex flex-col gap-2">
+        <span class="font-display font-semibold text-primary text-size-section">Resolución (PDF) <span class="text-[#ED7D31]">*</span></span>
+        @if (resolution(); as item) {
+          <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+            <div class="flex items-center gap-3 overflow-hidden">
+              <span class="material-symbols-outlined text-primary text-file shrink-0">description</span>
+              <span class="text-size-body font-bold text-primary truncate">{{ item.fileName }}</span>
+            </div>
+            <button type="button" (click)="resolution.set(null)" class="text-[#777680] hover:text-[#DB141C] transition-colors shrink-0" aria-label="Quitar resolución">
+              <span class="material-symbols-outlined">delete</span>
+            </button>
+          </div>
+        } @else {
+          <div class="information-block flex items-center justify-between gap-3 p-4 bg-white border rounded-xl shadow-sm"
+               [class.border-orange-500]="isSubmitAttempted()" [class.border-gray-200]="!isSubmitAttempted()">
+            <span class="text-size-body text-[#777680] font-sans">Adjunte la resolución del Consejo de Facultad.</span>
+            <app-button-component label="Cargar resolución" variant="secondary" type="button" (onClick)="isUploadModalOpen.set(true)"></app-button-component>
+          </div>
+        }
+      </div>
 
       <div class="flex flex-col gap-1">
-        <label for="evalComments" class="font-display font-semibold text-primary text-size-section">Comentarios</label>
+        <label for="evalComments" class="font-display font-semibold text-primary text-size-section">Observaciones (opcional)</label>
         <textarea id="evalComments" rows="4" class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm font-sans resize-none"
-                  placeholder="Ingrese los comentarios y observaciones sobre la evaluación si lo considera necesario"
+                  placeholder="Ingrese las observaciones sobre la decisión si lo considera necesario"
                   (input)="onObservationsChange($event)"></textarea>
       </div>
 
-      <div class="flex justify-end mt-6">
+      <div class="flex justify-end">
         <app-button-component label="Guardar" variant="primary" (onClick)="submit()" [disabled]="isSubmitting"></app-button-component>
       </div>
     </div>
   </section>
 
 </div>
+
+<app-file-upload-modal
+  [isOpen]="isUploadModalOpen()"
+  description="Subir la resolución del Consejo de Facultad (PDF)"
+  (onFileUploaded)="handleResolutionUploaded($event)"
+  (onClose)="isUploadModalOpen.set(false)">
+</app-file-upload-modal>

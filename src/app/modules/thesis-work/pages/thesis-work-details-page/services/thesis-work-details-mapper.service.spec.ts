@@ -133,6 +133,28 @@ describe('ThesisWorkDetailsMapperService', () => {
       expect(result.description).toBe('Sin descripción disponible.');
       expect(result.modality).toBe('No definida');
       expect(result.mainDocument).toBeNull();
+      expect(result.deadlines).toEqual([]);
+    });
+
+    it('incluye las fechas del backend que aplican (las vacías se omiten)', () => {
+      const mockWork = createMockThesisWork({
+        deadlines: {
+          startDate: new Date(2026, 2, 20),
+          maximumDeliveryDate: new Date(2026, 11, 20),
+          minimumSustentationDate: new Date(2026, 5, 20),
+          objectivesChangeDeadline: null,
+          extensionRequestDeadline: new Date(2026, 11, 5)
+        }
+      });
+
+      const result = service.mapToView(mockWork);
+
+      expect(result.deadlines.map(d => [d.label, d.date])).toEqual([
+        ['Inicio del trabajo', new Date(2026, 2, 20)],
+        ['Fecha máxima de entrega', new Date(2026, 11, 20)],
+        ['Sustentación desde', new Date(2026, 5, 20)],
+        ['Límite para solicitar prórroga', new Date(2026, 11, 5)]
+      ]);
     });
   });
 

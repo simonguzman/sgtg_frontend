@@ -20,8 +20,18 @@ export class ThesisWorkDetailsModalResolverService {
     }
   }
 
+  /** Informe mensual con sus observaciones y el resumen de sus revisiones. */
   private resolveAdvance(rowId: string, thesis: ThesisWork): Advance | null {
-    return thesis.advances?.find(advance => advance.id === rowId) ?? null;
+    const advance = thesis.advances?.find(item => item.id === rowId);
+    if (!advance) return null;
+    const parts: string[] = [];
+    if (advance.uploadedBy) parts.push(`Radicado por: ${advance.uploadedBy}`);
+    parts.push(advance.comments ? `Observaciones: ${advance.comments}` : 'Sin observaciones de quien radica.');
+    const reviews = (thesis.evaluations ?? []).filter(evaluation => evaluation.advanceId === advance.id);
+    reviews.forEach(review => parts.push(
+      `Revisión de ${review.evaluatorName} (${formatThesisDate(new Date(review.date))}): ${review.observations || 'ver notas adjuntas'}`
+    ));
+    return { ...advance, comments: parts.join('\n\n') };
   }
 
   private resolveDelivery(rowId: string, thesis: ThesisWork): Advance | null {
@@ -81,11 +91,25 @@ export class ThesisWorkDetailsModalResolverService {
     const request = thesis.specialRequests?.find((r: SpecialRequest) => r.id === rowId);
     if (!request) return null;
 
-    const parts: string[] = [request.description];
-    if (request.resolutionDetails) parts.push(`Resolución del comité: ${request.resolutionDetails}`);
-    if (request.grantedDeadline) {
-      parts.push(`Fecha concedida: ${formatThesisDate(new Date(request.grantedDeadline))}`);
+    const parts: string[] = [];
+    if (request.proposedTitle) {
+      parts.push(`Título propuesto: ${request.proposedTitle}`);
+      (request.proposedObjectives ?? []).forEach((objective, i) =>
+        parts.push(`${i === 0 ? 'Objetivo general' : `Objetivo específico ${i}`}: ${objective}`));
+      parts.push(`Justificación: ${request.description}`);
+    } else {
+      parts.push(request.description);
     }
+    if (request.resolutionDate) {
+      parts.push(`Decisión del Consejo (${formatThesisDate(request.resolutionDate)}): ${request.status}`);
+    }
+    if (request.resolutionDetails) parts.push(`Observaciones del Consejo: ${request.resolutionDetails}`);
+    if (request.grantedDeadline && request.status === stateList.APROBADO) {
+      parts.push(`Reanudación a más tardar: ${formatThesisDate(new Date(request.grantedDeadline))}`);
+    }
+
+    const documents: FileDocument[] = [...(request.documents ?? [])];
+    if (request.resolution) documents.push(request.resolution);
 
     return {
       id: request.id,
@@ -94,7 +118,7 @@ export class ThesisWorkDetailsModalResolverService {
       uploadDate: request.requestDate,
       studentId: request.directorId,
       status: request.status,
-      documents: []
+      documents
     };
   }
 }
