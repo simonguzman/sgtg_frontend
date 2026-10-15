@@ -14,6 +14,8 @@ export interface ThesisEvaluationContext {
   isCodirector: boolean;
   isAdvisor: boolean;
   isJuror: boolean;
+  /** Jurado coordinador de la sesión actual: califica y registra las decisiones */
+  isCoordinator?: boolean;
   isConsejo: boolean;
   latestAdvanceId: string | null;
   isLatestAdvancePending: boolean;

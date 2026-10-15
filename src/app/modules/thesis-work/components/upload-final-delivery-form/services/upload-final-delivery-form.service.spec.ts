@@ -166,7 +166,7 @@ describe('UploadFinalDeliveryFormService', () => {
 
       expect(notificationSpy.show).toHaveBeenCalledWith({
         title: 'Documentos faltantes',
-        message: 'Debe adjuntar obligatoriamente la Monografía, el Formato_E y los Anexos para poder continuar.',
+        message: 'Debe adjuntar la monografía, el formato E, el paz y salvo y, en práctica profesional, el concepto del asesor.',
         type: NotificationType.ERROR
       });
     });

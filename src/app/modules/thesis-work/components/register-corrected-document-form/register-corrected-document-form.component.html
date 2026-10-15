@@ -111,31 +111,23 @@
         }
       </div>
 
-      <!-- Anexos — ahora obligatorios -->
-      <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
-           [class.border]="!uploadedAnnexes() || isSubmitAttempted()"
-           [class.border-[#ED7D31]]="isSubmitAttempted() && !uploadedAnnexes()"
+      <!-- Anexos (opcionales, PDF) -->
+      <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-gray-200 transition-colors"
            [class.border-l-4]="uploadedAnnexes()"
-           [class.border-l-state-approved]="uploadedAnnexes()"
-           [class.border-gray-200]="!uploadedAnnexes() && !isSubmitAttempted()">
+           [class.border-l-state-approved]="uploadedAnnexes()">
         <div class="flex items-center gap-3">
           <span class="material-symbols-outlined text-4xl"
                 [class.text-state-approved]="uploadedAnnexes()"
-                [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedAnnexes()"
-                [class.text-[#777680]]="!uploadedAnnexes() && !isSubmitAttempted()">
+                [class.text-[#777680]]="!uploadedAnnexes()">
             {{ uploadedAnnexes() ? 'folder_zip' : 'folder_open' }}
           </span>
           <div class="flex flex-col">
             <span class="text-size-body font-bold"
                   [class.text-primary]="uploadedAnnexes()"
-                  [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedAnnexes()"
-                  [class.text-[#777680]]="!uploadedAnnexes() && !isSubmitAttempted()">
-              {{ uploadedAnnexes()?.fileName || 'Anexos respectivos' }}
+                  [class.text-[#777680]]="!uploadedAnnexes()">
+              {{ uploadedAnnexes()?.fileName || 'Anexos de los ajustes' }}
             </span>
-            <span class="text-size-role-footer text-[#777680]">Archivos complementarios (Obligatorio - Formato ZIP/PDF)</span>
-            @if (isSubmitAttempted() && !uploadedAnnexes()) {
-              <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span>
-            }
+            <span class="text-size-role-footer text-[#777680]">Archivos complementarios (Opcional - PDF)</span>
           </div>
         </div>
         @if (uploadedAnnexes()) {

@@ -19,7 +19,7 @@ export class RegisterCorrectedDocumentFormComponent {
 
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
-  @Output() onSaveDocuments = new EventEmitter<{ monograph: File; annexes: File }>();
+  @Output() onSaveDocuments = new EventEmitter<{ monograph: File; annexes: File | null }>();
   @Output() onGoBack = new EventEmitter<void>();
 
   readonly uploadedMonograph = signal<{ fileName: string; file: File } | null>(null);
@@ -53,10 +53,10 @@ export class RegisterCorrectedDocumentFormComponent {
     const monograph = this.uploadedMonograph();
     const annexes = this.uploadedAnnexes();
 
-    if (!monograph || !annexes) {
+    if (!monograph) {
       this.formService.notifyMissingDocuments();
       return;
     }
-    this.onSaveDocuments.emit({ monograph: monograph.file, annexes: annexes.file });
+    this.onSaveDocuments.emit({ monograph: monograph.file, annexes: annexes?.file ?? null });
   }
 }

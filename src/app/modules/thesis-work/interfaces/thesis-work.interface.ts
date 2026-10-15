@@ -9,7 +9,7 @@ import { PazYSalvoRegistry } from "./paz-y-salvo-registry.interface";
 import { CorrectedDelivery } from "./corrected-delivery.interface";
 import { SustentationRegistry } from "./sustentation-registry.interface";
 import { SpecialRequest } from "./special-request.interface";
-import { ProcesoApi } from "../../../core/interfaces/api/trabajo-grado-api.interface";
+import { EstadoSustentacionApi, ProcesoApi } from "../../../core/interfaces/api/trabajo-grado-api.interface";
 
 /** Fechas del trabajo en curso calculadas por el backend. */
 export interface ThesisWorkDeadlines {
@@ -23,6 +23,23 @@ export interface ThesisWorkDeadlines {
   objectivesChangeDeadline: Date | null;
   /** Hasta cuándo se puede solicitar la prórroga (null si ya no aplica) */
   extensionRequestDeadline: Date | null;
+}
+
+/** Estado general de la sustentación (desde que el director la solicita). */
+export interface SustentationProcess {
+  state: EstadoSustentacionApi;
+  requestDate: Date | null;
+  /** Fecha límite para radicar los ajustes (aprobada con observaciones) */
+  adjustmentsDeadline: Date | null;
+  /** Fecha límite de la segunda sesión (aplazada) */
+  secondSessionDeadline: Date | null;
+  /** Jurado coordinador y jurados de la sesión actual */
+  coordinatorId: string | null;
+  jurorIds: string[];
+  /** Fecha y hora de la sesión actual */
+  currentSessionDate: Date | null;
+  /** Hay una solicitud de nueva fecha pendiente de decisión del Consejo */
+  hasPendingNewDate: boolean;
 }
 
 export interface ThesisWork extends Archivable {
@@ -42,4 +59,6 @@ export interface ThesisWork extends Archivable {
   /** Etapa del trabajo en el backend (EN_CURSO, PRORROGA, SUSPENDIDO…) */
   stage?: ProcesoApi;
   deadlines?: ThesisWorkDeadlines;
+  /** Sustentación, null hasta que el director la solicita */
+  sustentation?: SustentationProcess | null;
 }

@@ -9,7 +9,14 @@ import { stateList } from '../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SustentationRegistry } from '../../interfaces/sustentation-registry.interface';
-import { SustentationVeredict } from '../../services/thesis-work-sustentation.service';
+
+/** Calificación del coordinador o la inasistencia del estudiante. */
+export type SustentationVeredict =
+  | stateList.APROBADO | stateList.APROBADO_CON_OBSERVACIONES | stateList.NO_APROBADO | stateList.APLAZADO
+  | 'INASISTENCIA';
+
+/** Inasistencia del estudiante: aplaza la primera sesión y cierra el trabajo en la segunda. */
+export const INASISTENCIA = 'INASISTENCIA' as const;
 
 export interface SustentationEvaluationPayload {
   veredict: SustentationVeredict;
@@ -29,7 +36,8 @@ export class EvaluateSustentationFormComponent {
 
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
-  @Output() onSave = new EventEmitter<{ payload: SustentationEvaluationPayload; file: File }>();
+  /** El acta es obligatoria salvo en la inasistencia */
+  @Output() onSave = new EventEmitter<{ payload: SustentationEvaluationPayload; file: File | null }>();
   @Output() onBack = new EventEmitter<void>();
   @Output() onDownloadFile = new EventEmitter<FileDocument>();
 
@@ -40,6 +48,10 @@ export class EvaluateSustentationFormComponent {
   readonly isSubmitAttempted = signal<boolean>(false);
 
   get states(): typeof stateList { return stateList; }
+  protected readonly inasistencia = INASISTENCIA;
+
+  /** La inasistencia no lleva acta, pero sí observaciones */
+  get isNonAttendance(): boolean { return this.verdictSelected() === INASISTENCIA; }
 
   get currentSustentation(): SustentationRegistry | null {
     return this.thesisWork?.sustentations?.[0] ?? null;
@@ -77,11 +89,15 @@ export class EvaluateSustentationFormComponent {
     const fileData = this.uploadedFormat();
 
     if (!verdict) { this.formService.notifyMissingVerdict(); return; }
-    if (!fileData) { this.formService.notifyMissingFile(); return; }
+    if (verdict !== stateList.APROBADO && !this.observations().trim()) {
+      this.formService.notifyMissingObservations();
+      return;
+    }
+    if (!fileData && verdict !== INASISTENCIA) { this.formService.notifyMissingFile(); return; }
 
     this.onSave.emit({
       payload: { veredict: verdict, observations: this.observations(), evaluationDate: new Date() },
-      file: fileData.file
+      file: verdict === INASISTENCIA ? null : fileData!.file
     });
   }
 }

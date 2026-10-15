@@ -232,7 +232,7 @@ describe('ThesisWorkDetailsModalResolverService', () => {
   });
 
   describe('resolvePazYSalvo', () => {
-    it('debe resolver PAZ Y SALVO aprobados y con comentarios académicos', () => {
+    it('debe resolver el PAZ Y SALVO de la solicitud de sustentación', () => {
       const pys = createMockPazYSalvo({
         academicApproved: true,
         academicComments: 'Todo excelente',
@@ -243,13 +243,12 @@ describe('ThesisWorkDetailsModalResolverService', () => {
 
       const result = service.resolve('doc-pys', 'PAZ Y SALVO', thesis);
 
-      expect(result?.comments).toContain('Aprobación Académica: ✅ Sí');
-      expect(result?.comments).toContain('Obs: Todo excelente');
-      expect(result?.comments).toContain('Aprobación Financiera: ✅ Sí');
+      expect(result?.title).toBe('Paz y salvo');
+      expect(result?.comments).toContain('formato F');
       expect(result?.status).toBe(stateList.EN_REVISION);
     });
 
-    it('debe resolver PAZ Y SALVO no aprobados y con comentarios financieros', () => {
+    it('el PAZ Y SALVO se describe como adjunto de la solicitud', () => {
       const pys = createMockPazYSalvo({
         academicApproved: false,
         financialApproved: false,
@@ -260,9 +259,7 @@ describe('ThesisWorkDetailsModalResolverService', () => {
 
       const result = service.resolve('doc-pys-2', 'PAZ Y SALVO', thesis);
 
-      expect(result?.comments).toContain('Aprobación Académica: ❌ No');
-      expect(result?.comments).toContain('Aprobación Financiera: ❌ No');
-      expect(result?.comments).toContain('Obs: Falta pago matrícula');
+      expect(result?.comments).toContain('solicitud de sustentación');
       expect(result?.status).toBe(stateList.NO_APROBADO);
     });
 
@@ -273,13 +270,13 @@ describe('ThesisWorkDetailsModalResolverService', () => {
   });
 
   describe('resolveCorrespondence', () => {
-    it('debe resolver CORRESPONDENCIA respetando su estado original', () => {
+    it('debe resolver la VERSIÓN DEFINITIVA respetando su estado original', () => {
       const doc = createMockFileDocument({ id: 'doc-1', status: stateList.EN_REVISION });
       const thesis = createMockThesisWork({ documents: [doc] });
 
       const result = service.resolve('doc-1', 'CORRESPONDENCIA', thesis);
 
-      expect(result?.title).toBe('Resolución / Correspondencia Final Oficial');
+      expect(result?.title).toBe('Versión definitiva');
       expect(result?.status).toBe(stateList.EN_REVISION);
     });
 

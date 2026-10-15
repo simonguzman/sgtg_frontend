@@ -15,12 +15,19 @@ interface FinalDeliveryTableRow {
   allowedActions: string[];
 }
 
+/** Etapas en las que el director solicita la sustentación. */
+const ETAPAS_DE_SOLICITUD = ['EN_CURSO', 'PRORROGA'];
+
+/**
+ * Entrega final = solicitud de sustentación del director: monografía, formato
+ * E, paz y salvo, concepto del asesor (práctica profesional) y anexos.
+ */
 export const FinalDeliveryTabConfig: TabConfiguration<FinalDeliveryTableRow> = {
   tabValue: 'ENTREGA FINAL',
   headerActionRoute: 'register_final_delivery',
   columns: [
-    { field: 'name', header: 'Nombre del Documento', type: 'text', width: '40%' },
-    { field: 'uploadDate', header: 'Fecha de Carga', type: 'text', width: '20%' },
+    { field: 'name', header: 'Solicitud', type: 'text', width: '40%' },
+    { field: 'uploadDate', header: 'Fecha de solicitud', type: 'text', width: '20%' },
     { field: 'status', header: 'Estado', type: 'state', width: '20%' },
     {
       field: 'acciones', header: 'Acciones', type: 'actions', width: '20%',
@@ -33,78 +40,41 @@ export const FinalDeliveryTabConfig: TabConfiguration<FinalDeliveryTableRow> = {
   enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
-
-    const hasFinalDelivery = thesis.finalDeliveries?.some(
-      (delivery: FinalDelivery) => delivery.status !== stateList.NO_APROBADO
-    ) ?? false;
-
-    const isSuspendedOrCanceled = thesis.state === stateList.SUSPENDIDO || thesis.state === stateList.CANCELADO;
-
-    return { ...baseContext, hasFinalDelivery, isSuspendedOrCanceled };
+    return {
+      ...baseContext,
+      hasFinalDelivery: (thesis.finalDeliveries?.length ?? 0) > 0,
+      isSuspendedOrCanceled: thesis.state === stateList.SUSPENDIDO || thesis.state === stateList.CANCELADO
+    };
   },
 
-  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): FinalDeliveryTableRow[] => {
-    const deliveries = context.thesisWork?.finalDeliveries || [];
-    const isThesisNoAprobado = context.thesisWork?.state === stateList.NO_APROBADO;
-
-    return deliveries.map((delivery: FinalDelivery): FinalDeliveryTableRow => {
-      let formattedDate = 'Sin fecha';
-
-      if (delivery.uploadDate) {
-        formattedDate = typeof delivery.uploadDate === 'string'
-          ? delivery.uploadDate
-          : formatThesisDate(delivery.uploadDate);
-      }
-
-      const currentStatus = isThesisNoAprobado
-        ? stateList.NO_APROBADO
-        : (delivery.status || stateList.EN_REVISION);
-
-      return {
-        id: delivery.id,
-        name: `Entrega Final - ${delivery.monograph?.name || 'Documentación'}`,
-        uploadDate: formattedDate,
-        status: currentStatus,
-        url: '',
-        allowedActions: ['view-details']
-      };
-    });
-  },
+  getTableData: (_documents: FileDocument[], context: ThesisEvaluationContext): FinalDeliveryTableRow[] =>
+    (context.thesisWork?.finalDeliveries ?? []).map((delivery: FinalDelivery): FinalDeliveryTableRow => ({
+      id: delivery.id,
+      name: 'Solicitud de sustentación (monografía, formato E y paz y salvo)',
+      uploadDate: typeof delivery.uploadDate === 'string' ? delivery.uploadDate : formatThesisDate(delivery.uploadDate),
+      status: delivery.status,
+      url: '',
+      allowedActions: ['view-details']
+    })),
 
   getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
-    if (context.isArchived) return [];
-    const buttons: TableButton[] = [];
-    const thesis = context.thesisWork;
-    const hasFinalDelivery = context.hasFinalDelivery ?? false;
-    const isSuspendedOrCanceled = context.isSuspendedOrCanceled ?? false;
-    const isNotApproved = thesis?.state === stateList.NO_APROBADO;
-
-    if (context.isDirector || context.isAdmin) {
-      let buttonLabel = 'Cargar entrega final';
-      let buttonDisabled = false;
-
-      if (hasFinalDelivery) {
-        buttonLabel = 'Entrega final registrada';
-        buttonDisabled = true;
-      }
-      if (isSuspendedOrCanceled || isNotApproved) {
-        buttonDisabled = true;
-      }
-
-      buttons.push({
-        action: 'register_final_delivery',
-        label: buttonLabel,
-        variant: 'primary',
-        disabled: buttonDisabled
-      });
+    if (context.isArchived || !context.isDirector) return [];
+    if (context.hasFinalDelivery) {
+      return [{ action: 'register_final_delivery', label: 'Sustentación solicitada', variant: 'primary', disabled: true }];
     }
-    return buttons;
+    const canRequest = ETAPAS_DE_SOLICITUD.includes(context.thesisWork?.stage ?? '');
+    return [{
+      action: 'register_final_delivery',
+      label: canRequest ? 'Solicitar sustentación' : 'No disponible en esta etapa',
+      variant: 'primary',
+      disabled: !canRequest
+    }];
   },
 
   modalConfig: {
-    uploadDescription: 'Seleccione el archivo PDF oficial de la entrega final (Formato_E)',
-    uploadedByText: 'Director de Trabajo de Grado',
-    confirmDescription: '¿Está seguro de registrar este documento como la entrega final? Se actualizará el flujo del proyecto.',
+    uploadDescription: '',
+    uploadedByText: 'Director del trabajo de grado',
+    confirmDescription: '',
     uploadDocumentType: DocumentType.FORMATO_E
   }
 };

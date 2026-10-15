@@ -4,6 +4,8 @@ import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
+import { SustentationRequestFiles } from '../../../services/thesis-work-sustentation.service';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
 @Injectable({ providedIn: 'root' })
 export class UploadFinalDeliveryFacadeService {
@@ -33,26 +35,28 @@ export class UploadFinalDeliveryFacadeService {
       });
   }
 
+  /** Solicita la sustentación en el backend con los documentos de la entrega final. */
   public processFinalDelivery(
     thesisId: string,
-    files: { monograph: File; formatE: File; annexes?: File },
+    files: SustentationRequestFiles,
     onSuccess: () => void,
     onError: () => void
   ): void {
     this.thesisWorkService
-      .uploadFinalDeliveryMock(thesisId, files.monograph, files.formatE, files.annexes)
+      .requestSustentation(thesisId, files)
       .pipe(first())
       .subscribe({
         next: () => {
           this.showNotification(
-            '¡Entrega Registrada!',
-            'La monografía, el Formato_E y los anexos se han procesado de manera oficial.',
+            'Sustentación solicitada',
+            'La entrega final quedó registrada y el trabajo pasó a sustentación. El Consejo de Facultad la programará.',
             NotificationType.CONFIRMATION
           );
           onSuccess();
         },
-        error: () => {
-          this.showNotification('Error al guardar', 'No se pudo guardar la entrega final.', NotificationType.ERROR);
+        error: (error: unknown) => {
+          this.showNotification('No se pudo solicitar la sustentación',
+            apiErrorMessage(error, 'No se pudo guardar la entrega final.'), NotificationType.ERROR);
           onError();
         }
       });

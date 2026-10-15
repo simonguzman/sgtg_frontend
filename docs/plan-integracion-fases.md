@@ -139,14 +139,19 @@ Se integraron juntas (decisión §6.4). Hecho:
 - Un trabajo **suspendido se puede consultar** (antes se bloqueaba); sus acciones siguen bloqueadas salvo
   el registro de la reanudación.
 
-### Fase 6 — Sustentación
-Mientras tanto (§6.7): las pestañas entrega final, paz y salvo, sustentación y correspondencia, y la
-página de documentos corregidos, muestran lo que trae el backend en **solo lectura**, con las acciones
-deshabilitadas y un aviso de que se habilitan en esta fase.
-
-- Entrega final (director) = `POST /sustentacion` con formato E, paz y salvo (F) y concepto del asesor (PP).
-- Programar (Consejo): jurados, fecha y hora, salón. Calificar (jurado) con acta G; inasistencia.
-- Documentos corregidos = ajustes (director) y verificación (jurado). Correspondencia final = versión definitiva H (jurado).
+### Fase 6 — Sustentación ✅ (2026-10-13)
+Hecho según las decisiones del §7:
+- **Backend:** solicitud con monografía (nueva, obligatoria), formato E, paz y salvo, concepto del asesor (PP) y
+  anexos opcionales; programación multipart con **jurado coordinador**, segundo jurado y **formato E obligatorio**;
+  los evaluadores del anteproyecto no pueden ser jurados del mismo trabajo; roles `JURADO` y `JURADO_COORDINADOR`
+  (nuevo) al programar; **solo el coordinador** califica (acta G obligatoria), registra la inasistencia, verifica los
+  ajustes y carga la versión definitiva; ajustes con anexos; **nueva fecha de sustentación** (`/sustentacion/nueva-fecha`
+  y su decisión del Consejo con la nueva fecha y hora). 382 pruebas; Thunder 199 peticiones.
+- **Front:** la entrega final es la solicitud de sustentación; la pestaña de paz y salvo solo consulta (se eliminó el
+  registro de Decanatura); programar elige coordinador y segundo jurado; la calificación incluye la inasistencia; los
+  ajustes llevan anexos opcionales y la verificación es "cumple / no cumple" sin archivo; "Correspondencia" ahora es
+  "Versión definitiva"; "Nueva fecha de sustentación" es una solicitud especial (el Consejo fija la fecha al aprobar).
+  Se quitó el modo de solo lectura de las pestañas de la fase 6.
 
 ### Fase 7 — Transversales
 - Historial: trabajos en etapas finales (`FINALIZADO`, `NO_APROBADO`, `CANCELADO`) y versiones anteriores del propio trabajo.
@@ -198,3 +203,19 @@ deshabilitadas y un aviso de que se habilitan en esta fase.
 7. **Pestañas de la fase 6**: muestran los datos del backend con las acciones deshabilitadas y un aviso.
 
 Pendientes de decidir en su fase: D (paz y salvo), E (funciones sin equivalente, incluida la anulación), G (notificaciones), H (estadísticas).
+
+## 7. Decisiones del 2026-10-12 (fase 6, pendiente de implementar)
+
+1. **Entrega final = solicitar sustentación** (inquietud D, opción A): el director adjunta el formato E, el paz y salvo (formato F), el concepto del asesor en práctica profesional y anexos opcionales (PDF). La pestaña "Paz y salvo" solo consulta el formato F; Decanatura no participa.
+2. **Programación (Consejo)**: jurados, fecha y hora, salón y el **formato E**, que el backend exigirá como obligatorio. Los evaluadores del anteproyecto **no** pueden ser jurados del mismo trabajo (sí de otros). El backend asigna el rol JURADO al programar y se crea el rol **JURADO_COORDINADOR**.
+3. **Calificación**: la registra solo el **jurado coordinador**, con el acta (formato G) **obligatoria**; el otro jurado solo consulta los archivos del trabajo.
+4. **Inasistencia** (jurado) y **segunda sesión** programada por el Consejo desde la pestaña de sustentación cuando el trabajo está aplazado. Se conserva la solicitud especial **"Nueva fecha de sustentación"**, que se puede hacer antes de la fecha designada (requiere backend).
+5. **Ajustes**: el backend acepta también **anexos en PDF**; las reglas se mantienen.
+6. La pestaña "Correspondencia" se renombra **"Versión definitiva"**.
+7. El jurado ve el trabajo con las pestañas de sustentación, ajustes y versión definitiva; las demás solo las consulta.
+
+Confirmado después (2026-10-12):
+- La monografía y el formato E son **dos PDF** separados.
+- El **Consejo marca, al programar, cuál de los dos jurados es el coordinador**. El coordinador califica, registra la inasistencia, verifica los ajustes y carga la versión definitiva.
+- La **nueva fecha de sustentación la solicita el director y la aprueba el Consejo**; al aprobarse, la sesión se reprograma.
+

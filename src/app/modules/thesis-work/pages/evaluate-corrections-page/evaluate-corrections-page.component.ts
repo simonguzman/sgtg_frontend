@@ -1,7 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
-import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
 import { EvaluateCorrectionsFacadeService } from './services/evaluate-corrections-facade.service';
 import { EvaluateCorrectionsFormComponent } from '../../components/evaluate-corrections-form/evaluate-corrections-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
@@ -21,7 +20,7 @@ export class EvaluateCorrectionsPageComponent implements OnInit {
   readonly thesisWorkState = signal<ThesisWork | null>(null);
   readonly isConfirmModalOpen = signal(false);
   readonly isSubmitting = signal(false);
-  readonly pendingEvaluationData = signal<{ evaluation: Omit<Evaluation, 'id' | 'date'>; file: File } | null>(null);
+  readonly pendingEvaluationData = signal<{ fulfills: boolean; observations: string } | null>(null);
 
   ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
@@ -39,7 +38,7 @@ export class EvaluateCorrectionsPageComponent implements OnInit {
     this.facade.loadThesisWork(id, (thesisWork) => this.thesisWorkState.set(thesisWork), () => this.goBack());
   }
 
-  handleOpenConfirmation(event: { evaluation: Omit<Evaluation, 'id' | 'date'>; file: File }): void {
+  handleOpenConfirmation(event: { fulfills: boolean; observations: string }): void {
     this.pendingEvaluationData.set(event);
     this.isConfirmModalOpen.set(true);
   }
@@ -53,7 +52,7 @@ export class EvaluateCorrectionsPageComponent implements OnInit {
     this.isConfirmModalOpen.set(false);
 
     this.facade.saveEvaluation(
-      thesisId, data.evaluation, data.file,
+      thesisId, data,
       () => { this.isSubmitting.set(false); this.goBack(); },
       () => { this.isSubmitting.set(false); }
     );

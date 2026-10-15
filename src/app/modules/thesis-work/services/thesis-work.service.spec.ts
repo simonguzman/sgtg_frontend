@@ -1,237 +1,98 @@
 import { TestBed } from '@angular/core/testing';
-import { signal, Signal } from '@angular/core';
+import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { ThesisWorkService } from './thesis-work.service';
 import { ThesisWorkStorageService } from './thesis-work-storage.service';
 import { ThesisWorkAdvanceService } from './thesis-work-advance.service';
-import { ThesisWorkDeliveryService } from './thesis-work-delivery.service';
 import { ThesisWorkSpecialRequestService } from './thesis-work-special-request.service';
-import { ThesisWorkSustentationService, SustentationVeredict } from './thesis-work-sustentation.service';
-import { FileDocument } from '../../../core/interfaces/file-document.interface';
-import { Evaluation } from '../../../core/interfaces/evaluation.interface';
-import { stateList } from '../../../core/enums/state.enum';
-import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-import { DocumentType } from '../../../core/enums/document-type.enum';
-import { PazYSalvoPayload } from '../interfaces/paz-y-salvo-playload.interface';
+import { ThesisWorkSustentationService } from './thesis-work-sustentation.service';
 import { SpecialRequestType } from '../enums/special-request-type.enum';
-import { SustentationFormData } from '../interfaces/sustentation-form-data.interface';
-import { ThesisWork } from '../interfaces/thesis-work.interface';
+import { stateList } from '../../../core/enums/state.enum';
 
-interface MockThesisWorkStorageService {
-  thesisWorks: Signal<ThesisWork[]>;
-  allThesisWorks: Signal<ThesisWork[]>;
-  isHydrated: Signal<boolean>;
-  getById: jest.Mock;
-}
+const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/pdf' });
 
-const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
-  id: 'doc-1',
-  name: 'Documento.pdf',
-  url: 'http://mock.url/doc.pdf',
-  uploadDate: new Date().toISOString(),
-  type: DocumentType.PROPUESTA,
-  status: stateList.EN_REVISION,
-  ...overrides
-} as FileDocument);
-
-const createMockEvaluation = (overrides: Partial<Evaluation> = {}): Evaluation => ({
-  id: 'eval-1',
-  proposalId: 'thesis-101',
-  evaluatorId: 'user-1',
-  evaluatorName: 'Dr. Evaluador',
-  evaluatorRole: UserRoleType.EVALUADOR,
-  observations: 'Excelente',
-  veredict: stateList.APROBADO,
-  date: new Date('2026-08-19'),
-  ...overrides
-} as Evaluation);
-
-const createMockSustentationFormData = (overrides: Partial<SustentationFormData> = {}): SustentationFormData => ({
-  location: 'Auditorio A',
-  sustentationDate: '2026-10-10',
-  sustentationTime: '10:00',
-  juror1: 'juror-1',
-  juror2: 'juror-2',
-  formatEDocument: new File([''], 'formatoE.pdf'),
-  ...overrides
-} as SustentationFormData);
-
-describe('ThesisWorkService (Facade)', () => {
+describe('ThesisWorkService (fachada)', () => {
   let service: ThesisWorkService;
-
-  let storageMock: MockThesisWorkStorageService;
-  let advanceMock: jest.Mocked<Partial<ThesisWorkAdvanceService>>;
-  let deliveryMock: jest.Mocked<Partial<ThesisWorkDeliveryService>>;
-  let specialRequestMock: jest.Mocked<Partial<ThesisWorkSpecialRequestService>>;
-  let sustentationMock: jest.Mocked<Partial<ThesisWorkSustentationService>>;
+  let storage: Record<string, unknown> & { getById: jest.Mock };
+  let advance: Record<string, jest.Mock>;
+  let specialRequest: Record<string, jest.Mock>;
+  let sustentation: Record<string, jest.Mock>;
 
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    storageMock = {
-      thesisWorks: signal([]),
-      allThesisWorks: signal([]),
-      isHydrated: signal(true),
-      getById: jest.fn().mockReturnValue(of(undefined))
+    storage = { thesisWorks: signal([]), allThesisWorks: signal([]), isHydrated: signal(true),
+      getById: jest.fn().mockReturnValue(of(undefined)) };
+    const devuelve = () => jest.fn().mockReturnValue(of(undefined));
+    advance = { radicarInforme: devuelve(), revisarInforme: devuelve() };
+    specialRequest = { createSpecialRequest: devuelve(), evaluateSpecialRequest: devuelve() };
+    sustentation = {
+      requestSustentation: devuelve(), scheduleSustentation: devuelve(), gradeSustentation: devuelve(),
+      registerNonAttendance: devuelve(), submitAdjustments: devuelve(), verifyAdjustments: devuelve(),
+      uploadFinalVersion: devuelve()
     };
-
-    advanceMock = {
-      radicarInforme: jest.fn().mockReturnValue(of(undefined)),
-      revisarInforme: jest.fn().mockReturnValue(of(undefined))
-    };
-
-    deliveryMock = {
-      uploadFinalDeliveryMock: jest.fn().mockReturnValue(of(undefined)),
-      uploadCorrectedDocumentsMock: jest.fn().mockReturnValue(of(undefined)),
-      registerCorrespondenceDocumentMock: jest.fn().mockReturnValue(of(undefined)),
-      registerPazYSalvoMock: jest.fn().mockReturnValue(of(undefined))
-    };
-
-    specialRequestMock = {
-      createSpecialRequest: jest.fn().mockReturnValue(of(undefined)),
-      evaluateSpecialRequest: jest.fn().mockReturnValue(of(undefined))
-    };
-
-    sustentationMock = {
-      saveSustentationRegistryMock: jest.fn().mockReturnValue(of(undefined)),
-      registerSustentationVerdictMock: jest.fn().mockReturnValue(of(undefined)),
-      evaluateCorrectedDocumentsMock: jest.fn().mockReturnValue(of(undefined))
-    };
-
     TestBed.configureTestingModule({
       providers: [
         ThesisWorkService,
-        { provide: ThesisWorkStorageService, useValue: storageMock },
-        { provide: ThesisWorkAdvanceService, useValue: advanceMock },
-        { provide: ThesisWorkDeliveryService, useValue: deliveryMock },
-        { provide: ThesisWorkSpecialRequestService, useValue: specialRequestMock },
-        { provide: ThesisWorkSustentationService, useValue: sustentationMock }
+        { provide: ThesisWorkStorageService, useValue: storage },
+        { provide: ThesisWorkAdvanceService, useValue: advance },
+        { provide: ThesisWorkSpecialRequestService, useValue: specialRequest },
+        { provide: ThesisWorkSustentationService, useValue: sustentation }
       ]
     });
-
     service = TestBed.inject(ThesisWorkService);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  it('expone las señales del almacenamiento', () => {
+    expect(service.thesisWorks).toBe(storage['thesisWorks']);
+    expect(service.allThesisWorks).toBe(storage['allThesisWorks']);
+    expect(service.isHydrated).toBe(storage['isHydrated']);
   });
 
-  describe('Inicialización y Propiedades de Estado', () => {
-    it('debe exponer los Signals de almacenamiento expuestos por el StorageService', () => {
-      expect(service.thesisWorks).toBe(storageMock.thesisWorks);
-      expect(service.allThesisWorks).toBe(storageMock.allThesisWorks);
-      expect(service.isHydrated).toBe(storageMock.isHydrated);
-    });
+  it('consulta el trabajo en el almacenamiento (vista del backend)', () => {
+    service.getThesisWorkByIdMock('15');
+    expect(storage.getById).toHaveBeenCalledWith('15');
   });
 
-  describe('Consulta', () => {
-    it('debe delegar getThesisWorkByIdMock al StorageService (vista del backend)', () => {
-      service.getThesisWorkByIdMock('15');
-      expect(storageMock.getById).toHaveBeenCalledWith('15');
-    });
+  it('delega los informes mensuales', () => {
+    const informe = pdf('informe.pdf');
+    service.radicarInforme('15', informe, 'Primer mes');
+    service.revisarInforme('15', '1', 'Ajustar', null);
+    expect(advance['radicarInforme']).toHaveBeenCalledWith('15', informe, 'Primer mes');
+    expect(advance['revisarInforme']).toHaveBeenCalledWith('15', '1', 'Ajustar', null);
   });
 
-  describe('Informes mensuales', () => {
-    it('debe delegar radicarInforme al AdvanceService', () => {
-      const informe = new File([''], 'informe.pdf');
-      service.radicarInforme('15', informe, 'Primer mes');
-      expect(advanceMock.radicarInforme).toHaveBeenCalledWith('15', informe, 'Primer mes');
-    });
-
-    it('debe delegar revisarInforme al AdvanceService', () => {
-      const notas = new File([''], 'notas.pdf');
-      service.revisarInforme('15', '1', 'Ajustar', notas);
-      expect(advanceMock.revisarInforme).toHaveBeenCalledWith('15', '1', 'Ajustar', notas);
-    });
+  it('delega las solicitudes especiales', () => {
+    const solicitud = { requestType: SpecialRequestType.SUSPENSION as const, document: pdf('s.pdf') };
+    const request = { id: 'prorroga-0', directorId: '1', requestType: SpecialRequestType.PRORROGA,
+      requestDate: new Date(), description: '', status: stateList.EN_REVISION as const };
+    const decision = { status: stateList.APROBADO as const, resolutionDetails: '', resolution: pdf('r.pdf') };
+    service.createSpecialRequest('15', solicitud);
+    service.evaluateSpecialRequest('15', request, decision);
+    expect(specialRequest['createSpecialRequest']).toHaveBeenCalledWith('15', solicitud);
+    expect(specialRequest['evaluateSpecialRequest']).toHaveBeenCalledWith('15', request, decision);
   });
 
-  describe('Entregas', () => {
-    it('debe delegar uploadFinalDeliveryMock al DeliveryService', () => {
-      const monograph = new File([''], 'monografia.pdf');
-      const formatE = new File([''], 'formatoE.pdf');
-      const annexes = new File([''], 'anexos.zip');
+  it('delega la sustentación', () => {
+    const files = { monograph: pdf('m.pdf'), formatE: pdf('e.pdf'), pazYSalvo: pdf('f.pdf') };
+    const schedule = { coordinatorId: '30', jurorId: '31', dateTime: '2026-07-15T09:30:00', location: 'Sala 1',
+      formatE: pdf('e.pdf') };
+    const acta = pdf('acta.pdf');
+    const ajustes = pdf('ajustes.pdf');
+    const definitiva = pdf('h.pdf');
 
-      service.uploadFinalDeliveryMock('thesis-101', monograph, formatE, annexes);
-      expect(deliveryMock.uploadFinalDeliveryMock).toHaveBeenCalledWith('thesis-101', monograph, formatE, annexes);
-    });
+    service.requestSustentation('15', files);
+    service.scheduleSustentation('15', schedule);
+    service.gradeSustentation('15', 'APROBADO', '', acta);
+    service.registerNonAttendance('15', 'No se presentó');
+    service.submitAdjustments('15', ajustes, null);
+    service.verifyAdjustments('15', true, '');
+    service.uploadFinalVersion('15', definitiva);
 
-    it('debe delegar uploadCorrectedDocumentsMock al DeliveryService', () => {
-      const monograph = new File([''], 'monografia_v2.pdf');
-      const annexes = new File([''], 'anexos_v2.zip');
-
-      service.uploadCorrectedDocumentsMock('thesis-101', monograph, annexes);
-      expect(deliveryMock.uploadCorrectedDocumentsMock).toHaveBeenCalledWith('thesis-101', monograph, annexes);
-    });
-
-    it('debe delegar registerCorrespondenceDocumentMock al DeliveryService', () => {
-      const doc = createMockFileDocument({ id: 'doc-2', name: 'Oficio.pdf' });
-
-      service.registerCorrespondenceDocumentMock('thesis-101', doc);
-      expect(deliveryMock.registerCorrespondenceDocumentMock).toHaveBeenCalledWith('thesis-101', doc);
-    });
-
-    it('debe delegar registerPazYSalvoMock al DeliveryService', () => {
-      const payload: PazYSalvoPayload = {
-        academicApproved: true,
-        financialApproved: true
-      };
-      const file = new File([''], 'paz_y_salvo.pdf');
-
-      service.registerPazYSalvoMock('thesis-101', payload, file);
-      expect(deliveryMock.registerPazYSalvoMock).toHaveBeenCalledWith('thesis-101', payload, file);
-    });
-  });
-
-  describe('Sustentación', () => {
-    it('debe delegar saveSustentationRegistryMock al SustentationService', () => {
-      const formData = createMockSustentationFormData({ location: 'Auditorio A' });
-
-      service.saveSustentationRegistryMock('thesis-101', formData);
-      expect(sustentationMock.saveSustentationRegistryMock).toHaveBeenCalledWith('thesis-101', formData);
-    });
-
-    it('debe delegar registerSustentationVerdictMock al SustentationService', () => {
-      const payload = {
-        veredict: stateList.APROBADO as SustentationVeredict,
-        observations: 'Aprobado con honores',
-        evaluationDate: new Date('2026-08-19')
-      };
-      const file = new File([''], 'acta.pdf');
-
-      service.registerSustentationVerdictMock('thesis-101', payload, file);
-      expect(sustentationMock.registerSustentationVerdictMock).toHaveBeenCalledWith('thesis-101', payload, file);
-    });
-
-    it('debe delegar evaluateCorrectedDocumentsMock al SustentationService', () => {
-      const evalData: Omit<Evaluation, 'id' | 'date'> = {
-        proposalId: 'thesis-101',
-        evaluatorId: 'user-1',
-        evaluatorName: 'Dr. Evaluador',
-        evaluatorRole: UserRoleType.EVALUADOR,
-        observations: 'Correcciones aprobadas',
-        veredict: stateList.APROBADO
-      };
-      const file = new File([''], 'formatoG.pdf');
-
-      service.evaluateCorrectedDocumentsMock('thesis-101', evalData, file);
-      expect(sustentationMock.evaluateCorrectedDocumentsMock).toHaveBeenCalledWith('thesis-101', evalData, file);
-    });
-  });
-
-  describe('Solicitudes especiales', () => {
-    it('debe delegar createSpecialRequest al SpecialRequestService', () => {
-      const solicitud = { requestType: SpecialRequestType.SUSPENSION as const, document: new File([''], 's.pdf') };
-      service.createSpecialRequest('15', solicitud);
-      expect(specialRequestMock.createSpecialRequest).toHaveBeenCalledWith('15', solicitud);
-    });
-
-    it('debe delegar evaluateSpecialRequest al SpecialRequestService', () => {
-      const request = { id: 'prorroga-0', directorId: '1', requestType: SpecialRequestType.PRORROGA,
-        requestDate: new Date(), description: '', status: stateList.EN_REVISION as const };
-      const decision = { status: stateList.APROBADO as const, resolutionDetails: '', resolution: new File([''], 'r.pdf') };
-      service.evaluateSpecialRequest('15', request, decision);
-      expect(specialRequestMock.evaluateSpecialRequest).toHaveBeenCalledWith('15', request, decision);
-    });
+    expect(sustentation['requestSustentation']).toHaveBeenCalledWith('15', files);
+    expect(sustentation['scheduleSustentation']).toHaveBeenCalledWith('15', schedule);
+    expect(sustentation['gradeSustentation']).toHaveBeenCalledWith('15', 'APROBADO', '', acta);
+    expect(sustentation['registerNonAttendance']).toHaveBeenCalledWith('15', 'No se presentó');
+    expect(sustentation['submitAdjustments']).toHaveBeenCalledWith('15', ajustes, null);
+    expect(sustentation['verifyAdjustments']).toHaveBeenCalledWith('15', true, '');
+    expect(sustentation['uploadFinalVersion']).toHaveBeenCalledWith('15', definitiva);
   });
 });

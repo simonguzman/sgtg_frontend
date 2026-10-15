@@ -4,6 +4,7 @@ import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
 @Injectable({ providedIn: 'root' })
 export class RegisterCorrectedDocumentsFacadeService {
@@ -33,19 +34,21 @@ export class RegisterCorrectedDocumentsFacadeService {
 
   public processCorrectedDocuments(
     thesisId: string,
-    files: { monograph: File; annexes: File },
+    files: { monograph: File; annexes: File | null },
     onSuccess: () => void,
     onError: () => void
   ): void {
-    this.thesisWorkService.uploadCorrectedDocumentsMock(thesisId, files.monograph, files.annexes)
+    this.thesisWorkService.submitAdjustments(thesisId, files.monograph, files.annexes)
       .pipe(first())
       .subscribe({
         next: () => {
-          this.showNotification('¡Documentos Registrados!', 'La monografía corregida ha sido cargada exitosamente.', NotificationType.CONFIRMATION);
+          this.showNotification('Ajustes radicados',
+            'Los ajustes quedaron radicados; el jurado coordinador los verificará.', NotificationType.CONFIRMATION);
           onSuccess();
         },
-        error: () => {
-          this.showNotification('Error al guardar', 'No se pudo guardar la documentación corregida.', NotificationType.ERROR);
+        error: (error: unknown) => {
+          this.showNotification('No se pudieron radicar los ajustes',
+            apiErrorMessage(error, 'No se pudo guardar la documentación corregida.'), NotificationType.ERROR);
           onError();
         }
       });

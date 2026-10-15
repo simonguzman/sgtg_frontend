@@ -172,7 +172,9 @@
 
       <!-- Mensaje informativo -->
       <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-size-body text-[#777680] mb-6">
-        Seleccione el resultado definitivo de la sustentación del trabajo de grado acordado por el cuerpo de jurados. Adicionalmente, registre los comentarios u observaciones obligatorias/recomendadas según corresponda.
+        Como jurado coordinador, registre la calificación de la sesión con el acta (formato G). Las observaciones son
+        obligatorias si no se aprueba. Si el estudiante no se presentó, registre la inasistencia: en la primera sesión
+        la sustentación se aplaza y en la segunda el trabajo queda no aprobado.
       </div>
 
       <div class="flex flex-wrap justify-center gap-6 mb-4">
@@ -199,6 +201,12 @@
                  [checked]="verdictSelected() === states.APLAZADO" (change)="verdictSelected.set(states.APLAZADO)">
           <span class="text-size-body font-medium text-gray-700">Aplazado</span>
         </label>
+
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="verdict" class="w-4 h-4 text-gray-500 focus:ring-gray-500"
+                 [checked]="verdictSelected() === inasistencia" (change)="verdictSelected.set(inasistencia)">
+          <span class="text-size-body font-medium text-gray-700">Inasistencia del estudiante</span>
+        </label>
       </div>
 
       @if (isSubmitAttempted() && verdictSelected() === null) {
@@ -219,8 +227,9 @@
   <hr class="border-gray-200 mb-8">
 
   <!-- ── Carga del acta ─────────────────────────────────────────────────────── -->
+  @if (!isNonAttendance) {
   <section>
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Archivos adjuntos requeridos</h3>
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Acta de sustentación (formato G)</h3>
 
     <div class="flex flex-col gap-4 mb-6">
 
@@ -263,10 +272,12 @@
 
     </div>
 
-    <div class="flex gap-4 justify-end mt-10">
-      <app-button-component label="Registrar Evaluación" variant="primary" (onClick)="submit()" [disabled]="isSubmitting"></app-button-component>
-    </div>
   </section>
+  }
+
+  <div class="flex gap-4 justify-end mt-10">
+    <app-button-component [label]="isNonAttendance ? 'Registrar inasistencia' : 'Registrar calificación'" variant="primary" (onClick)="submit()" [disabled]="isSubmitting"></app-button-component>
+  </div>
 
 </div>
 

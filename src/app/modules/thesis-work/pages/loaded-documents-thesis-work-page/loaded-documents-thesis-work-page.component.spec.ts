@@ -269,8 +269,8 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
       fixture.detectChanges();
 
       setTimeout(() => {
-        expect(breadcrumbSpy.setDynamicBreadcrumb).toHaveBeenCalledWith('Correspondencia');
-        expect(titleSpy.setTitle).toHaveBeenCalledWith('Trabajo de Grado - Correspondencia');
+        expect(breadcrumbSpy.setDynamicBreadcrumb).toHaveBeenCalledWith('Versión definitiva');
+        expect(titleSpy.setTitle).toHaveBeenCalledWith('Trabajo de Grado - Versión definitiva');
         done();
       }, 10);
     });
@@ -413,42 +413,6 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
         'mi_archivo.pdf',
         mockAdvance
       );
-    });
-  });
-
-  describe('Pestañas de la fase 6 (solo lectura)', () => {
-    it('deshabilitan los botones de registro y muestran el aviso', () => {
-      authSpy.hasAnyRole = jest.fn().mockReturnValue(true);
-      thesisWorksSignal.set([createMockThesisWork({ thesisWorkId: 'id-from-child' })]);
-      component.activeTab.set('ENTREGA FINAL');
-      fixture.detectChanges();
-
-      expect(component.isPhase6Tab()).toBe(true);
-      expect(component.currentHeaderButtons().every(button => button.disabled)).toBe(true);
-      expect(fixture.nativeElement.textContent).toContain('Sección en solo lectura');
-    });
-
-    it('solo dejan las acciones de consulta en las filas', () => {
-      component['tabStrategies']['SUSTENTACION'] = {
-        ...component['tabStrategies']['SUSTENTACION'],
-        getTableData: () => [{ id: 's1', allowedActions: ['view_sustentation_details', 'evaluate_sustentation'] }]
-      } as TabConfiguration<unknown>;
-      component.activeTab.set('SUSTENTACION');
-
-      expect(component.currentTableData()).toEqual([{ id: 's1', allowedActions: ['view_sustentation_details'] }]);
-    });
-
-    it('el botón de encabezado no navega', () => {
-      component.activeTab.set('CORRESPONDENCIA');
-      component.handleHeaderButton({ label: 'Registrar', action: 'register_correspondence', variant: 'primary' });
-      expect(routerSpy.navigate).not.toHaveBeenCalled();
-    });
-
-    it('informes mensuales y solicitudes no son de la fase 6', () => {
-      component.activeTab.set('AVANCES');
-      expect(component.isPhase6Tab()).toBe(false);
-      component.activeTab.set('SOLICITUDES');
-      expect(component.isPhase6Tab()).toBe(false);
     });
   });
 

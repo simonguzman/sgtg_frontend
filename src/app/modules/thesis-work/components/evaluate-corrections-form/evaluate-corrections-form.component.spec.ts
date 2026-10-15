@@ -203,15 +203,6 @@ describe('EvaluateCorrectionsFormComponent', () => {
       expect(component.observations()).toBe('Nuevas observaciones');
     });
 
-    it('debería manejar la carga del Formato_G', () => {
-      const mockFile = { fileName: 'acta.pdf', file: new File([''], 'acta.pdf') };
-      component.handleFormatGUploaded(mockFile);
-
-      expect(component.uploadedFormatG()).toEqual(mockFile);
-      expect(component.isModalOpen()).toBe(false);
-      expect(formServiceMock.notifyFileAttached).toHaveBeenCalled();
-    });
-
     it('debería descargar un documento a través del servicio', () => {
       const mockDoc = createMockFileDocument({ id: 'doc-1', name: 'Documento' });
 
@@ -237,8 +228,8 @@ describe('EvaluateCorrectionsFormComponent', () => {
       expect(emitSpy).not.toHaveBeenCalled();
     });
 
-    it('debería bloquear el envío y notificar si las observaciones son inválidas', () => {
-      component.selectedVerdict.set(stateList.APROBADO);
+    it('si no cumplen, las observaciones son obligatorias', () => {
+      component.selectedVerdict.set(stateList.NO_APROBADO);
       component.observations.set('Corto');
       formServiceMock.isObservationsValid.mockReturnValue(false);
 
@@ -248,47 +239,25 @@ describe('EvaluateCorrectionsFormComponent', () => {
       expect(emitSpy).not.toHaveBeenCalled();
     });
 
-    it('debería bloquear el envío y notificar si falta el Formato_G', () => {
+    it('si cumplen, se envía la verificación sin archivo (observaciones opcionales)', () => {
       component.selectedVerdict.set(stateList.APROBADO);
-      component.observations.set('Observaciones válidas y detalladas');
-      formServiceMock.isObservationsValid.mockReturnValue(true);
-      component.uploadedFormatG.set(null);
+      component.observations.set('');
+      formServiceMock.isObservationsValid.mockReturnValue(false);
 
       component.submit();
 
-      expect(formServiceMock.notifyMissingFormatG).toHaveBeenCalled();
-      expect(emitSpy).not.toHaveBeenCalled();
+      expect(emitSpy).toHaveBeenCalledWith({ fulfills: true, observations: '' });
     });
 
-    it('debería emitir el evento de evaluación si todo es válido', () => {
-      const mockFile = new File([''], 'acta.pdf');
-
-      const mockPayload: Omit<Evaluation, 'id' | 'date'> = {
-        documentId: 'doc-1',
-        proposalId: 'prop-1',
-        evaluatorId: 'u-1',
-        evaluatorName: 'Jurado',
-        evaluatorRole: 'JURADO',
-        veredict: stateList.APROBADO,
-        observations: 'Observaciones válidas y detalladas'
-      };
-
-      component.selectedVerdict.set(stateList.APROBADO);
-      component.observations.set('Observaciones válidas y detalladas');
-      component.uploadedFormatG.set({ fileName: 'acta.pdf', file: mockFile });
-
+    it('si no cumplen con observaciones válidas, se envía la verificación', () => {
+      component.selectedVerdict.set(stateList.NO_APROBADO);
+      component.observations.set('No se corrigió el capítulo 3');
       formServiceMock.isObservationsValid.mockReturnValue(true);
-      formServiceMock.buildEvaluationPayload.mockReturnValue(mockPayload);
 
       component.submit();
 
-      expect(formServiceMock.buildEvaluationPayload).toHaveBeenCalledWith(
-        mockThesisWork,
-        stateList.APROBADO,
-        'Observaciones válidas y detalladas',
-        mockThesisWork.correctedDeliveries
-      );
-      expect(emitSpy).toHaveBeenCalledWith({ evaluation: mockPayload, file: mockFile });
+      expect(emitSpy).toHaveBeenCalledWith({ fulfills: false, observations: 'No se corrigió el capítulo 3' });
     });
+
   });
 });

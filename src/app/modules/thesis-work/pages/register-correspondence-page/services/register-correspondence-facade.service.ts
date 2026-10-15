@@ -1,15 +1,10 @@
 import { inject, Injectable } from '@angular/core';
-import { first, switchMap, catchError } from 'rxjs/operators';
-import { from, EMPTY } from 'rxjs';
+import { first } from 'rxjs/operators';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
-import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
-import { DocumentType } from '../../../../../core/enums/document-type.enum';
-import { stateList } from '../../../../../core/enums/state.enum';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
-import { formatThesisDate } from '../../../helpers/thesis-date.helper';
-import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
 
 @Injectable({ providedIn: 'root' })
 export class RegisterCorrespondenceFacadeService {
@@ -34,47 +29,26 @@ export class RegisterCorrespondenceFacadeService {
     });
   }
 
+  /** Carga en el backend la versión definitiva (formato H) del jurado coordinador: el trabajo finaliza. */
   public processCorrespondence(
     thesisWorkId: string,
     file: File,
     onSuccess: () => void,
     onError: () => void
   ): void {
-    from(readFileAsDataUrl(file)).pipe(
-      first(),
-      catchError((err: unknown) => {
-        console.error('Error leyendo el archivo de correspondencia:', err);
-        this.showNotification('Error al leer el archivo', 'No se pudo procesar el documento seleccionado.', NotificationType.ERROR);
-        onError();
-        return EMPTY;
-      }),
-      switchMap((fileUrl: string) => {
-        const finalCorrespondenceDoc: FileDocument = {
-          id: crypto.randomUUID(),
-          name: file.name.replace('.pdf', ''),
-          url: fileUrl,
-          uploadDate: formatThesisDate(),
-          type: DocumentType.FORMATO_H,
-          status: stateList.APROBADO
-        };
-
-        return this.thesisWorkService.registerCorrespondenceDocumentMock(thesisWorkId, finalCorrespondenceDoc).pipe(
-          catchError((err: unknown) => {
-            console.error(err);
-            this.showNotification('Error en guardado', 'No se pudo registrar la correspondencia final.', NotificationType.ERROR);
-            onError();
-            return EMPTY;
-          })
-        );
-      })
-    ).subscribe({
+    this.thesisWorkService.uploadFinalVersion(thesisWorkId, file).pipe(first()).subscribe({
       next: () => {
         this.showNotification(
-          '¡Trabajo de Grado Concluido!',
-          'El formato H ha sido asentado correctamente. El proceso se encuentra formalmente cerrado.',
+          '¡Trabajo de grado finalizado!',
+          'La versión definitiva (formato H) quedó registrada y el trabajo de grado finalizó.',
           NotificationType.CONFIRMATION
         );
         onSuccess();
+      },
+      error: (error: unknown) => {
+        this.showNotification('No se pudo cargar la versión definitiva',
+          apiErrorMessage(error, 'No se pudo registrar la versión definitiva.'), NotificationType.ERROR);
+        onError();
       }
     });
   }

@@ -214,13 +214,15 @@ describe('RegisterCorrectedDocumentFormComponent', () => {
       expect(formServiceMock.notifyMissingDocuments).toHaveBeenCalled();
     });
 
-    it('debería rechazar y notificar error si faltan los anexos', () => {
-      component.uploadedMonograph.set({ fileName: 'mono.pdf', file: new File([''], 'm.pdf') });
+    it('los anexos son opcionales: con solo el documento de ajustes se envía', () => {
+      const monoFile = new File([''], 'm.pdf');
+      component.uploadedMonograph.set({ fileName: 'mono.pdf', file: monoFile });
+      const emitSpy = jest.spyOn(component.onSaveDocuments, 'emit');
 
       component.submit();
 
-      expect(component.isSubmitAttempted()).toBe(true);
-      expect(formServiceMock.notifyMissingDocuments).toHaveBeenCalled();
+      expect(formServiceMock.notifyMissingDocuments).not.toHaveBeenCalled();
+      expect(emitSpy).toHaveBeenCalledWith({ monograph: monoFile, annexes: null });
     });
 
     it('debería emitir onSaveDocuments si todos los archivos requeridos están presentes', () => {

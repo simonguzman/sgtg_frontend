@@ -25,6 +25,11 @@ export class RegisterSustentationFormService {
     juror2: ['', Validators.required]
   });
 
+  /**
+   * Docentes que pueden ser jurados: con rol DOCENTE, EVALUADOR, JURADO o
+   * JURADO_COORDINADOR, que no sean director, codirector, asesor, estudiantes
+   * ni evaluadores del anteproyecto de este trabajo (sí de otros).
+   */
   getEligibleJurors(thesisWork: ThesisWork): User[] {
     const allUsers = this.userService.users();
     if (!thesisWork?.preliminaryDraftData?.proposalData) return [];
@@ -42,12 +47,15 @@ export class RegisterSustentationFormService {
       if (id) forbiddenIds.add(id);
     });
 
+    preliminaryDraftData.evaluators?.forEach(evaluator => forbiddenIds.add(evaluator.id));
     preliminaryDraftData.evaluations?.forEach(evaluation => {
       if (evaluation.evaluatorId) forbiddenIds.add(evaluation.evaluatorId);
     });
 
+    const rolesJurado = [UserRoleType.DOCENTE, UserRoleType.EVALUADOR, UserRoleType.JURADO,
+      UserRoleType.JURADO_COORDINADOR];
     return allUsers.filter(user => {
-      const isDocente  = user.roles?.includes(UserRoleType.DOCENTE);
+      const isDocente  = user.roles?.some(role => rolesJurado.includes(role));
       const isNotParticipant = !forbiddenIds.has(user.id);
       const hasConflictRole  = user.roles?.some(role =>
         role === UserRoleType.JEFE_DEP || role === UserRoleType.CONSEJO
@@ -88,7 +96,7 @@ export class RegisterSustentationFormService {
   notifyIncompleteForm(): void {
     this.notificationService.show({
       title: 'Formulario incompleto',
-      message: 'Debe diligenciar todos los campos y adjuntar el Formato_E.',
+      message: 'Debe indicar la fecha y hora, el salón, el jurado coordinador, el segundo jurado y adjuntar el formato E.',
       type: NotificationType.ERROR
     });
   }

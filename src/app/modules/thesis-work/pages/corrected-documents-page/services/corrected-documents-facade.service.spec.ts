@@ -190,57 +190,31 @@ describe('CorrectedDocumentsFacadeService', () => {
       expect(service.isDirector(thesis)).toBe(false);
     });
 
-    it('isJuror debe retornar true si el usuario actual está en la lista de jurados de la primera sustentación', () => {
-      const thesis = createMockThesisWork();
-      thesis.sustentations = [
-        {
-          id: 'sust-1',
-          sustentationDate: new Date(),
-          location: '',
-          verdicts: [],
-          assignedJurors: [createMockUser({ id: 'user-123' })]
-        }
-      ];
-
-      expect(service.isJuror(thesis)).toBe(true);
-    });
-
-    it('isJuror debe retornar false si no hay sustentaciones o el usuario no está asignado', () => {
-      const thesis = createMockThesisWork();
-      thesis.sustentations = [];
-
-      expect(service.isJuror(thesis)).toBe(false);
-    });
   });
 
-  describe('Permisos (canDirectorUpload, canJurorEvaluate)', () => {
-    it('canDirectorUpload debe retornar false si está archivado o no es director', () => {
-      expect(service.canDirectorUpload(null, false, false)).toBe(false);
-      expect(service.canDirectorUpload(null, true, true)).toBe(false);
+  describe('Permisos según el estado de la sustentación', () => {
+    const conSustentacion = (state: 'EN_AJUSTES' | 'AJUSTES_RADICADOS' | 'APROBADA', coordinatorId = 'user-123') =>
+      createMockThesisWork({ sustentation: { state, requestDate: null, adjustmentsDeadline: null,
+        secondSessionDeadline: null, coordinatorId, jurorIds: [coordinatorId, 'otro'], currentSessionDate: null,
+        hasPendingNewDate: false } });
+
+    it('isJuror es true solo para el jurado coordinador de la sesión actual', () => {
+      expect(service.isJuror(conSustentacion('AJUSTES_RADICADOS'))).toBe(true);
+      expect(service.isJuror(conSustentacion('AJUSTES_RADICADOS', 'otro'))).toBe(false);
+      expect(service.isJuror(createMockThesisWork())).toBe(false);
     });
 
-    it('canDirectorUpload debe retornar true si es director y no hay entregas previas', () => {
-      const thesis = createMockThesisWork({ correctedDeliveries: [] });
-      expect(service.canDirectorUpload(thesis, true, false)).toBe(true);
+    it('el director radica los ajustes solo en EN_AJUSTES', () => {
+      expect(service.canDirectorUpload(conSustentacion('EN_AJUSTES'), true, false)).toBe(true);
+      expect(service.canDirectorUpload(conSustentacion('AJUSTES_RADICADOS'), true, false)).toBe(false);
+      expect(service.canDirectorUpload(conSustentacion('EN_AJUSTES'), false, false)).toBe(false);
+      expect(service.canDirectorUpload(conSustentacion('EN_AJUSTES'), true, true)).toBe(false);
     });
 
-    it('canDirectorUpload debe retornar true si la última entrega fue NO_APROBADO o APLAZADO', () => {
-      const thesis1 = createMockThesisWork({
-        correctedDeliveries: [createMockCorrectedDelivery({ status: stateList.NO_APROBADO })]
-      });
-      expect(service.canDirectorUpload(thesis1, true, false)).toBe(true);
-
-      const thesis2 = createMockThesisWork({
-        correctedDeliveries: [createMockCorrectedDelivery({ status: stateList.APLAZADO })]
-      });
-      expect(service.canDirectorUpload(thesis2, true, false)).toBe(true);
-    });
-
-    it('canJurorEvaluate debe retornar true si es jurado y la última entrega está EN_REVISION', () => {
-      const thesis = createMockThesisWork({
-        correctedDeliveries: [createMockCorrectedDelivery({ status: stateList.EN_REVISION })]
-      });
-      expect(service.canJurorEvaluate(thesis, true, false)).toBe(true);
+    it('el coordinador verifica solo los ajustes radicados', () => {
+      expect(service.canJurorEvaluate(conSustentacion('AJUSTES_RADICADOS'), true, false)).toBe(true);
+      expect(service.canJurorEvaluate(conSustentacion('APROBADA'), true, false)).toBe(false);
+      expect(service.canJurorEvaluate(conSustentacion('AJUSTES_RADICADOS'), false, false)).toBe(false);
     });
   });
 
@@ -257,7 +231,7 @@ describe('CorrectedDocumentsFacadeService', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('del-1');
-      expect(result[0].name).toBe('Paquete de Correcciones Radicado 1');
+      expect(result[0].name).toBe('Ajustes radicados 1');
       expect(result[0].date).toBe('2026-07-28');
       expect(result[0].status).toBe(stateList.APROBADO);
       expect(result[0].rawDelivery).toEqual(delivery);

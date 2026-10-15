@@ -5,9 +5,17 @@ import { FileDownloadService } from '../../../../../core/services/filedownload/f
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
-import { SustentationFormData } from '../../../interfaces/sustentation-form-data.interface';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { SustentationFormPayload } from '../../../components/register-sustentation-form/register-sustentation-form.component';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+
+/** Fecha del selector como fecha y hora local del backend, ej. `2026-07-15T14:00:00`. */
+export function fechaHoraLocal(valor: string | Date): string {
+  const fecha = valor instanceof Date ? valor : new Date(valor);
+  const dos = (n: number) => String(n).padStart(2, '0');
+  return `${fecha.getFullYear()}-${dos(fecha.getMonth() + 1)}-${dos(fecha.getDate())}`
+    + `T${dos(fecha.getHours())}:${dos(fecha.getMinutes())}:00`;
+}
 
 @Injectable({ providedIn: 'root' })
 export class RegisterSustentationFacadeService {
@@ -38,6 +46,7 @@ export class RegisterSustentationFacadeService {
       });
   }
 
+  /** Programa la sesión en el backend: jurado coordinador (juror1), segundo jurado, fecha y hora, salón y formato E. */
   public processSustentation(
     thesisId: string,
     payload: SustentationFormPayload,
@@ -45,21 +54,26 @@ export class RegisterSustentationFacadeService {
     onSuccess: () => void,
     onError: () => void
   ): void {
-    const requestData: SustentationFormData = { ...payload, formatEDocument: file };
-
-    this.thesisWorkService.saveSustentationRegistryMock(thesisId, requestData)
+    this.thesisWorkService.scheduleSustentation(thesisId, {
+      coordinatorId: payload.juror1,
+      jurorId: payload.juror2,
+      dateTime: fechaHoraLocal(payload.sustentationDate),
+      location: payload.location,
+      formatE: file
+    })
       .pipe(first())
       .subscribe({
         next: () => {
           this.showNotification(
-            'Sustentación Agendada',
-            'Se han asignado los jurados y la programación oficial correctamente.',
+            'Sustentación programada',
+            'Se asignaron el jurado coordinador, el segundo jurado y la fecha de la sesión.',
             NotificationType.CONFIRMATION
           );
           onSuccess();
         },
-        error: () => {
-          this.showNotification('Error', 'Fallo al procesar el agendamiento.', NotificationType.ERROR);
+        error: (error: unknown) => {
+          this.showNotification('No se pudo programar la sustentación',
+            apiErrorMessage(error, 'Falló el registro de la programación.'), NotificationType.ERROR);
           onError();
         }
       });

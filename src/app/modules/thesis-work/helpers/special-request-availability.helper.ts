@@ -11,6 +11,8 @@ import { ThesisWork } from '../interfaces/thesis-work.interface';
  * - Prórroga: en curso y una sola vez.
  * - Suspensión: en curso o en prórroga, sin una pendiente y solo si no se aprobó antes.
  * - Reanudación: solo si está suspendido.
+ * - Nueva fecha de sustentación: con la sesión programada y sin otra pendiente (antes de la
+ *   fecha designada; la fecha la valida el backend).
  * - Cancelación: mientras no esté cerrado y sin una pendiente.
  */
 export function availableRequestTypes(thesis: ThesisWork): SpecialRequestType[] {
@@ -34,6 +36,10 @@ export function availableRequestTypes(thesis: ThesisWork): SpecialRequestType[] 
     types.push(SpecialRequestType.SUSPENSION);
   }
   if (stage === 'SUSPENDIDO') types.push(SpecialRequestType.REANUDACION);
+  const sustentation = thesis.sustentation;
+  if (stage === 'SUSTENTACION' && sustentation?.state === 'PROGRAMADA' && !sustentation.hasPendingNewDate) {
+    types.push(SpecialRequestType.NUEVA_SUSTENTACION);
+  }
   if (!pending(SpecialRequestType.CANCELACION)) types.push(SpecialRequestType.CANCELACION);
   return types;
 }

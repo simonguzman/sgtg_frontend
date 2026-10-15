@@ -1,5 +1,4 @@
 import { Component, computed, EventEmitter, inject, Input, Output, signal } from '@angular/core';
-import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
@@ -8,14 +7,13 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { CorrectedDelivery } from '../../interfaces/corrected-delivery.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
-import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
 
 @Component({
   selector: 'app-evaluate-corrections-form',
   templateUrl: './evaluate-corrections-form.component.html',
   styleUrls: ['./evaluate-corrections-form.component.css'],
   standalone: true,
-  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent, ReadonlyFieldComponent],
+  imports: [ButtonComponent, InfoBannerComponent, ReadonlyFieldComponent],
   providers: [EvaluateCorrectionsFormService]
 })
 export class EvaluateCorrectionsFormComponent {
@@ -23,13 +21,12 @@ export class EvaluateCorrectionsFormComponent {
 
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
-  @Output() onSubmitEvaluation = new EventEmitter<{ evaluation: Omit<Evaluation, 'id' | 'date'>; file: File }>();
+  /** Verificación del coordinador: si los ajustes cumplen y sus observaciones (obligatorias si no cumplen) */
+  @Output() onSubmitEvaluation = new EventEmitter<{ fulfills: boolean; observations: string }>();
   @Output() onGoBack = new EventEmitter<void>();
 
   readonly selectedVerdict = signal<stateList | null>(null);
   readonly observations = signal<string>('');
-  readonly uploadedFormatG = signal<{ fileName: string; file: File } | null>(null);
-  readonly isModalOpen = signal<boolean>(false);
   readonly isSubmitAttempted = signal<boolean>(false);
 
   get states(): typeof stateList { return stateList; }
@@ -52,27 +49,16 @@ export class EvaluateCorrectionsFormComponent {
     this.observations.set((event.target as HTMLTextAreaElement).value);
   }
 
-  handleFormatGUploaded(event: { fileName: string; file: File }): void {
-    this.uploadedFormatG.set(event);
-    this.isModalOpen.set(false);
-    this.formService.notifyFileAttached();
-  }
-
   submit(): void {
     this.isSubmitAttempted.set(true);
     const verdict = this.selectedVerdict();
 
     if (!verdict) { this.formService.notifyMissingVerdict(); return; }
-    if (!this.formService.isObservationsValid(this.observations())) {
+    const fulfills = verdict === stateList.APROBADO;
+    if (!fulfills && !this.formService.isObservationsValid(this.observations())) {
       this.formService.notifyInvalidObservations();
       return;
     }
-    const fileData = this.uploadedFormatG();
-    if (!fileData) { this.formService.notifyMissingFormatG(); return; }
-
-    const evaluation = this.formService.buildEvaluationPayload(
-      this.thesisWork, verdict, this.observations(), this.correctedDeliveriesList()
-    );
-    this.onSubmitEvaluation.emit({ evaluation, file: fileData.file });
+    this.onSubmitEvaluation.emit({ fulfills, observations: this.observations() });
   }
 }

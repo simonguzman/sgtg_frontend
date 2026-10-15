@@ -1,325 +1,150 @@
-import { TestBed, fakeAsync, tick, flushMicrotasks } from '@angular/core/testing';
-import { signal, WritableSignal } from '@angular/core';
-import { of, throwError } from 'rxjs';
-
-jest.mock('../../../core/utils/file-reader.utils', () => ({
-  readFileAsDataUrl: jest.fn()
-}));
-jest.mock('../helpers/thesis-date.helper', () => ({
-  formatThesisDate: jest.fn()
-}));
-jest.mock('../helpers/thesis-participants.helper', () => ({
-  collectParticipantIds: jest.fn()
-}));
-
-import { readFileAsDataUrl } from '../../../core/utils/file-reader.utils';
-import { formatThesisDate } from '../helpers/thesis-date.helper';
-import { collectParticipantIds } from '../helpers/thesis-participants.helper';
-import { ThesisWorkSustentationService, SustentationVeredict } from './thesis-work-sustentation.service';
-import { ThesisWorkStorageService } from './thesis-work-storage.service';
-import { UserService } from '../../users/services/user.service';
-import { AuthService } from '../../../core/services/auth/auth.service';
+import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { ThesisWorkSustentationService } from './thesis-work-sustentation.service';
 import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
+import { UserService } from '../../users/services/user.service';
+import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
-import { stateList } from '../../../core/enums/state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-import { DocumentType } from '../../../core/enums/document-type.enum';
-import { User } from '../../users/interfaces/user.interface';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
-import { SustentationFormData } from '../interfaces/sustentation-form-data.interface';
-import { Evaluation } from '../../../core/interfaces/evaluation.interface';
-import { IdentificationType } from '../../users/enum/identification-type.enum';
-import { UserState } from '../../users/enum/user-state.enum';
-import { PreliminaryDraft } from '../../preliminary-draft/interfaces/preliminary-draft.interface';
+import {
+  crearTrabajoEnAnteproyecto, crearTrabajoEnSustentacion
+} from '../../../testing/trabajo-grado-de-prueba';
 
-interface MockUserService {
-  addRoleToUser: jest.Mock;
-  users: WritableSignal<User[]>;
-  removeRolesFromUsersMock: jest.Mock;
-}
+const API = '/api/v1/sgtg/trabajos-grado';
 
-interface MockAuthService {
-  currentUser: WritableSignal<User | null>;
-}
+const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/pdf' });
 
-interface MockThesisWorkStorageService {
-  updateWork: jest.Mock;
-}
+/** Lee el JSON de la parte `datos` de un multipart. */
+const leerDatos = (body: FormData): Promise<unknown> => new Promise((resolve, reject) => {
+  const lector = new FileReader();
+  lector.onload = () => resolve(JSON.parse(lector.result as string));
+  lector.onerror = reject;
+  lector.readAsText(body.get('datos') as Blob);
+});
 
-interface MockEventBusService {
-  emit: jest.Mock;
-}
-
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'u-1',
-  idType: IdentificationType.CC,
-  idNumber: 123456789,
-  firstName: 'Juan',
-  secondName: '',
-  lastName: 'Perez',
-  secondLastName: '',
-  codeNumber: 1234567890,
-  email: 'juan@test.com',
-  password: 'hash',
-  state: UserState.active,
-  roles: [],
-  ...overrides
-} as User);
-
-const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => ({
-  thesisWorkId: 'thesis-1',
-  preliminaryDraftId: 'draft-1',
-  state: stateList.EN_DESARROLLO,
-  createdDate: new Date(),
-  isArchived: false,
-  documents: [{ id: 'doc-1', name: 'doc', url: 'url', type: DocumentType.FORMATO_E, uploadDate: new Date(), status: stateList.EN_REVISION }],
-  sustentations: [{ id: 'sust-1', assignedJurors: [createMockUser({ id: 'juror-1' })], verdicts: [] }],
-  correctedDeliveries: [],
-  preliminaryDraftData: {
-    preliminaryDraftId: 'draft-1',
-    proposalId: 'prop-1',
-    state: stateList.APROBADO,
-    createdData: new Date(),
-    evaluators: [createMockUser({ id: 'eval-1' })],
-    proposalData: { title: 'Título de Prueba' } as any
-  } as PreliminaryDraft,
-  ...overrides
-} as ThesisWork);
+/** Nombre del archivo de cada parte (sin `datos`). */
+const nombres = (body: FormData) => {
+  const partes: Record<string, string> = {};
+  body.forEach((archivo, parte) => { if (parte !== 'datos') partes[parte] = (archivo as File).name; });
+  return partes;
+};
 
 describe('ThesisWorkSustentationService', () => {
   let service: ThesisWorkSustentationService;
-
-  let storageSpy: MockThesisWorkStorageService;
-  let userSpy: MockUserService;
-  let authSpy: MockAuthService;
-  let eventBusSpy: MockEventBusService;
-  let removeRolesSpy: jest.Mock;
-
-  let mutableMockThesis: ThesisWork;
+  let http: HttpTestingController;
+  let eventBus: { emit: jest.Mock };
 
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    mutableMockThesis = createMockThesisWork();
-
-    storageSpy = {
-      updateWork: jest.fn().mockImplementation((id: string, mutator: (work: ThesisWork) => ThesisWork) => {
-        mutableMockThesis = mutator(mutableMockThesis);
-      })
-    };
-
-    removeRolesSpy = jest.fn().mockReturnValue(of(undefined));
-
-    userSpy = {
-      addRoleToUser: jest.fn().mockReturnValue(of(undefined)),
-      users: signal([
-        createMockUser({ id: 'juror-1' }),
-        createMockUser({ id: 'juror-2' }),
-        createMockUser({ id: 'consejo-1', roles: [UserRoleType.CONSEJO] })
-      ]),
-      removeRolesFromUsersMock: removeRolesSpy
-    };
-
-    authSpy = {
-      currentUser: signal(createMockUser({ id: 'juror-1' }))
-    };
-
-    eventBusSpy = {
-      emit: jest.fn()
-    };
-
+    localStorage.clear();
+    eventBus = { emit: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
-        ThesisWorkSustentationService,
-        { provide: ThesisWorkStorageService, useValue: storageSpy },
-        { provide: UserService, useValue: userSpy },
-        { provide: AuthService, useValue: authSpy },
-        { provide: EventBusService, useValue: eventBusSpy }
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: EventBusService, useValue: eventBus },
+        { provide: UserService, useValue: { users: signal([{ id: '50', roles: [UserRoleType.CONSEJO] }]) } }
       ]
     });
-
     service = TestBed.inject(ThesisWorkSustentationService);
-
-    (readFileAsDataUrl as jest.Mock).mockResolvedValue('data:application/pdf;base64,mockFile');
-    (formatThesisDate as jest.Mock).mockReturnValue('2026-08-19');
-    (collectParticipantIds as jest.Mock).mockReturnValue(['student-1']);
+    http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  afterEach(() => http.verify());
 
-  describe('saveSustentationRegistryMock', () => {
-    it('debe construir el documento, asignar roles a jurados, actualizar storage y emitir evento', fakeAsync(() => {
-      const mockFile = new File([''], 'formatoE.pdf', { type: 'application/pdf' });
-      const formData: SustentationFormData = {
-        formatEDocument: mockFile,
-        juror1: 'juror-1',
-        juror2: 'juror-2',
-        sustentationDate: '2026-09-01',
-        sustentationTime: '10:00',
-        location: 'Auditorio'
-      };
+  it('la solicitud de sustentación envía monografía, formato E, paz y salvo, concepto y anexos', () => {
+    let resultado: ThesisWork | undefined;
+    service.requestSustentation('15', {
+      monograph: pdf('monografia.pdf'), formatE: pdf('formato-e.pdf'), pazYSalvo: pdf('paz.pdf'),
+      advisorConcept: null, annexes: pdf('anexos.pdf')
+    }).subscribe(t => resultado = t);
 
-      interface FileDocumentMock {
-        id: string;
-        name: string;
-        url: string;
-        uploadDate: string;
-        type: DocumentType;
-        status: stateList;
-      }
+    const req = http.expectOne(`${API}/15/sustentacion`);
+    const body = req.request.body as FormData;
+    expect(body.has('datos')).toBe(false);
+    expect(nombres(body)).toEqual({
+      monografia: 'monografia.pdf', documentoFinal: 'formato-e.pdf', pazYSalvo: 'paz.pdf', anexos: 'anexos.pdf'
+    });
+    req.flush(crearTrabajoEnSustentacion({ estado: 'SOLICITADA', sesiones: [] }));
 
-      const serviceExposed = service as unknown as {
-        buildSustentationFormatEDocument: (file: unknown, dateStr: string) => Promise<FileDocumentMock>
-      };
-
-      jest.spyOn(serviceExposed, 'buildSustentationFormatEDocument').mockResolvedValue({
-        id: 'mock-doc-id',
-        name: 'formatoE.pdf',
-        url: 'data:application/pdf;base64,mockFile',
-        uploadDate: '2026-08-19',
-        type: DocumentType.FORMATO_E,
-        status: stateList.EN_REVISION
-      });
-
-      let completed = false;
-
-      service.saveSustentationRegistryMock('thesis-1', formData).subscribe({
-        next: () => completed = true,
-        error: (err) => { throw err; }
-      });
-
-      flushMicrotasks();
-      tick(1000);
-
-      expect(completed).toBe(true);
-      expect(userSpy.addRoleToUser).toHaveBeenCalledWith('juror-1', UserRoleType.JURADO);
-      expect(userSpy.addRoleToUser).toHaveBeenCalledWith('juror-2', UserRoleType.JURADO);
-
-      expect(storageSpy.updateWork).toHaveBeenCalledWith('thesis-1', expect.any(Function));
-
-      expect(eventBusSpy.emit).toHaveBeenCalledWith(expect.objectContaining({
-        type: AppEventType.THESIS_SUSTENTATION_PROGRAMMED,
-        targetUserIds: expect.arrayContaining(['student-1', 'juror-1', 'juror-2'])
-      }));
+    expect(resultado?.sustentation?.state).toBe('SOLICITADA');
+    expect(TestBed.inject(TrabajoGradoStoreService).porId().get('15')?.etapa).toBe('SUSTENTACION');
+    expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
+      type: AppEventType.THESIS_FINAL_DELIVERY_UPLOADED, targetUserIds: ['10', '1', '50']
     }));
   });
 
-  describe('registerSustentationVerdictMock', () => {
-    it('debe registrar el veredicto (APROBADO), actualizar storage y no limpiar roles', fakeAsync(() => {
-      const mockFile = new File([''], 'veredicto.pdf', { type: 'application/pdf' });
+  it('la programación envía coordinador, jurado, fecha y hora, salón y el formato E', async () => {
+    service.scheduleSustentation('15', {
+      coordinatorId: '30', jurorId: '31', dateTime: '2026-07-15T09:30:00', location: 'Sala 1',
+      formatE: pdf('formato-e.pdf')
+    }).subscribe();
 
-      const payload: { veredict: SustentationVeredict; observations: string; evaluationDate: Date } = {
-        veredict: stateList.APROBADO,
-        observations: 'Excelente',
-        evaluationDate: new Date()
-      };
+    const req = http.expectOne(`${API}/15/sustentacion/programacion`);
+    const body = req.request.body as FormData;
+    expect(await leerDatos(body)).toEqual({
+      juradoCoordinadorId: 30, juradoId: 31, fechaHora: '2026-07-15T09:30:00', salon: 'Sala 1'
+    });
+    expect(nombres(body)).toEqual({ archivo: 'formato-e.pdf' });
+    req.flush(crearTrabajoEnSustentacion());
 
-      let completed = false;
-      service.registerSustentationVerdictMock('thesis-1', payload, mockFile).subscribe({
-        next: () => completed = true,
-        error: (err) => { throw err; }
-      });
-
-      flushMicrotasks();
-      tick(1000);
-
-      expect(completed).toBe(true);
-      expect(readFileAsDataUrl).toHaveBeenCalledWith(mockFile);
-      expect(storageSpy.updateWork).toHaveBeenCalled();
-
-      expect(eventBusSpy.emit).toHaveBeenCalledWith(expect.objectContaining({
-        type: AppEventType.THESIS_VERDICT_REGISTERED,
-        payload: expect.objectContaining({ veredict: stateList.APROBADO })
-      }));
-
-      expect(removeRolesSpy).not.toHaveBeenCalled();
-    }));
-
-    it('debe registrar veredicto (NO_APROBADO), archivar tesis y limpiar roles de jurados/evaluadores', fakeAsync(() => {
-      const mockFile = new File([''], 'veredicto_malo.pdf');
-
-      const payload: { veredict: SustentationVeredict; observations: string; evaluationDate: Date } = {
-        veredict: stateList.NO_APROBADO,
-        observations: 'Debe repetir',
-        evaluationDate: new Date()
-      };
-
-      let completed = false;
-      service.registerSustentationVerdictMock('thesis-1', payload, mockFile).subscribe({
-        next: () => completed = true,
-        error: (err) => { throw err; }
-      });
-
-      flushMicrotasks();
-      tick(1000);
-
-      expect(completed).toBe(true);
-      expect(removeRolesSpy).toHaveBeenCalledTimes(2);
-      expect(removeRolesSpy).toHaveBeenCalledWith(['eval-1'], [UserRoleType.EVALUADOR]);
-      expect(removeRolesSpy).toHaveBeenCalledWith(['juror-1'], [UserRoleType.JURADO]);
-    }));
-
-    it('debe capturar el error si la limpieza de roles falla, sin romper el flujo principal', fakeAsync(() => {
-      const mockFile = new File([''], 'veredicto_malo.pdf');
-
-      const payload: { veredict: SustentationVeredict; observations: string; evaluationDate: Date } = {
-        veredict: stateList.NO_APROBADO,
-        observations: 'Falla red',
-        evaluationDate: new Date()
-      };
-
-      removeRolesSpy.mockReturnValue(throwError(() => new Error('Error de red')));
-
-      let completed = false;
-      service.registerSustentationVerdictMock('thesis-1', payload, mockFile).subscribe({
-        next: () => completed = true,
-        error: (err) => { throw err; }
-      });
-
-      flushMicrotasks();
-      tick(1000);
-
-      expect(completed).toBe(true);
-      expect(console.error).toHaveBeenCalledWith(
-        'Error al limpiar roles tras el veredicto de sustentación:',
-        expect.any(Error)
-      );
+    expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
+      type: AppEventType.THESIS_SUSTENTATION_PROGRAMMED,
+      targetUserIds: expect.arrayContaining(['10', '1', '30', '31'])
     }));
   });
 
-  describe('evaluateCorrectedDocumentsMock', () => {
-    it('debe actualizar documentos corregidos, asignar estado final y emitir evento', fakeAsync(() => {
-      const mockFile = new File([''], 'formatoG.pdf', { type: 'application/pdf' });
+  it('la calificación del coordinador va con el acta', async () => {
+    service.gradeSustentation('15', 'APROBADO_CON_OBSERVACIONES', 'Ajustar', pdf('acta.pdf')).subscribe();
+    const req = http.expectOne(`${API}/15/sustentacion/calificaciones`);
+    expect(await leerDatos(req.request.body as FormData))
+      .toEqual({ calificacion: 'APROBADO_CON_OBSERVACIONES', observaciones: 'Ajustar' });
+    expect(nombres(req.request.body as FormData)).toEqual({ archivo: 'acta.pdf' });
+    req.flush(crearTrabajoEnSustentacion({ estado: 'EN_AJUSTES' }));
+  });
 
-      const payload: Omit<Evaluation, 'id' | 'date'> = {
-        proposalId: 'prop-1',
-        evaluatorId: 'juror-1',
-        evaluatorName: 'Nombre Jurado',
-        evaluatorRole: UserRoleType.JURADO,
-        veredict: stateList.APROBADO,
-        observations: 'Correcciones aceptadas'
-      };
+  it('la inasistencia se registra con observaciones (JSON)', () => {
+    service.registerNonAttendance('15', ' No se presentó ').subscribe();
+    const req = http.expectOne(`${API}/15/sustentacion/inasistencia`);
+    expect(req.request.body).toEqual({ observaciones: 'No se presentó' });
+    req.flush(crearTrabajoEnSustentacion({ estado: 'APLAZADA' }, { etapa: 'APLAZADO' }));
+  });
 
-      let completed = false;
-      service.evaluateCorrectedDocumentsMock('thesis-1', payload, mockFile).subscribe({
-        next: () => completed = true,
-        error: (err) => { throw err; }
-      });
+  it('los ajustes del director van con anexos opcionales', () => {
+    service.submitAdjustments('15', pdf('ajustes.pdf'), null).subscribe();
+    const req = http.expectOne(`${API}/15/sustentacion/ajustes`);
+    expect(nombres(req.request.body as FormData)).toEqual({ archivo: 'ajustes.pdf' });
+    req.flush(crearTrabajoEnSustentacion({ estado: 'AJUSTES_RADICADOS' }));
+  });
 
-      flushMicrotasks();
-      tick(1200);
+  it('la verificación del coordinador indica si cumplen', () => {
+    service.verifyAdjustments('15', false, 'Falta el capítulo 3').subscribe();
+    const req = http.expectOne(`${API}/15/sustentacion/ajustes/verificaciones`);
+    expect(req.request.body).toEqual({ cumple: false, observaciones: 'Falta el capítulo 3' });
+    req.flush(crearTrabajoEnSustentacion({ estado: 'APLAZADA' }));
+  });
 
-      expect(completed).toBe(true);
-      expect(readFileAsDataUrl).toHaveBeenCalledWith(mockFile);
-      expect(storageSpy.updateWork).toHaveBeenCalled();
+  it('la versión definitiva del coordinador finaliza el trabajo', () => {
+    let resultado: ThesisWork | undefined;
+    service.uploadFinalVersion('15', pdf('definitiva.pdf')).subscribe(t => resultado = t);
+    http.expectOne(`${API}/15/sustentacion/version-definitiva`).flush(crearTrabajoEnSustentacion({
+      estado: 'FINALIZADA', rutaVersionDefinitiva: '15/TI-H/v1/definitiva.pdf', fechaVersionDefinitiva: '2026-07-25'
+    }, { etapa: 'FINALIZADO' }));
+    expect(resultado?.isArchived).toBe(true);
+  });
 
-      expect(eventBusSpy.emit).toHaveBeenCalledWith(expect.objectContaining({
-        type: AppEventType.THESIS_CORRECTED_DOCUMENTS_EVALUATED,
-        payload: expect.objectContaining({ veredict: stateList.APROBADO })
-      }));
-    }));
+  it('si el backend rechaza no emite eventos; si la respuesta no está en curso, falla', () => {
+    let error: unknown;
+    service.registerNonAttendance('15', 'x').subscribe({ error: e => error = e });
+    http.expectOne(`${API}/15/sustentacion/inasistencia`)
+      .flush({ message: 'Solo el jurado coordinador' }, { status: 406, statusText: 'Not Acceptable' });
+    expect(error).toBeTruthy();
+    expect(eventBus.emit).not.toHaveBeenCalled();
+
+    service.uploadFinalVersion('15', pdf('d.pdf')).subscribe({ error: e => error = e });
+    http.expectOne(`${API}/15/sustentacion/version-definitiva`).flush(crearTrabajoEnAnteproyecto());
+    expect(error).toEqual(new Error('El trabajo de grado no está en curso.'));
   });
 });

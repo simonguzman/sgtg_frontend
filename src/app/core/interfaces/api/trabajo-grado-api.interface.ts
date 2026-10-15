@@ -183,12 +183,29 @@ export interface EjecucionApi {
   suspensiones: SuspensionApi[];
 }
 
+/** Sesión de sustentación: el primer jurado es el coordinador (califica y registra las decisiones). */
 export interface SesionSustentacionApi {
   numero: number;
   jurados: EvaluadorApi[];
+  juradoCoordinadorId: number;
   fechaHora: string;
   salon: string;
   fechaProgramacion: string;
+  /** Formato E que adjuntó el Consejo al programar */
+  rutaFormatoE: string | null;
+}
+
+/** Solicitud del director de una nueva fecha para la sesión, que decide el Consejo. */
+export interface SolicitudNuevaFechaApi {
+  sesion: number;
+  rutaSolicitud: string;
+  fechaSolicitud: string;
+  /** Fecha y hora de la sesión al solicitar */
+  fechaHoraAnterior: string;
+  decision: DecisionApi | null;
+  /** Fecha y hora aprobadas, null si no se aprobó */
+  nuevaFechaHora: string | null;
+  nuevoSalon: string | null;
 }
 
 export interface CalificacionJuradoApi {
@@ -212,15 +229,21 @@ export interface RegistroJuradoApi {
 
 export interface SustentacionApi {
   estado: EstadoSustentacionApi;
+  /** Monografía que acompaña al formato E */
+  rutaMonografia: string | null;
+  /** Documento final (formato E) */
   rutaDocumentoFinal: string;
   rutaPazYSalvo: string;
   rutaConceptoAsesor: string | null;
+  rutaAnexos: string | null;
   fechaSolicitud: string;
   sesiones: SesionSustentacionApi[];
+  solicitudesNuevaFecha: SolicitudNuevaFechaApi[];
   calificaciones: CalificacionJuradoApi[];
   inasistencias: RegistroJuradoApi[];
   verificaciones: RegistroJuradoApi[];
   rutaAjustes: string | null;
+  rutaAnexosAjustes: string | null;
   fechaAjustes: string | null;
   fechaLimiteAjustes: string | null;
   fechaLimiteSegundaSesion: string | null;

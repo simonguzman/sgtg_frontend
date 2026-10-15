@@ -179,7 +179,7 @@ describe('UploadFinalDeliveryPageComponent', () => {
 
   describe('Interacciones (handleRequestConfirmation / goBack)', () => {
     it('handleRequestConfirmation debería guardar los archivos en pendiente y abrir el modal', () => {
-      const mockFiles = { monograph: new File([''], 'm.pdf'), formatE: new File([''], 'e.pdf') };
+      const mockFiles = { monograph: new File([''], 'm.pdf'), formatE: new File([''], 'e.pdf'), pazYSalvo: new File([''], 'f.pdf') };
 
       component.handleRequestConfirmation(mockFiles);
 
@@ -197,7 +197,7 @@ describe('UploadFinalDeliveryPageComponent', () => {
   });
 
   describe('Envío y Procesamiento (processFinalDelivery)', () => {
-    const mockFiles = { monograph: new File([''], 'm.pdf'), formatE: new File([''], 'e.pdf') };
+    const mockFiles = { monograph: new File([''], 'm.pdf'), formatE: new File([''], 'e.pdf'), pazYSalvo: new File([''], 'f.pdf') };
 
     beforeEach(() => {
       component.thesisWorkState.set(mockThesisWork);

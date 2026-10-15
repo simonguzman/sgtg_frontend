@@ -1,8 +1,8 @@
 <div class="p-6 bg-white rounded-lg w-full">
 
   <app-info-banner title="Evaluación de Documentos Corregidos" class="mb-6 block">
-    Revise los documentos corregidos radicados por el equipo del proyecto, emita el veredicto definitivo
-    y adjunte el <strong>Formato_G firmado</strong> para completar el proceso de evaluación de correcciones.
+    Como <strong>jurado coordinador</strong>, revise los ajustes radicados por el director e indique si
+    <strong>cumplen</strong>. Si no cumplen, la sustentación se aplaza (o, en la segunda sesión, no se aprueba).
   </app-info-banner>
 
   <section class="mb-10">
@@ -80,21 +80,20 @@
          [class.border-blue-100]="!(isSubmitAttempted() && selectedVerdict() === null)">
 
       <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-size-body text-[#777680] mb-6">
-        Seleccione el resultado definitivo de la evaluación de las correcciones acordado por el cuerpo de jurados.
-        Adicionalmente, registre los comentarios u observaciones obligatorias/recomendadas según corresponda.
+        Indique si los ajustes cumplen. Las observaciones son obligatorias si no cumplen.
       </div>
 
       <div class="flex flex-wrap justify-center gap-8 mb-4">
         <label class="flex items-center gap-2 cursor-pointer group">
           <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="selectedVerdict() === states.APROBADO" (change)="selectedVerdict.set(states.APROBADO)">
-          <span class="text-size-body font-medium text-gray-700 group-hover:text-primary transition-colors">Aprobado</span>
+          <span class="text-size-body font-medium text-gray-700 group-hover:text-primary transition-colors">Cumple</span>
         </label>
 
         <label class="flex items-center gap-2 cursor-pointer group">
           <input type="radio" name="verdict" class="w-4 h-4 text-red-500 focus:ring-red-500"
                  [checked]="selectedVerdict() === states.NO_APROBADO" (change)="selectedVerdict.set(states.NO_APROBADO)">
-          <span class="text-size-body font-medium text-gray-700 group-hover:text-red-500 transition-colors">No Aprobado</span>
+          <span class="text-size-body font-medium text-gray-700 group-hover:text-red-500 transition-colors">No cumple</span>
         </label>
       </div>
 
@@ -106,62 +105,19 @@
         <label for="evalObservations" class="font-display font-semibold text-primary text-size-section">Observaciones y comentarios descriptivos</label>
         <textarea id="evalObservations" rows="4"
                    class="p-3 border rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
-                   [class.border-[#ED7D31]]="isSubmitAttempted() && observations().trim().length < 10"
-                   [class.border-gray-200]="!(isSubmitAttempted() && observations().trim().length < 10)"
+                   [class.border-[#ED7D31]]="isSubmitAttempted() && selectedVerdict() === states.NO_APROBADO && observations().trim().length < 10"
+                   [class.border-gray-200]="!(isSubmitAttempted() && selectedVerdict() === states.NO_APROBADO && observations().trim().length < 10)"
                    placeholder="Ingrese el desglose detallado de las razones del veredicto o los ajustes exigidos al estudiante..."
                    [value]="observations()"
                    (input)="onObservationsChange($event)"></textarea>
-        @if (isSubmitAttempted() && observations().trim().length < 10) {
+        @if (isSubmitAttempted() && selectedVerdict() === states.NO_APROBADO && observations().trim().length < 10) {
           <span class="text-size-role-footer text-textbox-alert mt-1">Debe ingresar una justificación detallada (mínimo 10 caracteres)</span>
         }
       </div>
     </div>
   </section>
 
-  <hr class="border-gray-200 mb-8">
-
   <section>
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Archivos adjuntos requeridos</h3>
-
-    <div class="flex flex-col gap-4 mb-6">
-      <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
-           [class.border]="!uploadedFormatG() || isSubmitAttempted()"
-           [class.border-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatG()"
-           [class.border-l-4]="uploadedFormatG()"
-           [class.border-l-state-approved]="uploadedFormatG()"
-           [class.border-gray-200]="!uploadedFormatG() && !isSubmitAttempted()">
-        <div class="flex items-center gap-3">
-          <span class="material-symbols-outlined text-4xl"
-                [class.text-state-approved]="uploadedFormatG()"
-                [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatG()"
-                [class.text-[#777680]]="!uploadedFormatG() && !isSubmitAttempted()">
-            {{ uploadedFormatG() ? 'task' : 'picture_as_pdf' }}
-          </span>
-          <div class="flex flex-col">
-            <span class="text-size-body font-bold"
-                  [class.text-primary]="uploadedFormatG()"
-                  [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatG()">
-              {{ uploadedFormatG()?.fileName || 'Formato_G - Acta de Evaluación' }}
-            </span>
-            <span class="text-size-role-footer text-[#777680]">
-              {{ uploadedFormatG() ? 'Formato_G cargado con éxito.' : 'No ha sido cargado ningún archivo. Debe adjuntar el Formato_G firmado con el resultado de la evaluación.' }}
-            </span>
-            @if (isSubmitAttempted() && !uploadedFormatG()) {
-              <span class="text-size-role-footer text-textbox-alert mt-1">Este documento es estrictamente obligatorio</span>
-            }
-          </div>
-        </div>
-
-        @if (uploadedFormatG()) {
-          <button type="button" (click)="uploadedFormatG.set(null)" class="text-[#777680] hover:text-[#DB141C] transition-colors">
-            <span class="material-symbols-outlined">delete</span>
-          </button>
-        } @else {
-          <app-button-component label="Cargar Formato_G" variant="secondary" (onClick)="isModalOpen.set(true)"></app-button-component>
-        }
-      </div>
-    </div>
-
     <div class="flex gap-4 justify-end mt-10">
       <app-button-component label="Registrar Evaluación" variant="primary" (onClick)="submit()" [disabled]="isSubmitting"></app-button-component>
     </div>
@@ -169,9 +125,3 @@
 
 </div>
 
-<app-file-upload-modal
-  [isOpen]="isModalOpen()"
-  description="Subir Formato_G de Evaluación de Correcciones firmado (PDF)"
-  (onFileUploaded)="handleFormatGUploaded($event)"
-  (onClose)="isModalOpen.set(false)">
-</app-file-upload-modal>

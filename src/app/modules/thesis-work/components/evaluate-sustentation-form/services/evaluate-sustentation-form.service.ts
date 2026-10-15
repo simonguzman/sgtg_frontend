@@ -45,6 +45,14 @@ export class EvaluateSustentationFormService {
     });
   }
 
+  notifyMissingObservations(): void {
+    this.notificationService.show({
+      title: 'Observaciones requeridas',
+      message: 'Las observaciones son obligatorias si la sustentación no se aprueba o se registra la inasistencia.',
+      type: NotificationType.ERROR
+    });
+  }
+
   notifyMissingFile(): void {
     this.notificationService.show({
       title: 'Formato faltante',

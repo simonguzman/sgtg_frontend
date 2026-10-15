@@ -21,13 +21,18 @@ export type SpecialRequestSubmission =
   | { requestType: SpecialRequestType.PRORROGA; months: number; document: File }
   | { requestType: SpecialRequestType.SUSPENSION; document: File }
   | { requestType: SpecialRequestType.REANUDACION; document: File }
-  | { requestType: SpecialRequestType.CANCELACION; document: File };
+  | { requestType: SpecialRequestType.CANCELACION; document: File }
+  | { requestType: SpecialRequestType.NUEVA_SUSTENTACION; document: File };
 
 /** Decisión del Consejo de Facultad sobre una solicitud, con la resolución (obligatoria). */
 export interface SpecialRequestDecision {
   status: stateList.APROBADO | stateList.NO_APROBADO;
   resolutionDetails: string;
   resolution: File;
+  /** Nueva fecha de sustentación: fecha y hora aprobadas (ej. `2026-07-21T09:00:00`) */
+  newDateTime?: string;
+  /** Nueva fecha de sustentación: salón, si cambia */
+  newLocation?: string;
 }
 
 /** Ruta en el backend de cada solicitud que decide el Consejo (la reanudación no se decide). */
@@ -35,7 +40,8 @@ const OPERACIONES: Partial<Record<SpecialRequestType, string>> = {
   [SpecialRequestType.CAMBIO_TITULO]: 'cambio-objetivos',
   [SpecialRequestType.PRORROGA]: 'prorroga',
   [SpecialRequestType.SUSPENSION]: 'suspension',
-  [SpecialRequestType.CANCELACION]: 'cancelacion'
+  [SpecialRequestType.CANCELACION]: 'cancelacion',
+  [SpecialRequestType.NUEVA_SUSTENTACION]: 'sustentacion/nueva-fecha'
 };
 
 /**
@@ -78,8 +84,13 @@ export class ThesisWorkSpecialRequestService {
     const operacion = OPERACIONES[request.requestType];
     if (!operacion) throw new Error(`La solicitud de tipo ${request.requestType} no la decide el Consejo.`);
     const resultado = decision.status === stateList.APROBADO ? 'APROBADO' : 'NO_APROBADO';
-    return this.api.enviarArchivos(thesisWorkId, `${operacion}/decisiones-consejo`,
-      { resultado, observaciones: decision.resolutionDetails.trim() || null }, { archivo: decision.resolution }).pipe(
+    const datos: Record<string, unknown> = { resultado, observaciones: decision.resolutionDetails.trim() || null };
+    if (request.requestType === SpecialRequestType.NUEVA_SUSTENTACION && decision.status === stateList.APROBADO) {
+      datos['fechaHora'] = decision.newDateTime;
+      datos['salon'] = decision.newLocation?.trim() || null;
+    }
+    return this.api.enviarArchivos(thesisWorkId, `${operacion}/decisiones-consejo`, datos,
+      { archivo: decision.resolution }).pipe(
       tap(trabajo => this.store.upsert(trabajo)),
       map(trabajo => this.vista(trabajo)),
       tap(thesisWork => this.eventBus.emit({
@@ -109,6 +120,8 @@ export class ThesisWorkSpecialRequestService {
         return this.api.enviarArchivos(id, 'suspension/reanudacion', null, { archivo: solicitud.document });
       case SpecialRequestType.CANCELACION:
         return this.api.enviarArchivos(id, 'cancelacion', null, { archivo: solicitud.document });
+      case SpecialRequestType.NUEVA_SUSTENTACION:
+        return this.api.enviarArchivos(id, 'sustentacion/nueva-fecha', null, { archivo: solicitud.document });
     }
   }
 

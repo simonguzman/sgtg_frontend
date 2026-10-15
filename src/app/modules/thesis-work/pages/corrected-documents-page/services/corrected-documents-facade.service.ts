@@ -29,33 +29,27 @@ export class CorrectedDocumentsFacadeService {
     return thesisWork?.preliminaryDraftData?.proposalData?.director?.id === user?.id;
   }
 
+  /** true si el usuario es el jurado coordinador de la sesión actual (verifica los ajustes). */
   isJuror(thesisWork: ThesisWork | null): boolean {
     const user = this.authService.currentUser();
-    if (!thesisWork?.sustentations?.[0] || !user) return false;
-    return thesisWork.sustentations[0].assignedJurors?.some(juror => juror.id === user.id) ?? false;
+    return !!user && thesisWork?.sustentation?.coordinatorId === user.id;
   }
 
+  /** El director radica los ajustes mientras la sustentación está aprobada con observaciones (10 días hábiles). */
   canDirectorUpload(thesisWork: ThesisWork | null, isDirector: boolean, isArchived: boolean): boolean {
-    if (isArchived || !isDirector) return false;
-    const deliveries = thesisWork?.correctedDeliveries ?? [];
-    if (deliveries.length === 0) return true;
-    const latestStatus = deliveries[0].status ?? deliveries[0].monograph?.status;
-    return latestStatus === stateList.NO_APROBADO || latestStatus === stateList.APLAZADO;
+    return !isArchived && isDirector && thesisWork?.sustentation?.state === 'EN_AJUSTES';
   }
 
+  /** El jurado coordinador verifica los ajustes radicados. */
   canJurorEvaluate(thesisWork: ThesisWork | null, isJuror: boolean, isArchived: boolean): boolean {
-    if (isArchived || !isJuror) return false;
-    const deliveries = thesisWork?.correctedDeliveries ?? [];
-    if (deliveries.length === 0) return true;
-    const latestStatus = deliveries[0].status ?? deliveries[0].monograph?.status;
-    return latestStatus === stateList.EN_REVISION;
+    return !isArchived && isJuror && thesisWork?.sustentation?.state === 'AJUSTES_RADICADOS';
   }
 
   buildTableData(thesisWork: ThesisWork | null): CorrectedDeliveryTableRow[] {
     if (!thesisWork?.correctedDeliveries) return [];
     return thesisWork.correctedDeliveries.map((delivery, index) => ({
       id: delivery.id,
-      name: `Paquete de Correcciones Radicado ${index + 1}`,
+      name: `Ajustes radicados ${index + 1}`,
       date: delivery.uploadDate ?? 'Sin fecha',
       status: delivery.status ?? delivery.monograph?.status ?? stateList.EN_REVISION,
       allowedActions: ['view-details'],

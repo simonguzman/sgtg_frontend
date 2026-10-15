@@ -16,7 +16,6 @@ import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcru
 import { ThesisParticipantsFormatterService } from '../../services/thesis-participants-formatter.service';
 import { TabsComponent } from '../../../../shared/components/tabs/tabs.component';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
-import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
 import { Advance } from '../../interfaces/advance.interface';
 import { User } from '../../../users/interfaces/user.interface';
@@ -24,8 +23,6 @@ import { LoadedDocumentsThesisWorkFacadeService } from './services/loaded-docume
 import { ThesisWorkDetailsModalResolverService } from './services/thesis-work-details-modal-resolver.service';
 import { ensureDate } from '../../helpers/thesis-date.helper';
 import {
-  PHASE_6_READONLY_ACTIONS,
-  PHASE_6_TABS,
   THESIS_TABS_CONFIG,
   TAB_MODAL_HEADERS,
   TAB_MODAL_SUBTITLES
@@ -36,7 +33,6 @@ import {
   templateUrl: './loaded-documents-thesis-work-page.component.html',
   styleUrls: ['./loaded-documents-thesis-work-page.component.css'],
   imports: [
-    InfoBannerComponent,
     TableComponent,
     TabsComponent,
     RegisterInformationModalComponent
@@ -123,9 +119,8 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       isDirector: thesis?.preliminaryDraftData?.proposalData?.director?.id   === user?.id,
       isCodirector: thesis?.preliminaryDraftData?.proposalData?.codirector?.id === user?.id,
       isAdvisor: thesis?.preliminaryDraftData?.proposalData?.advisor?.id     === user?.id,
-      isJuror: thesis?.sustentations?.[0]?.assignedJurors?.some(
-        (juror: User) => juror.id === user?.id
-      ) ?? false,
+      isJuror: thesis?.sustentation?.jurorIds.includes(user?.id ?? '') ?? false,
+      isCoordinator: !!user && thesis?.sustentation?.coordinatorId === user.id,
       latestAdvanceId: null,
       isLatestAdvancePending: false,
       isArchived: thesis?.isArchived ?? false
@@ -134,31 +129,16 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     return this.currentStrategy().enrichEvaluationContext(baseContext);
   });
 
-  /**
-   * true en las pestañas de la fase 6 (entrega final, paz y salvo,
-   * sustentación, correspondencia): muestran lo que trae el backend, pero sus
-   * acciones se habilitan cuando se integre esa fase.
-   */
-  readonly isPhase6Tab = computed(() => PHASE_6_TABS.includes(this.activeTab()));
-
   readonly currentColumns = computed(() => this.currentStrategy().columns);
-  readonly currentHeaderButtons = computed<TableButton[]>(() => {
-    const buttons = this.currentStrategy().getHeaderButtons(this.evaluationContext());
-    return this.isPhase6Tab() ? buttons.map(button => ({ ...button, disabled: true })) : buttons;
-  });
+  readonly currentHeaderButtons = computed<TableButton[]>(() =>
+    this.currentStrategy().getHeaderButtons(this.evaluationContext()));
 
   readonly currentTableData = computed(() => {
     const context = this.evaluationContext();
     const thesis = context.thesisWork;
     if (!thesis) return [];
     const docs = this.activeTab() === 'AVANCES' ? [] : (thesis.documents ?? []);
-    const rows = this.currentStrategy().getTableData(docs, context) as Record<string, unknown>[];
-    if (!this.isPhase6Tab()) return rows;
-    return rows.map(row => ({
-      ...row,
-      allowedActions: ((row['allowedActions'] as string[] | undefined) ?? [])
-        .filter(action => PHASE_6_READONLY_ACTIONS.includes(action))
-    }));
+    return this.currentStrategy().getTableData(docs, context) as Record<string, unknown>[];
   });
 
   readonly selectedAdvanceDocuments = computed<string[]>(() =>
@@ -194,7 +174,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   );
 
   handleHeaderButton(_button: TableButton): void {
-    if (this.isPhase6Tab()) return;
     const routePath = this.currentStrategy().headerActionRoute;
     if (routePath) this.router.navigate([routePath], { relativeTo: this.route.parent });
   }

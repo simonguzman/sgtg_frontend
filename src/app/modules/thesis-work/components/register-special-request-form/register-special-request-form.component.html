@@ -102,6 +102,14 @@
             }
           </div>
         }
+        @case (types.NUEVA_SUSTENTACION) {
+          @if (thesisWork.sustentation?.currentSessionDate) {
+            <p class="text-size-role-footer text-[#777680]">
+              La sesión está programada para el {{ thesisWork.sustentation?.currentSessionDate | date:'dd/MM/yyyy HH:mm' }}.
+              La nueva fecha se solicita antes de esa fecha y la fija el Consejo de Facultad si la aprueba.
+            </p>
+          }
+        }
         @case (types.PRORROGA) {
           @if (thesisWork.deadlines?.extensionRequestDeadline) {
             <p class="text-size-role-footer text-[#777680]">

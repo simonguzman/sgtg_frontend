@@ -13,12 +13,13 @@ interface CorrespondenceTableRow {
   url: string;
 }
 
+/** Versión definitiva (formato H): la carga el jurado coordinador cuando la sustentación está aprobada. */
 export const CorrespondenceTabConfig: TabConfiguration<CorrespondenceTableRow> = {
   tabValue: 'CORRESPONDENCIA',
   headerActionRoute: 'register_correspondence',
   columns: [
-    { field: 'name', header: 'Documento / Resolución Final', type: 'text', width: '50%' },
-    { field: 'date', header: 'Fecha de Registro', type: 'text', width: '30%' },
+    { field: 'name', header: 'Versión definitiva', type: 'text', width: '50%' },
+    { field: 'date', header: 'Fecha de registro', type: 'text', width: '30%' },
     { field: 'status', header: 'Estado', type: 'state', width: '20%' },
     {
       field: 'acciones', header: 'Acciones', type: 'actions', width: '20%',
@@ -31,52 +32,39 @@ export const CorrespondenceTabConfig: TabConfiguration<CorrespondenceTableRow> =
   enrichEvaluationContext: (baseContext: ThesisEvaluationContext): ThesisEvaluationContext => {
     const thesis = baseContext.thesisWork;
     if (!thesis) return baseContext;
-
     const hasCorrespondence = thesis.documents?.some(
       (document: FileDocument) => document.type === DocumentType.FORMATO_H
     ) ?? false;
-
     return { ...baseContext, hasCorrespondence };
   },
 
-  getTableData: (documents: FileDocument[], context: ThesisEvaluationContext): CorrespondenceTableRow[] => {
-    if (!documents) return [];
-
-    const correspondenceDocs = documents.filter(
-      (document: FileDocument) => document.type === DocumentType.FORMATO_H
-    );
-
-    return correspondenceDocs.map((document): CorrespondenceTableRow => ({
-      id: document.id,
-      name: document.name,
-      date: document.uploadDate || 'Sin fecha',
-      status: document.status || stateList.APROBADO,
-      allowedActions: ['view-details'],
-      url: document.url
-    }));
-  },
+  getTableData: (documents: FileDocument[]): CorrespondenceTableRow[] =>
+    (documents ?? [])
+      .filter((document: FileDocument) => document.type === DocumentType.FORMATO_H)
+      .map((document): CorrespondenceTableRow => ({
+        id: document.id,
+        name: document.name,
+        date: document.uploadDate || 'Sin fecha',
+        status: document.status || stateList.APROBADO,
+        allowedActions: ['view-details'],
+        url: document.url
+      })),
 
   getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
-    const buttons: TableButton[] = [];
-    const { isJuror, hasCorrespondence, isArchived } = context;
-
-    if (isArchived) return buttons;
-
-    if (isJuror) {
-      buttons.push({
-        action: 'register_correspondence',
-        label: hasCorrespondence ? 'Correspondencia Registrada' : 'Registrar Correspondencia',
-        variant: 'primary',
-        disabled: !!hasCorrespondence
-      });
-    }
-    return buttons;
+    if (context.isArchived || !context.isCoordinator) return [];
+    const approved = context.thesisWork?.sustentation?.state === 'APROBADA';
+    return [{
+      action: 'register_correspondence',
+      label: approved ? 'Cargar versión definitiva' : 'Disponible al aprobarse la sustentación',
+      variant: 'primary',
+      disabled: !approved
+    }];
   },
 
   modalConfig: {
-    uploadDescription: 'Subir documento oficial de correspondencia o resolución de consejo.',
-    uploadedByText: 'Cargado por el Jurado evaluador',
-    confirmDescription: '¿Está seguro de que desea registrar este documento oficial de correspondencia?',
+    uploadDescription: '',
+    uploadedByText: 'Jurado coordinador',
+    confirmDescription: '',
     uploadDocumentType: DocumentType.FORMATO_H
   }
 };

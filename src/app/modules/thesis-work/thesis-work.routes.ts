@@ -9,7 +9,6 @@ import { LoadedDocumentsThesisWorkPageComponent } from './pages/loaded-documents
 import { UploadAdvancePageComponent } from './pages/upload-advance-page/upload-advance-page.component';
 import { EvaluateAdvancePageComponent } from './pages/evaluate-advance-page/evaluate-advance-page.component';
 import { UploadFinalDeliveryPageComponent } from './pages/upload-final-delivery-page/upload-final-delivery-page.component';
-import { RegisterPazYSalvoPageComponent } from './pages/register-paz-y-salvo-page/register-paz-y-salvo-page.component';
 import { RegisterSustentationPageComponent } from './pages/register-sustentation-page/register-sustentation-page.component';
 import { EvaluateSustentationPageComponent } from './pages/evaluate-sustentation-page/evaluate-sustentation-page.component';
 import { SustentationDetailsPageComponent } from './pages/sustentation-details-page/sustentation-details-page.component';
@@ -111,29 +110,19 @@ export const thesisWorkRoutes: Routes = [
             path: 'register_final_delivery',
             component: UploadFinalDeliveryPageComponent,
             canActivate: [roleGuard, thesisRestrictedStatusGuard],
-            title: 'Registrar entrega final',
+            title: 'Solicitar sustentación',
             data: {
-              breadcrumb: 'Registrar entrega final',
+              breadcrumb: 'Solicitar sustentación',
               roles: [UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR]
-            }
-          },
-          {
-            path: 'register_paz_y_salvo',
-            component: RegisterPazYSalvoPageComponent,
-            canActivate: [roleGuard, thesisRestrictedStatusGuard],
-            title: 'Registrar paz salvo',
-            data: {
-              breadcrumb: 'Registrar paz y salvo',
-              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.DECANATURA]
             }
           },
           {
             path: 'register_sustentation',
             component: RegisterSustentationPageComponent,
             canActivate: [roleGuard, thesisRestrictedStatusGuard],
-            title: 'Registrar sustentacion',
+            title: 'Programar sustentación',
             data: {
-              breadcrumb: 'Registrar sustentacion',
+              breadcrumb: 'Programar sustentación',
               roles: [UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
             }
           },
@@ -144,7 +133,7 @@ export const thesisWorkRoutes: Routes = [
             title: 'Evaluar sustentación',
             data: {
               breadcrumb: 'Evaluar sustentación',
-              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.JURADO]
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.JURADO, UserRoleType.JURADO_COORDINADOR]
             }
           },
           {
@@ -165,10 +154,10 @@ export const thesisWorkRoutes: Routes = [
             path: 'register_correspondence',
             component: RegisterCorrespondencePageComponent,
             canActivate: [roleGuard, thesisRestrictedStatusGuard],
-            title: 'Registrar Correspondencia Final',
+            title: 'Cargar versión definitiva',
             data: {
-              breadcrumb: 'Registrar correspondencia',
-              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.JURADO]
+              breadcrumb: 'Cargar versión definitiva',
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.JURADO, UserRoleType.JURADO_COORDINADOR]
             }
           },
           {
@@ -223,7 +212,7 @@ export const thesisWorkRoutes: Routes = [
             title: 'Evaluar documentos corregidos',
             data: {
               breadcrumb: 'Evaluar correcciones',
-              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.JURADO]
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.JURADO, UserRoleType.JURADO_COORDINADOR]
             }
           }
         ]

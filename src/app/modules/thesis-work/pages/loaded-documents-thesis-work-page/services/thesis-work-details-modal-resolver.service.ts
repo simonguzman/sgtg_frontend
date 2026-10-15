@@ -38,13 +38,14 @@ export class ThesisWorkDetailsModalResolverService {
     const delivery = thesis.finalDeliveries?.find(d => d.id === rowId);
     if (!delivery) return null;
 
-    const docs: FileDocument[] = [delivery.monograph, delivery.formatE];
-    if (delivery.annexes) docs.push(delivery.annexes);
+    const docs = [delivery.monograph, delivery.formatE, delivery.pazYSalvo, delivery.advisorConcept, delivery.annexes]
+      .filter((document, i, todos): document is FileDocument => !!document && todos.indexOf(document) === i);
 
     return {
       id: delivery.id,
-      title: 'Entrega Final del Trabajo de Grado',
-      comments: 'Documentos oficiales cargados para el proceso de revisión y sustentación.',
+      title: 'Solicitud de sustentación',
+      comments: 'Monografía, formato E y paz y salvo (y, en práctica profesional, el concepto del asesor) '
+        + 'que adjuntó el director al solicitar la sustentación.',
       uploadDate: delivery.uploadDate,
       studentId: '',
       status: delivery.status ?? stateList.EN_REVISION,
@@ -56,14 +57,11 @@ export class ThesisWorkDetailsModalResolverService {
     const pyS = thesis.pazYSalvos?.find(p => p.document.id === rowId);
     if (!pyS) return null;
 
-    let comments = `Aprobación Académica: ${pyS.academicApproved ? '✅ Sí' : '❌ No'}`;
-    if (pyS.academicComments)  comments += `\nObs: ${pyS.academicComments}`;
-    comments += `\n\nAprobación Financiera: ${pyS.financialApproved ? '✅ Sí' : '❌ No'}`;
-    if (pyS.financialComments) comments += `\nObs: ${pyS.financialComments}`;
+    const comments = 'Paz y salvo (formato F) que adjuntó el director a la solicitud de sustentación.';
 
     return {
       id: pyS.id,
-      title: 'Registro de Paz y Salvo Institucional',
+      title: 'Paz y salvo',
       comments,
       uploadDate: pyS.registrationDate,
       studentId: '',
@@ -78,8 +76,8 @@ export class ThesisWorkDetailsModalResolverService {
 
     return {
       id: document.id,
-      title: 'Resolución / Correspondencia Final Oficial',
-      comments: 'Documento oficial cargado por el Jurado Evaluador (Formato_H) que ratifica y da por terminado formalmente el proceso del trabajo de grado.',
+      title: 'Versión definitiva',
+      comments: 'Versión definitiva (formato H) que cargó el jurado coordinador; con ella el trabajo de grado finalizó.',
       uploadDate: document.uploadDate,
       studentId: '',
       status: document.status ?? stateList.APROBADO,

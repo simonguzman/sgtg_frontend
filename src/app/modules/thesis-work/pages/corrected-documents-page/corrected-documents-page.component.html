@@ -1,15 +1,9 @@
 <div class="w-full min-h-screen bg-[#F8F9FA] p-4 md:p-8">
   <app-info-banner title="Seguimiento de Correcciones de Sustentación" class="mb-6 block">
-    Espacio habilitado para la validación de modificaciones tras la deliberación de
-    <strong>Aprobado con Observaciones</strong>. El <strong>Director</strong> se encarga del
-    cargue técnico de los archivos, mientras que los <strong>Jurados asignados</strong>
-    emitirán el veredicto definitivo sobre dichas correcciones.
+    Si la sustentación quedó <strong>aprobada con observaciones</strong>, el <strong>director</strong> radica
+    los ajustes (y anexos, opcionales) en 10 días hábiles y el <strong>jurado coordinador</strong> verifica si cumplen.
   </app-info-banner>
 
-  <app-info-banner title="Sección en solo lectura" class="mb-6 block">
-    Aquí se muestran los ajustes registrados en el sistema. La carga y la verificación de los documentos
-    corregidos se habilitarán en la fase 6 de la integración.
-  </app-info-banner>
 
   <div class="flex justify-between items-center mb-6">
     <button
@@ -25,18 +19,16 @@
     <div class="flex gap-3">
       @if (canDirectorUpload()) {
         <app-button-component
-          label="Cargar documentos corregidos"
+          label="Radicar ajustes"
           variant="primary"
-          [disabled]="true"
           (onClick)="navigateToUploadCorrections()">
         </app-button-component>
       }
 
       @if (canJurorEvaluate()) {
         <app-button-component
-          label="Evaluar documentos corregidos"
+          label="Verificar ajustes"
           variant="primary"
-          [disabled]="true"
           (onClick)="navigateToEvaluateCorrections()">
         </app-button-component>
       }

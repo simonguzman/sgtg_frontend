@@ -22,6 +22,14 @@ export class EvaluateSpecialRequestFormService {
     });
   }
 
+  notifyMissingNewDate(): void {
+    this.notificationService.show({
+      title: 'Nueva fecha requerida',
+      message: 'Para aprobar la solicitud indique la nueva fecha y hora de la sesión de sustentación.',
+      type: NotificationType.ERROR
+    });
+  }
+
   notifyMissingResolution(): void {
     this.notificationService.show({
       title: 'Resolución requerida',

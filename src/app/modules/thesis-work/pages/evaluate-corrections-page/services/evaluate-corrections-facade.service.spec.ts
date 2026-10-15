@@ -1,223 +1,66 @@
 import { TestBed } from '@angular/core/testing';
-import { of, throwError, Observable } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { of, throwError } from 'rxjs';
 import { EvaluateCorrectionsFacadeService } from './evaluate-corrections-facade.service';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
-import { ThesisWork } from '../../../interfaces/thesis-work.interface';
-import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
-import { stateList } from '../../../../../core/enums/state.enum';
-import { User } from '../../../../users/interfaces/user.interface';
-import { IdentificationType } from '../../../../users/enum/identification-type.enum';
-import { UserState } from '../../../../users/enum/user-state.enum';
-import { Modality } from '../../../../proposal/enums/modality.enum';
-
-interface MockThesisWorkService {
-  getThesisWorkByIdMock: jest.Mock<Observable<ThesisWork | undefined>, [string]>;
-  evaluateCorrectedDocumentsMock: jest.Mock<Observable<void>, [string, Omit<Evaluation, 'id' | 'date'>, File]>;
-}
-
-interface MockNotificationService {
-  show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
-}
-
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'u-1',
-  idType: IdentificationType.CC,
-  idNumber: 123456789,
-  firstName: 'Juan',
-  secondName: '',
-  lastName: 'Perez',
-  secondLastName: '',
-  codeNumber: 1234567890,
-  email: 'juan@test.com',
-  password: 'hash',
-  state: UserState.active,
-  roles: [],
-  ...overrides
-});
-
-const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
-  const baseUser = createMockUser();
-  const baseThesis: ThesisWork = {
-    thesisWorkId: 'mock-thesis-123',
-    preliminaryDraftId: 'draft-1',
-    documents: [],
-    evaluations: [],
-    specialRequests: [],
-    state: stateList.EN_DESARROLLO,
-    createdDate: new Date(),
-    preliminaryDraftData: {
-      preliminaryDraftId: 'draft-1',
-      proposalId: 'prop-1',
-      state: stateList.APROBADO,
-      createdData: new Date(),
-      evaluations: [],
-      documents: [],
-      proposalData: {
-        id: 'prop-1',
-        title: 'Título Mock',
-        description: 'Desc',
-        modality: Modality.TI,
-        authors: [baseUser],
-        director: baseUser,
-        state: stateList.APROBADO,
-        createdAt: new Date(),
-        documents: [],
-        evaluations: []
-      }
-    }
-  };
-  return { ...baseThesis, ...overrides };
-};
-
-const createMockEvaluationPayload = (overrides: Partial<Omit<Evaluation, 'id' | 'date'>> = {}): Omit<Evaluation, 'id' | 'date'> => ({
-  documentId: 'doc-1',
-  proposalId: 'prop-1',
-  evaluatorId: 'u-1',
-  evaluatorName: 'Jurado',
-  evaluatorRole: 'JURADO',
-  veredict: stateList.APROBADO,
-  observations: 'Dictamen oficial favorable.',
-  ...overrides
-});
+import { thesisWorkDePrueba } from '../../../../../testing/vista-de-prueba';
 
 describe('EvaluateCorrectionsFacadeService', () => {
-  let service: EvaluateCorrectionsFacadeService;
-
-  let thesisWorkServiceMock: MockThesisWorkService;
-  let notificationServiceMock: MockNotificationService;
+  let facade: EvaluateCorrectionsFacadeService;
+  let thesisWorkService: { getThesisWorkByIdMock: jest.Mock; verifyAdjustments: jest.Mock };
+  let notification: { show: jest.Mock };
 
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    thesisWorkServiceMock = {
-      getThesisWorkByIdMock: jest.fn(),
-      evaluateCorrectedDocumentsMock: jest.fn(),
-    };
-
-    notificationServiceMock = {
-      show: jest.fn(),
-    };
-
+    thesisWorkService = { getThesisWorkByIdMock: jest.fn(), verifyAdjustments: jest.fn() };
+    notification = { show: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
-        EvaluateCorrectionsFacadeService,
-        { provide: ThesisWorkService, useValue: thesisWorkServiceMock },
-        { provide: NotificationService, useValue: notificationServiceMock },
-      ],
+        { provide: ThesisWorkService, useValue: thesisWorkService },
+        { provide: NotificationService, useValue: notification }
+      ]
     });
-
-    service = TestBed.inject(EvaluateCorrectionsFacadeService);
+    facade = TestBed.inject(EvaluateCorrectionsFacadeService);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+  it('carga el trabajo o informa el error', () => {
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+    thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(thesisWorkDePrueba()));
+    facade.loadThesisWork('15', onSuccess, onError);
+    thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(undefined));
+    facade.loadThesisWork('99', onSuccess, onError);
+    expect(onSuccess).toHaveBeenCalled();
+    expect(onError).toHaveBeenCalled();
   });
 
-  describe('loadThesisWork', () => {
-    it('debería ejecutar onSuccess cuando se encuentre el proyecto de grado', () => {
-      const mockData = createMockThesisWork({ thesisWorkId: 't1' });
-      thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(of(mockData));
-
-      const onSuccessSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.loadThesisWork('t1', onSuccessSpy, onErrorSpy);
-
-      expect(thesisWorkServiceMock.getThesisWorkByIdMock).toHaveBeenCalledWith('t1');
-      expect(onSuccessSpy).toHaveBeenCalledWith(mockData);
-      expect(onErrorSpy).not.toHaveBeenCalled();
-      expect(notificationServiceMock.show).not.toHaveBeenCalled();
-    });
-
-    it('debería ejecutar onError y mostrar notificación si no se encuentra data', () => {
-      thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(of(undefined));
-
-      const onSuccessSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.loadThesisWork('t1', onSuccessSpy, onErrorSpy);
-
-      expect(onSuccessSpy).not.toHaveBeenCalled();
-      expect(onErrorSpy).toHaveBeenCalled();
-
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'No encontrado',
-        message: 'El proyecto de grado solicitado no existe en la base de datos.',
-        type: NotificationType.INFO
-      });
-    });
-
-    it('debería ejecutar onError y mostrar notificación de error si hay fallo de red', () => {
-      thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('Network error')));
-
-      const onSuccessSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.loadThesisWork('t1', onSuccessSpy, onErrorSpy);
-
-      expect(onSuccessSpy).not.toHaveBeenCalled();
-      expect(onErrorSpy).toHaveBeenCalled();
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Fallo técnico',
-        message: 'Error de red al intentar descargar los metadatos.',
-        type: NotificationType.ERROR
-      });
-    });
+  it.each([
+    [true, 'Los ajustes cumplen: la sustentación quedó aprobada.'],
+    [false, 'Los ajustes no cumplen: la sustentación se aplazó.']
+  ])('registra la verificación (cumple: %s)', (fulfills, mensaje) => {
+    thesisWorkService.verifyAdjustments.mockReturnValue(of(thesisWorkDePrueba()));
+    const onSuccess = jest.fn();
+    facade.saveEvaluation('15', { fulfills, observations: 'Obs' }, onSuccess, jest.fn());
+    expect(thesisWorkService.verifyAdjustments).toHaveBeenCalledWith('15', fulfills, 'Obs');
+    expect(onSuccess).toHaveBeenCalled();
+    expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({ message: mensaje }));
   });
 
-  describe('saveEvaluation', () => {
-    const mockEvaluation = createMockEvaluationPayload();
-    const mockFile = new File([''], 'test.pdf');
-
-    it('debería ejecutar onSuccess y notificar confirmación al guardar exitosamente', () => {
-      thesisWorkServiceMock.evaluateCorrectedDocumentsMock.mockReturnValue(of(void 0));
-
-      const onSuccessSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.saveEvaluation('t1', mockEvaluation, mockFile, onSuccessSpy, onErrorSpy);
-
-      expect(thesisWorkServiceMock.evaluateCorrectedDocumentsMock).toHaveBeenCalledWith('t1', mockEvaluation, mockFile);
-      expect(onSuccessSpy).toHaveBeenCalled();
-      expect(onErrorSpy).not.toHaveBeenCalled();
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Evaluación Oficial Registrada',
-        message: 'El dictamen basado en el histórico de evaluaciones ha sido procesado de forma exitosa.',
-        type: NotificationType.CONFIRMATION
-      });
-    });
-
-    it('debería ejecutar onError y notificar fallo si hay error al guardar', () => {
-      thesisWorkServiceMock.evaluateCorrectedDocumentsMock.mockReturnValue(throwError(() => new Error('Save error')));
-
-      const onSuccessSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.saveEvaluation('t1', mockEvaluation, mockFile, onSuccessSpy, onErrorSpy);
-
-      expect(onSuccessSpy).not.toHaveBeenCalled();
-      expect(onErrorSpy).toHaveBeenCalled();
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Error al registrar',
-        message: 'Ocurrió un problema de persistencia al guardar el dictamen del jurado.',
-        type: NotificationType.ERROR
-      });
-    });
+  it('muestra el mensaje del backend si la rechaza', () => {
+    thesisWorkService.verifyAdjustments.mockReturnValue(throwError(() => new HttpErrorResponse({
+      status: 406, error: { message: 'Solo el jurado coordinador verifica los ajustes.' }
+    })));
+    const onError = jest.fn();
+    facade.saveEvaluation('15', { fulfills: true, observations: '' }, jest.fn(), onError);
+    expect(onError).toHaveBeenCalled();
+    expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'Solo el jurado coordinador verifica los ajustes.', type: NotificationType.ERROR
+    }));
   });
 
-  describe('showNavigationError', () => {
-    it('debería mostrar una notificación de error de navegación', () => {
-      service.showNavigationError();
-
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Error de navegación',
-        message: 'No se pudo mapear la información técnica del trabajo de grado.',
-        type: NotificationType.ERROR
-      });
-    });
+  it('showNavigationError avisa del error de navegación', () => {
+    facade.showNavigationError();
+    expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Error de navegación' }));
   });
 });

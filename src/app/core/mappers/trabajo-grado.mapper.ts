@@ -13,7 +13,7 @@ import { UserState } from '../../modules/users/enum/user-state.enum';
 import { Modality } from '../../modules/proposal/enums/modality.enum';
 import { Proposal } from '../../modules/proposal/interfaces/proposal.interface';
 import { PreliminaryDraft } from '../../modules/preliminary-draft/interfaces/preliminary-draft.interface';
-import { ThesisWork } from '../../modules/thesis-work/interfaces/thesis-work.interface';
+import { SustentationProcess, ThesisWork } from '../../modules/thesis-work/interfaces/thesis-work.interface';
 import { Advance } from '../../modules/thesis-work/interfaces/advance.interface';
 import { SpecialRequest } from '../../modules/thesis-work/interfaces/special-request.interface';
 import { SpecialRequestType } from '../../modules/thesis-work/enums/special-request-type.enum';
@@ -138,7 +138,7 @@ export function aAnteproyecto(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo)
  * Los informes mensuales son sus avances (el más reciente primero) y sus
  * revisiones, las evaluaciones; las solicitudes del director (cambio de
  * objetivos, prórroga, suspensión, reanudación, cancelación) son sus
- * solicitudes especiales. La sustentación (fase 6) se muestra en solo lectura.
+ * solicitudes especiales (incluida la nueva fecha de sustentación).
  */
 export function aTrabajoDeGrado(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): ThesisWork | null {
   const anteproyecto = aAnteproyecto(trabajo, ctx);
@@ -168,6 +168,7 @@ export function aTrabajoDeGrado(trabajo: TrabajoGradoResponse, ctx: ContextoMape
       objectivesChangeDeadline: aFecha(ejecucion.fechaLimiteCambioObjetivos),
       extensionRequestDeadline: aFecha(ejecucion.fechaLimiteSolicitudProrroga)
     },
+    sustentation: procesoDeSustentacion(trabajo),
     isArchived: estaCerrado(trabajo)
   };
 }
@@ -295,6 +296,18 @@ export function solicitudesEspeciales(trabajo: TrabajoGradoResponse, ctx: Contex
       });
     }
   });
+  trabajo.sustentacion?.solicitudesNuevaFecha.forEach((solicitud, i) => solicitudes.push({
+    id: `nueva-fecha-${i}`,
+    directorId,
+    requestType: SpecialRequestType.NUEVA_SUSTENTACION,
+    requestDate: aFecha(solicitud.fechaSolicitud) ?? new Date(),
+    description: `Nueva fecha para la sesión ${solicitud.sesion} de sustentación (programada para el `
+      + `${fechaYHora(solicitud.fechaHoraAnterior)})`,
+    status: estadoSolicitud(solicitud.decision),
+    documents: documento(solicitud.rutaSolicitud, solicitud.fechaSolicitud),
+    grantedDeadline: aFecha(solicitud.nuevaFechaHora) ?? undefined,
+    ...decisionDeSolicitud(trabajo, solicitud.decision, ctx)
+  }));
   trabajo.cancelaciones.forEach((cancelacion, i) => solicitudes.push({
     id: `cancelacion-${i}`,
     directorId,
@@ -308,7 +321,24 @@ export function solicitudesEspeciales(trabajo: TrabajoGradoResponse, ctx: Contex
   return solicitudes.sort((a, b) => b.requestDate.getTime() - a.requestDate.getTime());
 }
 
-// ── Sustentación (fase 6, solo lectura) ─────────────────────────────────────
+// ── Sustentación ────────────────────────────────────────────────────────────
+
+/** Estado general de la sustentación: el de la sesión actual y sus plazos. */
+function procesoDeSustentacion(trabajo: TrabajoGradoResponse): SustentationProcess | null {
+  const sustentacion = trabajo.sustentacion;
+  if (!sustentacion) return null;
+  const actual = sustentacion.sesiones.at(-1);
+  return {
+    state: sustentacion.estado,
+    requestDate: aFecha(sustentacion.fechaSolicitud),
+    adjustmentsDeadline: aFecha(sustentacion.fechaLimiteAjustes),
+    secondSessionDeadline: aFecha(sustentacion.fechaLimiteSegundaSesion),
+    coordinatorId: actual ? String(actual.juradoCoordinadorId) : null,
+    jurorIds: actual ? actual.jurados.map(j => String(j.usuarioId)) : [],
+    currentSessionDate: actual ? aFecha(actual.fechaHora) : null,
+    hasPendingNewDate: sustentacion.solicitudesNuevaFecha.some(s => !s.decision)
+  };
+}
 
 /** Estado de la entrega final según el de la sustentación. */
 function estadoEntregaFinal(estado: EstadoSustentacionApi): stateList {
@@ -321,24 +351,27 @@ function estadoEntregaFinal(estado: EstadoSustentacionApi): stateList {
   }
 }
 
+/** Solicitud de sustentación: monografía, formato E, paz y salvo, concepto del asesor y anexos. */
 function entregasFinales(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): FinalDelivery[] {
   const sustentacion = trabajo.sustentacion;
   if (!sustentacion) return [];
-  const documentoFinal = aDocumentoDeRuta(trabajo.id, sustentacion.rutaDocumentoFinal, sustentacion.fechaSolicitud,
-    ctx, DocumentType.FORMATO_E);
+  const fecha = sustentacion.fechaSolicitud;
+  const doc = (ruta: string | null, tipo: DocumentType) =>
+    ruta ? aDocumentoDeRuta(trabajo.id, ruta, fecha, ctx, tipo) : undefined;
+  const formatoE = doc(sustentacion.rutaDocumentoFinal, DocumentType.FORMATO_E)!;
   return [{
     id: 'entrega-final',
-    uploadDate: aFecha(sustentacion.fechaSolicitud) ?? sustentacion.fechaSolicitud,
-    monograph: documentoFinal,
-    formatE: documentoFinal,
-    annexes: sustentacion.rutaConceptoAsesor
-      ? aDocumentoDeRuta(trabajo.id, sustentacion.rutaConceptoAsesor, sustentacion.fechaSolicitud, ctx,
-        DocumentType.FORMATO)
-      : undefined,
+    uploadDate: aFecha(fecha) ?? fecha,
+    monograph: doc(sustentacion.rutaMonografia, DocumentType.MONOGRAFIA) ?? formatoE,
+    formatE: formatoE,
+    annexes: doc(sustentacion.rutaAnexos, DocumentType.ANEXOS),
+    pazYSalvo: doc(sustentacion.rutaPazYSalvo, DocumentType.PAZ_Y_SALVO),
+    advisorConcept: doc(sustentacion.rutaConceptoAsesor, DocumentType.FORMATO),
     status: estadoEntregaFinal(sustentacion.estado)
   }];
 }
 
+/** Paz y salvo (formato F) que adjuntó el director al solicitar la sustentación. */
 function pazYSalvos(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): PazYSalvoRegistry[] {
   const sustentacion = trabajo.sustentacion;
   if (!sustentacion) return [];
@@ -355,22 +388,32 @@ function pazYSalvos(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): PazYSalv
   }];
 }
 
+/** Ajustes del director (con anexos) y la verificación del coordinador. */
 function entregasCorregidas(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): CorrectedDelivery[] {
   const sustentacion = trabajo.sustentacion;
   if (!sustentacion?.rutaAjustes || !sustentacion.fechaAjustes) return [];
-  const verificaciones = sustentacion.verificaciones;
+  const fecha = sustentacion.fechaAjustes;
+  const verificacion = sustentacion.verificaciones.at(-1);
   let estado = stateList.EN_REVISION;
-  if (verificaciones.some(v => !v.favorable)) estado = stateList.NO_APROBADO;
-  else if (sustentacion.rutaVersionDefinitiva || verificaciones.length > 0) estado = stateList.APROBADO;
+  if (verificacion) estado = verificacion.favorable ? stateList.APROBADO : stateList.NO_APROBADO;
   return [{
     id: 'ajustes',
-    uploadDate: aFecha(sustentacion.fechaAjustes) ?? sustentacion.fechaAjustes,
-    monograph: aDocumentoDeRuta(trabajo.id, sustentacion.rutaAjustes, sustentacion.fechaAjustes, ctx,
-      DocumentType.CORRECCION),
-    status: estado
+    uploadDate: aFecha(fecha) ?? fecha,
+    monograph: aDocumentoDeRuta(trabajo.id, sustentacion.rutaAjustes, fecha, ctx, DocumentType.CORRECCION),
+    annexes: sustentacion.rutaAnexosAjustes
+      ? aDocumentoDeRuta(trabajo.id, sustentacion.rutaAnexosAjustes, fecha, ctx, DocumentType.ANEXOS)
+      : undefined,
+    status: estado,
+    verification: verificacion ? {
+      favorable: verificacion.favorable,
+      observations: verificacion.observaciones ?? '',
+      jurorName: verificacion.jurado,
+      date: aFecha(verificacion.fecha) ?? new Date()
+    } : undefined
   }];
 }
 
+/** Sesiones de sustentación, de la más reciente a la más antigua. */
 function sesionesDeSustentacion(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): SustentationRegistry[] {
   const sustentacion = trabajo.sustentacion;
   if (!sustentacion) return [];
@@ -378,8 +421,10 @@ function sesionesDeSustentacion(trabajo: TrabajoGradoResponse, ctx: ContextoMape
   return sustentacion.sesiones.map((sesion): SustentationRegistry => {
     const fechaHora = aFecha(sesion.fechaHora);
     const calificaciones = sustentacion.calificaciones.filter(c => c.sesion === sesion.numero);
+    const inasistencia = sustentacion.inasistencias.find(i => i.sesion === sesion.numero);
     return {
       id: `sesion-${sesion.numero}`,
+      number: sesion.numero,
       status: sesion.numero < ultima ? SustentationStatus.APLAZADA : estadoSesion(sustentacion.estado),
       sustentationDate: fechaHora ?? undefined,
       sustentationTime: fechaHora
@@ -387,6 +432,10 @@ function sesionesDeSustentacion(trabajo: TrabajoGradoResponse, ctx: ContextoMape
         : undefined,
       location: sesion.salon,
       assignedJurors: sesion.jurados.map(j => aUsuario(j.usuarioId, j.nombreCompleto, j.email, j.codigo, ctx)),
+      coordinatorId: String(sesion.juradoCoordinadorId),
+      formatEDocument: sesion.rutaFormatoE
+        ? aDocumentoDeRuta(trabajo.id, sesion.rutaFormatoE, sesion.fechaProgramacion, ctx, DocumentType.FORMATO_E)
+        : undefined,
       verdicts: calificaciones.map((calificacion): JurorVerdict => ({
         jurorId: String(calificacion.juradoUsuarioId),
         evaluationDate: aFecha(calificacion.fecha) ?? new Date(),
@@ -395,21 +444,24 @@ function sesionesDeSustentacion(trabajo: TrabajoGradoResponse, ctx: ContextoMape
         attachedDocument: calificacion.rutaActa
           ? aDocumentoDeRuta(trabajo.id, calificacion.rutaActa, calificacion.fecha, ctx, DocumentType.FORMATO_G)
           : undefined
-      }))
+      })),
+      nonAttendance: inasistencia
+        ? { observations: inasistencia.observaciones ?? '', date: aFecha(inasistencia.fecha) ?? new Date() }
+        : undefined
     };
-  });
+  }).reverse();
 }
 
 function estadoSesion(estado: EstadoSustentacionApi): SustentationStatus {
   switch (estado) {
-    case 'SOLICITADA':
-    case 'PROGRAMADA': return SustentationStatus.PROGRAMADA;
+    case 'PROGRAMADA':
+    case 'SOLICITADA': return SustentationStatus.PROGRAMADA;
     case 'APLAZADA': return SustentationStatus.APLAZADA;
     default: return SustentationStatus.REALIZADA;
   }
 }
 
-/** Versión definitiva (formato H) como documento de cierre del trabajo. */
+/** Versión definitiva (formato H) que carga el jurado coordinador. */
 function documentosDeCierre(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): FileDocument[] {
   const sustentacion = trabajo.sustentacion;
   if (!sustentacion?.rutaVersionDefinitiva || !sustentacion.fechaVersionDefinitiva) return [];
@@ -537,6 +589,8 @@ const TIPOS_DOCUMENTO: Record<string, DocumentType> = {
   REMISION_CONSEJO: DocumentType.FORMATO_C,
   INFORME_MENSUAL: DocumentType.AVANCE,
   DOCUMENTO_FINAL: DocumentType.FORMATO_E,
+  MONOGRAFIA: DocumentType.MONOGRAFIA,
+  ANEXOS: DocumentType.ANEXOS,
   PAZ_Y_SALVO: DocumentType.PAZ_Y_SALVO,
   ACTA_SUSTENTACION: DocumentType.FORMATO_G,
   VERSION_DEFINITIVA: DocumentType.FORMATO_H,
@@ -595,6 +649,15 @@ function evaluacionDeDecision(trabajo: TrabajoGradoResponse, decision: DecisionA
 }
 
 // ── Apoyo ───────────────────────────────────────────────────────────────────
+
+/** "2026-07-15T14:00:00" → "15/07/2026 14:00" */
+function fechaYHora(valor: string): string {
+  const fecha = aFecha(valor);
+  if (!fecha) return valor;
+  const dos = (n: number) => String(n).padStart(2, '0');
+  return `${dos(fecha.getDate())}/${dos(fecha.getMonth() + 1)}/${fecha.getFullYear()} `
+    + `${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
+}
 
 /** "15/TI-A/v2/propuesta.pdf" → "propuesta" */
 export function nombreDeRuta(ruta: string): string {

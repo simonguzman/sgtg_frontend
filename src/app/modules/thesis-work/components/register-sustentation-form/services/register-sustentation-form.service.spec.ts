@@ -190,6 +190,20 @@ describe('RegisterSustentationFormService', () => {
       expect(result).toHaveLength(2);
       expect(result.map(u => u.id)).toEqual(['valid1', 'valid2']);
     });
+
+    it('acepta jurados con rol EVALUADOR, JURADO o JURADO_COORDINADOR y excluye a los evaluadores del anteproyecto', () => {
+      userServiceMock.users.mockReturnValue([
+        createMockUser({ id: 'jurado', roles: [UserRoleType.JURADO] }),
+        createMockUser({ id: 'coordinador', roles: [UserRoleType.JURADO_COORDINADOR] }),
+        createMockUser({ id: 'evaluador-otro', roles: [UserRoleType.EVALUADOR] }),
+        createMockUser({ id: 'evaluador-propio', roles: [UserRoleType.EVALUADOR] }),
+        createMockUser({ id: 'consejo', roles: [UserRoleType.CONSEJO] })
+      ]);
+      const thesis = createMockThesisWork();
+      thesis.preliminaryDraftData.evaluators = [createMockUser({ id: 'evaluador-propio' })];
+
+      expect(service.getEligibleJurors(thesis).map(u => u.id)).toEqual(['jurado', 'coordinador', 'evaluador-otro']);
+    });
   });
 
   describe('Formateo de nombres (getMemberFullName)', () => {
@@ -264,7 +278,7 @@ describe('RegisterSustentationFormService', () => {
       service.notifyIncompleteForm();
       expect(notificationMock.show).toHaveBeenCalledWith({
         title: 'Formulario incompleto',
-        message: 'Debe diligenciar todos los campos y adjuntar el Formato_E.',
+        message: 'Debe indicar la fecha y hora, el salón, el jurado coordinador, el segundo jurado y adjuntar el formato E.',
         type: NotificationType.ERROR
       });
     });

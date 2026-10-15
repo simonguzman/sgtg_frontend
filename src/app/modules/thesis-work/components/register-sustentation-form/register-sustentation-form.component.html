@@ -80,7 +80,7 @@
 
           <div class="flex flex-col gap-1">
             <label for="juror1" class="font-display font-semibold text-size-section text-primary">
-              Primer Jurado (Docente) <span class="text-[#ED7D31]">*</span>
+              Jurado coordinador <span class="text-[#ED7D31]">*</span>
             </label>
             <div class="relative flex items-center w-full">
               <app-searchable-select
@@ -94,13 +94,15 @@
               </app-searchable-select>
             </div>
             @if (isFieldInvalid('juror1')) {
-              <span class="text-size-role-footer text-textbox-alert mt-1">Debe asignar el primer jurado</span>
+              <span class="text-size-role-footer text-textbox-alert mt-1">Debe asignar el jurado coordinador</span>
+            } @else {
+              <span class="text-size-role-footer text-[#777680] mt-1">Califica, registra la inasistencia, verifica los ajustes y carga la versión definitiva</span>
             }
           </div>
 
           <div class="flex flex-col gap-1">
             <label for="juror2" class="font-display font-semibold text-size-section text-primary">
-              Segundo Jurado (Docente) <span class="text-[#ED7D31]">*</span>
+              Segundo jurado <span class="text-[#ED7D31]">*</span>
             </label>
             <div class="relative flex items-center w-full">
               <app-searchable-select
@@ -115,6 +117,8 @@
             </div>
             @if (isFieldInvalid('juror2')) {
               <span class="text-size-role-footer text-textbox-alert mt-1">Debe asignar el segundo jurado de forma obligatoria</span>
+            } @else {
+              <span class="text-size-role-footer text-[#777680] mt-1">Solo consulta los documentos del trabajo</span>
             }
           </div>
         </div>

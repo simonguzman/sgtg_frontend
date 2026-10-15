@@ -20,7 +20,7 @@ export class EvaluateSustentationPageComponent implements OnInit {
   readonly thesisWorkState = signal<ThesisWork | null>(null);
   readonly isConfirmModalOpen = signal<boolean>(false);
   readonly isSubmitting = signal<boolean>(false);
-  readonly pendingData = signal<{ payload: SustentationEvaluationPayload; file: File } | null>(null);
+  readonly pendingData = signal<{ payload: SustentationEvaluationPayload; file: File | null } | null>(null);
 
   ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
@@ -38,7 +38,7 @@ export class EvaluateSustentationPageComponent implements OnInit {
     );
   }
 
-  handleSaveTriggered(data: { payload: SustentationEvaluationPayload; file: File }): void {
+  handleSaveTriggered(data: { payload: SustentationEvaluationPayload; file: File | null }): void {
     this.pendingData.set(data);
     this.isConfirmModalOpen.set(true);
   }

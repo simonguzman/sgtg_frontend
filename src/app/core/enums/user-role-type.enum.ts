@@ -10,5 +10,6 @@ export enum UserRoleType {
   EVALUADOR = 'Evaluador',
   CONSEJO = 'Consejo de facultad',
   JURADO = 'Jurado',
+  JURADO_COORDINADOR = 'Jurado coordinador',
   DECANATURA = 'Decanatura'
 }

@@ -41,6 +41,15 @@ export class EvaluateSpecialRequestFormComponent {
   readonly resolution = signal<{ fileName: string; file: File } | null>(null);
   readonly isUploadModalOpen = signal(false);
   readonly isSubmitAttempted = signal(false);
+  /** Nueva fecha de sustentación: fecha (YYYY-MM-DD), hora (HH:mm) y salón que fija el Consejo al aprobar */
+  readonly newDate = signal('');
+  readonly newTime = signal('');
+  readonly newLocation = signal('');
+
+  /** true si al aprobar se debe fijar la nueva fecha de la sesión */
+  get requiresNewDate(): boolean {
+    return this.getRequestType() === SpecialRequestType.NUEVA_SUSTENTACION && this.verdictSelected() === stateList.APROBADO;
+  }
 
   get states(): typeof stateList { return stateList; }
 
@@ -51,6 +60,13 @@ export class EvaluateSpecialRequestFormComponent {
 
   getRequestType(): SpecialRequestType {
     return this.specialRequest.requestType;
+  }
+
+  onInput(target: 'date' | 'time' | 'location', event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    if (target === 'date') this.newDate.set(value);
+    if (target === 'time') this.newTime.set(value);
+    if (target === 'location') this.newLocation.set(value);
   }
 
   onObservationsChange(event: Event): void {
@@ -76,6 +92,14 @@ export class EvaluateSpecialRequestFormComponent {
       return;
     }
 
-    this.onSave.emit({ status: verdict, resolutionDetails: this.observations(), resolution });
+    if (this.requiresNewDate && (!this.newDate() || !this.newTime())) {
+      this.formService.notifyMissingNewDate();
+      return;
+    }
+
+    this.onSave.emit({
+      status: verdict, resolutionDetails: this.observations(), resolution,
+      ...(this.requiresNewDate ? { newDateTime: `${this.newDate()}T${this.newTime()}:00`, newLocation: this.newLocation() } : {})
+    });
   }
 }

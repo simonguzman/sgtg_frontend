@@ -6,7 +6,19 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
-import { SustentationEvaluationPayload } from '../../../components/evaluate-sustentation-form/evaluate-sustentation-form.component';
+import {
+  INASISTENCIA, SustentationEvaluationPayload
+} from '../../../components/evaluate-sustentation-form/evaluate-sustentation-form.component';
+import { CalificacionApi } from '../../../../../core/interfaces/api/trabajo-grado-api.interface';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
+
+/** Calificación del backend para cada veredicto del formulario. */
+const CALIFICACIONES: Partial<Record<stateList, CalificacionApi>> = {
+  [stateList.APROBADO]: 'APROBADO',
+  [stateList.APROBADO_CON_OBSERVACIONES]: 'APROBADO_CON_OBSERVACIONES',
+  [stateList.APLAZADO]: 'APLAZADO',
+  [stateList.NO_APROBADO]: 'NO_APROBADO'
+};
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 
 const VERDICT_NOTIFICATION_CONFIG: Partial<Record<stateList, { title: string; type: NotificationType }>> = {
@@ -37,27 +49,38 @@ export class EvaluateSustentationFacadeService {
       });
   }
 
+  /**
+   * Registra en el backend la calificación del coordinador (con el acta) o la
+   * inasistencia del estudiante.
+   */
   public processEvaluation(
     thesisId: string,
     payload: SustentationEvaluationPayload,
-    file: File,
+    file: File | null,
     onSuccess: () => void,
     onError: () => void
   ): void {
-    this.thesisWorkService.registerSustentationVerdictMock(thesisId, payload, file)
+    const veredict = payload.veredict;
+    const peticion = veredict === INASISTENCIA
+      ? this.thesisWorkService.registerNonAttendance(thesisId, payload.observations)
+      : this.thesisWorkService.gradeSustentation(thesisId, CALIFICACIONES[veredict]!, payload.observations, file!);
+    peticion
       .pipe(first())
       .subscribe({
         next: () => {
-          const config = VERDICT_NOTIFICATION_CONFIG[payload.veredict] ?? DEFAULT_VERDICT_NOTIFICATION;
-          this.showNotification(
-            config.title,
-            `El veredicto de la sustentación ha sido registrado correctamente bajo el estado de [${payload.veredict}].`,
-            config.type
-          );
+          if (veredict === INASISTENCIA) {
+            this.showNotification('Inasistencia registrada',
+              'Se registró la inasistencia del estudiante a la sesión de sustentación.', NotificationType.INFO);
+          } else {
+            const config = VERDICT_NOTIFICATION_CONFIG[veredict] ?? DEFAULT_VERDICT_NOTIFICATION;
+            this.showNotification(config.title,
+              `La calificación de la sustentación quedó registrada como [${veredict}].`, config.type);
+          }
           onSuccess();
         },
-        error: () => {
-          this.showNotification('Error de Red', 'Fallo la comunicación al almacenar la evaluación.', NotificationType.ERROR);
+        error: (error: unknown) => {
+          this.showNotification('No se pudo registrar la calificación',
+            apiErrorMessage(error, 'Falló la comunicación al almacenar la evaluación.'), NotificationType.ERROR);
           onError();
         }
       });

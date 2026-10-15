@@ -25,7 +25,14 @@ export class RegisterCorrespondenceFormComponent {
   readonly selectedFile = signal<{ fileName: string; file: File } | null>(null);
   readonly isModalOpen  = signal(false);
 
-  private readonly historicalDocuments = computed(() => this.thesisWork().documents ?? []);
+  /** Documentos del trabajo: formato E y paz y salvo (F) de la solicitud, actas (G) y versión definitiva (H) */
+  private readonly historicalDocuments = computed<FileDocument[]>(() => {
+    const thesis = this.thesisWork();
+    const delivery = thesis.finalDeliveries?.[0];
+    const actas = (thesis.sustentations ?? []).flatMap(s => s.verdicts.map(v => v.attachedDocument));
+    return [...(thesis.documents ?? []), delivery?.formatE, delivery?.pazYSalvo, ...actas]
+      .filter((document): document is FileDocument => !!document);
+  });
   readonly formatoEDoc = computed(() => this.formService.findFormatoE(this.historicalDocuments()));
   readonly formatoFDoc = computed(() => this.formService.findFormatoF(this.historicalDocuments()));
   readonly formatoGDoc = computed(() => this.formService.findFormatoG(this.historicalDocuments()));

@@ -1,259 +1,98 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { By } from '@angular/platform-browser';
-import { UploadFinalDeliveryFormComponent, UploadedFile } from './upload-final-delivery-form.component';
-import { UploadFinalDeliveryFormService } from './services/upload-final-delivery-form.service';
+import { UploadFinalDeliveryFormComponent } from './upload-final-delivery-form.component';
+import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
+import { ThesisParticipantsFormatterService } from '../../services/thesis-participants-formatter.service';
+import { SustentationRequestFiles } from '../../services/thesis-work-sustentation.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
-import { User } from '../../../users/interfaces/user.interface';
-import { stateList } from '../../../../core/enums/state.enum';
-import { IdentificationType } from '../../../users/enum/identification-type.enum';
-import { UserState } from '../../../users/enum/user-state.enum';
-import { Modality } from '../../../proposal/enums/modality.enum';
-import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
-import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
-import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { thesisWorkDePrueba } from '../../../../testing/vista-de-prueba';
+import { crearTrabajoEnCurso } from '../../../../testing/trabajo-grado-de-prueba';
 
-@Component({ selector: 'app-button-component', template: '', standalone: true })
-class MockButtonComponent {
-  @Input() label = '';
-  @Input() variant = '';
-  @Input() type = 'button';
-  @Input() disabled = false;
-  @Output() onClick = new EventEmitter<void>();
-}
+const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/pdf' });
 
-@Component({ selector: 'app-file-upload-modal', template: '', standalone: true })
-class MockFileUploadModalComponent {
-  @Input() isOpen = false;
-  @Input() description = '';
-  @Output() onFileUploaded = new EventEmitter<UploadedFile>();
-  @Output() onClose = new EventEmitter<void>();
-}
-
-@Component({ selector: 'app-info-banner', template: '', standalone: true })
-class MockInfoBannerComponent {
-  @Input() title = '';
-}
-
-interface MockUploadFinalDeliveryFormService {
-  getStudentNames: jest.Mock<string, [ThesisWork]>;
-  getDirectorName: jest.Mock<string, [ThesisWork]>;
-  getCodirectorName: jest.Mock<string, [ThesisWork]>;
-  getAdvisorName: jest.Mock<string, [ThesisWork]>;
-  notifyFileAttached: jest.Mock<void, [string]>;
-  notifyMissingDocuments: jest.Mock<void, []>;
-}
-
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'u-1',
-  idType: IdentificationType.CC,
-  idNumber: 123456789,
-  firstName: 'Juan',
-  secondName: '',
-  lastName: 'Perez',
-  secondLastName: '',
-  codeNumber: 1234567890,
-  email: 'juan@test.com',
-  password: 'hash',
-  state: UserState.active,
-  roles: [],
-  ...overrides
-});
-
-const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
-  const baseUser = createMockUser();
-  const baseThesis: ThesisWork = {
-    thesisWorkId: 'mock-thesis-123',
-    preliminaryDraftId: 'draft-1',
-    documents: [],
-    evaluations: [],
-    specialRequests: [],
-    state: stateList.EN_DESARROLLO,
-    createdDate: new Date(),
-    preliminaryDraftData: {
-      preliminaryDraftId: 'draft-1',
-      proposalId: 'p-1',
-      state: stateList.APROBADO,
-      createdData: new Date(),
-      evaluations: [],
-      documents: [],
-      proposalData: {
-        id: 'p-1',
-        title: 'Título Test',
-        description: 'Desc Test',
-        modality: Modality.TI,
-        authors: [baseUser],
-        director: baseUser,
-        state: stateList.APROBADO,
-        createdAt: new Date(),
-        documents: [],
-        evaluations: []
-      }
-    }
-  };
-  return { ...baseThesis, ...overrides };
-};
-
-describe('UploadFinalDeliveryFormComponent', () => {
-  let component: UploadFinalDeliveryFormComponent;
+describe('UploadFinalDeliveryFormComponent (solicitud de sustentación)', () => {
   let fixture: ComponentFixture<UploadFinalDeliveryFormComponent>;
+  let component: UploadFinalDeliveryFormComponent;
+  let notification: { show: jest.Mock };
+  let emitted: SustentationRequestFiles[];
 
-  let formServiceSpy: MockUploadFinalDeliveryFormService;
-
-  const mockThesisWork = createMockThesisWork();
-
-  beforeEach(async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    formServiceSpy = {
-      getStudentNames: jest.fn().mockReturnValue('Estudiante'),
-      getDirectorName: jest.fn().mockReturnValue('Director'),
-      getCodirectorName: jest.fn().mockReturnValue('Codirector'),
-      getAdvisorName: jest.fn().mockReturnValue('Asesor'),
-      notifyFileAttached: jest.fn(),
-      notifyMissingDocuments: jest.fn()
-    };
-
-    await TestBed.configureTestingModule({
-      imports: [UploadFinalDeliveryFormComponent]
-    })
-    .overrideComponent(UploadFinalDeliveryFormComponent, {
-      remove: {
-        imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent],
-        providers: [UploadFinalDeliveryFormService]
-      },
-      add: {
-        imports: [MockFileUploadModalComponent, MockButtonComponent, MockInfoBannerComponent],
-        providers: [{ provide: UploadFinalDeliveryFormService, useValue: formServiceSpy }]
-      }
-    })
-    .compileComponents();
-
+  const crear = (thesis: ThesisWork = thesisWorkDePrueba()) => {
     fixture = TestBed.createComponent(UploadFinalDeliveryFormComponent);
     component = fixture.componentInstance;
-
-    fixture.componentRef.setInput('thesisWork', mockThesisWork);
+    component.thesisWork = thesis;
+    emitted = [];
+    component.onSaveDelivery.subscribe(files => emitted.push(files));
     fixture.detectChanges();
+  };
+
+  const adjuntar = (slot: Parameters<UploadFinalDeliveryFormComponent['openModal']>[0], nombre: string) => {
+    const file = pdf(nombre);
+    component.openModal(slot);
+    component.handleFileUploaded({ fileName: nombre, file });
+    return file;
+  };
+
+  beforeEach(async () => {
+    notification = { show: jest.fn() };
+    await TestBed.configureTestingModule({
+      imports: [UploadFinalDeliveryFormComponent],
+      providers: [
+        { provide: NotificationService, useValue: notification },
+        { provide: ThesisParticipantsFormatterService, useValue: {
+          getStudentNames: () => 'Eva Estudiante', getDirectorName: () => 'Dora Directora',
+          getCodirectorName: () => '', getAdvisorName: () => ''
+        } }
+      ]
+    }).compileComponents();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+  it('en investigación pide monografía, formato E y paz y salvo; los anexos son opcionales', () => {
+    crear();
+    expect(component['slots'].map(s => [s.key, s.required])).toEqual([
+      ['MONOGRAPH', true], ['FORMAT_E', true], ['PAZ_Y_SALVO', true], ['ANNEXES', false]
+    ]);
   });
 
-  describe('Inicialización y Estado Inicial', () => {
-    it('debe inicializarse con todos los archivos nulos y ningún modal activo', () => {
-      expect(component.uploadedMonograph()).toBeNull();
-      expect(component.uploadedFormatE()).toBeNull();
-      expect(component.uploadedAnnexes()).toBeNull();
-      expect(component.activeModal()).toBeNull();
-      expect(component.isSubmitAttempted()).toBe(false);
-    });
-
-    it('debe invocar los métodos del servicio para formatear los nombres de los participantes', () => {
-      expect(component.getStudentNames()).toBe('Estudiante');
-      expect(component.getDirectorName()).toBe('Director');
-      expect(component.getCodirectorName()).toBe('Codirector');
-      expect(component.getAdvisorName()).toBe('Asesor');
-
-      expect(formServiceSpy.getStudentNames).toHaveBeenCalledWith(mockThesisWork);
-      expect(formServiceSpy.getDirectorName).toHaveBeenCalledWith(mockThesisWork);
-      expect(formServiceSpy.getCodirectorName).toHaveBeenCalledWith(mockThesisWork);
-      expect(formServiceSpy.getAdvisorName).toHaveBeenCalledWith(mockThesisWork);
-    });
+  it('en práctica profesional pide además el concepto del asesor', () => {
+    crear(thesisWorkDePrueba(crearTrabajoEnCurso({ modalidad: 'PRACTICA_PROFESIONAL' })));
+    expect(component['slots'].find(s => s.key === 'ADVISOR_CONCEPT')?.required).toBe(true);
   });
 
-  describe('Control de Modales (openModal / closeModal)', () => {
-    it('debe establecer el modal activo al invocar openModal', () => {
-      component.openModal('MONOGRAPH');
-      expect(component.activeModal()).toBe('MONOGRAPH');
-    });
-
-    it('debe resetear el modal activo a null al llamar closeModal', () => {
-      component.openModal('FORMAT_E');
-      component.closeModal();
-      expect(component.activeModal()).toBeNull();
-    });
+  it('sin los obligatorios no envía y marca los faltantes', () => {
+    crear();
+    adjuntar('MONOGRAPH', 'monografia.pdf');
+    component.submit();
+    expect(emitted).toEqual([]);
+    expect(component.isMissing('FORMAT_E')).toBe(true);
+    expect(component.isMissing('ANNEXES')).toBe(false);
+    expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Documentos faltantes' }));
   });
 
-  describe('Manejo y Carga de Archivos', () => {
-    const mockFilePayload: UploadedFile = { fileName: 'test.pdf', file: new File([], 'test.pdf') };
+  it('con los obligatorios envía la solicitud (con o sin anexos)', () => {
+    crear();
+    const monografia = adjuntar('MONOGRAPH', 'monografia.pdf');
+    const formatoE = adjuntar('FORMAT_E', 'formato-e.pdf');
+    const paz = adjuntar('PAZ_Y_SALVO', 'paz.pdf');
+    component.submit();
+    expect(emitted).toEqual([{ monograph: monografia, formatE: formatoE, pazYSalvo: paz, advisorConcept: null,
+      annexes: null }]);
 
-    it('debe guardar la monografía y notificar al adjuntar', () => {
-      component.openModal('MONOGRAPH');
-      component.handleFileUploaded(mockFilePayload);
-
-      expect(component.uploadedMonograph()).toEqual(mockFilePayload);
-      expect(component.activeModal()).toBeNull();
-      expect(formServiceSpy.notifyFileAttached).toHaveBeenCalledWith('test.pdf');
-    });
-
-    it('debe guardar formato E y anexos de manera independiente', () => {
-      component.openModal('FORMAT_E');
-      component.handleFileUploaded(mockFilePayload);
-      expect(component.uploadedFormatE()).toEqual(mockFilePayload);
-
-      component.openModal('ANNEXES');
-      component.handleFileUploaded(mockFilePayload);
-      expect(component.uploadedAnnexes()).toEqual(mockFilePayload);
-    });
-
-    it('debe eliminar el archivo correspondiente al invocar removeFile', () => {
-      component.openModal('MONOGRAPH');
-      component.handleFileUploaded(mockFilePayload);
-
-      component.removeFile('MONOGRAPH');
-      expect(component.uploadedMonograph()).toBeNull();
-    });
+    const anexos = adjuntar('ANNEXES', 'anexos.pdf');
+    component.submit();
+    expect(emitted[1].annexes).toBe(anexos);
   });
 
-  describe('Envío del Formulario (submit) y UI', () => {
-    it('debe activar isSubmitAttempted y notificar faltantes si no se adjuntan los 3 archivos obligatorios', () => {
-      const emitSpy = jest.spyOn(component.onSaveDelivery, 'emit');
+  it('un documento se puede quitar', () => {
+    crear();
+    adjuntar('MONOGRAPH', 'monografia.pdf');
+    component.removeFile('MONOGRAPH');
+    expect(component.uploaded()['MONOGRAPH']).toBeUndefined();
+  });
 
-      component.submit();
-
-      expect(component.isSubmitAttempted()).toBe(true);
-      expect(formServiceSpy.notifyMissingDocuments).toHaveBeenCalled();
-      expect(emitSpy).not.toHaveBeenCalled();
-    });
-
-    it('debe emitir el evento onSaveDelivery cuando los 3 documentos están presentes', () => {
-      const emitSpy = jest.spyOn(component.onSaveDelivery, 'emit');
-      const mockFileM = new File([], 'm.pdf');
-      const mockFileF = new File([], 'f.pdf');
-      const mockFileA = new File([], 'a.pdf');
-
-      component.openModal('MONOGRAPH');
-      component.handleFileUploaded({ fileName: 'm.pdf', file: mockFileM });
-
-      component.openModal('FORMAT_E');
-      component.handleFileUploaded({ fileName: 'f.pdf', file: mockFileF });
-
-      component.openModal('ANNEXES');
-      component.handleFileUploaded({ fileName: 'a.pdf', file: mockFileA });
-
-      component.submit();
-
-      expect(component.isSubmitAttempted()).toBe(true);
-      expect(formServiceSpy.notifyMissingDocuments).not.toHaveBeenCalled();
-      expect(emitSpy).toHaveBeenCalledWith({
-        monograph: mockFileM,
-        formatE: mockFileF,
-        annexes: mockFileA
-      });
-    });
-
-    it('debe pasar la propiedad disabled al botón de guardar si isSubmitting es true', () => {
-      fixture.componentRef.setInput('isSubmitting', true);
-      fixture.detectChanges();
-
-      const buttons = fixture.debugElement.queryAll(By.directive(MockButtonComponent));
-      const saveButton = buttons.find(b => b.componentInstance.label === 'Guardar');
-
-      expect(saveButton).toBeTruthy();
-      expect(saveButton!.componentInstance.disabled).toBe(true);
-    });
+  it('el modal muestra el documento que se está cargando', () => {
+    crear();
+    component.openModal('PAZ_Y_SALVO');
+    expect(component.activeSlot()?.label).toBe('Paz y salvo (formato F)');
+    component.closeModal();
+    expect(component.activeModal()).toBeNull();
   });
 });

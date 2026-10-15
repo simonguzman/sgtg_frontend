@@ -16,7 +16,8 @@ const DOCUMENT_HINTS: Partial<Record<SpecialRequestType, string>> = {
   [SpecialRequestType.PRORROGA]: 'Solicitud de prórroga firmada por el director (PDF)',
   [SpecialRequestType.SUSPENSION]: 'Solicitud de suspensión firmada por el director (PDF)',
   [SpecialRequestType.REANUDACION]: 'Documento de reanudación del trabajo de grado (PDF)',
-  [SpecialRequestType.CANCELACION]: 'Formato de cancelación del trabajo de grado (PDF)'
+  [SpecialRequestType.CANCELACION]: 'Formato de cancelación del trabajo de grado (PDF)',
+  [SpecialRequestType.NUEVA_SUSTENTACION]: 'Solicitud de nueva fecha de sustentación firmada por el director (PDF)'
 };
 
 @Component({
@@ -115,6 +116,7 @@ export class RegisterSpecialRequestFormComponent implements OnInit {
       case SpecialRequestType.SUSPENSION:
       case SpecialRequestType.REANUDACION:
       case SpecialRequestType.CANCELACION:
+      case SpecialRequestType.NUEVA_SUSTENTACION:
         this.onSaveRequest.emit({ requestType: type, document: file });
         break;
       default:

@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
+import { SustentationRequestFiles } from '../../services/thesis-work-sustentation.service';
 import { UploadFinalDeliveryFacadeService } from './services/upload-final-delivery-facade.service';
 import { UploadFinalDeliveryFormComponent } from '../../components/upload-final-delivery-form/upload-final-delivery-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
@@ -19,7 +20,7 @@ export class UploadFinalDeliveryPageComponent implements OnInit {
   readonly thesisWorkState = signal<ThesisWork | null>(null);
   readonly isConfirmModalOpen = signal(false);
   readonly isSubmitting = signal(false);
-  readonly pendingFilesData = signal<{ monograph: File; formatE: File; annexes?: File } | null>(null);
+  readonly pendingFilesData = signal<SustentationRequestFiles | null>(null);
 
   ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
@@ -43,7 +44,7 @@ export class UploadFinalDeliveryPageComponent implements OnInit {
     );
   }
 
-  handleRequestConfirmation(files: { monograph: File; formatE: File; annexes?: File }): void {
+  handleRequestConfirmation(files: SustentationRequestFiles): void {
     this.pendingFilesData.set(files);
     this.isConfirmModalOpen.set(true);
   }

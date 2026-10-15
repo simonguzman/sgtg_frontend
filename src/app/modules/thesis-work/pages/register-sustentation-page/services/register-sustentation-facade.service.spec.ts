@@ -1,269 +1,85 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { of, throwError, Observable } from 'rxjs';
-import { RegisterSustentationFacadeService } from './register-sustentation-facade.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { of, throwError } from 'rxjs';
+import { fechaHoraLocal, RegisterSustentationFacadeService } from './register-sustentation-facade.service';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
-import { ThesisWork } from '../../../interfaces/thesis-work.interface';
-import { SustentationFormPayload } from '../../../components/register-sustentation-form/register-sustentation-form.component';
-import { SustentationFormData } from '../../../interfaces/sustentation-form-data.interface';
-import { User } from '../../../../users/interfaces/user.interface';
-import { stateList } from '../../../../../core/enums/state.enum';
-import { IdentificationType } from '../../../../users/enum/identification-type.enum';
-import { UserState } from '../../../../users/enum/user-state.enum';
-import { Modality } from '../../../../proposal/enums/modality.enum';
-import { DocumentType } from '../../../../../core/enums/document-type.enum';
-import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { thesisWorkDePrueba } from '../../../../../testing/vista-de-prueba';
 
-interface MockThesisWorkService {
-  getThesisWorkByIdMock: jest.Mock<Observable<ThesisWork | null>, [string]>;
-  saveSustentationRegistryMock: jest.Mock<Observable<void>, [string, SustentationFormData]>;
-}
-
-interface MockNotificationService {
-  show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
-}
-
-interface MockFileDownloadService {
-  download: jest.Mock<Promise<void>, [string, string]>;
-}
-
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'u-1',
-  idType: IdentificationType.CC,
-  idNumber: 123456789,
-  firstName: 'Juan',
-  secondName: '',
-  lastName: 'Perez',
-  secondLastName: '',
-  codeNumber: 1234567890,
-  email: 'juan@test.com',
-  password: 'hash',
-  state: UserState.active,
-  roles: [],
-  ...overrides
-});
-
-const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
-  const baseUser = createMockUser();
-  const baseThesis: ThesisWork = {
-    thesisWorkId: 'mock-thesis-123',
-    preliminaryDraftId: 'draft-1',
-    documents: [],
-    evaluations: [],
-    specialRequests: [],
-    state: stateList.EN_DESARROLLO,
-    createdDate: new Date(),
-    preliminaryDraftData: {
-      preliminaryDraftId: 'draft-1',
-      proposalId: 'p-1',
-      state: stateList.APROBADO,
-      createdData: new Date(),
-      evaluations: [],
-      documents: [],
-      proposalData: {
-        id: 'p-1',
-        title: 'Título Mock',
-        description: 'Desc',
-        modality: Modality.TI,
-        authors: [baseUser],
-        director: baseUser,
-        state: stateList.APROBADO,
-        createdAt: new Date(),
-        documents: [],
-        evaluations: []
-      }
-    }
-  };
-  return { ...baseThesis, ...overrides };
-};
-
-const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
-  id: 'doc-1',
-  name: 'documento_sustentacion',
-  url: 'http://docs/sustentacion.pdf',
-  uploadDate: new Date(),
-  type: DocumentType.FORMATO_E,
-  ...overrides
-});
+const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/pdf' });
 
 describe('RegisterSustentationFacadeService', () => {
-  let service: RegisterSustentationFacadeService;
-
-  let thesisWorkServiceMock: MockThesisWorkService;
-  let notificationServiceMock: MockNotificationService;
-  let fileDownloadServiceMock: MockFileDownloadService;
+  let facade: RegisterSustentationFacadeService;
+  let thesisWorkService: { getThesisWorkByIdMock: jest.Mock; scheduleSustentation: jest.Mock };
+  let download: { download: jest.Mock };
+  let notification: { show: jest.Mock };
 
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    thesisWorkServiceMock = {
-      getThesisWorkByIdMock: jest.fn(),
-      saveSustentationRegistryMock: jest.fn()
-    };
-
-    notificationServiceMock = {
-      show: jest.fn()
-    };
-
-    fileDownloadServiceMock = {
-      download: jest.fn()
-    };
-
+    thesisWorkService = { getThesisWorkByIdMock: jest.fn(), scheduleSustentation: jest.fn() };
+    download = { download: jest.fn().mockResolvedValue(undefined) };
+    notification = { show: jest.fn() };
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
       providers: [
-        RegisterSustentationFacadeService,
-        { provide: ThesisWorkService, useValue: thesisWorkServiceMock },
-        { provide: NotificationService, useValue: notificationServiceMock },
-        { provide: FileDownloadService, useValue: fileDownloadServiceMock }
+        { provide: ThesisWorkService, useValue: thesisWorkService },
+        { provide: FileDownloadService, useValue: download },
+        { provide: NotificationService, useValue: notification }
       ]
     });
-
-    service = TestBed.inject(RegisterSustentationFacadeService);
+    facade = TestBed.inject(RegisterSustentationFacadeService);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+  afterEach(() => jest.restoreAllMocks());
+
+  it('fechaHoraLocal da la fecha y hora local que espera el backend', () => {
+    expect(fechaHoraLocal(new Date(2026, 6, 15, 9, 5))).toBe('2026-07-15T09:05:00');
   });
 
-  describe('Carga de Proyecto (loadThesisWork)', () => {
-    it('debería invocar onSuccess con los datos si la petición es exitosa', () => {
-      const mockWork = createMockThesisWork({ thesisWorkId: '123' });
-      thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(of(mockWork));
-
-      const onSuccessSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.loadThesisWork('123', onSuccessSpy, onErrorSpy);
-
-      expect(thesisWorkServiceMock.getThesisWorkByIdMock).toHaveBeenCalledWith('123');
-      expect(onSuccessSpy).toHaveBeenCalledWith(mockWork);
-      expect(onErrorSpy).not.toHaveBeenCalled();
-    });
-
-    it('debería invocar onError y mostrar notificación si retorna datos nulos/indefinidos', () => {
-      thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(of(null));
-
-      const onSuccessSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.loadThesisWork('123', onSuccessSpy, onErrorSpy);
-
-      expect(onSuccessSpy).not.toHaveBeenCalled();
-      expect(onErrorSpy).toHaveBeenCalled();
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Error',
-        message: 'No se identificó el ID del Trabajo de Grado.',
-        type: NotificationType.ERROR
-      });
-    });
-
-    it('debería invocar onError y mostrar notificación si la petición falla (catch error)', () => {
-      thesisWorkServiceMock.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('API Error')));
-
-      const onSuccessSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.loadThesisWork('123', onSuccessSpy, onErrorSpy);
-
-      expect(onSuccessSpy).not.toHaveBeenCalled();
-      expect(onErrorSpy).toHaveBeenCalled();
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Error',
-        message: 'No se identificó el ID del Trabajo de Grado.',
-        type: NotificationType.ERROR
-      });
-    });
+  it('carga el trabajo o avisa si no existe', () => {
+    const onSuccess = jest.fn();
+    const onError = jest.fn();
+    thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(thesisWorkDePrueba()));
+    facade.loadThesisWork('15', onSuccess, onError);
+    thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(undefined));
+    facade.loadThesisWork('99', onSuccess, onError);
+    expect(onSuccess).toHaveBeenCalled();
+    expect(onError).toHaveBeenCalled();
   });
 
-  describe('Agendamiento de Sustentación (processSustentation)', () => {
-    const mockPayload: SustentationFormPayload = {
-      sustentationDate: new Date('2026-10-10'),
-      location: 'Auditorio',
-      juror1: 'j1',
-      juror2: 'j2'
-    };
-    const mockFile = new File([''], 'formato.pdf');
+  it('programa la sesión con el coordinador (primer jurado), el segundo jurado y el formato E', () => {
+    const formatoE = pdf('e.pdf');
+    thesisWorkService.scheduleSustentation.mockReturnValue(of(thesisWorkDePrueba()));
+    const onSuccess = jest.fn();
+    facade.processSustentation('15', {
+      sustentationDate: new Date(2026, 6, 15, 9, 30), location: 'Sala 1', juror1: '30', juror2: '31'
+    }, formatoE, onSuccess, jest.fn());
 
-    it('debería combinar el payload y el archivo, llamar al servicio e invocar onSuccess si se guarda correctamente', () => {
-      thesisWorkServiceMock.saveSustentationRegistryMock.mockReturnValue(of(void 0));
-
-      const onSuccessSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.processSustentation('123', mockPayload, mockFile, onSuccessSpy, onErrorSpy);
-
-      expect(thesisWorkServiceMock.saveSustentationRegistryMock).toHaveBeenCalledWith('123', {
-        ...mockPayload,
-        formatEDocument: mockFile
-      });
-
-      expect(onSuccessSpy).toHaveBeenCalled();
-      expect(onErrorSpy).not.toHaveBeenCalled();
-      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
-        title: 'Sustentación Agendada',
-        type: NotificationType.CONFIRMATION
-      }));
+    expect(thesisWorkService.scheduleSustentation).toHaveBeenCalledWith('15', {
+      coordinatorId: '30', jurorId: '31', dateTime: '2026-07-15T09:30:00', location: 'Sala 1', formatE: formatoE
     });
-
-    it('debería invocar onError y mostrar notificación si el guardado falla', () => {
-      thesisWorkServiceMock.saveSustentationRegistryMock.mockReturnValue(throwError(() => new Error('API Error')));
-
-      const onSuccessSpy = jest.fn();
-      const onErrorSpy = jest.fn();
-
-      service.processSustentation('123', mockPayload, mockFile, onSuccessSpy, onErrorSpy);
-
-      expect(onErrorSpy).toHaveBeenCalled();
-      expect(onSuccessSpy).not.toHaveBeenCalled();
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Error',
-        message: 'Fallo al procesar el agendamiento.',
-        type: NotificationType.ERROR
-      });
-    });
+    expect(onSuccess).toHaveBeenCalled();
+    expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Sustentación programada' }));
   });
 
-  describe('Descarga de Documentos (downloadDocument) - Flujo Asíncrono', () => {
-    it('debería mostrar notificación de error y detenerse si el documento no tiene una URL válida', async () => {
-      const invalidDoc = createMockFileDocument({ url: undefined });
+  it('muestra el mensaje del backend si la rechaza', () => {
+    thesisWorkService.scheduleSustentation.mockReturnValue(throwError(() => new HttpErrorResponse({
+      status: 400, error: { message: 'Un jurado no puede ser evaluador del anteproyecto del mismo trabajo.' }
+    })));
+    const onError = jest.fn();
+    facade.processSustentation('15', { sustentationDate: new Date(), location: 'S', juror1: '20', juror2: '31' },
+      pdf('e.pdf'), jest.fn(), onError);
+    expect(onError).toHaveBeenCalled();
+    expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'Un jurado no puede ser evaluador del anteproyecto del mismo trabajo.', type: NotificationType.ERROR
+    }));
+  });
 
-      await service.downloadDocument(invalidDoc);
-
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Error de descarga',
-        message: 'No existe una URL válida vinculada a este archivo.',
-        type: NotificationType.ERROR
-      });
-      expect(fileDownloadServiceMock.download).not.toHaveBeenCalled();
-    });
-
-    it('debería llamar al servicio de descarga con la URL y nombre formateado', async () => {
-      const validDoc = createMockFileDocument({ name: 'mi_documento', url: 'http://docs/valido.pdf' });
-      fileDownloadServiceMock.download.mockResolvedValue();
-
-      await service.downloadDocument(validDoc);
-
-      expect(fileDownloadServiceMock.download).toHaveBeenCalledWith('http://docs/valido.pdf', 'mi_documento.pdf');
-    });
-
-    it('debería registrar el error en consola y mostrar notificación si falla la descarga', async () => {
-      const brokenDoc = createMockFileDocument({ name: 'doc_roto', url: 'http://docs/roto.pdf' });
-      fileDownloadServiceMock.download.mockRejectedValue(new Error('Fallo de red'));
-
-      await service.downloadDocument(brokenDoc);
-
-      expect(console.error).toHaveBeenCalled();
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Error de descarga',
-        message: 'No se pudo descargar doc_roto. Intente más tarde.',
-        type: NotificationType.ERROR
-      });
-    });
+  it('descarga los documentos del trabajo', async () => {
+    await facade.downloadDocument({ id: 'a', name: 'formato-e', url: '/x', uploadDate: '' } as never);
+    expect(download.download).toHaveBeenCalledWith('/x', 'formato-e.pdf');
+    await facade.downloadDocument({ id: 'a', name: 'x', url: '', uploadDate: '' } as never);
+    expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Error de descarga' }));
   });
 });

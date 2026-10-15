@@ -4,7 +4,7 @@ import {
 } from './trabajo-grado.mapper';
 import {
   crearTrabajoConAnteproyectoRadicado, crearTrabajoDePrueba, crearTrabajoEnAnteproyecto, crearTrabajoEnCurso,
-  crearTrabajoEnCursoCon, informeDePrueba, revisionDePrueba
+  crearTrabajoEnCursoCon, crearTrabajoEnSustentacion, informeDePrueba, revisionDePrueba, sustentacionDePrueba
 } from '../../testing/trabajo-grado-de-prueba';
 import { SpecialRequestType } from '../../modules/thesis-work/enums/special-request-type.enum';
 import { SustentationStatus } from '../../modules/thesis-work/enums/sustentation-status.enum';
@@ -238,27 +238,82 @@ describe('trabajo-grado.mapper', () => {
       expect(cambio.resolution?.name).toBe('resolucion');
     });
 
-    it('muestra la sustentación del backend en solo lectura (entrega final, paz y salvo y sesiones)', () => {
-      const trabajo = aTrabajoDeGrado(crearTrabajoEnCurso({
-        etapa: 'SUSTENTACION',
-        sustentacion: {
-          estado: 'PROGRAMADA', rutaDocumentoFinal: '15/TI-E/v1/final.pdf', rutaPazYSalvo: '15/PAZ_Y_SALVO/v1/pys.pdf',
-          rutaConceptoAsesor: null, fechaSolicitud: '2026-07-01',
-          sesiones: [{ numero: 1, jurados: [{ usuarioId: 30, codigo: '1030', nombreCompleto: 'Juan Jurado',
-            email: 'j@u.edu.co' }], fechaHora: '2026-07-15T09:30:00', salon: 'Sala 1', fechaProgramacion: '2026-07-05' }],
-          calificaciones: [], inasistencias: [], verificaciones: [], rutaAjustes: null, fechaAjustes: null,
-          fechaLimiteAjustes: null, fechaLimiteSegundaSesion: null, rutaVersionDefinitiva: null,
-          fechaVersionDefinitiva: null, motivoNoAprobacion: null
-        }
+    it('la sustentación: solicitud con monografía, formato E, paz y salvo y anexos; sesión con coordinador', () => {
+      const trabajo = aTrabajoDeGrado(crearTrabajoEnSustentacion(), ctx)!;
+
+      expect(trabajo.sustentation).toEqual({
+        state: 'PROGRAMADA', requestDate: new Date(2026, 6, 1), adjustmentsDeadline: null, secondSessionDeadline: null,
+        coordinatorId: '30', jurorIds: ['30', '31'], currentSessionDate: new Date(2026, 6, 15, 9, 30),
+        hasPendingNewDate: false
+      });
+      const entrega = trabajo.finalDeliveries![0];
+      expect(entrega.status).toBe(stateList.EN_REVISION);
+      expect([entrega.monograph.name, entrega.formatE.name, entrega.pazYSalvo?.name, entrega.annexes?.name])
+        .toEqual(['monografia', 'formato-e', 'paz-y-salvo', 'anexos']);
+      expect(entrega.monograph.type).toBe(DocumentType.MONOGRAFIA);
+      expect(trabajo.pazYSalvos?.[0].document.name).toBe('paz-y-salvo');
+      expect(trabajo.sustentations?.[0]).toEqual(expect.objectContaining({
+        number: 1, status: SustentationStatus.PROGRAMADA, sustentationTime: '09:30', location: 'Sala 1',
+        coordinatorId: '30'
+      }));
+      expect(trabajo.sustentations?.[0].formatEDocument?.name).toBe('formato-e-consejo');
+      expect(trabajo.sustentations?.[0].assignedJurors.map(j => j.id)).toEqual(['30', '31']);
+    });
+
+    it('las sesiones van de la más reciente a la más antigua; la inasistencia y el acta se ven en su sesión', () => {
+      const base = sustentacionDePrueba();
+      const segunda = { ...base.sesiones[0], numero: 2, fechaHora: '2026-08-20T10:00:00', salon: 'Sala 2' };
+      const trabajo = aTrabajoDeGrado(crearTrabajoEnSustentacion({
+        estado: 'PROGRAMADA',
+        sesiones: [base.sesiones[0], segunda],
+        calificaciones: [{ sesion: 1, juradoUsuarioId: 30, jurado: 'Juan Coordinador', calificacion: 'APLAZADO',
+          observaciones: 'Repetir', rutaActa: '15/TI-G/v1/acta.pdf', fecha: '2026-07-15' }],
+        inasistencias: []
       }), ctx)!;
 
-      expect(trabajo.finalDeliveries?.[0]).toEqual(expect.objectContaining({ status: stateList.EN_REVISION }));
-      expect(trabajo.finalDeliveries?.[0].formatE.name).toBe('final');
-      expect(trabajo.pazYSalvos?.[0].document.name).toBe('pys');
-      expect(trabajo.sustentations?.[0]).toEqual(expect.objectContaining({
-        status: SustentationStatus.PROGRAMADA, sustentationTime: '09:30', location: 'Sala 1'
+      expect(trabajo.sustentations?.map(s => [s.id, s.status])).toEqual([
+        ['sesion-2', SustentationStatus.PROGRAMADA], ['sesion-1', SustentationStatus.APLAZADA]
+      ]);
+      expect(trabajo.sustentations?.[1].verdicts[0]).toEqual(expect.objectContaining({
+        jurorId: '30', veredict: stateList.APLAZADO
       }));
-      expect(trabajo.sustentations?.[0].assignedJurors.map(j => j.id)).toEqual(['30']);
+      expect(trabajo.sustentations?.[1].verdicts[0].attachedDocument?.name).toBe('acta');
+    });
+
+    it('los ajustes con anexos y la verificación del coordinador', () => {
+      const trabajo = aTrabajoDeGrado(crearTrabajoEnSustentacion({
+        estado: 'APROBADA', rutaAjustes: '15/AJUSTES_SUSTENTACION/v1/ajustes.pdf',
+        rutaAnexosAjustes: '15/ANEXOS/v2/anexos-ajustes.pdf', fechaAjustes: '2026-07-20',
+        verificaciones: [{ sesion: 1, juradoUsuarioId: 30, jurado: 'Juan Coordinador', favorable: true,
+          observaciones: null, fecha: '2026-07-21' }]
+      }), ctx)!;
+
+      const ajustes = trabajo.correctedDeliveries![0];
+      expect(ajustes.status).toBe(stateList.APROBADO);
+      expect(ajustes.annexes?.name).toBe('anexos-ajustes');
+      expect(ajustes.verification).toEqual(expect.objectContaining({ favorable: true, jurorName: 'Juan Coordinador' }));
+    });
+
+    it('la solicitud de nueva fecha es una solicitud especial del director', () => {
+      const trabajo = aTrabajoDeGrado(crearTrabajoEnSustentacion({
+        solicitudesNuevaFecha: [{ sesion: 1, rutaSolicitud: '15/SOLICITUD_NUEVA_FECHA/v1/nueva-fecha.pdf',
+          fechaSolicitud: '2026-07-10', fechaHoraAnterior: '2026-07-15T09:30:00', decision: null,
+          nuevaFechaHora: null, nuevoSalon: null }]
+      }), ctx)!;
+
+      expect(trabajo.sustentation?.hasPendingNewDate).toBe(true);
+      expect(trabajo.specialRequests[0]).toEqual(expect.objectContaining({
+        id: 'nueva-fecha-0', requestType: SpecialRequestType.NUEVA_SUSTENTACION, status: stateList.EN_REVISION,
+        description: 'Nueva fecha para la sesión 1 de sustentación (programada para el 15/07/2026 09:30)'
+      }));
+      expect(trabajo.specialRequests[0].documents?.[0].name).toBe('nueva-fecha');
+    });
+
+    it('la versión definitiva es un documento de cierre (formato H)', () => {
+      const trabajo = aTrabajoDeGrado(crearTrabajoEnSustentacion({
+        estado: 'FINALIZADA', rutaVersionDefinitiva: '15/TI-H/v1/definitiva.pdf', fechaVersionDefinitiva: '2026-07-25'
+      }, { etapa: 'FINALIZADO' }), ctx)!;
+      expect(trabajo.documents.map(d => [d.name, d.type])).toEqual([['definitiva', DocumentType.FORMATO_H]]);
     });
   });
 

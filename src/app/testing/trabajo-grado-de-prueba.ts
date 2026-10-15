@@ -1,5 +1,5 @@
 import {
-  EjecucionApi, InformeMensualApi, RevisionInformeApi, TrabajoGradoResponse
+  EjecucionApi, InformeMensualApi, RevisionInformeApi, SustentacionApi, TrabajoGradoResponse
 } from '../core/interfaces/api/trabajo-grado-api.interface';
 
 /**
@@ -166,4 +166,51 @@ export function crearTrabajoEnCursoCon(ejecucion: Partial<EjecucionApi>,
   overrides: Partial<TrabajoGradoResponse> = {}): TrabajoGradoResponse {
   const base = crearTrabajoEnCurso();
   return crearTrabajoEnCurso({ ejecucion: { ...base.ejecucion!, ...ejecucion }, ...overrides });
+}
+
+/**
+ * Sustentación solicitada el 1-jul-2026 y programada para el 15-jul-2026 a las
+ * 9:30 con el jurado coordinador 30 y el jurado 31.
+ */
+export function sustentacionDePrueba(overrides: Partial<SustentacionApi> = {}): SustentacionApi {
+  return {
+    estado: 'PROGRAMADA',
+    rutaMonografia: '15/MONOGRAFIA/v1/monografia.pdf',
+    rutaDocumentoFinal: '15/TI-E/v1/formato-e.pdf',
+    rutaPazYSalvo: '15/TI-F/v1/paz-y-salvo.pdf',
+    rutaConceptoAsesor: null,
+    rutaAnexos: '15/ANEXOS/v1/anexos.pdf',
+    fechaSolicitud: '2026-07-01',
+    sesiones: [{
+      numero: 1,
+      jurados: [
+        { usuarioId: 30, codigo: '1030', nombreCompleto: 'Juan Coordinador', email: 'juan@unicauca.edu.co' },
+        { usuarioId: 31, codigo: '1031', nombreCompleto: 'Julia Jurado', email: 'julia@unicauca.edu.co' }
+      ],
+      juradoCoordinadorId: 30,
+      fechaHora: '2026-07-15T09:30:00',
+      salon: 'Sala 1',
+      fechaProgramacion: '2026-07-05',
+      rutaFormatoE: '15/TI-E/v2/formato-e-consejo.pdf'
+    }],
+    solicitudesNuevaFecha: [],
+    calificaciones: [],
+    inasistencias: [],
+    verificaciones: [],
+    rutaAjustes: null,
+    rutaAnexosAjustes: null,
+    fechaAjustes: null,
+    fechaLimiteAjustes: null,
+    fechaLimiteSegundaSesion: null,
+    rutaVersionDefinitiva: null,
+    fechaVersionDefinitiva: null,
+    motivoNoAprobacion: null,
+    ...overrides
+  };
+}
+
+/** El trabajo en sustentación con la sustentación indicada. */
+export function crearTrabajoEnSustentacion(overrides: Partial<SustentacionApi> = {},
+  trabajo: Partial<TrabajoGradoResponse> = {}): TrabajoGradoResponse {
+  return crearTrabajoEnCurso({ etapa: 'SUSTENTACION', sustentacion: sustentacionDePrueba(overrides), ...trabajo });
 }

@@ -1,410 +1,92 @@
 import { SustentationTabConfig } from './sustentation.tab';
-import { ThesisEvaluationContext } from './tab-config.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
-import { DocumentType } from '../../../../../core/enums/document-type.enum';
-import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
-import { ThesisWork } from '../../../interfaces/thesis-work.interface';
-import { User } from '../../../../users/interfaces/user.interface';
-import { SustentationRegistry } from '../../../interfaces/sustentation-registry.interface';
-import { SustentationStatus } from '../../../enums/sustentation-status.enum';
-import { JurorVerdict } from '../../../interfaces/juror-verdict.interface';
-import { IdentificationType } from '../../../../users/enum/identification-type.enum';
-import { UserState } from '../../../../users/enum/user-state.enum';
-import { Modality } from '../../../../proposal/enums/modality.enum';
+import { thesisWorkDePrueba } from '../../../../../testing/vista-de-prueba';
+import { contextoDePestana } from '../../../../../testing/contexto-de-pestana';
+import {
+  crearTrabajoEnCurso, crearTrabajoEnSustentacion, sustentacionDePrueba
+} from '../../../../../testing/trabajo-grado-de-prueba';
 
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'user-1',
-  idType: IdentificationType.CC,
-  idNumber: 123456789,
-  firstName: 'Juan',
-  secondName: '',
-  lastName: 'Perez',
-  secondLastName: '',
-  codeNumber: 1234567890,
-  email: 'juan@test.com',
-  password: 'hash',
-  state: UserState.active,
-  roles: [],
-  ...overrides
-});
-
-const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
-  id: 'doc-1',
-  name: 'documento_base',
-  url: 'http://url.com/doc.pdf',
-  type: DocumentType.FORMATO_E,
-  uploadDate: new Date(),
-  status: stateList.EN_REVISION,
-  ...overrides
-});
-
-const createMockJurorVerdict = (overrides: Partial<JurorVerdict> = {}): JurorVerdict => ({
-  jurorId: 'juror-1',
-  evaluationDate: new Date(),
-  veredict: stateList.APROBADO,
-  observations: 'Observación base',
-  ...overrides
-});
-
-const createMockSustentation = (overrides: Partial<SustentationRegistry> = {}): SustentationRegistry => ({
-  id: 'sus-1',
-  sustentationDate: new Date(),
-  location: 'Auditorio',
-  status: SustentationStatus.PROGRAMADA,
-  verdicts: [],
-  assignedJurors: [],
-  ...overrides
-});
-
-const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
-  const baseUser = createMockUser();
-
-  const mockDraftData: NonNullable<ThesisWork['preliminaryDraftData']> = {
-    preliminaryDraftId: 'draft-1',
-    proposalId: 'prop-1',
-    state: stateList.APROBADO,
-    createdData: new Date(),
-    evaluators: [],
-    evaluations: [],
-    documents: [],
-    proposalData: {
-      id: 'prop-1',
-      title: 'Mock Title',
-      description: 'Desc',
-      modality: Modality.TI,
-      authors: [baseUser],
-      director: baseUser,
-      state: stateList.APROBADO,
-      createdAt: new Date(),
-      documents: [],
-      evaluations: []
-    } as NonNullable<ThesisWork['preliminaryDraftData']>['proposalData']
-  };
-
-  return {
-    thesisWorkId: 'thesis-1',
-    preliminaryDraftId: 'draft-1',
-    documents: [],
-    evaluations: [],
-    specialRequests: [],
-    correctedDeliveries: [],
-    sustentations: [],
-    advances: [],
-    finalDeliveries: [],
-    pazYSalvos: [],
-    state: stateList.EN_DESARROLLO,
-    createdDate: new Date(),
-    isArchived: false,
-    preliminaryDraftData: mockDraftData,
-    ...overrides
-  };
-};
-
-const createMockEvaluationContext = (overrides: Partial<ThesisEvaluationContext> = {}): ThesisEvaluationContext => ({
-  thesisWork: createMockThesisWork(),
-  currentUser: createMockUser({ id: 'juror-1' }),
-  isStudent: false,
-  isDirector: false,
-  isCodirector: false,
-  isAdvisor: false,
-  isAdmin: false,
-  isArchived: false,
-  isDecanatura: false,
-  isJuror: false,
-  isConsejo: false,
-  latestAdvanceId: null,
-  isLatestAdvancePending: false,
-  hasApprovedPazYSalvo: false,
-  hasSustentationRegistered: false,
-  isSustentationEvaluated: false,
-  ...overrides
-});
+const programada = thesisWorkDePrueba(crearTrabajoEnSustentacion());
 
 describe('SustentationTabConfig', () => {
-  let baseContext: ThesisEvaluationContext;
-
-  beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-    jest.spyOn(console, 'log').mockImplementation(() => {});
-
-    jest.clearAllMocks();
-
-    baseContext = createMockEvaluationContext();
+  it('lista las sesiones con fecha, hora, salón y estado', () => {
+    const filas = SustentationTabConfig.getTableData([], contextoDePestana(programada));
+    expect(filas).toEqual([expect.objectContaining({
+      id: 'sesion-1', name: 'Sesión 1 de sustentación · Sala 1', status: stateList.EN_REVISION,
+      allowedActions: ['view_sustentation_details']
+    })]);
+    expect(filas[0].date).toContain('09:30');
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
+  it('solo el coordinador califica la sesión actual programada', () => {
+    const coordinador = SustentationTabConfig.getTableData([], contextoDePestana(programada, {
+      isCoordinator: true, isJuror: true
+    }));
+    const jurado = SustentationTabConfig.getTableData([], contextoDePestana(programada, { isJuror: true }));
+    expect(coordinador[0].allowedActions).toContain('evaluate_sustentation');
+    expect(jurado[0].allowedActions).toEqual(['view_sustentation_details']);
   });
 
-  describe('Propiedades Estáticas', () => {
-    it('debe tener la configuración inicial correcta', () => {
-      expect(SustentationTabConfig.tabValue).toBe('SUSTENTACION');
-      expect(SustentationTabConfig.headerActionRoute).toBe('register_sustentation');
-      expect(SustentationTabConfig.columns).toHaveLength(4);
-      expect(SustentationTabConfig.modalConfig?.uploadDocumentType).toBe(DocumentType.FORMATO_E);
-    });
+  it('con una nueva fecha pendiente no se califica', () => {
+    const conSolicitud = thesisWorkDePrueba(crearTrabajoEnSustentacion({
+      solicitudesNuevaFecha: [{ sesion: 1, rutaSolicitud: '15/SOLICITUD_NUEVA_FECHA/v1/s.pdf', fechaSolicitud: '2026-07-10',
+        fechaHoraAnterior: '2026-07-15T09:30:00', decision: null, nuevaFechaHora: null, nuevoSalon: null }]
+    }));
+    const filas = SustentationTabConfig.getTableData([], contextoDePestana(conSolicitud, { isCoordinator: true }));
+    expect(filas[0].allowedActions).toEqual(['view_sustentation_details']);
   });
 
-  describe('enrichEvaluationContext', () => {
-    it('debe retornar el contexto base intacto si no hay thesisWork', () => {
-      baseContext.thesisWork = null;
-      const result = SustentationTabConfig.enrichEvaluationContext(baseContext);
-      expect(result).toEqual(baseContext);
-    });
-
-    it('debe evaluar correctamente hasApprovedPazYSalvo examinando los documentos', () => {
-      const mockDocument = createMockFileDocument({
-        type: DocumentType.PAZ_Y_SALVO,
-        status: stateList.APROBADO
-      });
-      baseContext.thesisWork = createMockThesisWork({ documents: [mockDocument] });
-
-      const result = SustentationTabConfig.enrichEvaluationContext(baseContext);
-
-      expect(result.hasApprovedPazYSalvo).toBe(true);
-    });
-
-    it('debe validar si el usuario actual es jurado de la sustentación activa', () => {
-      const mockJuror = createMockUser({ id: 'juror-1' });
-
-      const mockSustentation = createMockSustentation({
-        assignedJurors: [mockJuror]
-      });
-
-      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
-
-      const result = SustentationTabConfig.enrichEvaluationContext(baseContext);
-
-      expect(result.isJuror).toBe(true);
-      expect(result.hasSustentationRegistered).toBe(true);
-    });
-
-    it('debe validar que isSustentationEvaluated sea true si tiene veredictos', () => {
-      const mockVerdict = createMockJurorVerdict({ veredict: stateList.APROBADO });
-      const mockSustentation = createMockSustentation({
-        verdicts: [mockVerdict]
-      });
-
-      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
-
-      const result = SustentationTabConfig.enrichEvaluationContext(baseContext);
-
-      expect(result.isSustentationEvaluated).toBe(true);
-    });
+  it('la primera sesión aplazada y la segunda programada: solo la actual se califica', () => {
+    const base = sustentacionDePrueba();
+    const dosSesiones = thesisWorkDePrueba(crearTrabajoEnSustentacion({
+      sesiones: [base.sesiones[0], { ...base.sesiones[0], numero: 2, fechaHora: '2026-08-20T10:00:00' }],
+      calificaciones: [{ sesion: 1, juradoUsuarioId: 30, jurado: 'Juan', calificacion: 'APLAZADO',
+        observaciones: 'Repetir', rutaActa: '15/TI-G/v1/acta.pdf', fecha: '2026-07-15' }]
+    }));
+    const filas = SustentationTabConfig.getTableData([], contextoDePestana(dosSesiones, { isCoordinator: true }));
+    expect(filas.map(f => [f.id, f.status])).toEqual([
+      ['sesion-2', stateList.EN_REVISION], ['sesion-1', stateList.APLAZADO]
+    ]);
+    expect(filas[0].allowedActions).toContain('evaluate_sustentation');
+    expect(filas[1].allowedActions).toEqual(['view_sustentation_details']);
   });
 
-  describe('getTableData (y resolveDisplayStatus)', () => {
-    const dummyDocs: FileDocument[] = [];
-
-    it('debe retornar array vacío si no hay sustentaciones (programación defensiva)', () => {
-      baseContext.thesisWork = createMockThesisWork({ sustentations: undefined });
-
-      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
-
-      expect(result).toEqual([]);
-    });
-
-    it('debe mostrar estado CANCELADO y fecha pendiente si es el caso', () => {
-      const mockSustentation = createMockSustentation({
-        id: 'sus-1',
-        status: SustentationStatus.CANCELADA,
-        sustentationDate: undefined
-      });
-      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
-
-      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
-
-      expect(result[0].status).toBe(stateList.CANCELADO);
-      expect(result[0].date).toBe('Fecha pendiente');
-      expect(result[0].allowedActions).toEqual(['view_sustentation_details']);
-    });
-
-    it('debe mostrar estado APLAZADO y formatear fecha si es aplazada administrativamente', () => {
-      const dateRaw = new Date('2026-08-03T10:00:00Z');
-      const mockSustentation = createMockSustentation({
-        id: 'sus-2',
-        status: SustentationStatus.APLAZADA,
-        sustentationDate: dateRaw
-      });
-      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
-
-      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
-
-      expect(result[0].status).toBe(stateList.APLAZADO);
-      expect(result[0].date).toBe(dateRaw.toLocaleDateString('es-ES'));
-    });
-
-    it('debe mostrar EN_REVISION si no tiene veredictos y no está aplazada/cancelada', () => {
-      const mockSustentation = createMockSustentation({
-        id: 'sus-3',
-        status: SustentationStatus.PROGRAMADA,
-        verdicts: []
-      });
-      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
-
-      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
-
-      expect(result[0].status).toBe(stateList.EN_REVISION);
-    });
-
-    it('debe mostrar APROBADO_CON_OBSERVACIONES si hubo observaciones previas y el último es APROBADO', () => {
-      const verdictObservaciones = createMockJurorVerdict({ veredict: stateList.APROBADO_CON_OBSERVACIONES });
-      const verdictAprobado = createMockJurorVerdict({ veredict: stateList.APROBADO });
-
-      const mockSustentation = createMockSustentation({
-        id: 'sus-4',
-        verdicts: [verdictObservaciones, verdictAprobado]
-      });
-      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
-
-      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
-
-      expect(result[0].status).toBe(stateList.APROBADO_CON_OBSERVACIONES);
-    });
-
-    it('debe mostrar el último veredicto si es diferente a las reglas de observación cruzadas', () => {
-      const verdictObservaciones = createMockJurorVerdict({ veredict: stateList.APROBADO_CON_OBSERVACIONES });
-      const verdictNoAprobado = createMockJurorVerdict({ veredict: stateList.NO_APROBADO });
-
-      const mockSustentation = createMockSustentation({
-        id: 'sus-5',
-        verdicts: [verdictObservaciones, verdictNoAprobado]
-      });
-      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
-
-      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
-
-      expect(result[0].status).toBe(stateList.NO_APROBADO);
-    });
-
-    it('debe añadir acción evaluate_sustentation para Admin o Jurado en estado PROGRAMADA sin veredictos', () => {
-      baseContext.isAdmin = true;
-      baseContext.isArchived = false;
-
-      const mockSustentation = createMockSustentation({
-        id: 'sus-6',
-        status: SustentationStatus.PROGRAMADA,
-        verdicts: []
-      });
-      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
-
-      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
-
-      expect(result[0].allowedActions).toContain('evaluate_sustentation');
-    });
-
-    it('NO debe añadir acción evaluate_sustentation si ya tiene veredictos emitidos', () => {
-      baseContext.isAdmin = true;
-
-      const mockSustentation = createMockSustentation({
-        id: 'sus-7',
-        verdicts: [createMockJurorVerdict({ veredict: stateList.APROBADO })]
-      });
-      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
-
-      const result = SustentationTabConfig.getTableData(dummyDocs, baseContext);
-
-      expect(result[0].allowedActions).not.toContain('evaluate_sustentation');
-    });
+  it('la inasistencia se muestra como no aprobada en su sesión', () => {
+    const inasistencia = thesisWorkDePrueba(crearTrabajoEnSustentacion({
+      estado: 'APLAZADA',
+      inasistencias: [{ sesion: 1, juradoUsuarioId: 30, jurado: 'Juan', favorable: false,
+        observaciones: 'No se presentó', fecha: '2026-07-15' }]
+    }, { etapa: 'APLAZADO' }));
+    const filas = SustentationTabConfig.getTableData([], contextoDePestana(inasistencia));
+    expect(filas[0].status).toBe(stateList.APLAZADO);
   });
 
-  describe('getHeaderButtons', () => {
-    it('debe retornar vacío si está archivado o no es rol Consejo', () => {
-      baseContext.isArchived = true;
-      baseContext.isConsejo = true;
-      expect(SustentationTabConfig.getHeaderButtons(baseContext)).toEqual([]);
+  describe('botón del Consejo', () => {
+    const boton = (estado: Parameters<typeof sustentacionDePrueba>[0] | null) => {
+      const trabajo = estado === null ? thesisWorkDePrueba(crearTrabajoEnCurso())
+        : thesisWorkDePrueba(crearTrabajoEnSustentacion(estado));
+      return SustentationTabConfig.getHeaderButtons(contextoDePestana(trabajo, { isConsejo: true }))[0];
+    };
 
-      baseContext.isArchived = false;
-      baseContext.isConsejo = false;
-      expect(SustentationTabConfig.getHeaderButtons(baseContext)).toEqual([]);
+    it('espera la solicitud del director', () => {
+      expect(boton(null)).toEqual(expect.objectContaining({ label: 'Esperando la solicitud del director', disabled: true }));
     });
 
-    it('debe pedir Paz y Salvo si no lo tiene (Rol Consejo)', () => {
-      baseContext.isConsejo = true;
-      baseContext.hasApprovedPazYSalvo = false;
-
-      const buttons = SustentationTabConfig.getHeaderButtons(baseContext);
-
-      expect(buttons[0].label).toBe('Requiere Paz y Salvo Aprobado');
-      expect(buttons[0].disabled).toBe(true);
+    it('programa la sustentación solicitada', () => {
+      expect(boton({ estado: 'SOLICITADA', sesiones: [] }))
+        .toEqual(expect.objectContaining({ label: 'Programar sustentación', disabled: false }));
     });
 
-    it('debe permitir Registrar Sustentación si hay Paz y Salvo y no hay sustentaciones', () => {
-      baseContext.isConsejo = true;
-      baseContext.hasApprovedPazYSalvo = true;
-      baseContext.hasSustentationRegistered = false;
-
-      const buttons = SustentationTabConfig.getHeaderButtons(baseContext);
-
-      expect(buttons[0].label).toBe('Registrar Sustentación');
-      expect(buttons[0].disabled).toBe(false);
+    it('programa la segunda sesión tras un aplazamiento', () => {
+      expect(boton({ estado: 'APLAZADA' })).toEqual(expect.objectContaining({ label: 'Programar segunda sesión', disabled: false }));
     });
 
-    it('debe permitir Registrar Nueva Sustentación si fue APLAZADO administrativamente', () => {
-      baseContext.isConsejo = true;
-      baseContext.hasApprovedPazYSalvo = true;
-      baseContext.hasSustentationRegistered = true;
-
-      const mockSustentation = createMockSustentation({ status: SustentationStatus.APLAZADA });
-      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
-
-      const buttons = SustentationTabConfig.getHeaderButtons(baseContext);
-
-      expect(buttons[0].label).toBe('Registrar Nueva Sustentación');
-      expect(buttons[0].disabled).toBe(false);
+    it('con la sesión programada no hay nada que programar', () => {
+      expect(boton({ estado: 'PROGRAMADA' })).toEqual(expect.objectContaining({ label: 'Sustentación programada', disabled: true }));
     });
 
-    it('debe permitir Registrar Nueva Sustentación si fue APLAZADO en veredicto del jurado', () => {
-      baseContext.isConsejo = true;
-      baseContext.hasApprovedPazYSalvo = true;
-      baseContext.hasSustentationRegistered = true;
-
-      const mockSustentation = createMockSustentation({
-        status: SustentationStatus.PROGRAMADA,
-        verdicts: [createMockJurorVerdict({ veredict: stateList.APLAZADO })]
-      });
-      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
-
-      const buttons = SustentationTabConfig.getHeaderButtons(baseContext);
-
-      expect(buttons[0].label).toBe('Registrar Nueva Sustentación');
-      expect(buttons[0].disabled).toBe(false);
-    });
-
-    it('debe deshabilitar e indicar Sustentación Evaluada si ya terminó exitosamente o con otro veredicto final', () => {
-      baseContext.isConsejo = true;
-      baseContext.hasApprovedPazYSalvo = true;
-      baseContext.hasSustentationRegistered = true;
-      baseContext.isSustentationEvaluated = true;
-
-      const mockSustentation = createMockSustentation({
-        verdicts: [createMockJurorVerdict({ veredict: stateList.APROBADO })]
-      });
-      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
-
-      const buttons = SustentationTabConfig.getHeaderButtons(baseContext);
-
-      expect(buttons[0].label).toBe('Sustentación Evaluada');
-      expect(buttons[0].disabled).toBe(true);
-    });
-
-    it('debe deshabilitar e indicar Sustentación Programada si no ha sido evaluada y está activa', () => {
-      baseContext.isConsejo = true;
-      baseContext.hasApprovedPazYSalvo = true;
-      baseContext.hasSustentationRegistered = true;
-      baseContext.isSustentationEvaluated = false;
-
-      const mockSustentation = createMockSustentation({
-        status: SustentationStatus.PROGRAMADA,
-        verdicts: []
-      });
-      baseContext.thesisWork = createMockThesisWork({ sustentations: [mockSustentation] });
-
-      const buttons = SustentationTabConfig.getHeaderButtons(baseContext);
-
-      expect(buttons[0].label).toBe('Sustentación Programada');
-      expect(buttons[0].disabled).toBe(true);
+    it('otros roles no ven el botón', () => {
+      expect(SustentationTabConfig.getHeaderButtons(contextoDePestana(programada, { isDirector: true }))).toEqual([]);
     });
   });
 });

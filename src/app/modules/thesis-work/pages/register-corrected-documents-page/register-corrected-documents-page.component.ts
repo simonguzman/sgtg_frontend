@@ -19,7 +19,7 @@ export class RegisterCorrectedDocumentsPageComponent implements OnInit {
   readonly thesisWorkState = signal<ThesisWork | null>(null);
   readonly isConfirmModalOpen = signal(false);
   readonly isSubmitting  = signal(false);
-  readonly pendingFilesData  = signal<{ monograph: File; annexes: File } | null>(null);
+  readonly pendingFilesData  = signal<{ monograph: File; annexes: File | null } | null>(null);
 
   ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;
@@ -38,7 +38,7 @@ export class RegisterCorrectedDocumentsPageComponent implements OnInit {
     this.facade.loadThesisWork(id, (thesisWork) => this.thesisWorkState.set(thesisWork), () => this.goBack());
   }
 
-  handleRequestConfirmation(files: { monograph: File; annexes: File }): void {
+  handleRequestConfirmation(files: { monograph: File; annexes: File | null }): void {
     this.pendingFilesData.set(files);
     this.isConfirmModalOpen.set(true);
   }

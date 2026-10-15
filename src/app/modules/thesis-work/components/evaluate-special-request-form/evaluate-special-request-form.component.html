@@ -84,6 +84,26 @@
         <p class="text-size-role-footer text-red-500 text-center">Debe seleccionar la decisión para continuar</p>
       }
 
+      @if (requiresNewDate) {
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+          <div class="flex flex-col gap-1">
+            <label for="newDate" class="font-display font-semibold text-primary text-size-section">Nueva fecha <span class="text-[#ED7D31]">*</span></label>
+            <input id="newDate" type="date" (input)="onInput('date', $event)"
+                   class="p-2 border border-gray-300 rounded-md font-sans text-sm" [class.border-orange-500]="isSubmitAttempted() && !newDate()">
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="newTime" class="font-display font-semibold text-primary text-size-section">Hora <span class="text-[#ED7D31]">*</span></label>
+            <input id="newTime" type="time" (input)="onInput('time', $event)"
+                   class="p-2 border border-gray-300 rounded-md font-sans text-sm" [class.border-orange-500]="isSubmitAttempted() && !newTime()">
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="newLocation" class="font-display font-semibold text-primary text-size-section">Salón (opcional)</label>
+            <input id="newLocation" type="text" (input)="onInput('location', $event)" placeholder="Se conserva el actual"
+                   class="p-2 border border-gray-300 rounded-md font-sans text-sm">
+          </div>
+        </div>
+      }
+
       <div class="flex flex-col gap-2">
         <span class="font-display font-semibold text-primary text-size-section">Resolución (PDF) <span class="text-[#ED7D31]">*</span></span>
         @if (resolution(); as item) {

@@ -4,7 +4,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { EvaluateCorrectionsPageComponent } from './evaluate-corrections-page.component';
 import { EvaluateCorrectionsFacadeService } from './services/evaluate-corrections-facade.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
-import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { User } from '../../../users/interfaces/user.interface';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';
@@ -17,7 +16,7 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 class MockEvaluateCorrectionsFormComponent {
   @Input({ required: true }) thesisWork!: ThesisWork;
   @Input() isSubmitting = false;
-  @Output() onSubmitEvaluation = new EventEmitter<{ evaluation: Omit<Evaluation, 'id' | 'date'>; file: File }>();
+  @Output() onSubmitEvaluation = new EventEmitter<{ fulfills: boolean; observations: string }>();
   @Output() onGoBack = new EventEmitter<void>();
 }
 
@@ -40,7 +39,7 @@ interface MockRouter {
 
 interface MockEvaluateCorrectionsFacadeService {
   loadThesisWork: jest.Mock<void, [string, (work: ThesisWork) => void, () => void]>;
-  saveEvaluation: jest.Mock<void, [string, Omit<Evaluation, 'id' | 'date'>, File, () => void, () => void]>;
+  saveEvaluation: jest.Mock<void, [string, { fulfills: boolean; observations: string }, () => void, () => void]>;
   showNavigationError: jest.Mock<void, []>;
 }
 
@@ -93,17 +92,6 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   };
   return { ...baseThesis, ...overrides };
 };
-
-const createMockEvaluationPayload = (overrides: Partial<Omit<Evaluation, 'id' | 'date'>> = {}): Omit<Evaluation, 'id' | 'date'> => ({
-  documentId: 'doc-1',
-  proposalId: 'prop-1',
-  evaluatorId: 'u-1',
-  evaluatorName: 'Jurado Asignado',
-  evaluatorRole: 'JURADO',
-  veredict: stateList.APROBADO,
-  observations: 'Dictamen validado correctamente.',
-  ...overrides
-});
 
 describe('EvaluateCorrectionsPageComponent', () => {
   let component: EvaluateCorrectionsPageComponent;
@@ -213,10 +201,7 @@ describe('EvaluateCorrectionsPageComponent', () => {
     });
 
     it('handleOpenConfirmation debería guardar la evaluación pendiente y abrir el modal', () => {
-      const mockEvent = {
-        evaluation: createMockEvaluationPayload(),
-        file: new File([''], 'test.pdf')
-      };
+      const mockEvent = { fulfills: true, observations: 'Cumple' };
 
       component.handleOpenConfirmation(mockEvent);
 
@@ -232,10 +217,7 @@ describe('EvaluateCorrectionsPageComponent', () => {
   });
 
   describe('executeEvaluationSave', () => {
-    const mockEvent = {
-      evaluation: createMockEvaluationPayload(),
-      file: new File([''], 'test.pdf')
-    };
+    const mockEvent = { fulfills: false, observations: 'No se corrigió el capítulo 3' };
 
     beforeEach(() => {
       fixture.detectChanges();
@@ -254,7 +236,7 @@ describe('EvaluateCorrectionsPageComponent', () => {
     it('debería manejar el flujo de éxito de guardado, apagar loading y retroceder', () => {
       component.handleOpenConfirmation(mockEvent);
 
-      facadeMock.saveEvaluation.mockImplementation((id, evalData, file, onSuccess) => onSuccess());
+      facadeMock.saveEvaluation.mockImplementation((_id, _data, onSuccess) => onSuccess());
 
       component.executeEvaluationSave();
 
@@ -262,8 +244,7 @@ describe('EvaluateCorrectionsPageComponent', () => {
       expect(component.isConfirmModalOpen()).toBe(false);
       expect(facadeMock.saveEvaluation).toHaveBeenCalledWith(
         '123',
-        mockEvent.evaluation,
-        mockEvent.file,
+        mockEvent,
         expect.any(Function),
         expect.any(Function)
       );
@@ -274,7 +255,7 @@ describe('EvaluateCorrectionsPageComponent', () => {
       component.pendingEvaluationData.set(mockEvent);
       component.isConfirmModalOpen.set(true);
 
-      facadeMock.saveEvaluation.mockImplementation((id, evalData, file, onSuccess, onError) => onError());
+      facadeMock.saveEvaluation.mockImplementation((_id, _data, _onSuccess, onError) => onError());
 
       component.executeEvaluationSave();
 
