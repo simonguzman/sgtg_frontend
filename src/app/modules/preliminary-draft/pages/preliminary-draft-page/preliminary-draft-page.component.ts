@@ -2,14 +2,14 @@ import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { TableButton, TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { DescriptionModalComponent } from '../../../../shared/components/modals/description-modal/description-modal.component';
-import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { AnnulWorkModalComponent } from '../../../../shared/components/modals/annul-work-modal/annul-work-modal.component';
 import { PreliminaryDraftFacadeService } from './services/preliminary-draft-facade.service';
 import { PRELIMINARY_DRAFT_COLUMNS, PreliminaryDraftTableRow } from './models/preliminary-draft-page.model';
 
 @Component({
   selector: 'app-preliminary-draft-page',
   standalone: true,
-  imports: [TableComponent, DescriptionModalComponent, ConfirmationActionModalComponent],
+  imports: [TableComponent, DescriptionModalComponent, AnnulWorkModalComponent],
   templateUrl: './preliminary-draft-page.component.html',
   styleUrl: './preliminary-draft-page.component.css',
 })
@@ -21,7 +21,7 @@ export class PreliminaryDraftPageComponent {
   protected readonly filterFields = ['title', 'modality', 'state', 'remainingTime', 'hiddenParticipants'];
 
   descriptionModal = { show: false, title: '', content: '' };
-  deleteState = { show: false, id: null as string | null, title: '', loading: false };
+  annulState = { show: false, id: null as string | null, title: '', loading: false };
 
   handleTableAction(event: { action: string; row: PreliminaryDraftTableRow }): void {
     if (!event.row.allowedActions.includes(event.action)) {
@@ -39,8 +39,8 @@ export class PreliminaryDraftPageComponent {
       case 'editar':
         this.router.navigate(['/preliminary-draft/edit', event.row.id]);
         break;
-      case 'eliminar':
-        this.deleteState = { show: true, id: event.row.id, title: event.row.title, loading: false };
+      case 'anular':
+        this.annulState = { show: true, id: event.row.id, title: event.row.title, loading: false };
         break;
     }
   }
@@ -56,19 +56,19 @@ export class PreliminaryDraftPageComponent {
     }
   }
 
-  confirmDelete(): void {
-    const id = this.deleteState.id;
-    if (!id || this.deleteState.loading) return;
-
-    this.deleteState.loading = true;
-    this.facade.deleteDraft(
+  confirmAnnul(justification: string): void {
+    const id = this.annulState.id;
+    if (!id || this.annulState.loading) return;
+    this.annulState.loading = true;
+    this.facade.annulDraft(
       id,
-      () => { this.deleteState = { show: false, id: null, title: '', loading: false }; },
-      () => { this.deleteState.loading = false; }
+      justification,
+      () => { this.annulState = { show: false, id: null, title: '', loading: false }; },
+      () => { this.annulState.loading = false; }
     );
   }
 
-  cancelDelete(): void {
-    this.deleteState = { show: false, id: null, title: '', loading: false };
+  cancelAnnul(): void {
+    this.annulState = { show: false, id: null, title: '', loading: false };
   }
 }

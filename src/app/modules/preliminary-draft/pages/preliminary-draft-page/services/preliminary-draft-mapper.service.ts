@@ -74,7 +74,9 @@ export class PreliminaryDraftMapperService {
     let allowed: string[] = ['ver descripción'];
 
     if (hasViewPermission) allowed.push('ver');
-    if (isOwnerOrAdmin && !isApproved) allowed.push('editar', 'eliminar');
+    if (isOwnerOrAdmin && !isApproved) allowed.push('editar');
+    // Solo el director anula, antes de la aprobación del Consejo
+    if (isDirector && !isApproved) allowed.push('anular');
 
     return allowed;
   }

@@ -83,7 +83,21 @@ describe('PreliminaryDraftMapperService', () => {
     // @ts-expect-error Acceso intencional a método privado para testing de caja blanca
     const allowed = service.calculateAllowedActions(mockDraft, true, true, 'admin-1');
 
-    expect(allowed).toEqual(['ver descripción', 'ver', 'editar', 'eliminar']);
+    // Solo el director anula
+    expect(allowed).toEqual(['ver descripción', 'ver', 'editar']);
+  });
+
+  it('el director puede anular mientras el anteproyecto no esté aprobado', () => {
+    const director = createMockUser({ id: 'dir-1' });
+    const enRevision = createMockDraft({ state: stateList.EN_REVISION,
+      proposalData: createMockProposalData({ director }) });
+    const aprobado = createMockDraft({ state: stateList.APROBADO, proposalData: createMockProposalData({ director }) });
+
+    // @ts-expect-error Acceso intencional a método privado para testing de caja blanca
+    expect(service.calculateAllowedActions(enRevision, false, false, 'dir-1')).toEqual(
+      ['ver descripción', 'ver', 'editar', 'anular']);
+    // @ts-expect-error Acceso intencional a método privado para testing de caja blanca
+    expect(service.calculateAllowedActions(aprobado, false, false, 'dir-1')).toEqual(['ver descripción', 'ver']);
   });
 
   it('debería restringir acciones si el usuario no tiene relación con el anteproyecto', () => {

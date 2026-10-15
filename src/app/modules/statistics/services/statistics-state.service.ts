@@ -1,18 +1,18 @@
 import { Injectable, computed, signal, inject } from '@angular/core';
 import { RawProjectData } from '../interfaces/rawProjectData.interface';
 import { StatisticsFilters } from '../interfaces/statisticsFilters.interface';
-import { stateList } from '../../../core/enums/state.enum';
-import { ProposalService } from '../../proposal/services/proposal.service';
-import { PreliminaryDraftService } from '../../preliminary-draft/services/preliminary-draft.service';
-import { ThesisWorkService } from '../../thesis-work/services/thesis-work.service';
+import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
+import { TrabajoGradoVistasService } from '../../../core/services/trabajo-grado/trabajo-grado-vistas.service';
+import { estaCerrado } from '../../../core/mappers/trabajo-grado.mapper';
+import { resultadoDeCierre } from '../../history/helpers/archived-work.helper';
+import { mapStateToProjectStatus } from '../helpers/project-status.helper';
 import { ProjectDataMapperService } from './project-data-mapper.service';
 import { STAGE_OPTIONS } from '../models/statistics-options.model';
 
 @Injectable({ providedIn: 'root' })
 export class StatisticsStateService {
-  private readonly proposalService = inject(ProposalService);
-  private readonly preliminaryDraftService = inject(PreliminaryDraftService);
-  private readonly thesisWorkService = inject(ThesisWorkService);
+  private readonly store = inject(TrabajoGradoStoreService);
+  private readonly vistas = inject(TrabajoGradoVistasService);
   private readonly mapper = inject(ProjectDataMapperService);
 
   public readonly currentFilters = signal<StatisticsFilters>({
@@ -27,11 +27,28 @@ export class StatisticsStateService {
     deadlineFilter: 'ALL'
   });
 
+  /**
+   * Un registro por trabajo de grado, en la etapa más avanzada que alcanzó
+   * (propuesta, anteproyecto o trabajo de grado). Un trabajo cerrado se cuenta
+   * con su resultado final.
+   */
   public readonly rawData = computed<RawProjectData[]>(() => {
-    const proposals   = this.proposalService.allProposals().map(p => this.mapper.mapProposal(p));
-    const drafts       = this.preliminaryDraftService.allPreliminaryDrafts().map(d => this.mapper.mapPreliminaryDraft(d));
-    const thesisWorks  = this.thesisWorkService.allThesisWorks().map(t => this.mapper.mapThesisWork(t));
-    return [...proposals, ...drafts, ...thesisWorks];
+    const propuestas = new Map(this.vistas.propuestas().map(p => [p.id, p]));
+    const anteproyectos = new Map(this.vistas.anteproyectos().map(a => [a.preliminaryDraftId, a]));
+    const trabajos = new Map(this.vistas.trabajosDeGrado().map(t => [t.thesisWorkId, t]));
+    return this.store.trabajos().flatMap(trabajo => {
+      const id = String(trabajo.id);
+      const trabajoDeGrado = trabajos.get(id);
+      const anteproyecto = anteproyectos.get(id);
+      const propuesta = propuestas.get(id);
+      const dato = trabajoDeGrado ? this.mapper.mapThesisWork(trabajoDeGrado)
+        : anteproyecto ? this.mapper.mapPreliminaryDraft(anteproyecto)
+        : propuesta ? this.mapper.mapProposal(propuesta) : null;
+      if (!dato) return [];
+      if (!estaCerrado(trabajo)) return [dato];
+      const resultado = resultadoDeCierre(trabajo);
+      return [{ ...dato, originalState: resultado, status: mapStateToProjectStatus(resultado) }];
+    });
   });
 
   public readonly periodsOptions = computed<string[]>(() => {
@@ -55,7 +72,6 @@ export class StatisticsStateService {
     const data = this.rawData();
     const filters = this.currentFilters();
     return data.filter(project => {
-      if (project.originalState === stateList.EVALUADO) return false;
       const matchStage    = filters.stage ? project.stage === filters.stage : true;
       const matchPeriod   = filters.period ? project.period === filters.period : true;
       const matchDirector = filters.directorId ? project.directorId === filters.directorId : true;

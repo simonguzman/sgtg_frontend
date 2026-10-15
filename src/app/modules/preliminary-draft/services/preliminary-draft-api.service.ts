@@ -6,6 +6,7 @@ import { EventBusService } from '../../../core/services/eventbus/event-bus.servi
 import { TrabajoGradoApiService } from '../../../core/services/trabajo-grado/trabajo-grado-api.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { TrabajoGradoVistasService } from '../../../core/services/trabajo-grado/trabajo-grado-vistas.service';
+import { TrabajoGradoAnulacionService } from '../../../core/services/trabajo-grado/trabajo-grado-anulacion.service';
 import { aAnteproyecto } from '../../../core/mappers/trabajo-grado.mapper';
 import { TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado-api.interface';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
@@ -23,6 +24,7 @@ export class PreliminaryDraftApiService {
   private readonly userService = inject(UserService);
   private readonly eventBus = inject(EventBusService);
   private readonly api = inject(TrabajoGradoApiService);
+  private readonly anulacion = inject(TrabajoGradoAnulacionService);
   private readonly store = inject(TrabajoGradoStoreService);
   private readonly vistas = inject(TrabajoGradoVistasService);
 
@@ -51,9 +53,9 @@ export class PreliminaryDraftApiService {
     );
   }
 
-  /** El backend no elimina anteproyectos: el trabajo de grado se cancela ante el Consejo. */
-  public deleteDraft(_id: string): Observable<void> {
-    return throwError(() => new Error('Los anteproyectos no se eliminan; un trabajo de grado se cancela ante el Consejo.'));
+  /** Anulación del director (borrado lógico): el trabajo queda cancelado y pasa al historial. */
+  public annulDraft(id: string, justification: string): Observable<void> {
+    return this.anulacion.anular(id, justification).pipe(map(() => undefined));
   }
 
   /** Radica una versión del anteproyecto (`POST /{id}/anteproyecto`, multipart). */

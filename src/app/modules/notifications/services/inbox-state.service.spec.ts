@@ -1,140 +1,135 @@
 import { TestBed } from '@angular/core/testing';
-import { InboxStateService } from './inbox-state.service';
-import { InboxMessage } from '../interfaces/inbox-message.interface';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { INTERVALO_BUZON_MS, InboxStateService } from './inbox-state.service';
+import { AuthStorageService } from '../../../core/services/auth/auth-storage.service';
+import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../shared/components/notifications/models/notification.model';
+import { NotificacionApi } from '../../../core/interfaces/api/notificacion-api.interface';
+import { UserRoleType } from '../../../core/enums/user-role-type.enum';
+import { IdentificationType } from '../../users/enum/identification-type.enum';
+import { UserState } from '../../users/enum/user-state.enum';
+import { User } from '../../users/interfaces/user.interface';
+import { crearJwtDePrueba } from '../../../testing/jwt-de-prueba';
 
-const createMockInboxMessage = (overrides: Partial<InboxMessage> = {}): InboxMessage => ({
-  id: 'msg-default',
-  userId: 'user-default',
-  type: NotificationType.INFO,
-  title: 'Título por defecto',
-  message: 'Cuerpo por defecto',
-  date: new Date(),
-  status: 'no leido',
-  ...overrides
-} as InboxMessage);
+const API = '/api/v1/sgtg/notificaciones';
 
-describe('InboxStateService', () => {
-  let service: InboxStateService;
-  let store: Record<string, string> = {};
-  const mockLocalStorage = {
-    getItem: jest.fn((key: string) => (key in store ? store[key] : null)),
-    setItem: jest.fn((key: string, value: string) => {
-      store[key] = value;
-    }),
-    removeItem: jest.fn((key: string) => {
-      delete store[key];
-    }),
-    clear: jest.fn(() => {
-      store = {};
-    }),
+const estudiante: User = {
+  id: '10', idType: IdentificationType.CC, idNumber: 10, firstName: 'Eva', lastName: 'Estudiante',
+  secondLastName: '', codeNumber: 10, email: 'eva@unicauca.edu.co', state: UserState.active,
+  roles: [UserRoleType.ESTUDIANTE]
+};
+
+const notificacion = (id: number, overrides: Partial<NotificacionApi> = {}): NotificacionApi => ({
+  id, tipo: 'INFO', titulo: `Título ${id}`, mensaje: `Mensaje ${id}`, trabajoId: 15, etapa: 'PROPUESTA',
+  fecha: '2026-03-02T10:00:00', leida: false, ...overrides
+});
+
+describe('InboxStateService (buzón del backend)', () => {
+  let state: InboxStateService;
+  let http: HttpTestingController;
+  let notification: { show: jest.Mock };
+
+  /** Responde las consultas pendientes del buzón; las de trabajos se responden vacías. */
+  const responderBuzon = (lista: NotificacionApi[]) => {
+    http.match(req => req.method === 'GET' && req.url === API).forEach(req => req.flush(lista));
+    http.match(req => /\/trabajos-grado(\/mis-trabajos)?$/.test(req.url)).forEach(req => req.flush([]));
   };
-  const STORAGE_KEY = 'academic_inbox_messages';
+
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.useFakeTimers();
     jest.spyOn(console, 'warn').mockImplementation(() => {});
-    Object.defineProperty(window, 'localStorage', {
-      value: mockLocalStorage,
-      writable: true
+    notification = { show: jest.fn() };
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting(),
+        { provide: NotificationService, useValue: notification }]
     });
-    store = {};
-    jest.clearAllMocks();
+    state = TestBed.inject(InboxStateService);
+    http = TestBed.inject(HttpTestingController);
+    TestBed.inject(AuthStorageService).setSession(crearJwtDePrueba(), estudiante);
+    TestBed.tick();
+    jest.advanceTimersByTime(0);
   });
+
   afterEach(() => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
   });
-  describe('Inicialización y loadFromStorage', () => {
-    it('debe inicializar con un arreglo vacío si el storage está vacío', () => {
-      TestBed.configureTestingModule({ providers: [InboxStateService] });
-      service = TestBed.inject(InboxStateService);
-      expect(service.messagesSignal()).toEqual([]);
-      expect(mockLocalStorage.getItem).toHaveBeenCalledWith(STORAGE_KEY);
-    });
-    it('debe parsear los datos y convertir las fechas de string a objetos Date', () => {
-      const storedData = [
-        {
-          id: '1',
-          userId: 'user-1',
-          type: NotificationType.INFO,
-          title: 'Título 1',
-          message: 'Mensaje 1',
-          status: 'no leido',
-          date: '2026-08-10T12:00:00.000Z'
-        }
-      ];
-      store[STORAGE_KEY] = JSON.stringify(storedData);
-      TestBed.configureTestingModule({ providers: [InboxStateService] });
-      service = TestBed.inject(InboxStateService);
-      const state = service.messagesSignal();
-      expect(state).toHaveLength(1);
-      expect(state[0].title).toBe('Título 1');
-      expect(state[0].date).toBeInstanceOf(Date);
-      expect(state[0].date.toISOString()).toBe('2026-08-10T12:00:00.000Z');
-    });
-    it('debe manejar errores de parseo limpiando el storage corrupto y retornando un arreglo vacío', () => {
-      store[STORAGE_KEY] = '{ corrupted_json: true ';
-      TestBed.configureTestingModule({ providers: [InboxStateService] });
-      service = TestBed.inject(InboxStateService);
-      expect(service.messagesSignal()).toEqual([]);
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(STORAGE_KEY);
-      expect(console.error).toHaveBeenCalled();
-    });
+
+  it('al iniciar sesión consulta el buzón y lo muestra sin avisos emergentes', () => {
+    responderBuzon([notificacion(2), notificacion(1, { leida: true, tipo: 'ALERTA', etapa: 'EVALUACION' })]);
+
+    const [segunda, primera] = state.messagesSignal();
+    expect(segunda).toEqual(expect.objectContaining({ id: '2', userId: '10', title: 'Título 2', status: 'no leido',
+      type: NotificationType.INFO, actionUrl: '/proposal/details/15' }));
+    expect(segunda.date).toEqual(new Date(2026, 2, 2, 10, 0));
+    expect(primera).toEqual(expect.objectContaining({ status: 'leido', type: NotificationType.SECURITY,
+      actionUrl: '/preliminary-draft/details/15' }));
+    expect(notification.show).not.toHaveBeenCalled();
   });
-  describe('Mutaciones del Estado (Signals)', () => {
-    beforeEach(() => {
-      TestBed.configureTestingModule({ providers: [InboxStateService] });
-      service = TestBed.inject(InboxStateService);
-    });
-    it('debe agregar nuevos mensajes al inicio de la lista (addMessages)', () => {
-      const initialMessage = createMockInboxMessage({ id: 'old-1' });
-      service.addMessages([initialMessage]);
-      const newMessage = createMockInboxMessage({ id: 'new-1' });
-      service.addMessages([newMessage]);
-      const state = service.messagesSignal();
-      expect(state).toHaveLength(2);
-      expect(state[0].id).toBe('new-1');
-      expect(state[1].id).toBe('old-1');
-    });
-    it('debe marcar un mensaje específico como leído (markAsRead)', () => {
-      service.addMessages([createMockInboxMessage({ id: 'msg-1', status: 'no leido' })]);
-      service.markAsRead('msg-1');
-      const state = service.messagesSignal();
-      expect(state[0].status).toBe('leido');
-    });
-    it('debe eliminar un mensaje específico (deleteMessage)', () => {
-      service.addMessages([
-        createMockInboxMessage({ id: 'msg-1' }),
-        createMockInboxMessage({ id: 'msg-2' })
-      ]);
-      service.deleteMessage('msg-1');
-      const state = service.messagesSignal();
-      expect(state).toHaveLength(1);
-      expect(state[0].id).toBe('msg-2');
-    });
-    it('debe vaciar todos los mensajes de un usuario específico (clearAllMessages)', () => {
-      service.addMessages([
-        createMockInboxMessage({ id: '1', userId: 'user-a' }),
-        createMockInboxMessage({ id: '2', userId: 'user-a' }),
-        createMockInboxMessage({ id: '3', userId: 'user-b' }),
-      ]);
-      service.clearAllMessages('user-a');
-      const state = service.messagesSignal();
-      expect(state).toHaveLength(1);
-      expect(state[0].userId).toBe('user-b');
-    });
+
+  it('cada minuto vuelve a consultar; las nuevas se avisan y recargan los trabajos', () => {
+    responderBuzon([notificacion(1)]);
+
+    jest.advanceTimersByTime(INTERVALO_BUZON_MS);
+    http.expectOne(API).flush([notificacion(2, { titulo: 'Propuesta radicada' }), notificacion(1)]);
+
+    expect(state.messagesSignal().map(m => m.id)).toEqual(['2', '1']);
+    expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Propuesta radicada' }));
+    // Alguien cambió un trabajo: se recarga la lista
+    http.expectOne(req => req.url.endsWith('/trabajos-grado/mis-trabajos')).flush([]);
   });
-  describe('Efectos secundarios (Effect / Persistencia)', () => {
-    it('debe guardar automáticamente en localStorage cuando el signal muta', () => {
-      TestBed.configureTestingModule({ providers: [InboxStateService] });
-      service = TestBed.inject(InboxStateService);
-      mockLocalStorage.setItem.mockClear();
-      const newMessage = createMockInboxMessage({ id: 'effect-1' });
-      service.addMessages([newMessage]);
-      TestBed.flushEffects();
-      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-        STORAGE_KEY,
-        JSON.stringify([newMessage])
-      );
-    });
+
+  it('varias nuevas se resumen en un solo aviso', () => {
+    responderBuzon([]);
+    jest.advanceTimersByTime(INTERVALO_BUZON_MS);
+    responderBuzon([notificacion(3), notificacion(2)]);
+    expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Tienes 2 notificaciones nuevas' }));
+  });
+
+  it('marcar como leída actualiza el buzón y el backend', () => {
+    responderBuzon([notificacion(1)]);
+
+    state.markAsRead('1');
+    expect(state.messagesSignal()[0].status).toBe('leido');
+    const req = http.expectOne(`${API}/1/leida`);
+    expect(req.request.method).toBe('PATCH');
+    req.flush(notificacion(1, { leida: true }));
+
+    // Ya leída: no vuelve a llamar
+    state.markAsRead('1');
+    http.expectNone(`${API}/1/leida`);
+  });
+
+  it('si el backend rechaza la acción, se vuelve a consultar el buzón', () => {
+    responderBuzon([notificacion(1)]);
+    state.markAsRead('1');
+    http.expectOne(`${API}/1/leida`).flush({ message: 'No' }, { status: 406, statusText: 'Not Acceptable' });
+    http.expectOne(API).flush([notificacion(1)]);
+    expect(state.messagesSignal()[0].status).toBe('no leido');
+  });
+
+  it('elimina una notificación o vacía el buzón', () => {
+    responderBuzon([notificacion(2), notificacion(1)]);
+
+    state.deleteMessage('2');
+    expect(state.messagesSignal().map(m => m.id)).toEqual(['1']);
+    expect(http.expectOne(`${API}/2`).request.method).toBe('DELETE');
+
+    state.clearAllMessages();
+    expect(state.messagesSignal()).toEqual([]);
+    expect(http.expectOne(req => req.method === 'DELETE' && req.url === API)).toBeTruthy();
+  });
+
+  it('al cerrar sesión se vacía y deja de consultar', () => {
+    responderBuzon([notificacion(1)]);
+
+    TestBed.inject(AuthStorageService).clearUser();
+    TestBed.tick();
+    expect(state.messagesSignal()).toEqual([]);
+
+    jest.advanceTimersByTime(INTERVALO_BUZON_MS * 2);
+    http.expectNone(API);
   });
 });

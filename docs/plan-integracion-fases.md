@@ -153,13 +153,41 @@ Hecho según las decisiones del §7:
   "Versión definitiva"; "Nueva fecha de sustentación" es una solicitud especial (el Consejo fija la fecha al aprobar).
   Se quitó el modo de solo lectura de las pestañas de la fase 6.
 
-### Fase 7 — Transversales
-- Historial: trabajos en etapas finales (`FINALIZADO`, `NO_APROBADO`, `CANCELADO`) y versiones anteriores del propio trabajo.
-- Estadísticas, notificaciones y vencimientos según §3.
+### Fase 7 — Transversales ✅ (2026-10-14)
+Hecho según las decisiones del §8:
+- **Backend:** módulo de **notificaciones** (tabla `notificaciones`, `GET /notificaciones`, `PATCH /{id}/leida`,
+  `PATCH /leidas`, `DELETE /{id}` y `DELETE`); cada operación del trabajo notifica a sus destinatarios (participantes
+  y Comité, Jefe del departamento del director o Consejo según el hecho), nunca a quien la realiza. La tarea diaria
+  notifica los cierres y cambios de etapa que aplica y crea los avisos de plazos por vencer (3 días para el concepto
+  de la propuesta y la evaluación del anteproyecto; 30 días para el fin del plazo de ejecución), una sola vez por
+  usuario y fecha límite. **Anulación** del director (`POST /trabajos-grado/{id}/anulacion` con justificación): solo en
+  propuesta o anteproyecto; el trabajo queda `CANCELADO` con motivo `ANULACION_DIRECTOR`. **Decanatura** consulta
+  todos los trabajos. 408 pruebas; Thunder 216 peticiones (carpeta 8).
+- **Front:** el **historial** es una sola lista de trabajos archivados (etapa de cierre, resultado, motivo y fecha) con
+  acceso a la propuesta, el anteproyecto y el trabajo según las etapas que alcanzó; lo ven los participantes
+  (estudiantes, director, codirector y asesor) y Administrador, Comité, Consejo, Jefe de departamento y Decanatura,
+  no los evaluadores ni los jurados. Las **estadísticas** cuentan cada trabajo una vez en su etapa más avanzada (los
+  cerrados con su resultado final) y las ven además Comité, Jefe de departamento y Decanatura. La **bandeja de
+  entrada** consulta el buzón del backend al iniciar sesión y cada minuto (avisa las nuevas y recarga los trabajos);
+  se eliminaron el procesador de eventos local, los constructores de mensajes y el `deadline-monitor`. "Eliminar"
+  propuesta/anteproyecto ahora es **"Anular"** con justificación obligatoria.
+
+### Ajustes posteriores a la fase 7 ✅ (2026-10-14)
+Según las decisiones del §9 (detalle del backend en `sgtg_backend/docs/ajustes-2026-10-14.md`):
+- **Evaluadores (solo front):** la lista de anteproyectos solo les muestra los que aún deben evaluar; los evaluados
+  pasan a su historial, donde consultan el anteproyecto.
+- **Paz y salvo:** la solicitud de sustentación ya no lo lleva; Decanatura lo revisa desde la pestaña "Paz y salvo"
+  (página "Revisar paz y salvo": aprobado o no, formato F obligatorio y observaciones si no lo aprueba). "Programar
+  sustentación" espera el paz y salvo aprobado.
+- **Estudiantes:** un trabajo activo a la vez (sin importar la modalidad) y quien ya aprobó no participa en otro; el
+  formulario de la propuesta solo ofrece los estudiantes disponibles (`GET /trabajos-grado/estudiantes-disponibles`).
+- **Propuesta:** la respuesta del Comité exige el documento de respuesta.
+- Backend 419 pruebas; Thunder 235 peticiones; E2E por nginx.
 
 ### Fase 8 — Limpieza
-- Eliminar mocks, storages de IndexedDB, `deadline-monitor` local y los roles “en memoria” de usuarios.
-- Actualizar la colección de Thunder (multipart, 85 peticiones).
+- Eliminar mocks, storages de IndexedDB y los roles “en memoria” de usuarios.
+- Quitar los `eventBus.emit` que quedan en los servicios (ya nadie los escucha para el buzón) y `AppEventType`.
+- Persistencia de la base de datos de desarrollo y el tema 406 frente a 403.
 
 ## 3. Inquietudes (decisiones antes o durante cada fase)
 
@@ -169,13 +197,13 @@ Hecho según las decisiones del §7:
 | B | **Roles de contexto**: el front da acceso a pantallas por roles (EVALUADOR, JURADO, DIRECTOR, CODIRECTOR) que hoy “gana” al participar (simulado). El backend no asigna roles: autoriza por participación. Un docente asignado como evaluador sin rol EVALUADOR no vería “Evaluar anteproyecto”. | Que el **backend agregue el rol** al asignar (director/codirector al crear, evaluador al asignar, jurado al programar) y el front refresque la sesión. Alternativa: guards del front por participación. Antes de la Fase 1. |
 | C | **Avances**: el front los carga el estudiante y los evalúan director/codirector/asesor; el backend solo tiene **informes mensuales de PP** que radica el director, sin evaluación. | ✅ Resuelta (§5.5 y §6.1–6.2): informes mensuales en ambas modalidades con revisiones. |
 | D | **Paz y salvo**: en el front lo registra DECANATURA con aprobación académica/financiera; en el backend es un archivo (formato F) que adjunta el director al solicitar la sustentación. DECANATURA no tiene permisos en el backend. | Ajustar el front al flujo del backend, o agregar el registro por Decanatura al backend. Fase 6. |
-| E | Funciones del front **sin equivalente** en el backend: eliminar propuesta, editar propuesta en cualquier momento, solicitud especial “nueva fecha de sustentación”, evaluación “Aprobado con observaciones” en la propuesta. | Ocultarlas o adaptarlas al reglamento implementado (p. ej. la segunda sesión la programa el Consejo tras un aplazamiento). Se revisa en cada fase. |
+| E | Funciones del front **sin equivalente** en el backend: eliminar propuesta, editar propuesta en cualquier momento, solicitud especial “nueva fecha de sustentación”, evaluación “Aprobado con observaciones” en la propuesta. | ✅ Resuelta: la nueva fecha de sustentación en la fase 6 (§7) y eliminar = **anular** (borrado lógico) en la fase 7 (§8). |
 | F | Un **Jefe de departamento** sin rol DIRECTOR/CODIRECTOR no tiene perfil docente (decisión de usuarios) y el backend exige su departamento para asignar evaluadores. | Darle perfil docente (departamento) al Jefe en el formulario de usuarios. Antes de la Fase 2. |
-| G | **Notificaciones**: el front las genera localmente con un bus de eventos simulado; el backend no tiene notificaciones. | Corto plazo: derivarlas en el front de los cambios de etapa/plazos del backend. Largo plazo: módulo de notificaciones en el backend. Fase 7. |
-| H | **Estadísticas** necesitan todos los trabajos; el backend solo lista por participante o por etapa. | Agregar un endpoint de consulta general (o de estadísticas) para Comité/Consejo/Administrador. Fase 7. |
+| G | **Notificaciones**: el front las genera localmente con un bus de eventos simulado; el backend no tiene notificaciones. | ✅ Resuelta (§8.3): módulo de notificaciones en el backend; el front consulta el buzón. |
+| H | **Estadísticas** necesitan todos los trabajos; el backend solo lista por participante o por etapa. | ✅ Resuelta (§8.2): `GET /trabajos-grado` sin etapa, también para Decanatura; un registro por trabajo. |
 | I | **Datos de la propuesta**: el backend exige `objetivos` y no guarda `description` ni `lineOfResearch`. | Agregar objetivos al formulario; decidir si el backend guarda descripción y línea de investigación. Fase 1. |
 | J | **Descarga**: los archivos ya no son base64; el front debe pedirlos con el token. | Resolver en la Fase 0 con `FileDownloadService`. |
-| K | **Vencimientos**: el front los calcula en el navegador (`verifyDeliveryDeadlinesMock`); el backend tiene la tarea programada diaria. | ✅ Resuelta (§6.6): se quitó el cálculo local; el front muestra las fechas del backend. Queda el `deadline-monitor` de notificaciones (Fase 7). |
+| K | **Vencimientos**: el front los calcula en el navegador (`verifyDeliveryDeadlinesMock`); el backend tiene la tarea programada diaria. | ✅ Resuelta (§6.6): se quitó el cálculo local; el front muestra las fechas del backend. El `deadline-monitor` se eliminó en la fase 7: los avisos los crea la tarea diaria del backend (§8.4). |
 
 ## 4. Decisiones tomadas (2026-10-09)
 
@@ -189,7 +217,7 @@ Hecho según las decisiones del §7:
 1. **Formato C**: obligatorio; lo carga el Jefe de departamento al remitir al Consejo el anteproyecto aprobado por los evaluadores (Fase 3, hecho).
 2. **Concepto del evaluador**: formato B obligatorio y un segundo archivo opcional con las anotaciones (Fase 2, hecho).
 3. **Título y descripción del anteproyecto**: solo lectura; cambian únicamente por el proceso de cambio de objetivos del reglamento, en sus plazos (Fase 4).
-4. **Eliminar o anular propuestas y anteproyectos** (inquietud E): **pendiente**, se definirá más adelante.
+4. **Eliminar o anular propuestas y anteproyectos** (inquietud E): definido en la fase 7 (§8.5).
 5. **Avances** (inquietud C): se mapean a los **informes mensuales** de la práctica profesional (opción A); se implementa en la Fase 4.
 
 ## 6. Decisiones del 2026-10-12 (fases 4 y 5)
@@ -219,3 +247,27 @@ Confirmado después (2026-10-12):
 - El **Consejo marca, al programar, cuál de los dos jurados es el coordinador**. El coordinador califica, registra la inasistencia, verifica los ajustes y carga la versión definitiva.
 - La **nueva fecha de sustentación la solicita el director y la aprueba el Consejo**; al aprobarse, la sesión se reprograma.
 
+## 8. Decisiones del 2026-10-14 (fase 7)
+
+1. **Historial**: archiva los trabajos de grado que se terminan, se cancelan o se abandonan, **uno por trabajo** en una
+   sola lista; al abrirlo se consultan sus documentos y **versiones anteriores**. Evaluadores y jurados **no** lo ven;
+   Decanatura sí (como Administrador, Comité, Consejo y Jefe de departamento).
+2. **Estadísticas**: cada trabajo se cuenta una vez, por su etapa actual y con los datos del backend. Las ven
+   Administrador, Consejo, Comité, Jefe de departamento y Decanatura.
+3. **Notificaciones**: módulo en el backend (opción A); el buzón del front las consulta. Solo buzón, sin correo.
+4. **Vencimientos**: la tarea diaria del backend crea los avisos "por vencer" (3 días para la propuesta y el
+   anteproyecto, 30 días para el trabajo) y se elimina el `deadline-monitor` del front.
+5. **Anular**: borrado lógico que archiva el trabajo. Lo hace el **director** directamente, con justificación
+   obligatoria, en propuesta o anteproyecto (antes de la aprobación del Consejo); después se solicita la cancelación
+   al Consejo. "Abandonado" no es un estado nuevo: es el cierre por vencimiento de plazos o la anulación.
+
+## 9. Decisiones del 2026-10-14 (ajustes posteriores a la fase 7)
+
+1. **Evaluadores:** en la lista solo ven los anteproyectos que no han evaluado; los evaluados pasan a su historial (solo
+   desaparecen de la lista; el detalle sigue disponible).
+2. **Paz y salvo:** al solicitar la sustentación no se adjunta; la solicitud le llega a Decanatura, que carga el formato F
+   aprobándolo o no (el documento es obligatorio en ambos casos). No hay plazo reglamentario.
+3. **Estudiantes:** un solo trabajo activo sin importar la modalidad; quien terminó satisfactoriamente no puede ser
+   elegido para otro. Los datos existentes no importan (la base se recrea).
+4. **Propuesta:** cuando el director radica el formato A, la respuesta del Comité incluye un documento de respuesta
+   obligatorio.

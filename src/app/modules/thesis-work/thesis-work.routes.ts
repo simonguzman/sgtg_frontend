@@ -15,6 +15,7 @@ import { SustentationDetailsPageComponent } from './pages/sustentation-details-p
 import { CorrectedDocumentsPageComponent } from './pages/corrected-documents-page/corrected-documents-page.component';
 import { RegisterCorrectedDocumentsPageComponent } from './pages/register-corrected-documents-page/register-corrected-documents-page.component';
 import { EvaluateCorrectionsPageComponent } from './pages/evaluate-corrections-page/evaluate-corrections-page.component';
+import { ReviewPazYSalvoPageComponent } from './pages/review-paz-y-salvo-page/review-paz-y-salvo-page.component';
 import { RegisterCorrespondencePageComponent } from './pages/register-correspondence-page/register-correspondence-page.component';
 import { RegisterSpecialRequestPageComponent } from './pages/register-special-request-page/register-special-request-page.component';
 import { EvaluateSpecialRequestPageComponent } from './pages/evaluate-special-request-page/evaluate-special-request-page.component';
@@ -148,6 +149,16 @@ export const thesisWorkRoutes: Routes = [
                 UserRoleType.ASESOR, UserRoleType.ESTUDIANTE, UserRoleType.DECANATURA,
                 UserRoleType.CONSEJO, UserRoleType.JURADO
               ]
+            }
+          },
+          {
+            path: 'review_paz_y_salvo',
+            component: ReviewPazYSalvoPageComponent,
+            canActivate: [roleGuard],
+            title: 'Revisar paz y salvo',
+            data: {
+              breadcrumb: 'Revisar paz y salvo',
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.DECANATURA]
             }
           },
           {

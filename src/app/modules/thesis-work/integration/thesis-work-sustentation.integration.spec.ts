@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ThesisWorkService } from '../services/thesis-work.service';
 import { SustentationTabConfig } from '../pages/loaded-documents-thesis-work-page/tabs-logic/sustentation.tab';
+import { PazYSalvoTabConfig } from '../pages/loaded-documents-thesis-work-page/tabs-logic/paz_y_salvo.tab';
 import { FinalDeliveryTabConfig } from '../pages/loaded-documents-thesis-work-page/tabs-logic/final-delivery.tab';
 import { CorrespondenceTabConfig } from '../pages/loaded-documents-thesis-work-page/tabs-logic/correspondence.tab';
 import { availableRequestTypes } from '../helpers/special-request-availability.helper';
@@ -45,13 +46,21 @@ describe('Integración [Trabajo de Grado]: Sustentación con jurado coordinador 
   it('solicitud, programación, nueva fecha, calificación con observaciones, ajustes y versión definitiva', () => {
     iniciarSesionConTrabajos(usuario('1', [UserRoleType.DOCENTE, UserRoleType.DIRECTOR]), [crearTrabajoEnCurso()]);
 
-    // El director solicita la sustentación
+    // El director solicita la sustentación (sin paz y salvo)
     expect(FinalDeliveryTabConfig.getHeaderButtons(FinalDeliveryTabConfig.enrichEvaluationContext(
       contextoDePestana(trabajo(), { isDirector: true })))[0].disabled).toBe(false);
-    service.requestSustentation('15', { monograph: pdf('m.pdf'), formatE: pdf('e.pdf'), pazYSalvo: pdf('f.pdf') })
-      .subscribe();
-    http.expectOne(`${API}/15/sustentacion`).flush(crearTrabajoEnSustentacion({ estado: 'SOLICITADA', sesiones: [] }));
+    service.requestSustentation('15', { monograph: pdf('m.pdf'), formatE: pdf('e.pdf') }).subscribe();
+    http.expectOne(`${API}/15/sustentacion`).flush(crearTrabajoEnSustentacion({ estado: 'SOLICITADA', sesiones: [],
+      rutaPazYSalvo: null, revisionesPazYSalvo: [] }));
     expect(trabajo().sustentation?.state).toBe('SOLICITADA');
+    // Sin paz y salvo aprobado el Consejo espera; Decanatura lo revisa
+    expect(SustentationTabConfig.getHeaderButtons(contextoDePestana(trabajo(), { isConsejo: true }))[0])
+      .toEqual(expect.objectContaining({ label: 'Esperando el paz y salvo de Decanatura', disabled: true }));
+    expect(PazYSalvoTabConfig.getHeaderButtons(contextoDePestana(trabajo(), { isDecanatura: true }))[0])
+      .toEqual(expect.objectContaining({ label: 'Revisar paz y salvo', disabled: false }));
+    service.reviewPazYSalvo('15', true, '', pdf('f.pdf')).subscribe();
+    http.expectOne(`${API}/15/sustentacion/paz-y-salvo`).flush(crearTrabajoEnSustentacion({ estado: 'SOLICITADA',
+      sesiones: [] }));
     expect(SustentationTabConfig.getHeaderButtons(contextoDePestana(trabajo(), { isConsejo: true }))[0])
       .toEqual(expect.objectContaining({ label: 'Programar sustentación', disabled: false }));
 

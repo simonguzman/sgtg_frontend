@@ -31,7 +31,7 @@ export const PROPOSAL_COLUMNS: Column[] = [
     actions: [
       { action: 'ver',      icon: 'visibility', variant: 'primary', disabled: false },
       { action: 'editar',   icon: 'edit',       variant: 'primary', disabled: false },
-      { action: 'eliminar', icon: 'delete',     variant: 'primary', disabled: false }
+      { action: 'anular',   icon: 'block',      variant: 'primary', disabled: false }
     ],
     width: 'auto'
   }

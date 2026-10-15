@@ -1,3 +1,4 @@
+import { TrabajoGradoApiService } from '../../../../../core/services/trabajo-grado/trabajo-grado-api.service';
 import { TestBed } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { signal, WritableSignal } from '@angular/core';
@@ -114,7 +115,9 @@ describe('ProposalFormService', () => {
         FormBuilder,
         { provide: UserService, useValue: mockUserService },
         { provide: AuthService, useValue: mockAuthService },
-        { provide: ProposalService, useValue: mockProposalService }
+        { provide: ProposalService, useValue: mockProposalService },
+        // El backend solo permite elegir a stu-1 y stu-2 (stu-busy ya tiene un trabajo activo)
+        { provide: TrabajoGradoApiService, useValue: { estudiantesDisponibles: () => of(['stu-1', 'stu-2'] as unknown as number[]) } }
       ]
     });
     service = TestBed.inject(ProposalFormService);
@@ -186,7 +189,7 @@ describe('ProposalFormService', () => {
       expect(options[0].label).toBe('Pedro Sánchez');
     });
 
-    it('debería filtrar student1Options excluyendo estudiantes asignados a otras propuestas activas', () => {
+    it('student1Options solo ofrece los estudiantes disponibles según el backend', () => {
       const options = service.student1Options();
       expect(options).toHaveLength(2);
       expect(options.map(o => o.id)).toEqual(['stu-1', 'stu-2']);

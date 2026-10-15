@@ -238,13 +238,25 @@ describe('trabajo-grado.mapper', () => {
       expect(cambio.resolution?.name).toBe('resolucion');
     });
 
+    it('las revisiones del paz y salvo de Decanatura: la más reciente primero; sin aprobar no se programa', () => {
+      const trabajo = aTrabajoDeGrado(crearTrabajoEnSustentacion({ estado: 'SOLICITADA', sesiones: [],
+        rutaPazYSalvo: null, revisionesPazYSalvo: [
+          { rutaDocumento: '15/TI-F/v1/f-1.pdf', aprobado: false, observaciones: 'Deuda', fecha: '2026-07-02' }
+        ] }), ctx)!;
+      expect(trabajo.sustentation?.pazYSalvoApproved).toBe(false);
+      expect(trabajo.pazYSalvos).toEqual([expect.objectContaining({ academicApproved: false,
+        academicComments: 'Deuda' })]);
+      expect(trabajo.pazYSalvos?.[0].document.status).toBe(stateList.NO_APROBADO);
+      expect(trabajo.finalDeliveries?.[0].pazYSalvo).toBeUndefined();
+    });
+
     it('la sustentación: solicitud con monografía, formato E, paz y salvo y anexos; sesión con coordinador', () => {
       const trabajo = aTrabajoDeGrado(crearTrabajoEnSustentacion(), ctx)!;
 
       expect(trabajo.sustentation).toEqual({
         state: 'PROGRAMADA', requestDate: new Date(2026, 6, 1), adjustmentsDeadline: null, secondSessionDeadline: null,
         coordinatorId: '30', jurorIds: ['30', '31'], currentSessionDate: new Date(2026, 6, 15, 9, 30),
-        hasPendingNewDate: false
+        hasPendingNewDate: false, pazYSalvoApproved: true
       });
       const entrega = trabajo.finalDeliveries![0];
       expect(entrega.status).toBe(stateList.EN_REVISION);
@@ -252,6 +264,7 @@ describe('trabajo-grado.mapper', () => {
         .toEqual(['monografia', 'formato-e', 'paz-y-salvo', 'anexos']);
       expect(entrega.monograph.type).toBe(DocumentType.MONOGRAFIA);
       expect(trabajo.pazYSalvos?.[0].document.name).toBe('paz-y-salvo');
+      expect(trabajo.pazYSalvos?.[0].document.status).toBe(stateList.APROBADO);
       expect(trabajo.sustentations?.[0]).toEqual(expect.objectContaining({
         number: 1, status: SustentationStatus.PROGRAMADA, sustentationTime: '09:30', location: 'Sala 1',
         coordinatorId: '30'

@@ -16,7 +16,6 @@ import { ThesisWork } from '../interfaces/thesis-work.interface';
 export interface SustentationRequestFiles {
   monograph: File;
   formatE: File;
-  pazYSalvo: File;
   /** Obligatorio en práctica profesional */
   advisorConcept?: File | null;
   annexes?: File | null;
@@ -33,8 +32,8 @@ export interface SustentationSchedule {
 }
 
 /**
- * Sustentación contra el backend: la solicita el director, la programa el
- * Consejo con un jurado coordinador, la califica el coordinador (con el acta)
+ * Sustentación contra el backend: la solicita el director, Decanatura revisa el
+ * paz y salvo, la programa el Consejo con un jurado coordinador, la califica el coordinador (con el acta)
  * o registra la inasistencia; el director radica los ajustes y el coordinador
  * los verifica y carga la versión definitiva. El otro jurado solo consulta.
  */
@@ -49,9 +48,20 @@ export class ThesisWorkSustentationService {
   /** Solicitud de sustentación del director (entrega final). */
   requestSustentation(thesisWorkId: string, files: SustentationRequestFiles): Observable<ThesisWork> {
     return this.operar(thesisWorkId, this.api.enviarArchivos(thesisWorkId, 'sustentacion', null, {
-      monografia: files.monograph, documentoFinal: files.formatE, pazYSalvo: files.pazYSalvo,
-      conceptoAsesor: files.advisorConcept, anexos: files.annexes
+      monografia: files.monograph, documentoFinal: files.formatE, conceptoAsesor: files.advisorConcept,
+      anexos: files.annexes
     }), AppEventType.THESIS_FINAL_DELIVERY_UPLOADED, true);
+  }
+
+  /**
+   * Revisión del paz y salvo de Decanatura: lo aprueba o no, siempre con el
+   * formato F; si no lo aprueba, con observaciones. Sin paz y salvo aprobado
+   * el Consejo no programa la sustentación.
+   */
+  reviewPazYSalvo(thesisWorkId: string, approved: boolean, observations: string, formatF: File): Observable<ThesisWork> {
+    return this.operar(thesisWorkId, this.api.enviarArchivos(thesisWorkId, 'sustentacion/paz-y-salvo',
+      { aprobado: approved, observaciones: observations.trim() || null }, { archivo: formatF }),
+      AppEventType.THESIS_PAZ_Y_SALVO_REGISTERED, approved);
   }
 
   /**

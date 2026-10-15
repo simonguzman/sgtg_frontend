@@ -1,5 +1,6 @@
 import {
-  EjecucionApi, InformeMensualApi, RevisionInformeApi, SustentacionApi, TrabajoGradoResponse
+  EjecucionApi, InformeMensualApi, MotivoCierreApi, ProcesoApi, ResultadoConceptoApi, RevisionInformeApi, SustentacionApi,
+  TrabajoGradoResponse
 } from '../core/interfaces/api/trabajo-grado-api.interface';
 
 /**
@@ -178,6 +179,8 @@ export function sustentacionDePrueba(overrides: Partial<SustentacionApi> = {}): 
     rutaMonografia: '15/MONOGRAFIA/v1/monografia.pdf',
     rutaDocumentoFinal: '15/TI-E/v1/formato-e.pdf',
     rutaPazYSalvo: '15/TI-F/v1/paz-y-salvo.pdf',
+    revisionesPazYSalvo: [{ rutaDocumento: '15/TI-F/v1/paz-y-salvo.pdf', aprobado: true, observaciones: null,
+      fecha: '2026-07-02' }],
     rutaConceptoAsesor: null,
     rutaAnexos: '15/ANEXOS/v1/anexos.pdf',
     fechaSolicitud: '2026-07-01',
@@ -213,4 +216,34 @@ export function sustentacionDePrueba(overrides: Partial<SustentacionApi> = {}): 
 export function crearTrabajoEnSustentacion(overrides: Partial<SustentacionApi> = {},
   trabajo: Partial<TrabajoGradoResponse> = {}): TrabajoGradoResponse {
   return crearTrabajoEnCurso({ etapa: 'SUSTENTACION', sustentacion: sustentacionDePrueba(overrides), ...trabajo });
+}
+
+/**
+ * El trabajo cerrado desde su etapa actual (finalizado, no aprobado o
+ * cancelado/anulado), con el cambio de cierre en el historial.
+ */
+export function cerrarTrabajo(trabajo: TrabajoGradoResponse, destino: ProcesoApi, motivoCierre: MotivoCierreApi | null,
+  fecha = '2026-06-01T10:00:00', observacion: string | null = null): TrabajoGradoResponse {
+  return {
+    ...trabajo,
+    etapa: destino,
+    motivoCierre,
+    historial: [...trabajo.historial, { origen: trabajo.etapa, destino, fecha, responsable: '1001', observacion }]
+  };
+}
+
+/** El trabajo en evaluación con el concepto del evaluador dado sobre la versión 1. */
+export function conConceptoDe(trabajo: TrabajoGradoResponse, evaluadorUsuarioId: number,
+  resultado: ResultadoConceptoApi = 'APROBADO', fecha = '2026-03-20'): TrabajoGradoResponse {
+  return {
+    ...trabajo,
+    anteproyecto: {
+      ...trabajo.anteproyecto,
+      conceptos: [...trabajo.anteproyecto.conceptos, {
+        version: 1, evaluadorUsuarioId, evaluador: `Evaluador ${evaluadorUsuarioId}`, resultado,
+        observaciones: resultado === 'APROBADO' ? null : 'Ajustar la metodología', fecha,
+        formato: null, anotaciones: null
+      }]
+    }
+  };
 }

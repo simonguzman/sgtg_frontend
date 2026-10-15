@@ -60,6 +60,10 @@ export class ThesisWorkService {
     return this.sustentationService.submitAdjustments(thesisWorkId, adjustments, annexes);
   }
 
+  reviewPazYSalvo(thesisWorkId: string, approved: boolean, observations: string, formatF: File): Observable<ThesisWork> {
+    return this.sustentationService.reviewPazYSalvo(thesisWorkId, approved, observations, formatF);
+  }
+
   verifyAdjustments(thesisWorkId: string, fulfills: boolean, observations: string): Observable<ThesisWork> {
     return this.sustentationService.verifyAdjustments(thesisWorkId, fulfills, observations);
   }

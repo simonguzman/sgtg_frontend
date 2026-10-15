@@ -198,9 +198,13 @@ describe('ProposalApiService', () => {
     });
   });
 
-  it('deleteProposalMock no está soportado por el backend', () => {
-    let error: Error | undefined;
-    service.deleteProposalMock('15').subscribe({ error: e => error = e });
-    expect(error?.message).toContain('se cancela ante el Consejo');
+  it('anular envía la justificación y el trabajo queda archivado', () => {
+    let anulada: Proposal | undefined;
+    service.annulProposal('15', ' Cambio de modalidad ').subscribe(p => anulada = p);
+    const req = http.expectOne(`${API}/15/anulacion`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ justificacion: 'Cambio de modalidad' });
+    req.flush(crearTrabajoDePrueba({ etapa: 'CANCELADO', motivoCierre: 'ANULACION_DIRECTOR' }));
+    expect(anulada?.isArchived).toBe(true);
   });
 });

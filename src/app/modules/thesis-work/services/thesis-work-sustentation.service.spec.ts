@@ -54,18 +54,18 @@ describe('ThesisWorkSustentationService', () => {
 
   afterEach(() => http.verify());
 
-  it('la solicitud de sustentación envía monografía, formato E, paz y salvo, concepto y anexos', () => {
+  it('la solicitud de sustentación envía monografía, formato E, concepto y anexos (sin paz y salvo)', () => {
     let resultado: ThesisWork | undefined;
     service.requestSustentation('15', {
-      monograph: pdf('monografia.pdf'), formatE: pdf('formato-e.pdf'), pazYSalvo: pdf('paz.pdf'),
-      advisorConcept: null, annexes: pdf('anexos.pdf')
+      monograph: pdf('monografia.pdf'), formatE: pdf('formato-e.pdf'), advisorConcept: null,
+      annexes: pdf('anexos.pdf')
     }).subscribe(t => resultado = t);
 
     const req = http.expectOne(`${API}/15/sustentacion`);
     const body = req.request.body as FormData;
     expect(body.has('datos')).toBe(false);
     expect(nombres(body)).toEqual({
-      monografia: 'monografia.pdf', documentoFinal: 'formato-e.pdf', pazYSalvo: 'paz.pdf', anexos: 'anexos.pdf'
+      monografia: 'monografia.pdf', documentoFinal: 'formato-e.pdf', anexos: 'anexos.pdf'
     });
     req.flush(crearTrabajoEnSustentacion({ estado: 'SOLICITADA', sesiones: [] }));
 
@@ -74,6 +74,14 @@ describe('ThesisWorkSustentationService', () => {
     expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
       type: AppEventType.THESIS_FINAL_DELIVERY_UPLOADED, targetUserIds: ['10', '1', '50']
     }));
+  });
+
+  it('Decanatura revisa el paz y salvo con el formato F y observaciones', async () => {
+    service.reviewPazYSalvo('15', false, ' Deuda en biblioteca ', pdf('formato-f.pdf')).subscribe();
+    const req = http.expectOne(`${API}/15/sustentacion/paz-y-salvo`);
+    expect(await leerDatos(req.request.body as FormData)).toEqual({ aprobado: false, observaciones: 'Deuda en biblioteca' });
+    expect(nombres(req.request.body as FormData)).toEqual({ archivo: 'formato-f.pdf' });
+    req.flush(crearTrabajoEnSustentacion({ estado: 'SOLICITADA', sesiones: [], rutaPazYSalvo: null }));
   });
 
   it('la programación envía coordinador, jurado, fecha y hora, salón y el formato E', async () => {

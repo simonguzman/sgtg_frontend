@@ -336,7 +336,8 @@ function procesoDeSustentacion(trabajo: TrabajoGradoResponse): SustentationProce
     coordinatorId: actual ? String(actual.juradoCoordinadorId) : null,
     jurorIds: actual ? actual.jurados.map(j => String(j.usuarioId)) : [],
     currentSessionDate: actual ? aFecha(actual.fechaHora) : null,
-    hasPendingNewDate: sustentacion.solicitudesNuevaFecha.some(s => !s.decision)
+    hasPendingNewDate: sustentacion.solicitudesNuevaFecha.some(s => !s.decision),
+    pazYSalvoApproved: !!sustentacion.rutaPazYSalvo
   };
 }
 
@@ -371,21 +372,20 @@ function entregasFinales(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): Fin
   }];
 }
 
-/** Paz y salvo (formato F) que adjuntó el director al solicitar la sustentación. */
+/** Revisiones del paz y salvo (formato F) de Decanatura, la más reciente primero. */
 function pazYSalvos(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): PazYSalvoRegistry[] {
-  const sustentacion = trabajo.sustentacion;
-  if (!sustentacion) return [];
-  return [{
-    id: 'paz-y-salvo',
-    academicApproved: true,
-    financialApproved: true,
+  const revisiones = trabajo.sustentacion?.revisionesPazYSalvo ?? [];
+  return revisiones.map((revision, i) => ({
+    id: `paz-y-salvo-${i}`,
+    academicApproved: revision.aprobado,
+    academicComments: revision.observaciones ?? undefined,
+    financialApproved: revision.aprobado,
     document: {
-      ...aDocumentoDeRuta(trabajo.id, sustentacion.rutaPazYSalvo, sustentacion.fechaSolicitud, ctx,
-        DocumentType.PAZ_Y_SALVO),
-      status: stateList.APROBADO
+      ...aDocumentoDeRuta(trabajo.id, revision.rutaDocumento, revision.fecha, ctx, DocumentType.PAZ_Y_SALVO),
+      status: revision.aprobado ? stateList.APROBADO : stateList.NO_APROBADO
     },
-    registrationDate: aFecha(sustentacion.fechaSolicitud) ?? new Date()
-  }];
+    registrationDate: aFecha(revision.fecha) ?? new Date()
+  })).reverse();
 }
 
 /** Ajustes del director (con anexos) y la verificación del coordinador. */

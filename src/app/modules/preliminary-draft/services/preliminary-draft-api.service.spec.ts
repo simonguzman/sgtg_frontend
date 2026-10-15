@@ -11,7 +11,7 @@ import { UserState } from '../../users/enum/user-state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
-import { crearTrabajoConAnteproyectoRadicado } from '../../../testing/trabajo-grado-de-prueba';
+import { crearTrabajoConAnteproyectoRadicado, crearTrabajoEnAnteproyecto } from '../../../testing/trabajo-grado-de-prueba';
 
 const API = '/api/v1/sgtg/trabajos-grado';
 
@@ -82,9 +82,12 @@ describe('PreliminaryDraftApiService', () => {
     expect(error?.message).toBe('Adjunte la nueva versión del anteproyecto.');
   });
 
-  it('eliminar no está soportado por el backend', () => {
-    let error: Error | undefined;
-    service.deleteDraft('15').subscribe({ error: e => error = e });
-    expect(error?.message).toContain('se cancela ante el Consejo');
+  it('anular envía la justificación al backend', () => {
+    let terminado = false;
+    service.annulDraft('15', 'Sin financiación').subscribe(() => terminado = true);
+    const req = http.expectOne(`${API}/15/anulacion`);
+    expect(req.request.body).toEqual({ justificacion: 'Sin financiación' });
+    req.flush(crearTrabajoEnAnteproyecto({ etapa: 'CANCELADO', motivoCierre: 'ANULACION_DIRECTOR' }));
+    expect(terminado).toBe(true);
   });
 });

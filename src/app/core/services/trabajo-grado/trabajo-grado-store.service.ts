@@ -7,7 +7,8 @@ import { TrabajoGradoResponse } from '../../interfaces/api/trabajo-grado-api.int
 
 /** Roles que consultan todos los trabajos (los demás solo ven en los que participan). */
 export const ROLES_CONSULTA_GENERAL: readonly UserRoleType[] = [
-  UserRoleType.ADMINISTRADOR, UserRoleType.COMITE, UserRoleType.JEFE_DEP, UserRoleType.CONSEJO
+  UserRoleType.ADMINISTRADOR, UserRoleType.COMITE, UserRoleType.JEFE_DEP, UserRoleType.CONSEJO,
+  UserRoleType.DECANATURA
 ];
 
 /**

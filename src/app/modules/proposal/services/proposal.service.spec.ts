@@ -36,7 +36,7 @@ describe('ProposalService', () => {
       getProposalByIdMock: jest.fn(),
       createProposalMock: jest.fn(),
       updateProposalMock: jest.fn(),
-      deleteProposalMock: jest.fn()
+      annulProposal: jest.fn()
     } as unknown as jest.Mocked<ProposalApiService>;
     TestBed.configureTestingModule({
       providers: [
@@ -86,11 +86,12 @@ describe('ProposalService', () => {
         done();
       });
     });
-    it('debería delegar deleteProposalMock al apiService', (done) => {
-      mockApiService.deleteProposalMock.mockReturnValue(of(true));
-      service.deleteProposalMock('1').subscribe(result => {
-        expect(result).toBe(true);
-        expect(mockApiService.deleteProposalMock).toHaveBeenCalledWith('1');
+    it('debería delegar annulProposal al apiService', (done) => {
+      const anulada = { id: '1', isArchived: true } as Proposal;
+      mockApiService.annulProposal.mockReturnValue(of(anulada));
+      service.annulProposal('1', 'Motivo').subscribe(result => {
+        expect(result).toBe(anulada);
+        expect(mockApiService.annulProposal).toHaveBeenCalledWith('1', 'Motivo');
         done();
       });
     });

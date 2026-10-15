@@ -40,7 +40,7 @@ describe('PreliminaryDraftFacadeService', () => {
 
   let mockPreliminaryDraftService: {
     preliminaryDrafts: WritableSignal<PreliminaryDraft[]>;
-    deleteDraft: jest.Mock;
+    annulDraft: jest.Mock;
   };
 
   let mockAuthService: {
@@ -62,7 +62,7 @@ describe('PreliminaryDraftFacadeService', () => {
 
     mockPreliminaryDraftService = {
       preliminaryDrafts: signal([createMockDraft()]),
-      deleteDraft: jest.fn()
+      annulDraft: jest.fn()
     };
 
     mockAuthService = {
@@ -129,25 +129,26 @@ describe('PreliminaryDraftFacadeService', () => {
   });
 
   describe('Acciones', () => {
-    it('debería ejecutar deleteDraft con éxito y notificar', () => {
-      mockPreliminaryDraftService.deleteDraft.mockReturnValue(of(null));
+    it('debería anular con la justificación y notificar', () => {
+      mockPreliminaryDraftService.annulDraft.mockReturnValue(of(null));
       const onSuccess = jest.fn();
       const onError = jest.fn();
 
-      service.deleteDraft('1', onSuccess, onError);
+      service.annulDraft('1', 'Motivo', onSuccess, onError);
 
-      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: NotificationType.INFO }));
-      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: NotificationType.CONFIRMATION }));
+      expect(mockPreliminaryDraftService.annulDraft).toHaveBeenCalledWith('1', 'Motivo');
+      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
+        type: NotificationType.CONFIRMATION, title: 'Anteproyecto anulado' }));
       expect(onSuccess).toHaveBeenCalled();
       expect(onError).not.toHaveBeenCalled();
     });
 
-    it('debería manejar error en deleteDraft y notificar', () => {
-      mockPreliminaryDraftService.deleteDraft.mockReturnValue(throwError(() => new Error('Error')));
+    it('debería manejar error en annulDraft y notificar', () => {
+      mockPreliminaryDraftService.annulDraft.mockReturnValue(throwError(() => new Error('Error')));
       const onSuccess = jest.fn();
       const onError = jest.fn();
 
-      service.deleteDraft('1', onSuccess, onError);
+      service.annulDraft('1', 'Motivo', onSuccess, onError);
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: NotificationType.ERROR }));
       expect(onError).toHaveBeenCalled();

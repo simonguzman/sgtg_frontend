@@ -9,11 +9,14 @@ import { signal } from '@angular/core';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { Proposal } from '../../../interfaces/proposal.interface';
 import { ProposalTableRow } from '../models/proposal-page.model';
+import { TrabajoGradoStoreService } from '../../../../../core/services/trabajo-grado/trabajo-grado-store.service';
+import { crearTrabajoDePrueba, crearTrabajoEnCurso } from '../../../../../testing/trabajo-grado-de-prueba';
 
 describe('ProposalFacadeService', () => {
   let service: ProposalFacadeService;
+  const trabajosDelStore = signal([crearTrabajoDePrueba({ id: 1 }), crearTrabajoEnCurso({ id: 2 })]);
 
-  let mockProposalService: { proposals: any; deleteProposalMock: jest.Mock };
+  let mockProposalService: { proposals: any; annulProposal: jest.Mock };
   let mockAuthService: { currentUser: any; hasAnyRole: jest.Mock };
   let mockNotificationService: { show: jest.Mock };
   let mockMapperService: { mapProposalToTable: jest.Mock };
@@ -25,7 +28,7 @@ describe('ProposalFacadeService', () => {
 
     mockProposalService = {
       proposals: signal([{ id: 'prop-1' } as Proposal]),
-      deleteProposalMock: jest.fn()
+      annulProposal: jest.fn()
     };
 
     mockAuthService = {
@@ -45,7 +48,8 @@ describe('ProposalFacadeService', () => {
         { provide: ProposalService, useValue: mockProposalService },
         { provide: AuthService, useValue: mockAuthService },
         { provide: NotificationService, useValue: mockNotificationService },
-        { provide: ProposalMapperService, useValue: mockMapperService }
+        { provide: ProposalMapperService, useValue: mockMapperService },
+        { provide: TrabajoGradoStoreService, useValue: { trabajos: trabajosDelStore } }
       ]
     });
 
@@ -67,6 +71,12 @@ describe('ProposalFacadeService', () => {
       expect(mockMapperService.mapProposalToTable).toHaveBeenCalled();
     });
 
+    it('la anulación depende de la etapa del trabajo en el backend', () => {
+      mockProposalService.proposals.set([{ id: '1' } as Proposal, { id: '2' } as Proposal]);
+      service.proposalsTableData();
+      expect(mockMapperService.mapProposalToTable.mock.calls.map(llamada => llamada[2])).toEqual([true, false]);
+    });
+
     it('headerButtons debe incluir "Registrar propuesta" si tiene rol', () => {
       mockAuthService.hasAnyRole.mockReturnValue(true);
 
@@ -82,23 +92,24 @@ describe('ProposalFacadeService', () => {
     });
   });
 
-  describe('deleteProposal', () => {
-    it('debe manejar el flujo de éxito y mostrar notificaciones', () => {
-      mockProposalService.deleteProposalMock.mockReturnValue(of({}));
+  describe('annulProposal', () => {
+    it('anula con la justificación y avisa que quedó en el historial', () => {
+      mockProposalService.annulProposal.mockReturnValue(of({}));
       const onSuccess = jest.fn();
 
-      service.deleteProposal('1', onSuccess, jest.fn());
+      service.annulProposal('1', 'Motivo', onSuccess, jest.fn());
 
-      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: NotificationType.INFO }));
-      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: NotificationType.CONFIRMATION }));
+      expect(mockProposalService.annulProposal).toHaveBeenCalledWith('1', 'Motivo');
+      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
+        type: NotificationType.CONFIRMATION, title: 'Propuesta anulada' }));
       expect(onSuccess).toHaveBeenCalled();
     });
 
     it('debe manejar el flujo de error y notificar', () => {
-      mockProposalService.deleteProposalMock.mockReturnValue(throwError(() => new Error('Simulated Error')));
+      mockProposalService.annulProposal.mockReturnValue(throwError(() => new Error('Simulated Error')));
       const onError = jest.fn();
 
-      service.deleteProposal('1', jest.fn(), onError);
+      service.annulProposal('1', 'Motivo', jest.fn(), onError);
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: NotificationType.ERROR }));
       expect(onError).toHaveBeenCalled();

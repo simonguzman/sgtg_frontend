@@ -46,7 +46,7 @@ export class EvaluationProposalFormService {
 
   notifyFileUploaded(): void {
     this.notificationService.show({
-      title: 'Formato A adjuntado',
+      title: 'Documento de respuesta adjuntado',
       message: 'El documento firmado se ha vinculado correctamente a esta evaluación.',
       type: NotificationType.CONFIRMATION
     });
@@ -71,7 +71,7 @@ export class EvaluationProposalFormService {
   notifyMissingFile(): void {
     this.notificationService.show({
       title: 'Documento requerido',
-      message: 'Debe cargar el Formato A firmado para poder registrar la evaluación.',
+      message: 'Debe cargar el documento de respuesta del Comité para poder registrar la evaluación.',
       type: NotificationType.ERROR
     });
   }

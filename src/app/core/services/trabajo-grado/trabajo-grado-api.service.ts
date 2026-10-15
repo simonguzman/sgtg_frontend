@@ -28,9 +28,14 @@ export class TrabajoGradoApiService {
     return this.http.get<TrabajoGradoResponse[]>(`${this.apiUrl}/mis-trabajos`);
   }
 
-  /** Todos los trabajos (solo Comité, Jefe de departamento, Consejo y Administrador). */
+  /** Todos los trabajos (solo Comité, Jefe de departamento, Consejo, Decanatura y Administrador). */
   todos(): Observable<TrabajoGradoResponse[]> {
     return this.http.get<TrabajoGradoResponse[]>(this.apiUrl);
+  }
+
+  /** Ids de los estudiantes que se pueden elegir para un trabajo nuevo (sin trabajo activo ni aprobado). */
+  estudiantesDisponibles(): Observable<number[]> {
+    return this.http.get<number[]>(`${this.apiUrl}/estudiantes-disponibles`);
   }
 
   /** Trabajos en una etapa (mismos roles que `todos`). */

@@ -21,7 +21,7 @@
     <div class="flex flex-col gap-8">
 
       <app-info-banner title="Evaluación de propuesta de grado">
-        Revise detenidamente la información del proyecto y descargue el documento adjunto. Posteriormente, seleccione el veredicto oficial del Comité, redacte las observaciones pertinentes y <strong>cargue obligatoriamente el Formato A debidamente firmado</strong> para oficializar la decisión.
+        Revise detenidamente la información del proyecto y descargue el documento adjunto. Posteriormente, seleccione el veredicto oficial del Comité, redacte las observaciones pertinentes y <strong>cargue obligatoriamente el documento de respuesta del Comité</strong> para oficializar la decisión.
       </app-info-banner>
 
       <section>
@@ -93,7 +93,7 @@
 
             @if (!signedFile()) {
               <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-2">
-                No ha sido cargado ningún archivo de veredicto. Para guardar la evaluación, es mandatorio adjuntar el formato de propuesta (Formato A) firmado por el comité evaluador.
+                No ha sido cargado ningún archivo de veredicto. Para guardar la evaluación, es obligatorio adjuntar el documento de respuesta del Comité (PDF), tanto si aprueba como si no aprueba.
               </div>
             }
 
@@ -141,7 +141,7 @@
                           [class.text-primary]="signedFile() && !isFileInvalid"
                           [class.text-[#ED7D31]]="isFileInvalid"
                           [class.text-navy-900]="!signedFile() && !isFileInvalid">
-                      {{ signedFile()?.name || 'Formato de evaluación firmado (Formato A)' }}
+                      {{ signedFile()?.name || 'Documento de respuesta del Comité' }}
                     </span>
                     <span class="text-size-role-footer text-[#777680]">Documento de evaluación de la propuesta (Obligatorio)</span>
 

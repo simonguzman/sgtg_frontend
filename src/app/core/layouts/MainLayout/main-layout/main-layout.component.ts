@@ -5,7 +5,6 @@ import { HeaderComponent } from '../header/header.component';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { BreadcrumbComponent } from '../../../components/breadcrumb/breadcrumb.component';
 import { BreadcrumbService } from '../../../services/breadcrumb/breadcrumb.service';
-import { DeadlineMonitorService } from '../../../../modules/notifications/services/deadline-monitor.service';
 import { getDeepestRouteTitle } from './helpers/deepest-route-title.helper';
 
 @Component({
@@ -16,11 +15,6 @@ import { getDeepestRouteTitle } from './helpers/deepest-route-title.helper';
 })
 export class MainLayoutComponent {
   private readonly breadcrumbService = inject(BreadcrumbService);
-  private readonly deadlineMonitor = inject(DeadlineMonitorService);
-
-  constructor() {
-    this.deadlineMonitor.checkDeadlines();
-  }
 
   private readonly staticRouteTitle = computed<string>(() =>
     getDeepestRouteTitle(this.breadcrumbService.routerStateSnapshot().root)

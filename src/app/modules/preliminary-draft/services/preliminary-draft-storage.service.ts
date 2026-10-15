@@ -3,6 +3,9 @@ import { Observable } from 'rxjs';
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { TrabajoGradoVistasService } from '../../../core/services/trabajo-grado/trabajo-grado-vistas.service';
+import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
+import { tieneEvaluacionPendiente } from '../../../core/helpers/evaluacion-pendiente.helper';
+import { TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado-api.interface';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { User } from '../../users/interfaces/user.interface';
 
@@ -16,6 +19,7 @@ import { User } from '../../users/interfaces/user.interface';
 export class PreliminaryDraftStorageService {
   private readonly authService = inject(AuthService);
   private readonly vistas = inject(TrabajoGradoVistasService);
+  private readonly store = inject(TrabajoGradoStoreService);
 
   /** Todos los anteproyectos cargados (incluidos los archivados). */
   public readonly allPreliminaryDrafts = this.vistas.anteproyectos;
@@ -37,14 +41,25 @@ export class PreliminaryDraftStorageService {
     return this.hasPrivilegedAccess() || this.canUserAccessPreliminaryDraft(preliminaryDraft, userId);
   }
 
-  /** Anteproyectos activos visibles para el usuario según su rol y participación. */
+  /**
+   * Anteproyectos activos visibles para el usuario según su rol y participación.
+   * Al evaluador solo se le listan los que aún debe evaluar; los que ya evaluó
+   * pasan a su historial (el detalle sigue disponible).
+   */
   public readonly preliminaryDrafts = computed(() => {
     const currentUser = this.authService.currentUser();
     if (!currentUser) return [];
     const activePreliminaryDrafts = this.allPreliminaryDrafts().filter(draft => !draft.isArchived);
     if (this.hasPrivilegedAccess()) return activePreliminaryDrafts;
-    return activePreliminaryDrafts.filter(draft => this.canUserAccessPreliminaryDraft(draft, currentUser.id));
+    const trabajos = this.store.porId();
+    return activePreliminaryDrafts.filter(draft => this.isParticipant(draft, currentUser.id)
+      || this.hasPendingEvaluation(trabajos.get(draft.preliminaryDraftId ?? ''), currentUser.id));
   });
+
+  private hasPendingEvaluation(trabajo: TrabajoGradoResponse | undefined,
+    userId: string): boolean {
+    return !!trabajo && tieneEvaluacionPendiente(trabajo, userId);
+  }
 
   /**
    * Sin efecto: el estado de los anteproyectos lo define el backend. Se conservan
@@ -71,6 +86,12 @@ export class PreliminaryDraftStorageService {
   }
 
   private canUserAccessPreliminaryDraft(preliminaryDraft: PreliminaryDraft, userId: string): boolean {
+    const isAssignedEvaluator = preliminaryDraft.evaluators?.some(evaluator => evaluator.id === userId) ?? false;
+    return this.isParticipant(preliminaryDraft, userId) || isAssignedEvaluator;
+  }
+
+  /** Estudiante, director, codirector o asesor del trabajo. */
+  private isParticipant(preliminaryDraft: PreliminaryDraft, userId: string): boolean {
     const proposal = preliminaryDraft.proposalData;
     if (!proposal) return false;
     const isDirector = proposal.director?.id === userId;
@@ -79,7 +100,6 @@ export class PreliminaryDraftStorageService {
     const isAuthor = proposal.authors?.some(author =>
       typeof author === 'string' ? author === userId : (author as User)?.id === userId
     ) ?? false;
-    const isAssignedEvaluator = preliminaryDraft.evaluators?.some(evaluator => evaluator.id === userId) ?? false;
-    return isDirector || isCodirector || isAdvisor || isAuthor || isAssignedEvaluator;
+    return isDirector || isCodirector || isAdvisor || isAuthor;
   }
 }

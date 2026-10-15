@@ -84,7 +84,9 @@ export const SustentationTabConfig: TabConfiguration<SustentationTableRow> = {
     const state = context.thesisWork?.sustentation?.state;
     let label = 'Esperando la solicitud del director';
     let disabled = true;
-    if (state === 'SOLICITADA') {
+    if (state === 'SOLICITADA' && !context.thesisWork?.sustentation?.pazYSalvoApproved) {
+      label = 'Esperando el paz y salvo de Decanatura';
+    } else if (state === 'SOLICITADA') {
       label = 'Programar sustentación';
       disabled = false;
     } else if (state === 'APLAZADA') {

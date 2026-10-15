@@ -24,7 +24,7 @@ export type EstadoSustentacionApi =
   | 'SOLICITADA' | 'PROGRAMADA' | 'EN_AJUSTES' | 'AJUSTES_RADICADOS' | 'APROBADA' | 'APLAZADA' | 'FINALIZADA' | 'NO_APROBADA';
 export type MotivoCierreApi =
   | 'VENCIMIENTO_PLAZO' | 'SUSTENTACION_NO_APROBADA' | 'INASISTENCIA_SUSTENTACION' | 'CANCELACION_ESTUDIANTE'
-  | 'CANCELACION_DIRECTOR';
+  | 'CANCELACION_DIRECTOR' | 'ANULACION_DIRECTOR';
 export type OrganoApi = 'COMITE_PROGRAMA' | 'DEPARTAMENTO' | 'CONSEJO_FACULTAD';
 
 export interface EstudianteApi {
@@ -227,13 +227,24 @@ export interface RegistroJuradoApi {
   fecha: string;
 }
 
+/** Revisión del paz y salvo (formato F) de Decanatura. */
+export interface RevisionPazYSalvoApi {
+  rutaDocumento: string;
+  aprobado: boolean;
+  observaciones: string | null;
+  fecha: string;
+}
+
 export interface SustentacionApi {
   estado: EstadoSustentacionApi;
   /** Monografía que acompaña al formato E */
   rutaMonografia: string | null;
   /** Documento final (formato E) */
   rutaDocumentoFinal: string;
-  rutaPazYSalvo: string;
+  /** Paz y salvo aprobado por Decanatura, null mientras no lo apruebe */
+  rutaPazYSalvo: string | null;
+  /** Revisiones del paz y salvo de Decanatura, en orden */
+  revisionesPazYSalvo: RevisionPazYSalvoApi[];
   rutaConceptoAsesor: string | null;
   rutaAnexos: string | null;
   fechaSolicitud: string;
@@ -290,6 +301,9 @@ export interface TrabajoGradoResponse {
   cancelaciones: CancelacionApi[];
   historial: CambioEtapaApi[];
 }
+
+/** Etapas en las que el director puede anular el trabajo (antes de la aprobación del Consejo). */
+export const ETAPAS_ANULABLES: readonly ProcesoApi[] = ['PROPUESTA', 'ANTEPROYECTO', 'EVALUACION', 'APROBACION_CONSEJO'];
 
 /** Etapas finales: el trabajo queda cerrado. */
 export const ETAPAS_FINALES: readonly ProcesoApi[] = ['FINALIZADO', 'NO_APROBADO', 'CANCELADO'];

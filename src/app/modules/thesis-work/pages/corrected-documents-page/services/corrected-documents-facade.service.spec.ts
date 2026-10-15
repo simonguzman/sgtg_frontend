@@ -196,7 +196,7 @@ describe('CorrectedDocumentsFacadeService', () => {
     const conSustentacion = (state: 'EN_AJUSTES' | 'AJUSTES_RADICADOS' | 'APROBADA', coordinatorId = 'user-123') =>
       createMockThesisWork({ sustentation: { state, requestDate: null, adjustmentsDeadline: null,
         secondSessionDeadline: null, coordinatorId, jurorIds: [coordinatorId, 'otro'], currentSessionDate: null,
-        hasPendingNewDate: false } });
+        hasPendingNewDate: false, pazYSalvoApproved: true } });
 
     it('isJuror es true solo para el jurado coordinador de la sesión actual', () => {
       expect(service.isJuror(conSustentacion('AJUSTES_RADICADOS'))).toBe(true);

@@ -7,6 +7,7 @@ import { EventBusService } from '../../../core/services/eventbus/event-bus.servi
 import { TrabajoGradoApiService } from '../../../core/services/trabajo-grado/trabajo-grado-api.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { TrabajoGradoVistasService } from '../../../core/services/trabajo-grado/trabajo-grado-vistas.service';
+import { TrabajoGradoAnulacionService } from '../../../core/services/trabajo-grado/trabajo-grado-anulacion.service';
 import { AuthApiService } from '../../../core/services/auth/auth-api.service';
 import { aPropuesta } from '../../../core/mappers/trabajo-grado.mapper';
 import { TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado-api.interface';
@@ -28,6 +29,7 @@ export class ProposalApiService {
   private readonly userService = inject(UserService);
   private readonly eventBus = inject(EventBusService);
   private readonly api = inject(TrabajoGradoApiService);
+  private readonly anulacion = inject(TrabajoGradoAnulacionService);
   private readonly store = inject(TrabajoGradoStoreService);
   private readonly vistas = inject(TrabajoGradoVistasService);
   private readonly authApi = inject(AuthApiService);
@@ -91,9 +93,9 @@ export class ProposalApiService {
     );
   }
 
-  /** El backend no permite eliminar trabajos de grado: se cancelan (Fase 5). */
-  deleteProposalMock(_id: string): Observable<boolean> {
-    return throwError(() => new Error('Las propuestas no se eliminan; un trabajo de grado se cancela ante el Consejo.'));
+  /** Anulación del director (borrado lógico): el trabajo queda cancelado y pasa al historial. */
+  annulProposal(id: string, justification: string): Observable<Proposal> {
+    return this.anulacion.anular(id, justification).pipe(map(trabajo => this.vista(trabajo)));
   }
 
   // ── Apoyo ─────────────────────────────────────────────────────────────────

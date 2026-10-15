@@ -41,7 +41,7 @@ describe('UploadFinalDeliveryFacadeService', () => {
   });
 
   it('solicita la sustentación con los documentos y confirma', () => {
-    const files = { monograph: pdf('m.pdf'), formatE: pdf('e.pdf'), pazYSalvo: pdf('f.pdf') };
+    const files = { monograph: pdf('m.pdf'), formatE: pdf('e.pdf') };
     thesisWorkService.requestSustentation.mockReturnValue(of(thesisWorkDePrueba()));
     const onSuccess = jest.fn();
     facade.processFinalDelivery('15', files, onSuccess, jest.fn());
@@ -58,7 +58,7 @@ describe('UploadFinalDeliveryFacadeService', () => {
       status: 400, error: { message: 'La sustentación solo puede solicitarse después de los meses mínimos.' }
     })));
     const onError = jest.fn();
-    facade.processFinalDelivery('15', { monograph: pdf('m.pdf'), formatE: pdf('e.pdf'), pazYSalvo: pdf('f.pdf') },
+    facade.processFinalDelivery('15', { monograph: pdf('m.pdf'), formatE: pdf('e.pdf') },
       jest.fn(), onError);
     expect(onError).toHaveBeenCalled();
     expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({

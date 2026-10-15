@@ -1,0 +1,44 @@
+<p-dialog
+  [visible]="isOpen"
+  (visibleChange)="isOpen = $event"
+  (onHide)="closeModal()"
+  [modal]="true"
+  styleClass="custom-modal"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '540px' }"
+>
+  <ng-template pTemplate="header">
+    <h2 class="text-primary font-bold font-display text-lg w-full text-justify m-0">
+      Anular trabajo de grado
+    </h2>
+  </ng-template>
+  <div class="flex flex-col gap-4 py-2 px-2">
+    <p class="text-gray-700 font-sans text-base text-justify leading-relaxed m-0">
+      El trabajo <strong>"{{ title }}"</strong> quedará cancelado y se archivará en el historial. Esta acción no se
+      puede deshacer.
+    </p>
+    <label for="annul-justification" class="text-sm font-semibold text-gray-700">Justificación *</label>
+    <textarea
+      id="annul-justification"
+      rows="4"
+      class="w-full border rounded-md p-2 text-sm"
+      [class.border-red-500]="showError()"
+      [value]="justification()"
+      (input)="updateJustification($any($event.target).value)"
+      placeholder="Motivo de la anulación"
+    ></textarea>
+    @if (showError()) {
+      <small class="text-red-600">La justificación es obligatoria.</small>
+    }
+    <div class="flex justify-end gap-2">
+      <app-button-component label="Cancelar" variant="secondary" (onClick)="closeModal()"></app-button-component>
+      <app-button-component
+        label="Anular"
+        variant="primary"
+        [disabled]="loading"
+        (onClick)="confirmAction()"
+      ></app-button-component>
+    </div>
+  </div>
+</p-dialog>

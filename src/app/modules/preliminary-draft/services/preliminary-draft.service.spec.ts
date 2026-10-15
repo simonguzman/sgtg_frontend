@@ -50,7 +50,7 @@ describe('PreliminaryDraftService (Facade)', () => {
     getPreliminaryDraftById: jest.Mock;
     createPreliminaryDraft: jest.Mock;
     updatePreliminaryDraft: jest.Mock;
-    deleteDraft: jest.Mock;
+    annulDraft: jest.Mock;
   };
 
   let mockAssignmentService: {
@@ -79,7 +79,7 @@ describe('PreliminaryDraftService (Facade)', () => {
       getPreliminaryDraftById: jest.fn(),
       createPreliminaryDraft: jest.fn(),
       updatePreliminaryDraft: jest.fn(),
-      deleteDraft: jest.fn()
+      annulDraft: jest.fn()
     };
 
     mockAssignmentService = {
@@ -157,12 +157,12 @@ describe('PreliminaryDraftService (Facade)', () => {
       expect(mockApiService.updatePreliminaryDraft).toHaveBeenCalledWith('123', mockDraft);
     });
 
-    it('debería delegar deleteDraft', () => {
-      mockApiService.deleteDraft.mockReturnValue(of(undefined));
+    it('debería delegar annulDraft', () => {
+      mockApiService.annulDraft.mockReturnValue(of(undefined));
 
-      service.deleteDraft('123').subscribe();
+      service.annulDraft('123', 'Motivo').subscribe();
 
-      expect(mockApiService.deleteDraft).toHaveBeenCalledWith('123');
+      expect(mockApiService.annulDraft).toHaveBeenCalledWith('123', 'Motivo');
     });
   });
 

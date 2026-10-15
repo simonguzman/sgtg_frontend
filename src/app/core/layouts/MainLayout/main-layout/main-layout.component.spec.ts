@@ -3,7 +3,6 @@ import { RouterModule, ActivatedRouteSnapshot, ParamMap } from '@angular/router'
 import { signal, WritableSignal, Component } from '@angular/core';
 import { MainLayoutComponent } from './main-layout.component';
 import { BreadcrumbService } from '../../../services/breadcrumb/breadcrumb.service';
-import { DeadlineMonitorService } from '../../../../modules/notifications/services/deadline-monitor.service';
 import { FooterComponent } from '../footer/footer.component';
 import { HeaderComponent } from '../header/header.component';
 import { SidebarComponent } from '../sidebar/sidebar.component';
@@ -26,10 +25,6 @@ interface MockBreadcrumbService {
   dynamicTitle: WritableSignal<string | null>;
 }
 
-interface MockDeadlineMonitorService {
-  checkDeadlines: jest.Mock<void, []>;
-}
-
 const createMockRouteSnapshot = (title?: string, firstChild: ActivatedRouteSnapshot | null = null): ActivatedRouteSnapshot => {
   const dummyParamMap: ParamMap = { has: () => false, get: () => null, getAll: () => [], keys: [] };
   const snapshot: ActivatedRouteSnapshot = {
@@ -47,7 +42,6 @@ describe('MainLayoutComponent', () => {
   let component: MainLayoutComponent;
   let fixture: ComponentFixture<MainLayoutComponent>;
   let mockBreadcrumbService: MockBreadcrumbService;
-  let mockDeadlineMonitorService: MockDeadlineMonitorService;
 
   beforeEach(async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -58,15 +52,10 @@ describe('MainLayoutComponent', () => {
       dynamicTitle: signal<string | null>(null)
     };
 
-    mockDeadlineMonitorService = {
-      checkDeadlines: jest.fn()
-    };
-
     await TestBed.configureTestingModule({
       imports: [MainLayoutComponent, RouterModule.forRoot([])],
       providers: [
-        { provide: BreadcrumbService, useValue: mockBreadcrumbService },
-        { provide: DeadlineMonitorService, useValue: mockDeadlineMonitorService }
+        { provide: BreadcrumbService, useValue: mockBreadcrumbService }
       ]
     })
     .overrideComponent(MainLayoutComponent, {
@@ -90,9 +79,6 @@ describe('MainLayoutComponent', () => {
       expect(component).toBeTruthy();
     });
 
-    it('debería llamar a checkDeadlines() del DeadlineMonitorService al construirse', () => {
-      expect(mockDeadlineMonitorService.checkDeadlines).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe('Cálculo del Título de la Página (currentPageTitle)', () => {

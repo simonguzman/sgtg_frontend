@@ -1,3 +1,4 @@
+import { stateList } from '../../../../../core/enums/state.enum';
 import { Injectable } from '@angular/core';
 import { Proposal } from '../../../interfaces/proposal.interface';
 import { ProposalTableRow } from '../models/proposal-page.model';
@@ -7,9 +8,14 @@ import { getSingleEvaluationDeadlineLabel } from '../../../../history/helpers/de
 
 @Injectable({ providedIn: 'root' })
 export class ProposalMapperService {
+  /**
+   * @param annullable true si el trabajo está en una etapa en la que se puede anular; sin el dato del backend, mientras
+   *        la propuesta no esté aprobada
+   */
   public mapProposalToTable(
     proposal: Proposal,
-    currentUserId: string | undefined
+    currentUserId: string | undefined,
+    annullable = proposal.state !== stateList.APROBADO
   ): ProposalTableRow {
     // Solo el director corrige su propuesta, y solo cuando el estado lo permite
     const canEdit = proposal.director?.id === currentUserId && propuestaEditable(proposal);
@@ -25,9 +31,12 @@ export class ProposalMapperService {
         proposal.evaluations?.[0]
       ),
       hiddenParticipants: this.buildHiddenParticipants(proposal),
-      allowedActions: canEdit
-        ? ['ver descripcion', 'ver', 'editar']
-        : ['ver descripcion', 'ver']
+      allowedActions: [
+        'ver descripcion', 'ver',
+        ...(canEdit ? ['editar'] : []),
+        // El director anula antes de la aprobación del Consejo
+        ...(proposal.director?.id === currentUserId && annullable ? ['anular'] : [])
+      ]
     };
   }
 

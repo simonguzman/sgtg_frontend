@@ -159,7 +159,7 @@ describe('EvaluationProposalFormService', () => {
     it('debería emitir notificación de tipo CONFIRMATION al adjuntar archivo', () => {
       service.notifyFileUploaded();
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Formato A adjuntado',
+        title: 'Documento de respuesta adjuntado',
         message: 'El documento firmado se ha vinculado correctamente a esta evaluación.',
         type: NotificationType.CONFIRMATION
       });
@@ -187,7 +187,7 @@ describe('EvaluationProposalFormService', () => {
       service.notifyMissingFile();
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
         title: 'Documento requerido',
-        message: 'Debe cargar el Formato A firmado para poder registrar la evaluación.',
+        message: 'Debe cargar el documento de respuesta del Comité para poder registrar la evaluación.',
         type: NotificationType.ERROR
       });
       expect(notificationServiceMock.show).toHaveBeenCalledTimes(1);

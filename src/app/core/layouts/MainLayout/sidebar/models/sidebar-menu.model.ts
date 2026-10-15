@@ -1,4 +1,5 @@
 import { UserRoleType } from '../../../../enums/user-role-type.enum';
+import { STATISTICS_ROLES } from '../../../../../modules/statistics/models/statistics-options.model';
 
 export interface SidebarMenuItem {
   label: string;
@@ -50,7 +51,7 @@ export const SIDEBAR_MENU_ITEMS: SidebarMenuItem[] = [
     label: 'Estadísticas',
     routerLink: '/statistics',
     icon: 'bar_chart',
-    roles: [UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
+    roles: STATISTICS_ROLES
   },
   {
     label: 'Historial',

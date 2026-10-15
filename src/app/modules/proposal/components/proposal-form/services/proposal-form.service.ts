@@ -1,6 +1,8 @@
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { catchError, map, of } from 'rxjs';
+import { TrabajoGradoApiService } from '../../../../../core/services/trabajo-grado/trabajo-grado-api.service';
 import { UserService } from '../../../../users/services/user.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { ProposalService } from '../../../services/proposal.service';
@@ -21,6 +23,7 @@ export class ProposalFormService {
   private readonly authService = inject(AuthService);
   private readonly proposalService = inject(ProposalService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly trabajoApi = inject(TrabajoGradoApiService);
 
   readonly form = this.fb.nonNullable.group({
     title: ['', Validators.required],
@@ -55,15 +58,23 @@ export class ProposalFormService {
     return this.userService.advisors().filter(advisor => advisor.state === UserState.active && advisor.id !== currentUserId);
   });
 
+  /**
+   * Estudiantes que el backend permite elegir: sin otro trabajo activo (de
+   * cualquier modalidad) y sin un trabajo aprobado. Vacío hasta que responde.
+   */
+  private readonly disponibles = toSignal(this.trabajoApi.estudiantesDisponibles().pipe(
+    map(ids => new Set(ids.map(String))),
+    catchError(() => of(new Set<string>()))
+  ), { initialValue: new Set<string>() });
+
   private readonly availableStudents = computed(() => {
     const activeStudents = this.userService.students().filter(student => student.state === UserState.active);
-    const allProposals = this.proposalService.proposals();
     const currentId = this.currentProposalId();
+    // Al editar, los estudiantes del propio trabajo siguen en la lista
+    const propios = new Set(this.proposalService.proposals().find(proposal => proposal.id === currentId)?.authors
+      .map(author => author.id) ?? []);
 
-    return activeStudents.filter(student => {
-      const pWithStudent = allProposals.find(proposal => proposal.authors.some(author => author.id === student.id));
-      return !pWithStudent || (currentId ? pWithStudent.id === currentId : false);
-    });
+    return activeStudents.filter(student => this.disponibles().has(student.id) || propios.has(student.id));
   });
 
   readonly currentProposalId = signal<string | null>(null);

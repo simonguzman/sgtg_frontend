@@ -37,8 +37,8 @@ export class ProposalService {
     return this.apiService.updateProposalMock(id, changes);
   }
 
-  deleteProposalMock(id: string): Observable<boolean> {
-    return this.apiService.deleteProposalMock(id);
+  annulProposal(id: string, justification: string): Observable<Proposal> {
+    return this.apiService.annulProposal(id, justification);
   }
 
   // ==========================================

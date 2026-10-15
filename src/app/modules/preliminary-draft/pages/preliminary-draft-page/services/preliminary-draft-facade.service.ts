@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { computed, inject, Injectable } from '@angular/core';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
@@ -46,16 +47,15 @@ export class PreliminaryDraftFacadeService {
       : PRELIMINARY_DRAFT_HEADER_BUTTONS.filter(btn => btn.label !== 'Registrar anteproyecto');
   });
 
-  public deleteDraft(id: string, onSuccess: () => void, onError: () => void): void {
-    this.showNotification('Eliminando anteproyecto', 'Se está procesando la solicitud...', NotificationType.INFO);
-
-    this.preliminaryDraftService.deleteDraft(id).subscribe({
+  public annulDraft(id: string, justification: string, onSuccess: () => void, onError: () => void): void {
+    this.preliminaryDraftService.annulDraft(id, justification).subscribe({
       next: () => {
-        this.showNotification('Anteproyecto eliminado', 'El anteproyecto fue eliminado correctamente.', NotificationType.CONFIRMATION);
+        this.showNotification('Anteproyecto anulado', 'El trabajo de grado quedó archivado en el historial.',
+          NotificationType.CONFIRMATION);
         onSuccess();
       },
-      error: () => {
-        this.showNotification('Error', 'No se pudo completar la eliminación.', NotificationType.ERROR);
+      error: (err) => {
+        this.showNotification('Error', apiErrorMessage(err, 'No se pudo anular el anteproyecto.'), NotificationType.ERROR);
         onError();
       }
     });

@@ -13,7 +13,7 @@ const createMockTableRow = (overrides: Partial<PreliminaryDraftTableRow> = {}): 
   state: 'EN_REVISION',
   remainingTime: 'Quedan 5 días',
   hiddenParticipants: 'Juan Perez',
-  allowedActions: ['ver', 'editar', 'eliminar', 'ver descripción'],
+  allowedActions: ['ver', 'editar', 'anular', 'ver descripción'],
   ...overrides
 });
 
@@ -32,7 +32,7 @@ describe('PreliminaryDraftPageComponent', () => {
     tableData: jest.Mock;
     headerButtons: jest.Mock;
     showRestrictedAccessNotification: jest.Mock;
-    deleteDraft: jest.Mock;
+    annulDraft: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -47,7 +47,7 @@ describe('PreliminaryDraftPageComponent', () => {
       tableData: jest.fn().mockReturnValue([]),
       headerButtons: jest.fn().mockReturnValue([]),
       showRestrictedAccessNotification: jest.fn(),
-      deleteDraft: jest.fn()
+      annulDraft: jest.fn()
     };
 
     await TestBed.configureTestingModule({
@@ -95,11 +95,11 @@ describe('PreliminaryDraftPageComponent', () => {
       expect(component.descriptionModal.content).toBe('Desc');
     });
 
-    it('debería preparar el estado de eliminación', () => {
-      component.handleTableAction({ action: 'eliminar', row: mockRow });
+    it('debería abrir el modal de anulación', () => {
+      component.handleTableAction({ action: 'anular', row: mockRow });
 
-      expect(component.deleteState.show).toBe(true);
-      expect(component.deleteState.id).toBe('1');
+      expect(component.annulState.show).toBe(true);
+      expect(component.annulState.id).toBe('1');
     });
   });
 
@@ -119,50 +119,50 @@ describe('PreliminaryDraftPageComponent', () => {
     });
   });
 
-  describe('Modal de Eliminación', () => {
-    it('debería cancelar la eliminación limpiando el estado', () => {
-      component.deleteState = { show: true, id: '1', title: 'Test', loading: false };
+  describe('Modal de anulación', () => {
+    it('debería cancelar la anulación limpiando el estado', () => {
+      component.annulState = { show: true, id: '1', title: 'Test', loading: false };
 
-      component.cancelDelete();
+      component.cancelAnnul();
 
-      expect(component.deleteState.show).toBe(false);
-      expect(component.deleteState.id).toBeNull();
+      expect(component.annulState.show).toBe(false);
+      expect(component.annulState.id).toBeNull();
     });
 
-    it('debería confirmar la eliminación llamando a la fachada y gestionar el éxito', () => {
-      component.deleteState = { show: true, id: '1', title: 'Test', loading: false };
+    it('debería confirmar la anulación llamando a la fachada y gestionar el éxito', () => {
+      component.annulState = { show: true, id: '1', title: 'Test', loading: false };
 
-      mockFacade.deleteDraft.mockImplementation((id: string, onSuccess: () => void) => {
+      mockFacade.annulDraft.mockImplementation((id: string, justification: string, onSuccess: () => void) => {
         onSuccess();
       });
 
-      component.confirmDelete();
+      component.confirmAnnul('Motivo');
 
-      expect(mockFacade.deleteDraft).toHaveBeenCalledWith('1', expect.any(Function), expect.any(Function));
-      expect(component.deleteState.show).toBe(false);
-      expect(component.deleteState.id).toBeNull();
-      expect(component.deleteState.loading).toBe(false);
+      expect(mockFacade.annulDraft).toHaveBeenCalledWith('1', 'Motivo', expect.any(Function), expect.any(Function));
+      expect(component.annulState.show).toBe(false);
+      expect(component.annulState.id).toBeNull();
+      expect(component.annulState.loading).toBe(false);
     });
 
     it('debería gestionar el error restaurando el estado de loading', () => {
-      component.deleteState = { show: true, id: '1', title: 'Test', loading: false };
+      component.annulState = { show: true, id: '1', title: 'Test', loading: false };
 
-      mockFacade.deleteDraft.mockImplementation((id: string, onSuccess: () => void, onError: () => void) => {
+      mockFacade.annulDraft.mockImplementation((id: string, justification: string, onSuccess: () => void, onError: () => void) => {
         onError();
       });
 
-      component.confirmDelete();
+      component.confirmAnnul('Motivo');
 
-      expect(component.deleteState.loading).toBe(false);
-      expect(component.deleteState.show).toBe(true);
+      expect(component.annulState.loading).toBe(false);
+      expect(component.annulState.show).toBe(true);
     });
 
     it('no debería ejecutar la eliminación si ya está cargando o no hay ID', () => {
-      component.deleteState = { show: true, id: '1', title: 'Test', loading: true };
+      component.annulState = { show: true, id: '1', title: 'Test', loading: true };
 
-      component.confirmDelete();
+      component.confirmAnnul('Motivo');
 
-      expect(mockFacade.deleteDraft).not.toHaveBeenCalled();
+      expect(mockFacade.annulDraft).not.toHaveBeenCalled();
     });
   });
 });

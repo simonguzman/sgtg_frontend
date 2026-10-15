@@ -45,10 +45,10 @@ describe('UploadFinalDeliveryFormComponent (solicitud de sustentación)', () => 
     }).compileComponents();
   });
 
-  it('en investigación pide monografía, formato E y paz y salvo; los anexos son opcionales', () => {
+  it('en investigación pide monografía y formato E (el paz y salvo lo revisa Decanatura); los anexos son opcionales', () => {
     crear();
     expect(component['slots'].map(s => [s.key, s.required])).toEqual([
-      ['MONOGRAPH', true], ['FORMAT_E', true], ['PAZ_Y_SALVO', true], ['ANNEXES', false]
+      ['MONOGRAPH', true], ['FORMAT_E', true], ['ANNEXES', false]
     ]);
   });
 
@@ -71,10 +71,8 @@ describe('UploadFinalDeliveryFormComponent (solicitud de sustentación)', () => 
     crear();
     const monografia = adjuntar('MONOGRAPH', 'monografia.pdf');
     const formatoE = adjuntar('FORMAT_E', 'formato-e.pdf');
-    const paz = adjuntar('PAZ_Y_SALVO', 'paz.pdf');
     component.submit();
-    expect(emitted).toEqual([{ monograph: monografia, formatE: formatoE, pazYSalvo: paz, advisorConcept: null,
-      annexes: null }]);
+    expect(emitted).toEqual([{ monograph: monografia, formatE: formatoE, advisorConcept: null, annexes: null }]);
 
     const anexos = adjuntar('ANNEXES', 'anexos.pdf');
     component.submit();
@@ -90,8 +88,8 @@ describe('UploadFinalDeliveryFormComponent (solicitud de sustentación)', () => 
 
   it('el modal muestra el documento que se está cargando', () => {
     crear();
-    component.openModal('PAZ_Y_SALVO');
-    expect(component.activeSlot()?.label).toBe('Paz y salvo (formato F)');
+    component.openModal('FORMAT_E');
+    expect(component.activeSlot()?.label).toBe('Formato E');
     component.closeModal();
     expect(component.activeModal()).toBeNull();
   });

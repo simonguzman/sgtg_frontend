@@ -7,7 +7,7 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { Modality } from '../../../proposal/enums/modality.enum';
 import { SustentationRequestFiles } from '../../services/thesis-work-sustentation.service';
 
-export type FileSlot = 'MONOGRAPH' | 'FORMAT_E' | 'PAZ_Y_SALVO' | 'ADVISOR_CONCEPT' | 'ANNEXES';
+export type FileSlot = 'MONOGRAPH' | 'FORMAT_E' | 'ADVISOR_CONCEPT' | 'ANNEXES';
 export type UploadedFile = { fileName: string; file: File };
 
 /** Documento que se adjunta a la solicitud de sustentación. */
@@ -48,7 +48,6 @@ export class UploadFinalDeliveryFormComponent implements OnInit {
     this.slots = [
       { key: 'MONOGRAPH', label: 'Monografía del trabajo de grado', hint: 'Documento principal', required: true },
       { key: 'FORMAT_E', label: 'Formato E', hint: 'Entrega final firmada', required: true },
-      { key: 'PAZ_Y_SALVO', label: 'Paz y salvo (formato F)', hint: 'Paz y salvo del estudiante', required: true },
       ...(practica
         ? [{ key: 'ADVISOR_CONCEPT' as FileSlot, label: 'Concepto del asesor', hint: 'Concepto favorable del asesor',
           required: true }]
@@ -91,7 +90,6 @@ export class UploadFinalDeliveryFormComponent implements OnInit {
     this.onSaveDelivery.emit({
       monograph: files.MONOGRAPH!.file,
       formatE: files.FORMAT_E!.file,
-      pazYSalvo: files.PAZ_Y_SALVO!.file,
       advisorConcept: files.ADVISOR_CONCEPT?.file ?? null,
       annexes: files.ANNEXES?.file ?? null
     });

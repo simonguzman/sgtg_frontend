@@ -35,8 +35,8 @@ export class PreliminaryDraftService {
     return this.api.updatePreliminaryDraft(id, updatedData);
   }
 
-  deleteDraft(id: string): Observable<void> {
-    return this.api.deleteDraft(id);
+  annulDraft(id: string, justification: string): Observable<void> {
+    return this.api.annulDraft(id, justification);
   }
 
   // ── Asignación ─────────────────────────────────────────────────────────────

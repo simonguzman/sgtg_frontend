@@ -16,9 +16,10 @@
   (onClose)="descriptionModal.show = false"
 ></app-description-modal>
 
-<app-confirmation-action-modal
-  [isOpen]="deleteState.show"
-  [description]="'¿Está seguro de eliminar la propuesta: ' + deleteState.title + '?'"
-  (onClose)="cancelDelete()"
-  (confirm)="confirmDelete()"
-></app-confirmation-action-modal>
+<app-annul-work-modal
+  [isOpen]="annulState.show"
+  [title]="annulState.title"
+  [loading]="annulState.loading"
+  (onClose)="cancelAnnul()"
+  (confirm)="confirmAnnul($event)"
+></app-annul-work-modal>

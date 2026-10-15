@@ -40,6 +40,8 @@ export interface SustentationProcess {
   currentSessionDate: Date | null;
   /** Hay una solicitud de nueva fecha pendiente de decisión del Consejo */
   hasPendingNewDate: boolean;
+  /** Decanatura aprobó el paz y salvo (sin él no se programa) */
+  pazYSalvoApproved: boolean;
 }
 
 export interface ThesisWork extends Archivable {

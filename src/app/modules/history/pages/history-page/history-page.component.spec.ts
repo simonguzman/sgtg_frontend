@@ -1,228 +1,62 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router, ActivatedRoute } from '@angular/router';
-import { Title } from '@angular/platform-browser';
-import { signal, WritableSignal, Component, Input, Output, EventEmitter } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { signal } from '@angular/core';
 import { HistoryPageComponent } from './history-page.component';
-import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
-import { AuthService } from '../../../../core/services/auth/auth.service';
-import { ArchivedProposalsTabService } from './services/archived-proposals-tab.service';
-import { ArchivedPreliminaryDraftsTabService } from './services/archived-preliminary-drafts-tab.service';
-import { ArchivedThesisWorksTabService } from './services/archived-thesis-works-tab.service';
-import { HISTORY_DETAIL_ROUTES } from './models/history-page.model';
-import { User } from '../../../users/interfaces/user.interface';
-import { HistoryEvaluationContext } from '../../interfaces/history-evaluation-context.interface';
-import { TabsComponent } from '../../../../shared/components/tabs/tabs.component';
-import { TableComponent } from '../../../../shared/components/table-component/table-component.component';
-import { DescriptionModalComponent } from '../../../../shared/components/modals/description-modal/description-modal.component';
-
-@Component({ selector: 'app-tabs', standalone: true, template: '' })
-class MockTabsComponent {
-  @Input() tabs: Array<{ label: string; value: string }> = [];
-  @Input() activeTab = '';
-  @Output() tabChange = new EventEmitter<string>();
-}
-
-@Component({ selector: 'app-table-component', standalone: true, template: '' })
-class MockTableComponent {
-  @Input() value: Record<string, unknown>[] = [];
-  @Input() columns: Array<{ field: string; header: string }> = [];
-  @Input() paginator = false;
-  @Input() emptyMessage = '';
-  @Output() actionClick = new EventEmitter<{ action: string; row: Record<string, unknown> }>();
-}
-
-@Component({ selector: 'app-description-modal', standalone: true, template: '' })
-class MockDescriptionModalComponent {
-  @Input() isOpen = false;
-  @Input() titleDescription = '';
-  @Input() description = '';
-  @Output() onClose = new EventEmitter<void>();
-}
-
-interface MockHistoryTabConfiguration {
-  tabValue: string;
-  columns: Array<{ field: string; header: string }>;
-  getTableData: jest.Mock<Record<string, unknown>[], [HistoryEvaluationContext]>;
-}
+import { ARCHIVED_WORK_ACTIONS, ArchivedWorksService } from './services/archived-works.service';
+import { TableRow } from '../../../../shared/components/table-component/table-component.component';
 
 describe('HistoryPageComponent', () => {
-  let component: HistoryPageComponent;
   let fixture: ComponentFixture<HistoryPageComponent>;
-  let mockRouter: { navigate: jest.Mock };
-  let mockRoute: Partial<ActivatedRoute>;
-  let mockTitleService: { setTitle: jest.Mock };
-  let mockBreadcrumbService: {
-    setDynamicBreadcrumb: jest.Mock;
-    setDynamicTitle: jest.Mock;
-    clearDynamicBreadcrumb: jest.Mock;
-    setPageContext: jest.Mock;
-    clearPageContext: jest.Mock;
-  };
-  let mockAuthService: {
-    currentUser: WritableSignal<User | null>;
-    hasAnyRole: jest.Mock<boolean, [string[]]>;
-  };
+  let component: HistoryPageComponent;
+  let router: { navigate: jest.Mock };
+  const route = {} as ActivatedRoute;
 
-  let mockProposalsTab: MockHistoryTabConfiguration;
-  let mockPreliminaryDraftsTab: MockHistoryTabConfiguration;
-  let mockThesisWorksTab: MockHistoryTabConfiguration;
+  const fila: TableRow = {
+    id: '15', title: 'Sistema de gestión', description: 'Descripción del trabajo',
+    justification: 'Cambio de modalidad', allowedActions: []
+  };
 
   beforeEach(async () => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    mockRouter = { navigate: jest.fn() };
-    mockRoute = {};
-    mockTitleService = { setTitle: jest.fn() };
-
-    mockBreadcrumbService = {
-      setDynamicBreadcrumb: jest.fn(),
-      setDynamicTitle: jest.fn(),
-      clearDynamicBreadcrumb: jest.fn(),
-      setPageContext: jest.fn(),
-      clearPageContext: jest.fn(),
-    };
-
-    mockAuthService = {
-      currentUser: signal({ id: 'user-1' } as User),
-      hasAnyRole: jest.fn().mockReturnValue(true),
-    };
-
-    mockProposalsTab = {
-      tabValue: 'PROPUESTAS',
-      columns: [{ field: 'id', header: 'ID' }],
-      getTableData: jest.fn().mockReturnValue([{ id: 'prop-1' }]),
-    };
-
-    mockPreliminaryDraftsTab = {
-      tabValue: 'ANTEPROYECTOS',
-      columns: [{ field: 'title', header: 'Título' }],
-      getTableData: jest.fn().mockReturnValue([{ id: 'draft-1' }]),
-    };
-
-    mockThesisWorksTab = {
-      tabValue: 'TRABAJOS',
-      columns: [{ field: 'state', header: 'Estado' }],
-      getTableData: jest.fn().mockReturnValue([{ id: 'work-1' }]),
-    };
-
+    router = { navigate: jest.fn() };
     await TestBed.configureTestingModule({
       imports: [HistoryPageComponent],
       providers: [
-        { provide: Router, useValue: mockRouter },
-        { provide: ActivatedRoute, useValue: mockRoute },
-        { provide: Title, useValue: mockTitleService },
-        { provide: BreadcrumbService, useValue: mockBreadcrumbService },
-        { provide: AuthService, useValue: mockAuthService },
-        { provide: ArchivedProposalsTabService, useValue: mockProposalsTab },
-        { provide: ArchivedPreliminaryDraftsTabService, useValue: mockPreliminaryDraftsTab },
-        { provide: ArchivedThesisWorksTabService, useValue: mockThesisWorksTab },
-      ],
-    })
-    .overrideComponent(HistoryPageComponent, {
-      remove: {
-        imports: [TabsComponent, TableComponent, DescriptionModalComponent]
-      },
-      add: {
-        imports: [MockTabsComponent, MockTableComponent, MockDescriptionModalComponent]
-      }
-    })
-    .compileComponents();
-
+        { provide: Router, useValue: router },
+        { provide: ActivatedRoute, useValue: route },
+        { provide: ArchivedWorksService, useValue: { columns: [], tableData: signal([fila]) } }
+      ]
+    }).compileComponents();
     fixture = TestBed.createComponent(HistoryPageComponent);
     component = fixture.componentInstance;
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+  it('muestra la lista de trabajos archivados', () => {
+    expect(component.tableData()).toEqual([fila]);
   });
 
-  describe('Inicialización y Signals Computed', () => {
-    it('debería crearse correctamente', () => {
-      expect(component).toBeTruthy();
-    });
-
-    it('debería calcular el evaluationContext correctamente basándose en los roles del usuario', () => {
-      const context = component.evaluationContext();
-      expect(context.currentUser?.id).toBe('user-1');
-      expect(context.hasGlobalAccess).toBe(true);
-      expect(mockAuthService.hasAnyRole).toHaveBeenCalledWith([
-        'Administrador',
-        'Comité del programa',
-        'Consejo de facultad',
-        'Jefe de departamento'
-      ]);
-    });
-
-    it('debería inicializar con la estrategia y datos de PROPUESTAS por defecto', () => {
-      expect(component.activeTab()).toBe('PROPUESTAS');
-      expect(component.currentColumns()).toEqual(mockProposalsTab.columns);
-      expect(component.currentTableData()).toEqual([{ id: 'prop-1' }]);
-      expect(mockProposalsTab.getTableData).toHaveBeenCalledWith(component.evaluationContext());
-    });
-
-    it('debería reevaluar dinámicamente las columnas y datos al cambiar de pestaña', () => {
-      component.activeTab.set('ANTEPROYECTOS');
-      expect(component.currentColumns()).toEqual(mockPreliminaryDraftsTab.columns);
-      expect(component.currentTableData()).toEqual([{ id: 'draft-1' }]);
-      expect(mockPreliminaryDraftsTab.getTableData).toHaveBeenCalledWith(component.evaluationContext());
+  it('la descripción incluye las observaciones del cierre', () => {
+    component.handleTableAction({ action: ARCHIVED_WORK_ACTIONS.DESCRIPCION, row: fila });
+    expect(component.descriptionModal()).toEqual({
+      show: true,
+      title: 'Sistema de gestión',
+      content: 'Descripción del trabajo\n\nObservaciones: Cambio de modalidad'
     });
   });
 
-  describe('Effects: Title y Breadcrumbs', () => {
-    it('debería actualizar el breadcrumb y title dinámicamente usando effect y setTimeout', async () => {
-      fixture.detectChanges();
-      await fixture.whenStable();
-      mockBreadcrumbService.setDynamicBreadcrumb.mockClear();
-      mockBreadcrumbService.setDynamicTitle.mockClear();
-      component.activeTab.set('ANTEPROYECTOS');
-      fixture.detectChanges();
-      await fixture.whenStable();
-      expect(mockBreadcrumbService.setDynamicBreadcrumb).toHaveBeenCalled();
-      expect(mockBreadcrumbService.setDynamicTitle).toHaveBeenCalled();
-    });
-
-    it('debería limpiar el breadcrumb y title al destruirse el componente', () => {
-      component.ngOnDestroy();
-      expect(mockBreadcrumbService.clearDynamicBreadcrumb).toHaveBeenCalled();
-      expect(mockBreadcrumbService.setDynamicTitle).toHaveBeenCalledWith(null);
-    });
+  it('cada acción lleva al detalle de la etapa dentro del historial', () => {
+    component.handleTableAction({ action: ARCHIVED_WORK_ACTIONS.PROPUESTA, row: fila });
+    component.handleTableAction({ action: ARCHIVED_WORK_ACTIONS.ANTEPROYECTO, row: fila });
+    component.handleTableAction({ action: ARCHIVED_WORK_ACTIONS.TRABAJO, row: fila });
+    expect(router.navigate.mock.calls).toEqual([
+      [['proposal-details', '15'], { relativeTo: route }],
+      [['preliminary-draft-details', '15'], { relativeTo: route }],
+      [['thesis-work-details', '15'], { relativeTo: route }]
+    ]);
   });
 
-  describe('Gestión de acciones de la tabla (handleTableAction)', () => {
-    const mockRow: Record<string, unknown> = {
-      id: 'registro-123',
-      description: 'Descripción de prueba'
-    };
-
-    it('debería abrir el modal descriptivo con la información correcta en acción "ver descripcion"', () => {
-      component.handleTableAction({ action: 'ver descripcion', row: mockRow });
-      const modalState = component.descriptionModal();
-      expect(modalState.show).toBe(true);
-      expect(modalState.content).toBe('Descripción de prueba');
-    });
-
-    it('debería proveer un texto por defecto si el registro no tiene descripción', () => {
-      component.handleTableAction({ action: 'ver descripcion', row: { id: 'reg-456' } });
-      const modalState = component.descriptionModal();
-      expect(modalState.content).toBe('No hay descripción disponible para este registro.');
-    });
-
-    it('debería navegar correctamente utilizando el mapa de rutas al ejecutar "ver"', () => {
-      component.activeTab.set('PROPUESTAS');
-      const expectedRouteSegment = HISTORY_DETAIL_ROUTES['PROPUESTAS'];
-      component.handleTableAction({ action: 'ver', row: mockRow });
-      expect(mockRouter.navigate).toHaveBeenCalledWith(
-        [expectedRouteSegment, 'registro-123'],
-        { relativeTo: mockRoute }
-      );
-    });
-
-    it('debería emitir un warning en consola si la acción no está manejada en el switch', () => {
-      component.handleTableAction({ action: 'accion_desconocida', row: mockRow });
-      expect(mockRouter.navigate).not.toHaveBeenCalled();
-      expect(console.warn).toHaveBeenCalledWith('Acción no manejada en historial: accion_desconocida');
-    });
+  it('una acción desconocida no navega', () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    component.handleTableAction({ action: 'otra', row: fila });
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 });

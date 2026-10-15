@@ -45,14 +45,14 @@ describe('ProposalPageComponent', () => {
     proposalsTableData: ReturnType<typeof signal<ProposalTableRow[]>>;
     headerButtons: ReturnType<typeof signal<TableButton[]>>;
     showRestrictedAccessNotification: jest.Mock;
-    deleteProposal: jest.Mock;
+    annulProposal: jest.Mock;
   };
 
   const mockRow: ProposalTableRow = {
     id: 'prop-1',
     title: 'Test',
     description: 'Desc test',
-    allowedActions: ['ver', 'ver descripcion', 'editar', 'eliminar']
+    allowedActions: ['ver', 'ver descripcion', 'editar', 'anular']
   } as ProposalTableRow;
 
   beforeEach(async () => {
@@ -65,7 +65,7 @@ describe('ProposalPageComponent', () => {
       proposalsTableData: signal([mockRow]),
       headerButtons: signal([]),
       showRestrictedAccessNotification: jest.fn(),
-      deleteProposal: jest.fn()
+      annulProposal: jest.fn()
     };
 
     await TestBed.configureTestingModule({
@@ -112,10 +112,10 @@ describe('ProposalPageComponent', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/proposal/details', 'prop-1']);
     });
 
-    it('debe setear estado de eliminación al accionar "eliminar"', () => {
-      component.handleTableAction({ action: 'eliminar', row: mockRow });
-      expect(component.deleteState.show).toBeTruthy();
-      expect(component.deleteState.id).toBe('prop-1');
+    it('debe abrir el modal de anulación al accionar "anular"', () => {
+      component.handleTableAction({ action: 'anular', row: mockRow });
+      expect(component.annulState.show).toBeTruthy();
+      expect(component.annulState.id).toBe('prop-1');
     });
   });
 
@@ -126,18 +126,18 @@ describe('ProposalPageComponent', () => {
     });
   });
 
-  describe('confirmDelete', () => {
-    it('debe llamar a deleteProposal en fachada y resetear modal en éxito', () => {
-      component.deleteState = { show: true, id: 'prop-1', title: 'Test', loading: false };
+  describe('confirmAnnul', () => {
+    it('debe llamar a annulProposal en fachada y resetear modal en éxito', () => {
+      component.annulState = { show: true, id: 'prop-1', title: 'Test', loading: false };
 
-      component.confirmDelete();
-      expect(component.deleteState.loading).toBeTruthy();
+      component.confirmAnnul('Motivo');
+      expect(component.annulState.loading).toBeTruthy();
 
-      const onSuccess = mockFacade.deleteProposal.mock.calls[0][1];
+      const onSuccess = mockFacade.annulProposal.mock.calls[0][2];
       onSuccess();
 
-      expect(component.deleteState.show).toBeFalsy();
-      expect(component.deleteState.id).toBeNull();
+      expect(component.annulState.show).toBeFalsy();
+      expect(component.annulState.id).toBeNull();
     });
   });
 });

@@ -42,20 +42,25 @@ describe('ProposalMapperService', () => {
   describe('mapProposalToTable - Permisos (allowedActions)', () => {
     const radicada = { ...mockProposal, documents: [{ id: 'doc-1' }] } as unknown as Proposal;
 
-    it('el director puede corregir su propuesta antes de radicarla', () => {
+    it('el director puede corregir y anular su propuesta antes de radicarla', () => {
       const result = service.mapProposalToTable(mockProposal, 'user-1');
-      expect(result.allowedActions).toEqual(['ver descripcion', 'ver', 'editar']);
+      expect(result.allowedActions).toEqual(['ver descripcion', 'ver', 'editar', 'anular']);
     });
 
     it('el director puede corregir su propuesta tras un NO APROBADO', () => {
       const noAprobada = { ...radicada, state: stateList.NO_APROBADO } as Proposal;
       const result = service.mapProposalToTable(noAprobada, 'user-1');
-      expect(result.allowedActions).toEqual(['ver descripcion', 'ver', 'editar']);
+      expect(result.allowedActions).toEqual(['ver descripcion', 'ver', 'editar', 'anular']);
     });
 
-    it('el director no puede corregir una propuesta radicada en revisión', () => {
+    it('el director no corrige una propuesta radicada en revisión, pero sí la anula', () => {
       const result = service.mapProposalToTable(radicada, 'user-1');
-      expect(result.allowedActions).toEqual(['ver descripcion', 'ver']);
+      expect(result.allowedActions).toEqual(['ver descripcion', 'ver', 'anular']);
+    });
+
+    it('una propuesta aprobada ya no se anula desde aquí (se anula desde el anteproyecto)', () => {
+      const aprobada = { ...radicada, state: stateList.APROBADO } as Proposal;
+      expect(service.mapProposalToTable(aprobada, 'user-1').allowedActions).toEqual(['ver descripcion', 'ver']);
     });
 
     it('otros usuarios solo consultan', () => {

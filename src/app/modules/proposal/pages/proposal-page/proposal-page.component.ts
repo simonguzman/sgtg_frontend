@@ -2,13 +2,13 @@ import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { TableButton, TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { DescriptionModalComponent } from '../../../../shared/components/modals/description-modal/description-modal.component';
-import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { AnnulWorkModalComponent } from '../../../../shared/components/modals/annul-work-modal/annul-work-modal.component';
 import { ProposalFacadeService } from './services/proposal-facade.service';
 import { PROPOSAL_COLUMNS, ProposalTableRow } from './models/proposal-page.model';
 
 @Component({
   selector: 'app-proposal-page',
-  imports: [TableComponent, DescriptionModalComponent, ConfirmationActionModalComponent],
+  imports: [TableComponent, DescriptionModalComponent, AnnulWorkModalComponent],
   templateUrl: './proposal-page.component.html',
   styleUrl: './proposal-page.component.css',
 })
@@ -19,7 +19,7 @@ export class ProposalPageComponent {
   protected readonly filterFields = ['title', 'modality', 'state', 'deadlineStatus', 'hiddenParticipants'];
 
   descriptionModal = { show: false, title: '', content: '' };
-  deleteState = { show: false, id: null as string | null, title: '', loading: false };
+  annulState = { show: false, id: null as string | null, title: '', loading: false };
 
   handleTableAction(event: { action: string; row: ProposalTableRow }): void {
     if (!event.row.allowedActions.includes(event.action)) {
@@ -36,8 +36,8 @@ export class ProposalPageComponent {
       case 'editar':
         this.router.navigate(['/proposal/edit', event.row.id]);
         break;
-      case 'eliminar':
-        this.deleteState = { show: true, id: event.row.id!, title: event.row.title, loading: false };
+      case 'anular':
+        this.annulState = { show: true, id: event.row.id!, title: event.row.title, loading: false };
         break;
     }
   }
@@ -53,18 +53,19 @@ export class ProposalPageComponent {
     }
   }
 
-  confirmDelete(): void {
-    const id = this.deleteState.id;
-    if (!id || this.deleteState.loading) return;
-    this.deleteState.loading = true;
-    this.facade.deleteProposal(
+  confirmAnnul(justification: string): void {
+    const id = this.annulState.id;
+    if (!id || this.annulState.loading) return;
+    this.annulState.loading = true;
+    this.facade.annulProposal(
       id,
-      () => { this.deleteState = { show: false, id: null, title: '', loading: false }; },
-      () => { this.deleteState.loading = false; }
+      justification,
+      () => { this.annulState = { show: false, id: null, title: '', loading: false }; },
+      () => { this.annulState.loading = false; }
     );
   }
 
-  cancelDelete(): void {
-    this.deleteState = { show: false, id: null, title: '', loading: false };
+  cancelAnnul(): void {
+    this.annulState = { show: false, id: null, title: '', loading: false };
   }
 }

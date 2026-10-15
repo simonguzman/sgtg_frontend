@@ -1,17 +1,16 @@
 <div class="w-full">
   <div class="bg-white rounded-lg shadow-sm p-6">
-    <app-tabs
-      [tabs]="tabsConfig"
-      [activeTab]="activeTab()"
-      (tabChange)="activeTab.set($event)"
-    ></app-tabs>
+    <h2 class="text-lg font-semibold text-gray-800">Trabajos de grado archivados</h2>
+    <p class="text-sm text-gray-500 mt-1">
+      Trabajos terminados, no aprobados, cancelados o anulados. Consulta cada etapa con sus documentos y versiones.
+    </p>
     <div class="mt-6">
       <app-table-component
-        [value]="currentTableData()"
-        [columns]="currentColumns()"
+        [value]="tableData()"
+        [columns]="columns"
         [paginator]="true"
         (actionClick)="handleTableAction($event)"
-        [emptyMessage]="'No tienes registros históricos o archivados en esta sección.'"
+        [emptyMessage]="'No tienes trabajos de grado archivados.'"
       ></app-table-component>
     </div>
   </div>
