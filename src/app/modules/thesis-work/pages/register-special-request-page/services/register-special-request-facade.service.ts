@@ -19,7 +19,7 @@ export class RegisterSpecialRequestFacadeService {
     onNotFound: () => void,
     onError: () => void
   ): void {
-    this.thesisWorkService.getThesisWorkByIdMock(id)
+    this.thesisWorkService.getThesisWorkById(id)
       .pipe(first())
       .subscribe({
         next: (data: ThesisWork | null | undefined) => {

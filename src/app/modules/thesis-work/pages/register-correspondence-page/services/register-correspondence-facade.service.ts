@@ -12,7 +12,7 @@ export class RegisterCorrespondenceFacadeService {
   private readonly notificationService = inject(NotificationService);
 
   public loadThesisWork(id: string, onSuccess: (work: ThesisWork) => void, onError: () => void): void {
-    this.thesisWorkService.getThesisWorkByIdMock(id).pipe(first()).subscribe({
+    this.thesisWorkService.getThesisWorkById(id).pipe(first()).subscribe({
       next: (data: ThesisWork | null | undefined) => {
         if (!data) {
           this.showNotification('Registro inexistente', 'El trabajo de grado solicitado no existe.', NotificationType.ERROR);

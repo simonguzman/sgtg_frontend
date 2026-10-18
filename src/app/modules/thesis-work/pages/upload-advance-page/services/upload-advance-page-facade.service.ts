@@ -17,7 +17,7 @@ export class UploadAdvancePageFacadeService {
     onSuccess: (thesisWork: ThesisWork) => void,
     onNotFound: () => void
   ): void {
-    this.thesisWorkService.getThesisWorkByIdMock(id)
+    this.thesisWorkService.getThesisWorkById(id)
       .pipe(first())
       .subscribe({
         next: (data) => {

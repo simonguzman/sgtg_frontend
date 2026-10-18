@@ -19,7 +19,7 @@ export class SustentationDetailsFacadeService {
 
   public loadDetails(thesisWorkId: string, sustentationId: string): void {
     this.isLoading.set(true);
-    this.thesisWorkService.getThesisWorkByIdMock(thesisWorkId)
+    this.thesisWorkService.getThesisWorkById(thesisWorkId)
       .pipe(first())
       .subscribe({
         next: (foundData) => {

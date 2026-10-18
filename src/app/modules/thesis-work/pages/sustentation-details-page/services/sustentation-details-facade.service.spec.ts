@@ -11,7 +11,7 @@ import { SustentationDetailsView } from '../models/sustentation-details.model';
 import { stateList } from '../../../../../core/enums/state.enum';
 
 interface MockThesisWorkService {
-  getThesisWorkByIdMock: jest.Mock;
+  getThesisWorkById: jest.Mock;
 }
 
 interface MockSustentationDetailsMapperService {
@@ -80,7 +80,7 @@ describe('SustentationDetailsFacadeService', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    thesisWorkSpy = { getThesisWorkByIdMock: jest.fn() };
+    thesisWorkSpy = { getThesisWorkById: jest.fn() };
     mapperSpy = { mapToView: jest.fn() };
     downloadSpy = { download: jest.fn() };
     notificationSpy = { show: jest.fn() };
@@ -111,12 +111,12 @@ describe('SustentationDetailsFacadeService', () => {
       const mockThesisWork = createMockThesisWork({ thesisWorkId: thesisId });
       const mockView = createMockSustentationDetailsView({ title: 'Test Sustentation' });
 
-      thesisWorkSpy.getThesisWorkByIdMock.mockReturnValue(of(mockThesisWork));
+      thesisWorkSpy.getThesisWorkById.mockReturnValue(of(mockThesisWork));
       mapperSpy.mapToView.mockReturnValue(mockView);
 
       service.loadDetails(thesisId, sustentationId);
 
-      expect(thesisWorkSpy.getThesisWorkByIdMock).toHaveBeenCalledWith(thesisId);
+      expect(thesisWorkSpy.getThesisWorkById).toHaveBeenCalledWith(thesisId);
       expect(mapperSpy.mapToView).toHaveBeenCalledWith(mockThesisWork, sustentationId);
       expect(service.viewData()).toEqual(mockView);
       expect(service.isLoading()).toBe(false);
@@ -125,7 +125,7 @@ describe('SustentationDetailsFacadeService', () => {
     it('debe mostrar error si el trabajo se encuentra pero la sustentación no (mapper retorna null)', () => {
       const mockThesisWork = createMockThesisWork();
 
-      thesisWorkSpy.getThesisWorkByIdMock.mockReturnValue(of(mockThesisWork));
+      thesisWorkSpy.getThesisWorkById.mockReturnValue(of(mockThesisWork));
       mapperSpy.mapToView.mockReturnValue(null);
 
       service.loadDetails(thesisId, sustentationId);
@@ -140,7 +140,7 @@ describe('SustentationDetailsFacadeService', () => {
     });
 
     it('debe mostrar error si el trabajo no se encuentra en el backend (retorna null/undefined)', () => {
-      thesisWorkSpy.getThesisWorkByIdMock.mockReturnValue(of(null));
+      thesisWorkSpy.getThesisWorkById.mockReturnValue(of(null));
 
       service.loadDetails(thesisId, sustentationId);
 
@@ -155,7 +155,7 @@ describe('SustentationDetailsFacadeService', () => {
     });
 
     it('debe manejar errores de comunicación (catch error del observable)', () => {
-      thesisWorkSpy.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('Network error')));
+      thesisWorkSpy.getThesisWorkById.mockReturnValue(throwError(() => new Error('Network error')));
 
       service.loadDetails(thesisId, sustentationId);
 

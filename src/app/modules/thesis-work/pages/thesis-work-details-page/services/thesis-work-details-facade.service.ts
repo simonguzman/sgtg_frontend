@@ -21,7 +21,7 @@ export class ThesisWorkDetailsFacadeService {
 
   public loadThesisWorkDetails(id: string): void {
     this.isLoading.set(true);
-    this.thesisWorkService.getThesisWorkByIdMock(id)
+    this.thesisWorkService.getThesisWorkById(id)
       .pipe(first())
       .subscribe({
         next: (foundData) => {

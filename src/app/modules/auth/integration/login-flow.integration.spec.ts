@@ -1,4 +1,3 @@
-import 'fake-indexeddb/auto';
 import { ComponentFixture, TestBed, fakeAsync } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';

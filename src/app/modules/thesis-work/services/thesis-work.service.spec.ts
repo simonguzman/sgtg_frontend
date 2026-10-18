@@ -48,7 +48,7 @@ describe('ThesisWorkService (fachada)', () => {
   });
 
   it('consulta el trabajo en el almacenamiento (vista del backend)', () => {
-    service.getThesisWorkByIdMock('15');
+    service.getThesisWorkById('15');
     expect(storage.getById).toHaveBeenCalledWith('15');
   });
 

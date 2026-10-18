@@ -19,7 +19,7 @@ export class UserDetailsFacadeService {
 
     if (id) {
       this.isMyProfile.set(false);
-      this.userService.getUserByIdMock(id).subscribe({
+      this.userService.getUserById(id).subscribe({
         next: (data) => {
           this.user.set(data);
           this.isLoading.set(false);

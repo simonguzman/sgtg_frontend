@@ -1,15 +1,10 @@
 import { inject, Injectable } from '@angular/core';
 import { map, Observable, tap } from 'rxjs';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
-import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { TrabajoGradoApiService } from '../../../core/services/trabajo-grado/trabajo-grado-api.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { TrabajoGradoVistasService } from '../../../core/services/trabajo-grado/trabajo-grado-vistas.service';
 import { aTrabajoDeGrado } from '../../../core/mappers/trabajo-grado.mapper';
 import { CalificacionApi, TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado-api.interface';
-import { UserService } from '../../users/services/user.service';
-import { collectParticipantIds } from '../helpers/thesis-participants.helper';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 
 /** Documentos de la solicitud de sustentación (entrega final). */
@@ -39,18 +34,16 @@ export interface SustentationSchedule {
  */
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkSustentationService {
-  private readonly eventBus = inject(EventBusService);
-  private readonly userService = inject(UserService);
   private readonly api = inject(TrabajoGradoApiService);
   private readonly store = inject(TrabajoGradoStoreService);
   private readonly vistas = inject(TrabajoGradoVistasService);
 
   /** Solicitud de sustentación del director (entrega final). */
   requestSustentation(thesisWorkId: string, files: SustentationRequestFiles): Observable<ThesisWork> {
-    return this.operar(thesisWorkId, this.api.enviarArchivos(thesisWorkId, 'sustentacion', null, {
+    return this.operar(this.api.enviarArchivos(thesisWorkId, 'sustentacion', null, {
       monografia: files.monograph, documentoFinal: files.formatE, conceptoAsesor: files.advisorConcept,
       anexos: files.annexes
-    }), AppEventType.THESIS_FINAL_DELIVERY_UPLOADED, true);
+    }));
   }
 
   /**
@@ -59,73 +52,57 @@ export class ThesisWorkSustentationService {
    * el Consejo no programa la sustentación.
    */
   reviewPazYSalvo(thesisWorkId: string, approved: boolean, observations: string, formatF: File): Observable<ThesisWork> {
-    return this.operar(thesisWorkId, this.api.enviarArchivos(thesisWorkId, 'sustentacion/paz-y-salvo',
-      { aprobado: approved, observaciones: observations.trim() || null }, { archivo: formatF }),
-      AppEventType.THESIS_PAZ_Y_SALVO_REGISTERED, approved);
+    return this.operar(this.api.enviarArchivos(thesisWorkId, 'sustentacion/paz-y-salvo',
+      { aprobado: approved, observaciones: observations.trim() || null }, { archivo: formatF }));
   }
 
   /**
    * Programación del Consejo (primera o segunda sesión), con el formato E. El
-   * backend asigna los roles de jurado; los jurados los ven al iniciar sesión.
+   * backend asigna los roles de jurado; los jurados los reciben al llegarles la notificación.
    */
   scheduleSustentation(thesisWorkId: string, schedule: SustentationSchedule): Observable<ThesisWork> {
-    return this.operar(thesisWorkId, this.api.enviarArchivos(thesisWorkId, 'sustentacion/programacion', {
+    return this.operar(this.api.enviarArchivos(thesisWorkId, 'sustentacion/programacion', {
       juradoCoordinadorId: Number(schedule.coordinatorId), juradoId: Number(schedule.jurorId),
       fechaHora: schedule.dateTime, salon: schedule.location
-    }, { archivo: schedule.formatE }), AppEventType.THESIS_SUSTENTATION_PROGRAMMED, false, [
-      schedule.coordinatorId, schedule.jurorId
-    ]);
+    }, { archivo: schedule.formatE }));
   }
 
   /** Calificación del jurado coordinador con el acta (formato G). */
   gradeSustentation(thesisWorkId: string, grade: CalificacionApi, observations: string,
     record: File): Observable<ThesisWork> {
-    return this.operar(thesisWorkId, this.api.enviarArchivos(thesisWorkId, 'sustentacion/calificaciones',
-      { calificacion: grade, observaciones: observations.trim() || null }, { archivo: record }),
-      AppEventType.THESIS_VERDICT_REGISTERED);
+    return this.operar(this.api.enviarArchivos(thesisWorkId, 'sustentacion/calificaciones',
+      { calificacion: grade, observaciones: observations.trim() || null }, { archivo: record }));
   }
 
   /** Inasistencia del estudiante, registrada por el jurado coordinador. */
   registerNonAttendance(thesisWorkId: string, observations: string): Observable<ThesisWork> {
-    return this.operar(thesisWorkId,
-      this.api.enviarJson(thesisWorkId, 'sustentacion/inasistencia', { observaciones: observations.trim() }),
-      AppEventType.THESIS_VERDICT_REGISTERED);
+    return this.operar(
+      this.api.enviarJson(thesisWorkId, 'sustentacion/inasistencia', { observaciones: observations.trim() }));
   }
 
   /** Ajustes del director (aprobada con observaciones), con anexos opcionales. */
   submitAdjustments(thesisWorkId: string, adjustments: File, annexes?: File | null): Observable<ThesisWork> {
-    return this.operar(thesisWorkId, this.api.enviarArchivos(thesisWorkId, 'sustentacion/ajustes', null,
-      { archivo: adjustments, anexos: annexes }), AppEventType.THESIS_CORRECTED_DOCUMENTS_UPLOADED);
+    return this.operar(this.api.enviarArchivos(thesisWorkId, 'sustentacion/ajustes', null,
+      { archivo: adjustments, anexos: annexes }));
   }
 
   /** Verificación de los ajustes por el jurado coordinador. */
   verifyAdjustments(thesisWorkId: string, fulfills: boolean, observations: string): Observable<ThesisWork> {
-    return this.operar(thesisWorkId, this.api.enviarJson(thesisWorkId, 'sustentacion/ajustes/verificaciones',
-      { cumple: fulfills, observaciones: observations.trim() || null }),
-      AppEventType.THESIS_CORRECTED_DOCUMENTS_EVALUATED);
+    return this.operar(this.api.enviarJson(thesisWorkId, 'sustentacion/ajustes/verificaciones',
+      { cumple: fulfills, observaciones: observations.trim() || null }));
   }
 
   /** Versión definitiva (formato H) del jurado coordinador: el trabajo finaliza. */
   uploadFinalVersion(thesisWorkId: string, document: File): Observable<ThesisWork> {
-    return this.operar(thesisWorkId, this.api.enviarArchivos(thesisWorkId, 'sustentacion/version-definitiva', null,
-      { archivo: document }), AppEventType.THESIS_CORRESPONDENCE_REGISTERED);
+    return this.operar(this.api.enviarArchivos(thesisWorkId, 'sustentacion/version-definitiva', null,
+      { archivo: document }));
   }
 
-  /** Actualiza el almacén con la respuesta y notifica a los participantes (y al Consejo o los jurados). */
-  private operar(thesisWorkId: string, peticion: Observable<TrabajoGradoResponse>, evento: AppEventType,
-    incluirConsejo = false, adicionales: string[] = []): Observable<ThesisWork> {
+  /** Actualiza el almacén con la respuesta (las notificaciones las genera el backend). */
+  private operar(peticion: Observable<TrabajoGradoResponse>): Observable<ThesisWork> {
     return peticion.pipe(
       tap(trabajo => this.store.upsert(trabajo)),
-      map(trabajo => this.vista(trabajo)),
-      tap(thesisWork => this.eventBus.emit({
-        type: evento,
-        targetUserIds: this.destinatarios(thesisWork, incluirConsejo, adicionales),
-        payload: {
-          thesisId: thesisWorkId,
-          thesisWorkId,
-          thesisTitle: thesisWork.preliminaryDraftData?.proposalData?.title ?? ''
-        }
-      }))
+      map(trabajo => this.vista(trabajo))
     );
   }
 
@@ -133,14 +110,5 @@ export class ThesisWorkSustentationService {
     const thesisWork = aTrabajoDeGrado(trabajo, this.vistas.contexto());
     if (!thesisWork) throw new Error('El trabajo de grado no está en curso.');
     return thesisWork;
-  }
-
-  private destinatarios(thesisWork: ThesisWork, incluirConsejo: boolean, adicionales: string[]): string[] {
-    const ids = [...collectParticipantIds(thesisWork.preliminaryDraftData?.proposalData), ...adicionales,
-      ...(thesisWork.sustentation?.jurorIds ?? [])];
-    if (incluirConsejo) {
-      ids.push(...this.userService.users().filter(u => u.roles.includes(UserRoleType.CONSEJO)).map(u => u.id));
-    }
-    return [...new Set(ids)];
   }
 }

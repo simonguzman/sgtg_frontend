@@ -172,30 +172,4 @@ describe('Integración [Users]: administración de usuarios contra el backend', 
     expect(storage.getUsersSnapshot().find(user => user.id === '2')?.firstName).toBe('Otro');
   });
 
-  describe('roles automáticos de otros módulos (solo en memoria)', () => {
-    beforeEach(() => iniciarSesionConLista([
-      usuarioApi(2, { roles: ['DOCENTE'] }),
-      usuarioApi(3, { roles: ['ESTUDIANTE'] })
-    ]));
-
-    it('no cambian nada si no hay .subscribe()', () => {
-      userService.addRoleToUser('2', UserRoleType.ASESOR);
-      expect(userService.advisors()).toEqual([]);
-    });
-
-    it('students()/advisors() reaccionan al otorgar o retirar roles', () => {
-      userService.addRoleToUser('2', UserRoleType.ASESOR).subscribe();
-      expect(userService.advisors().map(user => user.id)).toEqual(['2']);
-      // DOCENTE se conserva: sigue siendo posible director
-      expect(userService.potentialDirectors().map(user => user.id)).toEqual(['2']);
-
-      userService.removeRoleFromUser('3', UserRoleType.ESTUDIANTE).subscribe();
-      expect(userService.students()).toEqual([]);
-    });
-
-    it('removeRolesFromUsersMock también actualiza al usuario en sesión', () => {
-      userService.removeRolesFromUsersMock(['1'], [UserRoleType.ADMINISTRADOR]).subscribe();
-      expect(auth.currentUser()?.roles).toEqual([]);
-    });
-  });
 });

@@ -20,7 +20,7 @@ export class ProposalDetailsFacadeService {
     onNotFound: () => void,
     onError: () => void
   ): void {
-    this.proposalService.getProposalByIdMock(id).subscribe({
+    this.proposalService.getProposalById(id).subscribe({
       next: (data) => {
         if (data) {
           onSuccess(data);

@@ -30,7 +30,7 @@ export class EvaluationProposalFacadeService {
     onSuccess: (proposal: Proposal) => void,
     onNotFound: () => void
   ): void {
-    this.proposalService.getProposalByIdMock(id)
+    this.proposalService.getProposalById(id)
       .pipe(first())
       .subscribe({
         next: (data) => data ? onSuccess(data) : onNotFound(),

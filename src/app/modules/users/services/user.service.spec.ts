@@ -52,9 +52,6 @@ describe('UserService', () => {
     loadUsers: jest.Mock<Observable<User[]>, []>;
     softDeleteUser: jest.Mock<Observable<void>, [string]>;
     updateUserRoles: jest.Mock<Observable<void>, [string, UserRoleType[]]>;
-    addRoleToUser: jest.Mock<Observable<void>, [string, UserRoleType]>;
-    removeRoleFromUser: jest.Mock<Observable<void>, [string, UserRoleType]>;
-    removeRolesFromUsers: jest.Mock<Observable<void>, [string[], UserRoleType[]]>;
   };
 
   let formatterSpy: {
@@ -88,10 +85,7 @@ describe('UserService', () => {
       updateUser: jest.fn().mockReturnValue(of(mockUser)),
       loadUsers: jest.fn().mockReturnValue(of([mockUser])),
       softDeleteUser: jest.fn().mockReturnValue(of(void 0)),
-      updateUserRoles: jest.fn().mockReturnValue(of(void 0)),
-      addRoleToUser: jest.fn().mockReturnValue(of(void 0)),
-      removeRoleFromUser: jest.fn().mockReturnValue(of(void 0)),
-      removeRolesFromUsers: jest.fn().mockReturnValue(of(void 0))
+      updateUserRoles: jest.fn().mockReturnValue(of(void 0))
     };
 
     formatterSpy = {
@@ -182,8 +176,8 @@ describe('UserService', () => {
       expect(storageSpy.getUsersSnapshot).toHaveBeenCalledTimes(2);
     });
 
-    it('getUserByIdMock() debería delegar al API Service', () => {
-      service.getUserByIdMock('111').subscribe();
+    it('getUserById() debería delegar al API Service', () => {
+      service.getUserById('111').subscribe();
       expect(apiSpy.getUserById).toHaveBeenCalledWith('111');
     });
 
@@ -192,41 +186,27 @@ describe('UserService', () => {
       expect(apiSpy.getUsersByRole).toHaveBeenCalledWith(UserRoleType.DOCENTE);
     });
 
-    it('createUserMock() debería delegar la creación al API Service', () => {
-      service.createUserMock(mockUser).subscribe();
+    it('createUser() debería delegar la creación al API Service', () => {
+      service.createUser(mockUser).subscribe();
       expect(apiSpy.createUser).toHaveBeenCalledWith(mockUser);
     });
 
-    it('updateUserMock() debería delegar al API Service', () => {
+    it('updateUser() debería delegar al API Service', () => {
       const changes = { firstName: 'Carlos' };
-      service.updateUserMock('111', changes).subscribe();
+      service.updateUser('111', changes).subscribe();
       expect(apiSpy.updateUser).toHaveBeenCalledWith('111', changes);
     });
 
-    it('softDeleteUserMock() debería delegar la eliminación lógica al API Service', () => {
-      service.softDeleteUserMock('123').subscribe();
+    it('softDeleteUser() debería delegar la eliminación lógica al API Service', () => {
+      service.softDeleteUser('123').subscribe();
       expect(apiSpy.softDeleteUser).toHaveBeenCalledWith('123');
     });
 
-    it('updateUserRolesMock() debería delegar al API Service', () => {
-      service.updateUserRolesMock('111', [UserRoleType.ADMINISTRADOR]).subscribe();
+    it('updateUserRoles() debería delegar al API Service', () => {
+      service.updateUserRoles('111', [UserRoleType.ADMINISTRADOR]).subscribe();
       expect(apiSpy.updateUserRoles).toHaveBeenCalledWith('111', [UserRoleType.ADMINISTRADOR]);
     });
 
-    it('addRoleToUser() debería delegar al API Service', () => {
-      service.addRoleToUser('111', UserRoleType.ASESOR).subscribe();
-      expect(apiSpy.addRoleToUser).toHaveBeenCalledWith('111', UserRoleType.ASESOR);
-    });
-
-    it('removeRoleFromUser() debería delegar al API Service', () => {
-      service.removeRoleFromUser('111', UserRoleType.DOCENTE).subscribe();
-      expect(apiSpy.removeRoleFromUser).toHaveBeenCalledWith('111', UserRoleType.DOCENTE);
-    });
-
-    it('removeRolesFromUsersMock() debería delegar al API Service', () => {
-      service.removeRolesFromUsersMock(['111', '222'], [UserRoleType.DOCENTE]).subscribe();
-      expect(apiSpy.removeRolesFromUsers).toHaveBeenCalledWith(['111', '222'], [UserRoleType.DOCENTE]);
-    });
   });
 
   describe('Delegación de Formateo de Texto', () => {

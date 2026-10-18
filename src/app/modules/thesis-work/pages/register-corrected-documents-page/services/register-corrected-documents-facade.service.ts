@@ -16,7 +16,7 @@ export class RegisterCorrectedDocumentsFacadeService {
     onSuccess: (thesisWork: ThesisWork) => void,
     onError: () => void
   ): void {
-    this.thesisWorkService.getThesisWorkByIdMock(id).pipe(first()).subscribe({
+    this.thesisWorkService.getThesisWorkById(id).pipe(first()).subscribe({
       next: (data) => {
         if (!data) {
           this.showNotification('No encontrado', 'El proyecto solicitado no existe.', NotificationType.INFO);

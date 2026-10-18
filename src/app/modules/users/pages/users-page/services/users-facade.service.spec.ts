@@ -49,8 +49,8 @@ describe('Service: UsersFacadeService', () => {
 
   let mockUserService: {
     users: WritableSignal<User[]>;
-    updateUserRolesMock: jest.Mock<Observable<void>, [string, UserRoleType[]]>;
-    softDeleteUserMock: jest.Mock<Observable<void>, [string]>;
+    updateUserRoles: jest.Mock<Observable<void>, [string, UserRoleType[]]>;
+    softDeleteUser: jest.Mock<Observable<void>, [string]>;
   };
 
   let mockMapper: {
@@ -71,8 +71,8 @@ describe('Service: UsersFacadeService', () => {
 
     mockUserService = {
       users: signal([mockUser]),
-      updateUserRolesMock: jest.fn(),
-      softDeleteUserMock: jest.fn()
+      updateUserRoles: jest.fn(),
+      softDeleteUser: jest.fn()
     };
 
     mockMapper = {
@@ -143,17 +143,17 @@ describe('Service: UsersFacadeService', () => {
   describe('Método: updateRoles', () => {
     it('debería ejecutar el flujo de éxito: notificar, llamar API, confirmar y ejecutar callback', () => {
       const onSuccessSpy = jest.fn();
-      mockUserService.updateUserRolesMock.mockReturnValue(of(void 0));
+      mockUserService.updateUserRoles.mockReturnValue(of(void 0));
       service.updateRoles('123', [UserRoleType.ADMINISTRADOR], onSuccessSpy);
       expect(mockNotificationService.show).toHaveBeenNthCalledWith(1, expect.objectContaining({ type: NotificationType.INFO }));
       expect(mockNotificationService.show).toHaveBeenNthCalledWith(2, expect.objectContaining({ type: NotificationType.CONFIRMATION }));
-      expect(mockUserService.updateUserRolesMock).toHaveBeenCalledWith('123', [UserRoleType.ADMINISTRADOR]);
+      expect(mockUserService.updateUserRoles).toHaveBeenCalledWith('123', [UserRoleType.ADMINISTRADOR]);
       expect(onSuccessSpy).toHaveBeenCalled();
     });
 
     it('debería ejecutar el flujo de error: notificar error, loguear y no ejecutar callback', () => {
       const onSuccessSpy = jest.fn();
-      mockUserService.updateUserRolesMock.mockReturnValue(throwError(() => new Error('API Error')));
+      mockUserService.updateUserRoles.mockReturnValue(throwError(() => new Error('API Error')));
       service.updateRoles('123', [UserRoleType.ADMINISTRADOR], onSuccessSpy);
       expect(mockNotificationService.show).toHaveBeenNthCalledWith(1, expect.objectContaining({ type: NotificationType.INFO }));
       expect(mockNotificationService.show).toHaveBeenNthCalledWith(2, expect.objectContaining({ type: NotificationType.ERROR }));
@@ -165,7 +165,7 @@ describe('Service: UsersFacadeService', () => {
   describe('Método: toggleUserStatus', () => {
     it('debería ejecutar flujo de éxito para HABILITAR (isEnabling = true)', () => {
       const onSuccessSpy = jest.fn();
-      mockUserService.softDeleteUserMock.mockReturnValue(of(void 0));
+      mockUserService.softDeleteUser.mockReturnValue(of(void 0));
       service.toggleUserStatus('123', true, onSuccessSpy);
       expect(mockNotificationService.show).toHaveBeenNthCalledWith(1, {
         title: 'Procesando acción',
@@ -177,13 +177,13 @@ describe('Service: UsersFacadeService', () => {
         message: 'El usuario ha sido habilitado correctamente.',
         type: NotificationType.CONFIRMATION
       });
-      expect(mockUserService.softDeleteUserMock).toHaveBeenCalledWith('123');
+      expect(mockUserService.softDeleteUser).toHaveBeenCalledWith('123');
       expect(onSuccessSpy).toHaveBeenCalled();
     });
 
     it('debería ejecutar flujo de éxito para DESHABILITAR (isEnabling = false)', () => {
       const onSuccessSpy = jest.fn();
-      mockUserService.softDeleteUserMock.mockReturnValue(of(void 0));
+      mockUserService.softDeleteUser.mockReturnValue(of(void 0));
       service.toggleUserStatus('123', false, onSuccessSpy);
       expect(mockNotificationService.show).toHaveBeenNthCalledWith(1, {
         title: 'Procesando acción',
@@ -200,7 +200,7 @@ describe('Service: UsersFacadeService', () => {
 
     it('debería ejecutar flujo de error e informar adecuadamente según el intento', () => {
       const onSuccessSpy = jest.fn();
-      mockUserService.softDeleteUserMock.mockReturnValue(throwError(() => new Error('DB Timeout')));
+      mockUserService.softDeleteUser.mockReturnValue(throwError(() => new Error('DB Timeout')));
       service.toggleUserStatus('123', true, onSuccessSpy);
       expect(mockNotificationService.show).toHaveBeenNthCalledWith(2, {
         title: 'Error al habilitar',

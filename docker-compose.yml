@@ -42,6 +42,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: oracle
       SPRING_SECURITY_USER_NAME: admin
       SPRING_SECURITY_USER_PASSWORD: admin
+      # La base de desarrollo conserva los datos entre reinicios (las pruebas usan create-drop).
+      # Para empezar de cero: docker compose down -v
+      SPRING_JPA_HIBERNATE_DDL_AUTO: ${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}
       # Entorno de desarrollo: reloj ajustable para probar flujos que dependen del tiempo (Thunder Client)
       SGTG_RELOJ_AJUSTABLE: ${SGTG_RELOJ_AJUSTABLE:-true}
       # Archivos de los trabajos de grado (PDF), en un volumen para que no se pierdan al recrear el contenedor

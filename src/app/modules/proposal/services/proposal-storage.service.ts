@@ -58,15 +58,6 @@ export class ProposalStorageService {
     return this.allProposals();
   }
 
-  /**
-   * Sin efecto: el estado de las propuestas lo define el backend. Se conserva
-   * para los flujos simulados de los módulos aún no integrados (archivado en
-   * cascada de trabajos de grado), que se reemplazarán en sus fases.
-   */
-  public updateProposals(_mutator: (list: Proposal[]) => Proposal[]): void {
-    // Intencionalmente vacío
-  }
-
   /** Propuesta por id (de memoria o del backend). */
   public getById(id: string): Observable<Proposal | undefined> {
     return this.vistas.propuesta(id);

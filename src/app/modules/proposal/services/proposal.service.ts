@@ -25,16 +25,16 @@ export class ProposalService {
   // ==========================================
   // DELEGACIÓN: QUERIES & MUTATIONS (API)
   // ==========================================
-  getProposalByIdMock(id: string): Observable<Proposal | undefined> {
-    return this.apiService.getProposalByIdMock(id);
+  getProposalById(id: string): Observable<Proposal | undefined> {
+    return this.apiService.getProposalById(id);
   }
 
-  createProposalMock(proposal: Proposal): Observable<Proposal> {
-    return this.apiService.createProposalMock(proposal);
+  createProposal(proposal: Proposal): Observable<Proposal> {
+    return this.apiService.createProposal(proposal);
   }
 
-  updateProposalMock(id: string, changes: Partial<Proposal>): Observable<Proposal> {
-    return this.apiService.updateProposalMock(id, changes);
+  updateProposal(id: string, changes: Partial<Proposal>): Observable<Proposal> {
+    return this.apiService.updateProposal(id, changes);
   }
 
   annulProposal(id: string, justification: string): Observable<Proposal> {

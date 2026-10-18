@@ -13,7 +13,7 @@ Columna **Endpoint**: se completa cuando se defina la correspondencia con el bac
 | Interceptor JWT (`Authorization: Bearer`) y manejo 401/403 | No existe; `provideHttpClient()` sin interceptores | `src/app/app.config.ts` + `core/interceptors/` (nuevo) |
 | Mapeo de errores `Error` del backend (`GC-xxxx`) a notificaciones | No existe | `core/interceptors/` o helper |
 | Subida de archivos | Se convierten a base64 (`core/utils/file-reader.utils.ts`) y se guardan en IndexedDB | **Definido en el backend:** los endpoints con documentos reciben `multipart/form-data` (PDF en la parte `archivo`, JSON en la parte `datos`; sustentación: `documentoFinal`, `pazYSalvo`, `conceptoAsesor`). Solo PDF, máx. 20 MB. Reemplazar `readFileAsDataUrl` por `FormData` |
-| Descarga de archivos | `FileDocument.url` es el base64 | `GET /api/v1/sgtg/trabajos-grado/{trabajoId}/archivos?ruta=<ruta>` con el token (blob). Solo participantes y COMITE/JEFE_DEP/CONSEJO/ADMINISTRADOR; los demás reciben 406 "No tiene acceso a la información…" |
+| Descarga de archivos | `FileDocument.url` es el base64 | `GET /api/v1/sgtg/trabajos-grado/{trabajoId}/archivos?ruta=<ruta>` con el token (blob). Solo participantes y COMITE/JEFE_DEP/CONSEJO/ADMINISTRADOR; los demás reciben 403 "No tiene acceso a la información…" |
 
 ## 1. Capa de acceso a datos (reemplazar por HttpClient)
 

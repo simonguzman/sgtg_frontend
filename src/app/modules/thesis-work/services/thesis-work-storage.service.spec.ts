@@ -72,12 +72,6 @@ describe('ThesisWorkStorageService', () => {
     expect(service.thesisWorks()).toEqual([]);
   });
 
-  it('updateWork no modifica nada: el estado lo define el backend', () => {
-    iniciarSesionConTrabajos(usuario('1', [UserRoleType.DOCENTE, UserRoleType.DIRECTOR]), [crearTrabajoEnCurso()]);
-    service.updateWork('15', work => ({ ...work, state: stateList.SUSPENDIDO }));
-    expect(service.allThesisWorks()[0].state).toBe(stateList.EN_DESARROLLO);
-  });
-
   it('getById consulta al backend el trabajo que no está en memoria', async () => {
     iniciarSesionConTrabajos(usuario('1', [UserRoleType.DOCENTE, UserRoleType.DIRECTOR]), []);
 

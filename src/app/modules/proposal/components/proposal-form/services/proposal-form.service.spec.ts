@@ -21,7 +21,6 @@ interface MockUserService {
   teachers: WritableSignal<User[]>;
   advisors: WritableSignal<User[]>;
   students: WritableSignal<User[]>;
-  addRoleToUser: jest.Mock;
 }
 
 interface MockAuthService {
@@ -97,8 +96,7 @@ describe('ProposalFormService', () => {
     mockUserService = {
       teachers: signal([mockDirector, mockTeacher1, mockTeacherInactive]),
       advisors: signal([mockAdvisor1]),
-      students: signal([mockStudent1, mockStudent2, mockStudentBusy]),
-      addRoleToUser: jest.fn().mockReturnValue(of(undefined))
+      students: signal([mockStudent1, mockStudent2, mockStudentBusy])
     };
     mockAuthService = {
       currentUser: signal(mockDirector)

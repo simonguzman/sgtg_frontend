@@ -14,7 +14,7 @@ export class UserFormFacadeService {
   private readonly router = inject(Router);
 
   public getUserById(id: string): Observable<User | undefined> {
-    return this.userService.getUserByIdMock(id);
+    return this.userService.getUserById(id);
   }
 
   public handleNotFound(message: string = 'Usuario no encontrado'): void {
@@ -25,7 +25,7 @@ export class UserFormFacadeService {
   public createUser(userData: User, onSuccess: () => void): void {
     this.showNotification('Procesando registro', 'Estamos procesando la información del usuario...', NotificationType.INFO);
 
-    this.userService.createUserMock(userData).subscribe({
+    this.userService.createUser(userData).subscribe({
       next: () => {
         this.showNotification('Usuario registrado', 'El usuario ha sido registrado correctamente.', NotificationType.CONFIRMATION);
         onSuccess();
@@ -42,7 +42,7 @@ export class UserFormFacadeService {
   public updateUser(id: string, userData: User, onSuccess: () => void, onError: () => void): void {
     this.showNotification('Procesando actualización', 'Estamos procesando la actualización de la información del usuario...', NotificationType.INFO);
 
-    this.userService.updateUserMock(id, userData).subscribe({
+    this.userService.updateUser(id, userData).subscribe({
       next: () => {
         this.showNotification('¡Actualización exitosa!', 'Los datos del usuario han sido modificados correctamente.', NotificationType.CONFIRMATION);
         onSuccess();

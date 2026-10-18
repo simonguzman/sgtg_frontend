@@ -3,7 +3,6 @@ import { catchError, map, Observable, of, switchMap, tap, throwError } from 'rxj
 
 import { ProposalStorageService } from './proposal-storage.service';
 import { UserService } from '../../users/services/user.service';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { TrabajoGradoApiService } from '../../../core/services/trabajo-grado/trabajo-grado-api.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { TrabajoGradoVistasService } from '../../../core/services/trabajo-grado/trabajo-grado-vistas.service';
@@ -14,8 +13,6 @@ import { TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado
 
 import { Proposal } from '../interfaces/proposal.interface';
 import { Modality } from '../enums/modality.enum';
-import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
 
 /**
  * Operaciones de la propuesta contra el backend. La propuesta es la vista de
@@ -27,14 +24,13 @@ import { AppEventType } from '../../../core/enums/app-event-type.enum';
 export class ProposalApiService {
   private readonly storage = inject(ProposalStorageService);
   private readonly userService = inject(UserService);
-  private readonly eventBus = inject(EventBusService);
   private readonly api = inject(TrabajoGradoApiService);
   private readonly anulacion = inject(TrabajoGradoAnulacionService);
   private readonly store = inject(TrabajoGradoStoreService);
   private readonly vistas = inject(TrabajoGradoVistasService);
   private readonly authApi = inject(AuthApiService);
 
-  getProposalByIdMock(id: string): Observable<Proposal | undefined> {
+  getProposalById(id: string): Observable<Proposal | undefined> {
     return this.storage.getById(id);
   }
 
@@ -43,7 +39,7 @@ export class ProposalApiService {
    * carta de aceptación) y radica el formato A. El backend asigna los roles
    * de director, codirector y asesor: se refrescan la sesión y los usuarios.
    */
-  createProposalMock(proposal: Proposal): Observable<Proposal> {
+  createProposal(proposal: Proposal): Observable<Proposal> {
     const formatoA = proposal.attachments?.proposal;
     if (!formatoA) return throwError(() => new Error('Debe adjuntar el formato de la propuesta.'));
 
@@ -67,7 +63,6 @@ export class ProposalApiService {
       tap(trabajo => {
         this.store.upsert(trabajo);
         this.refrescarRoles();
-        this.notificarCreacion(trabajo);
       }),
       map(trabajo => this.vista(trabajo))
     );
@@ -78,7 +73,7 @@ export class ProposalApiService {
    * adjuntó un nuevo formato A, lo radica como nueva versión. El backend solo
    * lo permite antes de radicar o después de un NO APROBADO del Comité.
    */
-  updateProposalMock(id: string, changes: Partial<Proposal>): Observable<Proposal> {
+  updateProposal(id: string, changes: Partial<Proposal>): Observable<Proposal> {
     const actual = this.storage.getProposalsListSnapshot().find(p => p.id === id);
     const propuesta = { ...actual, ...changes } as Proposal;
     const formatoA = changes.attachments?.proposal;
@@ -133,21 +128,5 @@ export class ProposalApiService {
   private refrescarRoles(): void {
     this.authApi.refreshCurrentUser().pipe(catchError(() => of(undefined))).subscribe();
     this.userService.loadUsers();
-  }
-
-  private notificarCreacion(trabajo: TrabajoGradoResponse): void {
-    const propuesta = this.vista(trabajo);
-    const notifyUserIds = new Set<string>();
-    propuesta.authors?.forEach(author => { if (author?.id) notifyUserIds.add(author.id); });
-    [propuesta.director, propuesta.codirector, propuesta.advisor].forEach(user => { if (user?.id) notifyUserIds.add(user.id); });
-    this.userService.users()
-      .filter(user => user.roles.includes(UserRoleType.COMITE))
-      .forEach(user => notifyUserIds.add(user.id));
-
-    this.eventBus.emit({
-      type: AppEventType.PROPOSAL_CREATED,
-      targetUserIds: Array.from(notifyUserIds),
-      payload: { proposalId: propuesta.id, proposalTitle: propuesta.title || '' }
-    });
   }
 }

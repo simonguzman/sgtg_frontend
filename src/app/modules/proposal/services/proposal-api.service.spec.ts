@@ -6,7 +6,6 @@ import { of } from 'rxjs';
 import { ProposalApiService } from './proposal-api.service';
 import { ProposalStorageService } from './proposal-storage.service';
 import { UserService } from '../../users/services/user.service';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { AuthApiService } from '../../../core/services/auth/auth-api.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { Proposal } from '../interfaces/proposal.interface';
@@ -14,7 +13,6 @@ import { Modality } from '../enums/modality.enum';
 import { User } from '../../users/interfaces/user.interface';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { crearTrabajoDePrueba } from '../../../testing/trabajo-grado-de-prueba';
 
@@ -55,14 +53,12 @@ describe('ProposalApiService', () => {
   let service: ProposalApiService;
   let http: HttpTestingController;
   let store: TrabajoGradoStoreService;
-  let eventBus: { emit: jest.Mock };
   let userService: { users: ReturnType<typeof signal<User[]>>; loadUsers: jest.Mock };
   let authApi: { refreshCurrentUser: jest.Mock };
   let storage: { getById: jest.Mock; getProposalsListSnapshot: jest.Mock };
 
   beforeEach(() => {
     localStorage.clear();
-    eventBus = { emit: jest.fn() };
     userService = { users: signal([usuario('30', [UserRoleType.COMITE])]), loadUsers: jest.fn() };
     authApi = { refreshCurrentUser: jest.fn().mockReturnValue(of(undefined)) };
     storage = { getById: jest.fn(), getProposalsListSnapshot: jest.fn().mockReturnValue([]) };
@@ -70,7 +66,6 @@ describe('ProposalApiService', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: EventBusService, useValue: eventBus },
         { provide: UserService, useValue: userService },
         { provide: AuthApiService, useValue: authApi },
         { provide: ProposalStorageService, useValue: storage }
@@ -83,19 +78,19 @@ describe('ProposalApiService', () => {
 
   afterEach(() => http.verify());
 
-  it('getProposalByIdMock delega en el almacenamiento', done => {
+  it('getProposalById delega en el almacenamiento', done => {
     const propuesta = { id: '15' } as Proposal;
     storage.getById.mockReturnValue(of(propuesta));
-    service.getProposalByIdMock('15').subscribe(resultado => {
+    service.getProposalById('15').subscribe(resultado => {
       expect(resultado).toBe(propuesta);
       done();
     });
   });
 
-  describe('createProposalMock', () => {
+  describe('createProposal', () => {
     it('crea el trabajo de investigación, radica el formato A, refresca roles y notifica', () => {
       let resultado: Proposal | undefined;
-      service.createProposalMock(propuestaNueva()).subscribe(propuesta => resultado = propuesta);
+      service.createProposal(propuestaNueva()).subscribe(propuesta => resultado = propuesta);
 
       const creacion = http.expectOne(`${API}/investigacion`);
       expect(creacion.request.method).toBe('POST');
@@ -118,14 +113,11 @@ describe('ProposalApiService', () => {
       expect(store.porId().get('15')?.propuesta.versiones).toHaveLength(1);
       expect(authApi.refreshCurrentUser).toHaveBeenCalled();
       expect(userService.loadUsers).toHaveBeenCalled();
-      const evento = eventBus.emit.mock.calls[0][0];
-      expect(evento.type).toBe(AppEventType.PROPOSAL_CREATED);
-      expect(evento.targetUserIds).toEqual(expect.arrayContaining(['10', '1', '30']));
     });
 
     it('crea la práctica profesional con la carta de aceptación y el asesor', async () => {
       const carta = pdf('carta.pdf');
-      service.createProposalMock(propuestaNueva({
+      service.createProposal(propuestaNueva({
         modality: Modality.PP,
         authors: [usuario('10')],
         codirector: undefined,
@@ -153,26 +145,25 @@ describe('ProposalApiService', () => {
 
     it('sin formato A no llama al backend', () => {
       let error: Error | undefined;
-      service.createProposalMock(propuestaNueva({ attachments: {} })).subscribe({ error: e => error = e });
+      service.createProposal(propuestaNueva({ attachments: {} })).subscribe({ error: e => error = e });
       expect(error?.message).toBe('Debe adjuntar el formato de la propuesta.');
     });
 
     it('si falla la creación no radica ni notifica', () => {
       let error: unknown;
-      service.createProposalMock(propuestaNueva()).subscribe({ error: e => error = e });
+      service.createProposal(propuestaNueva()).subscribe({ error: e => error = e });
       http.expectOne(`${API}/investigacion`).flush({ mensaje: 'Datos inválidos' }, { status: 400, statusText: 'Bad Request' });
 
       expect(error).toBeTruthy();
-      expect(eventBus.emit).not.toHaveBeenCalled();
     });
   });
 
-  describe('updateProposalMock', () => {
+  describe('updateProposal', () => {
     it('corrige los datos de la propuesta sin radicar si no hay nuevo archivo', () => {
       const actual = propuestaNueva({ id: '15', attachments: undefined });
       storage.getProposalsListSnapshot.mockReturnValue([actual]);
       let resultado: Proposal | undefined;
-      service.updateProposalMock('15', { title: 'Nuevo título' }).subscribe(propuesta => resultado = propuesta);
+      service.updateProposal('15', { title: 'Nuevo título' }).subscribe(propuesta => resultado = propuesta);
 
       const req = http.expectOne(`${API}/15/propuesta`);
       expect(req.request.method).toBe('PUT');
@@ -189,7 +180,7 @@ describe('ProposalApiService', () => {
 
     it('con un nuevo formato A lo radica como nueva versión', () => {
       storage.getProposalsListSnapshot.mockReturnValue([propuestaNueva({ id: '15', attachments: undefined })]);
-      service.updateProposalMock('15', { attachments: { proposal: pdf('v2.pdf') } }).subscribe();
+      service.updateProposal('15', { attachments: { proposal: pdf('v2.pdf') } }).subscribe();
 
       http.expectOne(req => req.method === 'PUT' && req.url === `${API}/15/propuesta`).flush(crearTrabajoDePrueba());
       const radicacion = http.expectOne(req => req.method === 'POST' && req.url === `${API}/15/propuesta`);

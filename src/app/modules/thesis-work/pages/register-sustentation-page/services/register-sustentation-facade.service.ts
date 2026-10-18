@@ -28,7 +28,7 @@ export class RegisterSustentationFacadeService {
     onSuccess: (thesisWork: ThesisWork) => void,
     onError: () => void
   ): void {
-    this.thesisWorkService.getThesisWorkByIdMock(id)
+    this.thesisWorkService.getThesisWorkById(id)
       .pipe(first())
       .subscribe({
         next: (data) => {

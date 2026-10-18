@@ -3,11 +3,9 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PreliminaryDraftService } from '../services/preliminary-draft.service';
 import { UserStorageService } from '../../users/services/user-storage.service';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { User } from '../../users/interfaces/user.interface';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
@@ -24,7 +22,6 @@ const usuario = (id: string, roles: UserRoleType[]): User => ({
 describe('Integración [Anteproyectos]: Registro contra el backend y notificación a los Jefes de Departamento', () => {
   let service: PreliminaryDraftService;
   let http: HttpTestingController;
-  let eventBus: EventBusService;
 
   beforeEach(() => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -32,7 +29,6 @@ describe('Integración [Anteproyectos]: Registro contra el backend y notificaci�
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     service = TestBed.inject(PreliminaryDraftService);
     http = TestBed.inject(HttpTestingController);
-    eventBus = TestBed.inject(EventBusService);
   });
 
   afterEach(() => jest.restoreAllMocks());
@@ -45,7 +41,6 @@ describe('Integración [Anteproyectos]: Registro contra el backend y notificaci�
     ]);
     // Con la propuesta aprobada pero sin versión radicada aún no hay anteproyecto
     expect(service.preliminaryDrafts()).toEqual([]);
-    const emitir = jest.spyOn(eventBus, 'emit');
 
     let creado: PreliminaryDraft | undefined;
     service.createPreliminaryDraft({ proposalId: '15', attachment: new File(['%PDF'], 'anteproyecto.pdf') } as PreliminaryDraft)
@@ -54,9 +49,5 @@ describe('Integración [Anteproyectos]: Registro contra el backend y notificaci�
 
     expect(creado?.state).toBe(stateList.EN_REVISION);
     expect(service.preliminaryDrafts().map(d => d.preliminaryDraftId)).toEqual(['15']);
-    expect(emitir).toHaveBeenCalledWith(expect.objectContaining({
-      type: AppEventType.PRELIMINARY_DRAFT_CREATED,
-      targetUserIds: expect.arrayContaining(['1', '10', '60', '61'])
-    }));
   });
 });

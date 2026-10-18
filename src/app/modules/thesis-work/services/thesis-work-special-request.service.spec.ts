@@ -3,10 +3,8 @@ import { signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ThesisWorkSpecialRequestService } from './thesis-work-special-request.service';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { UserService } from '../../users/services/user.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { SpecialRequestType } from '../enums/special-request-type.enum';
@@ -33,16 +31,13 @@ const solicitud = (requestType: SpecialRequestType): SpecialRequest => ({
 describe('ThesisWorkSpecialRequestService', () => {
   let service: ThesisWorkSpecialRequestService;
   let http: HttpTestingController;
-  let eventBus: { emit: jest.Mock };
 
   beforeEach(() => {
     localStorage.clear();
-    eventBus = { emit: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: EventBusService, useValue: eventBus },
         { provide: UserService, useValue: { users: signal([{ id: '50', roles: [UserRoleType.CONSEJO] }]) } }
       ]
     });
@@ -67,11 +62,6 @@ describe('ThesisWorkSpecialRequestService', () => {
 
       expect(resultado?.specialRequests[0].requestType).toBe(SpecialRequestType.CAMBIO_TITULO);
       expect(TestBed.inject(TrabajoGradoStoreService).porId().get('15')).toBeTruthy();
-      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
-        type: AppEventType.SPECIAL_REQUEST_CREATED,
-        targetUserIds: ['10', '1', '50'],
-        payload: expect.objectContaining({ type: SpecialRequestType.CAMBIO_TITULO })
-      }));
     });
 
     it('la prórroga envía los meses y el documento', async () => {
@@ -105,9 +95,6 @@ describe('ThesisWorkSpecialRequestService', () => {
         .subscribe();
       http.expectOne(`${API}/15/suspension/reanudacion`).flush(crearTrabajoEnCurso());
 
-      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
-        type: AppEventType.THESIS_REACTIVATED, targetUserIds: ['10', '1']
-      }));
     });
   });
 
@@ -128,10 +115,6 @@ describe('ThesisWorkSpecialRequestService', () => {
       expect((body.get('archivo') as File).name).toBe('resolucion.pdf');
       req.flush(crearTrabajoEnCurso());
 
-      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
-        type: AppEventType.SPECIAL_REQUEST_RESOLVED,
-        payload: expect.objectContaining({ status: stateList.NO_APROBADO })
-      }));
     });
 
     it('envía APROBADO con las observaciones', async () => {

@@ -18,7 +18,6 @@ export class UserService {
   private readonly formatter = inject(UserFormatterService);
   private readonly authStorage = inject(AuthStorageService);
 
-
   // ==========================================
   // ESTADO REACTIVO
   // ==========================================
@@ -85,8 +84,7 @@ export class UserService {
     return this.storage.getUsersSnapshot();
   }
 
-  /** Alias con sufijo Mock para compatibilidad con callers existentes. */
-  public getUserByIdMock(id: string): Observable<User | undefined> {
+  public getUserById(id: string): Observable<User | undefined> {
     return this.api.getUserById(id);
   }
 
@@ -95,35 +93,23 @@ export class UserService {
   }
 
   // ==========================================
-  // MUTATIONS — nombres originales conservados
+  // MUTATIONS
   // ==========================================
 
-  public createUserMock(user: User): Observable<User> {
+  public createUser(user: User): Observable<User> {
     return this.api.createUser(user);
   }
 
-  public updateUserMock(id: string, changes: Partial<User>): Observable<User> {
+  public updateUser(id: string, changes: Partial<User>): Observable<User> {
     return this.api.updateUser(id, changes);
   }
 
-  public softDeleteUserMock(id: string): Observable<void> {
+  public softDeleteUser(id: string): Observable<void> {
     return this.api.softDeleteUser(id);
   }
 
-  public updateUserRolesMock(userId: string, newRoles: UserRoleType[]): Observable<void> {
+  public updateUserRoles(userId: string, newRoles: UserRoleType[]): Observable<void> {
     return this.api.updateUserRoles(userId, newRoles);
-  }
-
-  public addRoleToUser(userId: string, role: UserRoleType): Observable<void> {
-    return this.api.addRoleToUser(userId, role);
-  }
-
-  public removeRoleFromUser(userId: string, role: UserRoleType): Observable<void> {
-    return this.api.removeRoleFromUser(userId, role);
-  }
-
-  public removeRolesFromUsersMock(userIds: string[], rolesToRemove: UserRoleType[]): Observable<void> {
-    return this.api.removeRolesFromUsers(userIds, rolesToRemove);
   }
 
   // ==========================================

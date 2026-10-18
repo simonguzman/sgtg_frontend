@@ -10,7 +10,7 @@ import { NotificationType } from '../../../../../shared/components/notifications
 
 describe('ProposalEditFacadeService', () => {
   let service: ProposalEditFacadeService;
-  let mockProposalService: { getProposalByIdMock: jest.Mock; validateProposalRules: jest.Mock; updateProposalMock: jest.Mock };
+  let mockProposalService: { getProposalById: jest.Mock; validateProposalRules: jest.Mock; updateProposal: jest.Mock };
   let mockAuthService: { currentUser: jest.Mock; hasAnyRole: jest.Mock };
   let mockNotificationService: { show: jest.Mock };
   const mockUser = { id: 'user-123' };
@@ -20,9 +20,9 @@ describe('ProposalEditFacadeService', () => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
     mockProposalService = {
-      getProposalByIdMock: jest.fn(),
+      getProposalById: jest.fn(),
       validateProposalRules: jest.fn(),
-      updateProposalMock: jest.fn(),
+      updateProposal: jest.fn(),
     };
     mockAuthService = {
       currentUser: jest.fn().mockReturnValue(mockUser),
@@ -46,7 +46,7 @@ describe('ProposalEditFacadeService', () => {
   });
   describe('loadAndAuthorize', () => {
     it('debe emitir onAuthorized si el usuario es el director (Owner)', () => {
-      mockProposalService.getProposalByIdMock.mockReturnValue(of(mockProposal));
+      mockProposalService.getProposalById.mockReturnValue(of(mockProposal));
       mockAuthService.hasAnyRole.mockReturnValue(false);
       const onAuthorized = jest.fn();
       service.loadAndAuthorize('prop-1', onAuthorized, jest.fn(), jest.fn());
@@ -55,14 +55,14 @@ describe('ProposalEditFacadeService', () => {
     });
     it('debe emitir onAuthorized tras un NO APROBADO del Comité', () => {
       const noAprobada = { ...mockProposal, state: stateList.NO_APROBADO, documents: [{ id: 'd1' }] } as unknown as Proposal;
-      mockProposalService.getProposalByIdMock.mockReturnValue(of(noAprobada));
+      mockProposalService.getProposalById.mockReturnValue(of(noAprobada));
       const onAuthorized = jest.fn();
       service.loadAndAuthorize('prop-1', onAuthorized, jest.fn(), jest.fn());
       expect(onAuthorized).toHaveBeenCalledWith(noAprobada);
     });
     it('debe emitir onForbidden si la propuesta ya está radicada y en revisión', () => {
       const radicada = { ...mockProposal, state: stateList.EN_REVISION, documents: [{ id: 'd1' }] } as unknown as Proposal;
-      mockProposalService.getProposalByIdMock.mockReturnValue(of(radicada));
+      mockProposalService.getProposalById.mockReturnValue(of(radicada));
       const onForbidden = jest.fn();
       service.loadAndAuthorize('prop-1', jest.fn(), onForbidden, jest.fn());
       expect(onForbidden).toHaveBeenCalled();
@@ -72,7 +72,7 @@ describe('ProposalEditFacadeService', () => {
     });
     it('debe emitir onForbidden aunque sea Administrador si no es el director', () => {
       const otherProposal = { id: 'prop-1', director: { id: 'other-user' } } as unknown as Proposal;
-      mockProposalService.getProposalByIdMock.mockReturnValue(of(otherProposal));
+      mockProposalService.getProposalById.mockReturnValue(of(otherProposal));
       mockAuthService.hasAnyRole.mockReturnValue(true);
       const onForbidden = jest.fn();
       service.loadAndAuthorize('prop-1', jest.fn(), onForbidden, jest.fn());
@@ -80,7 +80,7 @@ describe('ProposalEditFacadeService', () => {
     });
     it('debe emitir onForbidden y mostrar error si no es el director', () => {
       const otherProposal = { id: 'prop-1', director: { id: 'other-user' } } as unknown as Proposal;
-      mockProposalService.getProposalByIdMock.mockReturnValue(of(otherProposal));
+      mockProposalService.getProposalById.mockReturnValue(of(otherProposal));
       mockAuthService.hasAnyRole.mockReturnValue(false);
       const onForbidden = jest.fn();
       service.loadAndAuthorize('prop-1', jest.fn(), onForbidden, jest.fn());
@@ -90,7 +90,7 @@ describe('ProposalEditFacadeService', () => {
       );
     });
     it('debe emitir onNotFound si la propuesta no existe', () => {
-      mockProposalService.getProposalByIdMock.mockReturnValue(of(null));
+      mockProposalService.getProposalById.mockReturnValue(of(null));
       const onNotFound = jest.fn();
       service.loadAndAuthorize('prop-1', jest.fn(), jest.fn(), onNotFound);
       expect(onNotFound).toHaveBeenCalled();
@@ -101,7 +101,7 @@ describe('ProposalEditFacadeService', () => {
   });
   describe('saveUpdate', () => {
     it('debe ejecutar onSuccess en actualización exitosa', () => {
-      mockProposalService.updateProposalMock.mockReturnValue(of({}));
+      mockProposalService.updateProposal.mockReturnValue(of({}));
       const onSuccess = jest.fn();
       service.saveUpdate('1', mockProposal, onSuccess, jest.fn());
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: NotificationType.INFO }));
@@ -109,7 +109,7 @@ describe('ProposalEditFacadeService', () => {
       expect(onSuccess).toHaveBeenCalled();
     });
     it('debe ejecutar onError si la actualización falla', () => {
-      mockProposalService.updateProposalMock.mockReturnValue(throwError(() => new Error('Simulated Error')));
+      mockProposalService.updateProposal.mockReturnValue(throwError(() => new Error('Simulated Error')));
       const onError = jest.fn();
       service.saveUpdate('1', mockProposal, jest.fn(), onError);
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: NotificationType.ERROR }));

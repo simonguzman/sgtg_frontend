@@ -80,6 +80,27 @@ describe('InboxStateService (buzón del backend)', () => {
     http.expectOne(req => req.url.endsWith('/trabajos-grado/mis-trabajos')).flush([]);
   });
 
+  it('con notificaciones nuevas se refresca el usuario: recibe los roles que le dio el backend', () => {
+    responderBuzon([]);
+    jest.advanceTimersByTime(INTERVALO_BUZON_MS);
+    http.expectOne(API).flush([notificacion(2, { titulo: 'Evaluadores asignados', etapa: 'EVALUACION' })]);
+    http.expectOne(req => req.url.endsWith('/trabajos-grado/mis-trabajos')).flush([]);
+
+    http.expectOne(req => req.url.endsWith('/usuarios/me')).flush({
+      id: 10, codigo: '10', tipoDocumento: 'CC', numeroDocumento: '10', email: 'eva@unicauca.edu.co',
+      primerNombre: 'Eva', segundoNombre: null, primerApellido: 'Estudiante', segundoApellido: null,
+      roles: ['DOCENTE', 'EVALUADOR'], activo: true, tipoVinculacion: null, departamento: null, programa: null
+    });
+    expect(TestBed.inject(AuthStorageService).userRoles()).toContain(UserRoleType.EVALUADOR);
+  });
+
+  it('sin notificaciones nuevas no se refresca el usuario', () => {
+    responderBuzon([notificacion(1)]);
+    jest.advanceTimersByTime(INTERVALO_BUZON_MS);
+    http.expectOne(API).flush([notificacion(1)]);
+    http.expectNone(req => req.url.endsWith('/usuarios/me'));
+  });
+
   it('varias nuevas se resumen en un solo aviso', () => {
     responderBuzon([]);
     jest.advanceTimersByTime(INTERVALO_BUZON_MS);

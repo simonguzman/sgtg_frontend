@@ -4,10 +4,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PreliminaryDraftAssignmentService } from './preliminary-draft-assignment.service';
 import { UserService } from '../../users/services/user.service';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { User } from '../../users/interfaces/user.interface';
 import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
@@ -42,18 +40,15 @@ describe('PreliminaryDraftAssignmentService', () => {
   let service: PreliminaryDraftAssignmentService;
   let http: HttpTestingController;
   let userSpy: { users: WritableSignal<User[]>; loadUsers: jest.Mock };
-  let eventBusSpy: { emit: jest.Mock };
 
   beforeEach(() => {
     localStorage.clear();
     userSpy = { users: signal([createMockUser({ id: '20' }), createMockUser({ id: '21' })]), loadUsers: jest.fn() };
-    eventBusSpy = { emit: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: UserService, useValue: userSpy },
-        { provide: EventBusService, useValue: eventBusSpy }
+        { provide: UserService, useValue: userSpy }
       ]
     });
     service = TestBed.inject(PreliminaryDraftAssignmentService);
@@ -116,9 +111,6 @@ describe('PreliminaryDraftAssignmentService', () => {
       expect(TestBed.inject(TrabajoGradoStoreService).porId().get('15')?.etapa).toBe('EVALUACION');
       // Los evaluadores ganaron el rol EVALUADOR en el backend
       expect(userSpy.loadUsers).toHaveBeenCalled();
-      const evento = eventBusSpy.emit.mock.calls[0][0];
-      expect(evento.type).toBe(AppEventType.REVIEWERS_ASSIGNED);
-      expect(evento.targetUserIds).toEqual(expect.arrayContaining(['20', '21', '10', '1']));
     });
 
     it('si el backend rechaza la asignación no notifica', () => {
@@ -128,7 +120,6 @@ describe('PreliminaryDraftAssignmentService', () => {
         .flush({ message: 'Otro departamento' }, { status: 406, statusText: 'Not Acceptable' });
 
       expect(error).toBeTruthy();
-      expect(eventBusSpy.emit).not.toHaveBeenCalled();
     });
   });
 });

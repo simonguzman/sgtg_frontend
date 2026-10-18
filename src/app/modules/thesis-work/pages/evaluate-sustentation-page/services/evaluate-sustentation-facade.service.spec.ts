@@ -19,7 +19,7 @@ describe('EvaluateSustentationFacadeService', () => {
 
   beforeEach(() => {
     thesisWorkService = {
-      getThesisWorkByIdMock: jest.fn(),
+      getThesisWorkById: jest.fn(),
       gradeSustentation: jest.fn().mockReturnValue(of(thesisWorkDePrueba())),
       registerNonAttendance: jest.fn().mockReturnValue(of(thesisWorkDePrueba()))
     };
@@ -37,9 +37,9 @@ describe('EvaluateSustentationFacadeService', () => {
   it('carga el trabajo o informa el error', () => {
     const onSuccess = jest.fn();
     const onError = jest.fn();
-    thesisWorkService['getThesisWorkByIdMock'].mockReturnValue(of(thesisWorkDePrueba()));
+    thesisWorkService['getThesisWorkById'].mockReturnValue(of(thesisWorkDePrueba()));
     facade.loadThesisWork('15', onSuccess, onError);
-    thesisWorkService['getThesisWorkByIdMock'].mockReturnValue(of(undefined));
+    thesisWorkService['getThesisWorkById'].mockReturnValue(of(undefined));
     facade.loadThesisWork('99', onSuccess, onError);
     expect(onSuccess).toHaveBeenCalled();
     expect(onError).toHaveBeenCalled();

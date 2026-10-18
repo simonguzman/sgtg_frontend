@@ -11,11 +11,11 @@ const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/
 
 describe('RegisterCorrectedDocumentsFacadeService', () => {
   let facade: RegisterCorrectedDocumentsFacadeService;
-  let thesisWorkService: { getThesisWorkByIdMock: jest.Mock; submitAdjustments: jest.Mock };
+  let thesisWorkService: { getThesisWorkById: jest.Mock; submitAdjustments: jest.Mock };
   let notification: { show: jest.Mock };
 
   beforeEach(() => {
-    thesisWorkService = { getThesisWorkByIdMock: jest.fn(), submitAdjustments: jest.fn() };
+    thesisWorkService = { getThesisWorkById: jest.fn(), submitAdjustments: jest.fn() };
     notification = { show: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
@@ -29,9 +29,9 @@ describe('RegisterCorrectedDocumentsFacadeService', () => {
   it('carga el trabajo o informa el error', () => {
     const onSuccess = jest.fn();
     const onError = jest.fn();
-    thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(thesisWorkDePrueba()));
+    thesisWorkService.getThesisWorkById.mockReturnValue(of(thesisWorkDePrueba()));
     facade.loadThesisWork('15', onSuccess, onError);
-    thesisWorkService.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('x')));
+    thesisWorkService.getThesisWorkById.mockReturnValue(throwError(() => new Error('x')));
     facade.loadThesisWork('15', onSuccess, onError);
     expect(onSuccess).toHaveBeenCalled();
     expect(onError).toHaveBeenCalled();

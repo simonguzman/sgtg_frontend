@@ -15,14 +15,14 @@ const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/
 describe('ReviewPazYSalvoPageComponent (Decanatura)', () => {
   let fixture: ComponentFixture<ReviewPazYSalvoPageComponent>;
   let page: ReviewPazYSalvoPageComponent;
-  let thesisWorkService: { getThesisWorkByIdMock: jest.Mock; reviewPazYSalvo: jest.Mock };
+  let thesisWorkService: { getThesisWorkById: jest.Mock; reviewPazYSalvo: jest.Mock };
   let notification: { show: jest.Mock };
   let router: { navigate: jest.Mock };
   const trabajo = thesisWorkDePrueba(crearTrabajoEnSustentacion({ estado: 'SOLICITADA', sesiones: [],
     rutaPazYSalvo: null, revisionesPazYSalvo: [] }));
 
   beforeEach(async () => {
-    thesisWorkService = { getThesisWorkByIdMock: jest.fn(() => of(trabajo)), reviewPazYSalvo: jest.fn(() => of(trabajo)) };
+    thesisWorkService = { getThesisWorkById: jest.fn(() => of(trabajo)), reviewPazYSalvo: jest.fn(() => of(trabajo)) };
     notification = { show: jest.fn() };
     router = { navigate: jest.fn() };
     await TestBed.configureTestingModule({
@@ -41,7 +41,7 @@ describe('ReviewPazYSalvoPageComponent (Decanatura)', () => {
   });
 
   it('carga el trabajo de la ruta', () => {
-    expect(thesisWorkService.getThesisWorkByIdMock).toHaveBeenCalledWith('15');
+    expect(thesisWorkService.getThesisWorkById).toHaveBeenCalledWith('15');
     expect(page.title()).toBe('Sistema de gestión');
   });
 

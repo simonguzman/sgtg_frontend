@@ -29,9 +29,9 @@ const createMockUser = (overrides: Partial<User> = {}): User => ({
 describe('Service: UserFormFacadeService', () => {
   let service: UserFormFacadeService;
   let mockUserService: {
-    getUserByIdMock: jest.Mock<Observable<User | undefined>, [string]>;
-    createUserMock: jest.Mock<Observable<User>, [User]>;
-    updateUserMock: jest.Mock<Observable<User>, [string, Partial<User>]>;
+    getUserById: jest.Mock<Observable<User | undefined>, [string]>;
+    createUser: jest.Mock<Observable<User>, [User]>;
+    updateUser: jest.Mock<Observable<User>, [string, Partial<User>]>;
   };
 
   let mockNotificationService: {
@@ -47,9 +47,9 @@ describe('Service: UserFormFacadeService', () => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     mockUserService = {
-      getUserByIdMock: jest.fn(),
-      createUserMock: jest.fn(),
-      updateUserMock: jest.fn(),
+      getUserById: jest.fn(),
+      createUser: jest.fn(),
+      updateUser: jest.fn(),
     };
 
     mockNotificationService = {
@@ -82,13 +82,13 @@ describe('Service: UserFormFacadeService', () => {
   });
 
   describe('Consultas (getUserById)', () => {
-    it('debería llamar a getUserByIdMock del UserService', () => {
+    it('debería llamar a getUserById del UserService', () => {
       const mockUser = createMockUser({ id: '123', firstName: 'Test' });
-      mockUserService.getUserByIdMock.mockReturnValue(of(mockUser));
+      mockUserService.getUserById.mockReturnValue(of(mockUser));
       service.getUserById('123').subscribe(user => {
         expect(user).toEqual(mockUser);
       });
-      expect(mockUserService.getUserByIdMock).toHaveBeenCalledWith('123');
+      expect(mockUserService.getUserById).toHaveBeenCalledWith('123');
     });
 
     it('debería manejar el escenario de usuario no encontrado (handleNotFound)', () => {
@@ -106,7 +106,7 @@ describe('Service: UserFormFacadeService', () => {
     it('Flujo Exitoso: debería notificar, llamar al servicio, ejecutar onSuccess y navegar', () => {
       const mockUser = createMockUser({ firstName: 'Juan' });
       const onSuccessSpy = jest.fn();
-      mockUserService.createUserMock.mockReturnValue(of(mockUser));
+      mockUserService.createUser.mockReturnValue(of(mockUser));
       service.createUser(mockUser, onSuccessSpy);
       expect(mockNotificationService.show).toHaveBeenNthCalledWith(1, {
         title: 'Procesando registro',
@@ -122,10 +122,10 @@ describe('Service: UserFormFacadeService', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/users']);
     });
 
-    it('Flujo Fallido: debería notificar error si createUserMock falla y no navegar', () => {
+    it('Flujo Fallido: debería notificar error si createUser falla y no navegar', () => {
       const mockUser = createMockUser({ firstName: 'Juan' });
       const onSuccessSpy = jest.fn();
-      mockUserService.createUserMock.mockReturnValue(throwError(() => new Error('Error de red')));
+      mockUserService.createUser.mockReturnValue(throwError(() => new Error('Error de red')));
       service.createUser(mockUser, onSuccessSpy);
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
         title: 'No se registró el usuario',
@@ -142,7 +142,7 @@ describe('Service: UserFormFacadeService', () => {
       const mockUser = createMockUser({ firstName: 'Ana' });
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
-      mockUserService.updateUserMock.mockReturnValue(of(mockUser));
+      mockUserService.updateUser.mockReturnValue(of(mockUser));
       service.updateUser('123', mockUser, onSuccessSpy, onErrorSpy);
       expect(mockNotificationService.show).toHaveBeenNthCalledWith(2, {
         title: '¡Actualización exitosa!',
@@ -158,7 +158,7 @@ describe('Service: UserFormFacadeService', () => {
       const mockUser = createMockUser({ firstName: 'Ana' });
       const onSuccessSpy = jest.fn();
       const onErrorSpy = jest.fn();
-      mockUserService.updateUserMock.mockReturnValue(throwError(() => new Error('Error de red')));
+      mockUserService.updateUser.mockReturnValue(throwError(() => new Error('Error de red')));
       service.updateUser('123', mockUser, onSuccessSpy, onErrorSpy);
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
         title: 'Error de actualización',

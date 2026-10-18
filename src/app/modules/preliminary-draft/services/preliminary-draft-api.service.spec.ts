@@ -4,12 +4,10 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PreliminaryDraftApiService } from './preliminary-draft-api.service';
 import { UserService } from '../../users/services/user.service';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { User } from '../../users/interfaces/user.interface';
 import { UserState } from '../../users/enum/user-state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { crearTrabajoConAnteproyectoRadicado, crearTrabajoEnAnteproyecto } from '../../../testing/trabajo-grado-de-prueba';
 
@@ -25,17 +23,14 @@ const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/
 describe('PreliminaryDraftApiService', () => {
   let service: PreliminaryDraftApiService;
   let http: HttpTestingController;
-  let eventBus: { emit: jest.Mock };
 
   beforeEach(() => {
     localStorage.clear();
-    eventBus = { emit: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: UserService, useValue: { users: signal([jefe]) } },
-        { provide: EventBusService, useValue: eventBus }
+        { provide: UserService, useValue: { users: signal([jefe]) } }
       ]
     });
     service = TestBed.inject(PreliminaryDraftApiService);
@@ -56,9 +51,6 @@ describe('PreliminaryDraftApiService', () => {
 
     expect(creado?.preliminaryDraftId).toBe('15');
     expect(creado?.documents[0].status).toBe(stateList.EN_REVISION);
-    const evento = eventBus.emit.mock.calls[0][0];
-    expect(evento.type).toBe(AppEventType.PRELIMINARY_DRAFT_CREATED);
-    expect(evento.targetUserIds).toEqual(expect.arrayContaining(['1', '10', '60']));
   });
 
   it('sin documento no llama al backend', () => {
@@ -73,7 +65,6 @@ describe('PreliminaryDraftApiService', () => {
     const req = http.expectOne(`${API}/15/anteproyecto`);
     expect(((req.request.body as FormData).get('archivo') as File).name).toBe('anteproyecto-v2.pdf');
     req.flush(crearTrabajoConAnteproyectoRadicado());
-    expect(eventBus.emit.mock.calls[0][0].type).toBe(AppEventType.PRELIMINARY_DRAFT_CORRECTION_UPLOADED);
   });
 
   it('corregir sin un archivo nuevo no llama al backend', () => {

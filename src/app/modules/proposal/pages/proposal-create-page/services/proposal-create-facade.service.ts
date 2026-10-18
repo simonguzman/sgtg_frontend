@@ -33,7 +33,7 @@ export class ProposalCreateFacadeService {
       NotificationType.INFO
     );
 
-    this.proposalService.createProposalMock(proposal)
+    this.proposalService.createProposal(proposal)
       .pipe(first())
       .subscribe({
         next: () => {

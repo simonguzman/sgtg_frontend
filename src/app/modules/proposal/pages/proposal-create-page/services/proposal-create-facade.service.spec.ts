@@ -9,7 +9,7 @@ import { Proposal } from '../../../interfaces/proposal.interface';
 
 interface MockProposalService {
   validateProposalRules: jest.Mock;
-  createProposalMock: jest.Mock;
+  createProposal: jest.Mock;
 }
 
 interface MockNotificationService {
@@ -33,7 +33,7 @@ describe('ProposalCreateFacadeService', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     mockProposalService = {
       validateProposalRules: jest.fn(),
-      createProposalMock: jest.fn(),
+      createProposal: jest.fn(),
     };
     mockNotificationService = {
       show: jest.fn(),
@@ -87,7 +87,7 @@ describe('ProposalCreateFacadeService', () => {
     it('debe completar el flujo de éxito: notificar, guardar, redireccionar y ejecutar onSuccess', () => {
       const onSuccessMock = jest.fn();
       const onErrorMock = jest.fn();
-      mockProposalService.createProposalMock.mockReturnValue(of({}));
+      mockProposalService.createProposal.mockReturnValue(of({}));
       service.save(mockProposal, onSuccessMock, onErrorMock);
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -95,7 +95,7 @@ describe('ProposalCreateFacadeService', () => {
           type: NotificationType.INFO
         })
       );
-      expect(mockProposalService.createProposalMock).toHaveBeenCalledWith(mockProposal);
+      expect(mockProposalService.createProposal).toHaveBeenCalledWith(mockProposal);
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({
           title: '¡Propuesta registrada!',
@@ -110,7 +110,7 @@ describe('ProposalCreateFacadeService', () => {
     it('debe manejar el flujo de error: notificar error y ejecutar onError', () => {
       const onSuccessMock = jest.fn();
       const onErrorMock = jest.fn();
-      mockProposalService.createProposalMock.mockReturnValue(throwError(() => new Error('Error de servidor')));
+      mockProposalService.createProposal.mockReturnValue(throwError(() => new Error('Error de servidor')));
       service.save(mockProposal, onSuccessMock, onErrorMock);
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({

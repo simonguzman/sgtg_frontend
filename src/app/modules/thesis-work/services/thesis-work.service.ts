@@ -25,7 +25,7 @@ export class ThesisWorkService {
 
   // ── Consulta ──────────────────────────────────────────────────────────────
   /** Trabajo de grado por id (vista del backend). */
-  getThesisWorkByIdMock(id: string): Observable<ThesisWork | undefined> {
+  getThesisWorkById(id: string): Observable<ThesisWork | undefined> {
     return this.storage.getById(id);
   }
 

@@ -12,7 +12,7 @@ export class EvaluateCorrectionsFacadeService {
   private readonly notificationService = inject(NotificationService);
 
   public loadThesisWork(id: string, onSuccess: (work: ThesisWork) => void, onError: () => void): void {
-    this.thesisWorkService.getThesisWorkByIdMock(id).pipe(first()).subscribe({
+    this.thesisWorkService.getThesisWorkById(id).pipe(first()).subscribe({
       next: (data) => {
         if (!data) {
           this.showNotification('No encontrado', 'El proyecto de grado solicitado no existe en la base de datos.', NotificationType.INFO);

@@ -66,16 +66,6 @@ describe('PreliminaryDraftStorageService', () => {
     expect(service.preliminaryDrafts().map(d => d.preliminaryDraftId)).toEqual(['15']);
   });
 
-  it('las operaciones simuladas de otros módulos no modifican los datos del backend', () => {
-    iniciarSesionConTrabajos(usuario('1', [UserRoleType.DIRECTOR]), [crearTrabajoConAnteproyectoRadicado()]);
-
-    service.updateDraft('15', draft => ({ ...draft, isArchived: true }));
-    service.addDraft({ preliminaryDraftId: 'x' } as PreliminaryDraft);
-    service.removeDraft('15');
-
-    expect(service.allPreliminaryDrafts().map(d => [d.preliminaryDraftId, d.isArchived])).toEqual([['15', false]]);
-  });
-
   it('getById consulta el backend si el trabajo no está en memoria', () => {
     let resultado: PreliminaryDraft | undefined;
     service.getById('15').subscribe(anteproyecto => resultado = anteproyecto);

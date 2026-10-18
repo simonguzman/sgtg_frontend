@@ -3,13 +3,11 @@ import { signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ProposalDocumentService } from './proposal-document.service';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { UserService } from '../../users/services/user.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { Proposal } from '../interfaces/proposal.interface';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { User } from '../../users/interfaces/user.interface';
 import { UserState } from '../../users/enum/user-state.enum';
 import { crearTrabajoDePrueba, crearTrabajoEnAnteproyecto } from '../../../testing/trabajo-grado-de-prueba';
@@ -35,16 +33,13 @@ describe('ProposalDocumentService', () => {
   let service: ProposalDocumentService;
   let http: HttpTestingController;
   let store: TrabajoGradoStoreService;
-  let eventBus: { emit: jest.Mock };
 
   beforeEach(() => {
     localStorage.clear();
-    eventBus = { emit: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: EventBusService, useValue: eventBus },
         { provide: UserService, useValue: { users: signal([miembroComite]) } }
       ]
     });
@@ -70,11 +65,6 @@ describe('ProposalDocumentService', () => {
 
       expect(resultado?.state).toBe(stateList.APROBADO);
       expect(store.porId().get('15')?.etapa).toBe('ANTEPROYECTO');
-      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
-        type: AppEventType.EVALUATION_ASSIGNED,
-        targetUserIds: expect.arrayContaining(['10', '1']),
-        payload: expect.objectContaining({ proposalId: '15', veredict: stateList.APROBADO })
-      }));
     });
 
     it('cualquier veredicto distinto de APROBADO se envía como NO_APROBADO', async () => {
@@ -95,7 +85,6 @@ describe('ProposalDocumentService', () => {
         .flush({ mensaje: 'No permitido' }, { status: 403, statusText: 'Forbidden' });
 
       expect(error).toBeTruthy();
-      expect(eventBus.emit).not.toHaveBeenCalled();
     });
   });
 
@@ -111,9 +100,6 @@ describe('ProposalDocumentService', () => {
       req.flush(crearTrabajoDePrueba());
 
       expect(resultado?.id).toBe('15');
-      const evento = eventBus.emit.mock.calls[0][0];
-      expect(evento.type).toBe(AppEventType.PROPOSAL_CORRECTION_UPLOADED);
-      expect(evento.targetUserIds).toEqual(expect.arrayContaining(['10', '1', '30']));
     });
   });
 });

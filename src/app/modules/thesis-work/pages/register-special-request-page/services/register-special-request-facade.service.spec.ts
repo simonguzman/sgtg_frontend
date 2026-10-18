@@ -12,12 +12,12 @@ const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/
 
 describe('RegisterSpecialRequestFacadeService', () => {
   let facade: RegisterSpecialRequestFacadeService;
-  let thesisWorkService: { getThesisWorkByIdMock: jest.Mock; createSpecialRequest: jest.Mock };
+  let thesisWorkService: { getThesisWorkById: jest.Mock; createSpecialRequest: jest.Mock };
   let notification: { show: jest.Mock };
 
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
-    thesisWorkService = { getThesisWorkByIdMock: jest.fn(), createSpecialRequest: jest.fn() };
+    thesisWorkService = { getThesisWorkById: jest.fn(), createSpecialRequest: jest.fn() };
     notification = { show: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
@@ -33,7 +33,7 @@ describe('RegisterSpecialRequestFacadeService', () => {
   describe('loadThesisWork', () => {
     it('entrega el trabajo encontrado', () => {
       const thesis = thesisWorkDePrueba();
-      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(thesis));
+      thesisWorkService.getThesisWorkById.mockReturnValue(of(thesis));
       const onSuccess = jest.fn();
       facade.loadThesisWork('15', onSuccess, jest.fn(), jest.fn());
       expect(onSuccess).toHaveBeenCalledWith(thesis);
@@ -42,9 +42,9 @@ describe('RegisterSpecialRequestFacadeService', () => {
     it('distingue "no encontrado" del error de conexión', () => {
       const onNotFound = jest.fn();
       const onError = jest.fn();
-      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(undefined));
+      thesisWorkService.getThesisWorkById.mockReturnValue(of(undefined));
       facade.loadThesisWork('99', jest.fn(), onNotFound, onError);
-      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('x')));
+      thesisWorkService.getThesisWorkById.mockReturnValue(throwError(() => new Error('x')));
       facade.loadThesisWork('15', jest.fn(), onNotFound, onError);
       expect(onNotFound).toHaveBeenCalledTimes(1);
       expect(onError).toHaveBeenCalledTimes(1);

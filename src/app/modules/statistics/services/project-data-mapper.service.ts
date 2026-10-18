@@ -73,14 +73,9 @@ export class ProjectDataMapperService {
       directorName: this.resolveDirectorName(director),
       registrationDate: creationDate,
       isArchived: !!thesis.isArchived,
-      // ← NULL a propósito, no un olvido: ThesisWorkEvaluationService.
-      // addEvaluationMock nunca calcula deadlineStatus para las
-      // evaluaciones de avances — a diferencia de Propuesta y
-      // Anteproyecto, no compara contra getRemainingBusinessDays.
-      // Extender esto exige decidir primero contra qué plazo se mediría
-      // (por avance vs. entrega final) — fuera del alcance de este
-      // cambio. Estos registros se muestran como "Sin evaluar", que es
-      // honesto dado que ese cálculo no existe hoy para esta etapa.
+      // Sin plazo de evaluación: los informes mensuales del trabajo en curso
+      // se revisan sin plazo (a diferencia de la propuesta y el anteproyecto),
+      // así que estos registros se muestran como "Sin evaluar".
       deadlineStatus: null
     };
   }

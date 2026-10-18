@@ -69,7 +69,7 @@ describe('EvaluationProposalFacadeService', () => {
     mockCurrentUserSignal.set(mockUser);
 
     mockProposalService = {
-      getProposalByIdMock: jest.fn(),
+      getProposalById: jest.fn(),
       registerCommitteeDecision: jest.fn()
     } as unknown as jest.Mocked<ProposalService>;
 
@@ -119,22 +119,22 @@ describe('EvaluationProposalFacadeService', () => {
   });
 
   describe('Método: load', () => {
-    it('debería invocar onSuccess con la propuesta cuando getProposalByIdMock retorna datos', () => {
+    it('debería invocar onSuccess con la propuesta cuando getProposalById retorna datos', () => {
       const onSuccess = jest.fn();
       const onNotFound = jest.fn();
-      mockProposalService.getProposalByIdMock.mockReturnValue(of(mockProposal));
+      mockProposalService.getProposalById.mockReturnValue(of(mockProposal));
 
       service.load('prop-100', onSuccess, onNotFound);
 
-      expect(mockProposalService.getProposalByIdMock).toHaveBeenCalledWith('prop-100');
+      expect(mockProposalService.getProposalById).toHaveBeenCalledWith('prop-100');
       expect(onSuccess).toHaveBeenCalledWith(mockProposal);
       expect(onNotFound).not.toHaveBeenCalled();
     });
 
-    it('debería invocar onNotFound cuando getProposalByIdMock retorna null', () => {
+    it('debería invocar onNotFound cuando getProposalById retorna null', () => {
       const onSuccess = jest.fn();
       const onNotFound = jest.fn();
-      mockProposalService.getProposalByIdMock.mockReturnValue(of(null as unknown as Proposal));
+      mockProposalService.getProposalById.mockReturnValue(of(null as unknown as Proposal));
 
       service.load('invalid-id', onSuccess, onNotFound);
 
@@ -142,10 +142,10 @@ describe('EvaluationProposalFacadeService', () => {
       expect(onNotFound).toHaveBeenCalled();
     });
 
-    it('debería invocar onNotFound cuando getProposalByIdMock emite un error', () => {
+    it('debería invocar onNotFound cuando getProposalById emite un error', () => {
       const onSuccess = jest.fn();
       const onNotFound = jest.fn();
-      mockProposalService.getProposalByIdMock.mockReturnValue(throwError(() => new Error('Server error')));
+      mockProposalService.getProposalById.mockReturnValue(throwError(() => new Error('Server error')));
 
       service.load('error-id', onSuccess, onNotFound);
 

@@ -14,7 +14,7 @@ const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/
 
 describe('EvaluateSpecialRequestFacadeService', () => {
   let facade: EvaluateSpecialRequestFacadeService;
-  let thesisWorkService: { getThesisWorkByIdMock: jest.Mock; evaluateSpecialRequest: jest.Mock };
+  let thesisWorkService: { getThesisWorkById: jest.Mock; evaluateSpecialRequest: jest.Mock };
   let download: { download: jest.Mock };
   let notification: { show: jest.Mock };
 
@@ -25,7 +25,7 @@ describe('EvaluateSpecialRequestFacadeService', () => {
 
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
-    thesisWorkService = { getThesisWorkByIdMock: jest.fn(), evaluateSpecialRequest: jest.fn() };
+    thesisWorkService = { getThesisWorkById: jest.fn(), evaluateSpecialRequest: jest.fn() };
     download = { download: jest.fn().mockResolvedValue(undefined) };
     notification = { show: jest.fn() };
     TestBed.configureTestingModule({
@@ -42,14 +42,14 @@ describe('EvaluateSpecialRequestFacadeService', () => {
 
   describe('loadThesisWorkAndRequest', () => {
     it('entrega el trabajo y la solicitud', () => {
-      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(thesis));
+      thesisWorkService.getThesisWorkById.mockReturnValue(of(thesis));
       const onSuccess = jest.fn();
       facade.loadThesisWorkAndRequest('15', 'prorroga-0', onSuccess, jest.fn());
       expect(onSuccess).toHaveBeenCalledWith(thesis, thesis.specialRequests[0]);
     });
 
     it('avisa si la solicitud no existe', () => {
-      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(thesis));
+      thesisWorkService.getThesisWorkById.mockReturnValue(of(thesis));
       const onError = jest.fn();
       facade.loadThesisWorkAndRequest('15', 'suspension-0', jest.fn(), onError);
       expect(onError).toHaveBeenCalled();
@@ -60,9 +60,9 @@ describe('EvaluateSpecialRequestFacadeService', () => {
 
     it('avisa si el trabajo no existe o falla la consulta', () => {
       const onError = jest.fn();
-      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(undefined));
+      thesisWorkService.getThesisWorkById.mockReturnValue(of(undefined));
       facade.loadThesisWorkAndRequest('99', 'x', jest.fn(), onError);
-      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('x')));
+      thesisWorkService.getThesisWorkById.mockReturnValue(throwError(() => new Error('x')));
       facade.loadThesisWorkAndRequest('15', 'x', jest.fn(), onError);
       expect(onError).toHaveBeenCalledTimes(2);
     });

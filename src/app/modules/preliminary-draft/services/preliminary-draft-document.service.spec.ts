@@ -4,12 +4,10 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { PreliminaryDraftDocumentService } from './preliminary-draft-document.service';
 import { UserService } from '../../users/services/user.service';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { crearTrabajoConAnteproyectoRadicado, crearTrabajoEnCurso, crearTrabajoEnEvaluacion } from '../../../testing/trabajo-grado-de-prueba';
 
 const API = '/api/v1/sgtg/trabajos-grado';
@@ -27,17 +25,14 @@ const leerDatos = (body: FormData): Promise<unknown> => new Promise((resolve, re
 describe('PreliminaryDraftDocumentService', () => {
   let service: PreliminaryDraftDocumentService;
   let http: HttpTestingController;
-  let eventBus: { emit: jest.Mock };
 
   beforeEach(() => {
     localStorage.clear();
-    eventBus = { emit: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: UserService, useValue: { users: signal([]) } },
-        { provide: EventBusService, useValue: eventBus }
+        { provide: UserService, useValue: { users: signal([]) } }
       ]
     });
     service = TestBed.inject(PreliminaryDraftDocumentService);
@@ -62,10 +57,6 @@ describe('PreliminaryDraftDocumentService', () => {
 
       expect(resultado?.preliminaryDraftId).toBe('15');
       expect(TestBed.inject(TrabajoGradoStoreService).porId().get('15')?.etapa).toBe('EVALUACION');
-      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
-        type: AppEventType.PRELIMINARY_DRAFT_EVALUATION_REGISTERED,
-        payload: expect.objectContaining({ veredict: stateList.APROBADO_CON_OBSERVACIONES })
-      }));
     });
 
     it('si el backend lo rechaza no emite eventos', () => {
@@ -75,7 +66,6 @@ describe('PreliminaryDraftDocumentService', () => {
         .flush({ message: 'Solo los evaluadores asignados' }, { status: 406, statusText: 'Not Acceptable' });
 
       expect(error).toBeTruthy();
-      expect(eventBus.emit).not.toHaveBeenCalled();
     });
   });
 
@@ -87,7 +77,6 @@ describe('PreliminaryDraftDocumentService', () => {
     expect((body.get('archivo') as File).name).toBe('anteproyecto-v2.pdf');
     expect(body.has('datos')).toBe(false);
     req.flush(crearTrabajoConAnteproyectoRadicado());
-    expect(eventBus.emit.mock.calls[0][0].type).toBe(AppEventType.PRELIMINARY_DRAFT_CORRECTION_UPLOADED);
   });
 
   it('el Jefe remite el anteproyecto al Consejo con el formato C', () => {
@@ -102,7 +91,6 @@ describe('PreliminaryDraftDocumentService', () => {
     req.flush(crearTrabajoEnEvaluacion({ etapa: 'APROBACION_CONSEJO' }));
 
     expect(resultado?.preliminaryDraftId).toBe('15');
-    expect(eventBus.emit.mock.calls[0][0].type).toBe(AppEventType.PRELIMINARY_DRAFT_COUNCIL_PRESENTATION_UPLOADED);
   });
 
   describe('registerCouncilDecision', () => {
@@ -118,10 +106,6 @@ describe('PreliminaryDraftDocumentService', () => {
       req.flush(crearTrabajoEnCurso());
 
       expect(resultado?.state).toBe(stateList.APROBADO);
-      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
-        type: AppEventType.COUNCIL_RESOLUTION_UPLOADED,
-        payload: expect.objectContaining({ finalState: stateList.APROBADO })
-      }));
     });
 
     it('cualquier otro veredicto se envía como NO_APROBADO, sin observaciones vacías', async () => {

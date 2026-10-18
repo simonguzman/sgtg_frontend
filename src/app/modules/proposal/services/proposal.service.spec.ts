@@ -33,9 +33,9 @@ describe('ProposalService', () => {
       uploadCorrection: jest.fn()
     } as unknown as jest.Mocked<ProposalDocumentService>;
     mockApiService = {
-      getProposalByIdMock: jest.fn(),
-      createProposalMock: jest.fn(),
-      updateProposalMock: jest.fn(),
+      getProposalById: jest.fn(),
+      createProposal: jest.fn(),
+      updateProposal: jest.fn(),
       annulProposal: jest.fn()
     } as unknown as jest.Mocked<ProposalApiService>;
     TestBed.configureTestingModule({
@@ -58,31 +58,31 @@ describe('ProposalService', () => {
   });
 
   describe('Delegación: API', () => {
-    it('debería delegar getProposalByIdMock al apiService', (done) => {
+    it('debería delegar getProposalById al apiService', (done) => {
       const mockProp = { id: '1', title: 'Test' } as Proposal;
-      mockApiService.getProposalByIdMock.mockReturnValue(of(mockProp));
-      service.getProposalByIdMock('1').subscribe(result => {
+      mockApiService.getProposalById.mockReturnValue(of(mockProp));
+      service.getProposalById('1').subscribe(result => {
         expect(result).toEqual(mockProp);
-        expect(mockApiService.getProposalByIdMock).toHaveBeenCalledWith('1');
+        expect(mockApiService.getProposalById).toHaveBeenCalledWith('1');
         done();
       });
     });
-    it('debería delegar createProposalMock al apiService', (done) => {
+    it('debería delegar createProposal al apiService', (done) => {
       const payload = { title: 'Nueva' } as Proposal;
-      mockApiService.createProposalMock.mockReturnValue(of(payload));
-      service.createProposalMock(payload).subscribe(result => {
+      mockApiService.createProposal.mockReturnValue(of(payload));
+      service.createProposal(payload).subscribe(result => {
         expect(result).toEqual(payload);
-        expect(mockApiService.createProposalMock).toHaveBeenCalledWith(payload);
+        expect(mockApiService.createProposal).toHaveBeenCalledWith(payload);
         done();
       });
     });
-    it('debería delegar updateProposalMock al apiService', (done) => {
+    it('debería delegar updateProposal al apiService', (done) => {
       const changes = { title: 'Modificada' } as Partial<Proposal>;
       const updatedProp = { id: '1', ...changes } as Proposal;
-      mockApiService.updateProposalMock.mockReturnValue(of(updatedProp));
-      service.updateProposalMock('1', changes).subscribe(result => {
+      mockApiService.updateProposal.mockReturnValue(of(updatedProp));
+      service.updateProposal('1', changes).subscribe(result => {
         expect(result).toEqual(updatedProp);
-        expect(mockApiService.updateProposalMock).toHaveBeenCalledWith('1', changes);
+        expect(mockApiService.updateProposal).toHaveBeenCalledWith('1', changes);
         done();
       });
     });

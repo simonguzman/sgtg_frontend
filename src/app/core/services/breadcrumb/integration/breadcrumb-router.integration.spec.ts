@@ -1,4 +1,3 @@
-import 'fake-indexeddb/auto';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter, Routes } from '@angular/router';

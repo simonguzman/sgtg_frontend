@@ -1,13 +1,10 @@
 import { inject, Injectable } from '@angular/core';
 import { map, Observable, tap } from 'rxjs';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { TrabajoGradoApiService } from '../../../core/services/trabajo-grado/trabajo-grado-api.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { TrabajoGradoVistasService } from '../../../core/services/trabajo-grado/trabajo-grado-vistas.service';
 import { aTrabajoDeGrado } from '../../../core/mappers/trabajo-grado.mapper';
 import { TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado-api.interface';
-import { collectParticipantIds } from '../helpers/thesis-participants.helper';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 
 /**
@@ -18,7 +15,6 @@ import { ThesisWork } from '../interfaces/thesis-work.interface';
  */
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkAdvanceService {
-  private readonly eventBus = inject(EventBusService);
   private readonly api = inject(TrabajoGradoApiService);
   private readonly store = inject(TrabajoGradoStoreService);
   private readonly vistas = inject(TrabajoGradoVistasService);
@@ -33,17 +29,7 @@ export class ThesisWorkAdvanceService {
     const datos = observaciones.trim() ? { observaciones: observaciones.trim() } : null;
     return this.api.enviarArchivos(thesisWorkId, 'informes-mensuales', datos, { archivo: informe }).pipe(
       tap(trabajo => this.store.upsert(trabajo)),
-      map(trabajo => this.vista(trabajo)),
-      tap(thesisWork => this.eventBus.emit({
-        type: AppEventType.THESIS_ADVANCE_UPLOADED,
-        targetUserIds: [...new Set(collectParticipantIds(thesisWork.preliminaryDraftData?.proposalData))],
-        payload: {
-          thesisId: thesisWorkId,
-          thesisWorkId,
-          title: thesisWork.advances?.[0]?.title ?? 'Informe mensual',
-          thesisTitle: thesisWork.preliminaryDraftData?.proposalData?.title ?? ''
-        }
-      }))
+      map(trabajo => this.vista(trabajo))
     );
   }
 
@@ -60,17 +46,7 @@ export class ThesisWorkAdvanceService {
     return this.api.enviarArchivos(thesisWorkId, `informes-mensuales/${numero}/revisiones`, datos,
       { archivo: notas }).pipe(
       tap(trabajo => this.store.upsert(trabajo)),
-      map(trabajo => this.vista(trabajo)),
-      tap(thesisWork => this.eventBus.emit({
-        type: AppEventType.THESIS_ADVANCE_EVALUATED,
-        targetUserIds: [...new Set(collectParticipantIds(thesisWork.preliminaryDraftData?.proposalData))],
-        payload: {
-          thesisId: thesisWorkId,
-          thesisWorkId,
-          veredict: 'Revisado',
-          thesisTitle: thesisWork.preliminaryDraftData?.proposalData?.title ?? ''
-        }
-      }))
+      map(trabajo => this.vista(trabajo))
     );
   }
 

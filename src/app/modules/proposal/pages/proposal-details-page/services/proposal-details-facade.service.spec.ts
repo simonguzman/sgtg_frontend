@@ -10,7 +10,7 @@ import { Proposal } from '../../../interfaces/proposal.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 describe('ProposalDetailsFacadeService', () => {
   let service: ProposalDetailsFacadeService;
-  let mockProposalService: { getProposalByIdMock: jest.Mock };
+  let mockProposalService: { getProposalById: jest.Mock };
   let mockUserService: { getAuthorsNames: jest.Mock };
   let mockNotificationService: { show: jest.Mock };
   let mockRouter: { url: string; navigate: jest.Mock };
@@ -21,7 +21,7 @@ describe('ProposalDetailsFacadeService', () => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
     mockProposalService = {
-      getProposalByIdMock: jest.fn(),
+      getProposalById: jest.fn(),
     };
     mockUserService = {
       getAuthorsNames: jest.fn(),
@@ -52,18 +52,18 @@ describe('ProposalDetailsFacadeService', () => {
   });
   describe('load', () => {
     it('debe ejecutar onSuccess si se encuentra la propuesta', () => {
-      mockProposalService.getProposalByIdMock.mockReturnValue(of(mockProposal));
+      mockProposalService.getProposalById.mockReturnValue(of(mockProposal));
       const onSuccessMock = jest.fn();
       const onNotFoundMock = jest.fn();
       const onErrorMock = jest.fn();
       service.load('1', onSuccessMock, onNotFoundMock, onErrorMock);
-      expect(mockProposalService.getProposalByIdMock).toHaveBeenCalledWith('1');
+      expect(mockProposalService.getProposalById).toHaveBeenCalledWith('1');
       expect(onSuccessMock).toHaveBeenCalledWith(mockProposal);
       expect(onNotFoundMock).not.toHaveBeenCalled();
       expect(mockNotificationService.show).not.toHaveBeenCalled();
     });
     it('debe notificar y ejecutar onNotFound si la respuesta es null', () => {
-      mockProposalService.getProposalByIdMock.mockReturnValue(of(null));
+      mockProposalService.getProposalById.mockReturnValue(of(null));
       const onSuccessMock = jest.fn();
       const onNotFoundMock = jest.fn();
       const onErrorMock = jest.fn();
@@ -77,7 +77,7 @@ describe('ProposalDetailsFacadeService', () => {
       expect(onSuccessMock).not.toHaveBeenCalled();
     });
     it('debe notificar y ejecutar onError si ocurre un error HTTP', () => {
-      mockProposalService.getProposalByIdMock.mockReturnValue(throwError(() => new Error('Error de red')));
+      mockProposalService.getProposalById.mockReturnValue(throwError(() => new Error('Error de red')));
       const onSuccessMock = jest.fn();
       const onNotFoundMock = jest.fn();
       const onErrorMock = jest.fn();

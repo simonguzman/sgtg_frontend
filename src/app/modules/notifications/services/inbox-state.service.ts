@@ -3,6 +3,7 @@ import { catchError, EMPTY, Observable, Subscription, switchMap, tap, timer } fr
 import { InboxMessage } from '../interfaces/inbox-message.interface';
 import { NotificacionApiService } from '../../../core/services/notificaciones/notificacion-api.service';
 import { AuthStorageService } from '../../../core/services/auth/auth-storage.service';
+import { AuthApiService } from '../../../core/services/auth/auth-api.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
 import { NotificacionApi } from '../../../core/interfaces/api/notificacion-api.interface';
@@ -14,8 +15,10 @@ export const INTERVALO_BUZON_MS = 60_000;
 /**
  * Buzón del usuario en sesión. Las notificaciones las genera el backend; aquí
  * se consultan al iniciar sesión y cada {@link INTERVALO_BUZON_MS}. Cuando
- * llegan notificaciones nuevas se avisa con un mensaje emergente y se recargan
- * los trabajos de grado, que alguien más acaba de cambiar.
+ * llegan notificaciones nuevas se avisa con un mensaje emergente, se recargan
+ * los trabajos de grado, que alguien más acaba de cambiar, y se refresca el
+ * usuario de la sesión: el backend pudo darle un rol de contexto (evaluador,
+ * jurado, jurado coordinador...) y así ve sus opciones sin volver a entrar.
  */
 @Injectable({
   providedIn: 'root'
@@ -23,6 +26,7 @@ export const INTERVALO_BUZON_MS = 60_000;
 export class InboxStateService {
   private readonly api = inject(NotificacionApiService);
   private readonly authStorage = inject(AuthStorageService);
+  private readonly authApi = inject(AuthApiService);
   private readonly store = inject(TrabajoGradoStoreService);
   private readonly notificationService = inject(NotificationService);
 
@@ -97,6 +101,7 @@ export class InboxStateService {
       autoDismiss: true
     });
     this.store.cargar().subscribe();
+    this.authApi.refreshCurrentUser().pipe(catchError(() => EMPTY)).subscribe();
   }
 
   private actualizar(cambio: (messages: InboxMessage[]) => InboxMessage[]): void {

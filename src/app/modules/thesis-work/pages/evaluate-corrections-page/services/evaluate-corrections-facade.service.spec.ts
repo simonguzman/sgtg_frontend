@@ -9,11 +9,11 @@ import { thesisWorkDePrueba } from '../../../../../testing/vista-de-prueba';
 
 describe('EvaluateCorrectionsFacadeService', () => {
   let facade: EvaluateCorrectionsFacadeService;
-  let thesisWorkService: { getThesisWorkByIdMock: jest.Mock; verifyAdjustments: jest.Mock };
+  let thesisWorkService: { getThesisWorkById: jest.Mock; verifyAdjustments: jest.Mock };
   let notification: { show: jest.Mock };
 
   beforeEach(() => {
-    thesisWorkService = { getThesisWorkByIdMock: jest.fn(), verifyAdjustments: jest.fn() };
+    thesisWorkService = { getThesisWorkById: jest.fn(), verifyAdjustments: jest.fn() };
     notification = { show: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
@@ -27,9 +27,9 @@ describe('EvaluateCorrectionsFacadeService', () => {
   it('carga el trabajo o informa el error', () => {
     const onSuccess = jest.fn();
     const onError = jest.fn();
-    thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(thesisWorkDePrueba()));
+    thesisWorkService.getThesisWorkById.mockReturnValue(of(thesisWorkDePrueba()));
     facade.loadThesisWork('15', onSuccess, onError);
-    thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(undefined));
+    thesisWorkService.getThesisWorkById.mockReturnValue(of(undefined));
     facade.loadThesisWork('99', onSuccess, onError);
     expect(onSuccess).toHaveBeenCalled();
     expect(onError).toHaveBeenCalled();

@@ -102,6 +102,6 @@ docker compose down -v
 Abre http://localhost:4200 e inicia sesión con el administrador del `.env`.
 
 Notas:
-- El backend crea las tablas al arrancar (`create-drop` en desarrollo): cada reinicio del backend deja la base vacía. Los PDF quedan en el volumen `archivos_data`.
-- Nginx admite peticiones de hasta 65 MB (PDF de hasta 20 MB; la solicitud de sustentación lleva hasta tres).
+- La base de datos conserva los datos entre reinicios (`ddl-auto=update` en Docker; las pruebas del backend usan `create-drop`). Para empezar de cero: `docker compose down -v`. Los PDF quedan en el volumen `archivos_data`.
+- Nginx admite peticiones de hasta 65 MB (PDF de hasta 20 MB; la solicitud de sustentación lleva hasta cuatro).
 - Para desarrollar con recarga en caliente, usa `ng serve` (proxy a `localhost:8080`, ver `proxy.conf.json`) con el backend del `docker compose` de `sgtg_backend`.

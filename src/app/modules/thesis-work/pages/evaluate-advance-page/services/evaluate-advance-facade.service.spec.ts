@@ -13,7 +13,7 @@ const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/
 
 describe('EvaluateAdvanceFacadeService', () => {
   let facade: EvaluateAdvanceFacadeService;
-  let thesisWorkService: { getThesisWorkByIdMock: jest.Mock; revisarInforme: jest.Mock };
+  let thesisWorkService: { getThesisWorkById: jest.Mock; revisarInforme: jest.Mock };
   let download: { download: jest.Mock };
   let notification: { show: jest.Mock };
 
@@ -21,7 +21,7 @@ describe('EvaluateAdvanceFacadeService', () => {
 
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
-    thesisWorkService = { getThesisWorkByIdMock: jest.fn(), revisarInforme: jest.fn() };
+    thesisWorkService = { getThesisWorkById: jest.fn(), revisarInforme: jest.fn() };
     download = { download: jest.fn().mockResolvedValue(undefined) };
     notification = { show: jest.fn() };
     TestBed.configureTestingModule({
@@ -38,7 +38,7 @@ describe('EvaluateAdvanceFacadeService', () => {
 
   describe('loadThesisWork', () => {
     it('entrega el trabajo encontrado', () => {
-      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(thesis));
+      thesisWorkService.getThesisWorkById.mockReturnValue(of(thesis));
       const onSuccess = jest.fn();
       facade.loadThesisWork('15', onSuccess, jest.fn());
       expect(onSuccess).toHaveBeenCalledWith(thesis);
@@ -46,9 +46,9 @@ describe('EvaluateAdvanceFacadeService', () => {
 
     it('avisa si no existe o falla la consulta', () => {
       const onError = jest.fn();
-      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(undefined));
+      thesisWorkService.getThesisWorkById.mockReturnValue(of(undefined));
       facade.loadThesisWork('99', jest.fn(), onError);
-      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('x')));
+      thesisWorkService.getThesisWorkById.mockReturnValue(throwError(() => new Error('x')));
       facade.loadThesisWork('15', jest.fn(), onError);
       expect(onError).toHaveBeenCalledTimes(2);
     });

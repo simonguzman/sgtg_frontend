@@ -3,15 +3,11 @@ import { map, Observable, tap } from 'rxjs';
 import { UserService } from '../../users/services/user.service';
 import { TrabajoGradoApiService } from '../../../core/services/trabajo-grado/trabajo-grado-api.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
-import { TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado-api.interface';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
 
 @Injectable({ providedIn: 'root' })
 export class PreliminaryDraftAssignmentService {
   private readonly userService = inject(UserService);
-  private readonly eventBus    = inject(EventBusService);
   private readonly api         = inject(TrabajoGradoApiService);
   private readonly store       = inject(TrabajoGradoStoreService);
 
@@ -57,21 +53,8 @@ export class PreliminaryDraftAssignmentService {
         this.store.upsert(trabajo);
         // Los evaluadores ganaron el rol EVALUADOR: se refresca la lista de usuarios
         this.userService.loadUsers();
-        this.notificarAsignacion(trabajo, preliminaryDraftId, evaluatorsIds);
       }),
       map(() => undefined)
     );
-  }
-
-  private notificarAsignacion(trabajo: TrabajoGradoResponse, preliminaryDraftId: string, evaluatorsIds: string[]): void {
-    const ids = new Set<string>(evaluatorsIds);
-    trabajo.estudiantes.forEach(estudiante => ids.add(String(estudiante.usuarioId)));
-    [trabajo.director, trabajo.codirector].forEach(docente => { if (docente) ids.add(String(docente.usuarioId)); });
-    if (trabajo.asesor?.usuarioId) ids.add(String(trabajo.asesor.usuarioId));
-    this.eventBus.emit({
-      type: AppEventType.REVIEWERS_ASSIGNED,
-      targetUserIds: Array.from(ids),
-      payload: { preliminaryDraftId, evaluators: evaluatorsIds, preliminaryDraftTitle: trabajo.titulo }
-    });
   }
 }

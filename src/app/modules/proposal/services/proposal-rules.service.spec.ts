@@ -19,9 +19,7 @@ describe('ProposalRulesService', () => {
       getProposalsListSnapshot: jest.fn().mockReturnValue([])
     };
     mockUserService = {
-      getUserFullName: jest.fn().mockReturnValue('Juan Perez'),
-      addRoleToUser: jest.fn().mockReturnValue(of(undefined)),
-      removeRoleFromUser: jest.fn().mockReturnValue(of(undefined))
+      getUserFullName: jest.fn().mockReturnValue('Juan Perez')
     };
     TestBed.configureTestingModule({
       providers: [
@@ -40,7 +38,7 @@ describe('ProposalRulesService', () => {
     it('debería fallar si el director y codirector son la misma persona', () => {
       const invalidProposal: Partial<Proposal> = {
         director: { id: 'doc-1' } as any,
-        codirector: { id: 'doc-1' } as any,
+        codirector: { id: 'doc-1' } as any
       };
       const result = service.validateProposalRules(invalidProposal);
       expect(result).toBe('Un docente no puede ser Director y Codirector simultáneamente.');

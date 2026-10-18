@@ -22,7 +22,7 @@ export class EvaluateSpecialRequestFacadeService {
     onSuccess: (thesisWork: ThesisWork, request: SpecialRequest) => void,
     onError: () => void
   ): void {
-    this.thesisWorkService.getThesisWorkByIdMock(thesisId).pipe(first()).subscribe({
+    this.thesisWorkService.getThesisWorkById(thesisId).pipe(first()).subscribe({
       next: (data) => {
         if (!data) {
           this.showError('El trabajo de grado especificado no existe.');

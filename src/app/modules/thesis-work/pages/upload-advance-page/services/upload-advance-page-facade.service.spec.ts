@@ -11,11 +11,11 @@ const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/
 
 describe('UploadAdvancePageFacadeService', () => {
   let facade: UploadAdvancePageFacadeService;
-  let thesisWorkService: { getThesisWorkByIdMock: jest.Mock; radicarInforme: jest.Mock };
+  let thesisWorkService: { getThesisWorkById: jest.Mock; radicarInforme: jest.Mock };
   let notification: { show: jest.Mock };
 
   beforeEach(() => {
-    thesisWorkService = { getThesisWorkByIdMock: jest.fn(), radicarInforme: jest.fn() };
+    thesisWorkService = { getThesisWorkById: jest.fn(), radicarInforme: jest.fn() };
     notification = { show: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
@@ -29,14 +29,14 @@ describe('UploadAdvancePageFacadeService', () => {
   describe('loadThesisWork', () => {
     it('entrega el trabajo encontrado', () => {
       const thesis = thesisWorkDePrueba();
-      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(thesis));
+      thesisWorkService.getThesisWorkById.mockReturnValue(of(thesis));
       const onSuccess = jest.fn();
       facade.loadThesisWork('15', onSuccess, jest.fn());
       expect(onSuccess).toHaveBeenCalledWith(thesis);
     });
 
     it('avisa y regresa si no existe', () => {
-      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(undefined));
+      thesisWorkService.getThesisWorkById.mockReturnValue(of(undefined));
       const onNotFound = jest.fn();
       facade.loadThesisWork('99', jest.fn(), onNotFound);
       expect(onNotFound).toHaveBeenCalled();
@@ -44,7 +44,7 @@ describe('UploadAdvancePageFacadeService', () => {
     });
 
     it('avisa y regresa si falla la consulta', () => {
-      thesisWorkService.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('x')));
+      thesisWorkService.getThesisWorkById.mockReturnValue(throwError(() => new Error('x')));
       const onNotFound = jest.fn();
       facade.loadThesisWork('15', jest.fn(), onNotFound);
       expect(onNotFound).toHaveBeenCalled();

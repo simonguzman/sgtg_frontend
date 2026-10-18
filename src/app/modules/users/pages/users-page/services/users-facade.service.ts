@@ -27,7 +27,7 @@ export class UsersFacadeService {
   public updateRoles(userId: string, finalRoles: UserRoleType[], onSuccess: () => void): void {
     this.showNotification('Actualizando roles y permisos', 'Guardando la nueva configuración...', NotificationType.INFO);
 
-    this.userService.updateUserRolesMock(userId, finalRoles).subscribe({
+    this.userService.updateUserRoles(userId, finalRoles).subscribe({
       next: () => {
         this.showNotification('¡Roles actualizados!', 'Los permisos del usuario se han modificado correctamente.', NotificationType.CONFIRMATION);
         onSuccess();
@@ -43,7 +43,7 @@ export class UsersFacadeService {
     const infoMsg = isEnabling ? 'Estamos habilitando al usuario...' : 'Estamos deshabilitando al usuario...';
     this.showNotification('Procesando acción', infoMsg, NotificationType.INFO);
 
-    this.userService.softDeleteUserMock(userId).subscribe({
+    this.userService.softDeleteUser(userId).subscribe({
       next: () => {
         const successTitle = isEnabling ? '¡Usuario habilitado!' : '¡Usuario deshabilitado!';
         const successMsg = isEnabling

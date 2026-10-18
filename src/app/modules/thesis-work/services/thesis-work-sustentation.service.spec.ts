@@ -3,10 +3,8 @@ import { signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ThesisWorkSustentationService } from './thesis-work-sustentation.service';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { UserService } from '../../users/services/user.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import {
@@ -35,16 +33,13 @@ const nombres = (body: FormData) => {
 describe('ThesisWorkSustentationService', () => {
   let service: ThesisWorkSustentationService;
   let http: HttpTestingController;
-  let eventBus: { emit: jest.Mock };
 
   beforeEach(() => {
     localStorage.clear();
-    eventBus = { emit: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: EventBusService, useValue: eventBus },
         { provide: UserService, useValue: { users: signal([{ id: '50', roles: [UserRoleType.CONSEJO] }]) } }
       ]
     });
@@ -71,9 +66,6 @@ describe('ThesisWorkSustentationService', () => {
 
     expect(resultado?.sustentation?.state).toBe('SOLICITADA');
     expect(TestBed.inject(TrabajoGradoStoreService).porId().get('15')?.etapa).toBe('SUSTENTACION');
-    expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
-      type: AppEventType.THESIS_FINAL_DELIVERY_UPLOADED, targetUserIds: ['10', '1', '50']
-    }));
   });
 
   it('Decanatura revisa el paz y salvo con el formato F y observaciones', async () => {
@@ -98,10 +90,6 @@ describe('ThesisWorkSustentationService', () => {
     expect(nombres(body)).toEqual({ archivo: 'formato-e.pdf' });
     req.flush(crearTrabajoEnSustentacion());
 
-    expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
-      type: AppEventType.THESIS_SUSTENTATION_PROGRAMMED,
-      targetUserIds: expect.arrayContaining(['10', '1', '30', '31'])
-    }));
   });
 
   it('la calificación del coordinador va con el acta', async () => {
@@ -149,7 +137,6 @@ describe('ThesisWorkSustentationService', () => {
     http.expectOne(`${API}/15/sustentacion/inasistencia`)
       .flush({ message: 'Solo el jurado coordinador' }, { status: 406, statusText: 'Not Acceptable' });
     expect(error).toBeTruthy();
-    expect(eventBus.emit).not.toHaveBeenCalled();
 
     service.uploadFinalVersion('15', pdf('d.pdf')).subscribe({ error: e => error = e });
     http.expectOne(`${API}/15/sustentacion/version-definitiva`).flush(crearTrabajoEnAnteproyecto());

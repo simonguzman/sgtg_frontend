@@ -17,7 +17,7 @@ interface MockRouter {
 }
 
 interface MockThesisWorkService {
-  getThesisWorkByIdMock: jest.Mock<Observable<ThesisWork | null | undefined>, [string]>;
+  getThesisWorkById: jest.Mock<Observable<ThesisWork | null | undefined>, [string]>;
 }
 
 interface MockThesisWorkDetailsMapperService {
@@ -82,7 +82,7 @@ describe('ThesisWorkDetailsFacadeService', () => {
     };
 
     thesisServiceMock = {
-      getThesisWorkByIdMock: jest.fn()
+      getThesisWorkById: jest.fn()
     };
 
     mapperMock = {
@@ -121,7 +121,7 @@ describe('ThesisWorkDetailsFacadeService', () => {
       const mockData = createMockThesisWork({ thesisWorkId: '1' });
       const mockView = createMockThesisWorkDetailsView({ id: '1', title: 'Test Title' });
 
-      thesisServiceMock.getThesisWorkByIdMock.mockReturnValue(of(mockData));
+      thesisServiceMock.getThesisWorkById.mockReturnValue(of(mockData));
       mapperMock.mapToView.mockReturnValue(mockView);
 
       service.loadThesisWorkDetails('1');
@@ -133,7 +133,7 @@ describe('ThesisWorkDetailsFacadeService', () => {
     });
 
     it('debería notificar y regresar (goBack) si no encuentra el registro', () => {
-      thesisServiceMock.getThesisWorkByIdMock.mockReturnValue(of(null));
+      thesisServiceMock.getThesisWorkById.mockReturnValue(of(null));
 
       service.loadThesisWorkDetails('invalid-id');
 
@@ -148,7 +148,7 @@ describe('ThesisWorkDetailsFacadeService', () => {
 
     it('debería manejar errores de la API, notificar y regresar', () => {
       const mockError = new Error('API Error');
-      thesisServiceMock.getThesisWorkByIdMock.mockReturnValue(throwError(() => mockError));
+      thesisServiceMock.getThesisWorkById.mockReturnValue(throwError(() => mockError));
 
       service.loadThesisWorkDetails('1');
 

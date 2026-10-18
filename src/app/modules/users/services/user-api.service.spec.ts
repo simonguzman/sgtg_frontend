@@ -193,29 +193,4 @@ describe('UserApiService', () => {
     });
   });
 
-  describe('roles automáticos (solo en memoria)', () => {
-    beforeEach(() => cargarLista());
-
-    it('addRoleToUser agrega el rol al suscribirse, sin llamar al backend', () => {
-      const cambio = service.addRoleToUser('5', UserRoleType.EVALUADOR);
-      expect(storage.getUsersSnapshot()[0].roles).not.toContain(UserRoleType.EVALUADOR);
-      cambio.subscribe();
-      expect(storage.getUsersSnapshot()[0].roles).toContain(UserRoleType.EVALUADOR);
-    });
-
-    it('removeRoleFromUser quita el rol', () => {
-      service.removeRoleFromUser('5', UserRoleType.DIRECTOR).subscribe();
-      expect(storage.getUsersSnapshot()[0].roles).toEqual([UserRoleType.DOCENTE]);
-    });
-
-    it('removeRolesFromUsers quita los roles también del usuario en sesión', () => {
-      const auth = TestBed.inject(AuthStorageService);
-      auth.setSession(crearJwtDePrueba(), storage.getUsersSnapshot()[0]);
-
-      service.removeRolesFromUsers(['5'], [UserRoleType.DIRECTOR]).subscribe();
-
-      expect(storage.getUsersSnapshot()[0].roles).toEqual([UserRoleType.DOCENTE]);
-      expect(auth.currentUser()?.roles).toEqual([UserRoleType.DOCENTE]);
-    });
-  });
 });

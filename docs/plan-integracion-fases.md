@@ -64,7 +64,7 @@ Hecho en el front:
 - Verificado de punta a punta contra Docker: TI (crear, corregir, radicar, NO APROBADO, v2, APROBADO →
   ANTEPROYECTO, descargas) y PP (carta reubicada, asesor, formato PP-A).
 
-Nota: el backend responde **406** (`NoAccessException`, GC-0008) cuando un usuario no tiene acceso a un
+Nota: el backend responde **403** (desde la fase 8; antes 406) (`NoAccessException`, GC-0008) cuando un usuario no tiene acceso a un
 trabajo o archivo; sus pruebas lo esperan así.
 
 Plan original:
@@ -184,10 +184,18 @@ Según las decisiones del §9 (detalle del backend en `sgtg_backend/docs/ajustes
 - **Propuesta:** la respuesta del Comité exige el documento de respuesta.
 - Backend 419 pruebas; Thunder 235 peticiones; E2E por nginx.
 
-### Fase 8 — Limpieza
-- Eliminar mocks, storages de IndexedDB y los roles “en memoria” de usuarios.
-- Quitar los `eventBus.emit` que quedan en los servicios (ya nadie los escucha para el buzón) y `AppEventType`.
-- Persistencia de la base de datos de desarrollo y el tema 406 frente a 403.
+### Fase 8 — Limpieza ✅ (2026-10-17)
+Según las decisiones del §10:
+- **Backend:** la falta de participación o de papel en el trabajo (`NoAccessException`) responde **403** (antes 406);
+  un documento o correo repetido sigue respondiendo 406. Docker usa `ddl-auto=update`: la base de desarrollo conserva
+  los datos entre reinicios (`docker compose down -v` para empezar de cero); las pruebas siguen con `create-drop`.
+  419 pruebas; Thunder 235 peticiones.
+- **Front:** se eliminaron el bus de eventos (`EventBusService`, `AppEventType` y sus `emit`), el almacén de
+  IndexedDB y la dependencia `fake-indexeddb`, los roles "en memoria" de usuarios y los métodos sin efecto de los
+  almacenes; los métodos con sufijo `Mock` que ya llamaban al backend se renombraron (`getThesisWorkById`,
+  `getProposalById`, `createProposal`, `updateProposal`, `createUser`, `updateUser`, `softDeleteUser`...). El buzón
+  refresca el usuario de la sesión (`/usuarios/me`) cuando llegan notificaciones nuevas, así los roles de contexto
+  que asigna el backend (evaluador, jurado...) aparecen sin volver a iniciar sesión. 1912 pruebas.
 
 ## 3. Inquietudes (decisiones antes o durante cada fase)
 
@@ -271,3 +279,9 @@ Confirmado después (2026-10-12):
    elegido para otro. Los datos existentes no importan (la base se recrea).
 4. **Propuesta:** cuando el director radica el formato A, la respuesta del Comité incluye un documento de respuesta
    obligatorio.
+
+## 10. Decisiones del 2026-10-17 (fase 8)
+
+1. **403 en vez de 406** para la falta de acceso a un trabajo (participación o papel).
+2. **Base de desarrollo persistente**: `ddl-auto=update` en Docker; las pruebas usan `create-drop`.
+3. **Refresco de roles**: el front refresca `/usuarios/me` cuando el buzón recibe notificaciones nuevas.

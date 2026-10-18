@@ -11,11 +11,11 @@ const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/
 
 describe('UploadFinalDeliveryFacadeService', () => {
   let facade: UploadFinalDeliveryFacadeService;
-  let thesisWorkService: { getThesisWorkByIdMock: jest.Mock; requestSustentation: jest.Mock };
+  let thesisWorkService: { getThesisWorkById: jest.Mock; requestSustentation: jest.Mock };
   let notification: { show: jest.Mock };
 
   beforeEach(() => {
-    thesisWorkService = { getThesisWorkByIdMock: jest.fn(), requestSustentation: jest.fn() };
+    thesisWorkService = { getThesisWorkById: jest.fn(), requestSustentation: jest.fn() };
     notification = { show: jest.fn() };
     TestBed.configureTestingModule({
       providers: [
@@ -30,11 +30,11 @@ describe('UploadFinalDeliveryFacadeService', () => {
     const thesis = thesisWorkDePrueba();
     const onSuccess = jest.fn();
     const onNotFound = jest.fn();
-    thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(thesis));
+    thesisWorkService.getThesisWorkById.mockReturnValue(of(thesis));
     facade.loadThesisWork('15', onSuccess, onNotFound);
-    thesisWorkService.getThesisWorkByIdMock.mockReturnValue(of(undefined));
+    thesisWorkService.getThesisWorkById.mockReturnValue(of(undefined));
     facade.loadThesisWork('99', onSuccess, onNotFound);
-    thesisWorkService.getThesisWorkByIdMock.mockReturnValue(throwError(() => new Error('x')));
+    thesisWorkService.getThesisWorkById.mockReturnValue(throwError(() => new Error('x')));
     facade.loadThesisWork('15', onSuccess, onNotFound);
     expect(onSuccess).toHaveBeenCalledWith(thesis);
     expect(onNotFound).toHaveBeenCalledTimes(2);

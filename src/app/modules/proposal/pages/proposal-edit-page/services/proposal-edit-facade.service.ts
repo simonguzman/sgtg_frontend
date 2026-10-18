@@ -20,7 +20,7 @@ export class ProposalEditFacadeService {
     onForbidden: () => void,
     onNotFound: () => void
   ): void {
-    this.proposalService.getProposalByIdMock(id)
+    this.proposalService.getProposalById(id)
       .pipe(first())
       .subscribe({
         next: (found) => {
@@ -62,7 +62,7 @@ export class ProposalEditFacadeService {
   ): void {
     this.showNotification('Procesando actualización', 'Estamos guardando los cambios en la propuesta...', NotificationType.INFO);
 
-    this.proposalService.updateProposalMock(id, data)
+    this.proposalService.updateProposal(id, data)
       .pipe(first())
       .subscribe({
         next: () => {

@@ -2,9 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ThesisWorkAdvanceService } from './thesis-work-advance.service';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import {
@@ -26,13 +24,11 @@ const leerDatos = (body: FormData): Promise<unknown> => new Promise((resolve, re
 describe('ThesisWorkAdvanceService', () => {
   let service: ThesisWorkAdvanceService;
   let http: HttpTestingController;
-  let eventBus: { emit: jest.Mock };
 
   beforeEach(() => {
     localStorage.clear();
-    eventBus = { emit: jest.fn() };
     TestBed.configureTestingModule({
-      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: EventBusService, useValue: eventBus }]
+      providers: [provideHttpClient(), provideHttpClientTesting()]
     });
     service = TestBed.inject(ThesisWorkAdvanceService);
     http = TestBed.inject(HttpTestingController);
@@ -53,11 +49,6 @@ describe('ThesisWorkAdvanceService', () => {
 
       expect(resultado?.advances?.[0]).toEqual(expect.objectContaining({ id: '1', status: stateList.EN_REVISION }));
       expect(TestBed.inject(TrabajoGradoStoreService).porId().get('15')?.ejecucion?.informesMensuales).toHaveLength(1);
-      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({
-        type: AppEventType.THESIS_ADVANCE_UPLOADED,
-        targetUserIds: ['10', '1'],
-        payload: expect.objectContaining({ thesisWorkId: '15', title: 'Informe mensual 1' })
-      }));
     });
 
     it('sin observaciones no envía la parte datos', () => {
@@ -75,7 +66,6 @@ describe('ThesisWorkAdvanceService', () => {
           { status: 406, statusText: 'Not Acceptable' });
 
       expect(error).toBeTruthy();
-      expect(eventBus.emit).not.toHaveBeenCalled();
     });
 
     it('falla si la respuesta no corresponde a un trabajo en curso', () => {
@@ -99,7 +89,6 @@ describe('ThesisWorkAdvanceService', () => {
 
       expect(resultado?.advances?.[0].status).toBe(stateList.EVALUADO);
       expect(resultado?.evaluations).toHaveLength(1);
-      expect(eventBus.emit).toHaveBeenCalledWith(expect.objectContaining({ type: AppEventType.THESIS_ADVANCE_EVALUATED }));
     });
 
     it('solo con el PDF de notas no envía observaciones', () => {

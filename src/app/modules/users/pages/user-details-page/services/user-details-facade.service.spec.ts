@@ -29,7 +29,7 @@ describe('Service: UserDetailsFacadeService', () => {
     navigate: jest.Mock<Promise<boolean>, [string[]]>;
   };
   let mockUserService: {
-    getUserByIdMock: jest.Mock<Observable<User | undefined>, [string]>;
+    getUserById: jest.Mock<Observable<User | undefined>, [string]>;
   };
   let mockAuthService: {
     currentUser: jest.Mock<User | null, []>;
@@ -43,7 +43,7 @@ describe('Service: UserDetailsFacadeService', () => {
       navigate: jest.fn().mockResolvedValue(true)
     };
     mockUserService = {
-      getUserByIdMock: jest.fn()
+      getUserById: jest.fn()
     };
     mockAuthService = {
       currentUser: jest.fn()
@@ -70,18 +70,18 @@ describe('Service: UserDetailsFacadeService', () => {
   });
   describe('Carga de Usuario Específico (Con ID)', () => {
     it('debería cargar datos del UserService, apagar isLoading y desactivar isMyProfile', () => {
-      mockUserService.getUserByIdMock.mockReturnValue(of(mockUser));
+      mockUserService.getUserById.mockReturnValue(of(mockUser));
       service.loadUser('123');
       expect(service.isMyProfile()).toBe(false);
-      expect(mockUserService.getUserByIdMock).toHaveBeenCalledWith('123');
+      expect(mockUserService.getUserById).toHaveBeenCalledWith('123');
       expect(service.user()).toEqual(mockUser);
       expect(service.isLoading()).toBe(false);
     });
     it('debería apagar isLoading incluso si ocurre un error en la carga', () => {
-      mockUserService.getUserByIdMock.mockReturnValue(throwError(() => new Error('Error')));
+      mockUserService.getUserById.mockReturnValue(throwError(() => new Error('Error')));
       service.loadUser('123');
       expect(service.isMyProfile()).toBe(false);
-      expect(mockUserService.getUserByIdMock).toHaveBeenCalledWith('123');
+      expect(mockUserService.getUserById).toHaveBeenCalledWith('123');
       expect(service.user()).toBeUndefined();
       expect(service.isLoading()).toBe(false);
     });
@@ -111,7 +111,7 @@ describe('Service: UserDetailsFacadeService', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/notifications']);
     });
     it('debería navegar a /users si está consultando otro usuario', () => {
-      mockUserService.getUserByIdMock.mockReturnValue(of(mockUser));
+      mockUserService.getUserById.mockReturnValue(of(mockUser));
       service.loadUser('123');
       service.goBack();
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/users']);

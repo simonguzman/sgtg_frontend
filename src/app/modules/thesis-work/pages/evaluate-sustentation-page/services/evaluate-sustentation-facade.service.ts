@@ -38,7 +38,7 @@ export class EvaluateSustentationFacadeService {
     onSuccess: (thesisWork: ThesisWork) => void,
     onError: () => void
   ): void {
-    this.thesisWorkService.getThesisWorkByIdMock(id)
+    this.thesisWorkService.getThesisWorkById(id)
       .pipe(first())
       .subscribe({
         next: (data) => data ? onSuccess(data) : onError(),

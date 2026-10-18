@@ -1,16 +1,11 @@
 import { inject, Injectable } from '@angular/core';
 import { map, Observable, tap } from 'rxjs';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
-import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { TrabajoGradoApiService } from '../../../core/services/trabajo-grado/trabajo-grado-api.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { TrabajoGradoVistasService } from '../../../core/services/trabajo-grado/trabajo-grado-vistas.service';
 import { aTrabajoDeGrado } from '../../../core/mappers/trabajo-grado.mapper';
 import { TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado-api.interface';
-import { UserService } from '../../users/services/user.service';
-import { collectParticipantIds } from '../helpers/thesis-participants.helper';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { SpecialRequest } from '../interfaces/special-request.interface';
 import { SpecialRequestType } from '../enums/special-request-type.enum';
@@ -51,8 +46,6 @@ const OPERACIONES: Partial<Record<SpecialRequestType, string>> = {
  */
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkSpecialRequestService {
-  private readonly eventBus = inject(EventBusService);
-  private readonly userService = inject(UserService);
   private readonly api = inject(TrabajoGradoApiService);
   private readonly store = inject(TrabajoGradoStoreService);
   private readonly vistas = inject(TrabajoGradoVistasService);
@@ -61,20 +54,7 @@ export class ThesisWorkSpecialRequestService {
   createSpecialRequest(thesisWorkId: string, solicitud: SpecialRequestSubmission): Observable<ThesisWork> {
     return this.enviarSolicitud(thesisWorkId, solicitud).pipe(
       tap(trabajo => this.store.upsert(trabajo)),
-      map(trabajo => this.vista(trabajo)),
-      tap(thesisWork => {
-        const reanudacion = solicitud.requestType === SpecialRequestType.REANUDACION;
-        this.eventBus.emit({
-          type: reanudacion ? AppEventType.THESIS_REACTIVATED : AppEventType.SPECIAL_REQUEST_CREATED,
-          targetUserIds: this.destinatarios(thesisWork, !reanudacion),
-          payload: {
-            thesisId: thesisWorkId,
-            thesisWorkId,
-            type: solicitud.requestType,
-            thesisTitle: thesisWork.preliminaryDraftData?.proposalData?.title ?? ''
-          }
-        });
-      })
+      map(trabajo => this.vista(trabajo))
     );
   }
 
@@ -92,17 +72,7 @@ export class ThesisWorkSpecialRequestService {
     return this.api.enviarArchivos(thesisWorkId, `${operacion}/decisiones-consejo`, datos,
       { archivo: decision.resolution }).pipe(
       tap(trabajo => this.store.upsert(trabajo)),
-      map(trabajo => this.vista(trabajo)),
-      tap(thesisWork => this.eventBus.emit({
-        type: AppEventType.SPECIAL_REQUEST_RESOLVED,
-        targetUserIds: this.destinatarios(thesisWork, false),
-        payload: {
-          thesisId: thesisWorkId,
-          thesisWorkId,
-          status: decision.status,
-          thesisTitle: thesisWork.preliminaryDraftData?.proposalData?.title ?? ''
-        }
-      }))
+      map(trabajo => this.vista(trabajo))
     );
   }
 
@@ -129,16 +99,5 @@ export class ThesisWorkSpecialRequestService {
     const thesisWork = aTrabajoDeGrado(trabajo, this.vistas.contexto());
     if (!thesisWork) throw new Error('El trabajo de grado no está en curso.');
     return thesisWork;
-  }
-
-  /** Participantes del trabajo y, si se indica, los miembros del Consejo. */
-  private destinatarios(thesisWork: ThesisWork, incluirConsejo: boolean): string[] {
-    const ids = collectParticipantIds(thesisWork.preliminaryDraftData?.proposalData);
-    if (incluirConsejo) {
-      ids.push(...this.userService.users()
-        .filter(user => user.roles.includes(UserRoleType.CONSEJO))
-        .map(user => user.id));
-    }
-    return [...new Set(ids)];
   }
 }

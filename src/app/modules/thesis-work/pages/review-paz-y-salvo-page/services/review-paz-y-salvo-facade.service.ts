@@ -19,7 +19,7 @@ export class ReviewPazYSalvoFacadeService {
   private readonly notificationService = inject(NotificationService);
 
   loadThesisWork(id: string, onSuccess: (work: ThesisWork) => void, onError: () => void): void {
-    this.thesisWorkService.getThesisWorkByIdMock(id).pipe(first()).subscribe({
+    this.thesisWorkService.getThesisWorkById(id).pipe(first()).subscribe({
       next: work => {
         if (!work) {
           this.show('No encontrado', 'El trabajo de grado solicitado no existe.', NotificationType.INFO);

@@ -49,15 +49,6 @@ export class ThesisWorkStorageService {
     );
   });
 
-  /**
-   * Sin efecto: el estado de los trabajos lo define el backend. Se conserva
-   * para los flujos simulados de la fase 6 (entrega final, sustentación), que
-   * se reemplazarán en esa fase.
-   */
-  public updateWork(_id: string, _mutator: (work: ThesisWork) => ThesisWork): void {
-    // Intencionalmente vacío
-  }
-
   /** Trabajo de grado por id (de memoria o del backend). */
   public getById(id: string): Observable<ThesisWork | undefined> {
     return this.vistas.trabajoDeGrado(id);

@@ -2,12 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ProposalService } from '../services/proposal.service';
-import { EventBusService } from '../../../core/services/eventbus/event-bus.service';
 import { AuthService } from '../../../core/services/auth/auth.service';
 import { Proposal } from '../interfaces/proposal.interface';
 import { Modality } from '../enums/modality.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
-import { AppEventType } from '../../../core/enums/app-event-type.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
@@ -32,7 +30,6 @@ const usuarioApi = (roles: string[]): UsuarioResponse => ({
 describe('Integración [Proposal]: Creación contra el backend y roles de contexto', () => {
   let proposalService: ProposalService;
   let http: HttpTestingController;
-  let eventBus: EventBusService;
 
   beforeEach(() => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -40,7 +37,6 @@ describe('Integración [Proposal]: Creación contra el backend y roles de contex
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     proposalService = TestBed.inject(ProposalService);
     http = TestBed.inject(HttpTestingController);
-    eventBus = TestBed.inject(EventBusService);
   });
 
   afterEach(() => jest.restoreAllMocks());
@@ -48,10 +44,9 @@ describe('Integración [Proposal]: Creación contra el backend y roles de contex
   it('crea el trabajo, radica el formato A, refresca los roles asignados por el backend y lo muestra en la lista', () => {
     // Docente sin el rol de director: el backend se lo asigna al crear el trabajo
     iniciarSesionConTrabajos(usuario({ id: '1', roles: [UserRoleType.DOCENTE] }), []);
-    const emitir = jest.spyOn(eventBus, 'emit');
 
     let creada: Proposal | undefined;
-    proposalService.createProposalMock({
+    proposalService.createProposal({
       title: 'Sistema de gestión',
       description: 'Objetivo general',
       objectives: ['Objetivo general', 'Objetivo específico'],
@@ -76,9 +71,5 @@ describe('Integración [Proposal]: Creación contra el backend y roles de contex
     expect(creada?.state).toBe(stateList.EN_REVISION);
     expect(TestBed.inject(AuthService).currentUser()?.roles).toContain(UserRoleType.DIRECTOR);
     expect(proposalService.proposals().map(p => p.id)).toEqual(['15']);
-    expect(emitir).toHaveBeenCalledWith(expect.objectContaining({
-      type: AppEventType.PROPOSAL_CREATED,
-      payload: expect.objectContaining({ proposalId: '15', proposalTitle: 'Sistema de gestión' })
-    }));
   });
 });

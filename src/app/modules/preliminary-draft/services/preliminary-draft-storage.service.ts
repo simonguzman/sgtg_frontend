@@ -61,25 +61,6 @@ export class PreliminaryDraftStorageService {
     return !!trabajo && tieneEvaluacionPendiente(trabajo, userId);
   }
 
-  /**
-   * Sin efecto: el estado de los anteproyectos lo define el backend. Se conservan
-   * para los flujos simulados de los módulos aún no integrados (trabajo de grado),
-   * que se reemplazarán en sus fases.
-   */
-  public updateDraft(_id: string, _mutator: (preliminaryDraft: PreliminaryDraft) => PreliminaryDraft): void {
-    // Intencionalmente vacío
-  }
-
-  /** Sin efecto (ver {@link updateDraft}). */
-  public addDraft(_preliminaryDraft: PreliminaryDraft): void {
-    // Intencionalmente vacío
-  }
-
-  /** Sin efecto (ver {@link updateDraft}). */
-  public removeDraft(_id: string): void {
-    // Intencionalmente vacío
-  }
-
   /** Anteproyecto por id (de memoria o del backend). */
   public getById(id: string): Observable<PreliminaryDraft | undefined> {
     return this.vistas.anteproyecto(id);
