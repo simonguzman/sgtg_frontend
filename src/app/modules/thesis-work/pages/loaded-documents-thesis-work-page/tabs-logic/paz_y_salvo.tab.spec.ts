@@ -9,7 +9,7 @@ describe('PazYSalvoTabConfig (revisión de Decanatura)', () => {
     const trabajo = thesisWorkDePrueba(crearTrabajoEnSustentacion());
     const filas = PazYSalvoTabConfig.getTableData([], PazYSalvoTabConfig.enrichEvaluationContext(contextoDePestana(trabajo)));
     expect(filas).toEqual([expect.objectContaining({
-      name: 'Paz y salvo (formato F) - paz-y-salvo', status: stateList.APROBADO, allowedActions: ['view-details']
+      name: 'Formato F (paz y salvo)', status: stateList.APROBADO, allowedActions: ['view-details']
     })]);
   });
 

@@ -10,6 +10,8 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { SaveEvaluationPayload } from '../models/council-evaluation.model';
+import { Modality } from '../../../../proposal/enums/modality.enum';
+import { formatDisplayDate } from '../../../../../core/utils/date-utils';
 
 const RESULT_TO_STATE: Record<string, stateList> = {
   'Aprobado': stateList.APROBADO,
@@ -34,11 +36,28 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
   readonly evaluationForm = this.fb.group({
     result: ['', Validators.required],
     comments: ['', Validators.required],
-    maximumDeliveryDate: [null as Date | null],
+    executionMonths: [null as number | null],
     document: [null]
   });
 
   readonly isReadOnly = computed(() => this.preliminaryDraft()?.state === stateList.APROBADO);
+
+  /**
+   * Plazos de ejecución que puede fijar el Consejo: 6 o 9 meses en trabajo de
+   * investigación; 6, 9 o 12 en práctica profesional. Se cuentan desde hoy
+   * (el día en que se registra la decisión).
+   */
+  readonly executionMonthOptions = computed(() => {
+    const meses = this.preliminaryDraft()?.proposalData?.modality === Modality.PP ? [6, 9, 12] : [6, 9];
+    return meses.map(months => ({ months, deadline: this.deadlineFor(months) }));
+  });
+
+  /** Fecha máxima de entrega con el plazo dado, contada desde hoy. */
+  deadlineFor(months: number): string {
+    const fecha = new Date();
+    fecha.setMonth(fecha.getMonth() + months);
+    return formatDisplayDate(fecha);
+  }
 
   readonly signedProposalDocument = computed<FormattedDocument | undefined>(() => {
     const proposal = this.preliminaryDraft()?.proposalData;
@@ -88,7 +107,7 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
     this.evaluationForm.get('result')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((value) => {
-        const dateControl = this.evaluationForm.get('maximumDeliveryDate');
+        const dateControl = this.evaluationForm.get('executionMonths');
         if (value === 'Aprobado') {
           dateControl?.setValidators([Validators.required]);
         } else {
@@ -128,7 +147,7 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
       formValues: {
         result: mappedResult,
         comments: raw.comments ?? '',
-        maximumDeliveryDate: raw.maximumDeliveryDate ?? null,
+        executionMonths: raw.executionMonths ?? null,
         document: null
       },
       file: fileData.file

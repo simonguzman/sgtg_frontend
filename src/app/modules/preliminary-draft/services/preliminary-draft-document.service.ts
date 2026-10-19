@@ -60,14 +60,18 @@ export class PreliminaryDraftDocumentService {
 
   /**
    * Decisión del Consejo de Facultad sobre el anteproyecto aprobado por los
-   * evaluadores, con la resolución. APROBADO deja el trabajo en curso; NO
+   * evaluadores, con la resolución. APROBADO deja el trabajo en curso con el plazo
+   * de ejecución elegido (meses desde hoy); NO
    * APROBADO lo devuelve al director para una nueva versión.
    */
   public registerCouncilDecision(preliminaryDraftId: string, veredict: stateList, observaciones: string,
-    resolucion: File): Observable<PreliminaryDraft> {
-    const resultado = veredict === stateList.APROBADO ? 'APROBADO' : 'NO_APROBADO';
-    return this.api.enviarArchivos(preliminaryDraftId, 'anteproyecto/decisiones-consejo',
-      { resultado, observaciones: observaciones || null }, { archivo: resolucion }).pipe(
+    resolucion: File, executionMonths: number | null = null): Observable<PreliminaryDraft> {
+    const aprobado = veredict === stateList.APROBADO;
+    return this.api.enviarArchivos(preliminaryDraftId, 'anteproyecto/decisiones-consejo', {
+      resultado: aprobado ? 'APROBADO' : 'NO_APROBADO',
+      observaciones: observaciones || null,
+      mesesEjecucion: aprobado ? executionMonths : null
+    }, { archivo: resolucion }).pipe(
       tap(trabajo => this.store.upsert(trabajo)),
       map(trabajo => this.vista(trabajo))
     );

@@ -206,7 +206,29 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
           @if (showDepartment) {
-            <!-- Departamento (director o codirector) -->
+            <!-- Vinculación (roles de perfil docente) -->
+            <div class="flex flex-col gap-1">
+              <label for="contractType" class="title-textbox">Tipo de vinculación <span class="text-[#ED7D31]">*</span></label>
+              <div class="relative flex items-center">
+                <select id="contractType" formControlName="contractType"
+                  class="font-sans font-normal text-size-body custom-select text-textbox p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10"
+                  [class.border-[#ED7D31]]="isFieldInvalid('contractType')">
+                  <option [ngValue]="null" disabled>Seleccione el tipo de vinculación</option>
+                  @for (contract of contractTypes; track contract.value) {
+                    <option [ngValue]="contract.value">{{ contract.label }}</option>
+                  }
+                </select>
+                <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
+              </div>
+              @if (isFieldInvalid('contractType')) {
+                <span class="text-textbox-alert">Seleccione el tipo de vinculación del docente</span>
+              }
+              @if (requiresCodirectorNotice) {
+                <span class="text-size-body text-[#777680]">Si no es de planta, al dirigir un trabajo de grado necesita un codirector de planta de su mismo departamento.</span>
+              }
+            </div>
+
+            <!-- Departamento (perfil docente) -->
             <div class="flex flex-col gap-1">
               <label for="departmentId" class="title-textbox">Departamento <span class="text-[#ED7D31]">*</span></label>
               <div class="relative flex items-center">
@@ -231,12 +253,6 @@
               </div>
             </div>
 
-            <!-- Vinculación deducida de los roles -->
-            <div class="flex flex-col gap-1">
-              <span class="title-textbox">Vinculación</span>
-              <span class="font-sans font-normal text-size-body text-textbox p-2">{{ contractTypeDescription }}</span>
-              <span class="text-size-body text-[#777680]">Se asigna según los roles: con rol Codirector es de planta; solo Director, ocasional.</span>
-            </div>
           }
 
           @if (showProgram) {

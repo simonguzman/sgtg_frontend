@@ -1,3 +1,4 @@
+import { ContractType } from '../../enum/contract-type.enum';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
@@ -216,32 +217,37 @@ describe('UserFormComponent', () => {
   });
 
   describe('Perfil académico según los roles', () => {
-    it('un director exige departamento y se registra como ocasional', () => {
-      component.userForm.controls.roles.setValue([UserRoleType.DOCENTE, UserRoleType.DIRECTOR]);
-      expect(component.showDepartment).toBe(true);
-      expect(component.userForm.get('departmentId')?.hasError('required')).toBe(true);
-      expect(component.contractTypeDescription).toContain('Ocasional');
-      expect(component.contractTypeDescription).toContain('requiere un codirector');
+    it('cualquier rol de perfil docente exige tipo de vinculación y departamento', () => {
+      for (const roles of [[UserRoleType.DOCENTE], [UserRoleType.DIRECTOR], [UserRoleType.CODIRECTOR],
+        [UserRoleType.EVALUADOR], [UserRoleType.JURADO], [UserRoleType.JURADO_COORDINADOR], [UserRoleType.JEFE_DEP]]) {
+        component.userForm.controls.roles.setValue(roles);
+        expect(component.showDepartment).toBe(true);
+        expect(component.userForm.get('contractType')?.hasError('required')).toBe(true);
+        expect(component.userForm.get('departmentId')?.hasError('required')).toBe(true);
+      }
     });
 
-    it('con rol codirector (solo o con director) es de planta', () => {
-      component.userForm.controls.roles.setValue([UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR]);
-      expect(component.contractTypeDescription).toContain('De planta');
-      expect(component.contractTypeDescription).toContain('no requiere codirector');
+    it('ofrece las vinculaciones del negocio sin valor por defecto', () => {
+      expect(component.contractTypes.map(c => c.value)).toEqual([ContractType.PLANTA, ContractType.OCASIONAL,
+        ContractType.CATEDRA, ContractType.ESTUDIANTE_POSGRADO]);
+      expect(component.contractTypes.map(c => c.label)).toEqual(['De planta', 'Ocasional', 'Cátedra',
+        'Estudiante de posgrado']);
+      expect(component.userForm.get('contractType')?.value).toBeNull();
     });
 
-    it('un jefe de departamento es de planta y exige su departamento', () => {
-      component.userForm.controls.roles.setValue([UserRoleType.DOCENTE, UserRoleType.JEFE_DEP]);
-      expect(component.showDepartment).toBe(true);
-      expect(component.userForm.get('departmentId')?.hasError('required')).toBe(true);
-      expect(component.contractTypeDescription).toContain('no requiere codirector');
+    it('si no es de planta avisa que al dirigir necesita un codirector de planta', () => {
+      component.userForm.controls.roles.setValue([UserRoleType.DOCENTE]);
+      component.userForm.controls.contractType.setValue(ContractType.CATEDRA);
+      expect(component.requiresCodirectorNotice).toBe(true);
+      component.userForm.controls.contractType.setValue(ContractType.PLANTA);
+      expect(component.requiresCodirectorNotice).toBe(false);
     });
 
-    it('otros docentes no tienen perfil: no se pide departamento', () => {
-      component.userForm.controls.roles.setValue([UserRoleType.DOCENTE, UserRoleType.EVALUADOR]);
+    it('sin roles de perfil docente no se piden vinculación ni departamento', () => {
+      component.userForm.controls.roles.setValue([UserRoleType.CONSEJO]);
       expect(component.showDepartment).toBe(false);
+      expect(component.userForm.get('contractType')?.hasError('required')).toBe(false);
       expect(component.userForm.get('departmentId')?.hasError('required')).toBe(false);
-      expect(component.contractTypeDescription).toBe('');
     });
 
     it('un estudiante exige programa', () => {

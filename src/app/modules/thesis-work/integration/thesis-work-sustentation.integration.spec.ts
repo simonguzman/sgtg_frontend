@@ -106,7 +106,7 @@ describe('Integración [Trabajo de Grado]: Sustentación con jurado coordinador 
       estado: 'AJUSTES_RADICADOS', rutaAjustes: '15/AJUSTES_SUSTENTACION/v1/ajustes.pdf',
       rutaAnexosAjustes: '15/ANEXOS/v2/anexos.pdf', fechaAjustes: '2026-07-24'
     }));
-    expect(trabajo().correctedDeliveries?.[0].annexes?.name).toBe('anexos');
+    expect(trabajo().correctedDeliveries?.[0].annexes?.name).toBe('Anexos – versión 2');
     service.verifyAdjustments('15', true, '').subscribe();
     http.expectOne(`${API}/15/sustentacion/ajustes/verificaciones`).flush(crearTrabajoEnSustentacion({
       estado: 'APROBADA'

@@ -1,6 +1,6 @@
 import {
   aAnteproyecto, aFecha, aPropuesta, aTrabajoDeGrado, aUsuario, ContextoMapeo, estadoAnteproyecto, estadoTrabajo,
-  nombreDeRuta, tipoDocumento, veredicto
+  etiquetaDeRuta, nombreDeRuta, tipoDocumento, veredicto
 } from './trabajo-grado.mapper';
 import {
   crearTrabajoConAnteproyectoRadicado, crearTrabajoDePrueba, crearTrabajoEnAnteproyecto, crearTrabajoEnCurso,
@@ -43,7 +43,7 @@ describe('trabajo-grado.mapper', () => {
       expect(propuesta.authors[0]).toEqual(expect.objectContaining({ id: '10', firstName: 'Eva', lastName: 'Estudiante' }));
       expect(propuesta.documents).toEqual([expect.objectContaining({
         id: '15/TI-A/v1/propuesta.pdf',
-        name: 'propuesta',
+        name: 'Formato A (propuesta)',
         type: DocumentType.PROPUESTA,
         url: '/api/v1/sgtg/trabajos-grado/15/archivos?ruta=15%2FTI-A%2Fv1%2Fpropuesta.pdf'
       })]);
@@ -65,7 +65,7 @@ describe('trabajo-grado.mapper', () => {
         evaluatorName: 'Comité de Programa',
         evaluatorRole: UserRoleType.COMITE,
         veredict: stateList.APROBADO,
-        signedDocuments: [expect.objectContaining({ name: 'acta' })]
+        signedDocuments: [expect.objectContaining({ name: 'Respuesta del Comité' })]
       })]);
     });
 
@@ -103,7 +103,7 @@ describe('trabajo-grado.mapper', () => {
       expect(propuesta.modality).toBe(Modality.PP);
       expect(propuesta.organization).toBe('Empresa');
       expect(propuesta.advisor).toEqual(expect.objectContaining({ id: 'externo:ana@empresa.com', firstName: 'Ana' }));
-      expect(propuesta.documents.map(d => d.name)).toEqual(['propuesta', 'carta']);
+      expect(propuesta.documents.map(d => d.name)).toEqual(['Formato A (propuesta)', 'Carta de aceptación']);
     });
 
     it('queda archivada y cancelada si el trabajo se cancela durante la propuesta', () => {
@@ -140,7 +140,7 @@ describe('trabajo-grado.mapper', () => {
       expect(anteproyecto.evaluations[0]).toEqual(expect.objectContaining({
         evaluatorId: '20', evaluatorRole: UserRoleType.EVALUADOR, veredict: stateList.APROBADO,
         documentId: '15/ANTEPROYECTO/v1/anteproyecto.pdf',
-        signedDocuments: [expect.objectContaining({ name: 'formato-b' })]
+        signedDocuments: [expect.objectContaining({ name: 'Formato B (concepto del evaluador)' })]
       }));
       expect(anteproyecto.evaluations[2].evaluatorRole).toBe(UserRoleType.CONSEJO);
       expect(anteproyecto.documents.map(d => d.type))
@@ -199,11 +199,11 @@ describe('trabajo-grado.mapper', () => {
       expect(primero).toEqual(expect.objectContaining({
         comments: 'Primer mes', studentId: '10', uploadedBy: 'Eva Estudiante'
       }));
-      expect(primero.documents[0]).toEqual(expect.objectContaining({ name: 'informe-1', type: DocumentType.AVANCE }));
+      expect(primero.documents[0]).toEqual(expect.objectContaining({ name: 'Formato D (informe mensual)', type: DocumentType.AVANCE }));
       expect(trabajo.evaluations).toEqual([expect.objectContaining({
         advanceId: '1', evaluatorId: '1', evaluatorName: 'Dora Directora Pérez', evaluatorRole: UserRoleType.DIRECTOR,
         veredict: stateList.EVALUADO, observations: 'Ajustar el cronograma',
-        signedDocuments: [expect.objectContaining({ name: 'notas' })]
+        signedDocuments: [expect.objectContaining({ name: 'Notas de revisión' })]
       })]);
     });
 
@@ -229,13 +229,13 @@ describe('trabajo-grado.mapper', () => {
       ]);
       const [prorroga, , suspension, cambio] = trabajo.specialRequests;
       expect(prorroga).toEqual(expect.objectContaining({ months: 2, description: 'Prórroga de 2 meses' }));
-      expect(prorroga.documents?.[0].name).toBe('prorroga');
+      expect(prorroga.documents?.[0].name).toBe('Solicitud de prórroga');
       expect(suspension.grantedDeadline).toEqual(new Date(2026, 11, 5));
       expect(cambio).toEqual(expect.objectContaining({
         description: 'Cambio de alcance', proposedTitle: 'Nuevo', proposedObjectives: ['G2', 'E2'],
         resolutionDetails: 'Procede', resolutionDate: new Date(2026, 4, 10)
       }));
-      expect(cambio.resolution?.name).toBe('resolucion');
+      expect(cambio.resolution?.name).toBe('Resolución del Consejo – versión 2');
     });
 
     it('las revisiones del paz y salvo de Decanatura: la más reciente primero; sin aprobar no se programa', () => {
@@ -261,15 +261,15 @@ describe('trabajo-grado.mapper', () => {
       const entrega = trabajo.finalDeliveries![0];
       expect(entrega.status).toBe(stateList.EN_REVISION);
       expect([entrega.monograph.name, entrega.formatE.name, entrega.pazYSalvo?.name, entrega.annexes?.name])
-        .toEqual(['monografia', 'formato-e', 'paz-y-salvo', 'anexos']);
+        .toEqual(['Monografía', 'Formato E (documento final)', 'Formato F (paz y salvo)', 'Anexos']);
       expect(entrega.monograph.type).toBe(DocumentType.MONOGRAFIA);
-      expect(trabajo.pazYSalvos?.[0].document.name).toBe('paz-y-salvo');
+      expect(trabajo.pazYSalvos?.[0].document.name).toBe('Formato F (paz y salvo)');
       expect(trabajo.pazYSalvos?.[0].document.status).toBe(stateList.APROBADO);
       expect(trabajo.sustentations?.[0]).toEqual(expect.objectContaining({
         number: 1, status: SustentationStatus.PROGRAMADA, sustentationTime: '09:30', location: 'Sala 1',
         coordinatorId: '30'
       }));
-      expect(trabajo.sustentations?.[0].formatEDocument?.name).toBe('formato-e-consejo');
+      expect(trabajo.sustentations?.[0].formatEDocument?.name).toBe('Formato E (documento final) – versión 2');
       expect(trabajo.sustentations?.[0].assignedJurors.map(j => j.id)).toEqual(['30', '31']);
     });
 
@@ -290,7 +290,7 @@ describe('trabajo-grado.mapper', () => {
       expect(trabajo.sustentations?.[1].verdicts[0]).toEqual(expect.objectContaining({
         jurorId: '30', veredict: stateList.APLAZADO
       }));
-      expect(trabajo.sustentations?.[1].verdicts[0].attachedDocument?.name).toBe('acta');
+      expect(trabajo.sustentations?.[1].verdicts[0].attachedDocument?.name).toBe('Formato G (acta de sustentación)');
     });
 
     it('los ajustes con anexos y la verificación del coordinador', () => {
@@ -303,7 +303,7 @@ describe('trabajo-grado.mapper', () => {
 
       const ajustes = trabajo.correctedDeliveries![0];
       expect(ajustes.status).toBe(stateList.APROBADO);
-      expect(ajustes.annexes?.name).toBe('anexos-ajustes');
+      expect(ajustes.annexes?.name).toBe('Anexos – versión 2');
       expect(ajustes.verification).toEqual(expect.objectContaining({ favorable: true, jurorName: 'Juan Coordinador' }));
     });
 
@@ -319,14 +319,14 @@ describe('trabajo-grado.mapper', () => {
         id: 'nueva-fecha-0', requestType: SpecialRequestType.NUEVA_SUSTENTACION, status: stateList.EN_REVISION,
         description: 'Nueva fecha para la sesión 1 de sustentación (programada para el 15/07/2026 09:30)'
       }));
-      expect(trabajo.specialRequests[0].documents?.[0].name).toBe('nueva-fecha');
+      expect(trabajo.specialRequests[0].documents?.[0].name).toBe('Solicitud de nueva fecha');
     });
 
     it('la versión definitiva es un documento de cierre (formato H)', () => {
       const trabajo = aTrabajoDeGrado(crearTrabajoEnSustentacion({
         estado: 'FINALIZADA', rutaVersionDefinitiva: '15/TI-H/v1/definitiva.pdf', fechaVersionDefinitiva: '2026-07-25'
       }, { etapa: 'FINALIZADO' }), ctx)!;
-      expect(trabajo.documents.map(d => [d.name, d.type])).toEqual([['definitiva', DocumentType.FORMATO_H]]);
+      expect(trabajo.documents.map(d => [d.name, d.type])).toEqual([['Formato H (versión definitiva)', DocumentType.FORMATO_H]]);
     });
   });
 
@@ -364,7 +364,7 @@ describe('trabajo-grado.mapper', () => {
             version: 1, fechaCarga: '2026-03-12' } }] }
       });
       expect(aAnteproyecto(conAnotaciones, ctx)?.evaluations[0].signedDocuments?.map(d => d.name))
-        .toEqual(['formato-b', 'notas']);
+        .toEqual(['Formato B (concepto del evaluador)', 'Anotaciones del evaluador']);
     });
 
     it('el estado del anteproyecto es el de su última versión', () => {
@@ -416,5 +416,24 @@ describe('trabajo-grado.mapper', () => {
         id: '99', firstName: 'Nombre', lastName: 'Compuesto Apellido', email: 'n@u.edu.co', codeNumber: 1099
       }));
     });
+  });
+});
+
+describe('etiquetaDeRuta', () => {
+  it('muestra a qué corresponde el archivo y no su nombre', () => {
+    expect(etiquetaDeRuta('15/TI-A/v1/Formato A - v1.pdf')).toBe('Formato A (propuesta)');
+    expect(etiquetaDeRuta('15/PP-B/v1/Formato B - v1.pdf')).toBe('Formato B (concepto del evaluador)');
+    expect(etiquetaDeRuta('15/ANTEPROYECTO/v1/Anteproyecto - v1.pdf')).toBe('Anteproyecto');
+    expect(etiquetaDeRuta('15/CARTA_ACEPTACION/v1/Carta de aceptacion - v1.pdf')).toBe('Carta de aceptación');
+    expect(etiquetaDeRuta('15/RESOLUCION/v1/Resolucion - v1.pdf')).toBe('Resolución del Consejo');
+  });
+
+  it('agrega la versión desde la segunda', () => {
+    expect(etiquetaDeRuta('15/TI-A/v2/Formato A - v2.pdf')).toBe('Formato A (propuesta) – versión 2');
+    expect(etiquetaDeRuta('15/ANEXOS/v3/Anexos - v3.pdf')).toBe('Anexos – versión 3');
+  });
+
+  it('con una carpeta desconocida usa el nombre del archivo', () => {
+    expect(etiquetaDeRuta('15/OTRA/v1/documento.pdf')).toBe('documento');
   });
 });

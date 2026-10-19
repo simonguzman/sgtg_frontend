@@ -46,6 +46,7 @@ const formUser = (overrides: Partial<User> = {}): User => ({
   password: 'Clave1234',
   state: UserState.active,
   department: { id: 1, name: 'Sistemas' },
+  contractType: ContractType.OCASIONAL,
   program: null,
   ...overrides
 });
@@ -111,7 +112,7 @@ describe('UserApiService', () => {
   });
 
   describe('crear y editar', () => {
-    it('createUser envía el usuario con la vinculación deducida y lo agrega a la lista', () => {
+    it('createUser envía el usuario con la vinculación elegida y lo agrega a la lista', () => {
       let saved: User | undefined;
       service.createUser(formUser()).subscribe(u => saved = u);
 
@@ -132,10 +133,10 @@ describe('UserApiService', () => {
       expect(storage.getUsersSnapshot().map(u => u.id)).toEqual(['5']);
     });
 
-    it('un codirector se crea con vinculación de planta', () => {
-      service.createUser(formUser({ roles: [UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR] })).subscribe();
+    it('la vinculación no se deduce de los roles: un codirector lleva la que se eligió', () => {
+      service.createUser(formUser({ roles: [UserRoleType.CODIRECTOR], contractType: ContractType.CATEDRA })).subscribe();
       const req = http.expectOne(API);
-      expect(req.request.body.tipoVinculacion).toBe('PLANTA');
+      expect(req.request.body.tipoVinculacion).toBe('CATEDRA');
       req.flush(usuarioApi());
     });
 

@@ -12,7 +12,7 @@ import { RolesSelectionModalComponent } from '../../../../shared/components/moda
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { CatalogApiService } from '../../../../core/services/catalog/catalog-api.service';
-import { contractTypeForRoles, requiresDepartment, requiresProgram } from '../../../../core/mappers/usuario.mapper';
+import { requiresProgram, requiresTeacherProfile } from '../../../../core/mappers/usuario.mapper';
 import { apiErrorMessage } from '../../../../core/utils/api-error.utils';
 
 /** Longitud mínima de la contraseña (igual que en el backend). */
@@ -31,6 +31,8 @@ export class UserFormComponent  {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly identificationTypes = Object.values(IdentificationType);
+  /** Vinculaciones del negocio (`TipoVinculacion`) */
+  readonly contractTypes = Object.values(ContractType).map(value => ({ value, label: CONTRACT_TYPE_LABELS[value] }));
   readonly minPasswordLength = MIN_PASSWORD_LENGTH;
 
   /** Catálogos del backend para el perfil académico */
@@ -57,6 +59,7 @@ export class UserFormComponent  {
     }),
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.minLength(MIN_PASSWORD_LENGTH)]],
+    contractType: [null as ContractType | null],
     departmentId: [null as number | null],
     programId: [null as number | null]
   })
@@ -95,6 +98,7 @@ export class UserFormComponent  {
           ...userData,
           idType: this.toIdentificationLabel(userData.idType),
           password: '',
+          contractType: userData.contractType ?? null,
           departmentId: userData.department?.id ?? null,
           programId: userData.program?.id ?? null
         });
@@ -107,6 +111,7 @@ export class UserFormComponent  {
         secondLastName: '',
         email: '',
         password: '',
+        contractType: null,
         departmentId: null,
         programId: null
       });
@@ -116,15 +121,18 @@ export class UserFormComponent  {
       this.updateProfileValidators();
   }
 
-  /** El departamento es obligatorio para director/codirector y el programa para estudiantes. */
+  /**
+   * Con un rol de perfil docente son obligatorios la vinculación y el
+   * departamento; con el rol de estudiante, el programa.
+   */
   private updateProfileValidators(): void {
     const roles = this.userForm.controls.roles.value;
-    const department = this.userForm.controls.departmentId;
-    const program = this.userForm.controls.programId;
-    department.setValidators(requiresDepartment(roles) ? [Validators.required] : []);
-    program.setValidators(requiresProgram(roles) ? [Validators.required] : []);
-    department.updateValueAndValidity({ emitEvent: false });
-    program.updateValueAndValidity({ emitEvent: false });
+    const docente = requiresTeacherProfile(roles);
+    const { contractType, departmentId, programId } = this.userForm.controls;
+    contractType.setValidators(docente ? [Validators.required] : []);
+    departmentId.setValidators(docente ? [Validators.required] : []);
+    programId.setValidators(requiresProgram(roles) ? [Validators.required] : []);
+    [contractType, departmentId, programId].forEach(control => control.updateValueAndValidity({ emitEvent: false }));
   }
 
   /** Acepta la clave (`CC`) o la etiqueta del tipo de documento y devuelve la etiqueta. */
@@ -137,9 +145,9 @@ export class UserFormComponent  {
     return !!this.user();
   }
 
-  /** ¿Los roles elegidos requieren departamento (perfil docente)? */
+  /** ¿Los roles elegidos requieren perfil docente (vinculación y departamento)? */
   get showDepartment(): boolean {
-    return requiresDepartment(this.userForm.controls.roles.value);
+    return requiresTeacherProfile(this.userForm.controls.roles.value);
   }
 
   /** ¿Los roles elegidos requieren programa (perfil de estudiante)? */
@@ -147,15 +155,10 @@ export class UserFormComponent  {
     return requiresProgram(this.userForm.controls.roles.value);
   }
 
-  /** Vinculación que se registrará según los roles (el formulario no la pregunta). */
-  get contractTypeDescription(): string {
-    const contractType = contractTypeForRoles(this.userForm.controls.roles.value);
-    if (!contractType) return '';
-    // Solo el docente ocasional necesita un codirector de planta (Art. 6)
-    const requiresCodirector = contractType === ContractType.OCASIONAL
-      ? 'requiere un codirector de planta del mismo departamento al dirigir'
-      : 'no requiere codirector';
-    return `${CONTRACT_TYPE_LABELS[contractType]} (${requiresCodirector})`;
+  /** El docente que no es de planta necesita un codirector de planta al dirigir (Art. 6). */
+  get requiresCodirectorNotice(): boolean {
+    const contractType = this.userForm.controls.contractType.value;
+    return !!contractType && contractType !== ContractType.PLANTA;
   }
 
   submit() {
@@ -163,10 +166,11 @@ export class UserFormComponent  {
       this.handleInvalidForm();
       return;
     }
-    const { departmentId, programId, ...formValues } = this.userForm.getRawValue();
+    const { departmentId, programId, contractType, ...formValues } = this.userForm.getRawValue();
     const updatedUser: User = {
       ...this.user(),
       ...(formValues as unknown as User),
+      contractType: this.showDepartment ? contractType : null,
       department: this.departments().find(department => department.id === Number(departmentId)) ?? null,
       program: this.programs().find(program => program.id === Number(programId)) ?? null
     };

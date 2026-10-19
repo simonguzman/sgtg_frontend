@@ -95,7 +95,7 @@ describe('EvaluateSpecialRequestFacadeService', () => {
     it('descarga el documento de la solicitud', async () => {
       const documento = thesis.specialRequests[0].documents![0];
       await facade.downloadDocument(documento);
-      expect(download.download).toHaveBeenCalledWith(documento.url, 'p.pdf');
+      expect(download.download).toHaveBeenCalledWith(documento.url, 'Solicitud de prórroga.pdf');
     });
 
     it('si la descarga falla, avisa', async () => {

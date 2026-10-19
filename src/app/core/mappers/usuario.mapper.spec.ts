@@ -1,4 +1,4 @@
-import { aClaveDeRol, contractTypeForRoles, mapUserToUsuarioRequest, mapUsuarioToUser, requiresDepartment, requiresProgram } from './usuario.mapper';
+import { aClaveDeRol, mapUserToUsuarioRequest, mapUsuarioToUser, requiresProgram, requiresTeacherProfile } from './usuario.mapper';
 import { UsuarioResponse } from '../interfaces/api/auth-api.interface';
 import { UserRoleType } from '../enums/user-role-type.enum';
 import { IdentificationType } from '../../modules/users/enum/identification-type.enum';
@@ -82,26 +82,13 @@ describe('mapUsuarioToUser', () => {
   });
 });
 
-describe('vinculación según los roles', () => {
-  it('con rol CODIRECTOR (solo o con DIRECTOR) es de planta', () => {
-    expect(contractTypeForRoles([UserRoleType.DOCENTE, UserRoleType.CODIRECTOR])).toBe(ContractType.PLANTA);
-    expect(contractTypeForRoles([UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR])).toBe(ContractType.PLANTA);
-  });
-
-  it('con rol DIRECTOR sin CODIRECTOR es ocasional (requiere codirector)', () => {
-    expect(contractTypeForRoles([UserRoleType.DOCENTE, UserRoleType.DIRECTOR])).toBe(ContractType.OCASIONAL);
-  });
-
-  it('con rol JEFE_DEP es de planta y exige el departamento', () => {
-    expect(contractTypeForRoles([UserRoleType.DOCENTE, UserRoleType.JEFE_DEP])).toBe(ContractType.PLANTA);
-    expect(contractTypeForRoles([UserRoleType.JEFE_DEP, UserRoleType.DIRECTOR])).toBe(ContractType.PLANTA);
-    expect(requiresDepartment([UserRoleType.JEFE_DEP])).toBe(true);
-  });
-
-  it('con otros roles no hay perfil docente', () => {
-    expect(contractTypeForRoles([UserRoleType.DOCENTE, UserRoleType.EVALUADOR])).toBeNull();
-    expect(requiresDepartment([UserRoleType.DOCENTE])).toBe(false);
-    expect(requiresDepartment([UserRoleType.DIRECTOR])).toBe(true);
+describe('perfil docente según los roles', () => {
+  it('cualquier rol de perfil docente pide vinculación y departamento', () => {
+    for (const rol of [UserRoleType.DOCENTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.EVALUADOR,
+      UserRoleType.JURADO, UserRoleType.JURADO_COORDINADOR, UserRoleType.JEFE_DEP]) {
+      expect(requiresTeacherProfile([rol])).toBe(true);
+    }
+    expect(requiresTeacherProfile([UserRoleType.ESTUDIANTE, UserRoleType.CONSEJO])).toBe(false);
   });
 
   it('el programa solo se exige a los estudiantes', () => {
@@ -112,7 +99,7 @@ describe('vinculación según los roles', () => {
 
 describe('mapUserToUsuarioRequest', () => {
   it('envía claves del backend, texto en código y documento, y null en lo opcional vacío', () => {
-    expect(mapUserToUsuarioRequest(user({ roles: [UserRoleType.DOCENTE, UserRoleType.EVALUADOR] }))).toEqual({
+    expect(mapUserToUsuarioRequest(user({ roles: [UserRoleType.COMITE, UserRoleType.CONSEJO] }))).toEqual({
       codigo: '104618021',
       tipoDocumento: 'CC',
       numeroDocumento: '1061000000',
@@ -122,28 +109,26 @@ describe('mapUserToUsuarioRequest', () => {
       segundoNombre: null,
       primerApellido: 'Pérez',
       segundoApellido: 'Gómez',
-      roles: ['DOCENTE', 'EVALUADOR'],
+      roles: ['COMITE', 'CONSEJO'],
       tipoVinculacion: null,
       departamentoId: null,
       programaId: null
     });
   });
 
-  it('un director lleva vinculación ocasional y su departamento', () => {
-    const request = mapUserToUsuarioRequest(user({ roles: [UserRoleType.DOCENTE, UserRoleType.DIRECTOR] }));
-    expect(request.tipoVinculacion).toBe('OCASIONAL');
+  it('un docente lleva la vinculación elegida y su departamento (sin deducirla de los roles)', () => {
+    const request = mapUserToUsuarioRequest(user({ roles: [UserRoleType.DOCENTE], contractType: ContractType.CATEDRA }));
+    expect(request.tipoVinculacion).toBe('CATEDRA');
     expect(request.departamentoId).toBe(3);
+
+    const codirector = mapUserToUsuarioRequest(user({ roles: [UserRoleType.CODIRECTOR], contractType: ContractType.OCASIONAL }));
+    expect(codirector.tipoVinculacion).toBe('OCASIONAL');
   });
 
-  it('un jefe de departamento lleva vinculación de planta y su departamento', () => {
-    const request = mapUserToUsuarioRequest(user({ roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] }));
-    expect(request.tipoVinculacion).toBe('PLANTA');
-    expect(request.departamentoId).toBe(3);
-  });
-
-  it('un director que también es codirector es de planta', () => {
-    const request = mapUserToUsuarioRequest(user({ roles: [UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR] }));
-    expect(request.tipoVinculacion).toBe('PLANTA');
+  it('sin roles de perfil docente no envía vinculación ni departamento', () => {
+    const request = mapUserToUsuarioRequest(user({ roles: [UserRoleType.CONSEJO], contractType: ContractType.PLANTA }));
+    expect(request.tipoVinculacion).toBeNull();
+    expect(request.departamentoId).toBeNull();
   });
 
   it('un estudiante lleva su programa', () => {

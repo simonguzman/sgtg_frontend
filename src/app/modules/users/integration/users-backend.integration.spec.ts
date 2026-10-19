@@ -1,3 +1,4 @@
+import { ContractType } from '../enum/contract-type.enum';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -102,7 +103,7 @@ describe('Integración [Users]: administración de usuarios contra el backend', 
       id: '', idType: IdentificationType.CC, idNumber: 1069, firstName: 'Ana', secondName: '', lastName: 'Pérez',
       secondLastName: 'Gómez', codeNumber: 109, roles: [UserRoleType.DOCENTE, UserRoleType.DIRECTOR],
       email: 'ana@unicauca.edu.co', password: 'Clave1234', state: UserState.active,
-      department: { id: 1, name: 'Sistemas' }
+      department: { id: 1, name: 'Sistemas' }, contractType: ContractType.OCASIONAL
     };
     let exito = false;
     formFacade.createUser(nuevo, () => exito = true);

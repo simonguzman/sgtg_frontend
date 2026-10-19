@@ -38,23 +38,17 @@ export function mapUsuarioToUser(dto: UsuarioResponse): User {
 }
 
 /**
- * Vinculación que se registra para el docente según sus roles. El formulario
- * no pregunta el tipo de contrato, así que se deduce:
- * - con rol CODIRECTOR (solo o junto con DIRECTOR): PLANTA, no necesita codirector;
- * - con rol JEFE_DEP: PLANTA, con el departamento que dirige (el backend lo exige
- *   para asignar los evaluadores del anteproyecto);
- * - con rol DIRECTOR sin CODIRECTOR ni JEFE_DEP: OCASIONAL, necesita un codirector de planta;
- * - con otros roles: sin perfil docente (null).
+ * Roles que llevan perfil docente (vinculación y departamento), iguales a
+ * `ROLES_DOCENTE` del backend.
  */
-export function contractTypeForRoles(roles: UserRoleType[]): ContractType | null {
-  if (roles.includes(UserRoleType.CODIRECTOR) || roles.includes(UserRoleType.JEFE_DEP)) return ContractType.PLANTA;
-  if (roles.includes(UserRoleType.DIRECTOR)) return ContractType.OCASIONAL;
-  return null;
-}
+export const ROLES_DOCENTE: readonly UserRoleType[] = [
+  UserRoleType.DOCENTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.EVALUADOR,
+  UserRoleType.JURADO, UserRoleType.JURADO_COORDINADOR, UserRoleType.JEFE_DEP
+];
 
-/** @returns true si los roles exigen perfil docente (y por tanto departamento) */
-export function requiresDepartment(roles: UserRoleType[]): boolean {
-  return contractTypeForRoles(roles) !== null;
+/** @returns true si los roles exigen perfil docente (vinculación y departamento) */
+export function requiresTeacherProfile(roles: UserRoleType[]): boolean {
+  return roles.some(rol => ROLES_DOCENTE.includes(rol));
 }
 
 /** @returns true si los roles exigen perfil de estudiante (y por tanto programa) */
@@ -64,12 +58,12 @@ export function requiresProgram(roles: UserRoleType[]): boolean {
 
 /**
  * Convierte el usuario del formulario al cuerpo que esperan `POST /usuarios`
- * y `PUT /usuarios/{id}`. La vinculación se deduce de los roles
- * ({@link contractTypeForRoles}); el departamento y el programa solo se envían
- * si los roles los requieren.
+ * y `PUT /usuarios/{id}`. La vinculación (elegida en el formulario) y el
+ * departamento solo se envían con roles de perfil docente; el programa, con
+ * el rol de estudiante.
  */
 export function mapUserToUsuarioRequest(user: User): UsuarioRequest {
-  const vinculacion = contractTypeForRoles(user.roles);
+  const docente = requiresTeacherProfile(user.roles);
   return {
     codigo: String(user.codeNumber ?? ''),
     tipoDocumento: aTipoDocumentoApi(user.idType),
@@ -81,8 +75,8 @@ export function mapUserToUsuarioRequest(user: User): UsuarioRequest {
     primerApellido: user.lastName,
     segundoApellido: vacioANull(user.secondLastName),
     roles: user.roles.map(aClaveDeRol),
-    tipoVinculacion: vinculacion,
-    departamentoId: vinculacion ? user.department?.id ?? null : null,
+    tipoVinculacion: docente ? user.contractType ?? null : null,
+    departamentoId: docente ? user.department?.id ?? null : null,
     programaId: requiresProgram(user.roles) ? user.program?.id ?? null : null
   };
 }

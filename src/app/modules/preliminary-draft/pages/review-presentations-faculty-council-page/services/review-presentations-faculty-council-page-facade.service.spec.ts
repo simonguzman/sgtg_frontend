@@ -193,7 +193,7 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
 
   describe('Flujo de Confirmación y Decisión', () => {
     const mockPayload: SaveEvaluationPayload = {
-      formValues: { result: stateList.APROBADO, comments: 'Excelente', maximumDeliveryDate: null, document: null },
+      formValues: { result: stateList.APROBADO, comments: 'Excelente', executionMonths: 9, document: null },
       file: new File([''], 'resolucion.pdf', { type: 'application/pdf' })
     };
 
@@ -221,7 +221,7 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
       await facade.processCouncilDecision();
 
       expect(mockPreliminaryDraftService.registerCouncilDecision)
-        .toHaveBeenCalledWith(mockDraft.preliminaryDraftId, stateList.APROBADO, 'Excelente', mockPayload.file);
+        .toHaveBeenCalledWith(mockDraft.preliminaryDraftId, stateList.APROBADO, 'Excelente', mockPayload.file, 9);
       expect(mockNotification.show).toHaveBeenCalledWith(
         expect.objectContaining({ type: NotificationType.CONFIRMATION })
       );
@@ -236,7 +236,7 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
       await facade.processCouncilDecision();
 
       expect(mockPreliminaryDraftService.registerCouncilDecision)
-        .toHaveBeenCalledWith(mockDraft.preliminaryDraftId, stateList.NO_APROBADO, 'Excelente', mockPayload.file);
+        .toHaveBeenCalledWith(mockDraft.preliminaryDraftId, stateList.NO_APROBADO, 'Excelente', mockPayload.file, 9);
     });
 
     it('muestra el mensaje del backend si falla el registro', async () => {

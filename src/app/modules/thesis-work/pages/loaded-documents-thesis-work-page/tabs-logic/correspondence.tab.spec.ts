@@ -12,7 +12,7 @@ describe('CorrespondenceTabConfig (versión definitiva)', () => {
     const contexto = CorrespondenceTabConfig.enrichEvaluationContext(contextoDePestana(finalizado));
     expect(contexto.hasCorrespondence).toBe(true);
     expect(CorrespondenceTabConfig.getTableData(finalizado.documents, contexto)).toEqual([expect.objectContaining({
-      name: 'definitiva', status: stateList.APROBADO, allowedActions: ['view-details']
+      name: 'Formato H (versión definitiva)', status: stateList.APROBADO, allowedActions: ['view-details']
     })]);
   });
 

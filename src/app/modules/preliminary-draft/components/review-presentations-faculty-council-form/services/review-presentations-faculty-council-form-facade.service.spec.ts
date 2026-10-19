@@ -12,6 +12,8 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
+import { Modality } from '../../../../proposal/enums/modality.enum';
+import { formatDisplayDate } from '../../../../../core/utils/date-utils';
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -143,20 +145,22 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
       facade.initFormEffects();
     });
 
-    it('debería requerir maximumDeliveryDate si el result es "Aprobado"', () => {
+    it('debería requerir el plazo de ejecución si el result es "Aprobado"', () => {
       facade.evaluationForm.patchValue({ result: 'Aprobado' });
 
-      const dateControl = facade.evaluationForm.get('maximumDeliveryDate');
-      expect(dateControl?.valid).toBeFalsy();
+      const monthsControl = facade.evaluationForm.get('executionMonths');
+      expect(monthsControl?.valid).toBeFalsy();
+      monthsControl?.setValue(9);
+      expect(monthsControl?.valid).toBeTruthy();
     });
 
-    it('NO debería requerir maximumDeliveryDate si el result NO es "Aprobado"', () => {
+    it('NO debería requerir el plazo de ejecución si el result NO es "Aprobado"', () => {
       facade.evaluationForm.patchValue({ result: 'Aprobado' });
       facade.evaluationForm.patchValue({ result: 'No aprobado' });
 
-      const dateControl = facade.evaluationForm.get('maximumDeliveryDate');
-      expect(dateControl?.valid).toBeTruthy();
-      expect(dateControl?.value).toBeNull();
+      const monthsControl = facade.evaluationForm.get('executionMonths');
+      expect(monthsControl?.valid).toBeTruthy();
+      expect(monthsControl?.value).toBeNull();
     });
 
     it('debería deshabilitar el formulario si isReadOnly es true', () => {
@@ -229,6 +233,25 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
       expect(payload).toBeTruthy();
       expect(payload?.formValues.result).toBe(stateList.NO_APROBADO);
       expect(payload?.file).toEqual(mockFile);
+    });
+  });
+
+  describe('Plazo de ejecución que fija el Consejo', () => {
+    it('trabajo de investigación: 6 o 9 meses, contados desde hoy', () => {
+      facade.preliminaryDraft.set(createMockDraft({ proposalData: createMockProposal({ modality: Modality.TI }) }));
+      expect(facade.executionMonthOptions().map(o => o.months)).toEqual([6, 9]);
+    });
+
+    it('práctica profesional: 6, 9 o 12 meses', () => {
+      facade.preliminaryDraft.set(createMockDraft({ proposalData: createMockProposal({ modality: Modality.PP }) }));
+      expect(facade.executionMonthOptions().map(o => o.months)).toEqual([6, 9, 12]);
+    });
+
+    it('muestra la fecha en que vence cada plazo, contada desde hoy', () => {
+      const enSeisMeses = new Date();
+      enSeisMeses.setMonth(enSeisMeses.getMonth() + 6);
+      expect(facade.deadlineFor(6)).toBe(formatDisplayDate(enSeisMeses));
+      expect(facade.executionMonthOptions()[0].deadline).toBe(formatDisplayDate(enSeisMeses));
     });
   });
 });

@@ -64,7 +64,7 @@ const createMockPayload = (): SaveEvaluationPayload => ({
   formValues: {
     result: stateList.APROBADO,
     comments: 'Excelente',
-    maximumDeliveryDate: null,
+    executionMonths: 9,
     document: null
   },
   file: new File([''], 'resolucion.pdf', { type: 'application/pdf' })

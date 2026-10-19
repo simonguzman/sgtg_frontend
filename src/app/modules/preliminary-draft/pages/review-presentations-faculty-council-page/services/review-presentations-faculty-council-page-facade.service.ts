@@ -96,12 +96,13 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
     }
 
     const finalState = data.formValues.result === stateList.APROBADO ? stateList.APROBADO : stateList.NO_APROBADO;
-    // La fecha máxima de entrega la calcula el backend al aprobar (plazo de la modalidad)
+    // El backend calcula la fecha máxima de entrega con el plazo elegido, desde hoy
     this.preliminaryDraftService.registerCouncilDecision(
         preliminaryDraft.preliminaryDraftId,
         finalState,
         data.formValues.comments ?? '',
-        data.file
+        data.file,
+        data.formValues.executionMonths
       )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

@@ -82,9 +82,11 @@ export class PreliminaryDraftService {
     preliminaryDraftId: string,
     veredict: stateList,
     observaciones: string,
-    resolucion: File
+    resolucion: File,
+    executionMonths: number | null = null
   ): Observable<PreliminaryDraft> {
-    return this.document.registerCouncilDecision(preliminaryDraftId, veredict, observaciones, resolucion);
+    return this.document.registerCouncilDecision(preliminaryDraftId, veredict, observaciones, resolucion,
+      executionMonths);
   }
 
   calculateDocumentStatus(

@@ -40,7 +40,7 @@ export const PazYSalvoTabConfig: TabConfiguration<PazYSalvoTableRow> = {
   getTableData: (_documents: FileDocument[], context: ThesisEvaluationContext): PazYSalvoTableRow[] =>
     (context.thesisWork?.pazYSalvos ?? []).map((registro: PazYSalvoRegistry): PazYSalvoTableRow => ({
       id: registro.document.id,
-      name: `Paz y salvo (formato F) - ${registro.document.name}`,
+      name: registro.document.name,
       uploadDate: formatThesisDate(new Date(registro.registrationDate)),
       status: registro.document.status ?? stateList.APROBADO,
       observations: registro.academicComments ?? '',

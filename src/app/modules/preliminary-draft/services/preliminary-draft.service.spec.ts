@@ -214,10 +214,10 @@ describe('PreliminaryDraftService (Facade)', () => {
 
     it('debería delegar registerCouncilDecision', () => {
       mockDocumentService.registerCouncilDecision.mockReturnValue(of(draft));
-      service.registerCouncilDecision('draft-1', stateList.APROBADO, 'Cumple', pdf).subscribe(res => {
+      service.registerCouncilDecision('draft-1', stateList.APROBADO, 'Cumple', pdf, 12).subscribe(res => {
         expect(res).toEqual(draft);
       });
-      expect(mockDocumentService.registerCouncilDecision).toHaveBeenCalledWith('draft-1', stateList.APROBADO, 'Cumple', pdf);
+      expect(mockDocumentService.registerCouncilDecision).toHaveBeenCalledWith('draft-1', stateList.APROBADO, 'Cumple', pdf, 12);
     });
 
     it('debería delegar calculateDocumentStatus', () => {

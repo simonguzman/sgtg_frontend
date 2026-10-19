@@ -18,7 +18,7 @@ export interface User {
   /** Solo se usa al crear o editar un usuario; la sesión nunca la guarda */
   password?: string;
   state: UserState;
-  /** Perfil docente: vinculación (la deduce el mapeo a partir de los roles) */
+  /** Perfil docente: vinculación con la universidad (se elige en el formulario) */
   contractType?: ContractType | null;
   /** Perfil docente: departamento al que está adscrito */
   department?: CatalogItem | null;

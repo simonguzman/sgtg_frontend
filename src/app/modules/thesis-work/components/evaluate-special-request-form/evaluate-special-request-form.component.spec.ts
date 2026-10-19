@@ -60,7 +60,7 @@ describe('EvaluateSpecialRequestFormComponent', () => {
   it('no tiene selector de fecha: las fechas las calcula el backend', () => {
     crear(solicitud('prorroga-0'));
     expect(fixture.nativeElement.querySelector('p-datepicker')).toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('prorroga');
+    expect(fixture.nativeElement.textContent).toContain('Solicitud de prórroga');
   });
 
   it('exige la decisión', () => {
@@ -95,6 +95,6 @@ describe('EvaluateSpecialRequestFormComponent', () => {
     const descargas: unknown[] = [];
     component.onDownloadDocument.subscribe(d => descargas.push(d));
     (fixture.nativeElement.querySelector('app-button-component button') as HTMLButtonElement).click();
-    expect(descargas).toEqual([expect.objectContaining({ name: 'prorroga' })]);
+    expect(descargas).toEqual([expect.objectContaining({ name: 'Solicitud de prórroga' })]);
   });
 });

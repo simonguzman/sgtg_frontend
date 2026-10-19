@@ -33,7 +33,9 @@ export class FileDownloadService {
     try {
       const blob = await firstValueFrom(this.http.get(url, { responseType: 'blob' }));
       const objectUrl = window.URL.createObjectURL(blob);
-      this.directDownload(objectUrl, nombreConExtension(fileName, blob.type));
+      // Los archivos del backend se guardan con su nombre (ej. "Formato A - v2.pdf"): se descargan con ese nombre
+      this.directDownload(objectUrl, (esDelBackend ? nombreEnElServidor(url) : null)
+        ?? nombreConExtension(fileName, blob.type));
 
       // ← FIX: revocar en el mismo tick que el click() puede cancelar la
       // descarga en navegadores que aún no terminaron de leer el blob
@@ -76,4 +78,14 @@ export function nombreConExtension(fileName: string, tipo: string): string {
     return `${sinDuplicado}.pdf`;
   }
   return sinDuplicado;
+}
+
+/** Nombre del archivo en el servidor: último segmento del parámetro `ruta` de la URL de descarga. */
+export function nombreEnElServidor(url: string): string | null {
+  try {
+    const ruta = new URL(url, window.location.origin).searchParams.get('ruta');
+    return ruta ? ruta.split('/').pop() || null : null;
+  } catch {
+    return null;
+  }
 }

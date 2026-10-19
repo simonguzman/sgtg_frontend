@@ -65,16 +65,18 @@
               Fecha máxima de entrega del Trabajo de Grado <span class="text-[#ED7D31]">*</span>
             </span>
 
-            <p-datepicker
-              formControlName="maximumDeliveryDate"
-              [showIcon]="true"
-              placeholder="Seleccione la fecha límite"
-              styleClass="w-full"
-              [inputStyleClass]="'font-sans font-normal text-size-body p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary ' + (facade.isFieldInvalid('maximumDeliveryDate') ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white')">
-            </p-datepicker>
+            <span class="font-sans text-size-body text-[#777680] mb-2">Plazo de ejecución contado desde hoy.</span>
+            <div class="flex flex-col gap-2">
+              @for (option of facade.executionMonthOptions(); track option.months) {
+                <label class="flex items-center gap-2 cursor-pointer font-sans text-size-body">
+                  <input type="radio" formControlName="executionMonths" [value]="option.months" />
+                  {{ option.months }} meses <span class="text-[#777680]">(vence el {{ option.deadline }})</span>
+                </label>
+              }
+            </div>
 
-            @if (facade.isFieldInvalid('maximumDeliveryDate')) {
-              <span class="text-textbox-alert text-xs mt-1">La fecha límite de entrega es requerida para proyectos aprobados</span>
+            @if (facade.isFieldInvalid('executionMonths')) {
+              <span class="text-textbox-alert text-xs mt-1">Seleccione el plazo de ejecución del trabajo de grado</span>
             }
           </div>
         }

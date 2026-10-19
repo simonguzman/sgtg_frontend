@@ -44,6 +44,7 @@ interface MockFacadeService {
   uploadedSignedFile: WritableSignal<{ fileName: string; file: File } | null>;
   isUploadModalOpen: WritableSignal<boolean>;
   isReadOnly: WritableSignal<boolean>;
+  executionMonthOptions: WritableSignal<Array<{ months: number; deadline: string }>>;
   signedProposalDocument: WritableSignal<FormattedDocument | undefined>;
   approvedPreliminaryDraftDocument: WritableSignal<FormattedDocument | undefined>;
   presentationDocument: WritableSignal<FormattedDocument | undefined>;
@@ -132,10 +133,11 @@ describe('ReviewPresentationsFacultyCouncilFormComponent', () => {
       evaluationForm: new FormGroup({
         result: new FormControl('', [Validators.required]),
         comments: new FormControl('', [Validators.required]),
-        maximumDeliveryDate: new FormControl(null),
+        executionMonths: new FormControl(null),
         document: new FormControl(null)
       }),
 
+      executionMonthOptions: signal([{ months: 6, deadline: '17 - 04 - 2027' }, { months: 9, deadline: '17 - 07 - 2027' }]),
       initFormEffects: jest.fn(),
       isFieldInvalid: jest.fn().mockReturnValue(false),
       handleFileUploaded: jest.fn(),
@@ -199,7 +201,7 @@ describe('ReviewPresentationsFacultyCouncilFormComponent', () => {
         formValues: {
           result: stateList.APROBADO,
           comments: 'Aprobado sin observaciones mayores',
-          maximumDeliveryDate: new Date('2026-12-15'),
+          executionMonths: 9,
           document: null
         },
         file: new File(['contenido'], 'resolucion.pdf', { type: 'application/pdf' })

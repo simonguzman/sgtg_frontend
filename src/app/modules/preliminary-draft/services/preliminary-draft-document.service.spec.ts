@@ -96,22 +96,22 @@ describe('PreliminaryDraftDocumentService', () => {
   describe('registerCouncilDecision', () => {
     it('envía la decisión del Consejo con la resolución', async () => {
       let resultado: PreliminaryDraft | undefined;
-      service.registerCouncilDecision('15', stateList.APROBADO, 'Cumple', pdf('resolucion.pdf'))
+      service.registerCouncilDecision('15', stateList.APROBADO, 'Cumple', pdf('resolucion.pdf'), 9)
         .subscribe(anteproyecto => resultado = anteproyecto);
 
       const req = http.expectOne(`${API}/15/anteproyecto/decisiones-consejo`);
       const body = req.request.body as FormData;
       expect((body.get('archivo') as File).name).toBe('resolucion.pdf');
-      expect(await leerDatos(body)).toEqual({ resultado: 'APROBADO', observaciones: 'Cumple' });
+      expect(await leerDatos(body)).toEqual({ resultado: 'APROBADO', observaciones: 'Cumple', mesesEjecucion: 9 });
       req.flush(crearTrabajoEnCurso());
 
       expect(resultado?.state).toBe(stateList.APROBADO);
     });
 
-    it('cualquier otro veredicto se envía como NO_APROBADO, sin observaciones vacías', async () => {
-      service.registerCouncilDecision('15', stateList.APROBADO_CON_OBSERVACIONES, '', pdf('r.pdf')).subscribe();
+    it('cualquier otro veredicto se envía como NO_APROBADO, sin observaciones vacías ni plazo', async () => {
+      service.registerCouncilDecision('15', stateList.APROBADO_CON_OBSERVACIONES, '', pdf('r.pdf'), 9).subscribe();
       const req = http.expectOne(`${API}/15/anteproyecto/decisiones-consejo`);
-      expect(await leerDatos(req.request.body as FormData)).toEqual({ resultado: 'NO_APROBADO', observaciones: null });
+      expect(await leerDatos(req.request.body as FormData)).toEqual({ resultado: 'NO_APROBADO', observaciones: null, mesesEjecucion: null });
       req.flush(crearTrabajoConAnteproyectoRadicado());
     });
   });

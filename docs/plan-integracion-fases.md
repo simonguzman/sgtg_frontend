@@ -197,6 +197,23 @@ Según las decisiones del §10:
   refresca el usuario de la sesión (`/usuarios/me`) cuando llegan notificaciones nuevas, así los roles de contexto
   que asigna el backend (evaluador, jurado...) aparecen sin volver a iniciar sesión. 1912 pruebas.
 
+### Ajustes del 2026-10-17 ✅
+Los tres pendientes del §11, según las decisiones del §12 (detalle del backend en
+`sgtg_backend/docs/ajustes-2026-10-17.md`):
+- **Tipo de vinculación:** el formulario de usuarios muestra el desplegable "Tipo de vinculación" (de planta, ocasional,
+  cátedra, estudiante de posgrado) y el departamento con cualquier rol de perfil docente (`ROLES_DOCENTE`); ambos son
+  obligatorios y no tienen valor por defecto. Si no es de planta, avisa que al dirigir necesita un codirector de planta.
+  Se eliminó la deducción de la vinculación a partir de los roles (`contractTypeForRoles`).
+- **Nombre de los documentos:** el backend guarda cada archivo con el nombre de su tipo y su versión
+  (`15/TI-A/v2/Formato A - v2.pdf`, `20/CARTA_ACEPTACION/v1/Carta de aceptacion - v1.pdf`); el front lo muestra según lo
+  que es (`etiquetaDeRuta`: "Formato A (propuesta) – versión 2", "Carta de aceptación", "Resolución del Consejo"...) y lo
+  descarga con el nombre del servidor.
+- **Plazo de ejecución:** al aprobar el anteproyecto, el Consejo elige 6 o 9 meses (investigación) o 6, 9 o 12
+  (práctica), con la fecha en que vence cada opción; el backend recibe `mesesEjecucion`, lo valida y calcula la fecha
+  máxima de entrega desde el día de la decisión. La sustentación puede solicitarse desde los 3 meses en ambas
+  modalidades. La prórroga suma su tiempo a la fecha elegida.
+- Backend 421 pruebas; front 1916; Thunder 236 peticiones; E2E por nginx.
+
 ## 3. Inquietudes (decisiones antes o durante cada fase)
 
 | | Inquietud | Recomendación |
@@ -285,3 +302,26 @@ Confirmado después (2026-10-12):
 1. **403 en vez de 406** para la falta de acceso a un trabajo (participación o papel).
 2. **Base de desarrollo persistente**: `ddl-auto=update` en Docker; las pruebas usan `create-drop`.
 3. **Refresco de roles**: el front refresca `/usuarios/me` cuando el buzón recibe notificaciones nuevas.
+
+## 11. Pendientes
+
+Los tres pendientes registrados el 2026-10-17 quedaron implementados el mismo día (ver "Ajustes del 2026-10-17" y el
+§12):
+
+1. ~~**Tipo de vinculación en el formulario de usuarios.**~~ ✅
+2. ~~**Nombre de los documentos según lo que son.**~~ ✅
+3. ~~**Plazo de ejecución elegido por el Consejo.**~~ ✅
+
+## 12. Decisiones del 2026-10-17 (pendientes del §11)
+
+1. **Vinculación:** se muestran el desplegable de vinculación y el departamento, ambos obligatorios, con cualquier rol
+   de `ROLES_DOCENTE` (DOCENTE, DIRECTOR, CODIRECTOR, EVALUADOR, JURADO, JURADO_COORDINADOR, JEFE_DEP), sin valor por
+   defecto. La deducción de la vinculación por roles era un ajuste temporal y se eliminó.
+2. **Documentos:** en el servidor los archivos se guardan con un nombre descriptivo (`Formato A - v2.pdf`) y en el front
+   se muestran como "Formato A (propuesta) – versión 2".
+3. **Plazo de ejecución:**
+   - opciones de 6 o 9 meses en trabajo de investigación y de 6, 9 o 12 en práctica profesional, contadas desde el día
+     en que se registra la decisión del Consejo;
+   - la sustentación se puede solicitar a partir de los 3 meses en ambas modalidades (antes 6 en práctica);
+   - los datos existentes se conservan;
+   - la prórroga no cambia: su tiempo se suma a la fecha máxima de entrega elegida.

@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { FileDownloadService, nombreConExtension } from './file-download.service';
+import { FileDownloadService, nombreConExtension, nombreEnElServidor } from './file-download.service';
 import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../shared/components/notifications/models/notification.model';
 
@@ -77,13 +77,25 @@ describe('FileDownloadService', () => {
       const anchor = document.createElement('a');
       jest.spyOn(anchor, 'click').mockImplementation(() => {});
       jest.spyOn(document, 'createElement').mockReturnValue(anchor);
-      const url = '/api/v1/sgtg/trabajos-grado/15/archivos?ruta=15%2FTI-A%2Fv1%2Fpropuesta.pdf';
+      const url = '/api/v1/sgtg/trabajos-grado/15/archivos?ruta=15%2FTI-A%2Fv2%2FFormato%20A%20-%20v2.pdf';
 
-      const descarga = service.download(url, 'propuesta');
+      const descarga = service.download(url, 'Formato A (propuesta) – versión 2');
       httpMock.expectOne(url).flush(new Blob(['%PDF'], { type: 'application/pdf' }));
       await descarga;
 
-      expect(anchor.download).toBe('propuesta.pdf');
+      // Se descarga con el nombre que tiene en el servidor
+      expect(anchor.download).toBe('Formato A - v2.pdf');
+    });
+  });
+
+  describe('nombreEnElServidor', () => {
+    it('toma el nombre del archivo del parámetro ruta de la URL', () => {
+      expect(nombreEnElServidor('/api/v1/sgtg/trabajos-grado/20/archivos?ruta=20%2FCARTA_ACEPTACION%2Fv1%2FCarta%20de%20aceptacion%20-%20v1.pdf'))
+        .toBe('Carta de aceptacion - v1.pdf');
+    });
+
+    it('sin parámetro ruta devuelve null (se usa el nombre mostrado)', () => {
+      expect(nombreEnElServidor('/api/v1/sgtg/trabajos-grado/20/archivos')).toBeNull();
     });
   });
 

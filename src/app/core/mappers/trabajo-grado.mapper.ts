@@ -607,7 +607,7 @@ export function aDocumento(trabajoId: number, documento: DocumentoApi, ctx: Cont
   tipo: DocumentType = tipoDocumento(documento.tipo)): FileDocument {
   return {
     id: documento.ruta,
-    name: nombreDeRuta(documento.ruta),
+    name: etiquetaDeRuta(documento.ruta),
     url: ctx.urlArchivo(trabajoId, documento.ruta),
     uploadDate: aFecha(documento.fechaCarga) ?? documento.fechaCarga,
     type: tipo,
@@ -618,11 +618,11 @@ export function aDocumento(trabajoId: number, documento: DocumentoApi, ctx: Cont
 /** Archivo suelto (solicitudes, resoluciones, actas) como `FileDocument`. */
 export function aDocumentoDeRuta(trabajoId: number, ruta: string, fecha: string, ctx: ContextoMapeo,
   tipo: DocumentType): FileDocument {
-  return { id: ruta, name: nombreDeRuta(ruta), url: ctx.urlArchivo(trabajoId, ruta), uploadDate: aFecha(fecha) ?? fecha, type: tipo };
+  return { id: ruta, name: etiquetaDeRuta(ruta), url: ctx.urlArchivo(trabajoId, ruta), uploadDate: aFecha(fecha) ?? fecha, type: tipo };
 }
 
 function aDocumentoFirmado(trabajoId: number, ruta: string, ctx: ContextoMapeo): FormattedDocument {
-  return { name: nombreDeRuta(ruta), url: ctx.urlArchivo(trabajoId, ruta) };
+  return { name: etiquetaDeRuta(ruta), url: ctx.urlArchivo(trabajoId, ruta) };
 }
 
 const NOMBRES_ORGANO: Record<DecisionApi['organo'], { nombre: string; rol: UserRoleType }> = {
@@ -657,6 +657,51 @@ function fechaYHora(valor: string): string {
   const dos = (n: number) => String(n).padStart(2, '0');
   return `${dos(fecha.getDate())}/${dos(fecha.getMonth() + 1)}/${fecha.getFullYear()} `
     + `${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
+}
+
+/** Nombre con que se muestra cada tipo de documento, según su carpeta en el servidor. */
+const ETIQUETAS_POR_FORMATO: Record<string, string> = {
+  A: 'Formato A (propuesta)',
+  B: 'Formato B (concepto del evaluador)',
+  C: 'Formato C (remisión al Consejo)',
+  D: 'Formato D (informe mensual)',
+  E: 'Formato E (documento final)',
+  F: 'Formato F (paz y salvo)',
+  G: 'Formato G (acta de sustentación)',
+  H: 'Formato H (versión definitiva)'
+};
+
+const ETIQUETAS_POR_CARPETA: Record<string, string> = {
+  ANTEPROYECTO: 'Anteproyecto',
+  MONOGRAFIA: 'Monografía',
+  ANEXOS: 'Anexos',
+  CARTA_ACEPTACION: 'Carta de aceptación',
+  RESOLUCION: 'Resolución del Consejo',
+  ACTA_COMITE: 'Respuesta del Comité',
+  SOLICITUD_PRORROGA: 'Solicitud de prórroga',
+  SOLICITUD_SUSPENSION: 'Solicitud de suspensión',
+  REANUDACION: 'Reanudación',
+  CONCEPTO_ASESOR: 'Concepto del asesor',
+  ANOTACIONES_EVALUACION: 'Anotaciones del evaluador',
+  REVISION_INFORME: 'Notas de revisión',
+  SOLICITUD_NUEVA_FECHA: 'Solicitud de nueva fecha',
+  AJUSTES_SUSTENTACION: 'Ajustes de la sustentación',
+  SOLICITUD_CANCELACION: 'Solicitud de cancelación'
+};
+
+/**
+ * Nombre que se muestra para un archivo según lo que es (no según el nombre
+ * del archivo): "15/TI-A/v2/Formato A - v2.pdf" → "Formato A (propuesta) – versión 2".
+ * La versión solo se agrega desde la segunda. Si la carpeta no es conocida,
+ * se usa el nombre del archivo.
+ */
+export function etiquetaDeRuta(ruta: string): string {
+  const partes = ruta.split('/');
+  const carpeta = partes.length >= 4 ? partes[partes.length - 3] : '';
+  const version = Number(/^v(\d+)$/.exec(partes[partes.length - 2] ?? '')?.[1] ?? 1);
+  const formato = /^(?:TI|PP)-([A-H])$/.exec(carpeta)?.[1];
+  const etiqueta = (formato ? ETIQUETAS_POR_FORMATO[formato] : ETIQUETAS_POR_CARPETA[carpeta]) ?? nombreDeRuta(ruta);
+  return version > 1 ? `${etiqueta} – versión ${version}` : etiqueta;
 }
 
 /** "15/TI-A/v2/propuesta.pdf" → "propuesta" */
