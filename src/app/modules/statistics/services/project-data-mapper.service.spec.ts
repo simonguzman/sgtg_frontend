@@ -174,7 +174,7 @@ describe('ProjectDataMapperService', () => {
       });
     });
 
-    it('debe extraer el deadlineStatus correctamente de la evaluación más reciente (índice 0)', () => {
+    it('debe extraer el deadlineStatus de la decisión más reciente (la última: van de la más antigua a la más reciente)', () => {
       const mockProposal = createMockProposal({
         evaluations: [
           createMockEvaluation({ deadlineStatus: EvaluationDeadlineStatus.DELAYED }),
@@ -183,7 +183,7 @@ describe('ProjectDataMapperService', () => {
       });
 
       const result = service.mapProposal(mockProposal);
-      expect(result.deadlineStatus).toBe(EvaluationDeadlineStatus.DELAYED);
+      expect(result.deadlineStatus).toBe(EvaluationDeadlineStatus.ON_TIME);
     });
 
     it('debe manejar valores por defecto cuando faltan datos esenciales y usar la fecha del sistema', () => {

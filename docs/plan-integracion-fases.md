@@ -214,6 +214,19 @@ Los tres pendientes del §11, según las decisiones del §12 (detalle del backen
   modalidades. La prórroga suma su tiempo a la fecha elegida.
 - Backend 421 pruebas; front 1916; Thunder 236 peticiones; E2E por nginx.
 
+### Ajustes del 2026-10-18 ✅
+Según las decisiones del §13 (detalle del backend en `sgtg_backend/docs/ajustes-2026-10-18.md`):
+- **Plazos calculados en el backend:** el front ya no cuenta días hábiles. La respuesta del trabajo trae los días
+  hábiles restantes (Comité, evaluadores, correcciones y ajustes), la fecha límite y si cada decisión del Comité y cada
+  concepto se emitió a tiempo, y las opciones de plazo del Consejo con su fecha de entrega. Las etiquetas ("Quedan N
+  días hábiles", "Plazo vencido", "Evaluado en plazo / con retraso") usan esos datos, que descuentan fines de semana,
+  festivos y días no hábiles institucionales. Se eliminaron `addBusinessDays` y `getRemainingBusinessDays`.
+- **Datos al día al navegar:** el almacén de trabajos tiene una vigencia de 20 s. Al cambiar de página o volver a la
+  pestaña, la lista se recarga en segundo plano si está vencida (las páginas se muestran de inmediato y se actualizan
+  solas); el detalle de un trabajo se consulta de nuevo solo si su copia está vencida; las cargas simultáneas comparten
+  una petición.
+- Backend 433 pruebas; front 1915; Thunder 236 peticiones; E2E por nginx.
+
 ## 3. Inquietudes (decisiones antes o durante cada fase)
 
 | | Inquietud | Recomendación |
@@ -325,3 +338,17 @@ Los tres pendientes registrados el 2026-10-17 quedaron implementados el mismo d�
    - la sustentación se puede solicitar a partir de los 3 meses en ambas modalidades (antes 6 en práctica);
    - los datos existentes se conservan;
    - la prórroga no cambia: su tiempo se suma a la fecha máxima de entrega elegida.
+
+## 13. Decisiones del 2026-10-18 (plazos y datos al día)
+
+1. **Plazos en el backend:** los cálculos de plazos que hacía el front (días hábiles restantes y fecha de entrega de
+   cada opción del Consejo) los hace el backend con su calendario y su reloj, y los envía en la respuesta del trabajo.
+   También envía si cada decisión del Comité y cada concepto de los evaluadores se emitió a tiempo, dato que el front
+   no tenía. Las fechas límite de rondas anteriores se reconstruyen con las fechas de radicación, sin cambios en la base
+   de datos.
+2. **Rendimiento del backend:** el calendario (festivos y días no hábiles institucionales) se mantiene en memoria y se
+   recarga cuando el administrador lo cambia. Medido con 44 trabajos, la lista tarda lo mismo que antes (unos 430 ms).
+3. **Datos al día en el front sin consultas periódicas:** recarga por vigencia (20 s) al navegar o volver a la pestaña,
+   en segundo plano para las listas y al abrir el detalle de un trabajo. El buzón sigue recargando cuando llegan
+   notificaciones nuevas. Se descartó consultar el backend en cada navegación (más carga, sobre todo para los roles que
+   ven todos los trabajos) y la consulta periódica (consume aunque nadie use la aplicación).

@@ -27,8 +27,9 @@ export class ProposalMapperService {
       state: proposal.state,
       deadlineStatus: getSingleEvaluationDeadlineLabel(
         proposal.state,
-        proposal.evaluationDeadline,
-        proposal.evaluations?.[0]
+        proposal.evaluationRemainingDays,
+        // Las decisiones del Comité van de la más antigua a la más reciente
+        proposal.evaluations?.[proposal.evaluations.length - 1]
       ),
       hiddenParticipants: this.buildHiddenParticipants(proposal),
       allowedActions: [

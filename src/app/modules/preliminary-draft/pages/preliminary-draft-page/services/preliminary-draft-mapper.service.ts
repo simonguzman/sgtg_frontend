@@ -3,7 +3,7 @@ import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interfac
 import { PreliminaryDraftTableRow } from '../models/preliminary-draft-page.model';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { EvaluationDeadlineStatus } from '../../../../../core/enums/evaluation-deadline-status.enum';
-import { getRemainingBusinessDays } from '../../../../../core/utils/date-utils';
+import { remainingDaysLabel } from '../../../../history/helpers/deadline-status-label.helper';
 import { User } from '../../../../users/interfaces/user.interface';
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
 
@@ -103,9 +103,7 @@ export class PreliminaryDraftMapperService {
     if (!preliminaryDraft.evaluationDeadline) return 'Sin límite (Consejo)';
     if (totalEvaluators > 0 && currentRoundEvaluations.length >= totalEvaluators) return `Evaluación completada — ${statusLabel} (Esperando Consejo)`;
 
-    const remainingDays = getRemainingBusinessDays(new Date(preliminaryDraft.evaluationDeadline));
-    if (remainingDays < 0) return `Plazo vencido (${Math.abs(remainingDays)} días hábiles de retraso)`;
-    if (remainingDays === 0) return '¡Vence hoy!';
-    return `Quedan ${remainingDays} días hábiles`;
+    // Los días hábiles restantes los calcula el backend con el calendario de la universidad
+    return remainingDaysLabel(preliminaryDraft.evaluationRemainingDays);
   }
 }

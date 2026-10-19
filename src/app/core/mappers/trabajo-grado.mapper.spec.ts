@@ -4,12 +4,14 @@ import {
 } from './trabajo-grado.mapper';
 import {
   crearTrabajoConAnteproyectoRadicado, crearTrabajoDePrueba, crearTrabajoEnAnteproyecto, crearTrabajoEnCurso,
-  crearTrabajoEnCursoCon, crearTrabajoEnSustentacion, informeDePrueba, revisionDePrueba, sustentacionDePrueba
+  crearTrabajoEnCursoCon, crearTrabajoEnEvaluacion, crearTrabajoEnSustentacion, conConceptoDe, informeDePrueba,
+  revisionDePrueba, sustentacionDePrueba
 } from '../../testing/trabajo-grado-de-prueba';
 import { SpecialRequestType } from '../../modules/thesis-work/enums/special-request-type.enum';
 import { SustentationStatus } from '../../modules/thesis-work/enums/sustentation-status.enum';
 import { stateList } from '../enums/state.enum';
 import { DocumentType } from '../enums/document-type.enum';
+import { EvaluationDeadlineStatus } from '../enums/evaluation-deadline-status.enum';
 import { UserRoleType } from '../enums/user-role-type.enum';
 import { Modality } from '../../modules/proposal/enums/modality.enum';
 import { User } from '../../modules/users/interfaces/user.interface';
@@ -435,5 +437,42 @@ describe('etiquetaDeRuta', () => {
 
   it('con una carpeta desconocida usa el nombre del archivo', () => {
     expect(etiquetaDeRuta('15/OTRA/v1/documento.pdf')).toBe('documento');
+  });
+});
+
+describe('plazos calculados por el backend', () => {
+  it('la propuesta en revisión lleva los días hábiles que le quedan al Comité', () => {
+    const base = crearTrabajoDePrueba();
+    const trabajo = crearTrabajoDePrueba({ propuesta: { ...base.propuesta, diasHabilesRestantesConcepto: 4 } });
+    expect(aPropuesta(trabajo, ctx).evaluationRemainingDays).toBe(4);
+    expect(aPropuesta(base, ctx).evaluationRemainingDays).toBeNull();
+  });
+
+  it('las decisiones del Comité y los conceptos dicen si se emitieron dentro del plazo', () => {
+    const enAnteproyecto = crearTrabajoEnAnteproyecto();
+    const tardia = { ...enAnteproyecto.propuesta.decisiones[0], fechaLimite: '2026-03-04', aTiempo: false };
+    const trabajo = crearTrabajoEnAnteproyecto({ propuesta: { ...enAnteproyecto.propuesta, decisiones: [tardia] } });
+    expect(aPropuesta(trabajo, ctx).evaluations[0].deadlineStatus).toBe(EvaluationDeadlineStatus.DELAYED);
+    // Sin plazo (dato anterior o decisión sin plazo) no se marca
+    expect(aPropuesta(enAnteproyecto, ctx).evaluations[0].deadlineStatus).toBeUndefined();
+
+    const conConcepto = conConceptoDe(crearTrabajoEnEvaluacion(), 20);
+    conConcepto.anteproyecto.conceptos[0] = { ...conConcepto.anteproyecto.conceptos[0], aTiempo: true };
+    expect(aAnteproyecto(conConcepto, ctx)!.evaluations[0].deadlineStatus).toBe(EvaluationDeadlineStatus.ON_TIME);
+  });
+
+  it('el anteproyecto lleva los días restantes de los evaluadores y las opciones de plazo del Consejo', () => {
+    const base = crearTrabajoEnEvaluacion();
+    const trabajo = crearTrabajoEnEvaluacion({
+      anteproyecto: {
+        ...base.anteproyecto, diasHabilesRestantesEvaluacion: -2,
+        opcionesPlazo: [{ meses: 6, fechaFin: '2027-04-18' }, { meses: 9, fechaFin: '2027-07-18' }]
+      }
+    });
+    const anteproyecto = aAnteproyecto(trabajo, ctx)!;
+    expect(anteproyecto.evaluationRemainingDays).toBe(-2);
+    expect(anteproyecto.executionOptions?.map(opcion => opcion.months)).toEqual([6, 9]);
+    expect(anteproyecto.executionOptions?.[1].deadline).toEqual(aFecha('2027-07-18'));
+    expect(aAnteproyecto(base, ctx)!.executionOptions).toEqual([]);
   });
 });

@@ -9,6 +9,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { AuthService } from './core/services/auth/auth.service';
+import { iniciarRefrescoDeTrabajos } from './core/services/trabajo-grado/trabajo-grado-refresco';
 
 // Preset personalizado basado en Aura con el color institucional
 // de la Universidad del Cauca como color primario.
@@ -38,6 +39,8 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptor])),
     // Refresca el usuario de una sesión guardada antes de mostrar la primera pantalla
     provideAppInitializer(() => inject(AuthService).initialize()),
+    // Recarga los trabajos vencidos en memoria al navegar o al volver a la pestaña
+    provideAppInitializer(() => iniciarRefrescoDeTrabajos()),
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),

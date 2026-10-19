@@ -29,8 +29,7 @@ export class ProjectDataMapperService {
       directorName: this.resolveDirectorName(proposal.director),
       registrationDate: creationDate,
       isArchived: !!proposal.isArchived,
-      // ← NUEVO: mismo criterio que getSingleEvaluationDeadlineLabel en
-      // Historial — evaluations[0] es siempre la más reciente (unshift).
+      // Mismo criterio que getSingleEvaluationDeadlineLabel: el estado del plazo de la decisión más reciente
       deadlineStatus: this.resolveProposalDeadlineStatus(proposal)
     };
   }
@@ -81,7 +80,8 @@ export class ProjectDataMapperService {
   }
 
   private resolveProposalDeadlineStatus(proposal: Proposal): EvaluationDeadlineStatus | null {
-    return proposal.evaluations?.[0]?.deadlineStatus ?? null;
+    // Las decisiones del Comité van de la más antigua a la más reciente; `deadlineStatus` sale del `aTiempo` del backend
+    return proposal.evaluations?.[proposal.evaluations.length - 1]?.deadlineStatus ?? null;
   }
 
   private resolveDraftDeadlineStatus(draft: PreliminaryDraft): EvaluationDeadlineStatus | null {

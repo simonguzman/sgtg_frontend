@@ -32,6 +32,8 @@ export interface Proposal extends Archivable {
   state: stateList;
   createdAt: Date;
   evaluationDeadline?: Date;
+  /** Días hábiles que le quedan al Comité (negativo si venció); los calcula el backend */
+  evaluationRemainingDays?: number | null;
   documents: FileDocument[];
   evaluations: Evaluation[];
   isActive?: boolean;

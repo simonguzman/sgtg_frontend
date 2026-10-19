@@ -12,8 +12,6 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
-import { Modality } from '../../../../proposal/enums/modality.enum';
-import { formatDisplayDate } from '../../../../../core/utils/date-utils';
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -237,21 +235,24 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
   });
 
   describe('Plazo de ejecución que fija el Consejo', () => {
-    it('trabajo de investigación: 6 o 9 meses, contados desde hoy', () => {
-      facade.preliminaryDraft.set(createMockDraft({ proposalData: createMockProposal({ modality: Modality.TI }) }));
-      expect(facade.executionMonthOptions().map(o => o.months)).toEqual([6, 9]);
+    it('lista las opciones que calcula el backend, con la fecha en que vence cada una', () => {
+      facade.preliminaryDraft.set(createMockDraft({
+        executionOptions: [
+          { months: 6, deadline: new Date(2027, 3, 18) },
+          { months: 9, deadline: new Date(2027, 6, 18) },
+          { months: 12, deadline: new Date(2027, 9, 18) }
+        ]
+      }));
+      expect(facade.executionMonthOptions()).toEqual([
+        { months: 6, deadline: '18 - 04 - 2027' },
+        { months: 9, deadline: '18 - 07 - 2027' },
+        { months: 12, deadline: '18 - 10 - 2027' }
+      ]);
     });
 
-    it('práctica profesional: 6, 9 o 12 meses', () => {
-      facade.preliminaryDraft.set(createMockDraft({ proposalData: createMockProposal({ modality: Modality.PP }) }));
-      expect(facade.executionMonthOptions().map(o => o.months)).toEqual([6, 9, 12]);
-    });
-
-    it('muestra la fecha en que vence cada plazo, contada desde hoy', () => {
-      const enSeisMeses = new Date();
-      enSeisMeses.setMonth(enSeisMeses.getMonth() + 6);
-      expect(facade.deadlineFor(6)).toBe(formatDisplayDate(enSeisMeses));
-      expect(facade.executionMonthOptions()[0].deadline).toBe(formatDisplayDate(enSeisMeses));
+    it('sin opciones del backend (fuera de la aprobación del Consejo) no ofrece plazos', () => {
+      facade.preliminaryDraft.set(createMockDraft());
+      expect(facade.executionMonthOptions()).toEqual([]);
     });
   });
 });

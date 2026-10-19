@@ -4,6 +4,7 @@ import {
 } from '../interfaces/api/trabajo-grado-api.interface';
 import { stateList } from '../enums/state.enum';
 import { DocumentType } from '../enums/document-type.enum';
+import { EvaluationDeadlineStatus } from '../enums/evaluation-deadline-status.enum';
 import { UserRoleType } from '../enums/user-role-type.enum';
 import { Evaluation } from '../interfaces/evaluation.interface';
 import { FileDocument } from '../interfaces/file-document.interface';
@@ -72,6 +73,7 @@ export function aPropuesta(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): P
     state: estadoPropuesta(trabajo),
     createdAt: aFecha(versiones[0]?.fechaCarga ?? trabajo.historial[0]?.fecha) ?? new Date(),
     evaluationDeadline: aFecha(trabajo.propuesta.fechaLimiteConcepto) ?? undefined,
+    evaluationRemainingDays: trabajo.propuesta.diasHabilesRestantesConcepto ?? null,
     documents: documentos,
     evaluations: trabajo.propuesta.decisiones.map((decision, i) =>
       evaluacionDeDecision(trabajo, decision, i, ctx)),
@@ -120,7 +122,8 @@ export function aAnteproyecto(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo)
         signedDocuments: [concepto.formato, concepto.anotaciones]
           .filter((documento): documento is DocumentoApi => !!documento)
           .map(documento => aDocumentoFirmado(trabajo.id, documento.ruta, ctx)),
-        date: aFecha(concepto.fecha) ?? new Date()
+        date: aFecha(concepto.fecha) ?? new Date(),
+        deadlineStatus: estadoDelPlazo(concepto.aTiempo)
       })),
       ...anteproyecto.decisionesConsejo.map((decision, i) => evaluacionDeDecision(trabajo, decision, i, ctx))
     ],
@@ -128,6 +131,11 @@ export function aAnteproyecto(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo)
     state: estadoAnteproyecto(trabajo),
     createdData: aFecha(anteproyecto.versiones[0]?.fechaCarga ?? fechaDeEntrada(trabajo, 'ANTEPROYECTO')) ?? new Date(),
     evaluationDeadline: aFecha(anteproyecto.fechaLimiteEvaluacion) ?? undefined,
+    evaluationRemainingDays: anteproyecto.diasHabilesRestantesEvaluacion ?? null,
+    executionOptions: (anteproyecto.opcionesPlazo ?? []).map(opcion => ({
+      months: opcion.meses,
+      deadline: aFecha(opcion.fechaFin) ?? new Date()
+    })),
     maximumDeliveryDate: aFecha(trabajo.ejecucion?.fechaFin) ?? undefined,
     isArchived: estaCerrado(trabajo)
   };
@@ -644,8 +652,15 @@ function evaluacionDeDecision(trabajo: TrabajoGradoResponse, decision: DecisionA
     veredict: veredicto(decision.resultado),
     observations: decision.observaciones ?? '',
     signedDocuments: decision.rutaArchivo ? [aDocumentoFirmado(trabajo.id, decision.rutaArchivo, ctx)] : [],
-    date: aFecha(decision.fecha) ?? new Date()
+    date: aFecha(decision.fecha) ?? new Date(),
+    deadlineStatus: estadoDelPlazo(decision.aTiempo)
   };
+}
+
+/** `aTiempo` del backend → estado del plazo de la evaluación; sin plazo, undefined. */
+function estadoDelPlazo(aTiempo: boolean | null | undefined): EvaluationDeadlineStatus | undefined {
+  if (aTiempo === null || aTiempo === undefined) return undefined;
+  return aTiempo ? EvaluationDeadlineStatus.ON_TIME : EvaluationDeadlineStatus.DELAYED;
 }
 
 // ── Apoyo ───────────────────────────────────────────────────────────────────

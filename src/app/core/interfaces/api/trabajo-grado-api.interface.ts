@@ -78,6 +78,10 @@ export interface DecisionApi {
   rutaArchivo: string | null;
   observaciones: string | null;
   fecha: string;
+  /** Fecha límite que tenía el órgano para decidir (solo el concepto del Comité sobre la propuesta) */
+  fechaLimite?: string | null;
+  /** true si decidió dentro del plazo; null si la decisión no tiene plazo */
+  aTiempo?: boolean | null;
 }
 
 /**
@@ -91,6 +95,8 @@ export interface VersionDocumentoApi extends DocumentoApi {
 /** Propuesta: su estado es el de la última versión radicada (sin versiones no hay estado). */
 export interface PropuestaApi {
   fechaLimiteConcepto: string | null;
+  /** Días hábiles que le quedan al Comité (negativo si venció), calculados por el backend; null sin versión en revisión */
+  diasHabilesRestantesConcepto?: number | null;
   versiones: VersionDocumentoApi[];
   decisiones: DecisionApi[];
 }
@@ -106,18 +112,34 @@ export interface ConceptoEvaluacionApi {
   formato: DocumentoApi | null;
   /** Documento opcional con las anotaciones del evaluador */
   anotaciones: DocumentoApi | null;
+  /** Fecha límite que tenía el evaluador para esa versión */
+  fechaLimite?: string | null;
+  /** true si emitió el concepto dentro del plazo; null si no se conoce */
+  aTiempo?: boolean | null;
+}
+
+/** Plazo que puede fijar el Consejo al aprobar, con la fecha máxima de entrega que resultaría hoy. */
+export interface OpcionPlazoApi {
+  meses: number;
+  fechaFin: string;
 }
 
 /** Anteproyecto: su estado es el de la última versión radicada (sin versiones no hay estado). */
 export interface AnteproyectoApi {
   fechaLimiteEvaluacion: string | null;
+  /** Días hábiles que les quedan a los evaluadores (negativo si venció); null fuera de la evaluación */
+  diasHabilesRestantesEvaluacion?: number | null;
   fechaLimiteCorrecciones: string | null;
+  /** Días hábiles que le quedan al director para las correcciones; null si no hay correcciones pendientes */
+  diasHabilesRestantesCorrecciones?: number | null;
   versiones: VersionDocumentoApi[];
   evaluadores: EvaluadorApi[];
   conceptos: ConceptoEvaluacionApi[];
   decisionesConsejo: DecisionApi[];
   /** Formatos C con los que el Jefe de departamento remitió al Consejo cada versión aprobada (`version` = versión remitida) */
   remisiones: DocumentoApi[];
+  /** Plazos que puede fijar el Consejo; vacía fuera de la aprobación del Consejo */
+  opcionesPlazo?: OpcionPlazoApi[];
 }
 
 export interface CambioObjetivosApi {
@@ -257,6 +279,8 @@ export interface SustentacionApi {
   rutaAnexosAjustes: string | null;
   fechaAjustes: string | null;
   fechaLimiteAjustes: string | null;
+  /** Días hábiles que le quedan al director para los ajustes; null si no hay ajustes pendientes */
+  diasHabilesRestantesAjustes?: number | null;
   fechaLimiteSegundaSesion: string | null;
   rutaVersionDefinitiva: string | null;
   fechaVersionDefinitiva: string | null;

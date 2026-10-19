@@ -4,10 +4,6 @@ import { Proposal } from '../../../interfaces/proposal.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 
-jest.mock('../../../../../core/utils/date-utils', () => ({
-  getRemainingBusinessDays: jest.fn()
-}));
-import { getRemainingBusinessDays } from '../../../../../core/utils/date-utils';
 
 describe('ProposalMapperService', () => {
   let service: ProposalMapperService;
@@ -89,22 +85,30 @@ describe('ProposalMapperService', () => {
       expect(result.deadlineStatus).toBe('Aprobado a tiempo');
     });
 
+    it('toma el estado del plazo de la decisión más reciente del Comité', () => {
+      const evaluatedProposal = {
+        ...mockProposal,
+        state: stateList.APROBADO,
+        evaluations: [{ deadlineStatus: 'Evaluado con retraso' }, { deadlineStatus: 'Evaluado en plazo' }]
+      } as unknown as Proposal;
+
+      expect(service.mapProposalToTable(evaluatedProposal, undefined).deadlineStatus).toBe('Evaluado en plazo');
+    });
+
     it('debe retornar "Sin límite" si no hay fecha de límite (evaluationDeadline)', () => {
       const result = service.mapProposalToTable(mockProposal, undefined);
       expect(result.deadlineStatus).toBe('Sin límite');
     });
 
-    it('debe calcular días restantes si está pendiente y tiene fecha', () => {
-      (getRemainingBusinessDays as jest.Mock).mockReturnValue(5);
-      const pendingWithDate = { ...mockProposal, evaluationDeadline: new Date() };
+    it('muestra los días hábiles restantes que calcula el backend', () => {
+      const pendingWithDate = { ...mockProposal, evaluationDeadline: new Date(), evaluationRemainingDays: 5 };
 
       const result = service.mapProposalToTable(pendingWithDate, undefined);
       expect(result.deadlineStatus).toBe('Quedan 5 días hábiles');
     });
 
     it('debe alertar vencimiento si los días restantes son negativos', () => {
-      (getRemainingBusinessDays as jest.Mock).mockReturnValue(-2);
-      const pendingWithDate = { ...mockProposal, evaluationDeadline: new Date() };
+      const pendingWithDate = { ...mockProposal, evaluationDeadline: new Date(), evaluationRemainingDays: -2 };
 
       const result = service.mapProposalToTable(pendingWithDate, undefined);
       expect(result.deadlineStatus).toBe('Plazo vencido (2 días hábiles de retraso)');

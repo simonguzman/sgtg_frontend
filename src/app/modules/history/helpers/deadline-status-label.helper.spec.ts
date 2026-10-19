@@ -1,8 +1,7 @@
-import { getEvaluatorsDeadlineLabel, getSingleEvaluationDeadlineLabel, EvaluatorsDeadlineInput } from './deadline-status-label.helper';
+import { getEvaluatorsDeadlineLabel, getSingleEvaluationDeadlineLabel, EvaluatorsDeadlineInput, remainingDaysLabel } from './deadline-status-label.helper';
 import { stateList } from '../../../core/enums/state.enum';
 import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
-import * as DateUtils from '../../../core/utils/date-utils';
 
 const createMockEvaluation = (overrides: Partial<Evaluation> = {}): Evaluation => ({
   id: 'eval-1',
@@ -94,27 +93,26 @@ describe('Deadline Status Label Helpers', () => {
       expect(getEvaluatorsDeadlineLabel(input)).toBe(`Evaluación completada — ${EvaluationDeadlineStatus.ON_TIME} (Esperando Consejo)`);
     });
 
-    describe('Cálculo de días restantes (cuando aún faltan evaluaciones)', () => {
-      let dateUtilsSpy: jest.SpyInstance;
-      beforeEach(() => {
-        dateUtilsSpy = jest.spyOn(DateUtils, 'getRemainingBusinessDays');
-      });
+    describe('Días restantes (los calcula el backend; cuando aún faltan evaluaciones)', () => {
 
       it('debería retornar "Quedan X días hábiles" si el plazo es mayor a 0', () => {
-        dateUtilsSpy.mockReturnValue(5);
-        const input: EvaluatorsDeadlineInput = { state: stateList.EN_REVISION, evaluationDeadline: new Date() };
+        const input: EvaluatorsDeadlineInput = {
+          state: stateList.EN_REVISION, evaluationDeadline: new Date(), remainingBusinessDays: 5
+        };
         expect(getEvaluatorsDeadlineLabel(input)).toBe('Quedan 5 días hábiles');
       });
 
       it('debería retornar "¡Vence hoy!" si el plazo es exactamente 0', () => {
-        dateUtilsSpy.mockReturnValue(0);
-        const input: EvaluatorsDeadlineInput = { state: stateList.EN_REVISION, evaluationDeadline: new Date() };
+        const input: EvaluatorsDeadlineInput = {
+          state: stateList.EN_REVISION, evaluationDeadline: new Date(), remainingBusinessDays: 0
+        };
         expect(getEvaluatorsDeadlineLabel(input)).toBe('¡Vence hoy!');
       });
 
       it('debería retornar "Plazo vencido" con los días absolutos si es negativo', () => {
-        dateUtilsSpy.mockReturnValue(-3);
-        const input: EvaluatorsDeadlineInput = { state: stateList.EN_REVISION, evaluationDeadline: new Date() };
+        const input: EvaluatorsDeadlineInput = {
+          state: stateList.EN_REVISION, evaluationDeadline: new Date(), remainingBusinessDays: -3
+        };
         expect(getEvaluatorsDeadlineLabel(input)).toBe('Plazo vencido (3 días hábiles de retraso)');
       });
     });
@@ -124,13 +122,13 @@ describe('Deadline Status Label Helpers', () => {
 
     it('debería retornar el deadlineStatus de la evaluación si el estado está finalizado', () => {
       const evalMock = createMockEvaluation({ deadlineStatus: EvaluationDeadlineStatus.DELAYED });
-      const label = getSingleEvaluationDeadlineLabel(stateList.APROBADO, new Date(), evalMock);
+      const label = getSingleEvaluationDeadlineLabel(stateList.APROBADO, null, evalMock);
       expect(label).toBe(EvaluationDeadlineStatus.DELAYED);
     });
 
     it('debería retornar "Evaluación completada" por defecto si finalizó pero no hay status registrado', () => {
       const evalMock = createMockEvaluation({ deadlineStatus: undefined });
-      const label = getSingleEvaluationDeadlineLabel(stateList.NO_APROBADO, new Date(), evalMock);
+      const label = getSingleEvaluationDeadlineLabel(stateList.NO_APROBADO, null, evalMock);
       expect(label).toBe('Evaluación completada');
     });
 
@@ -139,28 +137,34 @@ describe('Deadline Status Label Helpers', () => {
       expect(label).toBe('Sin límite');
     });
 
-    describe('Cálculo de días restantes (Propuestas activas)', () => {
-      let dateUtilsSpy: jest.SpyInstance;
-      beforeEach(() => {
-        dateUtilsSpy = jest.spyOn(DateUtils, 'getRemainingBusinessDays');
-      });
+    describe('Días restantes (los calcula el backend; propuestas activas)', () => {
       it('debería retornar "Quedan X días hábiles" si el plazo es mayor a 0', () => {
-        dateUtilsSpy.mockReturnValue(10);
-        const label = getSingleEvaluationDeadlineLabel(stateList.EN_REVISION, new Date(), undefined);
+        const label = getSingleEvaluationDeadlineLabel(stateList.EN_REVISION, 10, undefined);
         expect(label).toBe('Quedan 10 días hábiles');
       });
 
       it('debería retornar "¡Vence hoy!" si el plazo es exactamente 0', () => {
-        dateUtilsSpy.mockReturnValue(0);
-        const label = getSingleEvaluationDeadlineLabel(stateList.EN_REVISION, new Date(), undefined);
+        const label = getSingleEvaluationDeadlineLabel(stateList.EN_REVISION, 0, undefined);
         expect(label).toBe('¡Vence hoy!');
       });
 
       it('debería retornar "Plazo vencido" con los días absolutos si es negativo', () => {
-        dateUtilsSpy.mockReturnValue(-7);
-        const label = getSingleEvaluationDeadlineLabel(stateList.EN_REVISION, new Date(), undefined);
+        const label = getSingleEvaluationDeadlineLabel(stateList.EN_REVISION, -7, undefined);
         expect(label).toBe('Plazo vencido (7 días hábiles de retraso)');
       });
+    });
+  });
+
+  describe('remainingDaysLabel()', () => {
+    it('sin plazo vigente muestra el texto indicado', () => {
+      expect(remainingDaysLabel(null)).toBe('Sin límite');
+      expect(remainingDaysLabel(undefined, 'Sin plazo')).toBe('Sin plazo');
+    });
+
+    it('usa el número del backend tal cual (ya descuenta fines de semana, festivos y días institucionales)', () => {
+      expect(remainingDaysLabel(3)).toBe('Quedan 3 días hábiles');
+      expect(remainingDaysLabel(0)).toBe('¡Vence hoy!');
+      expect(remainingDaysLabel(-1)).toBe('Plazo vencido (1 días hábiles de retraso)');
     });
   });
 });
