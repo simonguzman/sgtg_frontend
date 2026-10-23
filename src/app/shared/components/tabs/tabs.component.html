@@ -4,8 +4,8 @@
         <button
           (click)="selectTab(tab.value)"
           [class]="tab.value === activeTab
-            ? 'border-[#000066] text-primary font-bold text-size-section border-b-4 py-4 px-1 text-sm'
-            : 'border-transparent text-primary font-normal text-size-section hover:font-semibold hover:border-[#000066] border-b-2 py-4 px-1'"
+            ? 'border-primary text-primary font-bold text-size-section border-b-4 py-4 px-1'
+            : 'border-transparent text-primary font-normal text-size-section hover:font-semibold hover:border-primary border-b-2 py-4 px-1'"
         >
           {{ tab.label }}
         </button>

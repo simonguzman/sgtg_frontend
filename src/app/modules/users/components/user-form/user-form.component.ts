@@ -1,5 +1,6 @@
 import { Component, DestroyRef, effect, EventEmitter, inject, input, Output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { finalize } from 'rxjs';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { User } from '../../interfaces/user.interface';
 import { CatalogItem } from '../../interfaces/catalog-item.interface';
@@ -9,6 +10,8 @@ import { IdentificationType } from '../../enum/identification-type.enum';
 import { CONTRACT_TYPE_LABELS, ContractType } from '../../enum/contract-type.enum';
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { RolesSelectionModalComponent } from '../../../../shared/components/modals/roles/roles-selection-modal/roles-selection-modal.component';
+import { CatalogSelectionModalComponent } from '../../../../shared/components/modals/catalog-selection-modal/catalog-selection-modal.component';
+import { InlineNoticeComponent } from '../../../../shared/components/inline-notice/inline-notice.component';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { CatalogApiService } from '../../../../core/services/catalog/catalog-api.service';
@@ -20,7 +23,8 @@ export const MIN_PASSWORD_LENGTH = 8;
 
 @Component({
   selector: 'app-user-form',
-  imports: [ReactiveFormsModule, ButtonComponent, RolesSelectionModalComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, RolesSelectionModalComponent, CatalogSelectionModalComponent,
+    InlineNoticeComponent],
   templateUrl: './user-form.component.html',
   styleUrls: ['./user-form.component.css']
 })
@@ -41,6 +45,10 @@ export class UserFormComponent  {
 
   isRolesModalOpen = false;
   currentRolesForModal: UserRole[] = [];
+  isDepartmentModalOpen = false;
+  isProgramModalOpen = false;
+  /** true mientras se crea un departamento o un programa en el catálogo */
+  readonly isCreatingCatalogItem = signal(false);
 
   user = input<User | null>(null);
   @Output() onSubmit = new EventEmitter <User>();
@@ -177,30 +185,50 @@ export class UserFormComponent  {
     this.onSubmit.emit(updatedUser);
   }
 
-  /** Crea un departamento en el catálogo y lo deja seleccionado. */
-  addDepartment(name: string): void {
-    if (!name.trim()) return;
-    this.catalogApi.createDepartment(name.trim()).subscribe({
-      next: department => {
-        this.departments.update(list => [...list, department]);
-        this.userForm.controls.departmentId.setValue(department.id);
-      },
-      error: error => this.notificationService.error('No se creó el departamento',
-        apiErrorMessage(error, 'Intente de nuevo.'))
-    });
+  get selectedDepartmentName(): string {
+    const id = this.userForm.controls.departmentId.value;
+    return this.departments().find(department => department.id === id)?.name ?? '';
   }
 
-  /** Crea un programa en el catálogo y lo deja seleccionado. */
+  get selectedProgramName(): string {
+    const id = this.userForm.controls.programId.value;
+    return this.programs().find(program => program.id === id)?.name ?? '';
+  }
+
+  handleDepartmentSaved(departmentId: number): void {
+    this.userForm.controls.departmentId.setValue(departmentId);
+    this.userForm.controls.departmentId.markAsTouched();
+  }
+
+  handleProgramSaved(programId: number): void {
+    this.userForm.controls.programId.setValue(programId);
+    this.userForm.controls.programId.markAsTouched();
+  }
+
+  /** Crea un departamento en el catálogo; el modal lo deja seleccionado hasta guardar. */
+  addDepartment(name: string): void {
+    if (!name.trim()) return;
+    this.isCreatingCatalogItem.set(true);
+    this.catalogApi.createDepartment(name.trim())
+      .pipe(finalize(() => this.isCreatingCatalogItem.set(false)))
+      .subscribe({
+        next: department => this.departments.update(list => [...list, department]),
+        error: error => this.notificationService.error('No se creó el departamento',
+          apiErrorMessage(error, 'Intente de nuevo.'))
+      });
+  }
+
+  /** Crea un programa en el catálogo; el modal lo deja seleccionado hasta guardar. */
   addProgram(name: string): void {
     if (!name.trim()) return;
-    this.catalogApi.createProgram(name.trim()).subscribe({
-      next: program => {
-        this.programs.update(list => [...list, program]);
-        this.userForm.controls.programId.setValue(program.id);
-      },
-      error: error => this.notificationService.error('No se creó el programa',
-        apiErrorMessage(error, 'Intente de nuevo.'))
-    });
+    this.isCreatingCatalogItem.set(true);
+    this.catalogApi.createProgram(name.trim())
+      .pipe(finalize(() => this.isCreatingCatalogItem.set(false)))
+      .subscribe({
+        next: program => this.programs.update(list => [...list, program]),
+        error: error => this.notificationService.error('No se creó el programa',
+          apiErrorMessage(error, 'Intente de nuevo.'))
+      });
   }
 
   private handleInvalidForm() {

@@ -27,22 +27,22 @@
   font-weight: var(--font-semibold-weight);
 }
 .text-textbox {
-  color: #777680;
+  color: var(--color-text-body);
   font-family: var(--font-sans);
   font-size: var(--text-size-body);
   font-weight: var(--font-regular-weight);
 }
 .text-textbox.ng-invalid.ng-touched {
-  border-color: #ED7D31 !important;
+  border-color: var(--color-alert) !important;
 }
 .text-textbox-alert {
-  color: #ED7D31;
+  color: var(--color-alert);
   font-family: var(--font-sans);
   font-size: var(--text-size-role-footer);
   font-weight: var(--font-regular-weight);
 }
 .add-circle {
-  color: #777680;
+  color: var(--color-text-body);
   font-size: var(--text-size-section);
 }
 .custom-select {

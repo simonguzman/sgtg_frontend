@@ -3,9 +3,9 @@
   <div class="flex justify-between items-center mb-6">
     <button
       (click)="facade.goBack()"
-      class="flex items-center gap-2 text-navy-900 hover:text-navy-700 transition-colors font-bold group"
+      class="flex items-center gap-2 text-primary transition-colors font-bold group"
     >
-      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
+      <span class="material-symbols-outlined text-primary text-size-sidebar-title group-hover:-translate-x-1 transition-transform">
         arrow_back
       </span>
       <span class="return-arrow-option">Regresar</span>
@@ -48,7 +48,7 @@
       ]; track item.label) {
         <div class="p-3 information-block rounded">
           <span class="font-semibold font-display text-size-section text-primary">{{ item.label }}</span>
-          <p class="font-normal font-sans text-size-section text-[#777680]">{{ item.value || 'No definido' }}</p>
+          <p class="font-normal font-sans text-size-section text-text-body">{{ item.value || 'No definido' }}</p>
         </div>
       }
     </div>
@@ -62,9 +62,9 @@
         @for (deadline of work.deadlines; track deadline.label) {
           <div class="p-3 information-block rounded">
             <span class="font-semibold font-display text-size-section text-primary">{{ deadline.label }}</span>
-            <p class="font-normal font-sans text-size-section text-[#777680]">{{ deadline.date | date:'dd/MM/yyyy' }}</p>
+            <p class="font-normal font-sans text-size-section text-text-body">{{ deadline.date | date:'dd/MM/yyyy' }}</p>
             @if (deadline.hint) {
-              <p class="font-sans text-size-role-footer text-[#777680]">{{ deadline.hint }}</p>
+              <p class="font-sans text-size-role-footer text-text-body">{{ deadline.hint }}</p>
             }
           </div>
         }
@@ -78,24 +78,24 @@
     <div class="p-4 information-block rounded space-y-2">
       <div>
         <span class="font-semibold font-display text-size-section text-primary">Estudiante(s): </span>
-        <span class="font-normal font-sans text-size-section text-[#777680]">{{ work.participants.authors }}</span>
+        <span class="font-normal font-sans text-size-section text-text-body">{{ work.participants.authors }}</span>
       </div>
       <div>
         <span class="font-semibold font-display text-size-section text-primary">Director: </span>
-        <span class="font-normal font-sans text-size-section text-[#777680]">{{ work.participants.director }}</span>
+        <span class="font-normal font-sans text-size-section text-text-body">{{ work.participants.director }}</span>
       </div>
 
       @if (work.participants.codirector) {
         <div>
           <span class="font-semibold font-display text-size-section text-primary">Codirector: </span>
-          <span class="font-normal font-sans text-size-section text-[#777680]">{{ work.participants.codirector }}</span>
+          <span class="font-normal font-sans text-size-section text-text-body">{{ work.participants.codirector }}</span>
         </div>
       }
 
       @if (work.participants.advisor) {
         <div>
           <span class="font-semibold font-display text-size-section text-primary">Asesor: </span>
-          <span class="font-normal font-sans text-size-section text-[#777680]">{{ work.participants.advisor }}</span>
+          <span class="font-normal font-sans text-size-section text-text-body">{{ work.participants.advisor }}</span>
         </div>
       }
     </div>
@@ -107,12 +107,12 @@
     <div class="flex flex-col gap-3">
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
         <div class="flex items-center gap-3 overflow-hidden">
-          <span class="material-symbols-outlined text-[#DB141C] text-file shrink-0">picture_as_pdf</span>
+          <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
           <div class="flex flex-col overflow-hidden">
             <span class="text-size-body font-bold text-primary truncate">
               {{ work.mainDocument?.name || 'Documento_Raiz_Trabajo_De_Grado.pdf' }}
             </span>
-            <span class="text-size-role-footer text-[#777680] font-sans">
+            <span class="text-size-role-footer text-text-body font-sans">
               {{ work.mainDocument?.description || 'Documento adjunto' }}
             </span>
           </div>

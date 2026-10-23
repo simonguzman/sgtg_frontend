@@ -72,7 +72,7 @@ describe('BreadcrumbComponent', () => {
       const listItems = fixture.debugElement.queryAll(By.css('li'));
       const firstItem = listItems[0];
       const link = firstItem.query(By.css('a'));
-      const separator = firstItem.query(By.css('span.mx-2.text-\\[\\#DB141C\\]'));
+      const separator = firstItem.query(By.css('span.mx-2.text-danger'));
       expect(link).toBeTruthy();
       expect(link.attributes['href']).toBe('/inicio');
       expect(link.nativeElement.textContent.trim()).toBe('Inicio');

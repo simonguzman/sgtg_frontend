@@ -1,76 +1,74 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
-import { PazYSalvoReview, ReviewPazYSalvoFacadeService } from './services/review-paz-y-salvo-facade.service';
+import { PazYSalvoReviewPayload } from '../../interfaces/paz-y-salvo-review.interface';
+import { ReviewPazYSalvoFacadeService } from './services/review-paz-y-salvo-facade.service';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
-import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { ReviewPazYSalvoFormComponent } from '../../components/review-paz-y-salvo-form/review-paz-y-salvo-form.component';
+import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 
-/**
- * Decanatura revisa el paz y salvo (formato F) de la sustentación solicitada:
- * lo aprueba o no, siempre con el documento; si no lo aprueba, con observaciones.
- */
+/** Decanatura revisa el paz y salvo (formato F) de la sustentación solicitada. */
 @Component({
   selector: 'app-review-paz-y-salvo-page',
+  imports: [ConfirmationActionModalComponent, ReviewPazYSalvoFormComponent],
   templateUrl: './review-paz-y-salvo-page.component.html',
-  standalone: true,
-  imports: [ConfirmationActionModalComponent, ButtonComponent]
+  styleUrls: ['./review-paz-y-salvo-page.component.css']
 })
 export class ReviewPazYSalvoPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly facade = inject(ReviewPazYSalvoFacadeService);
+  protected readonly facade = inject(ReviewPazYSalvoFacadeService);
 
-  readonly thesisWork = signal<ThesisWork | null>(null);
-  readonly approved = signal<boolean | null>(null);
-  readonly observations = signal('');
-  readonly formatF = signal<File | null>(null);
-  readonly submitted = signal(false);
-  readonly isSubmitting = signal(false);
+  readonly thesisWorkState = signal<ThesisWork | null>(null);
   readonly isConfirmModalOpen = signal(false);
-
-  readonly title = computed(() => this.thesisWork()?.preliminaryDraftData?.proposalData?.title ?? '');
-  readonly missingDecision = computed(() => this.submitted() && this.approved() === null);
-  readonly missingFile = computed(() => this.submitted() && !this.formatF());
-  readonly missingObservations = computed(() =>
-    this.submitted() && this.approved() === false && !this.observations().trim());
+  readonly isSubmitting = signal(false);
+  readonly pendingData = signal<{ payload: PazYSalvoReviewPayload; file: File } | null>(null);
 
   ngOnInit(): void {
-    let current: ActivatedRoute | null = this.route;
+    let currentRoute: ActivatedRoute | null = this.route;
     let id: string | null = null;
-    while (current && !id) {
-      id = current.snapshot.paramMap.get('id');
-      current = current.parent;
+    while (currentRoute && !id) {
+      id = currentRoute.snapshot.paramMap.get('id');
+      currentRoute = currentRoute.parent;
     }
+
     if (!id) {
       this.facade.showNavigationError();
       this.goBack();
       return;
     }
-    this.facade.loadThesisWork(id, work => this.thesisWork.set(work), () => this.goBack());
+
+    this.facade.loadThesisWork(
+      id,
+      (thesisWork) => this.thesisWorkState.set(thesisWork),
+      () => this.goBack()
+    );
   }
 
-  selectFile(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
-    this.formatF.set(file);
-  }
-
-  submit(): void {
-    this.submitted.set(true);
-    if (this.missingDecision() || this.missingFile() || this.missingObservations()) return;
+  handleRequestConfirmation(data: { payload: PazYSalvoReviewPayload; file: File }): void {
+    this.pendingData.set(data);
     this.isConfirmModalOpen.set(true);
   }
 
-  confirm(): void {
-    const work = this.thesisWork();
-    const formatF = this.formatF();
-    const approved = this.approved();
-    if (!work || !formatF || approved === null) return;
-    const review: PazYSalvoReview = { approved, observations: this.observations(), formatF };
+  processPazYSalvo(): void {
+    const data = this.pendingData();
+    const thesisId = this.thesisWorkState()?.thesisWorkId;
+    if (!data || !thesisId) return;
+
     this.isSubmitting.set(true);
     this.isConfirmModalOpen.set(false);
-    this.facade.save(work.thesisWorkId, review,
+
+    this.facade.processPazYSalvo(
+      thesisId,
+      data.payload,
+      data.file,
       () => { this.isSubmitting.set(false); this.goBack(); },
-      () => this.isSubmitting.set(false));
+      () => { this.isSubmitting.set(false); }
+    );
+  }
+
+  downloadDocument(document: FileDocument): void {
+    void this.facade.downloadDocument(document);
   }
 
   goBack(): void {

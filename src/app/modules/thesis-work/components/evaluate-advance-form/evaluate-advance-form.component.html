@@ -53,17 +53,17 @@
           @for (doc of advanceDocuments; track doc.id) {
             <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm mb-2">
               <div class="flex items-center gap-3 overflow-hidden">
-                <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+                <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
                 <div class="flex flex-col overflow-hidden">
                   <span class="text-size-body font-bold text-primary truncate">{{ doc.name }}</span>
-                  <span class="text-size-role-footer text-[#777680]">Formato D</span>
+                  <span class="text-size-role-footer text-text-body">Formato D</span>
                 </div>
               </div>
               <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadAdvance.emit(doc)"></app-button-component>
             </div>
           } @empty {
             <div class="p-6 border border-dashed border-gray-300 rounded-xl text-center bg-gray-50/50">
-              <span class="text-size-body text-[#777680] italic">No se encontró el archivo del informe.</span>
+              <span class="text-size-body text-text-body italic">No se encontró el archivo del informe.</span>
             </div>
           }
         </div>
@@ -80,9 +80,9 @@
           <div class="p-4 bg-white border border-gray-200 border-l-4 border-l-state-in-development rounded-xl shadow-sm flex flex-col gap-2">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <span class="text-size-body font-bold text-primary">{{ review.evaluatorName }} · {{ review.evaluatorRole }}</span>
-              <span class="text-size-role-footer text-[#777680]">{{ review.date | date:'dd/MM/yyyy' }}</span>
+              <span class="text-size-role-footer text-text-body">{{ review.date | date:'dd/MM/yyyy' }}</span>
             </div>
-            <p class="text-size-body text-[#777680] font-sans whitespace-pre-line">{{ review.observations || 'Sin observaciones escritas' }}</p>
+            <p class="text-size-body text-text-body font-sans whitespace-pre-line">{{ review.observations || 'Sin observaciones escritas' }}</p>
             @for (notes of review.signedDocuments ?? []; track notes.url) {
               <div class="flex justify-end">
                 <app-button-component label="Descargar notas" variant="secondary" (onClick)="onDownloadNotes.emit(notes)"></app-button-component>
@@ -91,7 +91,7 @@
           </div>
         } @empty {
           <div class="p-4 border border-dashed border-gray-300 rounded-xl text-center bg-gray-50/50">
-            <span class="text-size-body text-[#777680] italic">Este informe aún no tiene revisiones.</span>
+            <span class="text-size-body text-text-body italic">Este informe aún no tiene revisiones.</span>
           </div>
         }
       </div>
@@ -111,7 +111,7 @@
             <textarea id="evaluationComments" formControlName="comments" rows="4"
                       class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 font-sans resize-none"
                       [ngClass]="{
-                        'border-[#ED7D31] focus:ring-[#ED7D31] focus:border-[#ED7D31]': isFieldInvalid('comments'),
+                        'border-alert focus:ring-alert focus:border-alert': isFieldInvalid('comments'),
                         'border-gray-300 focus:ring-primary': !isFieldInvalid('comments')
                       }"
                       placeholder="Registre sus observaciones sobre el informe (opcional si adjunta el PDF de notas)"></textarea>
@@ -128,15 +128,15 @@
                   <span class="material-symbols-outlined text-state-in-development text-file shrink-0">edit_note</span>
                   <span class="text-size-body font-bold text-primary truncate">{{ feedback.fileName }}</span>
                 </div>
-                <button type="button" (click)="removeFeedbackFile()" class="text-[#777680] hover:text-[#DB141C] transition-colors shrink-0">
+                <button type="button" (click)="removeFeedbackFile()" class="text-text-body hover:text-danger transition-colors shrink-0">
                   <span class="material-symbols-outlined">delete</span>
                 </button>
               </div>
             } @else {
-              <div class="information-block flex items-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm transition-colors">
+              <div class="information-block flex items-center p-4 bg-white border-gray-200 rounded-xl shadow-sm transition-colors">
                 <div class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-gray-400 text-4xl shrink-0">upload_file</span>
-                  <span class="text-size-body text-[#777680] font-sans">Sin notas adjuntas. Use "Cargar notas" para agregar el PDF.</span>
+                  <span class="material-symbols-outlined text-gray-400 text-file shrink-0">upload_file</span>
+                  <span class="text-size-body text-text-body font-sans">Sin notas adjuntas. Use "Cargar notas" para agregar el PDF.</span>
                 </div>
               </div>
             }

@@ -218,6 +218,21 @@ describe('ProposalFormService', () => {
       expect(service.form.get('title')?.value).toBe('');
     });
 
+    it('al crear deja un solo campo de objetivo específico vacío', () => {
+      service.addSpecificObjective('Anterior');
+      service.initForCreate();
+      expect(service.form.getRawValue().specificObjectives).toEqual(['']);
+    });
+
+    it('agrega y quita objetivos específicos, dejando siempre al menos un campo', () => {
+      service.addSpecificObjective('Segundo');
+      expect(service.specificObjectives.length).toBe(2);
+      service.removeSpecificObjective(0);
+      expect(service.form.getRawValue().specificObjectives).toEqual(['Segundo']);
+      service.removeSpecificObjective(0);
+      expect(service.specificObjectives.length).toBe(1);
+    });
+
     it('debería cargar los datos de una propuesta al llamar initForEdit', () => {
       const mockProposal = createMockProposal({
         id: 'prop-99',
@@ -253,11 +268,16 @@ describe('ProposalFormService', () => {
       }));
       expect(service.form.getRawValue()).toEqual(expect.objectContaining({
         description: 'General',
-        specificObjectives: 'Específico 1\nEspecífico 2',
+        specificObjectives: ['Específico 1', 'Específico 2'],
         generalDescription: 'Contexto del trabajo',
         lineOfResearch: 'IA',
         organization: 'Empresa'
       }));
+    });
+
+    it('sin objetivos específicos deja un campo vacío', () => {
+      service.initForEdit(createMockProposal({ objectives: ['General'] }));
+      expect(service.form.getRawValue().specificObjectives).toEqual(['']);
     });
 
     it('no repite el objetivo general como descripción', () => {
@@ -290,7 +310,7 @@ describe('ProposalFormService', () => {
       service.form.patchValue({
         title: 'Nueva Propuesta',
         description: 'Objetivo general',
-        specificObjectives: 'Específico 1\n\n  Específico 2  ',
+        specificObjectives: ['Específico 1'],
         generalDescription: '',
         lineOfResearch: ' Software ',
         student1: 'stu-1',
@@ -299,6 +319,9 @@ describe('ProposalFormService', () => {
         advisor: 'advisor-1',
         organization: 'Empresa S.A.'
       });
+      // Un campo vacío no se envía y los objetivos se recortan
+      service.addSpecificObjective('');
+      service.addSpecificObjective('  Específico 2  ');
       const payload = service.buildProposalPayload(null, { proposal: formatoA });
       expect(payload?.title).toBe('Nueva Propuesta');
       expect(payload?.objectives).toEqual(['Objetivo general', 'Específico 1', 'Específico 2']);

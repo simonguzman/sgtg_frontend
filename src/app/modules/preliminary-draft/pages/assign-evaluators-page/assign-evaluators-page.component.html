@@ -4,7 +4,7 @@
 
     <button
       (click)="facade.goBack()"
-      class="flex items-center gap-1 text-primary font-bold text-sm hover:opacity-80 transition-opacity w-fit"
+      class="flex items-center gap-1 text-primary font-bold text-size-body hover:opacity-80 transition-opacity w-fit"
     >
       <span class="material-symbols-outlined text-size-section font-bold">arrow_back</span>
       Regresar
@@ -12,7 +12,7 @@
 
     @if (facade.isDataLoading()) {
       <div class="flex justify-center items-center h-60">
-        <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+        <div class="animate-spin rounded-pill h-10 w-10 border-t-2 border-b-2 border-primary"></div>
       </div>
     } @else if (facade.selectedPreliminaryDraft()) {
       <app-assign-evaluators-form

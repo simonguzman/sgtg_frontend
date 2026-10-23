@@ -2,8 +2,8 @@
 
   <div class="max-w-7xl mx-auto flex flex-col gap-6">
 
-    <button (click)="navigateBack()" class="flex items-center gap-2 text-navy-900 font-bold group w-fit transition-opacity hover:opacity-80">
-      <span class="material-symbols-outlined text-[#000066] text-xl transition-transform duration-300 ease-in-out group-hover:-translate-x-1.5">
+    <button (click)="navigateBack()" class="flex items-center gap-2 text-primary font-bold group w-fit transition-opacity hover:opacity-80">
+      <span class="material-symbols-outlined text-primary text-size-header-title transition-transform duration-300 ease-in-out group-hover:-translate-x-1.5">
         arrow_back
       </span>
       <span class="return-arrow-option">Regresar</span>
@@ -11,7 +11,7 @@
 
     @if (thesisWorkState() === null || currentAdvance() === null) {
       <div class="flex justify-center items-center h-60">
-        <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+        <div class="animate-spin rounded-pill h-10 w-10 border-t-2 border-b-2 border-primary"></div>
       </div>
     } @else {
       <app-evaluate-advance-form

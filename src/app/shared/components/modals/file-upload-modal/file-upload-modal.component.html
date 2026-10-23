@@ -16,7 +16,7 @@
         <h3 class="font-display text-size-section font-semibold text-primary mb-2">
           {{ description }}
         </h3>
-        <p class="font-sans font-normal text-sm opacity-80 max-w-sm mx-auto">
+        <p class="font-sans font-normal text-size-body opacity-80 max-w-sm mx-auto">
           Sus datos personales y archivos están protegidos por nuestra Política de Protección de Datos Personales y Transparencia de la Información
         </p>
       </div>
@@ -26,14 +26,14 @@
   @if (uploadedFile) {
     <div class="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 mt-2">
       <div class="flex items-center gap-3">
-        <span class="material-symbols-outlined text-[#DB141C]">{{ uploadedFileIcon }}</span>
+        <span class="material-symbols-outlined text-danger">{{ uploadedFileIcon }}</span>
         <div>
-          <p class="font-semibold text-sm">{{ uploadedFile.name }}</p>
-          <p class="text-xs opacity-70">Subido por: {{ uploadedBy }}</p>
+          <p class="font-semibold text-size-body">{{ uploadedFile.name }}</p>
+          <p class="text-size-role-footer opacity-70">Subido por: {{ uploadedBy }}</p>
         </div>
       </div>
 
-      <button (click)="removeFile()" class="text-gray-400 hover:text-[#DB141C] transition-colors">
+      <button (click)="removeFile()" class="text-gray-400 hover:text-danger transition-colors">
         <span class="material-symbols-outlined">close</span>
       </button>
     </div>

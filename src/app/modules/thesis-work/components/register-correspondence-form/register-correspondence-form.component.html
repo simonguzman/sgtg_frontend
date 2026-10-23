@@ -30,7 +30,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="flex flex-col gap-1">
         <span class="font-display font-semibold text-primary text-size-section">Jurados Asignados</span>
-        <div class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 w-full min-h-10 flex items-center gap-1">
+        <div class="information-block p-2 rounded-md text-text-body bg-gray-50 w-full min-h-10 flex items-center gap-1">
           @for (juror of thesisWork().sustentations?.[0]?.assignedJurors; track juror.id) {
             <span>{{ getMemberName(juror.id) }}{{ $last ? '' : ' - ' }}</span>
           } @empty {
@@ -48,10 +48,10 @@
       @if (formatoEDoc(); as docE) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
           <div class="flex items-center gap-3 overflow-hidden">
-            <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+            <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
             <div class="flex flex-col overflow-hidden">
               <span class="text-size-body font-bold text-primary truncate">{{ docE.name }}</span>
-              <span class="text-size-role-footer text-[#777680]">Formato de presentación (Formato_E) • Cargado en Entrega Final</span>
+              <span class="text-size-role-footer text-text-body">Formato de presentación (Formato_E) • Cargado en Entrega Final</span>
             </div>
           </div>
           <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docE)"></app-button-component>
@@ -60,10 +60,10 @@
       @if (formatoFDoc(); as docF) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
           <div class="flex items-center gap-3 overflow-hidden">
-            <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+            <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
             <div class="flex flex-col overflow-hidden">
               <span class="text-size-body font-bold text-primary truncate">{{ docF.name }}</span>
-              <span class="text-size-role-footer text-[#777680]">Paz y Salvo (Formato F) • Cargado por Facultad</span>
+              <span class="text-size-role-footer text-text-body">Paz y Salvo (Formato F) • Cargado por Facultad</span>
             </div>
           </div>
           <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docF)"></app-button-component>
@@ -72,10 +72,10 @@
       @if (formatoGDoc(); as docG) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
           <div class="flex items-center gap-3 overflow-hidden">
-            <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+            <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
             <div class="flex flex-col overflow-hidden">
               <span class="text-size-body font-bold text-primary truncate">{{ docG.name }}</span>
-              <span class="text-size-role-footer text-[#777680]">Acta Final de Sustentación / Correcciones • Calificación del Jurado</span>
+              <span class="text-size-role-footer text-text-body">Acta Final de Sustentación / Correcciones • Calificación del Jurado</span>
             </div>
           </div>
           <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(docG)"></app-button-component>
@@ -90,10 +90,10 @@
       @if (!selectedFile()) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm transition-colors">
           <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-4xl text-[#777680]">picture_as_pdf</span>
+            <span class="material-symbols-outlined text-file text-text-body">picture_as_pdf</span>
             <div class="flex flex-col">
-              <span class="text-size-body font-bold text-[#777680]">Documento de Correspondencia</span>
-              <span class="text-size-role-footer text-[#777680]">
+              <span class="text-size-body font-bold text-text-body">Documento de Correspondencia</span>
+              <span class="text-size-role-footer text-text-body">
                 No ha sido cargado ningún archivo. Debe adjuntar el Formato_H para formalizar el cierre del proceso.
               </span>
             </div>
@@ -104,13 +104,13 @@
       @else {
         <div class="flex items-center justify-between p-4 bg-white border-l-4 border-l-state-approved border border-gray-200 rounded-xl shadow-sm transition-colors">
           <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-4xl text-state-approved">task</span>
+            <span class="material-symbols-outlined text-file text-state-approved">task</span>
             <div class="flex flex-col">
               <span class="text-size-body font-bold text-primary">{{ selectedFile()?.fileName }}</span>
-              <span class="text-size-role-footer text-[#777680]">Documento cargado con éxito</span>
+              <span class="text-size-role-footer text-text-body">Documento cargado con éxito</span>
             </div>
           </div>
-          <button type="button" (click)="removeSelectedFile()" class="text-[#777680] hover:text-[#DB141C] transition-colors">
+          <button type="button" (click)="removeSelectedFile()" class="text-text-body hover:text-danger transition-colors">
             <span class="material-symbols-outlined">delete</span>
           </button>
         </div>

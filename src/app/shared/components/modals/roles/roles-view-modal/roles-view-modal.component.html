@@ -1,7 +1,7 @@
 <p-dialog [(visible)]="isOpen" (onHide)="close()" [modal]="true" [style]="{ width: '450px' }" styleClass="custom-modal">
   <ng-template pTemplate="header">
     <div class="w-full text-center">
-      <h2 class="text-primary font-bold text-lg m-0">Roles asignados a {{ username }}</h2>
+      <h2 class="text-primary font-bold text-size-sidebar-title m-0">Roles asignados a {{ username }}</h2>
     </div>
   </ng-template>
 
@@ -10,7 +10,7 @@
       @for (role of activeRoles; track role.type) {
         <li class="flex justify-between items-center py-2 px-4">
           <span class="text-gray-700">• {{ role.type }}</span>
-          <span class="bg-primary text-white px-6 py-1 rounded-full text-sm">Activo</span>
+          <span class="bg-primary text-text-white px-6 py-1 rounded-pill text-size-body">Activo</span>
         </li>
       }
     </ul>

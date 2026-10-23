@@ -39,10 +39,10 @@
         @for (delivery of correctedDeliveriesList(); track delivery.id) {
           <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
             <div class="flex items-center gap-3 overflow-hidden">
-              <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+              <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
               <div class="flex flex-col overflow-hidden">
                 <span class="text-size-body font-bold text-primary truncate">{{ delivery.monograph.name }}</span>
-                <span class="text-size-role-footer text-[#777680]">Monografía corregida • Cargado el {{ delivery.uploadDate || 'Sin fecha' }}</span>
+                <span class="text-size-role-footer text-text-body">Monografía corregida • Cargado el {{ delivery.uploadDate || 'Sin fecha' }}</span>
               </div>
             </div>
             <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(delivery.monograph)"></app-button-component>
@@ -51,10 +51,10 @@
           @if (delivery.annexes) {
             <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
               <div class="flex items-center gap-3 overflow-hidden">
-                <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">folder_open</span>
+                <span class="material-symbols-outlined text-danger text-file shrink-0">folder_open</span>
                 <div class="flex flex-col overflow-hidden">
                   <span class="text-size-body font-bold text-primary truncate">{{ delivery.annexes.name }}</span>
-                  <span class="text-size-role-footer text-[#777680]">Anexos corregidos • Cargado el {{ delivery.uploadDate || 'Sin fecha' }}</span>
+                  <span class="text-size-role-footer text-text-body">Anexos corregidos • Cargado el {{ delivery.uploadDate || 'Sin fecha' }}</span>
                 </div>
               </div>
               <app-button-component label="Descargar" variant="primary" (onClick)="downloadDocument(delivery.annexes)"></app-button-component>
@@ -63,8 +63,8 @@
         }
       </div>
     } @else {
-      <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-size-body text-[#777680] flex items-center gap-2">
-        <span class="material-symbols-outlined text-xl shrink-0">info</span>
+      <div class="information-block p-4 rounded-lg text-size-body text-text-body flex items-center gap-2">
+        <span class="material-symbols-outlined text-size-header-title shrink-0">info</span>
         No se registran entregas de documentos corregidos en esta fase.
       </div>
     }
@@ -76,10 +76,10 @@
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Evaluación del jurado</h3>
 
     <div class="bg-blue-50/50 p-6 rounded-xl border shadow-sm transition-all"
-         [class.border-[#ED7D31]]="isSubmitAttempted() && selectedVerdict() === null"
+         [class.border-alert]="isSubmitAttempted() && selectedVerdict() === null"
          [class.border-blue-100]="!(isSubmitAttempted() && selectedVerdict() === null)">
 
-      <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-size-body text-[#777680] mb-6">
+      <div class="information-block p-4 rounded-lg text-size-body text-text-body mb-6">
         Indique si los ajustes cumplen. Las observaciones son obligatorias si no cumplen.
       </div>
 
@@ -105,7 +105,7 @@
         <label for="evalObservations" class="font-display font-semibold text-primary text-size-section">Observaciones y comentarios descriptivos</label>
         <textarea id="evalObservations" rows="4"
                    class="p-3 border rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
-                   [class.border-[#ED7D31]]="isSubmitAttempted() && selectedVerdict() === states.NO_APROBADO && observations().trim().length < 10"
+                   [class.border-alert]="isSubmitAttempted() && selectedVerdict() === states.NO_APROBADO && observations().trim().length < 10"
                    [class.border-gray-200]="!(isSubmitAttempted() && selectedVerdict() === states.NO_APROBADO && observations().trim().length < 10)"
                    placeholder="Ingrese el desglose detallado de las razones del veredicto o los ajustes exigidos al estudiante..."
                    [value]="observations()"

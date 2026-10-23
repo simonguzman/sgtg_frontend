@@ -14,39 +14,39 @@
       <div class="flex flex-col gap-1">
         <label for="infoTitle" class="font-display font-semibold text-primary text-size-section">Título</label>
         <input id="infoTitle" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <label for="infoDescription" class="font-display font-semibold text-primary text-size-section">Descripción</label>
         <input id="infoDescription" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <label for="infoModality" class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</label>
         <input id="infoModality" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <label for="infoStudent" class="font-display font-semibold text-primary text-size-section">Estudiante</label>
         <input id="infoStudent" type="text" [value]="getStudentNames()" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="flex flex-col gap-1">
           <label for="infoDirector" class="font-display font-semibold text-primary text-size-section">Director</label>
           <input id="infoDirector" type="text" [value]="getDirectorName()" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+                 class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
         </div>
 
         @if (getCodirectorName()) {
           <div class="flex flex-col gap-1">
             <label for="infoCodirector" class="font-display font-semibold text-primary text-size-section">Codirector</label>
             <input id="infoCodirector" type="text" [value]="getCodirectorName()" disabled
-                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+                   class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
           </div>
         }
       </div>
@@ -55,14 +55,14 @@
         <div class="flex flex-col gap-1">
           <label for="infoAdvisor" class="font-display font-semibold text-primary text-size-section">Asesor</label>
           <input id="infoAdvisor" type="text" [value]="getAdvisorName()" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+                 class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
         </div>
       }
 
       <div class="flex flex-col gap-1">
         <label for="infoState" class="font-display font-semibold text-primary text-size-section">Estado</label>
         <input id="infoState" type="text" [value]="thesisWork.state || 'En desarrollo'" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
+               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
       </div>
     </div>
   </section>
@@ -78,32 +78,32 @@
       <!-- Monografía corregida -->
       <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
            [class.border]="!uploadedMonograph() || isSubmitAttempted()"
-           [class.border-[#ED7D31]]="isSubmitAttempted() && !uploadedMonograph()"
+           [class.border-alert]="isSubmitAttempted() && !uploadedMonograph()"
            [class.border-l-4]="uploadedMonograph()"
            [class.border-l-state-approved]="uploadedMonograph()"
            [class.border-gray-200]="!uploadedMonograph() && !isSubmitAttempted()">
         <div class="flex items-center gap-3">
-          <span class="material-symbols-outlined text-4xl"
+          <span class="material-symbols-outlined text-file"
                 [class.text-state-approved]="uploadedMonograph()"
-                [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedMonograph()"
-                [class.text-[#777680]]="!uploadedMonograph() && !isSubmitAttempted()">
+                [class.text-alert]="isSubmitAttempted() && !uploadedMonograph()"
+                [class.text-text-body]="!uploadedMonograph() && !isSubmitAttempted()">
             {{ uploadedMonograph() ? 'task' : 'picture_as_pdf' }}
           </span>
           <div class="flex flex-col">
             <span class="text-size-body font-bold"
                   [class.text-primary]="uploadedMonograph()"
-                  [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedMonograph()"
-                  [class.text-[#777680]]="!uploadedMonograph() && !isSubmitAttempted()">
+                  [class.text-alert]="isSubmitAttempted() && !uploadedMonograph()"
+                  [class.text-text-body]="!uploadedMonograph() && !isSubmitAttempted()">
               {{ uploadedMonograph()?.fileName || 'Monografía Corregida' }}
             </span>
-            <span class="text-size-role-footer text-[#777680]">Documento principal (Obligatorio)</span>
+            <span class="text-size-role-footer text-text-body">Documento principal (Obligatorio)</span>
             @if (isSubmitAttempted() && !uploadedMonograph()) {
               <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span>
             }
           </div>
         </div>
         @if (uploadedMonograph()) {
-          <button type="button" (click)="removeFile('MONOGRAPH')" class="text-[#777680] hover:text-[#DB141C] transition-colors">
+          <button type="button" (click)="removeFile('MONOGRAPH')" class="text-text-body hover:text-danger transition-colors">
             <span class="material-symbols-outlined">delete</span>
           </button>
         } @else {
@@ -116,22 +116,22 @@
            [class.border-l-4]="uploadedAnnexes()"
            [class.border-l-state-approved]="uploadedAnnexes()">
         <div class="flex items-center gap-3">
-          <span class="material-symbols-outlined text-4xl"
+          <span class="material-symbols-outlined text-file"
                 [class.text-state-approved]="uploadedAnnexes()"
-                [class.text-[#777680]]="!uploadedAnnexes()">
+                [class.text-text-body]="!uploadedAnnexes()">
             {{ uploadedAnnexes() ? 'folder_zip' : 'folder_open' }}
           </span>
           <div class="flex flex-col">
             <span class="text-size-body font-bold"
                   [class.text-primary]="uploadedAnnexes()"
-                  [class.text-[#777680]]="!uploadedAnnexes()">
+                  [class.text-text-body]="!uploadedAnnexes()">
               {{ uploadedAnnexes()?.fileName || 'Anexos de los ajustes' }}
             </span>
-            <span class="text-size-role-footer text-[#777680]">Archivos complementarios (Opcional - PDF)</span>
+            <span class="text-size-role-footer text-text-body">Archivos complementarios (Opcional - PDF)</span>
           </div>
         </div>
         @if (uploadedAnnexes()) {
-          <button type="button" (click)="removeFile('ANNEXES')" class="text-[#777680] hover:text-[#DB141C] transition-colors">
+          <button type="button" (click)="removeFile('ANNEXES')" class="text-text-body hover:text-danger transition-colors">
             <span class="material-symbols-outlined">delete</span>
           </button>
         } @else {

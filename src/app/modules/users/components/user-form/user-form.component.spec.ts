@@ -2,7 +2,7 @@ import { ContractType } from '../../enum/contract-type.enum';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { CatalogApiService } from '../../../../core/services/catalog/catalog-api.service';
 import { UserFormComponent } from './user-form.component';
 import { User } from '../../interfaces/user.interface';
@@ -14,6 +14,8 @@ import { NotificationType } from '../../../../shared/components/notifications/mo
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { RolesSelectionModalComponent } from '../../../../shared/components/modals/roles/roles-selection-modal/roles-selection-modal.component';
+import { CatalogSelectionModalComponent } from '../../../../shared/components/modals/catalog-selection-modal/catalog-selection-modal.component';
+import { CatalogItem } from '../../interfaces/catalog-item.interface';
 
 @Component({ selector: 'app-button-component', standalone: true, template: '' })
 class MockButtonComponent {
@@ -28,6 +30,19 @@ class MockRolesSelectionModalComponent {
   @Input() roles!: UserRole[];
   @Output() isOpenChange = new EventEmitter<boolean>();
   @Output() onSaved = new EventEmitter<UserRole[]>();
+}
+
+@Component({ selector: 'app-catalog-selection-modal', standalone: true, template: '' })
+class MockCatalogSelectionModalComponent {
+  @Input() isOpen!: boolean;
+  @Input() title!: string;
+  @Input() itemName!: string;
+  @Input() items!: CatalogItem[];
+  @Input() selectedId!: number | null;
+  @Input() isCreating!: boolean;
+  @Output() isOpenChange = new EventEmitter<boolean>();
+  @Output() onSaved = new EventEmitter<number>();
+  @Output() onCreate = new EventEmitter<string>();
 }
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
@@ -91,8 +106,8 @@ describe('UserFormComponent', () => {
       ]
     })
     .overrideComponent(UserFormComponent, {
-      remove: { imports: [ButtonComponent, RolesSelectionModalComponent] },
-      add: { imports: [MockButtonComponent, MockRolesSelectionModalComponent] }
+      remove: { imports: [ButtonComponent, RolesSelectionModalComponent, CatalogSelectionModalComponent] },
+      add: { imports: [MockButtonComponent, MockRolesSelectionModalComponent, MockCatalogSelectionModalComponent] }
     })
     .compileComponents();
 
@@ -256,16 +271,95 @@ describe('UserFormComponent', () => {
       expect(component.userForm.get('programId')?.hasError('required')).toBe(true);
     });
 
-    it('agrega un departamento al catálogo y lo selecciona', () => {
+    it('agrega un departamento al catálogo sin cambiar la selección hasta guardar en el modal', () => {
       component.addDepartment('  Telemática ');
       expect(mockCatalogApi.createDepartment).toHaveBeenCalledWith('Telemática');
       expect(component.departments()).toContainEqual({ id: 2, name: 'Telemática' });
-      expect(component.userForm.get('departmentId')?.value).toBe(2);
+      expect(component.userForm.get('departmentId')?.value).toBeNull();
+      expect(component.isCreatingCatalogItem()).toBe(false);
+    });
+
+    it('si el backend rechaza el departamento avisa el error', () => {
+      mockCatalogApi.createDepartment.mockReturnValue(throwError(() => new Error('406')));
+      component.addDepartment('Sistemas');
+      expect(mockNotificationService.error).toHaveBeenCalledWith('No se creó el departamento', expect.any(String));
+      expect(component.departments()).toEqual([SISTEMAS]);
+      expect(component.isCreatingCatalogItem()).toBe(false);
+    });
+
+    it('agrega un programa al catálogo', () => {
+      component.addProgram('Ingeniería Electrónica');
+      expect(mockCatalogApi.createProgram).toHaveBeenCalledWith('Ingeniería Electrónica');
+      expect(component.programs()).toContainEqual({ id: 8, name: 'Ingeniería Electrónica' });
     });
 
     it('no agrega catálogos con nombre vacío', () => {
       component.addProgram('   ');
       expect(mockCatalogApi.createProgram).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Modales de departamento y programa', () => {
+    it('muestra el nombre del departamento y del programa elegidos', () => {
+      expect(component.selectedDepartmentName).toBe('');
+      component.userForm.patchValue({ departmentId: 1, programId: 7 });
+      expect(component.selectedDepartmentName).toBe('Sistemas');
+      expect(component.selectedProgramName).toBe('Ingeniería de Sistemas');
+    });
+
+    it('al guardar en el modal deja el elemento seleccionado y marcado como tocado', () => {
+      component.handleDepartmentSaved(1);
+      component.handleProgramSaved(7);
+      expect(component.userForm.get('departmentId')?.value).toBe(1);
+      expect(component.userForm.get('departmentId')?.touched).toBe(true);
+      expect(component.userForm.get('programId')?.value).toBe(7);
+      expect(component.userForm.get('programId')?.touched).toBe(true);
+    });
+
+    it('el campo de departamento abre su modal', () => {
+      component.userForm.controls.roles.setValue([UserRoleType.DOCENTE]);
+      fixture.detectChanges();
+      fixture.nativeElement.querySelector('#departmentBtn').click();
+      expect(component.isDepartmentModalOpen).toBe(true);
+    });
+
+    it('muestra un solo ícono: el ⊕ hasta que el campo es válido y luego el ✓ en su lugar', () => {
+      const contenedorRol = () => fixture.nativeElement.querySelector('#rolesBtn').parentElement as HTMLElement;
+      expect(contenedorRol().querySelector('.add-circle')).toBeTruthy();
+      expect(contenedorRol().querySelector('.success-icon')).toBeNull();
+
+      component.handleRolesSaved([createMockUserRole({ type: UserRoleType.CONSEJO, assigned: true })]);
+      fixture.detectChanges();
+      expect(contenedorRol().querySelector('.add-circle')).toBeNull();
+      expect(contenedorRol().querySelector('.success-icon')).toBeTruthy();
+    });
+
+    it('el tipo de documento válido cambia la flecha por el ✓', () => {
+      const contenedor = () => fixture.nativeElement.querySelector('#idType').parentElement as HTMLElement;
+      expect(contenedor().querySelector('.select-arrow')).toBeTruthy();
+      component.userForm.controls.idType.setValue(IdentificationType.CC);
+      component.userForm.controls.idType.markAsTouched();
+      fixture.detectChanges();
+      expect(contenedor().querySelector('.select-arrow')).toBeNull();
+      expect(contenedor().querySelector('.success-icon')).toBeTruthy();
+    });
+
+    it('si la vinculación no es de planta muestra el aviso del codirector', () => {
+      component.userForm.controls.roles.setValue([UserRoleType.DOCENTE]);
+      component.userForm.controls.contractType.setValue(ContractType.CATEDRA);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('app-inline-notice')?.textContent).toContain('codirector de planta');
+
+      component.userForm.controls.contractType.setValue(ContractType.PLANTA);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('app-inline-notice')).toBeNull();
+    });
+
+    it('el campo de programa abre su modal', () => {
+      component.userForm.controls.roles.setValue([UserRoleType.ESTUDIANTE]);
+      fixture.detectChanges();
+      fixture.nativeElement.querySelector('#programBtn').click();
+      expect(component.isProgramModalOpen).toBe(true);
     });
   });
 

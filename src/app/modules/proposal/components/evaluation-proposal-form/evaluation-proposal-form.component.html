@@ -2,8 +2,8 @@
 
   <div class="mb-6">
     <button (click)="goBack()"
-      class="flex items-center gap-2 text-navy-900 hover:text-[#000066] transition-colors font-bold-weight group">
-      <span class="material-symbols-outlined text-[#000066] font-semibold text-size-sidebar-title font-display group-hover:-translate-x-1 transition-transform">
+      class="flex items-center gap-2 text-primary transition-colors font-bold group">
+      <span class="material-symbols-outlined text-primary font-semibold text-size-sidebar-title font-display group-hover:-translate-x-1 transition-transform">
         arrow_back
       </span>
       <span class="return-arrow-option">Regresar</span>
@@ -11,7 +11,7 @@
   </div>
 
   @if (!proposal()) {
-    <div class="text-center text-[#777680] font-display font-bold my-10">
+    <div class="text-center text-text-body font-display font-bold my-10">
       Cargando información de la propuesta...
     </div>
   }
@@ -66,7 +66,7 @@
                 <label [for]="option.id" class="flex items-center gap-2 cursor-pointer">
                   <input type="radio" [id]="option.id" formControlName="result" [value]="option.value"
                         class="w-4 h-4 text-primary focus:ring-primary border-gray-300">
-                  <span class="text-size-body font-sans text-[#777680] font-semibold">{{ option.value }}</span>
+                  <span class="text-size-body font-sans text-text-body font-semibold">{{ option.value }}</span>
                 </label>
               }
             </div>
@@ -76,10 +76,10 @@
           </div>
 
           <div class="flex flex-col gap-1">
-            <label for="comments" class="font-display font-semibold text-primary text-size-section">Comentarios u Observaciones <span class="text-[#ED7D31]">*</span></label>
+            <label for="comments" class="font-display font-semibold text-primary text-size-section">Comentarios u Observaciones <span class="text-alert">*</span></label>
             <textarea id="comments" formControlName="comments" rows="4"
               class="font-sans font-normal text-size-section text-textbox p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
-              [class.border-[#ED7D31]]="evaluationForm.get('comments')?.invalid && evaluationForm.get('comments')?.touched"
+              [class.border-alert]="evaluationForm.get('comments')?.invalid && evaluationForm.get('comments')?.touched"
               [class.border-gray-300]="!(evaluationForm.get('comments')?.invalid && evaluationForm.get('comments')?.touched)"
               placeholder="Ingrese los comentarios detallados de la revisión aquí...">
             </textarea>
@@ -92,7 +92,7 @@
             <h3 class="font-display font-semibold text-primary text-size-header-title mb-2 border-b pb-2">Archivos adjuntos</h3>
 
             @if (!signedFile()) {
-              <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-2">
+              <div class="information-block p-4 rounded-lg text-size-body text-text-body mb-2">
                 No ha sido cargado ningún archivo de veredicto. Para guardar la evaluación, es obligatorio adjuntar el documento de respuesta del Comité (PDF), tanto si aprueba como si no aprueba.
               </div>
             }
@@ -101,12 +101,12 @@
 
               <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
                 <div class="flex items-center gap-3 overflow-hidden">
-                  <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+                  <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
                   <div class="flex flex-col overflow-hidden">
                     <span class="text-size-body font-bold text-primary truncate">
                       {{ originalDocument?.name ?? 'Documento no disponible' }}
                     </span>
-                    <span class="text-size-role-footer text-[#777680] font-sans flex items-center gap-2">
+                    <span class="text-size-role-footer text-text-body font-sans flex items-center gap-2">
                       Versión {{ originalDocument?.version ?? 1 }} del formato A
                       @if (originalDocument?.status) {
                         <app-state [label]="originalDocument?.status" [state]="originalDocument?.status"></app-state>
@@ -123,27 +123,26 @@
               </div>
 
               <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm transition-colors duration-200"
-                [class.border-[#777680]]="!isFileInvalid && !signedFile()"
-                [class.border-[#ED7D31]]="isFileInvalid"
+                [class.border-text-body]="!isFileInvalid && !signedFile()"
+                [class.border-alert]="isFileInvalid"
                 [class.border-l-4]="signedFile()"
                 [class.border-l-state-approved]="signedFile() && !isFileInvalid">
 
                 <div class="flex items-center gap-3 overflow-hidden">
-                  <span class="material-symbols-outlined text-4xl shrink-0 transition-colors duration-200"
+                  <span class="material-symbols-outlined text-file shrink-0 transition-colors duration-200"
                         [class.text-state-approved]="signedFile() && !isFileInvalid"
-                        [class.text-[#ED7D31]]="isFileInvalid"
-                        [class.text-[#777680]]="!signedFile() && !isFileInvalid">
+                        [class.text-alert]="isFileInvalid"
+                        [class.text-text-body]="!signedFile() && !isFileInvalid">
                     {{ signedFile() ? 'task' : 'picture_as_pdf' }}
                   </span>
 
                   <div class="flex flex-col overflow-hidden">
                     <span class="text-size-body font-bold truncate transition-colors duration-200"
                           [class.text-primary]="signedFile() && !isFileInvalid"
-                          [class.text-[#ED7D31]]="isFileInvalid"
-                          [class.text-navy-900]="!signedFile() && !isFileInvalid">
+                          [class.text-alert]="isFileInvalid">
                       {{ signedFile()?.name || 'Documento de respuesta del Comité' }}
                     </span>
-                    <span class="text-size-role-footer text-[#777680]">Documento de evaluación de la propuesta (Obligatorio)</span>
+                    <span class="text-size-role-footer text-text-body">Documento de evaluación de la propuesta (Obligatorio)</span>
 
                     @if (isFileInvalid) {
                       <span class="text-size-role-footer text-textbox-alert mt-1 font-semibold">Este archivo es requerido para registrar la evaluación</span>
@@ -152,7 +151,7 @@
                 </div>
 
                 @if (signedFile()) {
-                  <button type="button" (click)="removeSignedFile()" class="text-[#777680] hover:text-[#DB141C] shrink-0 ml-4 transition-colors">
+                  <button type="button" (click)="removeSignedFile()" class="text-text-body hover:text-danger shrink-0 ml-4 transition-colors">
                     <span class="material-symbols-outlined">delete</span>
                   </button>
                 } @else {

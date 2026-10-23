@@ -7,7 +7,10 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { LoadedProposalsMapperService } from './loaded-proposals-mapper.service';
 import { versionesDePropuesta } from '../../../services/proposal-rules.service';
-import { DocumentTableRow } from '../models/loaded-proposals-page.model';
+import { DocumentTableRow, ProposalRegistrationDetails } from '../models/loaded-proposals-page.model';
+import { UserService } from '../../../../users/services/user.service';
+import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { parseDisplayDate } from '../../../../../core/utils/date-utils';
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { Proposal } from '../../../interfaces/proposal.interface';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
@@ -21,19 +24,59 @@ export class LoadedProposalsFacadeService {
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
   private readonly mapper = inject(LoadedProposalsMapperService);
+  private readonly userService = inject(UserService);
 
+  /**
+   * Un registro por versión del formato A, del más reciente al más antiguo. Los
+   * documentos radicados al crear la propuesta (la carta de aceptación de una
+   * práctica profesional) van en el registro de la primera versión.
+   */
   public buildDocumentsTableData(proposalId: string | null): DocumentTableRow[] {
     const proposal = this.findProposal(proposalId);
     const user = this.authService.currentUser();
     if (!proposal || !user) return [];
 
     const canEvaluate = this.authService.hasAnyRole([UserRoleType.COMITE, UserRoleType.ADMINISTRADOR]);
-    // Versiones del formato A de la más reciente a la más antigua; después, los demás documentos (carta)
-    const versiones = versionesDePropuesta(proposal).reverse();
+    const archived = !!proposal.isArchived;
+    const versiones = versionesDePropuesta(proposal);
     const otros = proposal.documents.filter(document => !versiones.includes(document));
-    return [...versiones, ...otros].map(document =>
-      this.mapper.mapDocumentToRow(document, canEvaluate, !!proposal.isArchived)
-    );
+    if (versiones.length === 0) {
+      return otros.length ? [this.mapper.mapRegistrationToRow(otros[0], otros.slice(1), false, canEvaluate, archived)] : [];
+    }
+    return versiones
+      .map((version, i) => this.mapper.mapRegistrationToRow(version, i === 0 ? otros : [], true, canEvaluate, archived))
+      .reverse();
+  }
+
+  /** Información de la propuesta y documentos de un registro, para el modal de detalles. */
+  public buildRegistrationDetails(proposalId: string | null, row: DocumentTableRow | null): ProposalRegistrationDetails | null {
+    const proposal = this.findProposal(proposalId);
+    if (!proposal || !row) return null;
+    return {
+      subtitle: !row.version || row.version === 1
+        ? 'Registro de la propuesta'
+        : `Corrección de la propuesta – versión ${row.version}`,
+      title: proposal.title,
+      comments: this.describeProposal(proposal),
+      modality: proposal.modality,
+      student: this.userService.getAuthorsNames(proposal.authors),
+      director: proposal.director ? this.userService.formatFullName(proposal.director) : 'No asignado',
+      codirector: proposal.codirector ? this.userService.formatFullName(proposal.codirector) : undefined,
+      adviser: proposal.advisor ? this.userService.formatFullName(proposal.advisor) : undefined,
+      chargeDate: parseDisplayDate(row.documents[0]?.uploadDate),
+      state: row.status,
+      documents: row.documents
+    };
+  }
+
+  /** Descarga un documento del registro por el nombre con que lo muestra el modal. */
+  public async downloadRegistrationDocument(fileName: string, row: DocumentTableRow | null): Promise<void> {
+    const document = row?.documents.find(doc => doc.name === fileName);
+    if (!document) {
+      this.showNotification('Archivo no disponible', 'No se encontró el documento seleccionado.', NotificationType.ERROR);
+      return;
+    }
+    await this.handleDownload(document);
   }
 
   public buildHeaderButtons(proposalId: string | null): TableButton[] {
@@ -70,7 +113,7 @@ export class LoadedProposalsFacadeService {
     return true;
   }
 
-  public async handleDownload(document: DocumentTableRow): Promise<void> {
+  public async handleDownload(document: Pick<FileDocument, 'url' | 'name'>): Promise<void> {
     if (!document.url?.trim()) {
       this.showNotification('Archivo no disponible', 'Ruta no válida.', NotificationType.ERROR);
       return;
@@ -119,6 +162,20 @@ export class LoadedProposalsFacadeService {
   public findProposal(proposalId: string | null): Proposal | undefined {
     if (!proposalId) return undefined;
     return this.proposalService.allProposals().find(proposal => proposal.id === proposalId);
+  }
+
+  /** Descripción, objetivos, línea de investigación y organización de la propuesta. */
+  private describeProposal(proposal: Proposal): string {
+    const objetivos = proposal.objectives ?? [];
+    const partes: string[] = [];
+    if (proposal.description && proposal.description !== objetivos[0]) partes.push(proposal.description);
+    if (objetivos[0]) partes.push(`Objetivo general: ${objetivos[0]}`);
+    if (objetivos.length > 1) {
+      partes.push(['Objetivos específicos:', ...objetivos.slice(1).map(objetivo => `• ${objetivo}`)].join('\n'));
+    }
+    if (proposal.lineOfResearch) partes.push(`Línea de investigación: ${proposal.lineOfResearch}`);
+    if (proposal.organization) partes.push(`Organización: ${proposal.organization}`);
+    return partes.join('\n\n');
   }
 
   private showNotification(title: string, message: string, type: NotificationType): void {

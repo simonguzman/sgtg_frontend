@@ -3,9 +3,9 @@
   <div class="flex justify-between items-center mb-6">
     <button
       (click)="goBack()"
-      class="flex items-center gap-2 text-navy-900 hover:text-navy-700 transition-colors font-bold group"
+      class="flex items-center gap-2 text-primary transition-colors font-bold group"
     >
-      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
+      <span class="material-symbols-outlined text-primary text-size-sidebar-title group-hover:-translate-x-1 transition-transform">
         arrow_back
       </span>
       <span class="return-arrow-option">Regresar</span>
@@ -72,7 +72,7 @@
       ]; track item.label) {
         <div class="p-3 information-block rounded">
           <span class="font-semibold font-display text-size-section text-primary">{{ item.label }}</span>
-          <p class="font-normal font-sans text-size-section text-[#777680]">{{ item.value }}</p>
+          <p class="font-normal font-sans text-size-section text-text-body">{{ item.value }}</p>
         </div>
       }
     </div>
@@ -85,26 +85,26 @@
     <div class="p-4 information-block rounded space-y-3">
       <div>
         <span class="font-semibold font-display text-size-section text-primary">Director: </span>
-        <span class="font-normal font-sans text-size-section text-[#777680]">{{ data.director }}</span>
+        <span class="font-normal font-sans text-size-section text-text-body">{{ data.director }}</span>
       </div>
 
       @if (data.codirector) {
         <div>
           <span class="font-semibold font-display text-size-section text-primary">Codirector: </span>
-          <span class="font-normal font-sans text-size-section text-[#777680]">{{ data.codirector }}</span>
+          <span class="font-normal font-sans text-size-section text-text-body">{{ data.codirector }}</span>
         </div>
       }
 
       @if (data.advisor) {
         <div>
           <span class="font-semibold font-display text-size-section text-primary">Asesor: </span>
-          <span class="font-normal font-sans text-size-section text-[#777680]">{{ data.advisor }}</span>
+          <span class="font-normal font-sans text-size-section text-text-body">{{ data.advisor }}</span>
         </div>
       }
 
       <div>
         <span class="font-semibold font-display text-size-section text-primary">Jurados Asignados: </span>
-        <span class="font-normal font-sans text-size-section text-[#777680]">{{ data.assignedJurors }}</span>
+        <span class="font-normal font-sans text-size-section text-text-body">{{ data.assignedJurors }}</span>
       </div>
     </div>
 
@@ -116,19 +116,19 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
       <div class="p-3 information-block rounded">
         <span class="font-semibold font-display text-size-section text-primary">Fecha</span>
-        <p class="font-normal font-sans text-size-section text-[#777680]">
+        <p class="font-normal font-sans text-size-section text-text-body">
           {{ (data.sustentationDate | date:'dd/MM/yyyy') || 'No programada' }}
         </p>
       </div>
       <div class="p-3 information-block rounded">
         <span class="font-semibold font-display text-size-section text-primary">Hora</span>
-        <p class="font-normal font-sans text-size-section text-[#777680]">
+        <p class="font-normal font-sans text-size-section text-text-body">
           {{ (data.sustentationDate | date:'shortTime') || 'No programada' }}
         </p>
       </div>
       <div class="p-3 information-block rounded">
         <span class="font-semibold font-display text-size-section text-primary">Lugar / Aula / Enlace</span>
-        <p class="font-normal font-sans text-size-section text-[#777680]">
+        <p class="font-normal font-sans text-size-section text-text-body">
           {{ data.location }}
         </p>
       </div>
@@ -173,12 +173,12 @@
       <!-- Monografía -->
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
         <div class="flex items-center gap-3 overflow-hidden">
-          <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+          <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
           <div class="flex flex-col overflow-hidden">
             <span class="text-size-body font-bold text-primary truncate">
               {{ data.monograph?.name || 'Monografía no encontrada' }}
             </span>
-            <span class="text-size-role-footer text-[#777680]">{{ data.monograph?.description || 'No disponible' }}</span>
+            <span class="text-size-role-footer text-text-body">{{ data.monograph?.description || 'No disponible' }}</span>
           </div>
         </div>
         <app-button-component
@@ -192,12 +192,12 @@
       <!-- Anexos -->
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
         <div class="flex items-center gap-3 overflow-hidden">
-          <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">folder_open</span>
+          <span class="material-symbols-outlined text-danger text-file shrink-0">folder_open</span>
           <div class="flex flex-col overflow-hidden">
             <span class="text-size-body font-bold text-primary truncate">
               {{ data.annexes?.name || 'Sin anexos registrados' }}
             </span>
-            <span class="text-size-role-footer text-[#777680]">{{ data.annexes?.description || 'No disponible' }}</span>
+            <span class="text-size-role-footer text-text-body">{{ data.annexes?.description || 'No disponible' }}</span>
           </div>
         </div>
         <app-button-component
@@ -212,12 +212,12 @@
       @if (data.formatEDocument) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
           <div class="flex items-center gap-3 overflow-hidden">
-            <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+            <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
             <div class="flex flex-col overflow-hidden">
               <span class="text-size-body font-bold text-primary truncate">
                 {{ data.formatEDocument.name }}
               </span>
-              <span class="text-size-role-footer text-[#777680]">{{ data.formatEDocument.description }}</span>
+              <span class="text-size-role-footer text-text-body">{{ data.formatEDocument.description }}</span>
             </div>
           </div>
           <app-button-component
@@ -243,19 +243,19 @@
               <span class="font-display font-bold text-primary text-size-section">
                 Jurado: {{ verdict.jurorName }}
               </span>
-              <span class="text-sm font-sans text-gray-500">
+              <span class="text-size-body font-sans text-gray-500">
                 Evaluado el {{ verdict.evaluationDate | date:'dd/MM/yyyy' }}
               </span>
             </div>
 
             <div class="p-3 information-block rounded border-l-4 {{ verdict.statusColorClass }}">
               <span class="font-semibold font-display text-size-section text-primary">Veredicto Final</span>
-              <p class="font-bold font-sans text-size-section text-[#777680] mt-1">{{ verdict.verdict }}</p>
+              <p class="font-bold font-sans text-size-section text-text-body mt-1">{{ verdict.verdict }}</p>
             </div>
 
             <div class="p-3 information-block rounded">
               <span class="font-semibold font-display text-size-section text-primary">Observaciones y comentarios</span>
-              <p class="font-normal font-sans text-size-section text-[#777680] mt-1 whitespace-pre-line">
+              <p class="font-normal font-sans text-size-section text-text-body mt-1 whitespace-pre-line">
                 {{ verdict.observations }}
               </p>
             </div>
@@ -263,12 +263,12 @@
             @if (verdict.attachedDocument) {
               <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm mt-4">
                 <div class="flex items-center gap-3 overflow-hidden">
-                  <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+                  <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
                   <div class="flex flex-col overflow-hidden">
                     <span class="text-size-body font-bold text-primary truncate">
                       {{ verdict.attachedDocument.name }}
                     </span>
-                    <span class="text-size-role-footer text-[#777680]">{{ verdict.attachedDocument.description }}</span>
+                    <span class="text-size-role-footer text-text-body">{{ verdict.attachedDocument.description }}</span>
                   </div>
                 </div>
                 <app-button-component

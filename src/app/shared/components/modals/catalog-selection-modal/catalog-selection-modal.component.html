@@ -1,0 +1,50 @@
+<p-dialog [(visible)]="isOpen" (onHide)="close()" [modal]="true" [style]="{ width: '450px' }">
+  <ng-template pTemplate="header">
+    <div class="w-full text-center">
+      <h2 class="text-primary font-bold text-size-sidebar-title m-0">{{ title }}</h2>
+    </div>
+  </ng-template>
+
+  <div class="flex flex-col gap-3 py-4">
+    <div class="flex flex-col gap-3 max-h-72 overflow-y-auto pr-1">
+      @for (item of items; track item.id) {
+        <div class="flex justify-between items-center gap-4 py-1">
+          <span [class.text-primary]="item.id === draftId"
+                [class.font-semibold]="item.id === draftId"
+                [class.text-gray-700]="item.id !== draftId">• {{ item.name }}</span>
+          <app-button-component
+            [label]="item.id === draftId ? 'Seleccionado' : 'Seleccionar'"
+            [variant]="item.id === draftId ? 'secondary' : 'primary'"
+            (onClick)="select(item)"
+          ></app-button-component>
+        </div>
+      } @empty {
+        <p class="text-size-body text-text-body text-center m-0">
+          No hay {{ itemName }}s registrados. Agregue uno a continuación.
+        </p>
+      }
+    </div>
+
+    <div class="flex flex-col gap-1 border-t border-gray-200 pt-4">
+      <label for="newCatalogItem" class="title-textbox">Agregar {{ itemName }}</label>
+      <div class="flex gap-2 items-center">
+        <input id="newCatalogItem" type="text" [placeholder]="'Nombre del ' + itemName"
+               class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md flex-1 focus:outline-none focus:ring-1 focus:ring-primary"
+               [value]="newItemName"
+               (input)="updateNewItemName($any($event.target).value)"
+               (keydown.enter)="$event.preventDefault(); create()">
+        <app-button-component
+          label="Agregar"
+          variant="secondary"
+          [disabled]="!newItemName.trim() || isCreating"
+          (onClick)="create()"
+        ></app-button-component>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2">
+      <app-button-component label="Salir" variant="secondary" (onClick)="close()"></app-button-component>
+      <app-button-component label="Guardar" variant="primary" [disabled]="draftId === null" (onClick)="save()"></app-button-component>
+    </div>
+  </div>
+</p-dialog>

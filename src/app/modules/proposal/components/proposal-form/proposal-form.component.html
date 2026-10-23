@@ -16,11 +16,11 @@
       <div class="flex flex-col gap-4">
 
         <div class="flex flex-col gap-1">
-          <label for="title" class="font-display font-semibold text-size-section title-textbox">Título <span class="text-[#ED7D31]">*</span></label>
+          <label for="title" class="font-display font-semibold text-size-section title-textbox">Título <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
             <input id="title" type="text" formControlName="title" placeholder="Ej: Frontend de las funcionalidades..."
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-[#ED7D31]]="isFieldInvalid('title')"
+                   [class.border-alert]="isFieldInvalid('title')"
                    [class.input-success]="form.get('title')?.valid && form.get('title')?.touched">
             @if (form.get('title')?.valid && form.get('title')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -32,11 +32,11 @@
         </div>
 
         <div class="flex flex-col gap-1">
-          <label for="description" class="font-display font-semibold text-size-section title-textbox">Objetivo general <span class="text-[#ED7D31]">*</span></label>
+          <label for="description" class="font-display font-semibold text-size-section title-textbox">Objetivo general <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
             <input id="description" type="text" formControlName="description" placeholder="Ej: Optimizar los procesos..."
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-[#ED7D31]]="isFieldInvalid('description')"
+                   [class.border-alert]="isFieldInvalid('description')"
                    [class.input-success]="form.get('description')?.valid && form.get('description')?.touched">
             @if (form.get('description')?.valid && form.get('description')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -47,11 +47,26 @@
           }
         </div>
 
-        <div class="flex flex-col gap-1">
-          <label for="specificObjectives" class="font-display font-semibold text-size-section title-textbox">Objetivos específicos</label>
-          <textarea id="specificObjectives" formControlName="specificObjectives" rows="3"
-                    placeholder="Escriba un objetivo por línea"
-                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"></textarea>
+        <div class="flex flex-col gap-2" formArrayName="specificObjectives">
+          <span class="font-display font-semibold text-size-section title-textbox">Objetivos específicos</span>
+          @for (objective of specificObjectives.controls; track objective) {
+            <div class="flex items-center gap-2">
+              <label [for]="'specificObjective-' + $index" class="sr-only">Objetivo específico {{ $index + 1 }}</label>
+              <input [id]="'specificObjective-' + $index" type="text" [formControlName]="$index"
+                     [placeholder]="'Objetivo específico ' + ($index + 1)"
+                     class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary">
+              @if (specificObjectives.length > 1) {
+                <button type="button" (click)="removeSpecificObjective($index)"
+                        class="text-text-body hover:text-danger transition-colors" aria-label="Quitar objetivo específico">
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
+              }
+            </div>
+          }
+          <div>
+            <app-button-component label="Agregar objetivo específico" variant="secondary" type="button"
+                                  (onClick)="addSpecificObjective()"></app-button-component>
+          </div>
         </div>
 
         <div class="flex flex-col gap-1">
@@ -68,7 +83,7 @@
         </div>
 
         <div class="flex flex-col gap-1">
-          <label for="modality" class="font-display font-semibold text-size-section title-textbox">Modalidad del trabajo de grado <span class="text-[#ED7D31]">*</span></label>
+          <label for="modality" class="font-display font-semibold text-size-section title-textbox">Modalidad del trabajo de grado <span class="text-alert">*</span></label>
           <div class="relative flex items-center w-full">
             <app-searchable-select
               id="modality"
@@ -92,7 +107,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
         <div class="flex flex-col gap-1">
-          <label for="student1" class="font-display font-semibold text-size-section title-textbox">Estudiante 1 <span class="text-[#ED7D31]">*</span></label>
+          <label for="student1" class="font-display font-semibold text-size-section title-textbox">Estudiante 1 <span class="text-alert">*</span></label>
           <div class="relative flex items-center w-full">
             <app-searchable-select
               id="student1"
@@ -141,7 +156,7 @@
 
         @if (showAdvisorField) {
           <div class="flex flex-col gap-1">
-            <label for="advisor" class="font-display font-semibold text-size-section title-textbox">Asesor <span class="text-[#ED7D31]">*</span></label>
+            <label for="advisor" class="font-display font-semibold text-size-section title-textbox">Asesor <span class="text-alert">*</span></label>
             <div class="relative flex items-center w-full">
               <app-searchable-select
                 id="advisor"
@@ -159,10 +174,10 @@
           </div>
 
           <div class="flex flex-col gap-1">
-            <label for="organization" class="font-display font-semibold text-size-section title-textbox">Organización de la práctica <span class="text-[#ED7D31]">*</span></label>
+            <label for="organization" class="font-display font-semibold text-size-section title-textbox">Organización de la práctica <span class="text-alert">*</span></label>
             <input id="organization" type="text" formControlName="organization" placeholder="Empresa u organización del asesor"
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-[#ED7D31]]="isFieldInvalid('organization')">
+                   [class.border-alert]="isFieldInvalid('organization')">
             @if (isFieldInvalid('organization')) {
               <span class="text-textbox-alert">Indique la organización donde se realiza la práctica</span>
             }
@@ -174,37 +189,37 @@
     <section class="mt-2">
       <h3 class="font-display font-semibold text-primary text-size-header-title mb-6 border-b pb-2">Archivos adjuntos</h3>
       @if (!attachedFile.hasFile) {
-        <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-6">
+        <div class="information-block p-4 rounded-lg text-size-body text-text-body mb-6">
           No ha sido cargado ningún archivo, para realizar el registro de la propuesta de grado debe cargar el formato de propuesta (Formato A) para poder continuar con el proceso.
         </div>
       }
       <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm"
-            [class.border-[#777680]]="!isFileFieldInvalid"
-            [class.border-[#ED7D31]]="isFileFieldInvalid"
+            [class.border-text-body]="!isFileFieldInvalid"
+            [class.border-alert]="isFileFieldInvalid"
             [class.border-l-4]="attachedFile.hasFile"
             [class.border-l-state-approved]="attachedFile.hasFile">
           <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-4xl"
+            <span class="material-symbols-outlined text-file"
                   [class.text-state-approved]="attachedFile.hasFile"
-                  [class.text-[#ED7D31]]="isFileFieldInvalid"
-                  [class.text-[#777680]]="!attachedFile.hasFile && !isFileFieldInvalid">
+                  [class.text-alert]="isFileFieldInvalid"
+                  [class.text-text-body]="!attachedFile.hasFile && !isFileFieldInvalid">
               {{ attachedFile.hasFile ? 'task' : 'picture_as_pdf' }}
             </span>
             <div class="flex flex-col">
               <span class="text-size-body font-bold"
                     [class.text-primary]="attachedFile.hasFile"
-                    [class.text-[#ED7D31]]="isFileFieldInvalid">
+                    [class.text-alert]="isFileFieldInvalid">
                 {{ attachedFile.name || 'Formato de propuesta (Formato A)' }}
               </span>
-              <span class="text-size-role-footer text-[#777680]">Documento de la propuesta (Obligatorio)</span>
+              <span class="text-size-role-footer text-text-body">Documento de la propuesta (Obligatorio)</span>
               @if (isFileFieldInvalid) {
                 <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span>
               }
             </div>
           </div>
           @if (attachedFile.hasFile) {
-            <button type="button" (click)="removeFile()" class=" text-[#777680] hover:text-[#DB141C]">
+            <button type="button" (click)="removeFile()" class="text-text-body hover:text-danger">
               <span class="material-symbols-outlined">delete</span>
             </button>
           } @else {
@@ -220,29 +235,29 @@
         @if (showAdvisorField && !isEditMode) {
           <!-- Carta de aceptación de la organización (práctica profesional) -->
           <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm"
-              [class.border-[#777680]]="!isLetterFieldInvalid"
-              [class.border-[#ED7D31]]="isLetterFieldInvalid"
+              [class.border-text-body]="!isLetterFieldInvalid"
+              [class.border-alert]="isLetterFieldInvalid"
               [class.border-l-4]="acceptanceLetter.hasFile"
               [class.border-l-state-approved]="acceptanceLetter.hasFile">
             <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-4xl"
+              <span class="material-symbols-outlined text-file"
                     [class.text-state-approved]="acceptanceLetter.hasFile"
-                    [class.text-[#ED7D31]]="isLetterFieldInvalid"
-                    [class.text-[#777680]]="!acceptanceLetter.hasFile && !isLetterFieldInvalid">
+                    [class.text-alert]="isLetterFieldInvalid"
+                    [class.text-text-body]="!acceptanceLetter.hasFile && !isLetterFieldInvalid">
                 {{ acceptanceLetter.hasFile ? 'task' : 'picture_as_pdf' }}
               </span>
               <div class="flex flex-col">
                 <span class="text-size-body font-bold" [class.text-primary]="acceptanceLetter.hasFile">
                   {{ acceptanceLetter.name || 'Carta de aceptación de la organización' }}
                 </span>
-                <span class="text-size-role-footer text-[#777680]">Obligatoria en práctica profesional</span>
+                <span class="text-size-role-footer text-text-body">Obligatoria en práctica profesional</span>
                 @if (isLetterFieldInvalid) {
                   <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span>
                 }
               </div>
             </div>
             @if (acceptanceLetter.hasFile) {
-              <button type="button" (click)="removeAcceptanceLetter()" class=" text-[#777680] hover:text-[#DB141C]">
+              <button type="button" (click)="removeAcceptanceLetter()" class="text-text-body hover:text-danger">
                 <span class="material-symbols-outlined">delete</span>
               </button>
             } @else {

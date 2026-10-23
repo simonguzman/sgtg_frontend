@@ -17,7 +17,7 @@
     <h3 class="text-primary font-semibold font-display text-size-header-title mb-4">
       Información del {{role}}
     </h3>
-    <div class="grid grid-cols-[150px_1fr] gap-y-4 items-center font-sans text-sm">
+    <div class="grid grid-cols-[150px_1fr] gap-y-4 items-center font-sans text-size-body">
       <p class="font-bold text-primary m-0">Nombre:</p>
       <p class="m-0 text-gray-700">{{ name }}</p>
       <p class="font-bold text-primary m-0">Rol:</p>
@@ -37,7 +37,7 @@
     <h3 class="text-primary font-semibold font-display text-size-header-title mb-2">
       Comentarios de la evaluación
     </h3>
-    <p class="font-sans text-sm text-gray-700 leading-relaxed text-justify m-0">
+    <p class="font-sans text-size-body text-gray-700 leading-relaxed text-justify m-0">
       {{ comments || 'No hay comentarios registrados' }}
     </p>
   </section>
@@ -52,11 +52,11 @@
           <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border border-gray-100 shadow-sm transition-hover hover:bg-gray-50/50">
 
             <div class="flex items-center gap-3 pr-4 overflow-hidden">
-              <span class="material-symbols-outlined text-[#DB141C] text-3xl shrink-0">
+              <span class="material-symbols-outlined text-danger text-3xl shrink-0">
                 picture_as_pdf </span>
 
               <div class="grow overflow-hidden">
-                <p class="font-sans text-size-body text-[#777680] m-0 truncate" [pTooltip]="doc.name">
+                <p class="font-sans text-size-body text-text-body m-0 truncate" [pTooltip]="doc.name">
                   {{ doc.name }}
                 </p>
               </div>
@@ -74,7 +74,7 @@
         }
       </div>
     } @else {
-      <p class="font-sans text-sm text-gray-700 m-0">
+      <p class="font-sans text-size-body text-gray-700 m-0">
         No han sido cargados archivos a la evaluación.
       </p>
     }

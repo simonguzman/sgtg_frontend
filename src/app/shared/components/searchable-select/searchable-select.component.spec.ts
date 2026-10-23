@@ -181,4 +181,28 @@ describe('SearchableSelectComponent', () => {
       expect(component.isOpen()).toBe(false);
     });
   });
+
+  describe('Un solo ícono a la derecha', () => {
+    const iconos = (): string[] => fixture.debugElement.queryAll(By.css('.material-symbols-outlined'))
+      .map(icono => icono.nativeElement.textContent.trim());
+
+    it('sin selección muestra solo la flecha', () => {
+      expect(iconos()).toEqual(['arrow_forward_ios']);
+    });
+
+    it('válido muestra solo el ✓ en lugar de la flecha', () => {
+      component.writeValue('1');
+      fixture.componentRef.setInput('isValid', true);
+      fixture.detectChanges();
+      expect(iconos()).toEqual(['check_circle']);
+    });
+
+    it('con la opción de limpiar y un valor muestra solo el botón de limpiar', () => {
+      fixture.componentRef.setInput('isClearable', true);
+      fixture.componentRef.setInput('isValid', true);
+      component.writeValue('2');
+      fixture.detectChanges();
+      expect(iconos()).toEqual(['close']);
+    });
+  });
 });

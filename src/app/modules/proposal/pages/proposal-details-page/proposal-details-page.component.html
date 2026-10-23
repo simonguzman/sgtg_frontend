@@ -3,9 +3,9 @@
   <div class="flex justify-between items-center mb-6">
     <button
       (click)="facade.goBack()"
-      class="flex items-center gap-2 text-navy-900 hover:text-navy-700 transition-colors font-bold group"
+      class="flex items-center gap-2 text-primary transition-colors font-bold group"
     >
-      <span class="material-symbols-outlined text-[#000066] font-semibold text-size-sidebar-title font-display group-hover:-translate-x-1 transition-transform">
+      <span class="material-symbols-outlined text-primary font-semibold text-size-sidebar-title font-display group-hover:-translate-x-1 transition-transform">
         arrow_back
       </span>
       <span class="return-arrow-option">Regresar</span>
@@ -46,7 +46,7 @@
       ]; track item.label) {
         <div class="p-3 information-block rounded">
           <span class="font-semibold font-display text-size-section text-primary">{{ item.label }}</span>
-          <p class="font-normal font-sans text-size-section text-[#777680]">{{ item.value }}</p>
+          <p class="font-normal font-sans text-size-section text-text-body">{{ item.value }}</p>
         </div>
       }
     </div>
@@ -58,22 +58,22 @@
     <div class="p-4 information-block rounded space-y-2">
       <div>
         <span class="font-semibold font-display text-size-section text-primary">Estudiante(s): </span>
-        <span class="font-normal font-sans text-size-section text-[#777680]">{{ facade.getAuthors(p.authors) }}</span>
+        <span class="font-normal font-sans text-size-section text-text-body">{{ facade.getAuthors(p.authors) }}</span>
       </div>
       <div>
         <span class="font-semibold font-display text-size-section text-primary">Director: </span>
-        <span class="font-normal font-sans text-size-section text-[#777680]">{{ facade.getMemberName(p.director) }}</span>
+        <span class="font-normal font-sans text-size-section text-text-body">{{ facade.getMemberName(p.director) }}</span>
       </div>
       @if (p.codirector) {
         <div>
           <span class="font-semibold font-display text-size-section text-primary">Codirector: </span>
-          <span class="font-normal font-sans text-size-section text-[#777680]">{{ facade.getMemberName(p.codirector) }}</span>
+          <span class="font-normal font-sans text-size-section text-text-body">{{ facade.getMemberName(p.codirector) }}</span>
         </div>
       }
       @if (p.advisor) {
         <div>
           <span class="font-semibold font-display text-size-section text-primary">Asesor: </span>
-          <span class="font-normal font-sans text-size-section text-[#777680]">{{ facade.getMemberName(p.advisor) }}</span>
+          <span class="font-normal font-sans text-size-section text-text-body">{{ facade.getMemberName(p.advisor) }}</span>
         </div>
       }
     </div>

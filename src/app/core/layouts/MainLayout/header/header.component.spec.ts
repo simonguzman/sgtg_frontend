@@ -189,21 +189,21 @@ describe('HeaderComponent', () => {
     it('no debería renderizar el badge de notificaciones si el conteo es 0', () => {
       mockInboxService.unreadCount.set(0);
       fixture.detectChanges();
-      const badge = fixture.nativeElement.querySelector('.bg-\\[\\#DB141C\\]');
+      const badge = fixture.nativeElement.querySelector('.bg-danger');
       expect(badge).toBeNull();
     });
 
     it('debería renderizar el badge con el número exacto si es entre 1 y 9', () => {
       mockInboxService.unreadCount.set(5);
       fixture.detectChanges();
-      const badge = fixture.nativeElement.querySelector('.bg-\\[\\#DB141C\\]');
+      const badge = fixture.nativeElement.querySelector('.bg-danger');
       expect(badge?.textContent?.trim()).toBe('5');
     });
 
     it('debería renderizar "9+" en el badge si hay más de 9 notificaciones', () => {
       mockInboxService.unreadCount.set(12);
       fixture.detectChanges();
-      const badge = fixture.nativeElement.querySelector('.bg-\\[\\#DB141C\\]');
+      const badge = fixture.nativeElement.querySelector('.bg-danger');
       expect(badge?.textContent?.trim()).toBe('9+');
     });
   });

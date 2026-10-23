@@ -64,6 +64,6 @@ export class RegisterSustentationPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
+    void this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
   }
 }

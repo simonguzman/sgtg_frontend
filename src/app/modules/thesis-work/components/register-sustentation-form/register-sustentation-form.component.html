@@ -37,13 +37,13 @@
         Programación de Sustentación
       </h3>
 
-      <div class="information-block bg-blue-50/50 p-6 rounded-xl border border-blue-100 shadow-sm flex flex-col gap-6">
+      <div class="information-block bg-blue-50/50 p-6 rounded-xl border-blue-100 shadow-sm flex flex-col gap-6">
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
           <div class="flex flex-col gap-1">
             <label for="sustentationDate" class="font-display font-semibold text-size-section text-primary">
-              Fecha y Hora de la Sustentación <span class="text-[#ED7D31]">*</span>
+              Fecha y Hora de la Sustentación <span class="text-alert">*</span>
             </label>
 
             <p-datepicker
@@ -53,7 +53,7 @@
               hourFormat="12"
               placeholder="Seleccione fecha y hora"
               styleClass="w-full"
-              [inputStyleClass]="'text-size-body p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary ' + (isFieldInvalid('sustentationDate') ? 'border-[#ED7D31] bg-orange-50' : 'border-gray-200 bg-white')">
+              [inputStyleClass]="'text-size-body p-2 border rounded-md w-full bg-white focus:outline-none focus:ring-1 focus:ring-primary ' + (isFieldInvalid('sustentationDate') ? 'border-alert' : 'border-gray-200')">
             </p-datepicker>
 
             @if (isFieldInvalid('sustentationDate')) {
@@ -63,12 +63,11 @@
 
           <div class="flex flex-col gap-1">
             <label for="location" class="font-display font-semibold text-size-section text-primary">
-              Lugar / Aula / Enlace <span class="text-[#ED7D31]">*</span>
+              Lugar / Aula / Enlace <span class="text-alert">*</span>
             </label>
             <input id="location" type="text" formControlName="location" placeholder="Ej. Auditorio Principal o Enlace de Teams"
                    class="text-size-body p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary bg-white"
-                   [class.border-[#ED7D31]]="isFieldInvalid('location')"
-                   [class.bg-orange-50]="isFieldInvalid('location')"
+                   [class.border-alert]="isFieldInvalid('location')"
                    [class.border-gray-200]="!isFieldInvalid('location')">
             @if (isFieldInvalid('location')) {
               <span class="text-size-role-footer text-textbox-alert mt-1">El lugar o aula es obligatorio</span>
@@ -80,7 +79,7 @@
 
           <div class="flex flex-col gap-1">
             <label for="juror1" class="font-display font-semibold text-size-section text-primary">
-              Jurado coordinador <span class="text-[#ED7D31]">*</span>
+              Jurado coordinador <span class="text-alert">*</span>
             </label>
             <div class="relative flex items-center w-full">
               <app-searchable-select
@@ -96,13 +95,13 @@
             @if (isFieldInvalid('juror1')) {
               <span class="text-size-role-footer text-textbox-alert mt-1">Debe asignar el jurado coordinador</span>
             } @else {
-              <span class="text-size-role-footer text-[#777680] mt-1">Califica, registra la inasistencia, verifica los ajustes y carga la versión definitiva</span>
+              <span class="text-size-role-footer text-text-body mt-1">Califica, registra la inasistencia, verifica los ajustes y carga la versión definitiva</span>
             }
           </div>
 
           <div class="flex flex-col gap-1">
             <label for="juror2" class="font-display font-semibold text-size-section text-primary">
-              Segundo jurado <span class="text-[#ED7D31]">*</span>
+              Segundo jurado <span class="text-alert">*</span>
             </label>
             <div class="relative flex items-center w-full">
               <app-searchable-select
@@ -118,7 +117,7 @@
             @if (isFieldInvalid('juror2')) {
               <span class="text-size-role-footer text-textbox-alert mt-1">Debe asignar el segundo jurado de forma obligatoria</span>
             } @else {
-              <span class="text-size-role-footer text-[#777680] mt-1">Solo consulta los documentos del trabajo</span>
+              <span class="text-size-role-footer text-text-body mt-1">Solo consulta los documentos del trabajo</span>
             }
           </div>
         </div>
@@ -144,12 +143,12 @@
 
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-colors">
           <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
+            <span class="material-symbols-outlined text-danger text-file">picture_as_pdf</span>
             <div class="flex flex-col">
               <span class="text-size-body font-bold text-primary">
                 {{ getExistingDocument('MONOGRAFIA')?.name || 'Monografía no encontrada' }}
               </span>
-              <span class="text-size-role-footer text-[#777680]">Monografía • Cargado en entrega final</span>
+              <span class="text-size-role-footer text-text-body">Monografía • Cargado en entrega final</span>
             </div>
           </div>
           <app-button-component
@@ -162,12 +161,12 @@
 
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-colors">
           <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
+            <span class="material-symbols-outlined text-danger text-file">picture_as_pdf</span>
             <div class="flex flex-col">
               <span class="text-size-body font-bold text-primary">
                 {{ getExistingDocument('FORMATO')?.name || 'Formato de presentación no encontrado' }}
               </span>
-              <span class="text-size-role-footer text-[#777680]">Formato de presentación • Cargado en entrega final</span>
+              <span class="text-size-role-footer text-text-body">Formato de presentación • Cargado en entrega final</span>
             </div>
           </div>
           <app-button-component
@@ -180,12 +179,12 @@
 
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-colors">
           <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-[#DB141C] text-4xl">folder_open</span>
+            <span class="material-symbols-outlined text-danger text-file">folder_open</span>
             <div class="flex flex-col">
               <span class="text-size-body font-bold text-primary">
                 {{ getExistingDocument('ANEXOS')?.name || 'Sin anexos registrados' }}
               </span>
-              <span class="text-size-role-footer text-[#777680]">Anexos • Cargado en entrega final</span>
+              <span class="text-size-role-footer text-text-body">Anexos • Cargado en entrega final</span>
             </div>
           </div>
           <app-button-component
@@ -198,12 +197,12 @@
 
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-colors">
           <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
+            <span class="material-symbols-outlined text-danger text-file">picture_as_pdf</span>
             <div class="flex flex-col">
               <span class="text-size-body font-bold text-primary">
                 {{ getExistingDocument('FORMATO_G')?.name || 'Paz y Salvo no encontrado' }}
               </span>
-              <span class="text-size-role-footer text-[#777680]">Formato de Paz y Salvo • Cargado en evaluación de Paz y Salvo</span>
+              <span class="text-size-role-footer text-text-body">Formato de Paz y Salvo • Cargado en evaluación de Paz y Salvo</span>
             </div>
           </div>
           <app-button-component
@@ -226,24 +225,24 @@
 
       <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
            [class.border]="!uploadedFormatE() || isSubmitAttempted()"
-           [class.border-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatE()"
+           [class.border-alert]="isSubmitAttempted() && !uploadedFormatE()"
            [class.border-l-4]="uploadedFormatE()"
            [class.border-l-state-approved]="uploadedFormatE()"
            [class.border-gray-200]="!uploadedFormatE() && !isSubmitAttempted()">
         <div class="flex items-center gap-3">
-          <span class="material-symbols-outlined text-4xl"
+          <span class="material-symbols-outlined text-file"
                 [class.text-state-approved]="uploadedFormatE()"
-                [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatE()"
-                [class.text-[#777680]]="!uploadedFormatE() && !isSubmitAttempted()">
+                [class.text-alert]="isSubmitAttempted() && !uploadedFormatE()"
+                [class.text-text-body]="!uploadedFormatE() && !isSubmitAttempted()">
             {{ uploadedFormatE() ? 'task' : 'picture_as_pdf' }}
           </span>
           <div class="flex flex-col">
             <span class="text-size-body font-bold"
                   [class.text-primary]="uploadedFormatE()"
-                  [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedFormatE()">
+                  [class.text-alert]="isSubmitAttempted() && !uploadedFormatE()">
               {{ uploadedFileName() }}
             </span>
-            <span class="text-size-role-footer text-[#777680]">
+            <span class="text-size-role-footer text-text-body">
               {{ uploadedFormatE() ? 'Documento cargado con éxito' : 'Suba el Formato E con los espacios de programación de sustentación totalmente diligenciados (Obligatorio).' }}
             </span>
             @if (isSubmitAttempted() && !uploadedFormatE()) {
@@ -252,7 +251,7 @@
           </div>
         </div>
         @if (uploadedFormatE()) {
-          <button type="button" (click)="uploadedFormatE.set(null)" class="text-[#777680] hover:text-[#DB141C] transition-colors"><span class="material-symbols-outlined">delete</span></button>
+          <button type="button" (click)="uploadedFormatE.set(null)" class="text-text-body hover:text-danger transition-colors"><span class="material-symbols-outlined">delete</span></button>
         } @else {
           <app-button-component label="Cargar Formato E" variant="secondary" (onClick)="isModalOpen.set(true)"></app-button-component>
         }

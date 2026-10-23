@@ -36,7 +36,7 @@
         <app-readonly-field label="Título propuesto" [value]="specialRequest.proposedTitle ?? ''"></app-readonly-field>
         <div class="flex flex-col gap-2">
           <span class="font-display font-semibold text-primary text-size-section">Objetivos propuestos</span>
-          <ol class="list-decimal pl-6 font-sans text-size-body text-[#777680] flex flex-col gap-1">
+          <ol class="list-decimal pl-6 font-sans text-size-body text-text-body flex flex-col gap-1">
             @for (objective of specialRequest.proposedObjectives ?? []; track $index) {
               <li><span class="font-semibold">{{ $index === 0 ? 'General' : 'Específico' }}:</span> {{ objective }}</li>
             }
@@ -50,10 +50,10 @@
       @for (doc of specialRequest.documents ?? []; track doc.id) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
           <div class="flex items-center gap-3 overflow-hidden">
-            <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+            <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
             <div class="flex flex-col overflow-hidden">
               <span class="text-size-body font-bold text-primary truncate">{{ doc.name }}</span>
-              <span class="text-size-role-footer text-[#777680]">Documento de la solicitud</span>
+              <span class="text-size-role-footer text-text-body">Documento de la solicitud</span>
             </div>
           </div>
           <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadDocument.emit(doc)"></app-button-component>
@@ -70,13 +70,13 @@
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="verdictSelected() === states.APROBADO" (change)="verdictSelected.set(states.APROBADO)">
-          <span class="text-size-body font-medium text-[#777680]">Aprobar</span>
+          <span class="text-size-body font-medium text-text-body">Aprobar</span>
         </label>
 
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="verdictSelected() === states.NO_APROBADO" (change)="verdictSelected.set(states.NO_APROBADO)">
-          <span class="text-size-body font-medium text-[#777680]">No aprobar</span>
+          <span class="text-size-body font-medium text-text-body">No aprobar</span>
         </label>
       </div>
 
@@ -87,39 +87,43 @@
       @if (requiresNewDate) {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
           <div class="flex flex-col gap-1">
-            <label for="newDate" class="font-display font-semibold text-primary text-size-section">Nueva fecha <span class="text-[#ED7D31]">*</span></label>
+            <label for="newDate" class="font-display font-semibold text-primary text-size-section">Nueva fecha <span class="text-alert">*</span></label>
             <input id="newDate" type="date" (input)="onInput('date', $event)"
-                   class="p-2 border border-gray-300 rounded-md font-sans text-sm" [class.border-orange-500]="isSubmitAttempted() && !newDate()">
+                   class="p-2 border rounded-md font-sans text-size-body"
+                   [class.border-alert]="isSubmitAttempted() && !newDate()"
+                   [class.border-gray-300]="!(isSubmitAttempted() && !newDate())">
           </div>
           <div class="flex flex-col gap-1">
-            <label for="newTime" class="font-display font-semibold text-primary text-size-section">Hora <span class="text-[#ED7D31]">*</span></label>
+            <label for="newTime" class="font-display font-semibold text-primary text-size-section">Hora <span class="text-alert">*</span></label>
             <input id="newTime" type="time" (input)="onInput('time', $event)"
-                   class="p-2 border border-gray-300 rounded-md font-sans text-sm" [class.border-orange-500]="isSubmitAttempted() && !newTime()">
+                   class="p-2 border rounded-md font-sans text-size-body"
+                   [class.border-alert]="isSubmitAttempted() && !newTime()"
+                   [class.border-gray-300]="!(isSubmitAttempted() && !newTime())">
           </div>
           <div class="flex flex-col gap-1">
             <label for="newLocation" class="font-display font-semibold text-primary text-size-section">Salón (opcional)</label>
             <input id="newLocation" type="text" (input)="onInput('location', $event)" placeholder="Se conserva el actual"
-                   class="p-2 border border-gray-300 rounded-md font-sans text-sm">
+                   class="p-2 border border-gray-300 rounded-md font-sans text-size-body">
           </div>
         </div>
       }
 
       <div class="flex flex-col gap-2">
-        <span class="font-display font-semibold text-primary text-size-section">Resolución (PDF) <span class="text-[#ED7D31]">*</span></span>
+        <span class="font-display font-semibold text-primary text-size-section">Resolución (PDF) <span class="text-alert">*</span></span>
         @if (resolution(); as item) {
           <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
             <div class="flex items-center gap-3 overflow-hidden">
               <span class="material-symbols-outlined text-primary text-file shrink-0">description</span>
               <span class="text-size-body font-bold text-primary truncate">{{ item.fileName }}</span>
             </div>
-            <button type="button" (click)="resolution.set(null)" class="text-[#777680] hover:text-[#DB141C] transition-colors shrink-0" aria-label="Quitar resolución">
+            <button type="button" (click)="resolution.set(null)" class="text-text-body hover:text-danger transition-colors shrink-0" aria-label="Quitar resolución">
               <span class="material-symbols-outlined">delete</span>
             </button>
           </div>
         } @else {
-          <div class="information-block flex items-center justify-between gap-3 p-4 bg-white border rounded-xl shadow-sm"
-               [class.border-orange-500]="isSubmitAttempted()" [class.border-gray-200]="!isSubmitAttempted()">
-            <span class="text-size-body text-[#777680] font-sans">Adjunte la resolución del Consejo de Facultad.</span>
+          <div class="information-block flex items-center justify-between gap-3 p-4 bg-white rounded-xl shadow-sm"
+               [class.border-alert]="isSubmitAttempted()" [class.border-gray-200]="!isSubmitAttempted()">
+            <span class="text-size-body text-text-body font-sans">Adjunte la resolución del Consejo de Facultad.</span>
             <app-button-component label="Cargar resolución" variant="secondary" type="button" (onClick)="isUploadModalOpen.set(true)"></app-button-component>
           </div>
         }
@@ -127,7 +131,7 @@
 
       <div class="flex flex-col gap-1">
         <label for="evalComments" class="font-display font-semibold text-primary text-size-section">Observaciones (opcional)</label>
-        <textarea id="evalComments" rows="4" class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm font-sans resize-none"
+        <textarea id="evalComments" rows="4" class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body font-sans resize-none"
                   placeholder="Ingrese las observaciones sobre la decisión si lo considera necesario"
                   (input)="onObservationsChange($event)"></textarea>
       </div>

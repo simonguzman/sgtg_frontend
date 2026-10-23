@@ -3,81 +3,66 @@ import { LoadedProposalsMapperService } from './loaded-proposals-mapper.service'
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
+
 describe('LoadedProposalsMapperService', () => {
   let service: LoadedProposalsMapperService;
-  let consoleErrorSpy: jest.SpyInstance;
-  let consoleWarnSpy: jest.SpyInstance;
-  const mockDocument: FileDocument = {
-    id: 'doc-123',
-    name: 'Propuesta de prueba',
-    url: 'http://storage.com/propuesta.pdf',
+  const formatoA: FileDocument = {
+    id: '15/TI-A/v1/Formato A - v1.pdf',
+    name: 'Formato A (propuesta)',
+    url: '/api/v1/sgtg/trabajos-grado/15/archivos?ruta=a',
     uploadDate: '08 - 08 - 2026',
     type: DocumentType.PROPUESTA,
     status: stateList.EN_REVISION,
+    version: 1
   };
+  const carta: FileDocument = {
+    id: '15/CARTA_ACEPTACION/v1/Carta de aceptacion - v1.pdf',
+    name: 'Carta de aceptación',
+    url: '/api/v1/sgtg/trabajos-grado/15/archivos?ruta=c',
+    uploadDate: '08 - 08 - 2026',
+    type: DocumentType.FORMATO,
+    version: 1
+  };
+
   beforeEach(() => {
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    TestBed.configureTestingModule({
-      providers: [LoadedProposalsMapperService]
-    });
+    TestBed.configureTestingModule({ providers: [LoadedProposalsMapperService] });
     service = TestBed.inject(LoadedProposalsMapperService);
   });
-  afterEach(() => {
-    jest.clearAllMocks();
-    consoleErrorSpy.mockRestore();
-    consoleWarnSpy.mockRestore();
-  });
-  it('debe crearse correctamente', () => {
-    expect(service).toBeTruthy();
-  });
-  describe('Método: mapDocumentToRow', () => {
-    it('una versión del formato A muestra su número y el estado de su revisión', () => {
-      const result = service.mapDocumentToRow({ ...mockDocument, version: 2, status: stateList.NO_APROBADO }, true, false);
-      expect(result.version).toBe(2);
-      expect(result.status).toBe(stateList.NO_APROBADO);
-      expect(result.allowedActions).toEqual(['download']);
+
+  describe('Método: mapRegistrationToRow', () => {
+    it('una versión muestra su número, el estado de su revisión y sus documentos', () => {
+      const row = service.mapRegistrationToRow(formatoA, [], true, false, false);
+      expect(row).toEqual(expect.objectContaining({
+        id: formatoA.id, name: 'Formato A (propuesta)', version: 1, status: stateList.EN_REVISION,
+        documents: [formatoA]
+      }));
     });
+
+    it('el registro inicial de una práctica agrupa el formato A y la carta de aceptación', () => {
+      const row = service.mapRegistrationToRow(formatoA, [carta], true, false, false);
+      expect(row.name).toBe('Formato A (propuesta) y carta de aceptación');
+      expect(row.documents).toEqual([formatoA, carta]);
+    });
+
     it('formatea la fecha de carga para mostrarla en la tabla', () => {
-      const result = service.mapDocumentToRow({ ...mockDocument, uploadDate: new Date(2026, 9, 11) }, false, false);
-      expect(result.uploadDate).toBe('11 - 10 - 2026');
+      const row = service.mapRegistrationToRow({ ...formatoA, uploadDate: new Date(2026, 6, 21) }, [], true, false, false);
+      expect(row.uploadDate).toBe('21 - 07 - 2026');
     });
-    it('la carta de aceptación no muestra versión ni estado de revisión', () => {
-      const carta: FileDocument = { ...mockDocument, type: DocumentType.FORMATO, version: 1, status: undefined };
-      const result = service.mapDocumentToRow(carta, true, false);
-      expect(result.version).toBeUndefined();
-      expect(result.status).toBeUndefined();
+
+    it('un registro sin formato A no muestra versión ni estado', () => {
+      const row = service.mapRegistrationToRow(carta, [], false, true, false);
+      expect(row.version).toBeUndefined();
+      expect(row.status).toBeUndefined();
+      expect(row.allowedActions).toEqual(['view-details']);
     });
-    it('debe mantener las propiedades originales del documento en la fila mapeada', () => {
-      const result = service.mapDocumentToRow(mockDocument, false, false);
-      expect(result.id).toBe(mockDocument.id);
-      expect(result.name).toBe(mockDocument.name);
-      expect(result.url).toBe(mockDocument.url);
-      expect(result.uploadDate).toBe(mockDocument.uploadDate);
-      expect(result.type).toBe(mockDocument.type);
-      expect(result.status).toBe(mockDocument.status);
-    });
-    it('debe permitir SOLO "download" por defecto', () => {
-      const result = service.mapDocumentToRow(mockDocument, false, false);
-      expect(result.allowedActions).toEqual(['download']);
-      expect(result.allowedActions).not.toContain('evaluate');
-    });
-    it('debe añadir "evaluate" si se puede evaluar, está EN_REVISION y NO está archivado', () => {
-      const result = service.mapDocumentToRow(mockDocument, true, false);
-      expect(result.allowedActions).toEqual(['download', 'evaluate']);
-    });
-    it('NO debe añadir "evaluate" si canEvaluate es falso', () => {
-      const result = service.mapDocumentToRow(mockDocument, false, false);
-      expect(result.allowedActions).not.toContain('evaluate');
-    });
-    it('NO debe añadir "evaluate" si el estado del documento no es EN_REVISION', () => {
-      const documentWrongState: FileDocument = { ...mockDocument, status: stateList.APROBADO };
-      const result = service.mapDocumentToRow(documentWrongState, true, false);
-      expect(result.allowedActions).not.toContain('evaluate');
-    });
-    it('NO debe añadir "evaluate" si la propuesta está archivada (isArchived = true)', () => {
-      const result = service.mapDocumentToRow(mockDocument, true, true);
-      expect(result.allowedActions).not.toContain('evaluate');
+
+    it('siempre permite ver los detalles; evaluar solo al Comité, en revisión y sin archivar', () => {
+      expect(service.mapRegistrationToRow(formatoA, [], true, false, false).allowedActions).toEqual(['view-details']);
+      expect(service.mapRegistrationToRow(formatoA, [], true, true, false).allowedActions)
+        .toEqual(['view-details', 'evaluate']);
+      expect(service.mapRegistrationToRow({ ...formatoA, status: stateList.APROBADO }, [], true, true, false)
+        .allowedActions).toEqual(['view-details']);
+      expect(service.mapRegistrationToRow(formatoA, [], true, true, true).allowedActions).toEqual(['view-details']);
     });
   });
 });

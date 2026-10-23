@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { signal, WritableSignal } from '@angular/core';
 import { ProposalFormComponent } from './proposal-form.component';
 import { ProposalFormService } from './services/proposal-form.service';
@@ -23,6 +23,9 @@ interface MockFormService {
   student2Options: WritableSignal<SelectOption[]>;
   codirectorOptions: WritableSignal<SelectOption[]>;
   advisorOptions: WritableSignal<SelectOption[]>;
+  specificObjectives: FormArray<FormControl<string>>;
+  addSpecificObjective: jest.Mock;
+  removeSpecificObjective: jest.Mock;
 }
 
 interface MockNotificationService {
@@ -81,7 +84,7 @@ describe('ProposalFormComponent', () => {
       student2: [''],
       codirector: [''],
       advisor: [''],
-      specificObjectives: [''],
+      specificObjectives: fb.array<FormControl<string>>([fb.nonNullable.control('')]),
       generalDescription: [''],
       lineOfResearch: [''],
       organization: ['']
@@ -97,7 +100,10 @@ describe('ProposalFormComponent', () => {
       student1Options: signal([{ id: 'stu1', label: 'Estudiante 1' }]),
       student2Options: signal([]),
       codirectorOptions: signal([]),
-      advisorOptions: signal([])
+      advisorOptions: signal([]),
+      specificObjectives: mockFormGroup.get('specificObjectives') as FormArray<FormControl<string>>,
+      addSpecificObjective: jest.fn(),
+      removeSpecificObjective: jest.fn()
     };
 
     mockNotificationService = { show: jest.fn() };
@@ -155,6 +161,33 @@ describe('ProposalFormComponent', () => {
       expect(component.showAdvisorField).toBeFalsy();
       mockFormGroup.get('modality')?.setValue(Modality.PP);
       expect(component.showAdvisorField).toBeTruthy();
+    });
+  });
+
+  describe('Objetivos específicos', () => {
+    const campos = (): HTMLInputElement[] =>
+      Array.from(fixture.nativeElement.querySelectorAll('input[id^="specificObjective-"]'));
+    const botonesQuitar = (): HTMLButtonElement[] =>
+      Array.from(fixture.nativeElement.querySelectorAll('button[aria-label="Quitar objetivo específico"]'));
+
+    it('muestra un campo por objetivo y solo permite quitar cuando hay más de uno', () => {
+      fixture.detectChanges();
+      expect(campos()).toHaveLength(1);
+      expect(botonesQuitar()).toHaveLength(0);
+
+      mockFormService.specificObjectives.push(fb.nonNullable.control('Segundo'));
+      fixture.detectChanges();
+      expect(campos()).toHaveLength(2);
+      expect(campos()[1].placeholder).toBe('Objetivo específico 2');
+      expect(botonesQuitar()).toHaveLength(2);
+
+      botonesQuitar()[1].click();
+      expect(mockFormService.removeSpecificObjective).toHaveBeenCalledWith(1);
+    });
+
+    it('agregar objetivo delega en el servicio del formulario', () => {
+      component.addSpecificObjective();
+      expect(mockFormService.addSpecificObjective).toHaveBeenCalled();
     });
   });
 

@@ -4,7 +4,7 @@
       <h1 class="font-display font-semibold text-primary text-size-header-title">
         Dashboard de Control Académico
       </h1>
-      <p class="text-size-body text-[#777680]">
+      <p class="text-size-body text-text-body">
         Monitoreo en tiempo real de propuestas, anteproyectos y trabajos de grado
       </p>
     </div>
@@ -18,7 +18,7 @@
   </div>
   <div class="bg-blue-50/50 p-6 rounded-xl border border-blue-100 shadow-sm flex flex-col gap-4">
     <h3 class="font-display font-semibold text-primary text-size-section mb-2 flex items-center gap-2">
-      <span class="material-symbols-outlined text-lg">filter_alt</span> Filtros de Búsqueda
+      <span class="material-symbols-outlined text-size-sidebar-title">filter_alt</span> Filtros de Búsqueda
     </h3>
     <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
       <div class="flex flex-col gap-1">
@@ -110,38 +110,38 @@
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm flex items-center justify-between">
       <div class="flex flex-col gap-1">
-        <span class="text-size-role-footer text-[#777680] font-medium">Proyectos Cargados</span>
+        <span class="text-size-role-footer text-text-body font-medium">Proyectos Cargados</span>
         <span class="text-3xl font-display font-bold text-primary">{{ facade.totalLoaded() }}</span>
       </div>
       <div class="p-3 bg-blue-50 text-primary rounded-lg flex items-center justify-center">
-        <span class="material-symbols-outlined text-2xl">folder_open</span>
+        <span class="material-symbols-outlined text-size-modal-title">folder_open</span>
       </div>
     </div>
     <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-[#2e7d32] rounded-xl shadow-sm flex items-center justify-between">
       <div class="flex flex-col gap-1">
-        <span class="text-size-role-footer text-[#777680] font-medium">Proyectos Aprobados</span>
+        <span class="text-size-role-footer text-text-body font-medium">Proyectos Aprobados</span>
         <span class="text-3xl font-display font-bold text-[#2e7d32]">{{ facade.totalApproved() }}</span>
       </div>
       <div class="p-3 bg-green-50 text-[#2e7d32] rounded-lg flex items-center justify-center">
-        <span class="material-symbols-outlined text-2xl">check_circle</span>
+        <span class="material-symbols-outlined text-size-modal-title">check_circle</span>
       </div>
     </div>
-    <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-[#ED7D31] rounded-xl shadow-sm flex items-center justify-between">
+    <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-alert rounded-xl shadow-sm flex items-center justify-between">
       <div class="flex flex-col gap-1">
-        <span class="text-size-role-footer text-[#777680] font-medium">Aprobados con Obs.</span>
-        <span class="text-3xl font-display font-bold text-[#ED7D31]">{{ facade.totalApprovedWithObservations() }}</span>
+        <span class="text-size-role-footer text-text-body font-medium">Aprobados con Obs.</span>
+        <span class="text-3xl font-display font-bold text-alert">{{ facade.totalApprovedWithObservations() }}</span>
       </div>
-      <div class="p-3 bg-orange-50 text-[#ED7D31] rounded-lg flex items-center justify-center">
-        <span class="material-symbols-outlined text-2xl">warning</span>
+      <div class="p-3 bg-orange-50 text-alert rounded-lg flex items-center justify-center">
+        <span class="material-symbols-outlined text-size-modal-title">warning</span>
       </div>
     </div>
-    <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-[#DB141C] rounded-xl shadow-sm flex items-center justify-between">
+    <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-danger rounded-xl shadow-sm flex items-center justify-between">
       <div class="flex flex-col gap-1">
-        <span class="text-size-role-footer text-[#777680] font-medium">No Aprobados</span>
-        <span class="text-3xl font-display font-bold text-[#DB141C]">{{ facade.totalNotApproved() }}</span>
+        <span class="text-size-role-footer text-text-body font-medium">No Aprobados</span>
+        <span class="text-3xl font-display font-bold text-danger">{{ facade.totalNotApproved() }}</span>
       </div>
-      <div class="p-3 bg-red-50 text-[#DB141C] rounded-lg flex items-center justify-center">
-        <span class="material-symbols-outlined text-2xl">cancel</span>
+      <div class="p-3 bg-red-50 text-danger rounded-lg flex items-center justify-center">
+        <span class="material-symbols-outlined text-size-modal-title">cancel</span>
       </div>
     </div>
   </div>

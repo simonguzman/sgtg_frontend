@@ -66,6 +66,9 @@ export class ProposalFormComponent {
 
   get isEditMode(): boolean { return !!this.proposal(); }
   get form() { return this.formService.form; }
+  get specificObjectives() { return this.formService.specificObjectives; }
+  addSpecificObjective(): void { this.formService.addSpecificObjective(); }
+  removeSpecificObjective(index: number): void { this.formService.removeSpecificObjective(index); }
   get showAdvisorField(): boolean { return this.formService.isProfessionalPractice(); }
   get isFileFieldInvalid(): boolean {
     return this.isSubmitAttempted() && !this.attachedFile.hasFile;

@@ -1,5 +1,5 @@
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, Validators } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, map, of } from 'rxjs';
 import { TrabajoGradoApiService } from '../../../../../core/services/trabajo-grado/trabajo-grado-api.service';
@@ -29,8 +29,8 @@ export class ProposalFormService {
     title: ['', Validators.required],
     /** Objetivo general (primer objetivo del trabajo) */
     description: ['', Validators.required],
-    /** Objetivos específicos, uno por línea */
-    specificObjectives: [''],
+    /** Objetivos específicos, un campo por objetivo (opcionales; los vacíos no se envían) */
+    specificObjectives: this.fb.array<FormControl<string>>([this.fb.nonNullable.control('')]),
     generalDescription: [''],
     lineOfResearch: [''],
     modality: ['', Validators.required],
@@ -101,6 +101,25 @@ export class ProposalFormService {
     this.setupDynamicLogic();
   }
 
+  get specificObjectives(): FormArray<FormControl<string>> {
+    return this.form.controls.specificObjectives;
+  }
+
+  addSpecificObjective(value = ''): void {
+    this.specificObjectives.push(this.fb.nonNullable.control(value));
+  }
+
+  /** Quita un objetivo específico; siempre queda al menos un campo. */
+  removeSpecificObjective(index: number): void {
+    if (this.specificObjectives.length > 1) this.specificObjectives.removeAt(index);
+  }
+
+  /** Deja un campo por objetivo (al menos uno vacío). */
+  private setSpecificObjectives(objectives: string[]): void {
+    this.specificObjectives.clear();
+    (objectives.length ? objectives : ['']).forEach(objective => this.addSpecificObjective(objective));
+  }
+
   /** @returns true si la modalidad elegida es práctica profesional */
   isProfessionalPractice(): boolean {
     return this.form.get('modality')?.value === Modality.PP;
@@ -137,6 +156,7 @@ export class ProposalFormService {
   initForCreate(): void {
     this.currentProposalId.set(null);
     this.form.reset();
+    this.setSpecificObjectives([]);
     CAMPOS_PARTICIPANTES.forEach(campo => this.form.get(campo)?.enable({ emitEvent: false }));
   }
 
@@ -147,10 +167,10 @@ export class ProposalFormService {
     const objetivos = proposal.objectives?.length ? proposal.objectives : [proposal.description];
     const descripcion = proposal.description !== objetivos[0] ? proposal.description : '';
 
+    this.setSpecificObjectives(objetivos.slice(1));
     this.form.patchValue({
       title: proposal.title,
       description: objetivos[0] ?? '',
-      specificObjectives: objetivos.slice(1).join('\n'),
       generalDescription: descripcion,
       lineOfResearch: proposal.lineOfResearch ?? '',
       modality: proposal.modality,
@@ -166,7 +186,7 @@ export class ProposalFormService {
 
   /**
    * Arma la propuesta para el backend. Los objetivos son el general y los
-   * específicos (uno por línea); la descripción es opcional.
+   * específicos (sin los campos vacíos); la descripción es opcional.
    */
   buildProposalPayload(originalProposal: Proposal | null, attachments: ProposalAttachments): Proposal | null {
     const raw = this.form.getRawValue();
@@ -174,7 +194,7 @@ export class ProposalFormService {
 
     if (!currentDirector) return null;
 
-    const objetivos = [raw.description, ...raw.specificObjectives.split('\n')]
+    const objetivos = [raw.description, ...raw.specificObjectives]
       .map(objetivo => objetivo.trim())
       .filter(objetivo => !!objetivo);
 

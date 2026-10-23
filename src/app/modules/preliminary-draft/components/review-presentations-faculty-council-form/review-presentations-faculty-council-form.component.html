@@ -47,11 +47,11 @@
           <div class="flex items-center justify-center gap-8">
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="radio" formControlName="result" value="Aprobado">
-              <span class="text-size-body font-sans text-[#777680]">Aprobado</span>
+              <span class="text-size-body font-sans text-text-body">Aprobado</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="radio" formControlName="result" value="No aprobado">
-              <span class="text-size-body font-sans text-[#777680]">No aprobado</span>
+              <span class="text-size-body font-sans text-text-body">No aprobado</span>
             </label>
           </div>
           @if (facade.isFieldInvalid('result')) {
@@ -62,30 +62,30 @@
         @if (facade.evaluationForm.get('result')?.value === 'Aprobado') {
           <div class="flex flex-col gap-1 max-w-md mx-auto w-full bg-blue-50/50 p-6 rounded-xl border border-blue-100 transition-all shadow-sm my-4">
             <span class="font-display font-semibold text-size-section text-primary mb-2 flex items-center gap-1">
-              Fecha máxima de entrega del Trabajo de Grado <span class="text-[#ED7D31]">*</span>
+              Fecha máxima de entrega del Trabajo de Grado <span class="text-alert">*</span>
             </span>
 
-            <span class="font-sans text-size-body text-[#777680] mb-2">Plazo de ejecución contado desde hoy.</span>
+            <span class="font-sans text-size-body text-text-body mb-2">Plazo de ejecución contado desde hoy.</span>
             <div class="flex flex-col gap-2">
               @for (option of facade.executionMonthOptions(); track option.months) {
                 <label class="flex items-center gap-2 cursor-pointer font-sans text-size-body">
                   <input type="radio" formControlName="executionMonths" [value]="option.months" />
-                  {{ option.months }} meses <span class="text-[#777680]">(vence el {{ option.deadline }})</span>
+                  {{ option.months }} meses <span class="text-text-body">(vence el {{ option.deadline }})</span>
                 </label>
               }
             </div>
 
             @if (facade.isFieldInvalid('executionMonths')) {
-              <span class="text-textbox-alert text-xs mt-1">Seleccione el plazo de ejecución del trabajo de grado</span>
+              <span class="text-textbox-alert mt-1">Seleccione el plazo de ejecución del trabajo de grado</span>
             }
           </div>
         }
 
         <div class="flex flex-col gap-1">
-          <label for="comments" class="font-display font-semibold text-primary text-size-section">Observaciones del consejo <span class="text-orange-500">*</span></label>
+          <label for="comments" class="font-display font-semibold text-primary text-size-section">Observaciones del consejo <span class="text-alert">*</span></label>
           <textarea id="comments" formControlName="comments" rows="4"
             class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans"
-            [class.border-[#ED7D31]]="facade.isFieldInvalid('comments')"
+            [class.border-alert]="facade.isFieldInvalid('comments')"
             [class.input-success]="facade.evaluationForm.get('comments')?.valid && facade.evaluationForm.get('comments')?.touched"
             placeholder="Ingrese los detalles de la resolución..."></textarea>
           @if (facade.isFieldInvalid('comments')) {
@@ -94,17 +94,17 @@
         </div>
 
         <div class="flex flex-col gap-4">
-          <span class="font-display font-semibold text-primary text-size-section">Archivos para revisión <span class="text-orange-500">*</span></span>
+          <span class="font-display font-semibold text-primary text-size-section">Archivos para revisión <span class="text-alert">*</span></span>
 
           <div class="flex flex-col gap-3">
 
             @if (facade.signedProposalDocument(); as signedDoc) {
               <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
                 <div class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
+                  <span class="material-symbols-outlined text-danger text-file">picture_as_pdf</span>
                   <div class="flex flex-col">
                     <span class="text-size-body font-bold text-primary">{{ signedDoc.name }}</span>
-                    <span class="text-size-role-footer text-[#777680]">Propuesta original aprobada por comité</span>
+                    <span class="text-size-role-footer text-text-body">Propuesta original aprobada por comité</span>
                   </div>
                 </div>
                 <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(signedDoc)"></app-button-component>
@@ -114,10 +114,10 @@
             @for (evalFile of facade.evaluationFiles(); track evalFile.name) {
               <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
                 <div class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
+                  <span class="material-symbols-outlined text-danger text-file">picture_as_pdf</span>
                   <div class="flex flex-col">
                     <span class="text-size-body font-bold text-primary">{{ evalFile.name }}</span>
-                    <span class="text-size-role-footer text-[#777680]">Evaluación docente: {{ evalFile.evaluator }}</span>
+                    <span class="text-size-role-footer text-text-body">Evaluación docente: {{ evalFile.evaluator }}</span>
                   </div>
                 </div>
                 <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(evalFile)"></app-button-component>
@@ -127,10 +127,10 @@
             @if (facade.approvedPreliminaryDraftDocument(); as approvedDoc) {
               <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
                 <div class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
+                  <span class="material-symbols-outlined text-danger text-file">picture_as_pdf</span>
                   <div class="flex flex-col">
                     <span class="text-size-body font-bold text-primary">{{ approvedDoc.name }}</span>
-                    <span class="text-size-role-footer text-[#777680]">Documento de anteproyecto aprobado</span>
+                    <span class="text-size-role-footer text-text-body">Documento de anteproyecto aprobado</span>
                   </div>
                 </div>
                 <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(approvedDoc)"></app-button-component>
@@ -140,10 +140,10 @@
             @if (facade.presentationDocument(); as presentationDoc) {
               <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
                 <div class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
+                  <span class="material-symbols-outlined text-danger text-file">picture_as_pdf</span>
                   <div class="flex flex-col">
                     <span class="text-size-body font-bold text-primary">{{ presentationDoc.name }}</span>
-                    <span class="text-size-role-footer text-[#777680]">Cargado por el jefe de departamento</span>
+                    <span class="text-size-role-footer text-text-body">Cargado por el jefe de departamento</span>
                   </div>
                 </div>
                 <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(presentationDoc)"></app-button-component>
@@ -151,25 +151,25 @@
             }
 
             <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm mt-2"
-                 [class.border-[#777680]]="facade.evaluationForm.touched && facade.uploadedSignedFile()"
-                 [class.border-[#ED7D31]]="facade.evaluationForm.touched && !facade.uploadedSignedFile()"
+                 [class.border-text-body]="facade.evaluationForm.touched && facade.uploadedSignedFile()"
+                 [class.border-alert]="facade.evaluationForm.touched && !facade.uploadedSignedFile()"
                  [class.border-l-4]="facade.uploadedSignedFile()"
                  [class.border-l-state-approved]="facade.uploadedSignedFile()">
 
               <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-4xl"
+                <span class="material-symbols-outlined text-file"
                       [class.text-state-approved]="facade.uploadedSignedFile()"
-                      [class.text-[#ED7D31]]="facade.evaluationForm.touched && !facade.uploadedSignedFile()"
-                      [class.text-[#777680]]="!facade.uploadedSignedFile() && !(facade.evaluationForm.touched && !facade.uploadedSignedFile())">
+                      [class.text-alert]="facade.evaluationForm.touched && !facade.uploadedSignedFile()"
+                      [class.text-text-body]="!facade.uploadedSignedFile() && !(facade.evaluationForm.touched && !facade.uploadedSignedFile())">
                   {{ facade.uploadedSignedFile() ? 'task' : 'picture_as_pdf' }}
                 </span>
                 <div class="flex flex-col">
                   <span class="text-size-body font-bold"
                         [class.text-primary]="facade.uploadedSignedFile()"
-                        [class.text-[#ED7D31]]="facade.evaluationForm.touched && !facade.uploadedSignedFile()">
+                        [class.text-alert]="facade.evaluationForm.touched && !facade.uploadedSignedFile()">
                     {{ facade.uploadedSignedFile()?.fileName || 'Resolución del consejo de facultad' }}
                   </span>
-                  <span class="text-size-role-footer text-[#777680]">Resolución oficial del consejo firmada (Obligatorio)</span>
+                  <span class="text-size-role-footer text-text-body">Resolución oficial del consejo firmada (Obligatorio)</span>
                   @if (facade.evaluationForm.touched && !facade.uploadedSignedFile()) {
                     <span class="text-size-role-footer text-textbox-alert mt-1">Debe adjuntar el documento de resolución firmado</span>
                   }
@@ -178,7 +178,7 @@
 
               @if (facade.uploadedSignedFile()) {
                 @if (!facade.isReadOnly()) {
-                  <button type="button" (click)="facade.uploadedSignedFile.set(null)" class="text-[#777680] hover:text-[#DB141C] transition-colors">
+                  <button type="button" (click)="facade.uploadedSignedFile.set(null)" class="text-text-body hover:text-danger transition-colors">
                     <span class="material-symbols-outlined">delete</span>
                   </button>
                 }

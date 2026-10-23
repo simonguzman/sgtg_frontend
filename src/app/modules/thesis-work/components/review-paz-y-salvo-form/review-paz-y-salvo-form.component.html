@@ -1,0 +1,206 @@
+<div class="p-6 bg-white rounded-lg w-full">
+
+  <app-info-banner title="Revisión del paz y salvo" class="mb-6 block">
+    Como <strong>Decanatura</strong>, indique si el estudiante está a paz y salvo y cargue el <strong>formato F</strong>
+    tanto si lo aprueba como si no. Si no lo aprueba, las observaciones son obligatorias. Sin paz y salvo aprobado el
+    Consejo de Facultad no puede programar la sustentación.
+  </app-info-banner>
+
+  <section class="mb-10">
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
+
+    <div class="flex flex-col gap-4">
+      <app-readonly-field label="Título" [value]="thesisWork.preliminaryDraftData.proposalData.title"></app-readonly-field>
+      <app-readonly-field label="Descripción" [value]="thesisWork.preliminaryDraftData.proposalData.description" emptyText="Sin descripción disponible"></app-readonly-field>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <app-readonly-field label="Modalidad del trabajo de grado" [value]="thesisWork.preliminaryDraftData.proposalData.modality"></app-readonly-field>
+        <app-readonly-field label="Estudiante" [value]="getStudentNames()"></app-readonly-field>
+        <app-readonly-field label="Director" [value]="getDirectorName()"></app-readonly-field>
+
+        @if (getCodirectorName()) {
+          <app-readonly-field label="Codirector" [value]="getCodirectorName()"></app-readonly-field>
+        }
+
+        @if (getAdvisorName()) {
+          <app-readonly-field label="Asesor" [value]="getAdvisorName()"></app-readonly-field>
+        }
+
+        <app-readonly-field label="Estado" [value]="thesisWork.state" emptyText="En desarrollo" [emphasize]="true"></app-readonly-field>
+      </div>
+    </div>
+  </section>
+
+  <hr class="border-gray-200 mb-8">
+
+  <section class="mb-10">
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Documentos de la solicitud de sustentación</h3>
+
+    <div class="flex flex-col gap-4">
+
+      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
+          <div class="flex flex-col overflow-hidden">
+            <span class="text-size-body font-bold text-primary truncate">
+              {{ getExistingDocument('MONOGRAFIA')?.name || 'Monografía no encontrada' }}
+            </span>
+            <span class="text-size-role-footer text-text-body">Monografía • Cargada en la solicitud de sustentación</span>
+          </div>
+        </div>
+        <app-button-component
+          label="Descargar"
+          variant="primary"
+          (onClick)="downloadDocument(getExistingDocument('MONOGRAFIA'))"
+          [disabled]="!getExistingDocument('MONOGRAFIA')">
+        </app-button-component>
+      </div>
+
+      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
+          <div class="flex flex-col overflow-hidden">
+            <span class="text-size-body font-bold text-primary truncate">
+              {{ getExistingDocument('FORMATO_E')?.name || 'Formato E no encontrado' }}
+            </span>
+            <span class="text-size-role-footer text-text-body">Formato E • Cargado en la solicitud de sustentación</span>
+          </div>
+        </div>
+        <app-button-component
+          label="Descargar"
+          variant="primary"
+          (onClick)="downloadDocument(getExistingDocument('FORMATO_E'))"
+          [disabled]="!getExistingDocument('FORMATO_E')">
+        </app-button-component>
+      </div>
+
+      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <span class="material-symbols-outlined text-danger text-file shrink-0">folder_open</span>
+          <div class="flex flex-col overflow-hidden">
+            <span class="text-size-body font-bold text-primary truncate">
+              {{ getExistingDocument('ANEXOS')?.name || 'Sin anexos registrados' }}
+            </span>
+            <span class="text-size-role-footer text-text-body">Anexos • Cargados en la solicitud de sustentación</span>
+          </div>
+        </div>
+        <app-button-component
+          label="Descargar"
+          variant="primary"
+          (onClick)="downloadDocument(getExistingDocument('ANEXOS'))"
+          [disabled]="!getExistingDocument('ANEXOS')">
+        </app-button-component>
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="border-gray-200 mb-8">
+
+  <section class="mb-10">
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Revisión del paz y salvo</h3>
+
+    <div class="bg-blue-50/50 p-6 rounded-xl border shadow-sm transition-all"
+         [class.border-alert]="isSubmitAttempted() && approved() === null"
+         [class.border-blue-100]="!(isSubmitAttempted() && approved() === null)">
+
+      <div class="information-block p-4 rounded-lg text-size-body text-text-body mb-6">
+        Indique si el estudiante está a paz y salvo. Las observaciones son obligatorias si no lo aprueba y se notifican
+        al director y a los estudiantes.
+      </div>
+
+      <div class="flex flex-wrap justify-center gap-8 mb-4">
+        <label class="flex items-center gap-2 cursor-pointer group">
+          <input type="radio" name="pazYSalvoDecision" class="w-4 h-4 text-primary focus:ring-primary"
+                 [checked]="approved() === true" (change)="approved.set(true)">
+          <span class="text-size-body font-medium text-gray-700 group-hover:text-primary transition-colors">Aprobado</span>
+        </label>
+
+        <label class="flex items-center gap-2 cursor-pointer group">
+          <input type="radio" name="pazYSalvoDecision" class="w-4 h-4 text-danger focus:ring-danger"
+                 [checked]="approved() === false" (change)="approved.set(false)">
+          <span class="text-size-body font-medium text-gray-700 group-hover:text-danger transition-colors">No aprobado</span>
+        </label>
+      </div>
+
+      @if (isSubmitAttempted() && approved() === null) {
+        <p class="text-size-role-footer text-textbox-alert text-center mb-4">Debe seleccionar una decisión para proceder</p>
+      }
+
+      <div class="flex flex-col gap-1">
+        <label for="pazYSalvoObservations" class="font-display font-semibold text-primary text-size-section">
+          Observaciones
+          @if (approved() === false) {
+            <span class="text-alert">*</span>
+          }
+        </label>
+        <textarea id="pazYSalvoObservations" rows="4"
+                  class="p-3 border rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body bg-white"
+                  [class.border-alert]="isMissingObservations"
+                  [class.border-gray-200]="!isMissingObservations"
+                  placeholder="Indique los pendientes del estudiante, por ejemplo, una deuda con la biblioteca o con la universidad"
+                  [value]="observations()"
+                  (input)="onObservationsChange($event)"></textarea>
+        @if (isMissingObservations) {
+          <span class="text-size-role-footer text-textbox-alert mt-1">Si no lo aprueba, las observaciones son obligatorias</span>
+        }
+      </div>
+    </div>
+  </section>
+
+  <hr class="border-gray-200 mb-8">
+
+  <section>
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Paz y salvo (formato F)</h3>
+
+    <div class="flex flex-col gap-4 mb-6">
+      <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
+           [class.border]="!uploadedFormat() || isSubmitAttempted()"
+           [class.border-alert]="isSubmitAttempted() && !uploadedFormat()"
+           [class.border-l-4]="uploadedFormat()"
+           [class.border-l-state-approved]="uploadedFormat()"
+           [class.border-gray-200]="!uploadedFormat() && !isSubmitAttempted()">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-file"
+                [class.text-state-approved]="uploadedFormat()"
+                [class.text-alert]="isSubmitAttempted() && !uploadedFormat()"
+                [class.text-text-body]="!uploadedFormat() && !isSubmitAttempted()">
+            {{ uploadedFormat() ? 'task' : 'picture_as_pdf' }}
+          </span>
+          <div class="flex flex-col">
+            <span class="text-size-body font-bold"
+                  [class.text-primary]="uploadedFormat()"
+                  [class.text-alert]="isSubmitAttempted() && !uploadedFormat()">
+              {{ uploadedFormat()?.fileName || 'Formato F - Paz y salvo' }}
+            </span>
+            <span class="text-size-role-footer text-text-body">
+              {{ uploadedFormat() ? 'Documento cargado con éxito' : 'No ha sido cargado ningún archivo. Debe cargar el formato F diligenciado, apruebe o no el paz y salvo.' }}
+            </span>
+            @if (isSubmitAttempted() && !uploadedFormat()) {
+              <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span>
+            }
+          </div>
+        </div>
+
+        @if (uploadedFormat()) {
+          <button type="button" (click)="removeFile()" class="text-text-body hover:text-danger transition-colors">
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        } @else {
+          <app-button-component label="Cargar formato F" variant="secondary" (onClick)="isModalOpen.set(true)"></app-button-component>
+        }
+      </div>
+    </div>
+
+    <div class="flex gap-4 justify-end mt-10">
+      <app-button-component label="Registrar revisión" variant="primary" (onClick)="submit()" [disabled]="isSubmitting"></app-button-component>
+    </div>
+  </section>
+</div>
+
+<app-file-upload-modal
+  [isOpen]="isModalOpen()"
+  description="Subir el formato F (paz y salvo) diligenciado (PDF)"
+  (onFileUploaded)="handleFileUploaded($event)"
+  (onClose)="isModalOpen.set(false)">
+</app-file-upload-modal>

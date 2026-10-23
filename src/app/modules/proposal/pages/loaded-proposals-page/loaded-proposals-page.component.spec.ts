@@ -35,6 +35,8 @@ describe('LoadedProposalsPageComponent', () => {
       buildHeaderButtons: jest.fn().mockReturnValue([]),
       showRestrictedActionNotification: jest.fn(),
       handleDownload: jest.fn().mockResolvedValue(undefined),
+      buildRegistrationDetails: jest.fn().mockReturnValue(null),
+      downloadRegistrationDocument: jest.fn().mockResolvedValue(undefined),
       canUpload: jest.fn().mockReturnValue(true),
       upload: jest.fn().mockResolvedValue(undefined)
     } as unknown as jest.Mocked<LoadedProposalsFacadeService>;
@@ -77,15 +79,27 @@ describe('LoadedProposalsPageComponent', () => {
     const mockRow = { id: 'doc-1', allowedActions: [] } as unknown as DocumentTableRow;
 
     it('debería notificar y detener la ejecución si la acción no está permitida', () => {
-      component.handleTableAction({ action: 'download', row: mockRow });
+      component.handleTableAction({ action: 'view-details', row: mockRow });
       expect(mockFacade.showRestrictedActionNotification).toHaveBeenCalled();
-      expect(mockFacade.handleDownload).not.toHaveBeenCalled();
+      expect(component.selectedRow()).toBeNull();
     });
 
-    it('debería delegar a handleDownload si la acción es "download" y está permitida', () => {
-      const allowedRow = { ...mockRow, allowedActions: ['download'] } as DocumentTableRow;
-      component.handleTableAction({ action: 'download', row: allowedRow });
-      expect(mockFacade.handleDownload).toHaveBeenCalledWith(allowedRow);
+    it('"Ver detalles" abre el modal con el registro y lo cierra al salir', () => {
+      const allowedRow = { ...mockRow, allowedActions: ['view-details'] } as DocumentTableRow;
+      component.handleTableAction({ action: 'view-details', row: allowedRow });
+      expect(component.selectedRow()).toBe(allowedRow);
+      component.registrationDetails();
+      expect(mockFacade.buildRegistrationDetails).toHaveBeenCalledWith('prop-123', allowedRow);
+
+      component.closeDetails();
+      expect(component.selectedRow()).toBeNull();
+    });
+
+    it('el modal descarga el documento elegido del registro abierto', () => {
+      const allowedRow = { ...mockRow, allowedActions: ['view-details'] } as DocumentTableRow;
+      component.handleTableAction({ action: 'view-details', row: allowedRow });
+      component.downloadRegistrationDocument('Carta de aceptación');
+      expect(mockFacade.downloadRegistrationDocument).toHaveBeenCalledWith('Carta de aceptación', allowedRow);
     });
 
     it('debería navegar a evaluate_proposal si la acción es "evaluate" y está permitida', () => {

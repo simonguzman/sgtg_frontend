@@ -63,7 +63,7 @@ describe('TabsComponent', () => {
       const buttons = fixture.debugElement.queryAll(By.css('button'));
 
       expect(buttons[0].nativeElement.className).toContain('border-b-4');
-      expect(buttons[0].nativeElement.className).toContain('border-[#000066]');
+      expect(buttons[0].nativeElement.className).toContain('border-primary');
       expect(buttons[0].nativeElement.className).toContain('font-bold');
     });
 

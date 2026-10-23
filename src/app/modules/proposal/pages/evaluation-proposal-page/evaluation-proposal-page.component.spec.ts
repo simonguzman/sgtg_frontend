@@ -171,7 +171,7 @@ describe('EvaluationProposalPageComponent', () => {
     it('debería mostrar mensaje de carga mientras proposal sea nulo', () => {
       component.proposal.set(null);
       fixture.detectChanges();
-      const loadingDiv = fixture.debugElement.query(By.css('.text-center.text-\\[\\#777680\\]'));
+      const loadingDiv = fixture.debugElement.query(By.css('.text-center.text-text-body'));
       expect(loadingDiv).toBeTruthy();
       expect(loadingDiv.nativeElement.textContent).toContain('Cargando información de la propuesta...');
     });

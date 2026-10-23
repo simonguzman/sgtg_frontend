@@ -12,39 +12,39 @@
       <div class="flex flex-col gap-1">
         <label for="infoTitle" class="font-display font-semibold text-primary text-size-section">Título</label>
         <input id="infoTitle" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <label for="infoDescription" class="font-display font-semibold text-primary text-size-section">Descripción</label>
         <input id="infoDescription" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <label for="infoModality" class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</label>
         <input id="infoModality" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <label for="infoStudent" class="font-display font-semibold text-primary text-size-section">Estudiante</label>
         <input id="infoStudent" type="text" [value]="getStudentNames()" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="flex flex-col gap-1">
           <label for="infoDirector" class="font-display font-semibold text-primary text-size-section">Director</label>
           <input id="infoDirector" type="text" [value]="getDirectorName()" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+                 class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
         </div>
 
         @if (getCodirectorName()) {
           <div class="flex flex-col gap-1">
             <label for="infoCodirector" class="font-display font-semibold text-primary text-size-section">Codirector</label>
             <input id="infoCodirector" type="text" [value]="getCodirectorName()" disabled
-                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+                   class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
           </div>
         }
       </div>
@@ -53,14 +53,14 @@
         <div class="flex flex-col gap-1">
           <label for="infoAdvisor" class="font-display font-semibold text-primary text-size-section">Asesor</label>
           <input id="infoAdvisor" type="text" [value]="getAdvisorName()" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+                 class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
         </div>
       }
 
       <div class="flex flex-col gap-1">
         <label for="infoJurors" class="font-display font-semibold text-primary text-size-section">Jurados Asignados</label>
         <input id="infoJurors" type="text" [value]="getAssignedJurors()" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
       </div>
     </div>
   </section>
@@ -75,19 +75,19 @@
       <div class="flex flex-col gap-1">
         <label for="progDate" class="font-display font-semibold text-primary text-size-section">Fecha</label>
         <input id="progDate" type="text" [value]="(currentSustentation?.sustentationDate | date:'dd/MM/yyyy') || 'No programada'" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <label for="progTime" class="font-display font-semibold text-primary text-size-section">Hora</label>
         <input id="progTime" type="text" [value]="(currentSustentation?.sustentationDate | date:'shortTime') || 'No programada'" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <label for="progLocation" class="font-display font-semibold text-primary text-size-section">Lugar / Aula / Enlace</label>
         <input id="progLocation" type="text" [value]="currentSustentation?.location || 'No definido'" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
       </div>
     </div>
   </section>
@@ -103,12 +103,12 @@
       <!-- Monografía -->
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
         <div class="flex items-center gap-3 overflow-hidden">
-          <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+          <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
           <div class="flex flex-col overflow-hidden">
             <span class="text-size-body font-bold text-primary truncate">
               {{ getExistingDocument('MONOGRAFIA')?.name || 'Monografía no encontrada' }}
             </span>
-            <span class="text-size-role-footer text-[#777680]">Monografía • Cargado en entrega final</span>
+            <span class="text-size-role-footer text-text-body">Monografía • Cargado en entrega final</span>
           </div>
         </div>
         <app-button-component
@@ -122,12 +122,12 @@
       <!-- Anexos -->
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
         <div class="flex items-center gap-3 overflow-hidden">
-          <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">folder_open</span>
+          <span class="material-symbols-outlined text-danger text-file shrink-0">folder_open</span>
           <div class="flex flex-col overflow-hidden">
             <span class="text-size-body font-bold text-primary truncate">
               {{ getExistingDocument('ANEXOS')?.name || 'Sin anexos registrados' }}
             </span>
-            <span class="text-size-role-footer text-[#777680]">Anexos • Cargado en entrega final</span>
+            <span class="text-size-role-footer text-text-body">Anexos • Cargado en entrega final</span>
           </div>
         </div>
         <app-button-component
@@ -141,12 +141,12 @@
       @if (currentSustentation?.formatEDocument) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
           <div class="flex items-center gap-3 overflow-hidden">
-            <span class="material-symbols-outlined text-[#DB141C] text-4xl shrink-0">picture_as_pdf</span>
+            <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
             <div class="flex flex-col overflow-hidden">
               <span class="text-size-body font-bold text-primary truncate">
                 {{ currentSustentation?.formatEDocument?.name || 'Formato_E_Programacion.pdf' }}
               </span>
-              <span class="text-size-role-footer text-[#777680]">Formato E • Documento de programación avalado por el consejo</span>
+              <span class="text-size-role-footer text-text-body">Formato E • Documento de programación avalado por el consejo</span>
             </div>
           </div>
           <app-button-component
@@ -167,11 +167,11 @@
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Evaluación del jurado</h3>
 
     <div class="bg-blue-50/50 p-6 rounded-xl border shadow-sm transition-all"
-         [class.border-[#ED7D31]]="isSubmitAttempted() && verdictSelected() === null"
+         [class.border-alert]="isSubmitAttempted() && verdictSelected() === null"
          [class.border-blue-100]="!(isSubmitAttempted() && verdictSelected() === null)">
 
       <!-- Mensaje informativo -->
-      <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-size-body text-[#777680] mb-6">
+      <div class="information-block p-4 rounded-lg text-size-body text-text-body mb-6">
         Como jurado coordinador, registre la calificación de la sesión con el acta (formato G). Las observaciones son
         obligatorias si no se aprueba. Si el estudiante no se presentó, registre la inasistencia: en la primera sesión
         la sustentación se aplaza y en la segunda el trabajo queda no aprobado.
@@ -235,24 +235,24 @@
 
       <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
            [class.border]="!uploadedFormat() || isSubmitAttempted()"
-           [class.border-[#ED7D31]]="isSubmitAttempted() && !uploadedFormat()"
+           [class.border-alert]="isSubmitAttempted() && !uploadedFormat()"
            [class.border-l-4]="uploadedFormat()"
            [class.border-l-state-approved]="uploadedFormat()"
            [class.border-gray-200]="!uploadedFormat() && !isSubmitAttempted()">
         <div class="flex items-center gap-3">
-          <span class="material-symbols-outlined text-4xl"
+          <span class="material-symbols-outlined text-file"
                 [class.text-state-approved]="uploadedFormat()"
-                [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedFormat()"
-                [class.text-[#777680]]="!uploadedFormat() && !isSubmitAttempted()">
+                [class.text-alert]="isSubmitAttempted() && !uploadedFormat()"
+                [class.text-text-body]="!uploadedFormat() && !isSubmitAttempted()">
             {{ uploadedFormat() ? 'task' : 'picture_as_pdf' }}
           </span>
           <div class="flex flex-col">
             <span class="text-size-body font-bold"
                   [class.text-primary]="uploadedFormat()"
-                  [class.text-[#ED7D31]]="isSubmitAttempted() && !uploadedFormat()">
+                  [class.text-alert]="isSubmitAttempted() && !uploadedFormat()">
               {{ uploadedFormat()?.fileName || 'Formato de Sustentación Terminado' }}
             </span>
-            <span class="text-size-role-footer text-[#777680]">
+            <span class="text-size-role-footer text-text-body">
               {{ uploadedFormat() ? 'Formato de acta cargado con éxito.' : 'No ha sido cargado ningún archivo. Debe adjuntar el acta con firmas de evaluación final.' }}
             </span>
             @if (isSubmitAttempted() && !uploadedFormat()) {
@@ -262,7 +262,7 @@
         </div>
 
         @if (uploadedFormat()) {
-          <button type="button" (click)="removeFile()" class="text-[#777680] hover:text-[#DB141C] transition-colors">
+          <button type="button" (click)="removeFile()" class="text-text-body hover:text-danger transition-colors">
             <span class="material-symbols-outlined">delete</span>
           </button>
         } @else {

@@ -47,7 +47,7 @@
                     class="font-sans font-normal text-size-body p-3 border rounded-md bg-white w-full focus:outline-none focus:ring-1 transition-all resize-none"
                     placeholder="Describa brevemente lo desarrollado en el periodo o los puntos que desea que revisen..."
                     [ngClass]="{
-                      'border-[#ED7D31] focus:ring-[#ED7D31] focus:border-[#ED7D31]': isFieldInvalid('comments'),
+                      'border-alert focus:ring-alert focus:border-alert': isFieldInvalid('comments'),
                       'border-gray-300 focus:ring-primary': !isFieldInvalid('comments')
                     }"></textarea>
           @if (isFieldInvalid('comments')) {
@@ -56,7 +56,7 @@
         </div>
 
         <div class="flex flex-col gap-4 mt-2">
-          <span class="font-display font-semibold text-primary text-size-section">Informe (formato D) <span class="text-[#ED7D31]">*</span></span>
+          <span class="font-display font-semibold text-primary text-size-section">Informe (formato D) <span class="text-alert">*</span></span>
 
           @if (uploadedFile(); as item) {
             <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-all hover:shadow-md">
@@ -64,18 +64,18 @@
                 <span class="material-symbols-outlined text-primary text-file shrink-0">description</span>
                 <div class="flex flex-col overflow-hidden">
                   <span class="text-size-body font-bold text-primary truncate">{{ item.fileName }}</span>
-                  <span class="text-size-role-footer text-[#777680]">Documento listo para enviar</span>
+                  <span class="text-size-role-footer text-text-body">Documento listo para enviar</span>
                 </div>
               </div>
-              <button type="button" (click)="removeFile()" class="text-[#777680] hover:text-[#DB141C] transition-colors shrink-0">
+              <button type="button" (click)="removeFile()" class="text-text-body hover:text-danger transition-colors shrink-0">
                 <span class="material-symbols-outlined">delete</span>
               </button>
             </div>
           } @else {
-            <div class="information-block flex items-center p-4 bg-white border border-gray-200 rounded-xl shadow-sm transition-colors">
+            <div class="information-block flex items-center p-4 bg-white border-gray-200 rounded-xl shadow-sm transition-colors">
               <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-gray-400 text-4xl shrink-0">upload_file</span>
-                <span class="text-size-body text-[#777680] font-sans">No ha adjuntado el informe. Cárguelo con el botón "Cargar informe" al final del formulario.</span>
+                <span class="material-symbols-outlined text-gray-400 text-file shrink-0">upload_file</span>
+                <span class="text-size-body text-text-body font-sans">No ha adjuntado el informe. Cárguelo con el botón "Cargar informe" al final del formulario.</span>
               </div>
             </div>
           }

@@ -13,7 +13,7 @@
 
         <div class="flex flex-col gap-1">
           <label for="proposalId" class="font-display font-semibold text-primary text-size-section">
-            Propuestas aprobadas <span class="text-[#ED7D31]">*</span>
+            Propuestas aprobadas <span class="text-alert">*</span>
           </label>
 
           <div class="relative flex items-center w-full">
@@ -44,13 +44,13 @@
           <!-- Titulo -->
           <div class="flex flex-col gap-1 md:col-span-2">
             <span class="font-display font-semibold text-primary text-size-section">
-              Título <span class="text-[#ED7D31]">*</span>
+              Título <span class="text-alert">*</span>
             </span>
             @if (isEditMode) {
               <div class="relative flex items-center">
                 <input id=""
                        type="text" formControlName="title" class="w-full p-2 border rounded-md font-sans text-size-body text-textbox focus:ring-1 focus:ring-primary outline-none bg-white"
-                       [class.border-[#ED7D31]]="isFieldInvalid('title')"
+                       [class.border-alert]="isFieldInvalid('title')"
                        [class.input-success]="form.get('title')?.valid && form.get('title')?.touched"
                        placeholder="Ingrese el título del anteproyecto">
                 @if (form.get('title')?.valid && form.get('title')?.touched) {
@@ -61,7 +61,7 @@
                 <span class="text-textbox-alert">El título no puede estar vacío</span>
               }
             } @else {
-              <div class="information-block w-full p-2 rounded-md font-normal font-sans text-size-section text-[#777680] min-h-10 flex items-center">
+              <div class="information-block w-full p-2 rounded-md font-normal font-sans text-size-section text-text-body min-h-10 flex items-center">
                 {{ proposal.title }}
               </div>
             }
@@ -70,13 +70,13 @@
           <!-- Descripción -->
           <div class="flex flex-col gap-1 md:col-span-2">
             <span class="font-display font-semibold text-primary text-size-section">
-              Descripción de la propuesta <span class="text-[#ED7D31]">*</span>
+              Descripción de la propuesta <span class="text-alert">*</span>
             </span>
             @if (isEditMode) {
               <div class="relative flex items-center">
                 <textarea id=""
                           formControlName="description" rows="4" class="w-full p-2 border rounded-md font-sans text-size-body text-textbox focus:ring-1 focus:ring-primary outline-none bg-white"
-                          [class.border-[#ED7D31]]="isFieldInvalid('description')"
+                          [class.border-alert]="isFieldInvalid('description')"
                           [class.input-success]="form.get('description')?.valid && form.get('description')?.touched"
                           placeholder="Ingrese la descripción o resumen"></textarea>
                 @if (form.get('description')?.valid && form.get('description')?.touched) {
@@ -87,7 +87,7 @@
                 <span class="text-textbox-alert">La descripción es obligatoria</span>
               }
             } @else {
-              <div class="information-block w-full p-2 rounded-md font-normal font-sans text-size-section text-[#777680] min-h-10 flex items-center">
+              <div class="information-block w-full p-2 rounded-md font-normal font-sans text-size-section text-text-body min-h-10 flex items-center">
                 {{ proposal.description || 'Sin descripción disponible' }}
               </div>
             }
@@ -97,7 +97,7 @@
           <ng-template #readOnlyField let-label="label" let-value="value" let-fullWidth="fullWidth">
             <div class="flex flex-col gap-1" [class.md:col-span-2]="fullWidth">
               <span class="font-display font-semibold text-primary text-size-section block">{{ label }}</span>
-              <div class="information-block w-full p-2 rounded-md font-normal font-sans text-size-section text-[#777680] min-h-10 flex items-center">
+              <div class="information-block w-full p-2 rounded-md font-normal font-sans text-size-section text-text-body min-h-10 flex items-center">
                 {{ value }}
               </div>
             </div>
@@ -123,14 +123,14 @@
       <h3 class="font-display font-semibold text-primary text-size-header-title mb-6 border-b pb-2">Archivos adjuntos</h3>
 
       @if (proposalEvaluationDocument; as evaluationDoc) {
-        <div class="information-block mb-6 p-6 rounded-xl border transition-all shadow-sm">
+        <div class="information-block mb-6 p-6 rounded-xl transition-all shadow-sm">
           <span class="font-display font-semibold text-primary text-size-section mb-3 block">Formato de evaluación aprobado por comité</span>
           <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
             <div class="flex items-center gap-3">
-              <span class="material-symbols-outlined text-[#DB141C] text-file">picture_as_pdf</span>
+              <span class="material-symbols-outlined text-danger text-file">picture_as_pdf</span>
               <div class="flex flex-col">
                 <span class="text-size-body font-bold text-primary">{{ evaluationDoc.name }}</span>
-                <span class="text-size-role-footer text-[#777680] font-sans">Documento firmado por el comité evaluador</span>
+                <span class="text-size-role-footer text-text-body font-sans">Documento firmado por el comité evaluador</span>
               </div>
             </div>
             @if (evaluationDoc.url) {
@@ -145,32 +145,32 @@
       }
 
       @if (!attachedFile.hasFile) {
-        <div class="information-block p-4 bg-[#F2F6FC] border border-[#E5E7EB] rounded-lg text-sm text-[#777680] mb-6">
+        <div class="information-block p-4 rounded-lg text-size-body text-text-body mb-6">
           No ha sido cargado ningún archivo, para realizar el registro del anteproyecto debe cargar el documento correspondiente para poder continuar con el proceso.
         </div>
       }
 
       <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm"
-             [class.border-[#777680]]="!isFieldInvalid('document')"
-             [class.border-[#ED7D31]]="isFieldInvalid('document')"
+             [class.border-text-body]="!isFieldInvalid('document')"
+             [class.border-alert]="isFieldInvalid('document')"
              [class.border-l-4]="attachedFile.hasFile"
              [class.border-l-state-approved]="attachedFile.hasFile">
 
           <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-4xl"
+            <span class="material-symbols-outlined text-file"
                   [class.text-state-approved]="attachedFile.hasFile"
-                  [class.text-[#ED7D31]]="isFieldInvalid('document')"
-                  [class.text-[#777680]]="!attachedFile.hasFile && !isFieldInvalid('document')">
+                  [class.text-alert]="isFieldInvalid('document')"
+                  [class.text-text-body]="!attachedFile.hasFile && !isFieldInvalid('document')">
               {{ attachedFile.hasFile ? 'task' : 'picture_as_pdf' }}
             </span>
             <div class="flex flex-col">
               <span class="text-size-body font-bold"
                     [class.text-primary]="attachedFile.hasFile"
-                    [class.text-[#ED7D31]]="isFieldInvalid('document')">
+                    [class.text-alert]="isFieldInvalid('document')">
                 {{ attachedFile.name || 'Documento del anteproyecto' }}
               </span>
-              <span class="text-size-role-footer text-[#777680]">Documento base (Obligatorio)</span>
+              <span class="text-size-role-footer text-text-body">Documento base (Obligatorio)</span>
               @if (isFieldInvalid('document')) {
                 <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span>
               }
@@ -178,7 +178,7 @@
           </div>
 
           @if (attachedFile.hasFile) {
-            <button type="button" (click)="removeFile()" class="text-[#777680] hover:text-[#DB141C] transition-colors">
+            <button type="button" (click)="removeFile()" class="text-text-body hover:text-danger transition-colors">
               <span class="material-symbols-outlined">delete</span>
             </button>
           } @else {

@@ -1,72 +1,33 @@
 <div class="w-full min-h-screen bg-[#F8F9FA] p-4 md:p-8">
-  <div class="max-w-3xl mx-auto flex flex-col gap-6">
-    <button (click)="goBack()" class="flex items-center gap-2 text-navy-900 font-bold group w-fit transition-opacity hover:opacity-80">
-      <span class="material-symbols-outlined text-[#000066] text-xl">arrow_back</span>
+
+  <div class="max-w-7xl mx-auto flex flex-col gap-6">
+
+    <button (click)="goBack()" class="flex items-center gap-2 text-primary font-bold group w-fit transition-opacity hover:opacity-80">
+      <span class="material-symbols-outlined text-primary text-size-header-title transition-transform duration-300 ease-in-out group-hover:-translate-x-1.5">
+        arrow_back
+      </span>
       <span class="return-arrow-option">Regresar</span>
     </button>
 
-    @if (thesisWork()) {
-      <div class="bg-white rounded-lg shadow-sm p-6 flex flex-col gap-5">
-        <div>
-          <h2 class="text-lg font-semibold text-gray-800 m-0">Revisión del paz y salvo</h2>
-          <p class="text-sm text-gray-500 mt-1">
-            Trabajo de grado: <strong>{{ title() }}</strong>. Cargue el formato F tanto si el estudiante está a paz y salvo
-            como si no; si no lo aprueba, indique las observaciones. Sin paz y salvo aprobado el Consejo de Facultad no
-            puede programar la sustentación.
-          </p>
-        </div>
-
-        <fieldset class="flex flex-col gap-2">
-          <legend class="text-sm font-semibold text-gray-700 mb-1">Decisión *</legend>
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="decision" [checked]="approved() === true" (change)="approved.set(true)" />
-            Aprobado: el estudiante está a paz y salvo
-          </label>
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="decision" [checked]="approved() === false" (change)="approved.set(false)" />
-            No aprobado
-          </label>
-          @if (missingDecision()) {
-            <small class="text-red-600">Seleccione la decisión.</small>
-          }
-        </fieldset>
-
-        <div class="flex flex-col gap-1">
-          <label for="pys-observations" class="text-sm font-semibold text-gray-700">
-            Observaciones{{ approved() === false ? ' *' : '' }}
-          </label>
-          <textarea id="pys-observations" rows="3" class="w-full border rounded-md p-2 text-sm"
-            [class.border-red-500]="missingObservations()" [value]="observations()"
-            (input)="observations.set($any($event.target).value)"
-            placeholder="Por ejemplo, la deuda pendiente con la biblioteca"></textarea>
-          @if (missingObservations()) {
-            <small class="text-red-600">Si no lo aprueba, las observaciones son obligatorias.</small>
-          }
-        </div>
-
-        <div class="flex flex-col gap-1">
-          <label for="pys-file" class="text-sm font-semibold text-gray-700">Formato F (PDF) *</label>
-          <input id="pys-file" type="file" accept="application/pdf,.pdf" (change)="selectFile($event)" />
-          @if (missingFile()) {
-            <small class="text-red-600">El formato F es obligatorio.</small>
-          }
-        </div>
-
-        <div class="flex justify-end gap-2">
-          <app-button-component label="Cancelar" variant="secondary" (onClick)="goBack()"></app-button-component>
-          <app-button-component label="Registrar revisión" variant="primary" [disabled]="isSubmitting()"
-            (onClick)="submit()"></app-button-component>
-        </div>
-      </div>
+    @if (thesisWorkState()) {
+      <app-review-paz-y-salvo-form
+        [thesisWork]="thesisWorkState()!"
+        [isSubmitting]="isSubmitting()"
+        (onSave)="handleRequestConfirmation($event)"
+        (onGoBack)="goBack()"
+        (onDownloadFile)="downloadDocument($event)">
+      </app-review-paz-y-salvo-form>
     }
 
     <app-confirmation-action-modal
       [isOpen]="isConfirmModalOpen()"
-      [description]="approved()
+      [description]="pendingData()?.payload?.approved
         ? '¿Confirma que el estudiante está a paz y salvo? El Consejo de Facultad podrá programar la sustentación.'
         : '¿Confirma que el paz y salvo no se aprueba? Se notificará al director y a los estudiantes con sus observaciones.'"
       (onClose)="isConfirmModalOpen.set(false)"
-      (confirm)="confirm()">
+      (confirm)="processPazYSalvo()">
     </app-confirmation-action-modal>
+
   </div>
+
 </div>

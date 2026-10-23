@@ -2,101 +2,100 @@
   <div class="mb-2 flex justify-start">
     <button
       (click)="facade.goBack()"
-      class="flex items-center gap-2 text-navy-900 hover:text-navy-700 transition-colors font-bold group"
+      class="flex items-center gap-2 text-primary transition-colors font-bold group"
     >
-      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
+      <span class="material-symbols-outlined text-primary text-size-sidebar-title group-hover:-translate-x-1 transition-transform">
         arrow_back
       </span>
       <span class="return-arrow-option">Regresar</span>
     </button>
   </div>
 
-  <div *ngIf="facade.isLoading()" class="text-center text-[#777680]">
+  <div *ngIf="facade.isLoading()" class="text-center text-text-body">
     Cargando información...
   </div>
 
-  <div *ngIf="!facade.isLoading() && facade.user()" class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 items-start">
-
-    <div class="flex flex-col">
-      <div class="mb-6">
-        <img src="assets/images/avatar-default.png" alt="Avatar" class="w-20 h-20 rounded-full border border-gray-300 object-cover">
-      </div>
-
-
-      <h3 class="font-semibold font-display text-primary text-size-sidebar-title mb-6 h-7">Datos personales</h3>
-
-      <div class="space-y-4 text-size-body">
-        <div class="grid grid-cols-2 gap-2">
-          <span class="font-semibold font-display text-primary text-size-body">Tipo de documento</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">
-            {{ facade.user()?.idType | documentType }}
-          </span>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <span class="font-semibold font-display text-primary text-size-body">Documento de identidad</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.idNumber }}</span>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <span class="font-semibold font-display text-primary text-size-body">Nombres</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.firstName }} {{ facade.user()?.secondName || '' }}</span>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <span class="font-semibold font-display text-primary text-size-body">Apellidos</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.lastName }} {{ facade.user()?.secondLastName }}</span>
-        </div>
-      </div>
+  <ng-container *ngIf="!facade.isLoading() && facade.user()">
+    <div class="mb-6">
+      <img src="assets/images/avatar-default.png" alt="Avatar" class="w-20 h-20 rounded-pill border border-gray-300 object-cover">
     </div>
 
-    <div class="flex flex-col">
-      <div class="h-24 mb-6 hidden md:block"></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 items-start">
 
-      <h3 class="font-semibold font-display text-primary text-size-sidebar-title text-lg mb-6 h-7">Datos institucionales</h3>
+      <div class="flex flex-col">
+        <h3 class="font-semibold font-display text-primary text-size-sidebar-title mb-6 h-7">Datos personales</h3>
 
-      <div class="space-y-4 text-sm">
-        <div class="grid grid-cols-2 gap-2">
-          <span class="font-semibold font-display text-primary text-size-body">Código</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.codeNumber }}</span>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <span class="font-semibold font-display text-primary text-size-body">Correo institucional</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.email }}</span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <span class="font-semibold font-display text-primary text-size-body">Rol</span>
-          <div class="flex flex-col gap-1">
-            <span *ngFor="let rol of facade.user()?.roles" class="font-normal font-display text-[#000000] text-size-body">
-                • {{ rol }}
+        <div class="space-y-4 text-size-body">
+          <div class="grid grid-cols-2 gap-2">
+            <span class="font-semibold font-display text-primary text-size-body">Tipo de documento</span>
+            <span class="font-normal font-display text-[#000000] text-size-body">
+              {{ facade.user()?.idType | documentType }}
             </span>
-            <span *ngIf="facade.user()?.roles?.length === 0" class="font-normal font-display text-[#000000] text-size-body">
-              Sin roles asignados
-            </span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <span class="font-semibold font-display text-primary text-size-body">Documento de identidad</span>
+            <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.idNumber }}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <span class="font-semibold font-display text-primary text-size-body">Nombres</span>
+            <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.firstName }} {{ facade.user()?.secondName || '' }}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <span class="font-semibold font-display text-primary text-size-body">Apellidos</span>
+            <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.lastName }} {{ facade.user()?.secondLastName }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col">
+        <h3 class="font-semibold font-display text-primary text-size-sidebar-title mb-6 h-7">Datos institucionales</h3>
+
+        <div class="space-y-4 text-size-body">
+          <div class="grid grid-cols-2 gap-2">
+            <span class="font-semibold font-display text-primary text-size-body">Código</span>
+            <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.codeNumber }}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <span class="font-semibold font-display text-primary text-size-body">Correo institucional</span>
+            <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.email }}</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <span class="font-semibold font-display text-primary text-size-body">Rol</span>
+            <div class="flex flex-col gap-1">
+              <span *ngFor="let rol of facade.user()?.roles" class="font-normal font-display text-[#000000] text-size-body">
+                  • {{ rol }}
+              </span>
+              <span *ngIf="facade.user()?.roles?.length === 0" class="font-normal font-display text-[#000000] text-size-body">
+                Sin roles asignados
+              </span>
+            </div>
+          </div>
+
+          <div *ngIf="facade.user()?.department" class="grid grid-cols-2 gap-2">
+            <span class="font-semibold font-display text-primary text-size-body">Departamento</span>
+            <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.department?.name }}</span>
+          </div>
+          <div *ngIf="facade.user()?.contractType" class="grid grid-cols-2 gap-2">
+            <span class="font-semibold font-display text-primary text-size-body">Vinculación</span>
+            <span class="font-normal font-display text-[#000000] text-size-body">{{ contractTypeLabel() }}</span>
+          </div>
+          <div *ngIf="facade.user()?.program" class="grid grid-cols-2 gap-2">
+            <span class="font-semibold font-display text-primary text-size-body">Programa</span>
+            <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.program?.name }}</span>
           </div>
         </div>
 
-        <div *ngIf="facade.user()?.department" class="grid grid-cols-2 gap-2">
-          <span class="font-semibold font-display text-primary text-size-body">Departamento</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.department?.name }}</span>
-        </div>
-        <div *ngIf="facade.user()?.contractType" class="grid grid-cols-2 gap-2">
-          <span class="font-semibold font-display text-primary text-size-body">Vinculación</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">{{ contractTypeLabel() }}</span>
-        </div>
-        <div *ngIf="facade.user()?.program" class="grid grid-cols-2 gap-2">
-          <span class="font-semibold font-display text-primary text-size-body">Programa</span>
-          <span class="font-normal font-display text-[#000000] text-size-body">{{ facade.user()?.program?.name }}</span>
+        <div class="flex justify-end mt-12">
+          <app-button-component
+            label="Salir"
+            variant="secondary"
+            type="button"
+            (onClick)="facade.goBack()">
+          </app-button-component>
         </div>
       </div>
 
-      <div class="flex justify-end mt-12">
-        <app-button-component
-          label="Salir"
-          variant="secondary"
-          type="button"
-          (onClick)="facade.goBack()">
-        </app-button-component>
-      </div>
     </div>
-
-  </div>
+  </ng-container>
 </div>

@@ -47,7 +47,7 @@
             scope="col"
             [style.width]="col.width"
             [style.textAlign]="col.type === 'state' || col.type === 'actions' ? 'center' : 'left'"
-            class="bg-gray-50 text-primary font-bold py-3 px-3 border-b text-sm"
+            class="bg-gray-50 text-primary font-bold py-3 px-3 border-b text-size-body"
           >
             <div class="flex items-center"
                  [ngClass]="col.type === 'state' || col.type === 'actions' ? 'justify-center' : 'justify-between'">
@@ -77,7 +77,7 @@
       <tr class="hover:bg-blue-50/20 transition-colors">
         @for (col of columns; track col.field) {
           <td [style.textAlign]="col.type === 'state' || col.type === 'actions' ? 'center' : 'left'"
-              class="py-3 px-3 border-b border-gray-50 text-sm">
+              class="py-3 px-3 border-b border-gray-50 text-size-body">
 
             @if (col.type === 'text' || !col.type) {
               <span class="block w-full overflow-hidden whitespace-nowrap text-ellipsis"

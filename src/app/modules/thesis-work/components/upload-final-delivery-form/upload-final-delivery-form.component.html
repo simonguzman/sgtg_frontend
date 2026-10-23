@@ -15,13 +15,13 @@
       <div class="flex flex-col gap-1">
         <label for="thesisTitle" class="font-display font-semibold text-primary text-size-section">Título</label>
         <input id="thesisTitle" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
-               class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
       </div>
 
       <div class="flex flex-col gap-1">
         <label for="thesisDescription" class="font-display font-semibold text-primary text-size-section">Descripción</label>
         <textarea id="thesisDescription" [value]="thesisWork.preliminaryDraftData.proposalData.description || 'Sin descripción disponible'" disabled rows="4"
-                  class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full resize-none font-sans"></textarea>
+                  class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full resize-none font-sans"></textarea>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -29,26 +29,26 @@
         <div class="flex flex-col gap-1">
           <label for="thesisModality" class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</label>
           <input id="thesisModality" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.modality || ''" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+                 class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
         </div>
 
         <div class="flex flex-col gap-1">
           <label for="thesisStudent" class="font-display font-semibold text-primary text-size-section">Estudiante</label>
           <input id="thesisStudent" type="text" [value]="getStudentNames()" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+                 class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
         </div>
 
         <div class="flex flex-col gap-1">
           <label for="thesisDirector" class="font-display font-semibold text-primary text-size-section">Director</label>
           <input id="thesisDirector" type="text" [value]="getDirectorName()" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+                 class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
         </div>
 
         @if (getCodirectorName()) {
           <div class="flex flex-col gap-1">
             <label for="thesisCodirector" class="font-display font-semibold text-primary text-size-section">Codirector</label>
             <input id="thesisCodirector" type="text" [value]="getCodirectorName()" disabled
-                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+                   class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
           </div>
         }
 
@@ -56,14 +56,14 @@
           <div class="flex flex-col gap-1">
             <label for="thesisAdvisor" class="font-display font-semibold text-primary text-size-section">Asesor</label>
             <input id="thesisAdvisor" type="text" [value]="getAdvisorName()" disabled
-                   class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full">
+                   class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
           </div>
         }
 
         <div class="flex flex-col gap-1">
           <label for="thesisState" class="font-display font-semibold text-primary text-size-section">Estado</label>
           <input id="thesisState" type="text" [value]="thesisWork.state || 'En desarrollo'" disabled
-                 class="information-block p-2 border rounded-md text-[#777680] bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
+                 class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full font-medium capitalize">
         </div>
 
       </div>
@@ -78,28 +78,28 @@
     <div class="flex flex-col gap-4">
       @for (slot of slots; track slot.key) {
         <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border transition-colors"
-             [class.border-[#ED7D31]]="isMissing(slot.key)"
+             [class.border-alert]="isMissing(slot.key)"
              [class.border-gray-200]="!isMissing(slot.key)"
              [class.border-l-4]="uploaded()[slot.key]"
              [class.border-l-state-approved]="uploaded()[slot.key]">
           <div class="flex items-center gap-3 overflow-hidden">
             <span class="material-symbols-outlined text-file shrink-0"
                   [class.text-state-approved]="uploaded()[slot.key]"
-                  [class.text-[#ED7D31]]="isMissing(slot.key)"
-                  [class.text-[#777680]]="!uploaded()[slot.key] && !isMissing(slot.key)">
+                  [class.text-alert]="isMissing(slot.key)"
+                  [class.text-text-body]="!uploaded()[slot.key] && !isMissing(slot.key)">
               {{ uploaded()[slot.key] ? 'task' : 'picture_as_pdf' }}
             </span>
             <div class="flex flex-col overflow-hidden">
               <span class="text-size-body font-bold truncate" [class.text-primary]="uploaded()[slot.key]"
-                    [class.text-[#777680]]="!uploaded()[slot.key]">
+                    [class.text-text-body]="!uploaded()[slot.key]">
                 {{ uploaded()[slot.key]?.fileName || slot.label }}
               </span>
-              <span class="text-size-role-footer text-[#777680]">{{ slot.hint }} ({{ slot.required ? 'Obligatorio' : 'Opcional' }})</span>
+              <span class="text-size-role-footer text-text-body">{{ slot.hint }} ({{ slot.required ? 'Obligatorio' : 'Opcional' }})</span>
               @if (isMissing(slot.key)) { <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span> }
             </div>
           </div>
           @if (uploaded()[slot.key]) {
-            <button type="button" (click)="removeFile(slot.key)" class="text-[#777680] hover:text-[#DB141C]" [attr.aria-label]="'Quitar ' + slot.label">
+            <button type="button" (click)="removeFile(slot.key)" class="text-text-body hover:text-danger" [attr.aria-label]="'Quitar ' + slot.label">
               <span class="material-symbols-outlined">delete</span>
             </button>
           } @else {

@@ -2,8 +2,8 @@
   <div class="bg-white rounded-lg shadow-sm p-6">
 
     <div class="mb-6">
-      <button (click)="goBack()" class="flex items-center gap-2 text-navy-900 font-bold group">
-        <span class="material-symbols-outlined text-[#000066] font-semibold text-size-sidebar-title font-display group-hover:-translate-x-1 transition-transform">
+      <button (click)="goBack()" class="flex items-center gap-2 text-primary font-bold group">
+        <span class="material-symbols-outlined text-primary font-semibold text-size-sidebar-title font-display group-hover:-translate-x-1 transition-transform">
           arrow_back
         </span>
         <span class="return-arrow-option">Regresar</span>
@@ -22,6 +22,24 @@
 
   </div>
 </div>
+
+<app-register-information-modal
+  [isOpen]="!!registrationDetails()"
+  modalHeader="Detalles de la propuesta"
+  [subTitle]="registrationDetails()?.subtitle || ''"
+  [title]="registrationDetails()?.title || ''"
+  [comments]="registrationDetails()?.comments || ''"
+  [modality]="registrationDetails()?.modality || ''"
+  [student]="registrationDetails()?.student || ''"
+  [director]="registrationDetails()?.director || ''"
+  [codirector]="registrationDetails()?.codirector"
+  [adviser]="registrationDetails()?.adviser"
+  [chargeDate]="registrationDetails()?.chargeDate ?? today"
+  [state]="registrationDetails()?.state"
+  [documents]="registrationDocumentNames()"
+  (onClose)="closeDetails()"
+  (onDownloadFile)="downloadRegistrationDocument($event)"
+></app-register-information-modal>
 
 <app-file-upload-modal
   [isOpen]="fileModalOpen()"

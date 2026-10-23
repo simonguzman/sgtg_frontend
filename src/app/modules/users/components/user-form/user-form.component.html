@@ -7,13 +7,13 @@
 
         <!-- Tipo de documento -->
         <div class="flex flex-col gap-1">
-          <label for="idType" class="title-textbox">Tipo de documento de identidad <span class="text-[#ED7D31]">*</span></label>
+          <label for="idType" class="title-textbox">Tipo de documento de identidad <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
             <select
               id="idType"
               formControlName="idType"
               class="font-sans font-normal text-size-body custom-select text-textbox p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10"
-              [class.border-[#ED7D31]]="isFieldInvalid('idType')"
+              [class.border-alert]="isFieldInvalid('idType')"
               [class.input-success]="userForm.get('idType')?.valid && userForm.get('idType')?.touched"
             >
               <option value="" disabled selected>Tipo de documento</option>
@@ -21,9 +21,10 @@
                 <option [value]="type">{{ type }}</option>
               }
             </select>
-            <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
             @if (userForm.get('idType')?.valid && userForm.get('idType')?.touched) {
-              <span class="material-symbols-outlined success-icon mr-8">check_circle</span>
+              <span class="material-symbols-outlined success-icon">check_circle</span>
+            } @else {
+              <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
             }
           </div>
           @if (isFieldInvalid('idType')) {
@@ -33,11 +34,11 @@
 
         <!-- Número de documento -->
         <div class="flex flex-col gap-1">
-          <label for="idNumber" class="title-textbox">Número de documento de identidad <span class="text-[#ED7D31]">*</span></label>
+          <label for="idNumber" class="title-textbox">Número de documento de identidad <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
             <input id="idNumber" type="number" formControlName="idNumber" placeholder="Número de documento"
               class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-              [class.border-[#ED7D31]]="isFieldInvalid('idNumber')"
+              [class.border-alert]="isFieldInvalid('idNumber')"
               [class.input-success]="userForm.get('idNumber')?.valid && userForm.get('idNumber')?.touched">
             @if (userForm.get('idNumber')?.valid && userForm.get('idNumber')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -50,11 +51,11 @@
 
         <!-- Primer nombre -->
         <div class="flex flex-col gap-1">
-          <label for="firstName" class="title-textbox">Primer nombre <span class="text-[#ED7D31]">*</span></label>
+          <label for="firstName" class="title-textbox">Primer nombre <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
             <input id="firstName" type="text" formControlName="firstName" placeholder="Primer nombre"
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-[#ED7D31]]="isFieldInvalid('firstName')"
+                   [class.border-alert]="isFieldInvalid('firstName')"
                    [class.input-success]="userForm.get('firstName')?.valid && userForm.get('firstName')?.touched">
             @if (userForm.get('firstName')?.valid && userForm.get('firstName')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -80,11 +81,11 @@
 
         <!-- Primer apellido -->
         <div class="flex flex-col gap-1">
-          <label for="lastName" class="title-textbox">Primer apellido <span class="text-[#ED7D31]">*</span></label>
+          <label for="lastName" class="title-textbox">Primer apellido <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
             <input id="lastName" type="text" formControlName="lastName" placeholder="Primer apellido"
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-[#ED7D31]]="isFieldInvalid('lastName')"
+                   [class.border-alert]="isFieldInvalid('lastName')"
                    [class.input-success]="userForm.get('lastName')?.valid && userForm.get('lastName')?.touched">
             @if (userForm.get('lastName')?.valid && userForm.get('lastName')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -97,11 +98,11 @@
 
         <!-- Segundo apellido -->
         <div class="flex flex-col gap-1">
-          <label for="secondLastName" class="title-textbox">Segundo apellido <span class="text-[#ED7D31]">*</span></label>
+          <label for="secondLastName" class="title-textbox">Segundo apellido <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
             <input id="secondLastName" type="text" formControlName="secondLastName" placeholder="Segundo apellido"
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-[#ED7D31]]="isFieldInvalid('secondLastName')"
+                   [class.border-alert]="isFieldInvalid('secondLastName')"
                    [class.input-success]="userForm.get('secondLastName')?.valid && userForm.get('secondLastName')?.touched">
             @if (userForm.get('secondLastName')?.valid && userForm.get('secondLastName')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -120,11 +121,11 @@
 
         <!-- Código -->
         <div class="flex flex-col gap-1">
-          <label for="codeNumber" class="title-textbox">Código<span class="text-[#ED7D31]">*</span></label>
+          <label for="codeNumber" class="title-textbox">Código<span class="text-alert">*</span></label>
           <div class="relative flex items-center">
             <input id="codeNumber" type="number" formControlName="codeNumber" placeholder="Código"
               class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-              [class.border-[#ED7D31]]="isFieldInvalid('codeNumber')"
+              [class.border-alert]="isFieldInvalid('codeNumber')"
               [class.input-success]="userForm.get('codeNumber')?.valid && userForm.get('codeNumber')?.touched">
             @if (userForm.get('codeNumber')?.valid && userForm.get('codeNumber')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -137,23 +138,25 @@
 
         <!-- Rol -->
         <div class="flex flex-col gap-1">
-          <label for="rolesBtn" id="rolesLabel" class="title-textbox">Rol <span class="text-[#ED7D31]">*</span></label>
-          <div class="relative flex items-center ">
+          <label for="rolesBtn" id="rolesLabel" class="title-textbox">Rol <span class="text-alert">*</span></label>
+          <div class="relative flex items-center">
             <button
               id="rolesBtn"
               type="button"
               (click)="openRolesModal()"
               class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md bg-gray-50 flex justify-between items-center cursor-pointer min-h-10.5 w-full focus:ring-1 focus:ring-primary focus:outline-none"
-              [class.border-[#ED7D31]]="isFieldInvalid('roles')"
+              [class.border-alert]="isFieldInvalid('roles')"
               [class.input-success]="userForm.get('roles')?.valid && userForm.get('roles')?.touched"
             >
-              <span [class.text-[#777680]]="!selectedRolesDisplay">
+              <span [class.text-text-body]="!selectedRolesDisplay">
                 {{ selectedRolesDisplay || 'Seleccione los roles' }}
               </span>
-              <span class="material-symbols-outlined add-circle">add_circle</span>
+              @if (!(userForm.get('roles')?.valid && userForm.get('roles')?.touched)) {
+                <span class="material-symbols-outlined add-circle">add_circle</span>
+              }
             </button>
             @if (userForm.get('roles')?.valid && userForm.get('roles')?.touched) {
-              <span class="material-symbols-outlined success-icon mr-10">check_circle</span>
+              <span class="material-symbols-outlined success-icon">check_circle</span>
             }
           </div>
           @if (isFieldInvalid('roles')) {
@@ -163,11 +166,11 @@
 
         <!-- Correo -->
         <div class="flex flex-col gap-1">
-          <label for="email" class="title-textbox">Correo institucional <span class="text-[#ED7D31]">*</span></label>
+          <label for="email" class="title-textbox">Correo institucional <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
             <input id="email" type="email" formControlName="email" placeholder="Correo institucional"
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-[#ED7D31]]="isFieldInvalid('email')"
+                   [class.border-alert]="isFieldInvalid('email')"
                    [class.input-success]="userForm.get('email')?.valid && userForm.get('email')?.touched">
             @if (userForm.get('email')?.valid && userForm.get('email')?.touched) {
               <span class="material-symbols-outlined success-icon">check_circle</span>
@@ -180,11 +183,11 @@
 
         <!-- Contraseña -->
         <div class="flex flex-col gap-1">
-          <label for="password" class="title-textbox">Contraseña @if (!isEditMode) {<span class="text-[#ED7D31]">*</span>}</label>
+          <label for="password" class="title-textbox">Contraseña @if (!isEditMode) {<span class="text-alert">*</span>}</label>
           <div class="relative flex items-center">
             <input id="password" type="password" formControlName="password" placeholder="Contraseña"
                    class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
-                   [class.border-[#ED7D31]]="isFieldInvalid('password')"
+                   [class.border-alert]="isFieldInvalid('password')"
                    [class.input-success]="userForm.get('password')?.valid && userForm.get('password')?.touched">
             @if (userForm.get('password')?.valid && userForm.get('password')?.touched) {
               <span class="material-symbols-outlined success-icon">check</span>
@@ -194,7 +197,7 @@
             <span class="text-textbox-alert">Mínimo {{ minPasswordLength }} caracteres</span>
           }
           @if (isEditMode) {
-            <span class="text-size-body text-[#777680]">Déjela vacía para conservar la contraseña actual</span>
+            <span class="text-size-body text-text-body">Déjela vacía para conservar la contraseña actual</span>
           }
         </div>
       </div>
@@ -208,11 +211,11 @@
           @if (showDepartment) {
             <!-- Vinculación (roles de perfil docente) -->
             <div class="flex flex-col gap-1">
-              <label for="contractType" class="title-textbox">Tipo de vinculación <span class="text-[#ED7D31]">*</span></label>
+              <label for="contractType" class="title-textbox">Tipo de vinculación <span class="text-alert">*</span></label>
               <div class="relative flex items-center">
                 <select id="contractType" formControlName="contractType"
                   class="font-sans font-normal text-size-body custom-select text-textbox p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10"
-                  [class.border-[#ED7D31]]="isFieldInvalid('contractType')">
+                  [class.border-alert]="isFieldInvalid('contractType')">
                   <option [ngValue]="null" disabled>Seleccione el tipo de vinculación</option>
                   @for (contract of contractTypes; track contract.value) {
                     <option [ngValue]="contract.value">{{ contract.label }}</option>
@@ -224,33 +227,39 @@
                 <span class="text-textbox-alert">Seleccione el tipo de vinculación del docente</span>
               }
               @if (requiresCodirectorNotice) {
-                <span class="text-size-body text-[#777680]">Si no es de planta, al dirigir un trabajo de grado necesita un codirector de planta de su mismo departamento.</span>
+                <app-inline-notice class="block mt-1">
+                  Si no es de planta, al dirigir un trabajo de grado necesita un <strong>codirector de planta</strong>
+                  de su mismo departamento.
+                </app-inline-notice>
               }
             </div>
 
             <!-- Departamento (perfil docente) -->
             <div class="flex flex-col gap-1">
-              <label for="departmentId" class="title-textbox">Departamento <span class="text-[#ED7D31]">*</span></label>
+              <label for="departmentBtn" class="title-textbox">Departamento <span class="text-alert">*</span></label>
               <div class="relative flex items-center">
-                <select id="departmentId" formControlName="departmentId"
-                  class="font-sans font-normal text-size-body custom-select text-textbox p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10"
-                  [class.border-[#ED7D31]]="isFieldInvalid('departmentId')">
-                  <option [ngValue]="null" disabled>Seleccione el departamento</option>
-                  @for (department of departments(); track department.id) {
-                    <option [ngValue]="department.id">{{ department.name }}</option>
+                <button
+                  id="departmentBtn"
+                  type="button"
+                  (click)="isDepartmentModalOpen = true"
+                  class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md bg-gray-50 flex justify-between items-center cursor-pointer min-h-10.5 w-full focus:ring-1 focus:ring-primary focus:outline-none"
+                  [class.border-alert]="isFieldInvalid('departmentId')"
+                  [class.input-success]="userForm.get('departmentId')?.valid && userForm.get('departmentId')?.touched"
+                >
+                  <span [class.text-text-body]="!selectedDepartmentName">
+                    {{ selectedDepartmentName || 'Seleccione el departamento' }}
+                  </span>
+                  @if (!(userForm.get('departmentId')?.valid && userForm.get('departmentId')?.touched)) {
+                    <span class="material-symbols-outlined add-circle">add_circle</span>
                   }
-                </select>
-                <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
+                </button>
+                @if (userForm.get('departmentId')?.valid && userForm.get('departmentId')?.touched) {
+                  <span class="material-symbols-outlined success-icon">check_circle</span>
+                }
               </div>
               @if (isFieldInvalid('departmentId')) {
                 <span class="text-textbox-alert">Seleccione el departamento del docente</span>
               }
-              <div class="flex gap-2 items-center">
-                <input #newDepartment type="text" placeholder="Nuevo departamento"
-                  class="font-sans font-normal text-size-body text-textbox p-1 border rounded-md flex-1 focus:outline-none focus:ring-1 focus:ring-primary">
-                <button type="button" class="text-primary text-size-body underline cursor-pointer"
-                  (click)="addDepartment(newDepartment.value); newDepartment.value = ''">Agregar</button>
-              </div>
             </div>
 
           }
@@ -258,27 +267,30 @@
           @if (showProgram) {
             <!-- Programa (estudiante) -->
             <div class="flex flex-col gap-1">
-              <label for="programId" class="title-textbox">Programa académico <span class="text-[#ED7D31]">*</span></label>
+              <label for="programBtn" class="title-textbox">Programa académico <span class="text-alert">*</span></label>
               <div class="relative flex items-center">
-                <select id="programId" formControlName="programId"
-                  class="font-sans font-normal text-size-body custom-select text-textbox p-2 border rounded-md bg-gray-50 w-full focus:outline-none focus:ring-1 focus:ring-primary pr-10"
-                  [class.border-[#ED7D31]]="isFieldInvalid('programId')">
-                  <option [ngValue]="null" disabled>Seleccione el programa</option>
-                  @for (program of programs(); track program.id) {
-                    <option [ngValue]="program.id">{{ program.name }}</option>
+                <button
+                  id="programBtn"
+                  type="button"
+                  (click)="isProgramModalOpen = true"
+                  class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md bg-gray-50 flex justify-between items-center cursor-pointer min-h-10.5 w-full focus:ring-1 focus:ring-primary focus:outline-none"
+                  [class.border-alert]="isFieldInvalid('programId')"
+                  [class.input-success]="userForm.get('programId')?.valid && userForm.get('programId')?.touched"
+                >
+                  <span [class.text-text-body]="!selectedProgramName">
+                    {{ selectedProgramName || 'Seleccione el programa' }}
+                  </span>
+                  @if (!(userForm.get('programId')?.valid && userForm.get('programId')?.touched)) {
+                    <span class="material-symbols-outlined add-circle">add_circle</span>
                   }
-                </select>
-                <span class="material-symbols-outlined select-arrow">arrow_forward_ios</span>
+                </button>
+                @if (userForm.get('programId')?.valid && userForm.get('programId')?.touched) {
+                  <span class="material-symbols-outlined success-icon">check_circle</span>
+                }
               </div>
               @if (isFieldInvalid('programId')) {
                 <span class="text-textbox-alert">Seleccione el programa del estudiante</span>
               }
-              <div class="flex gap-2 items-center">
-                <input #newProgram type="text" placeholder="Nuevo programa"
-                  class="font-sans font-normal text-size-body text-textbox p-1 border rounded-md flex-1 focus:outline-none focus:ring-1 focus:ring-primary">
-                <button type="button" class="text-primary text-size-body underline cursor-pointer"
-                  (click)="addProgram(newProgram.value); newProgram.value = ''">Agregar</button>
-              </div>
             </div>
           }
         </div>
@@ -298,5 +310,27 @@
       [roles]="currentRolesForModal"
       (onSaved)="handleRolesSaved($event)"
     ></app-roles-selection-modal>
+
+    <app-catalog-selection-modal
+      [(isOpen)]="isDepartmentModalOpen"
+      title="Seleccionar departamento"
+      itemName="departamento"
+      [items]="departments()"
+      [selectedId]="userForm.controls.departmentId.value"
+      [isCreating]="isCreatingCatalogItem()"
+      (onSaved)="handleDepartmentSaved($event)"
+      (onCreate)="addDepartment($event)"
+    ></app-catalog-selection-modal>
+
+    <app-catalog-selection-modal
+      [(isOpen)]="isProgramModalOpen"
+      title="Seleccionar programa académico"
+      itemName="programa"
+      [items]="programs()"
+      [selectedId]="userForm.controls.programId.value"
+      [isCreating]="isCreatingCatalogItem()"
+      (onSaved)="handleProgramSaved($event)"
+      (onCreate)="addProgram($event)"
+    ></app-catalog-selection-modal>
   </form>
 </div>

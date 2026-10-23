@@ -77,6 +77,15 @@
   --color-text-white:        #ffffff;
   --color-text-blue:         #000066;
   --color-text-disabled:     #46464F;
+  --color-text-body:         #777680;
+
+  /* ── Colores de Interfaz ──────────────────────────────────────────────────
+     - alert:  campos obligatorios, validaciones y avisos (asteriscos,
+               bordes de campos inválidos, mensajes de error de formulario).
+     - danger: acciones destructivas y documentos PDF (eliminar, íconos de
+               archivo, contador de notificaciones).                        */
+  --color-alert:             #ED7D31;
+  --color-danger:            #DB141C;
 
   /* ── Espaciado Pill ───────────────────────────────────────────────────────
      Padding interno estandarizado para botones y badges de tipo pill.      */

@@ -16,6 +16,8 @@ import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 import { HttpErrorResponse } from '@angular/common/http';
+import { UserService } from '../../../../users/services/user.service';
+import { Modality } from '../../../enums/modality.enum';
 
 describe('LoadedProposalsFacadeService', () => {
   let service: LoadedProposalsFacadeService;
@@ -47,12 +49,13 @@ describe('LoadedProposalsFacadeService', () => {
   const mockMappedRow: DocumentTableRow = {
     id: 'doc-1',
     name: 'Propuesta',
-    type: DocumentType.PROPUESTA,
     status: stateList.EN_REVISION,
+    version: 1,
     uploadDate: '01 - 01 - 2026',
-    url: 'http://docs.com/doc1',
+    documents: [mockDocument],
     allowedActions: []
   };
+  let mockUserService: { getAuthorsNames: jest.Mock; formatFullName: jest.Mock };
 
   beforeAll(() => {
     Object.defineProperty(globalThis, 'crypto', {
@@ -86,8 +89,12 @@ describe('LoadedProposalsFacadeService', () => {
       show: jest.fn()
     } as unknown as jest.Mocked<NotificationService>;
     mockMapper = {
-      mapDocumentToRow: jest.fn().mockReturnValue(mockMappedRow)
+      mapRegistrationToRow: jest.fn().mockReturnValue(mockMappedRow)
     } as unknown as jest.Mocked<LoadedProposalsMapperService>;
+    mockUserService = {
+      getAuthorsNames: jest.fn(() => 'Ana Estudiante'),
+      formatFullName: jest.fn((user: User) => `Nombre ${user.id}`)
+    };
     TestBed.configureTestingModule({
       providers: [
         LoadedProposalsFacadeService,
@@ -95,7 +102,8 @@ describe('LoadedProposalsFacadeService', () => {
         { provide: AuthService, useValue: mockAuthService },
         { provide: FileDownloadService, useValue: mockDownloadService },
         { provide: NotificationService, useValue: mockNotificationService },
-        { provide: LoadedProposalsMapperService, useValue: mockMapper }
+        { provide: LoadedProposalsMapperService, useValue: mockMapper },
+        { provide: UserService, useValue: mockUserService }
       ]
     });
     service = TestBed.inject(LoadedProposalsFacadeService);
@@ -114,23 +122,94 @@ describe('LoadedProposalsFacadeService', () => {
       expect(service.buildDocumentsTableData('prop-1')).toEqual([]);
     });
 
-    it('debería mapear los documentos usando el mapper con permisos correctos (COMITE)', () => {
+    it('debería mapear cada versión como un registro con los permisos correctos (COMITE)', () => {
       mockAuthService.hasAnyRole.mockReturnValue(true);
       const result = service.buildDocumentsTableData('prop-1');
       expect(mockAuthService.hasAnyRole).toHaveBeenCalledWith([UserRoleType.COMITE, UserRoleType.ADMINISTRADOR]);
-      expect(mockMapper.mapDocumentToRow).toHaveBeenCalledWith(mockDocument, true, false);
+      expect(mockMapper.mapRegistrationToRow).toHaveBeenCalledWith(mockDocument, [], true, true, false);
       expect(result).toEqual([mockMappedRow]);
     });
 
-    it('debería listar las versiones de la más reciente a la más antigua y después la carta', () => {
+    it('agrupa la carta con la primera versión y lista los registros del más reciente al más antiguo', () => {
       const v1 = { ...mockDocument, id: 'v1', type: DocumentType.PROPUESTA, version: 1, status: stateList.NO_APROBADO };
       const v2 = { ...mockDocument, id: 'v2', type: DocumentType.PROPUESTA, version: 2, status: stateList.EN_REVISION };
       const carta = { ...mockDocument, id: 'carta', type: DocumentType.FORMATO, version: 1, status: undefined };
       mockAllProposalsSignal.set([{ ...mockProposal, documents: [v1, carta, v2] }]);
+      mockMapper.mapRegistrationToRow.mockImplementation((principal: FileDocument) => ({ ...mockMappedRow, id: principal.id }));
 
+      const result = service.buildDocumentsTableData('prop-1');
+
+      expect(mockMapper.mapRegistrationToRow).toHaveBeenCalledWith(v1, [carta], true, false, false);
+      expect(mockMapper.mapRegistrationToRow).toHaveBeenCalledWith(v2, [], true, false, false);
+      expect(result.map(row => row.id)).toEqual(['v2', 'v1']);
+    });
+
+    it('sin versiones radicadas muestra los demás documentos como un registro', () => {
+      const carta = { ...mockDocument, id: 'carta', type: DocumentType.FORMATO, status: undefined };
+      mockAllProposalsSignal.set([{ ...mockProposal, documents: [carta] }]);
       service.buildDocumentsTableData('prop-1');
+      expect(mockMapper.mapRegistrationToRow).toHaveBeenCalledWith(carta, [], false, false, false);
+    });
+  });
 
-      expect(mockMapper.mapDocumentToRow.mock.calls.map(([documento]) => documento.id)).toEqual(['v2', 'v1', 'carta']);
+  describe('Método: buildRegistrationDetails', () => {
+    const propuesta = {
+      ...mockProposal,
+      title: 'Sistema de gestión',
+      description: 'Contexto del trabajo',
+      objectives: ['General', 'Específico 1', 'Específico 2'],
+      lineOfResearch: 'Ingeniería de software',
+      organization: 'Empresa S.A.',
+      modality: Modality.PP,
+      authors: [{ id: 'est-1' }],
+      director: { id: 'dir-1' },
+      advisor: { id: 'ase-1' }
+    } as Proposal;
+
+    it('sin propuesta o sin registro no hay detalle', () => {
+      expect(service.buildRegistrationDetails('prop-1', null)).toBeNull();
+      expect(service.buildRegistrationDetails('no-existe', mockMappedRow)).toBeNull();
+    });
+
+    it('arma la información de la propuesta y los documentos del registro', () => {
+      mockAllProposalsSignal.set([propuesta]);
+      const detalle = service.buildRegistrationDetails('prop-1', mockMappedRow)!;
+
+      expect(detalle).toEqual(expect.objectContaining({
+        subtitle: 'Registro de la propuesta',
+        title: 'Sistema de gestión',
+        modality: Modality.PP,
+        student: 'Ana Estudiante',
+        director: 'Nombre dir-1',
+        codirector: undefined,
+        adviser: 'Nombre ase-1',
+        state: stateList.EN_REVISION,
+        documents: [mockDocument]
+      }));
+      expect(detalle.chargeDate).toEqual(new Date('2026-01-01'));
+      expect(detalle.comments).toBe('Contexto del trabajo\n\nObjetivo general: General\n\n'
+        + 'Objetivos específicos:\n• Específico 1\n• Específico 2\n\n'
+        + 'Línea de investigación: Ingeniería de software\n\nOrganización: Empresa S.A.');
+    });
+
+    it('una versión posterior se presenta como corrección', () => {
+      mockAllProposalsSignal.set([propuesta]);
+      expect(service.buildRegistrationDetails('prop-1', { ...mockMappedRow, version: 3 })?.subtitle)
+        .toBe('Corrección de la propuesta – versión 3');
+    });
+  });
+
+  describe('Método: downloadRegistrationDocument', () => {
+    it('descarga el documento del registro por su nombre', async () => {
+      await service.downloadRegistrationDocument('Propuesta', mockMappedRow);
+      expect(mockDownloadService.download).toHaveBeenCalledWith('http://docs.com/doc1', 'Propuesta.pdf');
+    });
+
+    it('avisa si el documento no está en el registro', async () => {
+      await service.downloadRegistrationDocument('Otro', mockMappedRow);
+      expect(mockDownloadService.download).not.toHaveBeenCalled();
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({ type: NotificationType.ERROR, title: 'Archivo no disponible' }));
     });
   });
 
@@ -158,13 +237,13 @@ describe('LoadedProposalsFacadeService', () => {
     });
 
     it('debería retornar botón habilitado si no hay docs en revisión y no está totalmente aprobada', () => {
-      mockMapper.mapDocumentToRow.mockReturnValue({ ...mockMappedRow, status: stateList.NO_APROBADO });
+      mockMapper.mapRegistrationToRow.mockReturnValue({ ...mockMappedRow, status: stateList.NO_APROBADO });
       const buttons = service.buildHeaderButtons('prop-1');
       expect(buttons[0].disabled).toBe(false);
     });
 
     it('debería retornar botón deshabilitado si la propuesta está APROBADA (totalmente)', () => {
-      mockMapper.mapDocumentToRow.mockReturnValue({ ...mockMappedRow, status: stateList.APROBADO });
+      mockMapper.mapRegistrationToRow.mockReturnValue({ ...mockMappedRow, status: stateList.APROBADO });
       mockAllProposalsSignal.set([{ ...mockProposal, state: stateList.APROBADO } as Proposal]);
       const buttons = service.buildHeaderButtons('prop-1');
       expect(buttons[0].disabled).toBe(true);
@@ -207,7 +286,7 @@ describe('LoadedProposalsFacadeService', () => {
 
   describe('Método: handleDownload', () => {
     it('debería notificar info e iniciar descarga si el URL es válido de forma asíncrona', async () => {
-      await service.handleDownload(mockMappedRow);
+      await service.handleDownload(mockDocument);
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ type: NotificationType.INFO, title: 'Descarga iniciada' })
       );
@@ -215,8 +294,7 @@ describe('LoadedProposalsFacadeService', () => {
     });
 
     it('debería notificar error si el URL es nulo o vacío', async () => {
-      const invalidRow = { ...mockMappedRow, url: '   ' };
-      await service.handleDownload(invalidRow);
+      await service.handleDownload({ ...mockDocument, url: '   ' });
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ type: NotificationType.ERROR, title: 'Archivo no disponible' })
       );
@@ -225,7 +303,7 @@ describe('LoadedProposalsFacadeService', () => {
 
     it('debería interceptar errores lanzados por el servicio de descargas', async () => {
       mockDownloadService.download.mockRejectedValue(new Error('Network error'));
-      await service.handleDownload(mockMappedRow);
+      await service.handleDownload(mockDocument);
       expect(consoleErrorSpy).toHaveBeenCalled();
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ type: NotificationType.ERROR, title: 'Error de descarga' })

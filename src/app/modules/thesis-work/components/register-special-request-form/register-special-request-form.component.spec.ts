@@ -56,6 +56,18 @@ describe('RegisterSpecialRequestFormComponent', () => {
     expect(component.isFieldInvalid('requestType')).toBe(true);
   });
 
+  it('el campo inválido cambia el borde gris por el de alerta', () => {
+    crear();
+    const tipo = fixture.nativeElement.querySelector('#requestType') as HTMLSelectElement;
+    expect(tipo.classList).toContain('border-gray-300');
+    expect(tipo.classList).not.toContain('border-alert');
+
+    component.submit();
+    fixture.detectChanges();
+    expect(tipo.classList).toContain('border-alert');
+    expect(tipo.classList).not.toContain('border-gray-300');
+  });
+
   it('el cambio de título muestra el título y los objetivos vigentes y exige la justificación', () => {
     crear();
     elegir(SpecialRequestType.CAMBIO_TITULO);

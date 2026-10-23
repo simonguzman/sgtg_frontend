@@ -3,12 +3,13 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { TableButton, TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
 import { LoadedProposalsFacadeService } from './services/loaded-proposals-facade.service';
-import { DOCUMENTS_COLUMNS, DocumentTableRow } from './models/loaded-proposals-page.model';
+import { DOCUMENTS_COLUMNS, DocumentTableRow, ProposalRegistrationDetails } from './models/loaded-proposals-page.model';
 
 @Component({
   selector: 'app-loaded-proposals-page',
-  imports: [TableComponent, FileUploadModalComponent, ConfirmationActionModalComponent],
+  imports: [TableComponent, FileUploadModalComponent, ConfirmationActionModalComponent, RegisterInformationModalComponent],
   templateUrl: './loaded-proposals-page.component.html',
   styleUrls: ['./loaded-proposals-page.component.css']
 })
@@ -18,10 +19,21 @@ export class LoadedProposalsPageComponent implements OnInit {
   protected readonly facade = inject(LoadedProposalsFacadeService);
 
   readonly columns = DOCUMENTS_COLUMNS;
+  protected readonly today = new Date();
   readonly proposalId = signal<string | null>(null);
   readonly uploadState = signal<{ fileName: string; file: File } | null>(null);
   readonly fileModalOpen = signal(false);
   readonly confirmModalOpen = signal(false);
+  /** Registro abierto en el modal de detalles */
+  readonly selectedRow = signal<DocumentTableRow | null>(null);
+
+  readonly registrationDetails = computed<ProposalRegistrationDetails | null>(() =>
+    this.facade.buildRegistrationDetails(this.proposalId(), this.selectedRow())
+  );
+
+  readonly registrationDocumentNames = computed<string[]>(() =>
+    this.registrationDetails()?.documents.map(document => document.name) ?? []
+  );
 
   readonly documentsTableData = computed<DocumentTableRow[]>(() =>
     this.facade.buildDocumentsTableData(this.proposalId())
@@ -42,8 +54,8 @@ export class LoadedProposalsPageComponent implements OnInit {
       return;
     }
     switch (event.action) {
-      case 'download':
-        void this.facade.handleDownload(event.row);
+      case 'view-details':
+        this.selectedRow.set(event.row);
         break;
       case 'evaluate':
         this.router.navigate(['evaluate_proposal'], { relativeTo: this.route });
@@ -77,6 +89,14 @@ export class LoadedProposalsPageComponent implements OnInit {
       },
       () => { }
     );
+  }
+
+  downloadRegistrationDocument(fileName: string): void {
+    void this.facade.downloadRegistrationDocument(fileName, this.selectedRow());
+  }
+
+  closeDetails(): void {
+    this.selectedRow.set(null);
   }
 
   cancelUpload(): void {

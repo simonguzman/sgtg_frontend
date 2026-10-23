@@ -36,51 +36,54 @@
     <form [formGroup]="requestForm" (ngSubmit)="submit()" class="flex flex-col gap-6 pl-4">
 
       <div class="flex flex-col gap-1">
-        <label for="requestType" class="font-display font-semibold text-primary text-size-section">Tipo de solicitud <span class="text-[#ED7D31]">*</span></label>
+        <label for="requestType" class="font-display font-semibold text-primary text-size-section">Tipo de solicitud <span class="text-alert">*</span></label>
         <select id="requestType" formControlName="requestType"
-                class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-sm text-[#777680]"
-                [class.border-orange-500]="isFieldInvalid('requestType')">
+                class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-size-body text-text-body"
+                [class.border-alert]="isFieldInvalid('requestType')"
+                [class.border-gray-300]="!isFieldInvalid('requestType')">
           <option value="" disabled>Seleccione el tipo de solicitud</option>
           @for (option of requestOptions; track option) {
             <option [value]="option">{{ option }}</option>
           }
         </select>
         @if (requestOptions.length === 0) {
-          <span class="text-size-role-footer text-[#777680]">No hay solicitudes disponibles para la etapa actual del trabajo de grado.</span>
+          <span class="text-size-role-footer text-text-body">No hay solicitudes disponibles para la etapa actual del trabajo de grado.</span>
         }
         @if (isFieldInvalid('requestType')) {
-          <span class="text-textbox-alert text-sm">Debe seleccionar un tipo de solicitud</span>
+          <span class="text-textbox-alert">Debe seleccionar un tipo de solicitud</span>
         }
       </div>
 
       @switch (selectedType()) {
         @case (types.CAMBIO_TITULO) {
           @if (thesisWork.deadlines?.objectivesChangeDeadline) {
-            <p class="text-size-role-footer text-[#777680]">
+            <p class="text-size-role-footer text-text-body">
               Se puede solicitar una sola vez, hasta el {{ thesisWork.deadlines?.objectivesChangeDeadline | date:'dd/MM/yyyy' }}.
             </p>
           }
           <div class="flex flex-col gap-1">
-            <label for="newTitle" class="font-display font-semibold text-primary text-size-section">Título propuesto <span class="text-[#ED7D31]">*</span></label>
+            <label for="newTitle" class="font-display font-semibold text-primary text-size-section">Título propuesto <span class="text-alert">*</span></label>
             <input id="newTitle" type="text" formControlName="title"
-                   class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-sm"
-                   [class.border-orange-500]="isFieldInvalid('title')">
+                   class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-size-body"
+                   [class.border-alert]="isFieldInvalid('title')"
+                   [class.border-gray-300]="!isFieldInvalid('title')">
             @if (isFieldInvalid('title')) {
-              <span class="text-textbox-alert text-sm">El título es obligatorio</span>
+              <span class="text-textbox-alert">El título es obligatorio</span>
             }
           </div>
 
           <div class="flex flex-col gap-2" formArrayName="objectives">
-            <span class="font-display font-semibold text-primary text-size-section">Objetivos propuestos <span class="text-[#ED7D31]">*</span></span>
+            <span class="font-display font-semibold text-primary text-size-section">Objetivos propuestos <span class="text-alert">*</span></span>
             @for (objective of objectives.controls; track $index) {
               <div class="flex items-start gap-2">
                 <label [for]="'objective-' + $index" class="sr-only">{{ $index === 0 ? 'Objetivo general' : 'Objetivo específico ' + $index }}</label>
                 <textarea [id]="'objective-' + $index" [formControlName]="$index" rows="2"
-                          class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-sm resize-none"
-                          [class.border-orange-500]="isObjectiveInvalid($index)"
+                          class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-size-body resize-none"
+                          [class.border-alert]="isObjectiveInvalid($index)"
+                          [class.border-gray-300]="!isObjectiveInvalid($index)"
                           [placeholder]="$index === 0 ? 'Objetivo general' : 'Objetivo específico ' + $index"></textarea>
                 @if ($index > 0) {
-                  <button type="button" (click)="removeObjective($index)" class="text-[#777680] hover:text-[#DB141C] transition-colors mt-2" aria-label="Quitar objetivo">
+                  <button type="button" (click)="removeObjective($index)" class="text-text-body hover:text-danger transition-colors mt-2" aria-label="Quitar objetivo">
                     <span class="material-symbols-outlined">delete</span>
                   </button>
                 }
@@ -92,19 +95,20 @@
           </div>
 
           <div class="flex flex-col gap-1">
-            <label for="justification" class="font-display font-semibold text-primary text-size-section">Justificación <span class="text-[#ED7D31]">*</span></label>
+            <label for="justification" class="font-display font-semibold text-primary text-size-section">Justificación <span class="text-alert">*</span></label>
             <textarea id="justification" formControlName="justification" rows="4"
-                      class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-sm resize-none"
-                      [class.border-orange-500]="isFieldInvalid('justification')"
+                      class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-size-body resize-none"
+                      [class.border-alert]="isFieldInvalid('justification')"
+                      [class.border-gray-300]="!isFieldInvalid('justification')"
                       placeholder="Explique el motivo del cambio de título y objetivos"></textarea>
             @if (isFieldInvalid('justification')) {
-              <span class="text-textbox-alert text-sm">La justificación es obligatoria</span>
+              <span class="text-textbox-alert">La justificación es obligatoria</span>
             }
           </div>
         }
         @case (types.NUEVA_SUSTENTACION) {
           @if (thesisWork.sustentation?.currentSessionDate) {
-            <p class="text-size-role-footer text-[#777680]">
+            <p class="text-size-role-footer text-text-body">
               La sesión está programada para el {{ thesisWork.sustentation?.currentSessionDate | date:'dd/MM/yyyy HH:mm' }}.
               La nueva fecha se solicita antes de esa fecha y la fija el Consejo de Facultad si la aprueba.
             </p>
@@ -112,14 +116,14 @@
         }
         @case (types.PRORROGA) {
           @if (thesisWork.deadlines?.extensionRequestDeadline) {
-            <p class="text-size-role-footer text-[#777680]">
+            <p class="text-size-role-footer text-text-body">
               Se puede solicitar una sola vez, hasta el {{ thesisWork.deadlines?.extensionRequestDeadline | date:'dd/MM/yyyy' }}.
             </p>
           }
           <div class="flex flex-col gap-1 max-w-xs">
-            <label for="months" class="font-display font-semibold text-primary text-size-section">Meses de prórroga <span class="text-[#ED7D31]">*</span></label>
+            <label for="months" class="font-display font-semibold text-primary text-size-section">Meses de prórroga <span class="text-alert">*</span></label>
             <select id="months" formControlName="months"
-                    class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-sm text-[#777680]">
+                    class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-size-body text-text-body">
               @for (month of monthOptions; track month) {
                 <option [ngValue]="month">{{ month }} {{ month === 1 ? 'mes' : 'meses' }}</option>
               }
@@ -130,21 +134,21 @@
 
       @if (requiresDocument) {
         <div class="flex flex-col gap-2">
-          <span class="font-display font-semibold text-primary text-size-section">Documento de la solicitud <span class="text-[#ED7D31]">*</span></span>
+          <span class="font-display font-semibold text-primary text-size-section">Documento de la solicitud <span class="text-alert">*</span></span>
           @if (document(); as item) {
             <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
               <div class="flex items-center gap-3 overflow-hidden">
                 <span class="material-symbols-outlined text-primary text-file shrink-0">description</span>
                 <span class="text-size-body font-bold text-primary truncate">{{ item.fileName }}</span>
               </div>
-              <button type="button" (click)="document.set(null)" class="text-[#777680] hover:text-[#DB141C] transition-colors shrink-0" aria-label="Quitar documento">
+              <button type="button" (click)="document.set(null)" class="text-text-body hover:text-danger transition-colors shrink-0" aria-label="Quitar documento">
                 <span class="material-symbols-outlined">delete</span>
               </button>
             </div>
           } @else {
-            <div class="information-block flex items-center justify-between gap-3 p-4 bg-white border rounded-xl shadow-sm"
-                 [class.border-orange-500]="isSubmitAttempted()" [class.border-gray-200]="!isSubmitAttempted()">
-              <span class="text-size-body text-[#777680] font-sans">{{ documentHint }}</span>
+            <div class="information-block flex items-center justify-between gap-3 p-4 bg-white rounded-xl shadow-sm"
+                 [class.border-alert]="isSubmitAttempted()" [class.border-gray-200]="!isSubmitAttempted()">
+              <span class="text-size-body text-text-body font-sans">{{ documentHint }}</span>
               <app-button-component label="Cargar documento" variant="secondary" type="button" (onClick)="isUploadModalOpen.set(true)"></app-button-component>
             </div>
           }

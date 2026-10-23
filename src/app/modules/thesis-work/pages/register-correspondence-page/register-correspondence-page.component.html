@@ -1,7 +1,7 @@
 <div class="w-full min-h-screen bg-[#F8F9FA] p-4 md:p-8">
   <div class="flex justify-between items-center mb-6">
-    <button (click)="goBack()" class="flex items-center gap-2 text-navy-900 hover:text-navy-700 transition-colors font-bold group">
-      <span class="material-symbols-outlined text-[#000066] text-lg group-hover:-translate-x-1 transition-transform">
+    <button (click)="goBack()" class="flex items-center gap-2 text-primary transition-colors font-bold group">
+      <span class="material-symbols-outlined text-primary text-size-sidebar-title group-hover:-translate-x-1 transition-transform">
         arrow_back
       </span>
       <span class="return-arrow-option">Regresar</span>
@@ -9,7 +9,7 @@
   </div>
 
   @if (!thesisWorkDetails()) {
-    <div class="text-center text-[#777680] font-display my-10">
+    <div class="text-center text-text-body font-display my-10">
       Cargando historial de formatos y estructura general...
     </div>
   } @else {

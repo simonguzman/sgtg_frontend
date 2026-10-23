@@ -51,11 +51,11 @@
           <div class="flex items-center justify-center gap-8">
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="radio" formControlName="result" value="Aprobado" [attr.disabled]="facade.isReadOnly() ? true : null">
-              <span class="text-size-body font-bold font-sans text-[#777680]">Aprobado</span>
+              <span class="text-size-body font-bold font-sans text-text-body">Aprobado</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="radio" formControlName="result" value="Requiere correcciones" [attr.disabled]="facade.isReadOnly() ? true : null">
-              <span class="text-size-body font-bold font-sans text-[#777680]">Requiere correcciones</span>
+              <span class="text-size-body font-bold font-sans text-text-body">Requiere correcciones</span>
             </label>
           </div>
           @if (facade.isFieldInvalid('result')) {
@@ -64,12 +64,12 @@
         </div>
 
         <div class="flex flex-col gap-1">
-          <span class="font-display font-semibold text-primary text-size-section">Observaciones <span class="text-[#ED7D31]">*</span></span>
+          <span class="font-display font-semibold text-primary text-size-section">Observaciones <span class="text-alert">*</span></span>
           <textarea id=""
                     formControlName="comments" rows="4"
                     class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-textbox"
                     [class.bg-gray-50]="facade.isReadOnly()"
-                    [class.border-[#ED7D31]]="facade.isFieldInvalid('comments')"
+                    [class.border-alert]="facade.isFieldInvalid('comments')"
                     [attr.disabled]="facade.isReadOnly() ? true : null"
                     placeholder="Escriba aquí sus comentarios..."></textarea>
           @if (facade.isFieldInvalid('comments')) {
@@ -84,35 +84,35 @@
 
             <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
               <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-[#DB141C] text-4xl">picture_as_pdf</span>
+                <span class="material-symbols-outlined text-danger text-file">picture_as_pdf</span>
                 <div class="flex flex-col">
                   <span class="text-size-body font-bold text-primary">{{ facade.currentDocument()?.name || 'Documento a evaluar' }}</span>
-                  <span class="text-size-role-footer text-[#777680]">Anteproyecto entregado por el estudiante</span>
+                  <span class="text-size-role-footer text-text-body">Anteproyecto entregado por el estudiante</span>
                 </div>
               </div>
               <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadPreliminaryDraft.emit()"></app-button-component>
             </div>
 
             <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm"
-                 [class.border-[#777680]]="facade.evaluationForm.touched && facade.uploadedSignedFile()"
-                 [class.border-[#ED7D31]]="facade.evaluationForm.touched && !facade.uploadedSignedFile()"
+                 [class.border-text-body]="facade.evaluationForm.touched && facade.uploadedSignedFile()"
+                 [class.border-alert]="facade.evaluationForm.touched && !facade.uploadedSignedFile()"
                  [class.border-l-4]="facade.uploadedSignedFile()"
                  [class.border-l-state-approved]="facade.uploadedSignedFile()">
 
               <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-4xl"
+                <span class="material-symbols-outlined text-file"
                       [class.text-state-approved]="facade.uploadedSignedFile()"
-                      [class.text-[#ED7D31]]="facade.evaluationForm.touched && !facade.uploadedSignedFile()"
-                      [class.text-[#777680]]="!facade.uploadedSignedFile() && !(facade.evaluationForm.touched && !facade.uploadedSignedFile())">
+                      [class.text-alert]="facade.evaluationForm.touched && !facade.uploadedSignedFile()"
+                      [class.text-text-body]="!facade.uploadedSignedFile() && !(facade.evaluationForm.touched && !facade.uploadedSignedFile())">
                   {{ facade.uploadedSignedFile() ? 'task' : 'picture_as_pdf' }}
                 </span>
                 <div class="flex flex-col">
                   <span class="text-size-body font-bold"
                         [class.text-primary]="facade.uploadedSignedFile()"
-                        [class.text-[#ED7D31]]="facade.evaluationForm.touched && !facade.uploadedSignedFile()">
+                        [class.text-alert]="facade.evaluationForm.touched && !facade.uploadedSignedFile()">
                     {{ facade.uploadedSignedFile()?.fileName || 'Formato B (Evaluación)' }}
                   </span>
-                  <span class="text-size-role-footer text-[#777680]">Documento de evaluación (Obligatorio)</span>
+                  <span class="text-size-role-footer text-text-body">Documento de evaluación (Obligatorio)</span>
                   @if (facade.evaluationForm.touched && !facade.uploadedSignedFile()) {
                     <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span>
                   }
@@ -121,7 +121,7 @@
 
               @if (facade.uploadedSignedFile()) {
                 @if (!facade.isReadOnly()) {
-                  <button type="button" (click)="facade.uploadedSignedFile.set(null)" class="text-[#777680] hover:text-[#DB141C]">
+                  <button type="button" (click)="facade.uploadedSignedFile.set(null)" class="text-text-body hover:text-danger">
                     <span class="material-symbols-outlined">delete</span>
                   </button>
                 }
@@ -137,29 +137,29 @@
             </div>
 
             <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm"
-                 [class.border-[#777680]]="!facade.uploadedAnnotatedFile()"
+                 [class.border-text-body]="!facade.uploadedAnnotatedFile()"
                  [class.border-l-4]="facade.uploadedAnnotatedFile()"
                  [class.border-l-state-in-development]="facade.uploadedAnnotatedFile()">
 
               <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-4xl"
+                <span class="material-symbols-outlined text-file"
                       [class.text-state-in-development]="facade.uploadedAnnotatedFile()"
-                      [class.text-[#777680]]="!facade.uploadedAnnotatedFile()">
+                      [class.text-text-body]="!facade.uploadedAnnotatedFile()">
                   {{ facade.uploadedAnnotatedFile() ? 'edit_note' : 'picture_as_pdf' }}
                 </span>
                 <div class="flex flex-col">
                   <span class="text-size-body font-bold"
                         [class.text-primary]="facade.uploadedAnnotatedFile()"
-                        [class.text-[#777680]]="!facade.uploadedAnnotatedFile()">
+                        [class.text-text-body]="!facade.uploadedAnnotatedFile()">
                     {{ facade.uploadedAnnotatedFile()?.fileName || 'Anteproyecto con anotaciones' }}
                   </span>
-                  <span class="text-size-role-footer text-[#777680]">Feedback adicional (Opcional)</span>
+                  <span class="text-size-role-footer text-text-body">Feedback adicional (Opcional)</span>
                 </div>
               </div>
 
               @if (facade.uploadedAnnotatedFile()) {
                 @if (!facade.isReadOnly()) {
-                  <button type="button" (click)="facade.uploadedAnnotatedFile.set(null)" class="text-[#777680] hover:text-[#DB141C]">
+                  <button type="button" (click)="facade.uploadedAnnotatedFile.set(null)" class="text-text-body hover:text-danger">
                     <span class="material-symbols-outlined">delete</span>
                   </button>
                 }
