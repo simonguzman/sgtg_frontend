@@ -287,10 +287,18 @@ describe('UserFormComponent', () => {
       expect(component.isCreatingCatalogItem()).toBe(false);
     });
 
-    it('agrega un programa al catálogo', () => {
+    it('agrega un programa al catálogo adscrito al departamento elegido', () => {
+      component.newProgramDepartmentId = SISTEMAS.id;
       component.addProgram('Ingeniería Electrónica');
-      expect(mockCatalogApi.createProgram).toHaveBeenCalledWith('Ingeniería Electrónica');
+      expect(mockCatalogApi.createProgram).toHaveBeenCalledWith('Ingeniería Electrónica', SISTEMAS.id);
       expect(component.programs()).toContainEqual({ id: 8, name: 'Ingeniería Electrónica' });
+    });
+
+    it('sin departamento no crea el programa y lo avisa', () => {
+      component.addProgram('Ingeniería Electrónica');
+      expect(mockCatalogApi.createProgram).not.toHaveBeenCalled();
+      expect(mockNotificationService.error).toHaveBeenCalledWith('No se creó el programa',
+        'Seleccione el departamento del programa.');
     });
 
     it('no agrega catálogos con nombre vacío', () => {

@@ -85,7 +85,7 @@ describe('mapUsuarioToUser', () => {
 describe('perfil docente según los roles', () => {
   it('cualquier rol de perfil docente pide vinculación y departamento', () => {
     for (const rol of [UserRoleType.DOCENTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.EVALUADOR,
-      UserRoleType.JURADO, UserRoleType.JURADO_COORDINADOR, UserRoleType.JEFE_DEP]) {
+      UserRoleType.JURADO, UserRoleType.JURADO_COORDINADOR, UserRoleType.JEFE_DEP, UserRoleType.COMITE]) {
       expect(requiresTeacherProfile([rol])).toBe(true);
     }
     expect(requiresTeacherProfile([UserRoleType.ESTUDIANTE, UserRoleType.CONSEJO])).toBe(false);
@@ -99,7 +99,7 @@ describe('perfil docente según los roles', () => {
 
 describe('mapUserToUsuarioRequest', () => {
   it('envía claves del backend, texto en código y documento, y null en lo opcional vacío', () => {
-    expect(mapUserToUsuarioRequest(user({ roles: [UserRoleType.COMITE, UserRoleType.CONSEJO] }))).toEqual({
+    expect(mapUserToUsuarioRequest(user({ roles: [UserRoleType.DECANATURA, UserRoleType.CONSEJO] }))).toEqual({
       codigo: '104618021',
       tipoDocumento: 'CC',
       numeroDocumento: '1061000000',
@@ -109,7 +109,7 @@ describe('mapUserToUsuarioRequest', () => {
       segundoNombre: null,
       primerApellido: 'Pérez',
       segundoApellido: 'Gómez',
-      roles: ['COMITE', 'CONSEJO'],
+      roles: ['DECANATURA', 'CONSEJO'],
       tipoVinculacion: null,
       departamentoId: null,
       programaId: null

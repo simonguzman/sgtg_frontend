@@ -11,7 +11,11 @@
         <div class="flex justify-between items-center gap-4 py-1">
           <span [class.text-primary]="item.id === draftId"
                 [class.font-semibold]="item.id === draftId"
-                [class.text-gray-700]="item.id !== draftId">• {{ item.name }}</span>
+                [class.text-gray-700]="item.id !== draftId">• {{ item.name }}
+            @if (item.detail) {
+              <span class="block text-gray-500 font-normal ml-3">{{ item.detail }}</span>
+            }
+          </span>
           <app-button-component
             [label]="item.id === draftId ? 'Seleccionado' : 'Seleccionar'"
             [variant]="item.id === draftId ? 'secondary' : 'primary'"
@@ -27,6 +31,16 @@
 
     <div class="flex flex-col gap-1 border-t border-gray-200 pt-4">
       <label for="newCatalogItem" class="title-textbox">Agregar {{ itemName }}</label>
+      @if (parentName) {
+        <select id="newCatalogItemParent" [attr.aria-label]="'Seleccione el ' + parentName"
+                class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+                (change)="selectParent($any($event.target).value)">
+          <option value="" [selected]="parentId === null">Seleccione el {{ parentName }}</option>
+          @for (parent of parentItems; track parent.id) {
+            <option [value]="parent.id" [selected]="parent.id === parentId">{{ parent.name }}</option>
+          }
+        </select>
+      }
       <div class="flex gap-2 items-center">
         <input id="newCatalogItem" type="text" [placeholder]="'Nombre del ' + itemName"
                class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md flex-1 focus:outline-none focus:ring-1 focus:ring-primary"
@@ -36,7 +50,7 @@
         <app-button-component
           label="Agregar"
           variant="secondary"
-          [disabled]="!newItemName.trim() || isCreating"
+          [disabled]="!newItemName.trim() || isCreating || missingParent"
           (onClick)="create()"
         ></app-button-component>
       </div>

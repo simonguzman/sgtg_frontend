@@ -43,6 +43,15 @@ export interface CatalogoResponse {
 }
 
 /**
+ * Programa del catálogo (`ProgramaDTOResponse`): está adscrito a un
+ * departamento, cuyo Comité de Programa atiende sus trabajos de grado.
+ */
+export interface ProgramaResponse extends CatalogoResponse {
+  /** null en programas registrados antes de exigir el departamento */
+  departamento: CatalogoResponse | null;
+}
+
+/**
  * Cuerpo de `POST /usuarios` y `PUT /usuarios/{id}`. Al actualizar, una
  * contraseña vacía conserva la actual. El perfil docente va con
  * `tipoVinculacion` + `departamentoId`; el de estudiante con `programaId`.

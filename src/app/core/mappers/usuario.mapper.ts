@@ -39,11 +39,13 @@ export function mapUsuarioToUser(dto: UsuarioResponse): User {
 
 /**
  * Roles que llevan perfil docente (vinculación y departamento), iguales a
- * `ROLES_DOCENTE` del backend.
+ * `ROLES_DOCENTE` del backend. El jefe y el Comité lo necesitan para indicar
+ * su departamento: solo atienden los trabajos de ese departamento y de sus
+ * programas.
  */
 export const ROLES_DOCENTE: readonly UserRoleType[] = [
   UserRoleType.DOCENTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.EVALUADOR,
-  UserRoleType.JURADO, UserRoleType.JURADO_COORDINADOR, UserRoleType.JEFE_DEP
+  UserRoleType.JURADO, UserRoleType.JURADO_COORDINADOR, UserRoleType.JEFE_DEP, UserRoleType.COMITE
 ];
 
 /** @returns true si los roles exigen perfil docente (vinculación y departamento) */

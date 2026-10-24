@@ -9,6 +9,10 @@ import { CatalogItem } from '../../../../modules/users/interfaces/catalog-item.i
  * confirma con "Guardar"; un elemento agregado queda seleccionado.
  *
  * El componente padre crea el elemento (`onCreate`) y actualiza `items`.
+ *
+ * Si el elemento nuevo depende de otro catálogo (ej. el programa se adscribe a
+ * un departamento), `parentName` y `parentItems` muestran ese selector y el
+ * elemento elegido llega al padre por `[(parentId)]`: sin él no se agrega.
  */
 @Component({
   selector: 'app-catalog-selection-modal',
@@ -27,8 +31,15 @@ export class CatalogSelectionModalComponent implements OnChanges {
   @Input() selectedId: number | null = null;
   /** true mientras el padre crea un elemento */
   @Input() isCreating = false;
+  /** Catálogo del que depende un elemento nuevo, en singular (ej. "departamento"); vacío si no depende de otro */
+  @Input() parentName = '';
+  /** Opciones de ese catálogo */
+  @Input() parentItems: CatalogItem[] = [];
+  /** Elemento elegido de ese catálogo para el nuevo (`[(parentId)]`) */
+  @Input() parentId: number | null = null;
 
   @Output() isOpenChange = new EventEmitter<boolean>();
+  @Output() parentIdChange = new EventEmitter<number | null>();
   @Output() onSaved = new EventEmitter<number>();
   @Output() onCreate = new EventEmitter<string>();
 
@@ -61,6 +72,16 @@ export class CatalogSelectionModalComponent implements OnChanges {
     this.newItemName = value;
   }
 
+  /** ¿Falta elegir el elemento del que depende el nuevo? */
+  get missingParent(): boolean {
+    return !!this.parentName && this.parentId === null;
+  }
+
+  selectParent(value: string): void {
+    this.parentId = value ? Number(value) : null;
+    this.parentIdChange.emit(this.parentId);
+  }
+
   /** Pide crear el elemento escrito; si ya existe, solo lo selecciona. */
   create(): void {
     const name = this.newItemName.trim();
@@ -71,6 +92,7 @@ export class CatalogSelectionModalComponent implements OnChanges {
       this.newItemName = '';
       return;
     }
+    if (this.missingParent) return;
     this.pendingName = name;
     this.onCreate.emit(name);
   }

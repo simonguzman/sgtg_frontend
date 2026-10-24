@@ -49,6 +49,8 @@ export class UserFormComponent  {
   isProgramModalOpen = false;
   /** true mientras se crea un departamento o un programa en el catálogo */
   readonly isCreatingCatalogItem = signal(false);
+  /** Departamento al que se adscribe un programa nuevo (se elige en el modal de programas) */
+  newProgramDepartmentId: number | null = null;
 
   user = input<User | null>(null);
   @Output() onSubmit = new EventEmitter <User>();
@@ -218,11 +220,19 @@ export class UserFormComponent  {
       });
   }
 
-  /** Crea un programa en el catálogo; el modal lo deja seleccionado hasta guardar. */
+  /**
+   * Crea un programa en el catálogo, adscrito al departamento elegido en el
+   * modal (su Comité atenderá los trabajos del programa); el modal lo deja
+   * seleccionado hasta guardar.
+   */
   addProgram(name: string): void {
     if (!name.trim()) return;
+    if (this.newProgramDepartmentId === null) {
+      this.notificationService.error('No se creó el programa', 'Seleccione el departamento del programa.');
+      return;
+    }
     this.isCreatingCatalogItem.set(true);
-    this.catalogApi.createProgram(name.trim())
+    this.catalogApi.createProgram(name.trim(), this.newProgramDepartmentId)
       .pipe(finalize(() => this.isCreatingCatalogItem.set(false)))
       .subscribe({
         next: program => this.programs.update(list => [...list, program]),

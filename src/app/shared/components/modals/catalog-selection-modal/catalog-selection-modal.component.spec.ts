@@ -125,5 +125,28 @@ describe('CatalogSelectionModalComponent', () => {
       expect(component.draftId).toBe(2);
       expect(component.newItemName).toBe('');
     });
+
+    it('si el elemento depende de otro catálogo, exige elegirlo antes de crear', () => {
+      const create = jest.spyOn(component.onCreate, 'emit');
+      const parentChange = jest.spyOn(component.parentIdChange, 'emit');
+      fixture.componentRef.setInput('parentName', 'departamento');
+      fixture.componentRef.setInput('parentItems', [SISTEMAS]);
+      abrir([], null);
+      expect(fixture.nativeElement.querySelector('#newCatalogItemParent')).not.toBeNull();
+
+      component.updateNewItemName('Ingeniería de Sistemas');
+      component.create();
+      expect(create).not.toHaveBeenCalled();
+
+      component.selectParent('1');
+      expect(parentChange).toHaveBeenCalledWith(1);
+      component.create();
+      expect(create).toHaveBeenCalledWith('Ingeniería de Sistemas');
+    });
+
+    it('muestra el dato complementario de cada elemento', () => {
+      abrir([{ id: 7, name: 'Ingeniería de Sistemas', detail: 'Departamento de Sistemas' }], null);
+      expect(fixture.nativeElement.textContent).toContain('Departamento de Sistemas');
+    });
   });
 });

@@ -352,3 +352,19 @@ Los tres pendientes registrados el 2026-10-17 quedaron implementados el mismo d�
    en segundo plano para las listas y al abrir el detalle de un trabajo. El buzón sigue recargando cuando llegan
    notificaciones nuevas. Se descartó consultar el backend en cada navegación (más carga, sobre todo para los roles que
    ven todos los trabajos) y la consulta periódica (consume aunque nadie use la aplicación).
+
+## 14. Decisiones del 2026-10-23 (Comité por programa)
+
+1. **Programas adscritos a un departamento:** el backend exige el `departamentoId` al crear un programa
+   (`POST /catalogos/programas`) y lo devuelve en el catálogo. En el formulario de usuarios, el modal de programas pide
+   el departamento antes de agregar uno (`CatalogSelectionModalComponent` con `parentName`, `parentItems` y
+   `[(parentId)]`) y muestra el departamento de cada programa.
+2. **El Comité y el jefe solo ven lo suyo:** el Comité ve y decide los trabajos de los programas de su departamento, y
+   el jefe los trabajos cuyo director es de su departamento. El filtro lo aplica el backend en los listados y en la
+   consulta por id (403 si no corresponde), así que las pantallas no cambian.
+3. **El Comité lleva perfil docente:** `ROLES_DOCENTE` incluye COMITE (igual que el backend), así que el formulario le
+   pide vinculación y departamento.
+4. **Un solo programa por trabajo:** el backend rechaza un trabajo con estudiantes de programas distintos (400, con su
+   mensaje).
+
+Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-23.md`.

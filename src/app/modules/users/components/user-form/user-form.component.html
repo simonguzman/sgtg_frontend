@@ -329,6 +329,9 @@
       [items]="programs()"
       [selectedId]="userForm.controls.programId.value"
       [isCreating]="isCreatingCatalogItem()"
+      parentName="departamento"
+      [parentItems]="departments()"
+      [(parentId)]="newProgramDepartmentId"
       (onSaved)="handleProgramSaved($event)"
       (onCreate)="addProgram($event)"
     ></app-catalog-selection-modal>
