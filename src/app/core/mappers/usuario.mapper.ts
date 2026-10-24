@@ -26,6 +26,7 @@ export function mapUsuarioToUser(dto: UsuarioResponse): User {
     lastName: dto.primerApellido,
     secondLastName: dto.segundoApellido ?? '',
     codeNumber: aNumero(dto.codigo),
+    code: dto.codigo,
     roles: dto.roles
       .map(rol => UserRoleType[rol as keyof typeof UserRoleType])
       .filter((rol): rol is UserRoleType => rol !== undefined),

@@ -13,6 +13,8 @@ export interface User {
   lastName: string;
   secondLastName: string;
   codeNumber: number;
+  /** Código tal como lo guarda el backend (puede no ser numérico, ej. `ADMIN`); es el que se muestra */
+  code?: string;
   roles: UserRoleType[];
   email: string;
   /** Solo se usa al crear o editar un usuario; la sesión nunca la guarda */

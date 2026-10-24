@@ -9,6 +9,7 @@ import { User } from '../../interfaces/user.interface';
 import { IdentificationType } from '../../enum/identification-type.enum';
 import { UserState } from '../../enum/user-state.enum';
 import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
+import { ContractType } from '../../enum/contract-type.enum';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 
 @Pipe({ name: 'documentType', standalone: true })
@@ -161,6 +162,47 @@ describe('Component: UserDetailsPageComponent', () => {
       fixture.detectChanges();
       const htmlContent = fixture.nativeElement.innerHTML;
       expect(htmlContent).toContain('Sin roles asignados');
+    });
+
+    const mostrar = (user: User): string => {
+      mockFacade.isLoading.set(false);
+      mockFacade.user.set(user);
+      fixture.detectChanges();
+      return fixture.nativeElement.textContent;
+    };
+
+    it('muestra el estado del usuario', () => {
+      expect(mostrar(createMockUser())).toContain(UserState.active);
+      expect(mostrar(createMockUser({ state: UserState.inactive }))).toContain(UserState.inactive);
+    });
+
+    it('muestra el código tal como lo guarda el backend (ej. ADMIN) y, si no llegó, el numérico', () => {
+      expect(mostrar(createMockUser({ codeNumber: 0, code: 'ADMIN' }))).toContain('ADMIN');
+      expect(mostrar(createMockUser({ codeNumber: 5050, code: undefined }))).toContain('5050');
+    });
+
+    it('sin perfil académico no muestra la sección', () => {
+      expect(mostrar(createMockUser({ roles: [UserRoleType.ADMINISTRADOR] }))).not.toContain('Perfil académico');
+    });
+
+    it('el docente muestra su vinculación y su departamento en el perfil académico', () => {
+      const texto = mostrar(createMockUser({ contractType: ContractType.CATEDRA, department: { id: 1, name: 'Sistemas' } }));
+      expect(texto).toContain('Perfil académico');
+      expect(texto).toContain('Tipo de vinculación');
+      expect(texto).toContain('Cátedra');
+      expect(texto).toContain('Sistemas');
+      expect(texto).not.toContain('Programa académico');
+    });
+
+    it('el estudiante muestra su programa académico', () => {
+      const texto = mostrar(createMockUser({ roles: [UserRoleType.ESTUDIANTE], program: { id: 7, name: 'Ingeniería de Sistemas' } }));
+      expect(texto).toContain('Programa académico');
+      expect(texto).toContain('Ingeniería de Sistemas');
+      expect(texto).not.toContain('Tipo de vinculación');
+    });
+
+    it('con varios roles la etiqueta va en plural', () => {
+      expect(mostrar(createMockUser({ roles: [UserRoleType.DOCENTE, UserRoleType.DIRECTOR] }))).toContain('Roles');
     });
   });
 

@@ -52,6 +52,7 @@ describe('mapUsuarioToUser', () => {
       lastName: 'Pérez',
       secondLastName: 'Gómez',
       codeNumber: 104618021,
+      code: '104618021',
       roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP, UserRoleType.COMITE, UserRoleType.CONSEJO],
       email: 'ana@unicauca.edu.co',
       state: UserState.active,
@@ -77,8 +78,10 @@ describe('mapUsuarioToUser', () => {
     expect(mapped).not.toHaveProperty('password');
   });
 
-  it('un código no numérico (administrador inicial) queda en 0 en lugar de NaN', () => {
-    expect(mapUsuarioToUser({ ...usuarioApi, codigo: 'ADMIN' }).codeNumber).toBe(0);
+  it('un código no numérico (administrador inicial) queda en 0 en lugar de NaN y se conserva para mostrarlo', () => {
+    const admin = mapUsuarioToUser({ ...usuarioApi, codigo: 'ADMIN' });
+    expect(admin.codeNumber).toBe(0);
+    expect(admin.code).toBe('ADMIN');
   });
 });
 
