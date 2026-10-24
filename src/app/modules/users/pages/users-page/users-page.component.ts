@@ -9,7 +9,7 @@ import { TableButton, TableComponent } from "../../../../shared/components/table
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { RolesModalComponent } from '../../../../shared/components/modals/roles/roles-modal/roles-modal.component';
 import { UsersFacadeService } from './services/users-facade.service';
-import { USER_COLUMNS, USER_HEADER_BUTTONS, UserTableRow } from './models/users-page.model';
+import { USER_COLUMNS, USER_FILTER_FIELDS, USER_HEADER_BUTTONS, UserTableRow } from './models/users-page.model';
 
 @Component({
   selector: 'app-users-page',
@@ -27,6 +27,7 @@ export class UsersPageComponent implements OnInit {
   protected readonly facade = inject(UsersFacadeService);
 
   protected columns = USER_COLUMNS;
+  protected readonly filterFields = USER_FILTER_FIELDS;
   protected headerButtons = USER_HEADER_BUTTONS;
   protected readonly stateList = stateList;
 

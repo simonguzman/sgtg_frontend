@@ -17,6 +17,10 @@ export class UsersMapperService {
       nombre: user.firstName,
       apellidos: `${user.lastName} ${user.secondLastName || ''}`,
       estado: isInactive ? 'Inactivo' : 'Activo',
+      // La búsqueda ignora tildes y mayúsculas: "comite" encuentra "Comité del programa"
+      hiddenRoles: user.roles.join(', '),
+      // "sistemas" encuentra a los docentes del Departamento de Sistemas y a los estudiantes de Ingeniería de Sistemas
+      hiddenProfile: [user.department?.name, user.program?.name].filter(Boolean).join(', '),
       allowedActions: allowed,
       originalData: user
     };
