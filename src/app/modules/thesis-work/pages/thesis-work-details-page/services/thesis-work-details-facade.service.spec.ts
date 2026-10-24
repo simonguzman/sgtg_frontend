@@ -45,21 +45,15 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
 } as ThesisWork);
 
 const createMockThesisWorkDetailsView = (overrides: Partial<ThesisWorkDetailsView> = {}): ThesisWorkDetailsView => ({
-  id: 'tw-1',
+  heading: 'Información del trabajo de grado',
   title: 'Título de Prueba',
-  description: 'Descripción de Prueba',
+  specificObjectives: [],
   modality: 'Trabajo de investigación',
   state: 'En Desarrollo',
-  deadlines: [],
-  participants: {
-    authors: 'Estudiante 1',
-    director: 'Director 1'
-  },
-  mainDocument: {
-    name: 'documento_final.pdf',
-    url: 'https://storage.com/documento_final.pdf',
-    description: 'Documento principal de la tesis'
-  },
+  participants: [{ label: 'Estudiante', value: 'Estudiante 1' }, { label: 'Director', value: 'Director 1' }],
+  dates: [],
+  documents: [{ name: 'documento_final.pdf', url: 'https://storage.com/documento_final.pdf',
+    description: 'Resolución del Consejo' }],
   ...overrides
 });
 
@@ -164,76 +158,42 @@ describe('ThesisWorkDetailsFacadeService', () => {
   });
 
   describe('downloadDocument', () => {
-    it('debería mostrar error si no hay un documento adjunto válido (details es null)', async () => {
-      service.details.set(null);
+    const documento = { url: 'http://test.com/doc.pdf', name: 'doc.pdf', description: '' };
 
-      await service.downloadDocument();
+    it('debería mostrar error si el documento no tiene URL', async () => {
+      await service.downloadDocument({ ...documento, url: '' });
 
       expect(notificationMock.show).toHaveBeenCalledWith({
         title: 'Archivo no disponible',
-        message: 'No se encontró un documento raíz válido vinculado.',
+        message: 'No se encontró el documento solicitado.',
         type: NotificationType.ERROR
       });
       expect(downloadMock.download).not.toHaveBeenCalled();
     });
 
-    it('debería mostrar error si el documento existe pero no tiene URL', async () => {
-      const mockViewWithoutUrl = createMockThesisWorkDetailsView({
-        mainDocument: { name: 'doc.pdf', url: '', description: '' }
-      });
-      service.details.set(mockViewWithoutUrl);
-
-      await service.downloadDocument();
-
-      expect(notificationMock.show).toHaveBeenCalledWith({
-        title: 'Archivo no disponible',
-        message: 'No se encontró un documento raíz válido vinculado.',
-        type: NotificationType.ERROR
-      });
-    });
-
     it('debería iniciar la descarga correctamente y notificar éxito', async () => {
-      const mockView = createMockThesisWorkDetailsView({
-        mainDocument: { url: 'http://test.com/doc.pdf', name: 'doc.pdf', description: '' }
-      });
-      service.details.set(mockView);
-
-      await service.downloadDocument();
+      await service.downloadDocument(documento);
 
       expect(notificationMock.show).toHaveBeenNthCalledWith(1, {
         title: 'Iniciando transferencia',
         message: 'Localizando y preparando el documento para su descarga...',
         type: NotificationType.INFO
       });
-
       expect(downloadMock.download).toHaveBeenCalledWith('http://test.com/doc.pdf', 'doc.pdf');
-
       expect(notificationMock.show).toHaveBeenNthCalledWith(2, {
         title: 'Descarga exitosa',
-        message: 'El archivo original se ha guardado en su equipo.',
+        message: 'El documento se ha guardado en su equipo.',
         type: NotificationType.CONFIRMATION
       });
     });
 
     it('debería manejar errores en la descarga y notificar el fallo', async () => {
       const mockError = new Error('Network error');
-      const mockView = createMockThesisWorkDetailsView({
-        mainDocument: { url: 'http://test.com/doc.pdf', name: 'doc.pdf', description: '' }
-      });
-      service.details.set(mockView);
-
       downloadMock.download.mockRejectedValue(mockError);
 
-      await service.downloadDocument();
+      await service.downloadDocument(documento);
 
       expect(console.error).toHaveBeenCalledWith('Error al descargar el documento:', mockError);
-
-      expect(notificationMock.show).toHaveBeenNthCalledWith(1, {
-        title: 'Iniciando transferencia',
-        message: 'Localizando y preparando el documento para su descarga...',
-        type: NotificationType.INFO
-      });
-
       expect(notificationMock.show).toHaveBeenNthCalledWith(2, {
         title: 'Error de descarga',
         message: 'No se pudo descargar el documento. Intente más tarde.',

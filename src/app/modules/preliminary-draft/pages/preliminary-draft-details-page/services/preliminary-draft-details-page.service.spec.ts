@@ -10,7 +10,9 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
 import { UserState } from '../../../../users/enum/user-state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
-import { UserService } from '../../../../users/services/user.service';
+import { aAnteproyecto } from '../../../../../core/mappers/trabajo-grado.mapper';
+import { contextoDePrueba } from '../../../../../testing/vista-de-prueba';
+import { crearTrabajoEnCurso, crearTrabajoEnEvaluacion } from '../../../../../testing/trabajo-grado-de-prueba';
 import { Modality } from '../../../../proposal/enums/modality.enum';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { PreliminaryDraftDetailsPageService } from './preliminary-draft-details-page.service';
@@ -100,7 +102,6 @@ describe('PreliminaryDraftDetailsPageService', () => {
   let mockParentRouteParamMapGet: jest.Mock<string | null, [string]>;
   let mockRouter: { navigate: jest.Mock; url: string };
   let mockPreliminaryDraftService: { getPreliminaryDraftById: jest.Mock };
-  let mockUserService: { getUserFullName: jest.Mock; getAuthorsNames: jest.Mock };
   let mockNotificationService: { show: jest.Mock };
   let mockDownloadService: { download: jest.Mock };
 
@@ -125,11 +126,6 @@ describe('PreliminaryDraftDetailsPageService', () => {
       getPreliminaryDraftById: jest.fn()
     };
 
-    mockUserService = {
-      getUserFullName: jest.fn(),
-      getAuthorsNames: jest.fn()
-    };
-
     mockNotificationService = {
       show: jest.fn()
     };
@@ -144,7 +140,6 @@ describe('PreliminaryDraftDetailsPageService', () => {
         { provide: ActivatedRoute, useValue: mockRoute },
         { provide: Router, useValue: mockRouter },
         { provide: PreliminaryDraftService, useValue: mockPreliminaryDraftService },
-        { provide: UserService, useValue: mockUserService },
         { provide: NotificationService, useValue: mockNotificationService },
         { provide: FileDownloadService, useValue: mockDownloadService }
       ]
@@ -235,20 +230,31 @@ describe('PreliminaryDraftDetailsPageService', () => {
     });
   });
 
-  describe('Delegación al UserService', () => {
-    it('getMemberName() debería delegar la responsabilidad', () => {
-      mockUserService.getUserFullName.mockReturnValue('Nombre Completo Mock');
-
-      expect(service.getMemberName('user-1')).toBe('Nombre Completo Mock');
-      expect(mockUserService.getUserFullName).toHaveBeenCalledWith('user-1');
+  describe('Señal Computada: view()', () => {
+    it('sin anteproyecto no hay vista', () => {
+      expect(service.view()).toBeNull();
     });
 
-    it('getAuthors() debería delegar la responsabilidad', () => {
-      mockUserService.getAuthorsNames.mockReturnValue('Autor Mock');
-      const authorMock = createMockUser();
+    it('en evaluación muestra los evaluadores, el plazo de evaluación y la versión vigente', () => {
+      const draft = { ...aAnteproyecto(crearTrabajoEnEvaluacion(), contextoDePrueba)!, evaluationRemainingDays: 2 };
+      service.preliminaryDraftDetails.set(draft);
+      const view = service.view()!;
 
-      expect(service.getAuthors([authorMock])).toBe('Autor Mock');
-      expect(mockUserService.getAuthorsNames).toHaveBeenCalledWith([authorMock]);
+      expect(view.heading).toBe('Información del anteproyecto');
+      expect(view.participants.at(-1)).toEqual({ label: 'Evaluadores', value: 'Vera Evaluadora y Walter Evaluador' });
+      expect(view.dates).toEqual([
+        { label: 'Fecha de registro', date: new Date(2026, 2, 9), hint: undefined },
+        { label: 'Límite para la evaluación', date: new Date(2026, 2, 23), hint: 'Quedan 2 días hábiles' }
+      ]);
+      expect(view.documents).toEqual([
+        expect.objectContaining({ name: 'Anteproyecto', description: 'Versión vigente del anteproyecto' }),
+        expect.objectContaining({ description: 'Respuesta del Comité que aprobó la propuesta' })
+      ]);
+    });
+
+    it('aprobado por el Consejo muestra la fecha máxima de entrega y no el plazo de evaluación', () => {
+      service.preliminaryDraftDetails.set(aAnteproyecto(crearTrabajoEnCurso(), contextoDePrueba));
+      expect(service.view()!.dates.map(fecha => fecha.label)).toEqual(['Fecha de registro', 'Fecha máxima de entrega del trabajo']);
     });
   });
 
@@ -271,6 +277,7 @@ describe('PreliminaryDraftDetailsPageService', () => {
   });
 
   describe('Descarga de Documento (downloadDocument) - Flujo Asíncrono', () => {
+    const mockDocDescarga = { name: 'formato_evaluacion.pdf', description: 'Respuesta del Comité', url: 'http://docs/formato_evaluacion.pdf' };
     it('debería notificar y descargar correctamente si existe el documento de evaluación aprobado', async () => {
       const mockDoc = createMockFormattedDocument();
       service.preliminaryDraftDetails.set(createMockDraft({
@@ -280,7 +287,7 @@ describe('PreliminaryDraftDetailsPageService', () => {
       }));
       mockDownloadService.download.mockResolvedValue(undefined);
 
-      await service.downloadDocument();
+      await service.downloadDocument({ ...mockDocDescarga });
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Iniciando transferencia', type: NotificationType.INFO })
@@ -297,7 +304,7 @@ describe('PreliminaryDraftDetailsPageService', () => {
       });
       service.preliminaryDraftDetails.set(draftInvalidDoc);
 
-      await service.downloadDocument();
+      await service.downloadDocument({ ...mockDocDescarga, url: '' });
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Archivo no disponible', type: NotificationType.ERROR })
@@ -314,7 +321,7 @@ describe('PreliminaryDraftDetailsPageService', () => {
       }));
       mockDownloadService.download.mockRejectedValue(new Error('Fallo de red'));
 
-      await service.downloadDocument();
+      await service.downloadDocument({ ...mockDocDescarga });
 
       expect(console.error).toHaveBeenCalled();
       expect(mockNotificationService.show).toHaveBeenCalledWith(

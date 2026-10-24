@@ -5,6 +5,7 @@ import { ProposalDetailsFacadeService } from './services/proposal-details-facade
 import { Component, Input } from '@angular/core';
 import { Proposal } from '../../interfaces/proposal.interface';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { WorkDetailsView } from '../../../../shared/components/work-details/work-details.model';
 @Component({ selector: 'app-button-component', standalone: true, template: '' })
 class MockButtonComponent {
   @Input() label!: string;
@@ -19,8 +20,12 @@ describe('ProposalDetailsPageComponent', () => {
     handleMissingId: jest.Mock;
     goBack: jest.Mock;
     load: jest.Mock;
-    getAuthors: jest.Mock;
-    getMemberName: jest.Mock;
+    buildView: jest.Mock;
+    downloadDocument: jest.Mock;
+  };
+  const mockView: WorkDetailsView = {
+    heading: 'Información de la propuesta', title: 'Test Proposal', specificObjectives: [], modality: 'Trabajo de investigación',
+    state: 'En revisión', participants: [], dates: [], documents: []
   };
   const mockProposal = { id: '123', title: 'Test Proposal', authors: [] } as unknown as Proposal;
   beforeEach(async () => {
@@ -38,8 +43,8 @@ describe('ProposalDetailsPageComponent', () => {
       handleMissingId: jest.fn(),
       goBack: jest.fn(),
       load: jest.fn(),
-      getAuthors: jest.fn(),
-      getMemberName: jest.fn(),
+      buildView: jest.fn().mockReturnValue(mockView),
+      downloadDocument: jest.fn(),
     };
     await TestBed.configureTestingModule({
       imports: [ProposalDetailsPageComponent],
@@ -90,6 +95,15 @@ describe('ProposalDetailsPageComponent', () => {
       const onSuccessCallback = mockFacade.load.mock.calls[0][1];
       onSuccessCallback(mockProposal);
       expect(component.proposal()).toEqual(mockProposal);
+    });
+    it('muestra el detalle que arma el facade con la propuesta cargada', () => {
+      mockRoute.snapshot.paramMap.get.mockReturnValue('123');
+      fixture.detectChanges();
+      mockFacade.load.mock.calls[0][1](mockProposal);
+      fixture.detectChanges();
+      expect(mockFacade.buildView).toHaveBeenCalledWith(mockProposal);
+      const detalle = fixture.debugElement.query(element => element.name === 'app-work-details');
+      expect(detalle.componentInstance.view).toBe(mockView);
     });
     it('debe llamar a facade.goBack() si load retorna NotFound o Error', () => {
       mockRoute.snapshot.paramMap.get.mockReturnValue('123');

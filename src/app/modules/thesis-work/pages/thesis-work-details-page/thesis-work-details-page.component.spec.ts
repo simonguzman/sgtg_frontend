@@ -6,6 +6,8 @@ import { ThesisWorkDetailsPageComponent } from './thesis-work-details-page.compo
 import { ThesisWorkDetailsFacadeService } from './services/thesis-work-details-facade.service';
 import { ThesisWorkDetailsView } from './models/thesis-work-details-page.model';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { WorkDetailsComponent } from '../../../../shared/components/work-details/work-details.component';
+import { WorkDetailsDocument, WorkDetailsView } from '../../../../shared/components/work-details/work-details.model';
 
 interface MockThesisWorkDetailsFacadeService {
   isLoading: WritableSignal<boolean>;
@@ -13,7 +15,7 @@ interface MockThesisWorkDetailsFacadeService {
   loadThesisWorkDetails: jest.Mock<void, [string]>;
   handleMissingId: jest.Mock<void, []>;
   goBack: jest.Mock<void, []>;
-  downloadDocument: jest.Mock<Promise<void>, []>;
+  downloadDocument: jest.Mock<Promise<void>, [WorkDetailsDocument]>;
 }
 
 interface MockRouter {
@@ -32,18 +34,21 @@ class MockButtonComponent {
   @Output() onClick = new EventEmitter<void>();
 }
 
+@Component({ selector: 'app-work-details', standalone: true, template: '' })
+class MockWorkDetailsComponent {
+  @Input() view!: WorkDetailsView;
+  @Output() download = new EventEmitter<WorkDetailsDocument>();
+}
+
 const createMockThesisWorkDetailsView = (overrides: Partial<ThesisWorkDetailsView> = {}): ThesisWorkDetailsView => ({
-  id: 'tw-123',
+  heading: 'Información del trabajo de grado',
   title: 'Título Base',
-  description: 'Descripción Base',
+  specificObjectives: [],
   modality: 'Modalidad Base',
-  state: 'ACTIVO',
-  participants: {
-    authors: 'Autor Base',
-    director: 'Director Base',
-  },
-  deadlines: [],
-  mainDocument: null,
+  state: 'En desarrollo',
+  participants: [{ label: 'Estudiante', value: 'Autor Base' }],
+  dates: [],
+  documents: [],
   ...overrides
 });
 
@@ -86,8 +91,8 @@ describe('ThesisWorkDetailsPageComponent', () => {
       ]
     })
     .overrideComponent(ThesisWorkDetailsPageComponent, {
-      remove: { imports: [ButtonComponent] },
-      add: { imports: [MockButtonComponent] }
+      remove: { imports: [ButtonComponent, WorkDetailsComponent] },
+      add: { imports: [MockButtonComponent, MockWorkDetailsComponent] }
     })
     .compileComponents();
 
@@ -137,116 +142,43 @@ describe('ThesisWorkDetailsPageComponent', () => {
       fixture.detectChanges();
     });
 
+    const detalle = () => fixture.debugElement.query(By.directive(MockWorkDetailsComponent));
+
     it('debe mostrar el mensaje de carga cuando isLoading es verdadero', () => {
       facadeMock.isLoading.set(true);
       fixture.detectChanges();
-
-      const loadingDiv = fixture.debugElement.query(By.css('.text-center'));
-      expect(loadingDiv).toBeTruthy();
-      expect(loadingDiv.nativeElement.textContent).toContain('Cargando información estructural');
+      expect(fixture.nativeElement.textContent).toContain('Cargando información estructural del trabajo de grado...');
+      expect(detalle()).toBeNull();
     });
 
-    it('debe renderizar la información estructural y participantes cuando existen detalles', () => {
-      const mockDetails = createMockThesisWorkDetailsView({
-        title: 'Tesis de Inteligencia Artificial',
-        description: 'Análisis de datos',
-        participants: {
-          authors: 'Juan Pérez',
-          director: 'Dr. Smith'
-        }
-      });
-
-      facadeMock.details.set(mockDetails);
+    it('debe mostrar el detalle con la vista del facade', () => {
+      const view = createMockThesisWorkDetailsView();
+      facadeMock.details.set(view);
       fixture.detectChanges();
-
-      const informationBlocks = fixture.debugElement.queryAll(By.css('.information-block p'));
-      expect(informationBlocks[0].nativeElement.textContent.trim()).toBe('Tesis de Inteligencia Artificial');
-      expect(informationBlocks[1].nativeElement.textContent.trim()).toBe('Análisis de datos');
-
-      const participantsText = fixture.debugElement.query(By.css('.space-y-2')).nativeElement.textContent;
-      expect(participantsText).toContain('Juan Pérez');
-      expect(participantsText).toContain('Dr. Smith');
-    });
-
-    it('muestra las fechas del trabajo que calcula el backend', () => {
-      facadeMock.details.set(createMockThesisWorkDetailsView({
-        deadlines: [
-          { label: 'Fecha máxima de entrega', date: new Date(2026, 11, 20), hint: 'Incluye la prórroga' },
-          { label: 'Sustentación desde', date: new Date(2026, 5, 20) }
-        ]
-      }));
-      fixture.detectChanges();
-
-      const texto = fixture.nativeElement.textContent as string;
-      expect(texto).toContain('Fechas del trabajo de grado');
-      expect(texto).toContain('Fecha máxima de entrega');
-      expect(texto).toContain('20/12/2026');
-      expect(texto).toContain('Incluye la prórroga');
-      expect(texto).toContain('20/06/2026');
-    });
-
-    it('sin fechas no muestra la sección', () => {
-      facadeMock.details.set(createMockThesisWorkDetailsView());
-      fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).not.toContain('Fechas del trabajo de grado');
-    });
-
-    it('debe mostrar codirector y asesor únicamente si están presentes', () => {
-      const mockDetails = createMockThesisWorkDetailsView({
-        participants: {
-          authors: 'Juan Pérez',
-          director: 'Dr. Smith',
-          codirector: 'Dra. López',
-          advisor: 'Lic. Gómez'
-        }
-      });
-
-      facadeMock.details.set(mockDetails);
-      fixture.detectChanges();
-
-      const participantsText = fixture.debugElement.query(By.css('.space-y-2')).nativeElement.textContent;
-      expect(participantsText).toContain('Codirector:');
-      expect(participantsText).toContain('Dra. López');
-      expect(participantsText).toContain('Asesor:');
-      expect(participantsText).toContain('Lic. Gómez');
+      expect(detalle().componentInstance.view).toBe(view);
     });
 
     it('debe llamar a facade.goBack() al hacer clic en el botón Regresar', () => {
-      const backButton = fixture.debugElement.query(By.css('button'));
-      backButton.triggerEventHandler('click', null);
-
+      fixture.debugElement.query(By.css('button.group')).nativeElement.click();
       expect(facadeMock.goBack).toHaveBeenCalled();
     });
 
     it('debe emitir la navegación correcta al hacer clic en "Evaluaciones realizadas"', () => {
       facadeMock.details.set(createMockThesisWorkDetailsView());
       fixture.detectChanges();
-
-      const evaluationButton = fixture.debugElement.query(
-        By.css('app-button-component[label="Evaluaciones realizadas"]')
-      );
-
-      evaluationButton.triggerEventHandler('onClick', null);
-
-      expect(routerMock.navigate).toHaveBeenCalledWith(
-        ['evaluations_performed'],
-        { relativeTo: routeMock }
-      );
+      const buttons = fixture.debugElement.queryAll(By.directive(MockButtonComponent));
+      buttons[0].componentInstance.onClick.emit();
+      buttons[1].componentInstance.onClick.emit();
+      expect(routerMock.navigate).toHaveBeenCalledWith(['evaluations_performed'], { relativeTo: routeMock });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock });
     });
 
-    it('debe llamar a facade.downloadDocument() al hacer clic en Descargar', () => {
-      facadeMock.details.set(createMockThesisWorkDetailsView({
-        mainDocument: { name: 'archivo.pdf', url: 'http://test.com/archivo.pdf', description: 'Desc' }
-      }));
+    it('debe delegar en el facade la descarga del documento elegido', () => {
+      facadeMock.details.set(createMockThesisWorkDetailsView());
       fixture.detectChanges();
-
-      const downloadButton = fixture.debugElement.query(
-        By.css('app-button-component[label="Descargar"]')
-      );
-
-      downloadButton.triggerEventHandler('onClick', null);
-
-      expect(facadeMock.downloadDocument).toHaveBeenCalled();
+      const documento = { name: 'Resolución del Consejo', description: '', url: '/r' };
+      detalle().componentInstance.download.emit(documento);
+      expect(facadeMock.downloadDocument).toHaveBeenCalledWith(documento);
     });
   });
 });

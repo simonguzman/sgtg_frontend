@@ -1,21 +1,24 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
-import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
-import { User } from '../../../../users/interfaces/user.interface';
 import { FormattedDocument } from '../../../../../core/interfaces/formatted-document.interface';
 import { resolveApprovedEvaluationDocument } from '../../../../../core/utils/evaluation-utils';
+import { stateList } from '../../../../../core/enums/state.enum';
+import { versionVigente } from '../../../services/preliminary-draft-rules';
+import {
+  buildWorkDetailsView, fullName, remainingDaysHint
+} from '../../../../../shared/components/work-details/work-details.builder';
+import { WorkDetailsDocument, WorkDetailsView } from '../../../../../shared/components/work-details/work-details.model';
 
 @Injectable()
 export class PreliminaryDraftDetailsPageService {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
-  private readonly userService = inject(UserService);
   private readonly notificationService = inject(NotificationService);
   private readonly downloadService = inject(FileDownloadService);
 
@@ -24,6 +27,39 @@ export class PreliminaryDraftDetailsPageService {
   readonly approvedProposalDocument = computed<FormattedDocument | null>(() => {
     const evaluations = this.preliminaryDraftDetails()?.proposalData?.evaluations;
     return resolveApprovedEvaluationDocument(evaluations);
+  });
+
+  /**
+   * Información registrada del anteproyecto: la de la propuesta, los
+   * evaluadores, sus fechas (registro, límite de evaluación mientras está en
+   * revisión y fecha máxima de entrega), la versión vigente y la respuesta
+   * del Comité que aprobó la propuesta.
+   */
+  readonly view = computed<WorkDetailsView | null>(() => {
+    const draft = this.preliminaryDraftDetails();
+    if (!draft) return null;
+    const vigente = versionVigente(draft);
+    const respuestaComite = this.approvedProposalDocument();
+    const evaluadores = draft.evaluators ?? [];
+    return buildWorkDetailsView(draft.proposalData, {
+      heading: 'Información del anteproyecto',
+      state: draft.state,
+      extraParticipants: [
+        evaluadores.length ? { label: 'Evaluadores', value: evaluadores.map(fullName).join(' y ') } : null
+      ],
+      dates: [
+        { label: 'Fecha de registro', date: draft.createdData },
+        draft.state === stateList.EN_REVISION ? { label: 'Límite para la evaluación', date: draft.evaluationDeadline,
+          hint: remainingDaysHint(draft.evaluationRemainingDays) } : null,
+        { label: 'Fecha máxima de entrega del trabajo', date: draft.maximumDeliveryDate,
+          hint: 'Plazo de ejecución fijado por el Consejo de Facultad' }
+      ],
+      documents: [
+        vigente && { name: vigente.name, description: 'Versión vigente del anteproyecto', url: vigente.url },
+        respuestaComite && { name: respuestaComite.name, description: 'Respuesta del Comité que aprobó la propuesta',
+          url: respuestaComite.url }
+      ]
+    });
   });
 
   init(): void {
@@ -51,16 +87,7 @@ export class PreliminaryDraftDetailsPageService {
     });
   }
 
-  getMemberName(userId: string | undefined): string {
-    return this.userService.getUserFullName(userId);
-  }
-
-  getAuthors(authors: User[] | undefined): string {
-    return this.userService.getAuthorsNames(authors);
-  }
-
-  async downloadDocument(): Promise<void> {
-    const targetDocument = this.approvedProposalDocument();
+  async downloadDocument(targetDocument: WorkDetailsDocument): Promise<void> {
     if (!targetDocument?.url) {
       this.showDownloadFileErrorNotification();
       return;
@@ -95,7 +122,7 @@ export class PreliminaryDraftDetailsPageService {
   private showDownloadFileSuccessNotification(): void {
     this.notificationService.show({
       title: 'Descarga exitosa',
-      message: 'El formato de evaluación se ha guardado en su equipo.',
+      message: 'El documento se ha guardado en su equipo.',
       type: NotificationType.CONFIRMATION
     });
   }
@@ -111,7 +138,7 @@ export class PreliminaryDraftDetailsPageService {
   private showDownloadFileErrorNotification(): void {
     this.notificationService.show({
       title: 'Archivo no disponible',
-      message: 'No se encontró el formato de evaluación aprobado por el comité para esta propuesta.',
+      message: 'No se encontró el documento solicitado o no se pudo descargar.',
       type: NotificationType.ERROR
     });
   }

@@ -27,84 +27,14 @@
     }
   </div>
 
-  @if (!pageService.preliminaryDraftDetails()) {
+  @if (!pageService.view()) {
     <div class="text-center text-text-body font-display my-10">
       Cargando información del anteproyecto...
     </div>
   }
 
-  @if (pageService.preliminaryDraftDetails(); as draft) {
-
-    <h3 class="font-semibold text-size-header-title font-display text-primary mb-4">
-      Información del anteproyecto
-    </h3>
-
-    <div class="space-y-3">
-      @for (item of [
-        { label: 'Título',      value: draft.proposalData.title },
-        { label: 'Descripción', value: draft.proposalData.description },
-        { label: 'Modalidad',   value: draft.proposalData.modality },
-        { label: 'Estado',      value: draft.state }
-      ]; track item.label) {
-        <div class="p-3 information-block rounded">
-          <span class="font-semibold font-display text-size-section text-primary">{{ item.label }}</span>
-          <p class="font-normal font-sans text-size-section text-text-body">{{ item.value || 'No definido' }}</p>
-        </div>
-      }
-    </div>
-
-    <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
-      Participantes del trabajo de grado
-    </h3>
-
-    <div class="p-4 information-block rounded space-y-2">
-      <div>
-        <span class="font-semibold font-display text-size-section text-primary">Estudiante(s): </span>
-        <span class="font-normal font-sans text-size-section text-text-body">{{ pageService.getAuthors(draft.proposalData.authors) }}</span>
-      </div>
-      <div>
-        <span class="font-semibold font-display text-size-section text-primary">Director: </span>
-        <span class="font-normal font-sans text-size-section text-text-body">{{ pageService.getMemberName(draft.proposalData.director.id) }}</span>
-      </div>
-
-      @if (draft.proposalData.codirector) {
-        <div>
-          <span class="font-semibold font-display text-size-section text-primary">Codirector: </span>
-          <span class="font-normal font-sans text-size-section text-text-body">{{ pageService.getMemberName(draft.proposalData.codirector.id) }}</span>
-        </div>
-      }
-
-      @if (draft.proposalData.advisor) {
-        <div>
-          <span class="font-semibold font-display text-size-section text-primary">Asesor: </span>
-          <span class="font-normal font-sans text-size-section text-text-body">{{ pageService.getMemberName(draft.proposalData.advisor.id) }}</span>
-        </div>
-      }
-    </div>
-
-    <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
-      Documentos adjuntos
-    </h3>
-
-    <div class="flex flex-col gap-3">
-      <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm">
-        <div class="flex items-center gap-3 overflow-hidden">
-          <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
-          <div class="flex flex-col overflow-hidden">
-            <span class="text-size-body font-bold text-primary truncate">
-              {{ pageService.approvedProposalDocument()?.name || 'Formato_A_Aprobado.pdf' }}
-            </span>
-            <span class="text-size-role-footer text-text-body font-sans">Formato de evaluación aprobado por el comité</span>
-          </div>
-        </div>
-
-        <app-button-component
-          label="Descargar"
-          variant="primary"
-          (onClick)="pageService.downloadDocument()"
-        ></app-button-component>
-      </div>
-    </div>
+  @if (pageService.view(); as details) {
+    <app-work-details [view]="details" (download)="pageService.downloadDocument($event)"></app-work-details>
   }
 
 </div>

@@ -1,27 +1,7 @@
-/** Fecha clave del trabajo calculada por el backend. */
-export interface ThesisWorkDeadlineItem {
-  label: string;
-  date: Date;
-  hint?: string;
-}
+import { WorkDetailsDate, WorkDetailsView } from '../../../../../shared/components/work-details/work-details.model';
 
-export interface ThesisWorkDetailsView {
-  id: string;
-  title: string;
-  description: string;
-  modality: string;
-  state: string;
-  participants: {
-    authors: string;
-    director: string;
-    codirector?: string;
-    advisor?: string;
-  };
-  /** Fechas del trabajo en curso (las que aplican en su etapa) */
-  deadlines: ThesisWorkDeadlineItem[];
-  mainDocument: {
-    name: string;
-    url: string;
-    description: string;
-  } | null;
-}
+/** Fecha clave del trabajo calculada por el backend. */
+export type ThesisWorkDeadlineItem = WorkDetailsDate;
+
+/** Información de la página de detalle del trabajo de grado. */
+export type ThesisWorkDetailsView = WorkDetailsView;

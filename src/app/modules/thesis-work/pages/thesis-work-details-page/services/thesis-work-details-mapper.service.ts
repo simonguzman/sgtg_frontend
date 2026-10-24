@@ -1,30 +1,51 @@
-import { inject, Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { ThesisWorkDeadlineItem, ThesisWorkDetailsView } from '../models/thesis-work-details-page.model';
-import { UserService } from '../../../../users/services/user.service';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
+import { versionVigente } from '../../../../preliminary-draft/services/preliminary-draft-rules';
+import { buildWorkDetailsView, fullName } from '../../../../../shared/components/work-details/work-details.builder';
+import { WorkDetailsDocument, WorkDetailsItem } from '../../../../../shared/components/work-details/work-details.model';
 
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkDetailsMapperService {
-  private readonly userService = inject(UserService);
 
+  /**
+   * Información registrada del trabajo de grado: la de la propuesta, los
+   * evaluadores del anteproyecto y los jurados, las fechas del backend, la
+   * resolución del Consejo y el anteproyecto aprobado.
+   */
   public mapToView(thesisWork: ThesisWork): ThesisWorkDetailsView {
-    const proposal = thesisWork.preliminaryDraftData?.proposalData;
-
-    return {
-      id: thesisWork.thesisWorkId || '',
-      title: proposal?.title || 'Sin título',
-      description: proposal?.description || 'Sin descripción disponible.',
-      modality: proposal?.modality || 'No definida',
+    const draft = thesisWork.preliminaryDraftData;
+    const anteproyecto = versionVigente(draft);
+    const resolucion = this.extractMainDocument(thesisWork);
+    return buildWorkDetailsView(draft.proposalData, {
+      heading: 'Información del trabajo de grado',
       state: thesisWork.state,
-      participants: {
-        authors: this.userService.getAuthorsNames(proposal?.authors),
-        director: this.userService.getUserFullName(proposal?.director?.id),
-        codirector: proposal?.codirector ? this.userService.getUserFullName(proposal.codirector.id) : undefined,
-        advisor: proposal?.advisor ? this.userService.getUserFullName(proposal.advisor.id) : undefined,
-      },
-      deadlines: this.mapDeadlines(thesisWork),
-      mainDocument: this.extractMainDocument(thesisWork)
+      extraParticipants: [this.evaluators(thesisWork), this.jurors(thesisWork)],
+      dates: this.mapDeadlines(thesisWork),
+      documents: [
+        resolucion,
+        anteproyecto && { name: anteproyecto.name, description: 'Anteproyecto aprobado', url: anteproyecto.url }
+      ]
+    });
+  }
+
+  private evaluators(thesisWork: ThesisWork): WorkDetailsItem | null {
+    const evaluadores = thesisWork.preliminaryDraftData.evaluators ?? [];
+    return evaluadores.length
+      ? { label: 'Evaluadores del anteproyecto', value: evaluadores.map(fullName).join(' y ') }
+      : null;
+  }
+
+  /** Jurados de la sesión de sustentación más reciente, con el coordinador señalado. */
+  private jurors(thesisWork: ThesisWork): WorkDetailsItem | null {
+    const sesion = thesisWork.sustentations?.[0];
+    const jurados = sesion?.assignedJurors ?? [];
+    if (!jurados.length) return null;
+    return {
+      label: 'Jurados de la sustentación',
+      value: jurados.map(jurado => fullName(jurado) + (jurado.id === sesion?.coordinatorId ? ' (coordinador)' : ''))
+        .join(' y ')
     };
   }
 
@@ -47,44 +68,20 @@ export class ThesisWorkDetailsMapperService {
     return items.filter((item): item is ThesisWorkDeadlineItem => item !== null);
   }
 
-  private extractMainDocument(thesisWork: ThesisWork): { name: string; url: string; description: string } | null {
+  /** Resolución del Consejo que aprobó el anteproyecto. */
+  private extractMainDocument(thesisWork: ThesisWork): WorkDetailsDocument | null {
     const preliminaryDraft = thesisWork.preliminaryDraftData;
     if (!preliminaryDraft) return null;
 
-    const defaultDescription = 'Resolución original del anteproyecto aprobado';
+    const description = 'Resolución del Consejo de Facultad que aprobó el anteproyecto';
     const evaluations = preliminaryDraft.evaluations || [];
 
     const consejoEvaluations = evaluations.filter(evaluation => evaluation.evaluatorRole?.toUpperCase().includes('CONSEJO'));
-    const lastConsejoEval = consejoEvaluations.at(-1);
+    const resolutionDoc = consejoEvaluations.at(-1)?.signedDocuments?.at(-1);
+    if (resolutionDoc) return { name: resolutionDoc.name, url: resolutionDoc.url, description };
 
-    if (lastConsejoEval?.signedDocuments?.length) {
-      const resolutionDoc = lastConsejoEval.signedDocuments.at(-1);
-
-      if (resolutionDoc) {
-        return {
-          name: resolutionDoc.name,
-          url: resolutionDoc.url,
-          description: defaultDescription
-        };
-      }
-    }
-
-    const resolutionInDraft = (preliminaryDraft.documents || []).find(document => document.type === DocumentType.RESOLUCION);
-    if (resolutionInDraft) {
-      return {
-        name: resolutionInDraft.name,
-        url: resolutionInDraft.url,
-        description: defaultDescription
-      };
-    }
-
-    const directDocs = thesisWork.documents || [];
-    const finalDoc = directDocs.find(document => document.type === DocumentType.RESOLUCION);
-
-    return finalDoc ? {
-      name: finalDoc.name,
-      url: finalDoc.url,
-      description: defaultDescription
-    } : null;
+    const resolutionInDraft = (preliminaryDraft.documents || []).find(document => document.type === DocumentType.RESOLUCION)
+      ?? (thesisWork.documents || []).find(document => document.type === DocumentType.RESOLUCION);
+    return resolutionInDraft ? { name: resolutionInDraft.name, url: resolutionInDraft.url, description } : null;
   }
 }

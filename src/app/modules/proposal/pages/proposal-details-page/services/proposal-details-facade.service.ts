@@ -1,16 +1,19 @@
 import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { ProposalService } from '../../../services/proposal.service';
-import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
+import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { Proposal } from '../../../interfaces/proposal.interface';
-import { User } from '../../../../users/interfaces/user.interface';
+import { stateList } from '../../../../../core/enums/state.enum';
+import { versionActual, versionesDePropuesta } from '../../../services/proposal-rules.service';
+import { buildWorkDetailsView, remainingDaysHint } from '../../../../../shared/components/work-details/work-details.builder';
+import { WorkDetailsDocument, WorkDetailsView } from '../../../../../shared/components/work-details/work-details.model';
 
 @Injectable({ providedIn: 'root' })
 export class ProposalDetailsFacadeService {
   private readonly proposalService = inject(ProposalService);
-  private readonly userService = inject(UserService);
+  private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
   private readonly router = inject(Router);
 
@@ -59,15 +62,38 @@ export class ProposalDetailsFacadeService {
     this.router.navigate([currentUrl.includes('/history') ? '/history' : '/proposal']);
   }
 
-  public getMemberName(user: User | undefined): string {
-    if (!user) return 'No asignado';
-    return [user.firstName, user.secondName, user.lastName, user.secondLastName]
-      .filter(Boolean)
-      .join(' ');
+  /**
+   * Información registrada de la propuesta: datos y participantes, fecha de
+   * registro, plazo del Comité mientras está en revisión, el formato A vigente
+   * y la carta de aceptación (práctica profesional).
+   */
+  public buildView(proposal: Proposal): WorkDetailsView {
+    const versionVigente = versionActual(proposal);
+    const otros = proposal.documents.filter(document => !versionesDePropuesta(proposal).includes(document));
+    const enRevision = proposal.state === stateList.EN_REVISION;
+    return buildWorkDetailsView(proposal, {
+      heading: 'Información de la propuesta',
+      state: proposal.state,
+      dates: [
+        { label: 'Fecha de registro', date: proposal.createdAt },
+        enRevision ? { label: 'Límite para el concepto del Comité', date: proposal.evaluationDeadline,
+          hint: remainingDaysHint(proposal.evaluationRemainingDays) } : null
+      ],
+      documents: [
+        versionVigente && { name: versionVigente.name, description: 'Versión vigente del formato A', url: versionVigente.url },
+        ...otros.map(document => ({ name: document.name, description: 'Documento radicado con la propuesta', url: document.url }))
+      ]
+    });
   }
 
-  public getAuthors(authors: User[] | undefined): string {
-    return this.userService.getAuthorsNames(authors);
+  public async downloadDocument(document: WorkDetailsDocument): Promise<void> {
+    try {
+      await this.downloadService.download(document.url, document.name);
+    } catch (err) {
+      console.error('Error al descargar el documento:', err);
+      this.showNotification('Error de descarga', `No se pudo descargar ${document.name}. Intente más tarde.`,
+        NotificationType.ERROR);
+    }
   }
 
   private showNotification(title: string, message: string, type: NotificationType): void {

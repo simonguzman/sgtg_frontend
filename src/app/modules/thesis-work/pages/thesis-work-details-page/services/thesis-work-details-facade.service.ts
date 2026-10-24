@@ -7,6 +7,7 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { ThesisWorkDetailsMapperService } from './thesis-work-details-mapper.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWorkDetailsView } from '../models/thesis-work-details-page.model';
+import { WorkDetailsDocument } from '../../../../../shared/components/work-details/work-details.model';
 
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkDetailsFacadeService {
@@ -42,16 +43,15 @@ export class ThesisWorkDetailsFacadeService {
       });
   }
 
-  public async downloadDocument(): Promise<void> {
-    const document = this.details()?.mainDocument;
+  public async downloadDocument(document: WorkDetailsDocument): Promise<void> {
     if (!document?.url) {
-      this.showNotification('Archivo no disponible', 'No se encontró un documento raíz válido vinculado.', NotificationType.ERROR);
+      this.showNotification('Archivo no disponible', 'No se encontró el documento solicitado.', NotificationType.ERROR);
       return;
     }
     this.showNotification('Iniciando transferencia', 'Localizando y preparando el documento para su descarga...', NotificationType.INFO);
     try {
       await this.downloadService.download(document.url, document.name);
-      this.showNotification('Descarga exitosa', 'El archivo original se ha guardado en su equipo.', NotificationType.CONFIRMATION);
+      this.showNotification('Descarga exitosa', 'El documento se ha guardado en su equipo.', NotificationType.CONFIRMATION);
     } catch (err) {
       console.error('Error al descargar el documento:', err);
       this.showNotification('Error de descarga', 'No se pudo descargar el documento. Intente más tarde.', NotificationType.ERROR);

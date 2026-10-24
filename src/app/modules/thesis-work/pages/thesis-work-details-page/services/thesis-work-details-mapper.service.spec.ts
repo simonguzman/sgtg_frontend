@@ -1,275 +1,92 @@
 import { TestBed } from '@angular/core/testing';
 import { ThesisWorkDetailsMapperService } from './thesis-work-details-mapper.service';
-import { UserService } from '../../../../users/services/user.service';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
-import { DocumentType } from '../../../../../core/enums/document-type.enum';
-import { Modality } from '../../../../proposal/enums/modality.enum';
-import { User } from '../../../../users/interfaces/user.interface';
-import { IdentificationType } from '../../../../users/enum/identification-type.enum';
-import { UserState } from '../../../../users/enum/user-state.enum';
-import { stateList } from '../../../../../core/enums/state.enum';
-
-interface MockUserService {
-  getAuthorsNames: jest.Mock<string, [User[] | undefined]>;
-  getUserFullName: jest.Mock<string, [string | undefined]>;
-}
-
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'u-1',
-  idType: IdentificationType.CC,
-  idNumber: 123456789,
-  firstName: 'Juan',
-  secondName: '',
-  lastName: 'Perez',
-  secondLastName: '',
-  codeNumber: 1234567890,
-  email: 'juan@test.com',
-  password: 'hash',
-  state: UserState.active,
-  roles: [],
-  ...overrides
-});
-
-const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
-  const baseUser = createMockUser();
-  const baseThesis: ThesisWork = {
-    thesisWorkId: 'tw-1',
-    preliminaryDraftId: 'draft-1',
-    documents: [],
-    evaluations: [],
-    specialRequests: [],
-    state: stateList.EN_DESARROLLO,
-    createdDate: new Date(),
-    preliminaryDraftData: {
-      preliminaryDraftId: 'draft-1',
-      proposalId: 'prop-1',
-      state: stateList.APROBADO,
-      createdData: new Date(),
-      evaluations: [],
-      documents: [],
-      maximumDeliveryDate: new Date(),
-      proposalData: {
-        id: 'prop-1',
-        title: 'Tesis IA',
-        description: 'Uso de IA',
-        modality: Modality.TI,
-        authors: [baseUser],
-        director: baseUser,
-        state: stateList.APROBADO,
-        createdAt: new Date(),
-        documents: [],
-        evaluations: []
-      }
-    },
-    sustentations: []
-  };
-  return { ...baseThesis, ...overrides };
-};
+import { thesisWorkDePrueba } from '../../../../../testing/vista-de-prueba';
+import { crearTrabajoEnCurso, crearTrabajoEnSustentacion } from '../../../../../testing/trabajo-grado-de-prueba';
 
 describe('ThesisWorkDetailsMapperService', () => {
-  let service: ThesisWorkDetailsMapperService;
-
-  let userServiceSpy: MockUserService;
+  let mapper: ThesisWorkDetailsMapperService;
 
   beforeEach(() => {
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    userServiceSpy = {
-      getAuthorsNames: jest.fn(),
-      getUserFullName: jest.fn()
-    };
-
-    TestBed.configureTestingModule({
-      providers: [
-        ThesisWorkDetailsMapperService,
-        { provide: UserService, useValue: userServiceSpy }
-      ]
-    });
-
-    service = TestBed.inject(ThesisWorkDetailsMapperService);
+    TestBed.configureTestingModule({ providers: [ThesisWorkDetailsMapperService] });
+    mapper = TestBed.inject(ThesisWorkDetailsMapperService);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
-  });
+  describe('mapToView()', () => {
+    it('muestra la información registrada del trabajo en curso', () => {
+      const view = mapper.mapToView(thesisWorkDePrueba(crearTrabajoEnCurso()));
 
-  describe('mapToView() - Mapeo general', () => {
-    it('debe mapear correctamente un trabajo de grado con datos completos', () => {
-      userServiceSpy.getAuthorsNames.mockReturnValue('Autor Mokeado');
-      userServiceSpy.getUserFullName
-        .mockReturnValueOnce('Director Mokeado')
-        .mockReturnValueOnce('Codirector Mokeado')
-        .mockReturnValueOnce('Asesor Mokeado');
-
-      const mockWork = createMockThesisWork();
-      mockWork.state = stateList.EN_DESARROLLO;
-      mockWork.preliminaryDraftData!.proposalData.codirector = createMockUser({ id: 'cd1' });
-      mockWork.preliminaryDraftData!.proposalData.advisor = createMockUser({ id: 'ad1' });
-
-      const result = service.mapToView(mockWork);
-
-      expect(result.id).toBe('tw-1');
-      expect(result.title).toBe('Tesis IA');
-      expect(result.state).toBe(stateList.EN_DESARROLLO);
-      expect(result.participants.authors).toBe('Autor Mokeado');
-      expect(userServiceSpy.getUserFullName).toHaveBeenCalledTimes(3);
-      expect(result.participants.director).toBe('Director Mokeado');
-      expect(result.participants.codirector).toBe('Codirector Mokeado');
-      expect(result.participants.advisor).toBe('Asesor Mokeado');
-    });
-
-    it('debe usar valores por defecto cuando faltan datos (Null Object Pattern behavior)', () => {
-      const emptyWork = createMockThesisWork({
-        thesisWorkId: '',
-        preliminaryDraftData: undefined
-      });
-
-      const result = service.mapToView(emptyWork);
-
-      expect(result.id).toBe('');
-      expect(result.title).toBe('Sin título');
-      expect(result.description).toBe('Sin descripción disponible.');
-      expect(result.modality).toBe('No definida');
-      expect(result.mainDocument).toBeNull();
-      expect(result.deadlines).toEqual([]);
+      expect(view).toEqual(expect.objectContaining({
+        heading: 'Información del trabajo de grado',
+        title: 'Sistema de gestión',
+        generalObjective: 'Objetivo general',
+        specificObjectives: ['Objetivo específico'],
+        description: undefined,
+        lineOfResearch: undefined,
+        modality: 'Trabajo de investigación',
+        state: 'En desarrollo'
+      }));
+      expect(view.participants).toEqual([
+        { label: 'Estudiante', value: 'Eva Estudiante' },
+        { label: 'Director', value: 'Dora Directora Pérez' },
+        { label: 'Evaluadores del anteproyecto', value: 'Vera Evaluadora y Walter Evaluador' }
+      ]);
     });
 
     it('incluye las fechas del backend que aplican (las vacías se omiten)', () => {
-      const mockWork = createMockThesisWork({
-        deadlines: {
-          startDate: new Date(2026, 2, 20),
-          maximumDeliveryDate: new Date(2026, 11, 20),
-          minimumSustentationDate: new Date(2026, 5, 20),
-          objectivesChangeDeadline: null,
-          extensionRequestDeadline: new Date(2026, 11, 5)
-        }
-      });
-
-      const result = service.mapToView(mockWork);
-
-      expect(result.deadlines.map(d => [d.label, d.date])).toEqual([
-        ['Inicio del trabajo', new Date(2026, 2, 20)],
-        ['Fecha máxima de entrega', new Date(2026, 11, 20)],
-        ['Sustentación desde', new Date(2026, 5, 20)],
-        ['Límite para solicitar prórroga', new Date(2026, 11, 5)]
+      const thesisWork = thesisWorkDePrueba(crearTrabajoEnCurso());
+      const conFechas = mapper.mapToView(thesisWork);
+      expect(conFechas.dates.map(fecha => fecha.label)).toEqual([
+        'Inicio del trabajo', 'Fecha máxima de entrega', 'Sustentación desde', 'Límite para cambiar título y objetivos',
+        'Límite para solicitar prórroga'
       ]);
+
+      const sinLimites: ThesisWork = {
+        ...thesisWork,
+        deadlines: { ...thesisWork.deadlines!, objectivesChangeDeadline: null, extensionRequestDeadline: null }
+      };
+      expect(mapper.mapToView(sinLimites).dates).toHaveLength(3);
+    });
+
+    it('muestra la resolución del Consejo y el anteproyecto aprobado', () => {
+      const view = mapper.mapToView(thesisWorkDePrueba(crearTrabajoEnCurso()));
+      expect(view.documents).toEqual([
+        expect.objectContaining({ name: 'Resolución del Consejo',
+          description: 'Resolución del Consejo de Facultad que aprobó el anteproyecto' }),
+        expect.objectContaining({ name: 'Anteproyecto', description: 'Anteproyecto aprobado' })
+      ]);
+    });
+
+    it('con la sustentación programada muestra los jurados y señala al coordinador', () => {
+      const view = mapper.mapToView(thesisWorkDePrueba(crearTrabajoEnSustentacion()));
+      expect(view.participants.at(-1)).toEqual({
+        label: 'Jurados de la sustentación', value: 'Juan Coordinador (coordinador) y Julia Jurado'
+      });
     });
   });
 
-  describe('mapToView() - Extracción de Documento Principal (extractMainDocument)', () => {
-    const defaultDescription = 'Resolución original del anteproyecto aprobado';
-
-    it('debe extraer el documento de las evaluaciones del consejo (Prioridad 1)', () => {
-      const mockWork = createMockThesisWork();
-
-      mockWork.preliminaryDraftData!.evaluations = [
-        {
-          id: 'eval-1',
-          proposalId: 'prop-1',
-          evaluatorId: 'consejo-1',
-          evaluatorName: 'Consejo de Facultad',
-          evaluatorRole: 'CONSEJO_FACULTAD',
-          date: new Date(),
-          veredict: stateList.APROBADO,
-          observations: 'Aprobado sin novedades',
-          signedDocuments: [
-            { name: 'resolucion_consejo.pdf', url: 'http://url.com/res.pdf' }
-          ]
-        }
-      ];
-
-      mockWork.preliminaryDraftData!.documents = [
-        {
-          id: 'doc-1',
-          name: 'Ignorado.pdf',
-          url: 'http://url.com/falso.pdf',
-          type: DocumentType.RESOLUCION,
-          uploadDate: new Date()
-        }
-      ];
-
-      const result = service.mapToView(mockWork);
-
-      expect(result.mainDocument).toEqual({
-        name: 'resolucion_consejo.pdf',
-        url: 'http://url.com/res.pdf',
-        description: defaultDescription
-      });
+  describe('Resolución del Consejo', () => {
+    it('sin la evaluación del Consejo la toma de los documentos del anteproyecto', () => {
+      const thesisWork = thesisWorkDePrueba(crearTrabajoEnCurso());
+      const sinEvaluacion: ThesisWork = {
+        ...thesisWork,
+        preliminaryDraftData: { ...thesisWork.preliminaryDraftData, evaluations: [] }
+      };
+      expect(mapper.mapToView(sinEvaluacion).documents[0]).toEqual(expect.objectContaining({ name: 'Resolución del Consejo' }));
     });
 
-    it('debe extraer el documento desde los documentos del anteproyecto (Prioridad 2)', () => {
-      const mockWork = createMockThesisWork();
-
-      mockWork.preliminaryDraftData!.evaluations = [
-        {
-          id: 'eval-1',
-          proposalId: 'prop-1',
-          evaluatorId: 'jurado-1',
-          evaluatorName: 'Jurado',
-          evaluatorRole: 'OTRO_ROL',
-          date: new Date(),
-          veredict: stateList.APROBADO,
-          observations: 'Sin observaciones',
-          signedDocuments: []
+    it('sin resolución en ninguna parte solo muestra el anteproyecto', () => {
+      const thesisWork = thesisWorkDePrueba(crearTrabajoEnCurso());
+      const sinResolucion: ThesisWork = {
+        ...thesisWork,
+        documents: [],
+        preliminaryDraftData: {
+          ...thesisWork.preliminaryDraftData,
+          evaluations: [],
+          documents: thesisWork.preliminaryDraftData.documents.filter(document => document.name === 'Anteproyecto')
         }
-      ];
-
-      mockWork.preliminaryDraftData!.documents = [
-        {
-          id: 'doc-2',
-          name: 'Res Anteproyecto',
-          url: 'http://url.com/anteproyecto.pdf',
-          type: DocumentType.RESOLUCION,
-          uploadDate: new Date()
-        }
-      ];
-
-      const result = service.mapToView(mockWork);
-
-      expect(result.mainDocument).toEqual({
-        name: 'Res Anteproyecto',
-        url: 'http://url.com/anteproyecto.pdf',
-        description: defaultDescription
-      });
-    });
-
-    it('debe extraer el documento desde los documentos directos del trabajo (Prioridad 3)', () => {
-      const mockWork = createMockThesisWork();
-
-      mockWork.preliminaryDraftData!.evaluations = [];
-      mockWork.preliminaryDraftData!.documents = [];
-
-      mockWork.documents = [
-        {
-          id: 'doc-3',
-          name: 'Res Trabajo',
-          url: 'http://url.com/trabajo.pdf',
-          type: DocumentType.RESOLUCION,
-          uploadDate: new Date()
-        }
-      ];
-
-      const result = service.mapToView(mockWork);
-
-      expect(result.mainDocument).toEqual({
-        name: 'Res Trabajo',
-        url: 'http://url.com/trabajo.pdf',
-        description: defaultDescription
-      });
-    });
-
-    it('debe devolver null si no se encuentra ningún documento de resolución en ninguna parte', () => {
-      const mockWork = createMockThesisWork();
-
-      mockWork.preliminaryDraftData!.evaluations = [];
-      mockWork.preliminaryDraftData!.documents = [];
-      mockWork.documents = [];
-
-      const result = service.mapToView(mockWork);
-
-      expect(result.mainDocument).toBeNull();
+      };
+      expect(mapper.mapToView(sinResolucion).documents.map(document => document.name)).toEqual(['Anteproyecto']);
     });
   });
 });
