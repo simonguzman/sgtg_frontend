@@ -1,0 +1,311 @@
+@startuml c4-nivel4-nucleo-front
+' C4 nivel 4 (código): núcleo del FrontEnd de SGTG.
+' Cadena que consumen todos los módulos: sesión → API → almacén → mapper → vistas.
+' Renderizar: docker run --rm -v "%cd%:/data" plantuml/plantuml -tpng /data/c4-nivel4-nucleo-front.puml
+
+title SGTG FrontEnd — Nivel 4 (código): núcleo de integración con el BackEnd
+
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #000066
+  ArrowColor #333333
+  StereotypeFontColor #5056AC
+}
+skinparam package {
+  BorderColor #828AE3
+  FontColor #000066
+}
+
+package "core/services/auth" {
+  class AuthStorageService <<service>> {
+    - _token : Signal<string | null>
+    - _currentUser : Signal<User | null>
+    + token : Signal<string | null>
+    + currentUser : Signal<User | null>
+    + isAuthenticated : Signal<boolean>
+    + userRoles : Signal<UserRoleType[]>
+    + setSession(token, user) : void
+    + setUser(user) : void
+    + clearUser() : void
+    + hasValidToken() : boolean
+    - restoreSession() : void
+  }
+  note right of AuthStorageService
+    Guarda sgtg_token y sgtg_session
+    en localStorage
+  end note
+
+  class AuthApiService <<service>> {
+    + login(credenciales) : Observable<{success, message?}>
+    + refreshCurrentUser() : Observable<void>
+    + changePassword(actual, nueva) : Observable<ChangePasswordResponse>
+    + logout() : void
+  }
+
+  class AuthService <<facade>> {
+    + currentUser : Signal<User | null>
+    + isAuthenticated : Signal<boolean>
+    + userRoles : Signal<UserRoleType[]>
+    + login(credenciales) : Observable<...>
+    + logout() : void
+    + initialize() : Observable<unknown>
+    + expireSession() : void
+    + hasAnyRole(roles) : boolean
+  }
+}
+
+package "core/interceptors" {
+  class authInterceptor <<HttpInterceptorFn>> {
+    + (req, next) : Observable<HttpEvent>
+    --
+    agrega Authorization: Bearer
+    401 → expireSession()
+  }
+}
+
+package "core/services/trabajo-grado" {
+  class TrabajoGradoApiService <<service>> {
+    + apiUrl : string
+    + misTrabajos() : Observable<TrabajoGradoResponse[]>
+    + todos() : Observable<TrabajoGradoResponse[]>
+    + porEtapa(etapa : ProcesoApi) : Observable<TrabajoGradoResponse[]>
+    + consultar(id) : Observable<TrabajoGradoResponse>
+    + estudiantesDisponibles() : Observable<number[]>
+    + urlArchivo(id, ruta) : string
+    + enviarJson(id, operacion, cuerpo) : Observable<TrabajoGradoResponse>
+    + actualizar(id, operacion, cuerpo) : Observable<TrabajoGradoResponse>
+    + enviarArchivos(id, operacion, datos, archivos : PartesArchivo) : Observable<TrabajoGradoResponse>
+  }
+
+  class TrabajoGradoStoreService <<service>> {
+    - _trabajos : Signal<TrabajoGradoResponse[]>
+    - _cargado : Signal<boolean>
+    + trabajos : Signal<TrabajoGradoResponse[]>
+    + cargado : Signal<boolean>
+    + porId : Signal<Map<string, TrabajoGradoResponse>>
+    + tieneConsultaGeneral() : boolean
+    + cargar() : Observable<TrabajoGradoResponse[]>
+    + obtener(id) : Observable<TrabajoGradoResponse | undefined>
+    + upsert(trabajo) : void
+  }
+  note right of TrabajoGradoStoreService
+    effect: carga al iniciar sesión
+    y se vacía al cerrarla
+  end note
+
+  class TrabajoGradoVistasService <<service>> {
+    + contexto : Signal<ContextoMapeo>
+    + propuestas : Signal<Proposal[]>
+    + anteproyectos : Signal<PreliminaryDraft[]>
+    + trabajosDeGrado : Signal<ThesisWork[]>
+    + cargado : Signal<boolean>
+    + propuesta(id) : Observable<Proposal | undefined>
+    + anteproyecto(id) : Observable<PreliminaryDraft | undefined>
+    + trabajoDeGrado(id) : Observable<ThesisWork | undefined>
+  }
+
+  class TrabajoGradoAnulacionService <<service>> {
+    + anular(id, justificacion) : Observable<TrabajoGradoResponse>
+  }
+}
+
+package "core/mappers" {
+  class "trabajo-grado.mapper" as TrabajoGradoMapper <<module>> {
+    + aPropuesta(trabajo, ctx) : Proposal
+    + aAnteproyecto(trabajo, ctx) : PreliminaryDraft | null
+    + aTrabajoDeGrado(trabajo, ctx) : ThesisWork | null
+    + estadoPropuesta(trabajo) : stateList
+    + estadoAnteproyecto(trabajo) : stateList
+    + estadoTrabajo(etapa) : stateList
+    + etiquetaDeRuta(ruta) : string
+    + aFecha(valor) : Date | null
+  }
+
+  interface ContextoMapeo {
+    + usuarios : ReadonlyMap<string, User>
+    + urlArchivo(trabajoId, ruta) : string
+  }
+}
+
+package "core/interfaces/api (contrato del BackEnd)" {
+  interface TrabajoGradoResponse {
+    + id : number
+    + modalidad : ModalidadApi
+    + titulo : string
+    + objetivos : string[]
+    + etapa : ProcesoApi
+    + motivoCierre : MotivoCierreApi | null
+    + estudiantes : EstudianteApi[]
+    + director : DirectorApi
+    + codirector : DirectorApi | null
+    + asesor : AsesorApi | null
+    + propuesta : PropuestaApi
+    + anteproyecto : AnteproyectoApi
+    + ejecucion : EjecucionApi | null
+    + sustentacion : SustentacionApi | null
+    + cancelaciones : CancelacionApi[]
+    + historial : CambioEtapaApi[]
+  }
+  interface PropuestaApi {
+    + fechaLimiteConcepto : string | null
+    + versiones : VersionDocumentoApi[]
+    + decisiones : DecisionApi[]
+  }
+  interface AnteproyectoApi {
+    + versiones : VersionDocumentoApi[]
+    + evaluadores : EvaluadorApi[]
+    + conceptos : ConceptoEvaluacionApi[]
+    + decisionesConsejo : DecisionApi[]
+    + remisiones : DocumentoApi[]
+  }
+  interface EjecucionApi {
+    + fechaNotificacion : string
+    + fechaFin : string
+    + fechaMinimaSustentacion : string
+    + informesMensuales : InformeMensualApi[]
+    + prorroga : ProrrogaApi | null
+    + suspensiones : SuspensionApi[]
+  }
+  interface SustentacionApi {
+    + estado : EstadoSustentacionApi
+    + sesiones : SesionSustentacionApi[]
+    + calificaciones : CalificacionJuradoApi[]
+    + revisionesPazYSalvo : RevisionPazYSalvoApi[]
+  }
+  enum ProcesoApi {
+    PROPUESTA
+    ANTEPROYECTO
+    EVALUACION
+    APROBACION_CONSEJO
+    EN_CURSO
+    PRORROGA
+    SUSPENDIDO
+    SUSTENTACION
+    APLAZADO
+    FINALIZADO
+    NO_APROBADO
+    CANCELADO
+  }
+}
+
+package "Modelos de las vistas" {
+  interface Archivable {
+    + isArchived? : boolean
+  }
+  interface Proposal {
+    + id : string
+    + title : string
+    + objectives : string[]
+    + modality : Modality
+    + authors : User[]
+    + director : User
+    + state : stateList
+    + documents : FileDocument[]
+    + evaluations : Evaluation[]
+  }
+  interface PreliminaryDraft {
+    + preliminaryDraftId : string
+    + proposalData : Proposal
+    + evaluators : User[]
+    + state : stateList
+    + documents : FileDocument[]
+    + evaluations : Evaluation[]
+  }
+  interface ThesisWork {
+    + thesisWorkId : string
+    + preliminaryDraftData : PreliminaryDraft
+    + stage : ProcesoApi
+    + state : stateList
+    + deadlines : ThesisWorkDeadlines
+    + advances : Advance[]
+    + specialRequests : SpecialRequest[]
+    + sustentations : SustentationRegistry[]
+    + sustentation : SustentationProcess | null
+  }
+  interface FileDocument {
+    + id : string
+    + name : string
+    + url : string
+    + type : DocumentType
+    + status? : stateList
+    + version? : number
+  }
+}
+
+package "modules/users/services" {
+  class UserStorageService <<service>> {
+    - _usersList : Signal<User[]>
+    + users : Signal<User[]>
+    + getUsersSnapshot() : User[]
+    + updateUsersList(mutator) : void
+  }
+}
+
+package "Consumidores (módulos)" {
+  class ProposalStorageService <<service>>
+  class PreliminaryDraftStorageService <<service>>
+  class ThesisWorkStorageService <<service>>
+  class "Servicios de operación\n(ProposalApiService, PreliminaryDraftDocumentService,\nThesisWorkSustentationService, ...)" as ServiciosOperacion <<service>>
+}
+
+' ── Sesión ──────────────────────────────────────────────
+AuthService --> AuthStorageService
+AuthService --> AuthApiService
+AuthApiService --> AuthStorageService : setSession / setUser
+authInterceptor ..> AuthStorageService : token()
+authInterceptor ..> AuthService : expireSession()
+
+' ── Trabajos de grado ───────────────────────────────────
+TrabajoGradoStoreService --> TrabajoGradoApiService
+TrabajoGradoStoreService ..> AuthStorageService : isAuthenticated\nuserRoles
+TrabajoGradoStoreService "1" o-- "*" TrabajoGradoResponse : trabajos
+TrabajoGradoVistasService --> TrabajoGradoStoreService
+TrabajoGradoVistasService --> TrabajoGradoApiService : urlArchivo
+TrabajoGradoVistasService --> UserStorageService : usuarios
+TrabajoGradoVistasService ..> TrabajoGradoMapper : usa
+TrabajoGradoVistasService ..> ContextoMapeo : crea
+TrabajoGradoAnulacionService --> TrabajoGradoApiService
+TrabajoGradoAnulacionService --> TrabajoGradoStoreService : upsert
+
+' ── Mapper ──────────────────────────────────────────────
+TrabajoGradoMapper ..> TrabajoGradoResponse : lee
+TrabajoGradoMapper ..> ContextoMapeo
+TrabajoGradoMapper ..> Proposal : crea
+TrabajoGradoMapper ..> PreliminaryDraft : crea
+TrabajoGradoMapper ..> ThesisWork : crea
+
+' ── Contrato del BackEnd ────────────────────────────────
+TrabajoGradoResponse *-- PropuestaApi
+TrabajoGradoResponse *-- AnteproyectoApi
+TrabajoGradoResponse *-- "0..1" EjecucionApi
+TrabajoGradoResponse *-- "0..1" SustentacionApi
+TrabajoGradoResponse --> ProcesoApi : etapa
+
+' ── Modelos de las vistas ───────────────────────────────
+Archivable <|-- Proposal
+Archivable <|-- PreliminaryDraft
+Archivable <|-- ThesisWork
+PreliminaryDraft *-- "1" Proposal : proposalData
+ThesisWork *-- "1" PreliminaryDraft : preliminaryDraftData
+Proposal o-- "*" FileDocument
+PreliminaryDraft o-- "*" FileDocument
+
+' ── Distribución (enlaces ocultos para ordenar los paquetes) ──
+TrabajoGradoMapper -[hidden]down- Proposal
+UserStorageService -[hidden]down- TrabajoGradoMapper
+
+' ── Consumidores ────────────────────────────────────────
+ProposalStorageService --> TrabajoGradoVistasService : propuestas
+PreliminaryDraftStorageService --> TrabajoGradoVistasService : anteproyectos
+ThesisWorkStorageService --> TrabajoGradoVistasService : trabajosDeGrado
+ServiciosOperacion --> TrabajoGradoApiService : enviarJson /\nenviarArchivos
+ServiciosOperacion --> TrabajoGradoStoreService : upsert(respuesta)
+
+@enduml
