@@ -12,11 +12,13 @@ import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { stateList } from '../../../../../core/enums/state.enum';
 
+// Por defecto todos son del departamento del director (Sistemas)
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u1',
   firstName: 'Nombre',
   lastName: 'Apellido',
   roles: [],
+  department: { id: 1, name: 'Sistemas' },
   ...overrides
 } as User);
 
@@ -59,6 +61,9 @@ describe('AssignEvaluatorsFormFacadeService', () => {
     createMockUser({ id: 'u7', firstName: 'Autor', lastName: 'String', roles: [UserRoleType.DOCENTE] }),
     createMockUser({ id: 'u8', firstName: 'Autor', lastName: 'Object', roles: [UserRoleType.DOCENTE] }),
     createMockUser({ id: 'u9', firstName: 'Sin', lastName: 'RolDocente', roles: [] }),
+    createMockUser({ id: 'u10', firstName: 'Miembro', lastName: 'Comite', roles: [UserRoleType.DOCENTE, UserRoleType.COMITE] }),
+    createMockUser({ id: 'u11', firstName: 'Docente', lastName: 'Telematica', roles: [UserRoleType.DOCENTE],
+      department: { id: 2, name: 'Telemática' } }),
   ];
 
   beforeEach(() => {
@@ -105,7 +110,7 @@ describe('AssignEvaluatorsFormFacadeService', () => {
       expect(facade.evaluator1Options()).toEqual([]);
     });
 
-    it('debería filtrar participantes del proyecto, no-docentes y roles conflictivos', () => {
+    it('debería filtrar participantes, no-docentes, jefe, Comité y docentes de otro departamento', () => {
       const mockDraft = createMockPreliminaryDraft({
         proposalData: createMockProposal({
           director: createMockUser({ id: 'u4' }),

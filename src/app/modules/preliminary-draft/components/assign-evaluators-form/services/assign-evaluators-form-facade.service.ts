@@ -3,7 +3,7 @@ import { FormBuilder, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { User } from '../../../../users/interfaces/user.interface';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
-import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
+import { canEvaluateWork } from '../../../../users/helpers/evaluator-eligibility.helper';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { UserService } from '../../../../users/services/user.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
@@ -47,14 +47,10 @@ export class AssignEvaluatorsFormFacadeService {
       if (id) forbiddenIds.add(id);
     });
 
-    return allUsers.filter(user => {
-      const isDocente = user.roles?.includes(UserRoleType.DOCENTE);
-      const isNotParticipant = !forbiddenIds.has(user.id);
-      const hasConflictRole = user.roles?.some(role =>
-        role === UserRoleType.JEFE_DEP || role === UserRoleType.CONSEJO
-      );
-      return isDocente && isNotParticipant && !hasConflictRole;
-    });
+    // Docentes del departamento del director, sin jefe, Comité ni Consejo (misma regla del backend)
+    const departmentId = allUsers.find(user => user.id === data.director?.id)?.department?.id
+      ?? data.director?.department?.id;
+    return allUsers.filter(user => canEvaluateWork(user, departmentId, forbiddenIds));
   });
 
   private readonly filteredEvaluatorsForE2 = computed(() => {

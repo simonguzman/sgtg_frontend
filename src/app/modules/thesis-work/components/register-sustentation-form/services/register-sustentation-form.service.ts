@@ -7,7 +7,7 @@ import { ThesisParticipantsFormatterService } from '../../../services/thesis-par
 import { ThesisFinalDeliveryDocumentResolverService } from '../../../services/thesis-final-delivery-document-resolver.service';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { User } from '../../../../users/interfaces/user.interface';
-import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
+import { canEvaluateWork } from '../../../../users/helpers/evaluator-eligibility.helper';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 
 @Injectable()
@@ -26,9 +26,10 @@ export class RegisterSustentationFormService {
   });
 
   /**
-   * Docentes que pueden ser jurados: con rol DOCENTE, EVALUADOR, JURADO o
-   * JURADO_COORDINADOR, que no sean director, codirector, asesor, estudiantes
-   * ni evaluadores del anteproyecto de este trabajo (sí de otros).
+   * Docentes que pueden ser jurados: del departamento del director, con rol
+   * DOCENTE, EVALUADOR, JURADO o JURADO_COORDINADOR, sin rol de jefe, Comité ni
+   * Consejo, y que no sean director, codirector, asesor, estudiantes ni
+   * evaluadores del anteproyecto de este trabajo (sí de otros).
    */
   getEligibleJurors(thesisWork: ThesisWork): User[] {
     const allUsers = this.userService.users();
@@ -52,16 +53,9 @@ export class RegisterSustentationFormService {
       if (evaluation.evaluatorId) forbiddenIds.add(evaluation.evaluatorId);
     });
 
-    const rolesJurado = [UserRoleType.DOCENTE, UserRoleType.EVALUADOR, UserRoleType.JURADO,
-      UserRoleType.JURADO_COORDINADOR];
-    return allUsers.filter(user => {
-      const isDocente  = user.roles?.some(role => rolesJurado.includes(role));
-      const isNotParticipant = !forbiddenIds.has(user.id);
-      const hasConflictRole  = user.roles?.some(role =>
-        role === UserRoleType.JEFE_DEP || role === UserRoleType.CONSEJO
-      );
-      return isDocente && isNotParticipant && !hasConflictRole;
-    });
+    const departmentId = allUsers.find(user => user.id === proposal.director?.id)?.department?.id
+      ?? proposal.director?.department?.id;
+    return allUsers.filter(user => canEvaluateWork(user, departmentId, forbiddenIds));
   }
 
   getMemberFullName(user: User | undefined): string {

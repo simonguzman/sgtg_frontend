@@ -400,3 +400,6 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
    los conceptos de los evaluadores ya apuntaban a la versión evaluada.
 9. **Fechas en las tablas:** las fechas de carga de anteproyectos, remisiones, correspondencia y documentos corregidos
    se muestran como `dd - MM - yyyy` (antes salía el texto crudo del `Date`).
+10. **Evaluadores y jurados:** solo docentes del departamento del director, sin rol de jefe, Comité ni Consejo (misma
+    regla del backend, `canEvaluateWork` en `modules/users/helpers/evaluator-eligibility.helper.ts`). Antes la lista
+    mostraba docentes y miembros del Comité de todos los departamentos.

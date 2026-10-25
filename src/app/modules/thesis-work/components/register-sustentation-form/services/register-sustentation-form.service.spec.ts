@@ -35,8 +35,10 @@ interface MockDocumentResolverService {
   resolveLatestFinalDeliveryDocument: jest.Mock<FileDocument | null, [ThesisWork, string]>;
 }
 
+// Por defecto todos son del departamento del director (Sistemas)
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-default',
+  department: { id: 1, name: 'Sistemas' },
   idType: IdentificationType.CC,
   idNumber: 123456789,
   firstName: 'Juan',
@@ -155,7 +157,9 @@ describe('RegisterSustentationFormService', () => {
       createMockUser({ id: 'evaluator1', roles: [UserRoleType.DOCENTE] }),
       createMockUser({ id: 'student1', roles: [UserRoleType.ESTUDIANTE] }),
       createMockUser({ id: 'student2', roles: [UserRoleType.DOCENTE] }),
-      createMockUser({ id: 'conflict1', roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] })
+      createMockUser({ id: 'conflict1', roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] }),
+      createMockUser({ id: 'comite1', roles: [UserRoleType.DOCENTE, UserRoleType.COMITE] }),
+      createMockUser({ id: 'otroDepto', roles: [UserRoleType.DOCENTE], department: { id: 2, name: 'Telemática' } })
     ];
 
     it('debería retornar un array vacío si no hay datos del anteproyecto o propuesta', () => {
