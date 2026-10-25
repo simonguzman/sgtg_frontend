@@ -12,7 +12,7 @@ import { UserState } from '../../users/enum/user-state.enum';
 import { User } from '../../users/interfaces/user.interface';
 import { iniciarSesionConTrabajos } from '../../../testing/sesion-de-prueba';
 import {
-  cerrarTrabajo, conConceptoDe, crearTrabajoDePrueba, crearTrabajoEnEvaluacion
+  cerrarTrabajo, conConceptoDe, crearTrabajoDePrueba, crearTrabajoEnCurso, crearTrabajoEnEvaluacion
 } from '../../../testing/trabajo-grado-de-prueba';
 import { PreliminaryDraftStorageService } from '../../preliminary-draft/services/preliminary-draft-storage.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
@@ -83,7 +83,7 @@ describe('Integración [Historial]: anulación y archivo de trabajos de grado', 
     expect(TestBed.inject(ArchivedWorksService).tableData().map(f => f['id'])).toEqual(['15']);
     expect(await entrar('15')).toBe(true);
   });
-  it('el evaluador solo lista lo que debe evaluar; lo evaluado pasa a su historial', async () => {
+  it('el evaluador lista sus anteproyectos en curso; cuando decide el Consejo pasan a su historial', async () => {
     const evaluador = usuario('20', [UserRoleType.DOCENTE, UserRoleType.EVALUADOR]);
     iniciarSesionConTrabajos(evaluador, [crearTrabajoEnEvaluacion({ id: 15 })]);
     const anteproyectos = TestBed.inject(PreliminaryDraftStorageService);
@@ -91,8 +91,14 @@ describe('Integración [Historial]: anulación y archivo de trabajos de grado', 
     expect(anteproyectos.preliminaryDrafts().map(a => a.preliminaryDraftId)).toEqual(['15']);
     expect(historial.tableData()).toEqual([]);
 
-    // Emite su concepto: sale de la lista y entra al historial
-    TestBed.inject(TrabajoGradoStoreService).upsert(conConceptoDe(crearTrabajoEnEvaluacion({ id: 15 }), 20));
+    // Emite su concepto: lo sigue viendo (revisa también las versiones corregidas)
+    const store = TestBed.inject(TrabajoGradoStoreService);
+    store.upsert(conConceptoDe(crearTrabajoEnEvaluacion({ id: 15 }), 20));
+    expect(anteproyectos.preliminaryDrafts().map(a => a.preliminaryDraftId)).toEqual(['15']);
+    expect(historial.tableData()).toEqual([]);
+
+    // El Consejo aprueba el anteproyecto: sale de la lista y entra al historial
+    store.upsert(crearTrabajoEnCurso({ id: 15 }));
     expect(anteproyectos.preliminaryDrafts()).toEqual([]);
     expect(historial.tableData().map(f => f['id'])).toEqual(['15']);
     // El detalle del anteproyecto sigue disponible; el de la propuesta no

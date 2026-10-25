@@ -24,11 +24,23 @@ export function ultimoConceptoDe(trabajo: TrabajoGradoResponse, userId: string |
     .find(concepto => String(concepto.evaluadorUsuarioId) === userId);
 }
 
+/** Etapas en las que el anteproyecto sigue en curso (antes de la decisión del Consejo). */
+const ETAPAS_DEL_ANTEPROYECTO: readonly string[] = ['ANTEPROYECTO', 'EVALUACION', 'APROBACION_CONSEJO'];
+
 /**
- * @returns true si el evaluador ya evaluó el anteproyecto y no tiene una
- * evaluación pendiente: el trabajo pasa a su historial
+ * @returns true si el usuario evalúa el anteproyecto y este sigue en curso: lo
+ * ve en su tabla de anteproyectos (los mismos evaluadores revisan las
+ * versiones corregidas), aunque ya haya emitido concepto sobre la vigente
+ */
+export function evaluaAnteproyectoEnCurso(trabajo: TrabajoGradoResponse, userId: string | undefined): boolean {
+  return esEvaluadorDelTrabajo(trabajo, userId) && ETAPAS_DEL_ANTEPROYECTO.includes(trabajo.etapa);
+}
+
+/**
+ * @returns true si el evaluador ya evaluó el anteproyecto y la etapa terminó
+ * (decidió el Consejo o se cerró el trabajo): el trabajo pasa a su historial
  */
 export function yaEvaluo(trabajo: TrabajoGradoResponse, userId: string | undefined): boolean {
   return esEvaluadorDelTrabajo(trabajo, userId) && !!ultimoConceptoDe(trabajo, userId)
-    && !tieneEvaluacionPendiente(trabajo, userId);
+    && !ETAPAS_DEL_ANTEPROYECTO.includes(trabajo.etapa);
 }

@@ -11,6 +11,7 @@ import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { SaveEvaluationPayload } from '../models/council-evaluation.model';
 import { formatDisplayDate } from '../../../../../core/utils/date-utils';
+import { versionVigente } from '../../../services/preliminary-draft-rules';
 
 const RESULT_TO_STATE: Record<string, stateList> = {
   'Aprobado': stateList.APROBADO,
@@ -89,8 +90,9 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
   );
 
   readonly documentUploadDate = computed(() => {
-    const firstDocument = this.preliminaryDraft()?.documents[0];
-    return this.parseAndFormatDate(firstDocument?.uploadDate);
+    // Fecha de la versión vigente (la que se remitió), no de la primera
+    const currentVersion = versionVigente(this.preliminaryDraft());
+    return this.parseAndFormatDate(currentVersion?.uploadDate);
   });
 
   initFormEffects(): void {

@@ -6,6 +6,7 @@ import { EvaluationDeadlineStatus } from '../../../../../core/enums/evaluation-d
 import { remainingDaysLabel } from '../../../../history/helpers/deadline-status-label.helper';
 import { User } from '../../../../users/interfaces/user.interface';
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
+import { versionVigente } from '../../../services/preliminary-draft-rules';
 
 @Injectable({ providedIn: 'root' })
 export class PreliminaryDraftMapperService {
@@ -93,7 +94,8 @@ export class PreliminaryDraftMapperService {
 
   private getDeadlineBadge(preliminaryDraft: PreliminaryDraft): string {
     const totalEvaluators = preliminaryDraft.evaluators?.length || 0;
-    const currentDocument = preliminaryDraft.documents?.[0];
+    // Ronda de la versión vigente (la última radicada), no de la primera
+    const currentDocument = versionVigente(preliminaryDraft);
     const currentRoundEvaluations = preliminaryDraft.evaluations?.filter(evaluation => currentDocument && evaluation.documentId === currentDocument.id) || [];
     const statusLabel = this.getEvaluationsStatusLabel(currentRoundEvaluations);
 

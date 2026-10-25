@@ -16,6 +16,7 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
+import { LoadedDocumentsTabType } from '../models/loaded-documents-preliminary-draft-page.model';
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -50,6 +51,7 @@ const createMockTableButton = (overrides: Partial<TableButton> = {}): TableButto
 
 describe('LoadedDocumentsPreliminaryDraftFacadeService', () => {
   let facade: LoadedDocumentsPreliminaryDraftFacadeService;
+  let mockQueryParamMap: { get: jest.Mock };
 
   let mockRouter: { navigate: jest.Mock };
   let mockDraftService: {
@@ -112,8 +114,9 @@ describe('LoadedDocumentsPreliminaryDraftFacadeService', () => {
     };
 
     const mockParamMap = { get: jest.fn().mockReturnValue('draft-123') };
+    mockQueryParamMap = { get: jest.fn().mockReturnValue(null) };
     const mockRoute = {
-      snapshot: { paramMap: mockParamMap },
+      snapshot: { paramMap: mockParamMap, queryParamMap: mockQueryParamMap },
       parent: { snapshot: { paramMap: mockParamMap } }
     };
 
@@ -143,6 +146,18 @@ describe('LoadedDocumentsPreliminaryDraftFacadeService', () => {
     it('debería inicializar el draft id desde la ruta principal', () => {
       facade.init();
       expect(facade.preliminaryDraftId()).toBe('draft-123');
+      expect(facade.activeTab()).toBe(LoadedDocumentsTabType.ANTEPROYECTOS);
+    });
+
+    it('abre la pestaña indicada en la URL (ej. desde una notificación) e ignora una desconocida', () => {
+      mockQueryParamMap.get.mockReturnValue('PRESENTACIONES');
+      facade.init();
+      expect(facade.activeTab()).toBe(LoadedDocumentsTabType.PRESENTACIONES);
+
+      facade.activeTab.set(LoadedDocumentsTabType.ANTEPROYECTOS);
+      mockQueryParamMap.get.mockReturnValue('OTRA');
+      facade.init();
+      expect(facade.activeTab()).toBe(LoadedDocumentsTabType.ANTEPROYECTOS);
     });
 
     it('debería limpiar el breadcrumb al destruirse', () => {

@@ -4,7 +4,7 @@ import { AuthService } from '../../../core/services/auth/auth.service';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { TrabajoGradoVistasService } from '../../../core/services/trabajo-grado/trabajo-grado-vistas.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
-import { tieneEvaluacionPendiente } from '../../../core/helpers/evaluacion-pendiente.helper';
+import { evaluaAnteproyectoEnCurso } from '../../../core/helpers/evaluacion-pendiente.helper';
 import { TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado-api.interface';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { User } from '../../users/interfaces/user.interface';
@@ -43,8 +43,8 @@ export class PreliminaryDraftStorageService {
 
   /**
    * Anteproyectos activos visibles para el usuario según su rol y participación.
-   * Al evaluador solo se le listan los que aún debe evaluar; los que ya evaluó
-   * pasan a su historial (el detalle sigue disponible).
+   * El evaluador ve los que tiene asignados mientras el anteproyecto siga en
+   * curso; cuando decide el Consejo pasan a su historial.
    */
   public readonly preliminaryDrafts = computed(() => {
     const currentUser = this.authService.currentUser();
@@ -53,12 +53,11 @@ export class PreliminaryDraftStorageService {
     if (this.hasPrivilegedAccess()) return activePreliminaryDrafts;
     const trabajos = this.store.porId();
     return activePreliminaryDrafts.filter(draft => this.isParticipant(draft, currentUser.id)
-      || this.hasPendingEvaluation(trabajos.get(draft.preliminaryDraftId ?? ''), currentUser.id));
+      || this.evaluatesInProgress(trabajos.get(draft.preliminaryDraftId ?? ''), currentUser.id));
   });
 
-  private hasPendingEvaluation(trabajo: TrabajoGradoResponse | undefined,
-    userId: string): boolean {
-    return !!trabajo && tieneEvaluacionPendiente(trabajo, userId);
+  private evaluatesInProgress(trabajo: TrabajoGradoResponse | undefined, userId: string): boolean {
+    return !!trabajo && evaluaAnteproyectoEnCurso(trabajo, userId);
   }
 
   /** Anteproyecto por id (de memoria o del backend). */

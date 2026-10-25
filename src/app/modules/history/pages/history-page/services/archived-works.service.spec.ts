@@ -82,20 +82,21 @@ describe('ArchivedWorksService', () => {
     ]);
   });
 
-  it('el evaluador ve en su historial los anteproyectos que ya evaluó, solo con el anteproyecto', () => {
+  it('el evaluador ve en su historial los anteproyectos que evaluó cuando decidió el Consejo, solo con el anteproyecto', () => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     const service = TestBed.inject(ArchivedWorksService);
     iniciarSesionConTrabajos(usuario('20', [UserRoleType.DOCENTE, UserRoleType.EVALUADOR]), [
-      conConceptoDe(crearTrabajoEnEvaluacion({ id: 5 }), 20, 'CON_CORRECCIONES', '2026-03-20'),
-      // El otro evaluador ya emitió; el 20 tiene pendiente este
-      conConceptoDe(crearTrabajoEnEvaluacion({ id: 6 }), 21)
+      // El Consejo ya aprobó el anteproyecto que evaluó: pasa al historial
+      crearTrabajoEnCurso({ id: 5 }),
+      // Aún en evaluación (con su concepto o pendiente): sigue en su tabla de anteproyectos
+      conConceptoDe(crearTrabajoEnEvaluacion({ id: 6 }), 20, 'CON_CORRECCIONES', '2026-03-20'),
+      conConceptoDe(crearTrabajoEnEvaluacion({ id: 7 }), 21)
     ]);
 
     expect(service.tableData()).toEqual([expect.objectContaining({
-      id: '5', closedAt: 'Anteproyecto', state: stateList.APROBADO_CON_OBSERVACIONES,
-      reason: 'Evaluaste la versión 1 del anteproyecto', justification: 'Ajustar la metodología',
-      closingDate: '20 - 03 - 2026',
+      id: '5', closedAt: 'En curso', state: stateList.APROBADO,
+      reason: 'Evaluaste la versión 1 del anteproyecto', closingDate: '12 - 03 - 2026',
       allowedActions: [ARCHIVED_WORK_ACTIONS.DESCRIPCION, ARCHIVED_WORK_ACTIONS.ANTEPROYECTO]
     })]);
   });

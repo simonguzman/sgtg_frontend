@@ -32,10 +32,11 @@ export class ProposalFacadeService {
   });
 
   public readonly headerButtons = computed<TableButton[]>(() => {
+    // El jefe de departamento no dirige trabajos de grado (asigna sus evaluadores y los remite al Consejo)
     const canRegister = this.authService.hasAnyRole([
       UserRoleType.ADMINISTRADOR,
       UserRoleType.DIRECTOR
-    ]);
+    ]) && !this.authService.hasAnyRole([UserRoleType.JEFE_DEP]);
     return canRegister
       ? [...PROPOSAL_HEADER_BUTTONS]
       : PROPOSAL_HEADER_BUTTONS.filter(btn => btn.label !== 'Registrar propuesta');

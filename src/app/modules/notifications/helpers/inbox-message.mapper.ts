@@ -18,7 +18,11 @@ const ETAPAS_DE_ANTEPROYECTO: readonly ProcesoApi[] = ['ANTEPROYECTO', 'EVALUACI
  * que aún no tiene documento).
  */
 const RUTAS_POR_EVENTO: Record<string, (trabajoId: number) => string> = {
-  DECISION_COMITE: trabajoId => `/proposal/details/${trabajoId}/evaluations_performed`
+  DECISION_COMITE: trabajoId => `/proposal/details/${trabajoId}/evaluations_performed`,
+  CONCEPTO_EVALUADOR: trabajoId => `/preliminary-draft/details/${trabajoId}/evaluations_performed`,
+  DECISION_CONSEJO_ANTEPROYECTO: trabajoId => `/preliminary-draft/details/${trabajoId}/evaluations_performed`,
+  // El formato C se consulta en la pestaña de presentaciones al Consejo
+  ANTEPROYECTO_REMITIDO: trabajoId => `/preliminary-draft/details/${trabajoId}/loaded_documents?tab=PRESENTACIONES`
 };
 
 /**

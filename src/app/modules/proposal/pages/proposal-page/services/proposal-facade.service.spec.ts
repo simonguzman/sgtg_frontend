@@ -11,6 +11,7 @@ import { Proposal } from '../../../interfaces/proposal.interface';
 import { ProposalTableRow } from '../models/proposal-page.model';
 import { TrabajoGradoStoreService } from '../../../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { crearTrabajoDePrueba, crearTrabajoEnCurso } from '../../../../../testing/trabajo-grado-de-prueba';
+import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 
 describe('ProposalFacadeService', () => {
   let service: ProposalFacadeService;
@@ -78,10 +79,15 @@ describe('ProposalFacadeService', () => {
     });
 
     it('headerButtons debe incluir "Registrar propuesta" si tiene rol', () => {
-      mockAuthService.hasAnyRole.mockReturnValue(true);
+      mockAuthService.hasAnyRole.mockImplementation((roles: UserRoleType[]) => !roles.includes(UserRoleType.JEFE_DEP));
 
       const buttons = service.headerButtons();
       expect(buttons.some(button => button.label === 'Registrar propuesta')).toBeTruthy();
+    });
+
+    it('el jefe de departamento no registra propuestas (no dirige trabajos de grado)', () => {
+      mockAuthService.hasAnyRole.mockReturnValue(true);
+      expect(service.headerButtons().some(button => button.label === 'Registrar propuesta')).toBeFalsy();
     });
 
     it('headerButtons NO debe incluir "Registrar propuesta" si no tiene permisos', () => {

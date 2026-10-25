@@ -172,6 +172,16 @@ describe('ProposalFormService', () => {
       expect(ids(service.codirectorOptions())).toEqual(['teacher-1', 'tel-1']);
     });
 
+    it('el jefe del departamento del director no puede ser codirector; el de otro departamento sí', () => {
+      const jefeSistemas = createMockUser({ id: 'jefe-sis', firstName: 'Javier', lastName: 'Jefe',
+        contractType: ContractType.PLANTA, department: SISTEMAS, roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] });
+      const jefeTelematica = createMockUser({ id: 'jefe-tel', firstName: 'José', lastName: 'Jefe',
+        contractType: ContractType.PLANTA, department: TELEMATICA, roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] });
+      mockUserService.teachers.set([mockDirector, mockTeacher1, jefeSistemas, jefeTelematica]);
+
+      expect(ids(service.codirectorOptions())).toEqual(['teacher-1', 'jefe-tel']);
+    });
+
     it('si el director no es de planta, el codirector es obligatorio y de planta de su departamento', () => {
       mockAuthService.currentUser.set({ ...mockDirector, contractType: ContractType.OCASIONAL });
       mockUserService.teachers.set([mockDirector, mockTeacher1, docenteCatedraSistemas, docentePlantaTelematica]);

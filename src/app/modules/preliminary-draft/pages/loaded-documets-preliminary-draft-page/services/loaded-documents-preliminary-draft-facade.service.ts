@@ -120,6 +120,9 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
   init(): void {
     const preliminaryDraftId = this.route.snapshot.paramMap.get('id') || this.route.parent?.snapshot.paramMap.get('id');
     if (preliminaryDraftId) this.preliminaryDraftId.set(preliminaryDraftId);
+    // Pestaña indicada en la URL (ej. ?tab=PRESENTACIONES desde una notificación)
+    const tab = this.route.snapshot.queryParamMap.get('tab');
+    if (tab && Object.values(LoadedDocumentsTabType).includes(tab as LoadedDocumentsTabType)) this.activeTab.set(tab);
   }
 
   destroy(): void {

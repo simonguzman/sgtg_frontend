@@ -403,3 +403,12 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
 10. **Evaluadores y jurados:** solo docentes del departamento del director, sin rol de jefe, Comité ni Consejo (misma
     regla del backend, `canEvaluateWork` en `modules/users/helpers/evaluator-eligibility.helper.ts`). Antes la lista
     mostraba docentes y miembros del Comité de todos los departamentos.
+11. **Notificaciones del anteproyecto:** `CONCEPTO_EVALUADOR` y `DECISION_CONSEJO_ANTEPROYECTO` llevan a las
+    evaluaciones realizadas del anteproyecto; `ANTEPROYECTO_REMITIDO`, a documentos cargados en la pestaña de
+    presentaciones (`?tab=PRESENTACIONES`, que la página lee al iniciar).
+12. **Plazo del anteproyecto:** la tabla y el formulario del Consejo usan la versión vigente (`versionVigente`), no la
+    primera: con una versión corregida se ven los días hábiles de la nueva ronda.
+13. **El evaluador ve sus anteproyectos mientras sigan en curso** (ANTEPROYECTO, EVALUACION, APROBACION_CONSEJO), aunque
+    ya haya emitido concepto (`evaluaAnteproyectoEnCurso`); cuando decide el Consejo pasan a su historial (`yaEvaluo`).
+14. **El jefe no dirige trabajos de su departamento:** no ve "Registrar propuesta" y no aparece como codirector de un
+    director de su departamento (el backend lo rechaza, §8 de `ajustes-2026-10-24.md`).

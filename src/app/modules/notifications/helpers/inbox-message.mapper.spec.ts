@@ -21,6 +21,12 @@ describe('inbox-message.mapper', () => {
     // Los demás eventos (o las notificaciones sin evento) siguen la etapa
     expect(rutaDeNotificacion(15, 'ANTEPROYECTO', 'ANTEPROYECTO_RADICADO')).toBe('/preliminary-draft/details/15');
     expect(rutaDeNotificacion(15, 'ANTEPROYECTO', null)).toBe('/preliminary-draft/details/15');
+    // Conceptos y decisiones del anteproyecto, a sus evaluaciones; la remisión, a las presentaciones
+    expect(rutaDeNotificacion(15, 'EVALUACION', 'CONCEPTO_EVALUADOR')).toBe('/preliminary-draft/details/15/evaluations_performed');
+    expect(rutaDeNotificacion(15, 'EN_CURSO', 'DECISION_CONSEJO_ANTEPROYECTO'))
+      .toBe('/preliminary-draft/details/15/evaluations_performed');
+    expect(rutaDeNotificacion(15, 'APROBACION_CONSEJO', 'ANTEPROYECTO_REMITIDO'))
+      .toBe('/preliminary-draft/details/15/loaded_documents?tab=PRESENTACIONES');
     expect(aMensajeDelBuzon({
       id: 1, tipo: 'CONFIRMACION', titulo: 'Concepto del Comité de Programa', mensaje: 'M', trabajoId: 15,
       etapa: 'ANTEPROYECTO', evento: 'DECISION_COMITE', fecha: '2026-03-02T10:30:00', leida: false

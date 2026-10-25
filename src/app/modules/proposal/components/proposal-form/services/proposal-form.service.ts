@@ -13,6 +13,7 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 import { Modality } from '../../../enums/modality.enum';
 import { ContractType } from '../../../../users/enum/contract-type.enum';
+import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 
 /** Campos de participantes: se fijan al crear el trabajo y no se editan después. */
 const CAMPOS_PARTICIPANTES = ['modality', 'student1', 'student2', 'codirector', 'advisor', 'organization'] as const;
@@ -109,9 +110,10 @@ export class ProposalFormService {
   readonly directorDepartment = computed(() => this.authService.currentUser()?.department ?? null);
 
   /**
-   * Docentes que pueden ser codirector: con perfil docente y que no sean
-   * estudiantes de posgrado; si el director no es de planta, solo los de
-   * planta de su departamento (mismas reglas que valida el backend).
+   * Docentes que pueden ser codirector: con perfil docente, que no sean
+   * estudiantes de posgrado ni el jefe del departamento del director (gestiona
+   * el trabajo); si el director no es de planta, solo los de planta de su
+   * departamento (mismas reglas que valida el backend).
    */
   readonly codirectorOptions = computed<SelectOption[]>(() => {
     const departamento = this.directorDepartment();
@@ -120,6 +122,8 @@ export class ProposalFormService {
       .filter(teacher => this.isEditing() || (!!teacher.department && teacher.contractType !== ContractType.ESTUDIANTE_POSGRADO))
       .filter(teacher => this.isEditing() || !soloDePlanta
         || (teacher.contractType === ContractType.PLANTA && teacher.department?.id === departamento?.id))
+      .filter(teacher => this.isEditing()
+        || !(teacher.roles?.includes(UserRoleType.JEFE_DEP) && teacher.department?.id === departamento?.id))
       .map(teacher => this.mapUserToOption(teacher));
   });
 
