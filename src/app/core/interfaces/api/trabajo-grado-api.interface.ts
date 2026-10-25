@@ -82,6 +82,8 @@ export interface DecisionApi {
   fechaLimite?: string | null;
   /** true si decidió dentro del plazo; null si la decisión no tiene plazo */
   aTiempo?: boolean | null;
+  /** Usuario que registró la decisión en nombre del órgano; null en las anteriores a este dato */
+  responsableId?: number | null;
 }
 
 /**

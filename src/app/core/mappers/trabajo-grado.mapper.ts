@@ -75,8 +75,9 @@ export function aPropuesta(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): P
     evaluationDeadline: aFecha(trabajo.propuesta.fechaLimiteConcepto) ?? undefined,
     evaluationRemainingDays: trabajo.propuesta.diasHabilesRestantesConcepto ?? null,
     documents: documentos,
+    // El Comité emite un concepto por cada versión radicada, en el mismo orden
     evaluations: trabajo.propuesta.decisiones.map((decision, i) =>
-      evaluacionDeDecision(trabajo, decision, i, ctx)),
+      evaluacionDeDecision(trabajo, decision, i, ctx, versiones[i]?.ruta)),
     isArchived: estaCerrado(trabajo),
     isActive: true
   };
@@ -639,14 +640,19 @@ const NOMBRES_ORGANO: Record<DecisionApi['organo'], { nombre: string; rol: UserR
   CONSEJO_FACULTAD: { nombre: 'Consejo de Facultad', rol: UserRoleType.CONSEJO }
 };
 
-/** Decisión de un órgano (Comité, Consejo) como evaluación del front. */
+/**
+ * Decisión de un órgano (Comité, Consejo) como evaluación del front. El
+ * evaluador es quien la registró en nombre del órgano (si se conoce) y
+ * `documentoEvaluado` la ruta de la versión sobre la que decidió.
+ */
 function evaluacionDeDecision(trabajo: TrabajoGradoResponse, decision: DecisionApi, indice: number,
-  ctx: ContextoMapeo): Evaluation {
+  ctx: ContextoMapeo, documentoEvaluado?: string): Evaluation {
   const organo = NOMBRES_ORGANO[decision.organo];
   return {
     id: `${trabajo.id}-${decision.organo}-${indice}`,
     proposalId: String(trabajo.id),
-    evaluatorId: '',
+    documentId: documentoEvaluado,
+    evaluatorId: decision.responsableId ? String(decision.responsableId) : '',
     evaluatorName: organo.nombre,
     evaluatorRole: organo.rol,
     veredict: veredicto(decision.resultado),

@@ -384,3 +384,9 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
 4. **Notificaciones por evento:** el backend devuelve el `evento` de cada notificación. `rutaDeNotificacion` usa la
    vista propia del evento si la tiene (`DECISION_COMITE` → `/proposal/details/{id}/evaluations_performed`) y, si no,
    la de la etapa, como antes.
+5. **Evaluaciones realizadas de la propuesta:** el nombre es el de quien registró el concepto del Comité
+   (`responsableId` de la decisión; sin él, el órgano) y el documento evaluado es la versión del formato A sobre la
+   que decidió (el Comité emite un concepto por versión, en el mismo orden).
+6. **Registro de anteproyecto:** muestra lo registrado en la propuesta (objetivos, descripción, línea, organización;
+   sin los opcionales vacíos) y descarga la respuesta del Comité con `FileDownloadService`: el enlace directo no
+   llevaba el token y bajaba la respuesta de error.

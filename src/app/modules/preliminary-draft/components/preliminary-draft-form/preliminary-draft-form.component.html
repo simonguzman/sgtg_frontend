@@ -67,12 +67,46 @@
             }
           </div>
 
-          <!-- Descripción -->
-          <div class="flex flex-col gap-1 md:col-span-2">
-            <span class="font-display font-semibold text-primary text-size-section">
-              Descripción de la propuesta <span class="text-alert">*</span>
-            </span>
-            @if (isEditMode) {
+          <!-- Read-only fields -->
+          <ng-template #readOnlyField let-label="label" let-value="value" let-values="values" let-fullWidth="fullWidth">
+            <div class="flex flex-col gap-1" [class.md:col-span-2]="fullWidth">
+              <span class="font-display font-semibold text-primary text-size-section block">{{ label }}</span>
+              <div class="information-block w-full p-2 rounded-md font-normal font-sans text-size-section text-text-body min-h-10 flex items-center wrap-break-word">
+                @if (values) {
+                  <ul class="m-0 pl-5 list-disc flex flex-col gap-1">
+                    @for (item of values; track $index) {
+                      <li>{{ item }}</li>
+                    }
+                  </ul>
+                } @else {
+                  {{ value }}
+                }
+              </div>
+            </div>
+          </ng-template>
+
+          @if (!isEditMode && content(); as registered) {
+            <!-- Lo registrado en la propuesta; los opcionales vacíos no se muestran -->
+            @if (registered.generalObjective) {
+              <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Objetivo general', value: registered.generalObjective, fullWidth: true }"></ng-container>
+            }
+            @if (registered.specificObjectives.length > 0) {
+              <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Objetivos específicos', values: registered.specificObjectives, fullWidth: true }"></ng-container>
+            }
+            @if (registered.description) {
+              <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Descripción', value: registered.description, fullWidth: true }"></ng-container>
+            }
+            @if (registered.lineOfResearch) {
+              <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Línea de investigación', value: registered.lineOfResearch, fullWidth: true }"></ng-container>
+            }
+          }
+
+          <!-- Descripción (editable al corregir) -->
+          @if (isEditMode) {
+            <div class="flex flex-col gap-1 md:col-span-2">
+              <span class="font-display font-semibold text-primary text-size-section">
+                Descripción de la propuesta <span class="text-alert">*</span>
+              </span>
               <div class="relative flex items-center">
                 <textarea id=""
                           formControlName="description" rows="4" class="w-full p-2 border rounded-md font-sans text-size-body text-textbox focus:ring-1 focus:ring-primary outline-none bg-white"
@@ -86,22 +120,8 @@
               @if (isFieldInvalid('description')) {
                 <span class="text-textbox-alert">La descripción es obligatoria</span>
               }
-            } @else {
-              <div class="information-block w-full p-2 rounded-md font-normal font-sans text-size-section text-text-body min-h-10 flex items-center">
-                {{ proposal.description || 'Sin descripción disponible' }}
-              </div>
-            }
-          </div>
-
-          <!-- Read-only fields -->
-          <ng-template #readOnlyField let-label="label" let-value="value" let-fullWidth="fullWidth">
-            <div class="flex flex-col gap-1" [class.md:col-span-2]="fullWidth">
-              <span class="font-display font-semibold text-primary text-size-section block">{{ label }}</span>
-              <div class="information-block w-full p-2 rounded-md font-normal font-sans text-size-section text-text-body min-h-10 flex items-center">
-                {{ value }}
-              </div>
             </div>
-          </ng-template>
+          }
 
           <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Modalidad', value: proposal.modality }"></ng-container>
           <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Estado de la propuesta', value: proposal.state }"></ng-container>
@@ -114,6 +134,10 @@
 
           @if (proposal.advisor) {
             <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Asesor', value: formService.getMemberName(proposal.advisor) }"></ng-container>
+          }
+
+          @if (content()?.organization) {
+            <ng-container *ngTemplateOutlet="readOnlyField; context: { label: 'Organización', value: content()?.organization }"></ng-container>
           }
         </div>
       </section>
@@ -133,13 +157,8 @@
                 <span class="text-size-role-footer text-text-body font-sans">Documento firmado por el comité evaluador</span>
               </div>
             </div>
-            @if (evaluationDoc.url) {
-              <a [href]="evaluationDoc.url" target="_blank" download class="inline-block">
-                <app-button-component label="Descargar" variant="primary" type="button"></app-button-component>
-              </a>
-            } @else {
-              <app-button-component label="Descargar" variant="primary" type="button"></app-button-component>
-            }
+            <app-button-component label="Descargar" variant="primary" type="button"
+                                  (onClick)="downloadEvaluationDocument()"></app-button-component>
           </div>
         </div>
       }

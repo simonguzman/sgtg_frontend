@@ -16,6 +16,7 @@ import { Modality } from '../../../proposal/enums/modality.enum';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
+import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
 
 @Component({ selector: 'app-button-component', standalone: true, template: '<button (click)="onClick.emit()">{{label}}</button>' })
 class MockButtonComponent {
@@ -132,6 +133,7 @@ describe('PreliminaryDraftFormComponent', () => {
   let fixture: ComponentFixture<PreliminaryDraftFormComponent>;
   let mockFormService: MockPreliminaryDraftFormService;
   let mockNotificationService: jest.Mocked<Pick<NotificationService, 'show'>>;
+  let mockDownloadService: { download: jest.Mock };
 
   beforeEach(async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -160,11 +162,13 @@ describe('PreliminaryDraftFormComponent', () => {
     mockNotificationService = {
       show: jest.fn()
     };
+    mockDownloadService = { download: jest.fn().mockResolvedValue(undefined) };
 
     await TestBed.configureTestingModule({
       imports: [PreliminaryDraftFormComponent, ReactiveFormsModule],
       providers: [
-        { provide: NotificationService, useValue: mockNotificationService }
+        { provide: NotificationService, useValue: mockNotificationService },
+        { provide: FileDownloadService, useValue: mockDownloadService }
       ]
     })
     .overrideComponent(PreliminaryDraftFormComponent, {
@@ -337,6 +341,59 @@ describe('PreliminaryDraftFormComponent', () => {
       await component.submit();
 
       expect(component.onSave.emit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Información registrada de la propuesta', () => {
+    const textoDe = () => fixture.nativeElement.textContent as string;
+
+    it('muestra objetivos, descripción, línea de investigación y organización registrados', () => {
+      mockFormService.selectedProposal.set(createMockProposal({
+        description: 'Contexto del trabajo',
+        objectives: ['Objetivo G', 'Específico 1', 'Específico 2'],
+        lineOfResearch: 'Ingeniería de software',
+        organization: 'Empresa S.A.'
+      }));
+      fixture.detectChanges();
+
+      ['Objetivo general', 'Objetivo G', 'Objetivos específicos', 'Descripción', 'Contexto del trabajo',
+        'Línea de investigación', 'Ingeniería de software', 'Organización', 'Empresa S.A.']
+        .forEach(texto => expect(textoDe()).toContain(texto));
+      const items = Array.from(fixture.nativeElement.querySelectorAll('li') as NodeListOf<HTMLElement>)
+        .map(li => li.textContent?.trim());
+      expect(items).toEqual(['Específico 1', 'Específico 2']);
+    });
+
+    it('omite los datos opcionales que no se registraron', () => {
+      mockFormService.selectedProposal.set(createMockProposal({ description: 'Objetivo G', objectives: ['Objetivo G'] }));
+      fixture.detectChanges();
+
+      expect(textoDe()).toContain('Objetivo general');
+      ['Objetivos específicos', 'Descripción', 'Línea de investigación', 'Organización']
+        .forEach(texto => expect(textoDe()).not.toContain(texto));
+    });
+  });
+
+  describe('Respuesta del Comité', () => {
+    it('la descarga con la sesión del usuario (no con un enlace directo)', async () => {
+      mockFormService.proposalEvaluationDocument.set(createMockFileDocument({ name: 'Respuesta del Comité', url: '/api/archivos/acta.pdf' }));
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('a[download]')).toBeNull();
+
+      await component.downloadEvaluationDocument();
+      expect(mockDownloadService.download).toHaveBeenCalledWith('/api/archivos/acta.pdf', 'Respuesta del Comité');
+    });
+
+    it('notifica si no hay documento o si la descarga falla', async () => {
+      await component.downloadEvaluationDocument();
+      expect(mockDownloadService.download).not.toHaveBeenCalled();
+      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Error de descarga' }));
+
+      mockNotificationService.show.mockClear();
+      mockFormService.proposalEvaluationDocument.set(createMockFileDocument({ url: '/api/archivos/acta.pdf' }));
+      mockDownloadService.download.mockRejectedValue(new Error('red'));
+      await component.downloadEvaluationDocument();
+      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Error de descarga' }));
     });
   });
 });

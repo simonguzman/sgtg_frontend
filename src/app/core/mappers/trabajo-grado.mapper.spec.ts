@@ -71,6 +71,18 @@ describe('trabajo-grado.mapper', () => {
       })]);
     });
 
+    it('cada concepto del Comité trae quién lo registró y la versión que evaluó', () => {
+      const base = crearTrabajoEnAnteproyecto();
+      const conResponsable = crearTrabajoEnAnteproyecto({ propuesta: { ...base.propuesta,
+        decisiones: [{ ...base.propuesta.decisiones[0], responsableId: 50 }] } });
+
+      const [evaluacion] = aPropuesta(conResponsable, ctx).evaluations;
+      expect(evaluacion.evaluatorId).toBe('50');
+      expect(evaluacion.documentId).toBe(base.propuesta.versiones[0].ruta);
+      // Sin responsable (decisiones anteriores a este dato) se muestra el órgano
+      expect(aPropuesta(base, ctx).evaluations[0].evaluatorId).toBe('');
+    });
+
     it('el estado es de cada versión y el de la propuesta es el de la última', () => {
       const base = crearTrabajoDePrueba();
       const propuesta = aPropuesta(crearTrabajoDePrueba({

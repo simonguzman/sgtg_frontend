@@ -1,4 +1,4 @@
-import { Component, effect, EventEmitter, inject, input, Output } from '@angular/core';
+import { Component, computed, effect, EventEmitter, inject, input, Output } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { NgTemplateOutlet } from '@angular/common';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
@@ -10,6 +10,8 @@ import { ButtonComponent } from "../../../../shared/components/button-component/
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 import { SearchableSelectComponent, SelectOption } from '../../../../shared/components/searchable-select/searchable-select.component';
+import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
+import { proposalContent } from '../../../../shared/components/work-details/work-details.builder';
 
 @Component({
   selector: 'app-preliminary-draft-form',
@@ -22,6 +24,7 @@ import { SearchableSelectComponent, SelectOption } from '../../../../shared/comp
 export class PreliminaryDraftFormComponent {
   readonly formService = inject(PreliminaryDraftFormService);
   private readonly notificationService = inject(NotificationService);
+  private readonly downloadService = inject(FileDownloadService);
 
   preliminaryDraft = input<PreliminaryDraft | null>(null);
   @Output() onSave = new EventEmitter<PreliminaryDraft>();
@@ -49,6 +52,25 @@ export class PreliminaryDraftFormComponent {
   get proposalOptions(): SelectOption[] { return this.formService.proposalOptions(); }
   get selectedProposal() { return this.formService.selectedProposal(); }
   get proposalEvaluationDocument() { return this.formService.proposalEvaluationDocument(); }
+  /** Objetivos, descripción, línea de investigación y organización registrados en la propuesta elegida */
+  readonly content = computed(() => {
+    const proposal = this.formService.selectedProposal();
+    return proposal ? proposalContent(proposal) : null;
+  });
+
+  /** Descarga la respuesta del Comité con la sesión del usuario (el enlace directo no lleva el token). */
+  async downloadEvaluationDocument(): Promise<void> {
+    const document = this.proposalEvaluationDocument;
+    if (!document?.url?.trim()) {
+      this.notificationService.show({ title: 'Error de descarga', message: 'No se pudo obtener el documento de respuesta del Comité.', type: NotificationType.ERROR });
+      return;
+    }
+    try {
+      await this.downloadService.download(document.url, document.name);
+    } catch {
+      this.notificationService.show({ title: 'Error de descarga', message: 'No se pudo descargar el documento. Intente más tarde.', type: NotificationType.ERROR });
+    }
+  }
 
   isFieldInvalid(fieldName: string): boolean {
     const field = this.form.get(fieldName);
