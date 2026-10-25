@@ -28,7 +28,7 @@
   modalHeader="Detalles de la propuesta"
   [subTitle]="registrationDetails()?.subtitle || ''"
   [title]="registrationDetails()?.title || ''"
-  [comments]="registrationDetails()?.comments || ''"
+  [fields]="registrationDetails()?.fields ?? []"
   [modality]="registrationDetails()?.modality || ''"
   [student]="registrationDetails()?.student || ''"
   [director]="registrationDetails()?.director || ''"

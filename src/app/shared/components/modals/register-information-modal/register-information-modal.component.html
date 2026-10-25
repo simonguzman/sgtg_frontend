@@ -18,13 +18,26 @@
       <h3 class="text-primary font-semibold font-display text-size-header-title mb-4">
         {{ subTitle }}
       </h3>
-      <div class="grid grid-cols-[150px_1fr] gap-y-4 items-center font-sans text-size-body">
-        <p class="font-bold text-primary m-0">Titulo:</p>
-        <p class="m-0 text-gray-700">{{ title }}</p>
-        <p class="font-bold text-primary m-0">Descripción:</p>
-        <p class="m-0 text-gray-700 whitespace-pre-line">
-          {{ comments || 'Sin descripción registrada' }}
-        </p>
+      <div class="grid grid-cols-[150px_1fr] gap-x-3 gap-y-4 items-start font-sans text-size-body">
+        <p class="font-bold text-primary m-0">Título:</p>
+        <p class="m-0 text-gray-700 wrap-break-word">{{ title }}</p>
+        @if (fields) {
+          @for (field of fields; track field.label) {
+            <p class="font-bold text-primary m-0">{{ field.label }}:</p>
+            @if (field.values) {
+              <ul class="m-0 pl-5 list-disc flex flex-col gap-1 text-gray-700 wrap-break-word">
+                @for (value of field.values; track $index) {
+                  <li>{{ value }}</li>
+                }
+              </ul>
+            } @else {
+              <p class="m-0 text-gray-700 whitespace-pre-line wrap-break-word">{{ field.value }}</p>
+            }
+          }
+        } @else {
+          <p class="font-bold text-primary m-0">Descripción:</p>
+          <p class="m-0 text-gray-700 whitespace-pre-line wrap-break-word">{{ comments || 'Sin descripción registrada' }}</p>
+        }
         <p class="font-bold text-primary m-0">Modalidad:</p>
         <p class="m-0 text-gray-700">{{ modality }}</p>
         <p class="font-bold text-primary m-0">Estudiante:</p>
@@ -41,7 +54,7 @@
         }
         <p class="font-bold text-primary m-0">Fecha de carga:</p>
         <p class="m-0 text-gray-700">{{ chargeDate | date: 'dd - MM - yyyy' }}</p>
-        <p class="font-bold text-primary m-0">Estado</p>
+        <p class="font-bold text-primary m-0">Estado:</p>
         <div>
           @if (state) {
             <app-state [state]="state" [label]="state"></app-state>

@@ -26,6 +26,9 @@ interface MockFormService {
   specificObjectives: FormArray<FormControl<string>>;
   addSpecificObjective: jest.Mock;
   removeSpecificObjective: jest.Mock;
+  student1Program: WritableSignal<{ id: number; name: string } | null>;
+  directorRequiresCodirector: WritableSignal<boolean>;
+  directorDepartment: WritableSignal<{ id: number; name: string } | null>;
 }
 
 interface MockNotificationService {
@@ -103,7 +106,10 @@ describe('ProposalFormComponent', () => {
       advisorOptions: signal([]),
       specificObjectives: mockFormGroup.get('specificObjectives') as FormArray<FormControl<string>>,
       addSpecificObjective: jest.fn(),
-      removeSpecificObjective: jest.fn()
+      removeSpecificObjective: jest.fn(),
+      student1Program: signal(null),
+      directorRequiresCodirector: signal(false),
+      directorDepartment: signal(null)
     };
 
     mockNotificationService = { show: jest.fn() };
@@ -311,6 +317,29 @@ describe('ProposalFormComponent', () => {
       await component.submit();
       expect(mockFormService.buildProposalPayload).toHaveBeenCalledWith(mockProposal, { proposal: null, acceptanceLetter: null });
       expect(component.onSubmit.emit).toHaveBeenCalledWith(mockPayload);
+    });
+
+    it('en edición de una práctica muestra la carta vigente y envía la nueva como nueva versión', async () => {
+      const cartaVigente = { id: 'carta', name: 'Carta de aceptación', type: DocumentType.FORMATO } as FileDocument;
+      const mockProposal = createMockProposal({ documents: [...createMockProposal().documents, cartaVigente] });
+      fixture.componentRef.setInput('proposal', mockProposal);
+      mockFormGroup.patchValue({ modality: Modality.PP });
+      fixture.detectChanges();
+
+      expect(component.acceptanceLetter).toEqual({ hasFile: true, name: 'Carta de aceptación', file: null });
+      expect(fixture.nativeElement.textContent).toContain('Carta de aceptación');
+
+      // Al quitarla es obligatorio cargar otra
+      component.removeAcceptanceLetter();
+      await component.submit();
+      expect(component.isLetterFieldInvalid).toBe(true);
+      expect(mockFormService.buildProposalPayload).not.toHaveBeenCalled();
+
+      mockFormService.buildProposalPayload.mockReturnValue(createMockProposal());
+      const nueva = new File([''], 'carta-2.pdf');
+      component.handleLetterUploaded({ fileName: 'carta-2.pdf', file: nueva });
+      await component.submit();
+      expect(mockFormService.buildProposalPayload).toHaveBeenCalledWith(mockProposal, { proposal: null, acceptanceLetter: nueva });
     });
 
     it('debería notificar error si buildProposalPayload retorna null', async () => {

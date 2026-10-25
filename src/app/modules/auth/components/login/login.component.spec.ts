@@ -125,4 +125,25 @@ describe('LoginComponent', () => {
       expect(component.isLoading()).toBeFalsy();
     });
   });
+  describe('Ver contraseña', () => {
+    const campo = () => fixture.nativeElement.querySelector('#password') as HTMLInputElement;
+    const boton = () => fixture.nativeElement.querySelector('button[aria-label$="contraseña"]') as HTMLButtonElement;
+
+    it('el botón del ojo está desde que se carga la vista, sin depender del foco', () => {
+      expect(boton()).toBeTruthy();
+      expect(boton().getAttribute('aria-label')).toBe('Mostrar contraseña');
+      expect(campo().type).toBe('password');
+    });
+
+    it('alterna entre mostrar y ocultar la contraseña', () => {
+      boton().click();
+      fixture.detectChanges();
+      expect(campo().type).toBe('text');
+      expect(boton().getAttribute('aria-label')).toBe('Ocultar contraseña');
+
+      boton().click();
+      fixture.detectChanges();
+      expect(campo().type).toBe('password');
+    });
+  });
 });

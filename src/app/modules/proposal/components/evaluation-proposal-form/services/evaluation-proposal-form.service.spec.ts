@@ -120,6 +120,14 @@ describe('EvaluationProposalFormService', () => {
         expect(result?.id).toBe('doc-v3');
       });
     });
+    describe('resolveAcceptanceLetter', () => {
+      it('debería retornar la carta de aceptación, o null si no se radicó', () => {
+        const carta = { id: 'carta', type: DocumentType.FORMATO } as FileDocument;
+        const formatoA = { id: 'doc-v1', type: DocumentType.PROPUESTA, version: 1 } as FileDocument;
+        expect(service.resolveAcceptanceLetter({ documents: [formatoA, carta] } as Proposal)).toBe(carta);
+        expect(service.resolveAcceptanceLetter({ documents: [formatoA] } as Proposal)).toBeNull();
+      });
+    });
     describe('formatUploadDate', () => {
       it('debería retornar "Fecha no disponible" si el documento o la fecha son nulos/indefinidos', () => {
         expect(service.formatUploadDate(null)).toBe('Fecha no disponible');

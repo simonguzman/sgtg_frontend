@@ -49,6 +49,12 @@ export class UserFormComponent  {
   isProgramModalOpen = false;
   /** true mientras se crea un departamento o un programa en el catálogo */
   readonly isCreatingCatalogItem = signal(false);
+  /** Mostrar la contraseña escrita */
+  readonly showPassword = signal(false);
+
+  togglePassword(): void {
+    this.showPassword.update(visible => !visible);
+  }
   /** Departamento al que se adscribe un programa nuevo (se elige en el modal de programas) */
   newProgramDepartmentId: number | null = null;
 

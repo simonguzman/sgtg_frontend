@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormBuilder, Validators } from '@angular/forms';
+import { By } from '@angular/platform-browser';
 import { EvaluationProposalFormComponent } from './evaluation-proposal-form.component';
 import { EvaluationProposalFormService } from './services/evaluation-proposal-form.service';
 import { Proposal } from '../../interfaces/proposal.interface';
@@ -12,6 +13,7 @@ describe('EvaluationProposalFormComponent', () => {
     evaluationForm: any;
     resolveOriginalDocument: jest.Mock;
     resolveCurrentDocument: jest.Mock;
+    resolveAcceptanceLetter: jest.Mock;
     formatUploadDate: jest.Mock;
     getStudentNames: jest.Mock;
     getMemberName: jest.Mock;
@@ -47,6 +49,7 @@ describe('EvaluationProposalFormComponent', () => {
       evaluationForm: mockEvaluationForm,
       resolveOriginalDocument: jest.fn(),
       resolveCurrentDocument: jest.fn(),
+      resolveAcceptanceLetter: jest.fn().mockReturnValue(null),
       formatUploadDate: jest.fn(),
       getStudentNames: jest.fn(),
       getMemberName: jest.fn(),
@@ -93,6 +96,57 @@ describe('EvaluationProposalFormComponent', () => {
       expect(component.isFileInvalid).toBeFalsy();
     });
   });
+  describe('Información registrada', () => {
+    const textoDe = () => fixture.nativeElement.textContent as string;
+
+    it('muestra objetivos, descripción, línea de investigación y organización registrados', () => {
+      fixture.componentRef.setInput('proposal', {
+        ...mockProposal,
+        description: 'Contexto del trabajo',
+        objectives: ['Objetivo G', 'Específico 1', 'Específico 2'],
+        lineOfResearch: 'Ingeniería de software',
+        organization: 'Empresa S.A.'
+      });
+      fixture.detectChanges();
+
+      ['Objetivo general', 'Objetivo G', 'Objetivos específicos', 'Descripción', 'Contexto del trabajo',
+        'Línea de investigación', 'Ingeniería de software', 'Organización', 'Empresa S.A.']
+        .forEach(texto => expect(textoDe()).toContain(texto));
+      const items = fixture.debugElement.queryAll(By.css('li')).map(li => li.nativeElement.textContent.trim());
+      expect(items).toEqual(['Específico 1', 'Específico 2']);
+    });
+
+    it('omite los datos opcionales que no se registraron', () => {
+      fixture.componentRef.setInput('proposal', { ...mockProposal, description: 'Objetivo G', objectives: ['Objetivo G'] });
+      fixture.detectChanges();
+
+      expect(textoDe()).toContain('Objetivo general');
+      ['Objetivos específicos', 'Descripción', 'Línea de investigación', 'Organización']
+        .forEach(texto => expect(textoDe()).not.toContain(texto));
+    });
+
+    it('muestra la carta de aceptación solo si se radicó y permite descargarla', () => {
+      expect(textoDe()).not.toContain('Carta de aceptación de la organización');
+
+      formServiceMock.resolveAcceptanceLetter.mockReturnValue({ name: 'Carta de aceptación' });
+      fixture.componentRef.setInput('proposal', { ...mockProposal });
+      fixture.detectChanges();
+      expect(textoDe()).toContain('Carta de aceptación de la organización');
+
+      const emitSpy = jest.spyOn(component.onDownloadLetter, 'emit');
+      component.downloadAcceptanceLetter();
+      expect(emitSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('no muestra el estado de la versión en la tarjeta del formato A', () => {
+      formServiceMock.resolveOriginalDocument.mockReturnValue({ name: 'Formato A (propuesta)', version: 2, status: 'En revisión' });
+      fixture.componentRef.setInput('proposal', { ...mockProposal });
+      fixture.detectChanges();
+      expect(textoDe()).toContain('Versión 2 del formato A, la que evalúa el Comité');
+      expect(fixture.debugElement.query(By.css('app-state'))).toBeNull();
+    });
+  });
+
   describe('Delegación de Nombres (UI)', () => {
     it('debería obtener nombres de estudiantes desde el servicio', () => {
       formServiceMock.getStudentNames.mockReturnValue('Juan y Maria');

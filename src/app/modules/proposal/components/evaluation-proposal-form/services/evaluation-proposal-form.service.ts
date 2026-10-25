@@ -4,7 +4,7 @@ import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
-import { versionActual, versionEnRevision } from '../../../services/proposal-rules.service';
+import { cartaDeAceptacion, versionActual, versionEnRevision } from '../../../services/proposal-rules.service';
 import { Proposal } from '../../../interfaces/proposal.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 
@@ -22,6 +22,11 @@ export class EvaluationProposalFormService {
   /** Versión del formato A que el Comité evalúa: la que está En revisión. */
   resolveOriginalDocument(proposal: Proposal): FileDocument | null {
     return versionEnRevision(proposal);
+  }
+
+  /** Carta de aceptación de la organización (práctica profesional), null si no se radicó. */
+  resolveAcceptanceLetter(proposal: Proposal): FileDocument | null {
+    return cartaDeAceptacion(proposal);
   }
 
   /** Última versión radicada (por número de versión). */

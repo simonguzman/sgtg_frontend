@@ -368,3 +368,16 @@ Los tres pendientes registrados el 2026-10-17 quedaron implementados el mismo d�
    mensaje).
 
 Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-23.md`.
+
+## 15. Decisiones del 2026-10-24 (corrección de la carta de aceptación)
+
+1. **La carta se corrige con la propuesta:** el backend expone `POST /trabajos-grado/{id}/propuesta/carta-aceptacion`
+   (PDF en `archivo`), con las mismas reglas que la corrección de la propuesta (solo el director, antes de radicar o
+   tras un NO APROBADO). La carta vigente se reemplaza por una nueva versión.
+2. **Formulario de edición:** en una práctica profesional muestra la carta vigente junto al formato A; se puede quitar y
+   cargar otra, y sigue siendo obligatoria. `ProposalApiService.updateProposal` envía los datos, después la carta y por
+   último el formato A (radicarlo bloquea las correcciones).
+3. **Propuestas cargadas:** la carta va en el registro de la versión del formato A radicada desde su fecha de carga (la
+   más reciente si la carta es posterior a todas), en lugar de ir siempre con la primera versión.
+
+Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.

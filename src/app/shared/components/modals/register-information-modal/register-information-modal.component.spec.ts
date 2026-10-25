@@ -115,6 +115,22 @@ describe('RegisterInformationModalComponent', () => {
       expect(text).toContain('Sin descripción registrada');
     });
 
+    it('con datos del registro, muestra cada uno con su etiqueta en lugar de la descripción', () => {
+      fixture.componentRef.setInput('fields', [
+        { label: 'Objetivo general', value: 'Objetivo G' },
+        { label: 'Objetivos específicos', values: ['Específico 1', 'Específico 2'] }
+      ]);
+      fixture.detectChanges();
+      const text = fixture.nativeElement.textContent;
+      expect(text).toContain('Objetivo general:');
+      expect(text).toContain('Objetivo G');
+      expect(text).toContain('Objetivos específicos:');
+      const items = fixture.debugElement.queryAll(By.css('li')).map(li => li.nativeElement.textContent.trim());
+      expect(items).toEqual(['Específico 1', 'Específico 2']);
+      expect(text).not.toContain('Descripción:');
+      expect(text).not.toContain(mockData.comments);
+    });
+
     it('debería mostrar el codirector solo si está definido', () => {
       expect(fixture.nativeElement.textContent).toContain('Codirector');
       fixture.componentRef.setInput('codirector', undefined);

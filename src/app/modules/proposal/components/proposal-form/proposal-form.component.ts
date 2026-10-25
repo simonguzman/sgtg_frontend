@@ -8,6 +8,8 @@ import { ButtonComponent } from "../../../../shared/components/button-component/
 import { FileUploadModalComponent } from "../../../../shared/components/modals/file-upload-modal/file-upload-modal.component";
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 import { SearchableSelectComponent, SelectOption } from '../../../../shared/components/searchable-select/searchable-select.component';
+import { InlineNoticeComponent } from '../../../../shared/components/inline-notice/inline-notice.component';
+import { cartaDeAceptacion } from '../../services/proposal-rules.service';
 
 /** Archivo elegido en el formulario (aún no enviado al backend). */
 interface AttachedFile {
@@ -21,7 +23,7 @@ const SIN_ARCHIVO: AttachedFile = { hasFile: false, name: null, file: null };
 @Component({
   selector: 'app-proposal-form',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, SearchableSelectComponent],
+  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, SearchableSelectComponent, InlineNoticeComponent],
   providers: [ProposalFormService],
   templateUrl: './proposal-form.component.html',
   styleUrls: ['./proposal-form.component.css']
@@ -35,7 +37,7 @@ export class ProposalFormComponent {
 
   /** Formato A: obligatorio al crear; al corregir, uno nuevo se radica como nueva versión. */
   attachedFile: AttachedFile = { ...SIN_ARCHIVO };
-  /** Carta de aceptación (práctica profesional, solo al crear). */
+  /** Carta de aceptación (práctica profesional): obligatoria al crear; al corregir, una nueva se carga como nueva versión. */
   acceptanceLetter: AttachedFile = { ...SIN_ARCHIVO };
   uploadModalOpen = false;
   letterModalOpen = false;
@@ -56,11 +58,14 @@ export class ProposalFormComponent {
         // La versión vigente ya está radicada; solo se carga un archivo si hay una nueva versión
         const vigente = currentProposal.documents[0];
         this.attachedFile = { hasFile: !!vigente, name: vigente?.name ?? null, file: null };
+        // Igual con la carta de aceptación: una nueva se carga como nueva versión
+        const carta = cartaDeAceptacion(currentProposal);
+        this.acceptanceLetter = { hasFile: !!carta, name: carta?.name ?? null, file: null };
       } else {
         this.formService.initForCreate();
         this.attachedFile = { ...SIN_ARCHIVO };
+        this.acceptanceLetter = { ...SIN_ARCHIVO };
       }
-      this.acceptanceLetter = { ...SIN_ARCHIVO };
     });
   }
 
@@ -70,11 +75,16 @@ export class ProposalFormComponent {
   addSpecificObjective(): void { this.formService.addSpecificObjective(); }
   removeSpecificObjective(index: number): void { this.formService.removeSpecificObjective(index); }
   get showAdvisorField(): boolean { return this.formService.isProfessionalPractice(); }
+  /** La práctica profesional es de un solo estudiante */
+  get showSecondStudent(): boolean { return !this.formService.isProfessionalPractice(); }
+  get student1ProgramName(): string { return this.formService.student1Program()?.name ?? ''; }
+  get codirectorRequired(): boolean { return !this.isEditMode && this.formService.directorRequiresCodirector(); }
+  get directorDepartmentName(): string { return this.formService.directorDepartment()?.name ?? 'su departamento'; }
   get isFileFieldInvalid(): boolean {
     return this.isSubmitAttempted() && !this.attachedFile.hasFile;
   }
   get isLetterFieldInvalid(): boolean {
-    return this.isSubmitAttempted() && this.showAdvisorField && !this.isEditMode && !this.acceptanceLetter.hasFile;
+    return this.isSubmitAttempted() && this.showAdvisorField && !this.acceptanceLetter.hasFile;
   }
 
   isFieldInvalid(fieldName: string): boolean {

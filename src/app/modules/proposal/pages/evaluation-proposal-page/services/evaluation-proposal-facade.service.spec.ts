@@ -199,6 +199,33 @@ describe('EvaluationProposalFacadeService', () => {
     });
   });
 
+  describe('Método: downloadAcceptanceLetter', () => {
+    const carta = { name: 'Carta de aceptación', url: 'https://storage.com/carta.pdf', type: DocumentType.FORMATO } as FileDocument;
+
+    it('descarga la carta de aceptación de la propuesta', async () => {
+      const conCarta = { ...mockProposal, documents: [...mockProposal.documents, carta] } as Proposal;
+      await service.downloadAcceptanceLetter(conCarta);
+      expect(mockDownloadService.download).toHaveBeenCalledWith('https://storage.com/carta.pdf', 'Carta de aceptación');
+    });
+
+    it('notifica error si la propuesta no tiene carta', async () => {
+      await service.downloadAcceptanceLetter({ ...mockProposal, documents: [] } as unknown as Proposal);
+      expect(mockDownloadService.download).not.toHaveBeenCalled();
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Error de descarga', type: NotificationType.ERROR })
+      );
+    });
+
+    it('notifica error si la descarga falla', async () => {
+      mockDownloadService.download.mockRejectedValue(new Error('Network error'));
+      await service.downloadAcceptanceLetter({ ...mockProposal, documents: [carta] } as Proposal);
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      expect(mockNotificationService.show).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Error de descarga', type: NotificationType.ERROR })
+      );
+    });
+  });
+
   describe('Método: saveEvaluation', () => {
     const mockRoute = {} as ActivatedRoute;
 

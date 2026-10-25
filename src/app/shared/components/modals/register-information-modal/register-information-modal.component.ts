@@ -6,6 +6,13 @@ import { CommonModule } from '@angular/common';
 import { ButtonComponent } from '../../button-component/button-component.component';
 import { stateList } from '../../../../core/enums/state.enum';
 
+/** Dato del registro con su etiqueta: un texto o una lista de textos. */
+export interface RegisterDetailField {
+  label: string;
+  value?: string;
+  values?: string[];
+}
+
 @Component({
   selector: 'app-register-information-modal',
   imports: [DialogModule, CommonModule, StateComponent, ButtonComponent, TooltipModule],
@@ -20,6 +27,8 @@ export class RegisterInformationModalComponent  {
   @Input() isOpen: boolean = false;
   @Input() title: string = '';
   @Input() comments: string = '';
+  /** Datos del registro, cada uno con su etiqueta; si se indican, reemplazan la descripción */
+  @Input() fields: RegisterDetailField[] | null = null;
   @Input() modality: string = '';
   @Input() student: string = '';
   @Input() director: string = '';

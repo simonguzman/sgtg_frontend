@@ -50,7 +50,7 @@
         <div class="flex flex-col gap-2" formArrayName="specificObjectives">
           <span class="font-display font-semibold text-size-section title-textbox">Objetivos específicos</span>
           @for (objective of specificObjectives.controls; track objective) {
-            <div class="flex items-center gap-2">
+            <div class="relative flex items-center gap-2">
               <label [for]="'specificObjective-' + $index" class="sr-only">Objetivo específico {{ $index + 1 }}</label>
               <input [id]="'specificObjective-' + $index" type="text" [formControlName]="$index"
                      [placeholder]="'Objetivo específico ' + ($index + 1)"
@@ -124,34 +124,54 @@
           }
         </div>
 
-        <div class="flex flex-col gap-1">
-          <label for="student2" class="font-display font-semibold text-size-section title-textbox">Estudiante 2 (Opcional)</label>
-          <div class="relative flex items-center w-full">
-            <app-searchable-select
-              id="student2"
-              formControlName="student2"
-              [options]="student2Options()"
-              placeholder="Ninguno / Seleccione estudiante"
-              [isValid]="hasValue('student2')"
-              [isClearable]="true"
-              class="w-full block">
-            </app-searchable-select>
+        @if (showSecondStudent) {
+          <div class="flex flex-col gap-1">
+            <label for="student2" class="font-display font-semibold text-size-section title-textbox">Estudiante 2 (Opcional)</label>
+            <div class="relative flex items-center w-full">
+              <app-searchable-select
+                id="student2"
+                formControlName="student2"
+                [options]="student2Options()"
+                placeholder="Ninguno / Seleccione estudiante"
+                [isValid]="hasValue('student2')"
+                [isClearable]="true"
+                class="w-full block">
+              </app-searchable-select>
+            </div>
+            @if (student1ProgramName && !isEditMode) {
+              <span class="text-size-role-footer text-text-body">Solo estudiantes de {{ student1ProgramName }}, el programa del estudiante 1.</span>
+            }
           </div>
-        </div>
+        }
 
         <div class="flex flex-col gap-1">
-          <label for="codirector" class="font-display font-semibold text-size-section title-textbox">Codirector</label>
+          <label for="codirector" class="font-display font-semibold text-size-section title-textbox">
+            Codirector
+            @if (codirectorRequired) {
+              <span class="text-alert">*</span>
+            }
+          </label>
           <div class="relative flex items-center w-full">
             <app-searchable-select
               id="codirector"
               formControlName="codirector"
               [options]="codirectorOptions()"
               placeholder="Seleccionar codirector"
+              [hasError]="isFieldInvalid('codirector')"
               [isValid]="hasValue('codirector')"
               [isClearable]="true"
               class="w-full block">
             </app-searchable-select>
           </div>
+          @if (isFieldInvalid('codirector')) {
+            <span class="text-textbox-alert">Debe seleccionar un codirector de planta</span>
+          }
+          @if (codirectorRequired) {
+            <app-inline-notice class="block mt-1">
+              Su vinculación no es de planta: el trabajo necesita un <strong>codirector de planta</strong> de
+              {{ directorDepartmentName }}.
+            </app-inline-notice>
+          }
         </div>
 
         @if (showAdvisorField) {
@@ -232,7 +252,7 @@
           }
         </div>
 
-        @if (showAdvisorField && !isEditMode) {
+        @if (showAdvisorField) {
           <!-- Carta de aceptación de la organización (práctica profesional) -->
           <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm"
               [class.border-text-body]="!isLetterFieldInvalid"

@@ -75,6 +75,18 @@ describe('ReadonlyFieldComponent', () => {
     });
   });
 
+  describe('Renderizado de varios valores (lista)', () => {
+    it('debería mostrar cada valor como elemento de lista en lugar de value', () => {
+      component.value = 'No se muestra';
+      component.values = ['Objetivo 1', 'Objetivo 2'];
+      fixture.detectChanges();
+
+      const items = fixture.debugElement.queryAll(By.css('li')).map(li => li.nativeElement.textContent.trim());
+      expect(items).toEqual(['Objetivo 1', 'Objetivo 2']);
+      expect(fixture.nativeElement.textContent).not.toContain('No se muestra');
+    });
+  });
+
   describe('Renderizado de Clases Condicionales (Emphasize)', () => {
     it('debería agregar las clases font-medium y capitalize cuando emphasize es true', () => {
       component.emphasize = true;

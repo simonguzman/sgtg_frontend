@@ -34,15 +34,18 @@
       <div class="relative flex items-center">
         <input
           id="password"
-          type="password"
+          [type]="showPassword() ? 'text' : 'password'"
           formControlName="password"
           placeholder="Ingresa tu contraseña"
-          class="text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
+          class="text-textbox p-2 pr-10 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
           [class.input-success]="loginForm.get('password')?.valid && loginForm.get('password')?.touched"
         >
-        @if (loginForm.get('password')?.valid && loginForm.get('password')?.touched) {
-          <span class="material-symbols-outlined success-icon absolute right-3">check_circle</span>
-        }
+        <!-- Botón propio para ver la contraseña (el del navegador se oculta en forms.css) -->
+        <button type="button" class="absolute right-3 flex items-center text-gray-400 hover:text-primary transition-colors cursor-pointer"
+                [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                (click)="togglePassword()">
+          <span class="material-symbols-outlined select-none">{{ showPassword() ? 'visibility' : 'visibility_off' }}</span>
+        </button>
       </div>
       @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
         <span class="text-textbox-alert">Por favor ingrese la contraseña</span>

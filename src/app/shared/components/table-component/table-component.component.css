@@ -1,0 +1,15 @@
+/* Ícono del filtro de columna. La hoja de Material Symbols fija 24px sin capa:
+   este selector (clase + atributo del componente) tiene más especificidad. */
+.column-filter-icon {
+  font-size: var(--text-size-sidebar-title);
+  color: var(--color-primary);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+  line-height: 1;
+}
+
+/* Filtro aplicado en la columna */
+.column-filter-icon--active {
+  background-color: var(--color-primary);
+  color: var(--color-text-white);
+}

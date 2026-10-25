@@ -185,13 +185,15 @@
         <div class="flex flex-col gap-1">
           <label for="password" class="title-textbox">Contraseña @if (!isEditMode) {<span class="text-alert">*</span>}</label>
           <div class="relative flex items-center">
-            <input id="password" type="password" formControlName="password" placeholder="Contraseña"
-                   class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
+            <input id="password" [type]="showPassword() ? 'text' : 'password'" formControlName="password" placeholder="Contraseña"
+                   class="font-sans font-normal text-size-body text-textbox p-2 pr-10 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
                    [class.border-alert]="isFieldInvalid('password')"
                    [class.input-success]="userForm.get('password')?.valid && userForm.get('password')?.touched">
-            @if (userForm.get('password')?.valid && userForm.get('password')?.touched) {
-              <span class="material-symbols-outlined success-icon">check</span>
-            }
+            <button type="button" class="absolute right-3 flex items-center text-gray-400 hover:text-primary transition-colors cursor-pointer"
+                    [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                    (click)="togglePassword()">
+              <span class="material-symbols-outlined select-none">{{ showPassword() ? 'visibility' : 'visibility_off' }}</span>
+            </button>
           </div>
           @if (isFieldInvalid('password')) {
             <span class="text-textbox-alert">Mínimo {{ minPasswordLength }} caracteres</span>

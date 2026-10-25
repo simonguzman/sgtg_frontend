@@ -395,4 +395,11 @@ describe('UserFormComponent', () => {
       expect(component.userForm.get('roles')?.value).toEqual([UserRoleType.ADMINISTRADOR]);
     });
   });
+  it('el ojo del campo de contraseña la muestra u oculta', () => {
+    const campo = () => fixture.nativeElement.querySelector('#password') as HTMLInputElement;
+    expect(campo().type).toBe('password');
+    component.togglePassword();
+    fixture.detectChanges();
+    expect(campo().type).toBe('text');
+  });
 });

@@ -10,12 +10,15 @@ import { versionesDePropuesta } from '../../../services/proposal-rules.service';
 import { DocumentTableRow, ProposalRegistrationDetails } from '../models/loaded-proposals-page.model';
 import { UserService } from '../../../../users/services/user.service';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { aFecha } from '../../../../../core/mappers/trabajo-grado.mapper';
 import { parseDisplayDate } from '../../../../../core/utils/date-utils';
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { Proposal } from '../../../interfaces/proposal.interface';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
+import { RegisterDetailField } from '../../../../../shared/components/modals/register-information-modal/register-information-modal.component';
+import { proposalContent } from '../../../../../shared/components/work-details/work-details.builder';
 
 @Injectable({ providedIn: 'root' })
 export class LoadedProposalsFacadeService {
@@ -27,9 +30,10 @@ export class LoadedProposalsFacadeService {
   private readonly userService = inject(UserService);
 
   /**
-   * Un registro por versión del formato A, del más reciente al más antiguo. Los
-   * documentos radicados al crear la propuesta (la carta de aceptación de una
-   * práctica profesional) van en el registro de la primera versión.
+   * Un registro por versión del formato A, del más reciente al más antiguo. La
+   * carta de aceptación de una práctica profesional va en el registro de la
+   * versión con la que se radicó: la primera cargada desde la fecha de la
+   * carta (o la última, si la carta es posterior a todas).
    */
   public buildDocumentsTableData(proposalId: string | null): DocumentTableRow[] {
     const proposal = this.findProposal(proposalId);
@@ -43,8 +47,14 @@ export class LoadedProposalsFacadeService {
     if (versiones.length === 0) {
       return otros.length ? [this.mapper.mapRegistrationToRow(otros[0], otros.slice(1), false, canEvaluate, archived)] : [];
     }
+    const adjuntosPorVersion = versiones.map((): FileDocument[] => []);
+    otros.forEach(documento => {
+      const fecha = fechaDeCarga(documento);
+      const indice = versiones.findIndex(version => fechaDeCarga(version) >= fecha);
+      adjuntosPorVersion[indice === -1 ? versiones.length - 1 : indice].push(documento);
+    });
     return versiones
-      .map((version, i) => this.mapper.mapRegistrationToRow(version, i === 0 ? otros : [], true, canEvaluate, archived))
+      .map((version, i) => this.mapper.mapRegistrationToRow(version, adjuntosPorVersion[i], true, canEvaluate, archived))
       .reverse();
   }
 
@@ -57,7 +67,7 @@ export class LoadedProposalsFacadeService {
         ? 'Registro de la propuesta'
         : `Corrección de la propuesta – versión ${row.version}`,
       title: proposal.title,
-      comments: this.describeProposal(proposal),
+      fields: this.describeProposal(proposal),
       modality: proposal.modality,
       student: this.userService.getAuthorsNames(proposal.authors),
       director: proposal.director ? this.userService.formatFullName(proposal.director) : 'No asignado',
@@ -164,21 +174,25 @@ export class LoadedProposalsFacadeService {
     return this.proposalService.allProposals().find(proposal => proposal.id === proposalId);
   }
 
-  /** Descripción, objetivos, línea de investigación y organización de la propuesta. */
-  private describeProposal(proposal: Proposal): string {
-    const objetivos = proposal.objectives ?? [];
-    const partes: string[] = [];
-    if (proposal.description && proposal.description !== objetivos[0]) partes.push(proposal.description);
-    if (objetivos[0]) partes.push(`Objetivo general: ${objetivos[0]}`);
-    if (objetivos.length > 1) {
-      partes.push(['Objetivos específicos:', ...objetivos.slice(1).map(objetivo => `• ${objetivo}`)].join('\n'));
-    }
-    if (proposal.lineOfResearch) partes.push(`Línea de investigación: ${proposal.lineOfResearch}`);
-    if (proposal.organization) partes.push(`Organización: ${proposal.organization}`);
-    return partes.join('\n\n');
+  /** Objetivos, descripción, línea de investigación y organización de la propuesta (solo los registrados). */
+  private describeProposal(proposal: Proposal): RegisterDetailField[] {
+    const content = proposalContent(proposal);
+    const campos: RegisterDetailField[] = [];
+    if (content.generalObjective) campos.push({ label: 'Objetivo general', value: content.generalObjective });
+    if (content.specificObjectives.length) campos.push({ label: 'Objetivos específicos', values: content.specificObjectives });
+    if (content.description) campos.push({ label: 'Descripción', value: content.description });
+    if (content.lineOfResearch) campos.push({ label: 'Línea de investigación', value: content.lineOfResearch });
+    if (content.organization) campos.push({ label: 'Organización', value: content.organization });
+    return campos;
   }
 
   private showNotification(title: string, message: string, type: NotificationType): void {
     this.notificationService.show({ title, message, type });
   }
+}
+
+/** Fecha de carga de un documento en milisegundos (0 si no tiene una válida). */
+function fechaDeCarga(documento: FileDocument): number {
+  const fecha = documento.uploadDate instanceof Date ? documento.uploadDate : aFecha(documento.uploadDate);
+  return fecha?.getTime() ?? 0;
 }

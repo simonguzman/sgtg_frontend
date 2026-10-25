@@ -13,6 +13,7 @@ import { UserState } from '../../../../users/enum/user-state.enum';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../../users/enum/identification-type.enum';
+import { ContractType } from '../../../../users/enum/contract-type.enum';
 import { Modality } from '../../../enums/modality.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
@@ -77,18 +78,25 @@ describe('ProposalFormService', () => {
   let mockUserService: MockUserService;
   let mockAuthService: MockAuthService;
   let mockProposalService: MockProposalService;
-  const mockDirector = createMockUser({ id: 'director-1', firstName: 'Carlos', lastName: 'Ramirez' });
+  const SISTEMAS = { id: 1, name: 'Departamento de Sistemas' };
+  const TELEMATICA = { id: 2, name: 'Departamento de Telemática' };
+  const ING_SISTEMAS = { id: 7, name: 'Ingeniería de Sistemas' };
+  const ING_ELECTRONICA = { id: 8, name: 'Ingeniería Electrónica' };
+  const mockDirector = createMockUser({ id: 'director-1', firstName: 'Carlos', lastName: 'Ramirez',
+    contractType: ContractType.PLANTA, department: SISTEMAS });
   const mockTeacher1 = createMockUser({
     id: 'teacher-1',
     firstName: 'Maria',
     secondName: 'Elena',
     lastName: 'Gomez',
-    secondLastName: 'Perez'
+    secondLastName: 'Perez',
+    contractType: ContractType.PLANTA,
+    department: SISTEMAS
   });
   const mockTeacherInactive = createMockUser({ id: 'teacher-inactive', firstName: 'Juan', state: UserState.inactive });
   const mockAdvisor1 = createMockUser({ id: 'advisor-1', firstName: 'Pedro', lastName: 'Sánchez' });
-  const mockStudent1 = createMockUser({ id: 'stu-1', firstName: 'Ana', lastName: 'Rojas' });
-  const mockStudent2 = createMockUser({ id: 'stu-2', firstName: 'Luis', lastName: 'Torres' });
+  const mockStudent1 = createMockUser({ id: 'stu-1', firstName: 'Ana', lastName: 'Rojas', program: ING_SISTEMAS });
+  const mockStudent2 = createMockUser({ id: 'stu-2', firstName: 'Luis', lastName: 'Torres', program: ING_SISTEMAS });
   const mockStudentBusy = createMockUser({ id: 'stu-busy', firstName: 'Estudiante', lastName: 'Ocupado' });
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -122,6 +130,58 @@ describe('ProposalFormService', () => {
   });
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  describe('Reglas de participantes del backend', () => {
+    const mockStudentOtroPrograma = createMockUser({ id: 'stu-3', firstName: 'Eva', lastName: 'Mora',
+      program: ING_ELECTRONICA });
+    const docenteCatedraSistemas = createMockUser({ id: 'cat-1', firstName: 'Rosa', lastName: 'Cátedra',
+      contractType: ContractType.CATEDRA, department: SISTEMAS });
+    const docentePlantaTelematica = createMockUser({ id: 'tel-1', firstName: 'Tomás', lastName: 'Planta',
+      contractType: ContractType.PLANTA, department: TELEMATICA });
+    const posgrado = createMockUser({ id: 'pos-1', firstName: 'Pablo', lastName: 'Posgrado',
+      contractType: ContractType.ESTUDIANTE_POSGRADO, department: SISTEMAS });
+    const sinPerfil = createMockUser({ id: 'sin-1', firstName: 'Sara', lastName: 'SinPerfil' });
+
+    const ids = (options: { id: string }[]) => options.map(option => option.id);
+
+    it('el estudiante 2 solo puede ser del programa del estudiante 1', () => {
+      mockUserService.students.set([mockStudent1, mockStudent2, mockStudentOtroPrograma]);
+      service.form.controls.student1.setValue('stu-1');
+      expect(service.student1Program()).toEqual(ING_SISTEMAS);
+      expect(ids(service.student2Options())).toEqual(['stu-2']);
+    });
+
+    it('al cambiar el estudiante 1 se quita un estudiante 2 de otro programa', () => {
+      mockUserService.students.set([mockStudent1, mockStudent2, mockStudentOtroPrograma]);
+      service.form.controls.student1.setValue('stu-2');
+      service.form.controls.student2.setValue('stu-1');
+      service.form.controls.student1.setValue('stu-1');
+      expect(service.form.controls.student2.value).toBe('');
+    });
+
+    it('la práctica profesional es de un solo estudiante', () => {
+      service.form.controls.student2.setValue('stu-2');
+      service.form.controls.modality.setValue(Modality.PP);
+      expect(service.form.controls.student2.value).toBe('');
+    });
+
+    it('el codirector necesita perfil docente y no puede ser estudiante de posgrado', () => {
+      mockUserService.teachers.set([mockDirector, mockTeacher1, docentePlantaTelematica, posgrado, sinPerfil]);
+      expect(service.directorRequiresCodirector()).toBe(false);
+      expect(ids(service.codirectorOptions())).toEqual(['teacher-1', 'tel-1']);
+    });
+
+    it('si el director no es de planta, el codirector es obligatorio y de planta de su departamento', () => {
+      mockAuthService.currentUser.set({ ...mockDirector, contractType: ContractType.OCASIONAL });
+      mockUserService.teachers.set([mockDirector, mockTeacher1, docenteCatedraSistemas, docentePlantaTelematica]);
+
+      expect(service.directorRequiresCodirector()).toBe(true);
+      expect(ids(service.codirectorOptions())).toEqual(['teacher-1']);
+
+      service.initForCreate();
+      expect(service.form.controls.codirector.hasError('required')).toBe(true);
+    });
   });
 
   describe('Inicialización y Estructura del Formulario', () => {

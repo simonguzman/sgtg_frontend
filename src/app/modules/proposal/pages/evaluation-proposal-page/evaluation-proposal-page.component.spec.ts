@@ -16,6 +16,7 @@ import { EvaluationProposalFormComponent } from '../../components/evaluation-pro
 class MockEvaluationProposalFormComponent {
   @Input() proposal!: Proposal;
   @Output() onDownloadOriginal = new EventEmitter<void>();
+  @Output() onDownloadLetter = new EventEmitter<void>();
   @Output() onSaveEvaluation = new EventEmitter<SaveProposalEvaluationEvent>();
   @Output() onGoBack = new EventEmitter<void>();
 }
@@ -43,6 +44,7 @@ describe('EvaluationProposalPageComponent', () => {
     mockFacade = {
       load: jest.fn(),
       downloadOriginalDocument: jest.fn(),
+      downloadAcceptanceLetter: jest.fn(),
       saveEvaluation: jest.fn()
     } as unknown as jest.Mocked<EvaluationProposalFacadeService>;
 
@@ -148,6 +150,17 @@ describe('EvaluationProposalPageComponent', () => {
       component.proposal.set(null);
       component.downloadOriginalDocument();
       expect(mockFacade.downloadOriginalDocument).not.toHaveBeenCalled();
+    });
+
+    it('downloadAcceptanceLetter: debería delegar al facade si hay propuesta', () => {
+      component.downloadAcceptanceLetter();
+      expect(mockFacade.downloadAcceptanceLetter).toHaveBeenCalledWith(mockProposal);
+    });
+
+    it('downloadAcceptanceLetter: NO debería hacer nada si no hay propuesta (null)', () => {
+      component.proposal.set(null);
+      component.downloadAcceptanceLetter();
+      expect(mockFacade.downloadAcceptanceLetter).not.toHaveBeenCalled();
     });
 
     it('handleSaveEvaluation: debería delegar al facade si hay propuesta', () => {

@@ -31,7 +31,23 @@
 
         <div class="flex flex-col gap-4">
           <app-readonly-field label="Título" [value]="proposal.title"></app-readonly-field>
-          <app-readonly-field label="Descripción" [value]="proposal.description"></app-readonly-field>
+
+          @if (content().generalObjective) {
+            <app-readonly-field label="Objetivo general" [value]="content().generalObjective"></app-readonly-field>
+          }
+
+          @if (content().specificObjectives.length > 0) {
+            <app-readonly-field label="Objetivos específicos" [values]="content().specificObjectives"></app-readonly-field>
+          }
+
+          @if (content().description) {
+            <app-readonly-field label="Descripción" [value]="content().description"></app-readonly-field>
+          }
+
+          @if (content().lineOfResearch) {
+            <app-readonly-field label="Línea de investigación" [value]="content().lineOfResearch"></app-readonly-field>
+          }
+
           <app-readonly-field label="Fecha de carga" [value]="documentUploadDate"></app-readonly-field>
           <app-readonly-field label="Modalidad del trabajo de grado" [value]="proposal.modality"></app-readonly-field>
           <app-readonly-field label="Estudiante(s)" [value]="getStudentNames(proposal.authors)"></app-readonly-field>
@@ -44,6 +60,10 @@
 
           @if (proposal.advisor) {
             <app-readonly-field label="Asesor" [value]="getAdvisorName(proposal.advisor.id)"></app-readonly-field>
+          }
+
+          @if (content().organization) {
+            <app-readonly-field label="Organización" [value]="content().organization"></app-readonly-field>
           }
 
           <app-readonly-field label="Estado actual" [value]="proposal.state" [emphasize]="true"></app-readonly-field>
@@ -106,11 +126,8 @@
                     <span class="text-size-body font-bold text-primary truncate">
                       {{ originalDocument?.name ?? 'Documento no disponible' }}
                     </span>
-                    <span class="text-size-role-footer text-text-body font-sans flex items-center gap-2">
-                      Versión {{ originalDocument?.version ?? 1 }} del formato A
-                      @if (originalDocument?.status) {
-                        <app-state [label]="originalDocument?.status" [state]="originalDocument?.status"></app-state>
-                      }
+                    <span class="text-size-role-footer text-text-body font-sans">
+                      Versión {{ originalDocument?.version ?? 1 }} del formato A, la que evalúa el Comité
                     </span>
                   </div>
                 </div>
@@ -121,6 +138,24 @@
                   (onClick)="downloadOriginalDocument()">
                 </app-button-component>
               </div>
+
+              @if (acceptanceLetter; as letter) {
+                <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+                  <div class="flex items-center gap-3 overflow-hidden">
+                    <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
+                    <div class="flex flex-col overflow-hidden">
+                      <span class="text-size-body font-bold text-primary truncate">{{ letter.name }}</span>
+                      <span class="text-size-role-footer text-text-body font-sans">Carta de aceptación de la organización</span>
+                    </div>
+                  </div>
+                  <app-button-component
+                    label="Descargar"
+                    variant="primary"
+                    type="button"
+                    (onClick)="downloadAcceptanceLetter()">
+                  </app-button-component>
+                </div>
+              }
 
               <div class="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm transition-colors duration-200"
                 [class.border-text-body]="!isFileInvalid && !signedFile()"

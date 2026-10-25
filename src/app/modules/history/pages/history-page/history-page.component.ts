@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { DescriptionModalComponent } from '../../../../shared/components/modals/description-modal/description-modal.component';
@@ -19,6 +19,15 @@ export class HistoryPageComponent {
   readonly columns = this.archivedWorks.columns;
   readonly tableData = this.archivedWorks.tableData;
   readonly descriptionModal = signal({ show: false, title: '', content: '' });
+
+  /** Qué trabajos ve el usuario: todos (acceso general) o aquellos en los que participó. */
+  readonly alcance = computed(() => this.archivedWorks.accesoGeneral()
+    ? 'Ves todos los trabajos de grado archivados.'
+    : 'Ves los trabajos en los que participaste como estudiante, director, codirector o asesor.');
+
+  readonly emptyMessage = computed(() => this.archivedWorks.accesoGeneral()
+    ? 'Aún no hay trabajos de grado archivados. Aparecerán aquí cuando un trabajo finalice, no se apruebe, se cancele o se anule.'
+    : 'Aún no tienes trabajos de grado archivados. Aparecerán aquí los trabajos en los que participaste cuando finalicen, no se aprueben, se cancelen o se anulen.');
 
   handleTableAction(event: { action: string; row: Record<string, unknown> }): void {
     const rowId = event.row['id'] as string;

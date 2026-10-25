@@ -13,17 +13,17 @@ export interface ProposalTableRow {
 }
 
 export const PROPOSAL_COLUMNS: Column[] = [
-  { field: 'title',          header: 'Titulo',           type: 'text',    width: '30%',  filterable: true },
-  { field: 'modality',       header: 'Modalidad',        type: 'text',    width: 'auto', filterable: true },
+  { field: 'title',          header: 'Título',           type: 'text',    width: '25%', filterable: true },
+  { field: 'modality',       header: 'Modalidad',        type: 'text',    width: '15%', filterable: true },
   {
     field: 'description',
     header: 'Descripción',
     type: 'actions',
     actions: [{ action: 'ver descripcion', label: 'Ver descripcion', variant: 'primary', disabled: false }],
-    width: 'auto'
+    width: '15%'
   },
-  { field: 'state',          header: 'Estado',           type: 'state',   width: 'auto', filterable: true },
-  { field: 'deadlineStatus', header: 'Plazo Evaluación', type: 'text',    width: 'auto', filterable: true },
+  { field: 'state',          header: 'Estado',           type: 'state',   width: '15%', filterable: true },
+  { field: 'deadlineStatus', header: 'Plazo Evaluación', type: 'text',    width: '15%', filterable: true },
   {
     field: 'acciones',
     header: 'Acciones',
@@ -33,7 +33,7 @@ export const PROPOSAL_COLUMNS: Column[] = [
       { action: 'editar',   icon: 'edit',       variant: 'primary', disabled: false },
       { action: 'anular',   icon: 'block',      variant: 'primary', disabled: false }
     ],
-    width: 'auto'
+    width: '15%'
   }
 ];
 

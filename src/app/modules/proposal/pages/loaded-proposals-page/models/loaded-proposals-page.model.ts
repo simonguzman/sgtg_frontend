@@ -1,6 +1,7 @@
 import { Column } from '../../../../../shared/components/table-component/table-component.component';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
+import { RegisterDetailField } from '../../../../../shared/components/modals/register-information-modal/register-information-modal.component';
 
 /**
  * Registro de la propuesta: cada versión radicada del formato A. La primera
@@ -23,7 +24,8 @@ export interface DocumentTableRow {
 export interface ProposalRegistrationDetails {
   subtitle: string;
   title: string;
-  comments: string;
+  /** Objetivos, descripción, línea de investigación y organización (solo los registrados) */
+  fields: RegisterDetailField[];
   modality: string;
   student: string;
   director: string;

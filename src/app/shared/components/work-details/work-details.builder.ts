@@ -1,7 +1,7 @@
 import { Proposal } from '../../../modules/proposal/interfaces/proposal.interface';
 import { User } from '../../../modules/users/interfaces/user.interface';
 import { aFecha } from '../../../core/mappers/trabajo-grado.mapper';
-import { WorkDetailsDate, WorkDetailsDocument, WorkDetailsItem, WorkDetailsView } from './work-details.model';
+import { ProposalContent, WorkDetailsDate, WorkDetailsDocument, WorkDetailsItem, WorkDetailsView } from './work-details.model';
 
 /** Datos propios de cada página de detalle. */
 export interface WorkDetailsOptions {
@@ -22,27 +22,24 @@ export interface WorkDetailsOptions {
  * vacíos quedan fuera.
  */
 export function buildWorkDetailsView(proposal: Proposal, options: WorkDetailsOptions): WorkDetailsView {
-  const objectives = (proposal.objectives ?? []).map(objective => objective.trim()).filter(Boolean);
-  const generalObjective = objectives[0];
-  const description = proposal.description?.trim();
+  const content = proposalContent(proposal);
 
   const participants: (WorkDetailsItem | null)[] = [
     { label: proposal.authors.length > 1 ? 'Estudiantes' : 'Estudiante', value: proposal.authors.map(fullName).join(', ') },
     { label: 'Director', value: proposal.director ? fullName(proposal.director) : 'No asignado' },
     proposal.codirector ? { label: 'Codirector', value: fullName(proposal.codirector) } : null,
     proposal.advisor ? { label: 'Asesor', value: fullName(proposal.advisor) } : null,
-    proposal.organization?.trim() ? { label: 'Organización', value: proposal.organization.trim() } : null,
+    content.organization ? { label: 'Organización', value: content.organization } : null,
     ...(options.extraParticipants ?? [])
   ];
 
   return {
     heading: options.heading,
     title: proposal.title,
-    generalObjective,
-    specificObjectives: objectives.slice(1),
-    // La descripción es opcional: si no se registró, el front la llena con el objetivo general
-    description: description && description !== generalObjective ? description : undefined,
-    lineOfResearch: proposal.lineOfResearch?.trim() || undefined,
+    generalObjective: content.generalObjective,
+    specificObjectives: content.specificObjectives,
+    description: content.description,
+    lineOfResearch: content.lineOfResearch,
     modality: proposal.modality,
     state: options.state,
     participants: participants.filter((item): item is WorkDetailsItem => !!item?.value),
@@ -51,6 +48,24 @@ export function buildWorkDetailsView(proposal: Proposal, options: WorkDetailsOpt
       return item && date ? [{ label: item.label, date, hint: item.hint }] : [];
     }),
     documents: (options.documents ?? []).filter((document): document is WorkDetailsDocument => !!document?.url)
+  };
+}
+
+/**
+ * Objetivos, descripción, línea de investigación y organización registrados
+ * en la propuesta; los opcionales vacíos quedan sin valor.
+ */
+export function proposalContent(proposal: Proposal): ProposalContent {
+  const objectives = (proposal.objectives ?? []).map(objective => objective.trim()).filter(Boolean);
+  const generalObjective = objectives[0];
+  const description = proposal.description?.trim();
+  return {
+    generalObjective,
+    specificObjectives: objectives.slice(1),
+    // La descripción es opcional: si no se registró, el front la llena con el objetivo general
+    description: description && description !== generalObjective ? description : undefined,
+    lineOfResearch: proposal.lineOfResearch?.trim() || undefined,
+    organization: proposal.organization?.trim() || undefined
   };
 }
 

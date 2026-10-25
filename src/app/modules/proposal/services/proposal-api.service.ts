@@ -69,16 +69,23 @@ export class ProposalApiService {
   }
 
   /**
-   * Corrige título, objetivos, descripción y línea de investigación y, si se
-   * adjuntó un nuevo formato A, lo radica como nueva versión. El backend solo
-   * lo permite antes de radicar o después de un NO APROBADO del Comité.
+   * Corrige título, objetivos, descripción y línea de investigación; si se
+   * adjuntó una nueva carta de aceptación, la carga como nueva versión, y si
+   * se adjuntó un nuevo formato A, lo radica como nueva versión. El backend
+   * solo lo permite antes de radicar o después de un NO APROBADO del Comité,
+   * por eso la carta va antes del formato A.
    */
   updateProposal(id: string, changes: Partial<Proposal>): Observable<Proposal> {
     const actual = this.storage.getProposalsListSnapshot().find(p => p.id === id);
     const propuesta = { ...actual, ...changes } as Proposal;
     const formatoA = changes.attachments?.proposal;
+    const carta = changes.attachments?.acceptanceLetter;
 
     return this.api.actualizar(id, 'propuesta', this.datosDeLaPropuesta(propuesta)).pipe(
+      tap(trabajo => this.store.upsert(trabajo)),
+      switchMap(trabajo => carta
+        ? this.api.enviarArchivos(trabajo.id, 'propuesta/carta-aceptacion', null, { archivo: carta })
+        : of(trabajo)),
       tap(trabajo => this.store.upsert(trabajo)),
       switchMap(trabajo => formatoA
         ? this.api.enviarArchivos(trabajo.id, 'propuesta', null, { archivo: formatoA })

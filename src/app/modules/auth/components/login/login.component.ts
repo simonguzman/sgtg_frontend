@@ -19,6 +19,11 @@ export class LoginComponent implements OnInit {
   });
 
   readonly isLoading = signal(false);
+  readonly showPassword = signal(false);
+
+  togglePassword(): void {
+    this.showPassword.update(visible => !visible);
+  }
 
   ngOnInit(): void {
     this.facade.checkAlreadyAuthenticated();

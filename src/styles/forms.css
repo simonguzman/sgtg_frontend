@@ -74,6 +74,12 @@
   font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
   pointer-events: none;
 }
+/* Edge muestra su propio botón para ver la contraseña solo en algunos casos y
+   choca con los íconos de los campos: se oculta y los campos usan el suyo. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
 .input-success {
   border-color: var(--color-primary) !important;
   padding-right: 40px !important;

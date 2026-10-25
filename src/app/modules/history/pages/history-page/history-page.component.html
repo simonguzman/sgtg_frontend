@@ -1,20 +1,27 @@
 <div class="w-full">
-  <div class="bg-white rounded-lg shadow-sm p-6">
-    <h2 class="text-size-sidebar-title font-semibold text-gray-800">Trabajos de grado archivados</h2>
-    <p class="text-size-body text-gray-500 mt-1">
-      Trabajos terminados, no aprobados, cancelados o anulados. Consulta cada etapa con sus documentos y versiones.
-    </p>
-    <div class="mt-6">
-      <app-table-component
-        [value]="tableData()"
-        [columns]="columns"
-        [paginator]="true"
-        (actionClick)="handleTableAction($event)"
-        [emptyMessage]="'No tienes trabajos de grado archivados.'"
-      ></app-table-component>
+  <div class="bg-white rounded-lg shadow-sm p-6 flex flex-col gap-6">
+    <div class="flex flex-col gap-1">
+      <h2 class="font-display font-semibold text-primary text-size-header-title m-0">
+        Trabajos de grado archivados
+      </h2>
+      <p class="text-size-body text-text-body m-0">
+        Trabajos que cerraron su proceso: finalizados, no aprobados, cancelados por el Consejo de Facultad o anulados por
+        el director. Desde cada registro consulta la propuesta, el anteproyecto y el trabajo de grado con sus documentos y
+        versiones.
+      </p>
+      <p class="text-size-body text-text-body m-0">{{ alcance() }}</p>
     </div>
+
+    <app-table-component
+      [value]="tableData()"
+      [columns]="columns"
+      [paginator]="true"
+      (actionClick)="handleTableAction($event)"
+      [emptyMessage]="emptyMessage()"
+    ></app-table-component>
   </div>
 </div>
+
 <app-description-modal
   [isOpen]="descriptionModal().show"
   [titleDescription]="descriptionModal().title"

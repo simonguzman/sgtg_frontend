@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { Proposal } from '../../interfaces/proposal.interface';
 import { User } from '../../../users/interfaces/user.interface';
@@ -9,7 +9,7 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
-import { StateComponent } from '../../../../shared/components/state/state.component';
+import { proposalContent } from '../../../../shared/components/work-details/work-details.builder';
 
 @Component({
   selector: 'app-evaluation-proposal-form',
@@ -20,8 +20,7 @@ import { StateComponent } from '../../../../shared/components/state/state.compon
     ConfirmationActionModalComponent,
     ButtonComponent,
     InfoBannerComponent,
-    ReadonlyFieldComponent,
-    StateComponent
+    ReadonlyFieldComponent
   ],
   providers: [EvaluationProposalFormService],
   templateUrl: './evaluation-proposal-form.component.html',
@@ -32,18 +31,24 @@ export class EvaluationProposalFormComponent {
 
   proposal = input.required<Proposal>();
   onDownloadOriginal = output<void>();
+  onDownloadLetter = output<void>();
   onSaveEvaluation = output<SaveProposalEvaluationEvent>();
   onGoBack = output<void>();
 
   readonly signedFile = signal<{ name: string; file: File } | null>(null);
   readonly formSubmitted = signal<boolean>(false);
   readonly modalState = signal({ upload: false, confirm: false });
+  /** Objetivos, descripción, línea de investigación y organización registrados (sin los opcionales vacíos) */
+  readonly content = computed(() => proposalContent(this.proposal()));
 
   get evaluationForm() {
     return this.formService.evaluationForm;
   }
   get originalDocument() {
     return this.formService.resolveOriginalDocument(this.proposal());
+  }
+  get acceptanceLetter() {
+    return this.formService.resolveAcceptanceLetter(this.proposal());
   }
   get currentDocument() {
     return this.formService.resolveCurrentDocument(this.proposal());
@@ -120,5 +125,9 @@ export class EvaluationProposalFormComponent {
 
   downloadOriginalDocument(): void {
     this.onDownloadOriginal.emit();
+  }
+
+  downloadAcceptanceLetter(): void {
+    this.onDownloadLetter.emit();
   }
 }

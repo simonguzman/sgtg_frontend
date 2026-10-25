@@ -187,6 +187,20 @@ describe('ProposalApiService', () => {
       expect(((radicacion.request.body as FormData).get('archivo') as File).name).toBe('v2.pdf');
       radicacion.flush(crearTrabajoDePrueba());
     });
+
+    it('con una nueva carta de aceptación la carga antes de radicar el formato A', () => {
+      storage.getProposalsListSnapshot.mockReturnValue([propuestaNueva({ id: '15', attachments: undefined })]);
+      service.updateProposal('15', { attachments: { proposal: pdf('v2.pdf'), acceptanceLetter: pdf('carta-2.pdf') } })
+        .subscribe();
+
+      http.expectOne(req => req.method === 'PUT' && req.url === `${API}/15/propuesta`).flush(crearTrabajoDePrueba());
+      // Mientras no se radica el formato A, el formato A no se ha enviado
+      http.expectNone(req => req.method === 'POST' && req.url === `${API}/15/propuesta`);
+      const carta = http.expectOne(req => req.method === 'POST' && req.url === `${API}/15/propuesta/carta-aceptacion`);
+      expect(((carta.request.body as FormData).get('archivo') as File).name).toBe('carta-2.pdf');
+      carta.flush(crearTrabajoDePrueba());
+      http.expectOne(req => req.method === 'POST' && req.url === `${API}/15/propuesta`).flush(crearTrabajoDePrueba());
+    });
   });
 
   it('anular envía la justificación y el trabajo queda archivado', () => {

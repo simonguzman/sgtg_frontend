@@ -1,8 +1,16 @@
 <div class="flex flex-col gap-1">
   <span class="font-display font-semibold text-primary text-size-section">{{ label }}</span>
-  <div class="information-block p-2 rounded-md text-text-body bg-gray-50 w-full min-h-10 flex items-center"
+  <div class="information-block p-2 rounded-md text-text-body bg-gray-50 w-full min-h-10 flex items-center wrap-break-word"
        [class.font-medium]="emphasize"
        [class.capitalize]="emphasize">
-    {{ value || emptyText }}
+    @if (values) {
+      <ul class="m-0 pl-5 list-disc flex flex-col gap-1">
+        @for (item of values; track $index) {
+          <li>{{ item }}</li>
+        }
+      </ul>
+    } @else {
+      {{ value || emptyText }}
+    }
   </div>
 </div>

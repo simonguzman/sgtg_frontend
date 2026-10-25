@@ -8,7 +8,7 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { Proposal } from '../../../interfaces/proposal.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
-import { versionEnRevision } from '../../../services/proposal-rules.service';
+import { cartaDeAceptacion, versionEnRevision } from '../../../services/proposal-rules.service';
 import { SaveProposalEvaluationEvent } from '../../../interfaces/evaluation-proposal-payload.interface';
 
 export type { SaveProposalEvaluationEvent };
@@ -58,6 +58,21 @@ export class EvaluationProposalFacadeService {
       await this.downloadService.download(document.url, document.name);
     } catch (err) {
       console.error('Error al descargar el documento original:', err);
+      this.showNotification('Error de descarga', 'No se pudo descargar el documento. Intente más tarde.', NotificationType.ERROR);
+    }
+  }
+
+  /** Descarga la carta de aceptación de la organización (práctica profesional). */
+  public async downloadAcceptanceLetter(proposal: Proposal): Promise<void> {
+    const document = cartaDeAceptacion(proposal);
+    if (!document?.url?.trim()) {
+      this.showNotification('Error de descarga', 'No se pudo obtener la carta de aceptación.', NotificationType.ERROR);
+      return;
+    }
+    try {
+      await this.downloadService.download(document.url, document.name);
+    } catch (err) {
+      console.error('Error al descargar la carta de aceptación:', err);
       this.showNotification('Error de descarga', 'No se pudo descargar el documento. Intente más tarde.', NotificationType.ERROR);
     }
   }

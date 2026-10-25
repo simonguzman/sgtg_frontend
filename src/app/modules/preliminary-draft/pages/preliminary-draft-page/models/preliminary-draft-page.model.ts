@@ -13,7 +13,7 @@ export interface PreliminaryDraftTableRow {
 }
 
 export const PRELIMINARY_DRAFT_COLUMNS: Column[] = [
-  { field: 'title', header: 'Titulo', type: 'text', width: '25%', filterable: true },
+  { field: 'title', header: 'Título', type: 'text', width: '25%', filterable: true },
   { field: 'modality', header: 'Modalidad', type: 'text', width: '15%', filterable: true },
   {
     field: 'description',

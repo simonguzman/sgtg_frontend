@@ -75,7 +75,7 @@
           <div class="flex flex-col gap-2" formArrayName="objectives">
             <span class="font-display font-semibold text-primary text-size-section">Objetivos propuestos <span class="text-alert">*</span></span>
             @for (objective of objectives.controls; track $index) {
-              <div class="flex items-start gap-2">
+              <div class="relative flex items-start gap-2">
                 <label [for]="'objective-' + $index" class="sr-only">{{ $index === 0 ? 'Objetivo general' : 'Objetivo específico ' + $index }}</label>
                 <textarea [id]="'objective-' + $index" [formControlName]="$index" rows="2"
                           class="p-3 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary font-sans text-size-body resize-none"

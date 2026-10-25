@@ -12,6 +12,7 @@ import { SelectOption } from '../../../../../shared/components/searchable-select
 import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 import { Modality } from '../../../enums/modality.enum';
+import { ContractType } from '../../../../users/enum/contract-type.enum';
 
 /** Campos de participantes: se fijan al crear el trabajo y no se editan después. */
 const CAMPOS_PARTICIPANTES = ['modality', 'student1', 'student2', 'codirector', 'advisor', 'organization'] as const;
@@ -83,15 +84,49 @@ export class ProposalFormService {
     this.availableStudents().map(student => this.mapUserToOption(student))
   );
 
-  readonly student2Options = computed<SelectOption[]>(() =>
-    this.availableStudents()
-      .filter(student => student.id !== this.selectedStudent1Id())
-      .map(student => this.mapUserToOption(student))
-  );
+  /**
+   * Programa del estudiante 1. El estudiante 2 debe ser del mismo: un trabajo
+   * tiene un solo Comité de Programa (el backend rechaza estudiantes de
+   * programas distintos).
+   */
+  readonly student1Program = computed(() =>
+    this.userService.students().find(student => student.id === this.selectedStudent1Id())?.program ?? null);
 
-  readonly codirectorOptions = computed<SelectOption[]>(() =>
-    this.availableTeachers().map(teacher => this.mapUserToOption(teacher))
-  );
+  readonly student2Options = computed<SelectOption[]>(() => {
+    const programa = this.student1Program();
+    return this.availableStudents()
+      .filter(student => student.id !== this.selectedStudent1Id())
+      .filter(student => this.isEditing() || !programa || student.program?.id === programa.id)
+      .map(student => this.mapUserToOption(student));
+  });
+
+  /** El director en sesión no es de planta: el codirector es obligatorio y de planta de su departamento (Art. 6). */
+  readonly directorRequiresCodirector = computed(() => {
+    const contractType = this.authService.currentUser()?.contractType;
+    return !!contractType && contractType !== ContractType.PLANTA;
+  });
+
+  readonly directorDepartment = computed(() => this.authService.currentUser()?.department ?? null);
+
+  /**
+   * Docentes que pueden ser codirector: con perfil docente y que no sean
+   * estudiantes de posgrado; si el director no es de planta, solo los de
+   * planta de su departamento (mismas reglas que valida el backend).
+   */
+  readonly codirectorOptions = computed<SelectOption[]>(() => {
+    const departamento = this.directorDepartment();
+    const soloDePlanta = this.directorRequiresCodirector();
+    return this.availableTeachers()
+      .filter(teacher => this.isEditing() || (!!teacher.department && teacher.contractType !== ContractType.ESTUDIANTE_POSGRADO))
+      .filter(teacher => this.isEditing() || !soloDePlanta
+        || (teacher.contractType === ContractType.PLANTA && teacher.department?.id === departamento?.id))
+      .map(teacher => this.mapUserToOption(teacher));
+  });
+
+  /** Al corregir, los participantes ya están fijados: no se filtran sus opciones. */
+  private isEditing(): boolean {
+    return this.currentProposalId() !== null;
+  }
 
   readonly advisorOptions = computed<SelectOption[]>(() =>
     this.availableAdvisors().map(advisor => this.mapUserToOption(advisor))
@@ -141,13 +176,17 @@ export class ProposalFormService {
           }
           control?.updateValueAndValidity({ emitEvent: false });
         }
+        // La práctica profesional es de un solo estudiante
+        if (esPractica) this.form.get('student2')?.setValue('', { emitEvent: false });
       });
 
     this.form.get('student1')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(id => {
         this.selectedStudent1Id.set(id ?? '');
-        if (this.form.get('student2')?.value === id) {
+        // El estudiante 2 debe ser otro y del mismo programa: si ya no lo es, se quita
+        const student2 = this.form.get('student2')?.value;
+        if (student2 && !this.student2Options().some(option => option.id === student2)) {
           this.form.get('student2')?.setValue('');
         }
       });
@@ -158,6 +197,9 @@ export class ProposalFormService {
     this.form.reset();
     this.setSpecificObjectives([]);
     CAMPOS_PARTICIPANTES.forEach(campo => this.form.get(campo)?.enable({ emitEvent: false }));
+    const codirector = this.form.controls.codirector;
+    codirector.setValidators(this.directorRequiresCodirector() ? Validators.required : []);
+    codirector.updateValueAndValidity({ emitEvent: false });
   }
 
   initForEdit(proposal: Proposal): void {

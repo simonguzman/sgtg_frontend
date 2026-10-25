@@ -144,6 +144,26 @@ describe('LoadedProposalsFacadeService', () => {
       expect(result.map(row => row.id)).toEqual(['v2', 'v1']);
     });
 
+    it('una carta corregida va con la versión radicada desde su fecha de carga', () => {
+      const v1 = { ...mockDocument, id: 'v1', type: DocumentType.PROPUESTA, version: 1, uploadDate: new Date(2026, 0, 1) };
+      const v2 = { ...mockDocument, id: 'v2', type: DocumentType.PROPUESTA, version: 2, uploadDate: new Date(2026, 1, 1) };
+      const carta = { ...mockDocument, id: 'carta', type: DocumentType.FORMATO, version: 2, uploadDate: '2026-02-01' };
+      mockAllProposalsSignal.set([{ ...mockProposal, documents: [v1, v2, carta] }]);
+
+      service.buildDocumentsTableData('prop-1');
+      expect(mockMapper.mapRegistrationToRow).toHaveBeenCalledWith(v1, [], true, false, false);
+      expect(mockMapper.mapRegistrationToRow).toHaveBeenCalledWith(v2, [carta], true, false, false);
+    });
+
+    it('una carta posterior a todas las versiones va con la más reciente', () => {
+      const v1 = { ...mockDocument, id: 'v1', type: DocumentType.PROPUESTA, version: 1, uploadDate: new Date(2026, 0, 1) };
+      const carta = { ...mockDocument, id: 'carta', type: DocumentType.FORMATO, version: 2, uploadDate: new Date(2026, 2, 1) };
+      mockAllProposalsSignal.set([{ ...mockProposal, documents: [v1, carta] }]);
+
+      service.buildDocumentsTableData('prop-1');
+      expect(mockMapper.mapRegistrationToRow).toHaveBeenCalledWith(v1, [carta], true, false, false);
+    });
+
     it('sin versiones radicadas muestra los demás documentos como un registro', () => {
       const carta = { ...mockDocument, id: 'carta', type: DocumentType.FORMATO, status: undefined };
       mockAllProposalsSignal.set([{ ...mockProposal, documents: [carta] }]);
@@ -187,9 +207,21 @@ describe('LoadedProposalsFacadeService', () => {
         documents: [mockDocument]
       }));
       expect(detalle.chargeDate).toEqual(new Date('2026-01-01'));
-      expect(detalle.comments).toBe('Contexto del trabajo\n\nObjetivo general: General\n\n'
-        + 'Objetivos específicos:\n• Específico 1\n• Específico 2\n\n'
-        + 'Línea de investigación: Ingeniería de software\n\nOrganización: Empresa S.A.');
+      expect(detalle.fields).toEqual([
+        { label: 'Objetivo general', value: 'General' },
+        { label: 'Objetivos específicos', values: ['Específico 1', 'Específico 2'] },
+        { label: 'Descripción', value: 'Contexto del trabajo' },
+        { label: 'Línea de investigación', value: 'Ingeniería de software' },
+        { label: 'Organización', value: 'Empresa S.A.' }
+      ]);
+    });
+
+    it('omite los datos que no se registraron', () => {
+      mockAllProposalsSignal.set([{
+        ...propuesta, description: 'General', objectives: ['General'], lineOfResearch: undefined, organization: undefined
+      }]);
+      expect(service.buildRegistrationDetails('prop-1', mockMappedRow)!.fields)
+        .toEqual([{ label: 'Objetivo general', value: 'General' }]);
     });
 
     it('una versión posterior se presenta como corrección', () => {

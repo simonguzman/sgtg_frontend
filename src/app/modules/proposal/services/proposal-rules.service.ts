@@ -26,6 +26,11 @@ export function versionEnRevision(proposal: Pick<Proposal, 'documents'> | null |
   return enRevision.length > 0 ? enRevision[enRevision.length - 1] : versionActual(proposal);
 }
 
+/** Carta de aceptación de la organización (práctica profesional), null si no se radicó. */
+export function cartaDeAceptacion(proposal: Pick<Proposal, 'documents'> | null | undefined): FileDocument | null {
+  return proposal?.documents?.find(documento => documento.type === DocumentType.FORMATO) ?? null;
+}
+
 /**
  * La propuesta solo se corrige antes de radicar el formato A o después de
  * que el Comité no la apruebe (misma regla del backend).

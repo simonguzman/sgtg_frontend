@@ -2,6 +2,7 @@
   <app-evaluation-proposal-form
     [proposal]="data"
     (onDownloadOriginal)="downloadOriginalDocument()"
+    (onDownloadLetter)="downloadAcceptanceLetter()"
     (onSaveEvaluation)="handleSaveEvaluation($event)"
     (onGoBack)="goBack()">
   </app-evaluation-proposal-form>

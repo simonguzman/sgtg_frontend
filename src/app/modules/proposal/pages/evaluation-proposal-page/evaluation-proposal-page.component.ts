@@ -35,6 +35,11 @@ export class EvaluationProposalPageComponent implements OnInit {
     if (proposal) void this.facade.downloadOriginalDocument(proposal);
   }
 
+  downloadAcceptanceLetter(): void {
+    const proposal = this.proposal();
+    if (proposal) void this.facade.downloadAcceptanceLetter(proposal);
+  }
+
   handleSaveEvaluation(event: SaveProposalEvaluationEvent): void {
     const proposal = this.proposal();
     if (!proposal) return;

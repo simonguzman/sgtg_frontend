@@ -18,6 +18,15 @@ export interface WorkDetailsDocument {
   url: string;
 }
 
+/** Contenido registrado en la propuesta; los opcionales vacíos quedan sin valor. */
+export interface ProposalContent {
+  generalObjective?: string;
+  specificObjectives: string[];
+  description?: string;
+  lineOfResearch?: string;
+  organization?: string;
+}
+
 /**
  * Información de una página de detalle (propuesta, anteproyecto o trabajo de
  * grado). Los campos opcionales que no se registraron quedan vacíos y no se
