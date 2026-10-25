@@ -85,6 +85,10 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
              ?? this.route.parent?.snapshot.paramMap.get('id');
 
     if (id) this.thesisWorkId.set(id);
+
+    // Pestaña indicada en la URL (ej. ?tab=ENTREGA_FINAL desde una notificación)
+    const tab = this.route.snapshot.queryParamMap?.get('tab')?.replaceAll('_', ' ');
+    if (tab && this.tabsConfig.some(item => item.value === tab)) this.activeTab.set(tab);
   }
 
   ngOnDestroy(): void {

@@ -1,6 +1,6 @@
 import {
   CalificacionApi, DecisionApi, DocumentoApi, EstadoApi, EstadoSustentacionApi, InformeMensualApi, VersionDocumentoApi,
-  ETAPAS_FINALES, ProcesoApi, ResultadoConceptoApi, TrabajoGradoResponse
+  ETAPAS_FINALES, ProcesoApi, ResultadoConceptoApi, SolicitudSustentacionApi, TrabajoGradoResponse
 } from '../interfaces/api/trabajo-grado-api.interface';
 import { stateList } from '../enums/state.enum';
 import { DocumentType } from '../enums/document-type.enum';
@@ -348,7 +348,8 @@ function procesoDeSustentacion(trabajo: TrabajoGradoResponse): SustentationProce
     jurorIds: actual ? actual.jurados.map(j => String(j.usuarioId)) : [],
     currentSessionDate: actual ? aFecha(actual.fechaHora) : null,
     hasPendingNewDate: sustentacion.solicitudesNuevaFecha.some(s => !s.decision),
-    pazYSalvoApproved: !!sustentacion.rutaPazYSalvo
+    pazYSalvoApproved: !!sustentacion.rutaPazYSalvo,
+    requestNotApproved: !!sustentacion.solicitudNoAprobada
   };
 }
 
@@ -363,24 +364,43 @@ function estadoEntregaFinal(estado: EstadoSustentacionApi): stateList {
   }
 }
 
-/** Solicitud de sustentación: monografía, formato E, paz y salvo, concepto del asesor y anexos. */
+/**
+ * Solicitudes de sustentación (monografía, formato E, paz y salvo, concepto
+ * del asesor y anexos), la vigente primero. Si Decanatura no aprobó el paz y
+ * salvo de una, esa queda NO APROBADA y el director radica otra; la revisión i
+ * del paz y salvo es de la solicitud i.
+ */
 function entregasFinales(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): FinalDelivery[] {
   const sustentacion = trabajo.sustentacion;
   if (!sustentacion) return [];
-  const fecha = sustentacion.fechaSolicitud;
+  const revisiones = sustentacion.revisionesPazYSalvo ?? [];
+  const anteriores = sustentacion.solicitudesAnteriores ?? [];
+  const pazYSalvoNoAprobado = (i: number) => revisiones[i] && !revisiones[i].aprobado ? revisiones[i].rutaDocumento : null;
+
+  const vigente = entregaFinal(trabajo, ctx, 'entrega-final', sustentacion,
+    sustentacion.rutaPazYSalvo ?? (sustentacion.solicitudNoAprobada ? pazYSalvoNoAprobado(anteriores.length) : null),
+    sustentacion.solicitudNoAprobada ? stateList.NO_APROBADO : estadoEntregaFinal(sustentacion.estado));
+  const previas = anteriores.map((anterior, i) => entregaFinal(trabajo, ctx, `entrega-final-${i + 1}`, anterior,
+    pazYSalvoNoAprobado(i), stateList.NO_APROBADO));
+  return [vigente, ...previas.reverse()];
+}
+
+function entregaFinal(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo, id: string, solicitud: SolicitudSustentacionApi,
+  rutaPazYSalvo: string | null, status: stateList): FinalDelivery {
+  const fecha = solicitud.fechaSolicitud;
   const doc = (ruta: string | null, tipo: DocumentType) =>
     ruta ? aDocumentoDeRuta(trabajo.id, ruta, fecha, ctx, tipo) : undefined;
-  const formatoE = doc(sustentacion.rutaDocumentoFinal, DocumentType.FORMATO_E)!;
-  return [{
-    id: 'entrega-final',
+  const formatoE = doc(solicitud.rutaDocumentoFinal, DocumentType.FORMATO_E)!;
+  return {
+    id,
     uploadDate: aFecha(fecha) ?? fecha,
-    monograph: doc(sustentacion.rutaMonografia, DocumentType.MONOGRAFIA) ?? formatoE,
+    monograph: doc(solicitud.rutaMonografia, DocumentType.MONOGRAFIA) ?? formatoE,
     formatE: formatoE,
-    annexes: doc(sustentacion.rutaAnexos, DocumentType.ANEXOS),
-    pazYSalvo: doc(sustentacion.rutaPazYSalvo, DocumentType.PAZ_Y_SALVO),
-    advisorConcept: doc(sustentacion.rutaConceptoAsesor, DocumentType.FORMATO),
-    status: estadoEntregaFinal(sustentacion.estado)
-  }];
+    annexes: doc(solicitud.rutaAnexos, DocumentType.ANEXOS),
+    pazYSalvo: doc(rutaPazYSalvo, DocumentType.PAZ_Y_SALVO),
+    advisorConcept: doc(solicitud.rutaConceptoAsesor, DocumentType.FORMATO),
+    status
+  };
 }
 
 /** Revisiones del paz y salvo (formato F) de Decanatura, la más reciente primero. */

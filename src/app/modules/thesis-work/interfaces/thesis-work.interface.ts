@@ -42,6 +42,8 @@ export interface SustentationProcess {
   hasPendingNewDate: boolean;
   /** Decanatura aprobó el paz y salvo (sin él no se programa) */
   pazYSalvoApproved: boolean;
+  /** Decanatura no aprobó el paz y salvo de la solicitud vigente: el director radica una nueva */
+  requestNotApproved?: boolean;
 }
 
 export interface ThesisWork extends Archivable {

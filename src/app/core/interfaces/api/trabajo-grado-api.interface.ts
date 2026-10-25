@@ -287,6 +287,22 @@ export interface SustentacionApi {
   rutaVersionDefinitiva: string | null;
   fechaVersionDefinitiva: string | null;
   motivoNoAprobacion: MotivoCierreApi | null;
+  /**
+   * Solicitudes cuyo paz y salvo no aprobó Decanatura y que el director
+   * reemplazó por una nueva, en orden (la revisión i del paz y salvo es de la solicitud i)
+   */
+  solicitudesAnteriores?: SolicitudSustentacionApi[];
+  /** Decanatura no aprobó el paz y salvo de la solicitud vigente: el director radica una nueva */
+  solicitudNoAprobada?: boolean;
+}
+
+/** Solicitud de sustentación anterior (su paz y salvo no se aprobó). */
+export interface SolicitudSustentacionApi {
+  rutaMonografia: string | null;
+  rutaDocumentoFinal: string;
+  rutaConceptoAsesor: string | null;
+  rutaAnexos: string | null;
+  fechaSolicitud: string;
 }
 
 export interface CancelacionApi {

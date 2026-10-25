@@ -22,7 +22,11 @@ const RUTAS_POR_EVENTO: Record<string, (trabajoId: number) => string> = {
   CONCEPTO_EVALUADOR: trabajoId => `/preliminary-draft/details/${trabajoId}/evaluations_performed`,
   DECISION_CONSEJO_ANTEPROYECTO: trabajoId => `/preliminary-draft/details/${trabajoId}/evaluations_performed`,
   // El formato C se consulta en la pestaña de presentaciones al Consejo
-  ANTEPROYECTO_REMITIDO: trabajoId => `/preliminary-draft/details/${trabajoId}/loaded_documents?tab=PRESENTACIONES`
+  ANTEPROYECTO_REMITIDO: trabajoId => `/preliminary-draft/details/${trabajoId}/loaded_documents?tab=PRESENTACIONES`,
+  // La solicitud de sustentación y su paz y salvo, en la entrega final (donde el director radica una nueva)
+  SUSTENTACION_SOLICITADA: trabajoId => `/thesis-work/details/${trabajoId}/loaded_documents?tab=ENTREGA_FINAL`,
+  PAZ_Y_SALVO_NO_APROBADO: trabajoId => `/thesis-work/details/${trabajoId}/loaded_documents?tab=ENTREGA_FINAL`,
+  PAZ_Y_SALVO_APROBADO: trabajoId => `/thesis-work/details/${trabajoId}/loaded_documents?tab=PAZ_Y_SALVO`
 };
 
 /**

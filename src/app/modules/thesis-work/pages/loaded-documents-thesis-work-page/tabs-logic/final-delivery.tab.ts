@@ -20,7 +20,9 @@ const ETAPAS_DE_SOLICITUD = ['EN_CURSO', 'PRORROGA'];
 
 /**
  * Entrega final = solicitud de sustentación del director: monografía, formato
- * E, paz y salvo, concepto del asesor (práctica profesional) y anexos.
+ * E, paz y salvo, concepto del asesor (práctica profesional) y anexos. Si
+ * Decanatura no aprueba el paz y salvo, la solicitud queda NO APROBADA y el
+ * director radica una nueva.
  */
 export const FinalDeliveryTabConfig: TabConfiguration<FinalDeliveryTableRow> = {
   tabValue: 'ENTREGA FINAL',
@@ -43,6 +45,7 @@ export const FinalDeliveryTabConfig: TabConfiguration<FinalDeliveryTableRow> = {
     return {
       ...baseContext,
       hasFinalDelivery: (thesis.finalDeliveries?.length ?? 0) > 0,
+      requestNotApproved: !!thesis.sustentation?.requestNotApproved,
       isSuspendedOrCanceled: thesis.state === stateList.SUSPENDIDO || thesis.state === stateList.CANCELADO
     };
   },
@@ -59,6 +62,9 @@ export const FinalDeliveryTabConfig: TabConfiguration<FinalDeliveryTableRow> = {
 
   getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
     if (context.isArchived || !context.isDirector) return [];
+    if (context['requestNotApproved']) {
+      return [{ action: 'register_final_delivery', label: 'Solicitar nuevamente la sustentación', variant: 'primary', disabled: false }];
+    }
     if (context.hasFinalDelivery) {
       return [{ action: 'register_final_delivery', label: 'Sustentación solicitada', variant: 'primary', disabled: true }];
     }

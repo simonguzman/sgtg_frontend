@@ -412,3 +412,12 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     ya haya emitido concepto (`evaluaAnteproyectoEnCurso`); cuando decide el Consejo pasan a su historial (`yaEvaluo`).
 14. **El jefe no dirige trabajos de su departamento:** no ve "Registrar propuesta" y no aparece como codirector de un
     director de su departamento (el backend lo rechaza, §8 de `ajustes-2026-10-24.md`).
+15. **Entrega final y paz y salvo no aprobado:** la entrega final lista la solicitud vigente y las anteriores (cada
+    una con su paz y salvo). Si Decanatura no aprueba el paz y salvo, la vigente queda NO APROBADA, el director ve
+    "Solicitar nuevamente la sustentación" y Decanatura espera la nueva (§9 de `ajustes-2026-10-24.md` del backend).
+16. **Notificaciones de sustentación:** `SUSTENTACION_SOLICITADA` y `PAZ_Y_SALVO_NO_APROBADO` llevan a documentos
+    cargados en la pestaña de entrega final (`?tab=ENTREGA_FINAL`); `PAZ_Y_SALVO_APROBADO`, a la de paz y salvo.
+17. **Documentos de la solicitud vigente:** `ThesisFinalDeliveryDocumentResolverService` toma la primera entrega final
+    (la vigente) y la primera revisión del paz y salvo (la más reciente), en el orden del mapper; ya no ordena por
+    fecha, porque una nueva solicitud puede tener la misma fecha que la no aprobada. Lo usan los formularios de paz y
+    salvo, programación y evaluación de la sustentación.

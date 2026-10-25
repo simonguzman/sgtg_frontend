@@ -41,6 +41,17 @@ describe('FinalDeliveryTabConfig (solicitud de sustentación)', () => {
     expect(botones).toEqual([expect.objectContaining({ label: 'Sustentación solicitada', disabled: true })]);
   });
 
+  it('sin paz y salvo aprobado la solicitud queda no aprobada y el director solicita de nuevo', () => {
+    const noAprobada = thesisWorkDePrueba(crearTrabajoEnSustentacion({ estado: 'SOLICITADA', sesiones: [],
+      rutaPazYSalvo: null, solicitudNoAprobada: true, revisionesPazYSalvo: [
+        { rutaDocumento: '15/TI-F/v1/f.pdf', aprobado: false, observaciones: 'Deuda', fecha: '2026-07-02' }
+      ] }));
+    expect(FinalDeliveryTabConfig.getTableData([], contexto(noAprobada))).toEqual([expect.objectContaining({
+      id: 'entrega-final', status: stateList.NO_APROBADO })]);
+    expect(FinalDeliveryTabConfig.getHeaderButtons(contexto(noAprobada, { isDirector: true }))).toEqual([
+      expect.objectContaining({ label: 'Solicitar nuevamente la sustentación', disabled: false })]);
+  });
+
   it('otros roles o un trabajo cerrado no ven el botón', () => {
     expect(FinalDeliveryTabConfig.getHeaderButtons(contexto(thesisWorkDePrueba(), { isStudent: true }))).toEqual([]);
     expect(FinalDeliveryTabConfig.getHeaderButtons(

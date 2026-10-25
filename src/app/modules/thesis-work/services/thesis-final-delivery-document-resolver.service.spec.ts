@@ -87,22 +87,22 @@ describe('ThesisFinalDeliveryDocumentResolverService', () => {
       expect(service.resolveLatestFinalDeliveryDocument(emptyThesis, 'MONOGRAFIA')).toBeNull();
     });
 
-    it('debe resolver la Monografía más reciente ordenando por uploadDate (formato DD - MM - YYYY)', () => {
+    it('usa la solicitud vigente (la primera), aunque una anterior no aprobada tenga una fecha igual o posterior', () => {
       const mockThesis: Partial<ThesisWork> = {
         finalDeliveries: [
           {
-            id: 'fd-1',
+            id: 'entrega-final',
             uploadDate: '10 - 01 - 2026',
-            monograph: mockMonographOld,
+            monograph: mockMonographRecent,
             formatE: mockFormatoE,
             status: stateList.EN_REVISION
           } as Partial<FinalDelivery> as FinalDelivery,
           {
-            id: 'fd-2',
+            id: 'entrega-final-1',
             uploadDate: '15 - 02 - 2026',
-            monograph: mockMonographRecent,
+            monograph: mockMonographOld,
             formatE: mockFormatoE,
-            status: stateList.APROBADO
+            status: stateList.NO_APROBADO
           } as Partial<FinalDelivery> as FinalDelivery,
         ],
       };
@@ -174,22 +174,22 @@ describe('ThesisFinalDeliveryDocumentResolverService', () => {
       expect(service.resolveLatestPazYSalvoDocument(emptyThesis)).toBeNull();
     });
 
-    it('debe resolver el documento de paz y salvo más reciente ordenando por registrationDate (Date object o ISO string)', () => {
+    it('usa la revisión del paz y salvo más reciente, la primera de la lista', () => {
       const mockThesis: Partial<ThesisWork> = {
         pazYSalvos: [
           {
-            id: 'pys-1',
-            registrationDate: new Date('2026-01-01T10:00:00Z'),
-            document: mockPazYSalvoOld,
-            academicApproved: false,
-            financialApproved: false,
-          } as Partial<PazYSalvo> as PazYSalvo,
-          {
             id: 'pys-2',
-            registrationDate: new Date('2026-03-01T10:00:00Z'),
+            registrationDate: new Date('2026-01-01T10:00:00Z'),
             document: mockPazYSalvoRecent,
             academicApproved: true,
             financialApproved: true,
+          } as Partial<PazYSalvo> as PazYSalvo,
+          {
+            id: 'pys-1',
+            registrationDate: new Date('2026-03-01T10:00:00Z'),
+            document: mockPazYSalvoOld,
+            academicApproved: false,
+            financialApproved: false,
           } as Partial<PazYSalvo> as PazYSalvo,
         ],
       };

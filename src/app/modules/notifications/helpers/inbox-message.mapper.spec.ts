@@ -27,6 +27,13 @@ describe('inbox-message.mapper', () => {
       .toBe('/preliminary-draft/details/15/evaluations_performed');
     expect(rutaDeNotificacion(15, 'APROBACION_CONSEJO', 'ANTEPROYECTO_REMITIDO'))
       .toBe('/preliminary-draft/details/15/loaded_documents?tab=PRESENTACIONES');
+    // Solicitud de sustentación y paz y salvo, a los documentos cargados del trabajo de grado
+    expect(rutaDeNotificacion(15, 'SUSTENTACION', 'SUSTENTACION_SOLICITADA'))
+      .toBe('/thesis-work/details/15/loaded_documents?tab=ENTREGA_FINAL');
+    expect(rutaDeNotificacion(15, 'SUSTENTACION', 'PAZ_Y_SALVO_NO_APROBADO'))
+      .toBe('/thesis-work/details/15/loaded_documents?tab=ENTREGA_FINAL');
+    expect(rutaDeNotificacion(15, 'SUSTENTACION', 'PAZ_Y_SALVO_APROBADO'))
+      .toBe('/thesis-work/details/15/loaded_documents?tab=PAZ_Y_SALVO');
     expect(aMensajeDelBuzon({
       id: 1, tipo: 'CONFIRMACION', titulo: 'Concepto del Comité de Programa', mensaje: 'M', trabajoId: 15,
       etapa: 'ANTEPROYECTO', evento: 'DECISION_COMITE', fecha: '2026-03-02T10:30:00', leida: false

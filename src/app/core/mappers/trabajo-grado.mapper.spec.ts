@@ -264,13 +264,33 @@ describe('trabajo-grado.mapper', () => {
       expect(trabajo.finalDeliveries?.[0].pazYSalvo).toBeUndefined();
     });
 
+    it('sin paz y salvo aprobado la solicitud queda no aprobada; la nueva es la vigente y la anterior se conserva', () => {
+      const rechazo = { rutaDocumento: '15/TI-F/v1/f-1.pdf', aprobado: false, observaciones: 'Deuda', fecha: '2026-07-02' };
+      const noAprobada = aTrabajoDeGrado(crearTrabajoEnSustentacion({ estado: 'SOLICITADA', sesiones: [],
+        rutaPazYSalvo: null, revisionesPazYSalvo: [rechazo], solicitudNoAprobada: true }), ctx)!;
+      expect(noAprobada.sustentation?.requestNotApproved).toBe(true);
+      expect(noAprobada.finalDeliveries?.map(entrega => entrega.status)).toEqual([stateList.NO_APROBADO]);
+      expect(noAprobada.finalDeliveries?.[0].pazYSalvo?.url).toContain('f-1.pdf');
+
+      // El director radicó una nueva solicitud: queda en revisión y la anterior, no aprobada con su paz y salvo
+      const nueva = aTrabajoDeGrado(crearTrabajoEnSustentacion({ estado: 'SOLICITADA', sesiones: [],
+        rutaPazYSalvo: null, revisionesPazYSalvo: [rechazo], solicitudNoAprobada: false, fechaSolicitud: '2026-07-05',
+        solicitudesAnteriores: [{ rutaMonografia: '15/MONOGRAFIA/v1/m.pdf', rutaDocumentoFinal: '15/TI-E/v1/e.pdf',
+          rutaConceptoAsesor: null, rutaAnexos: null, fechaSolicitud: '2026-07-01' }] }), ctx)!;
+      expect(nueva.finalDeliveries?.map(entrega => [entrega.id, entrega.status])).toEqual([
+        ['entrega-final', stateList.EN_REVISION], ['entrega-final-1', stateList.NO_APROBADO]]);
+      expect(nueva.finalDeliveries?.[0].pazYSalvo).toBeUndefined();
+      expect(nueva.finalDeliveries?.[1].pazYSalvo?.url).toContain('f-1.pdf');
+      expect(nueva.finalDeliveries?.[1].uploadDate).toEqual(new Date(2026, 6, 1));
+    });
+
     it('la sustentación: solicitud con monografía, formato E, paz y salvo y anexos; sesión con coordinador', () => {
       const trabajo = aTrabajoDeGrado(crearTrabajoEnSustentacion(), ctx)!;
 
       expect(trabajo.sustentation).toEqual({
         state: 'PROGRAMADA', requestDate: new Date(2026, 6, 1), adjustmentsDeadline: null, secondSessionDeadline: null,
         coordinatorId: '30', jurorIds: ['30', '31'], currentSessionDate: new Date(2026, 6, 15, 9, 30),
-        hasPendingNewDate: false, pazYSalvoApproved: true
+        hasPendingNewDate: false, pazYSalvoApproved: true, requestNotApproved: false
       });
       const entrega = trabajo.finalDeliveries![0];
       expect(entrega.status).toBe(stateList.EN_REVISION);
