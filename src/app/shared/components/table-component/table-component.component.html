@@ -102,13 +102,16 @@
                 @for (btn of (col.actions ?? []); track btn.action) {
 
                   @if (!rowData.allowedActions || rowData.allowedActions.includes(btn.action)) {
-                    <app-button-component
-                      [label]="btn.label"
-                      [icon]="btn.icon"
-                      [variant]="btn.variant || 'primary'"
-                      [disabled]="!!btn.disabled"
-                      (onClick)="actionClick.emit({action: btn.action, row: rowData})"
-                    ></app-button-component>
+                    <span class="inline-flex" [pTooltip]="btn.tooltip" tooltipPosition="top">
+                      <app-button-component
+                        [label]="btn.label"
+                        [icon]="btn.icon"
+                        [ariaLabel]="btn.tooltip ?? btn.label"
+                        [variant]="btn.variant || 'primary'"
+                        [disabled]="!!btn.disabled"
+                        (onClick)="actionClick.emit({action: btn.action, row: rowData})"
+                      ></app-button-component>
+                    </span>
                   }
 
                 }

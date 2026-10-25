@@ -47,23 +47,28 @@ export class ArchivedWorksService {
   private readonly conTrabajo = computed(() => new Set(this.vistas.trabajosDeGrado().map(t => t.thesisWorkId)));
 
   readonly columns: Column[] = [
-    { field: 'title', header: 'Título', type: 'text', width: '22%' },
+    { field: 'title', header: 'Título', type: 'text', width: '20%' },
     { field: 'modality', header: 'Modalidad', type: 'text', width: '10%' },
-    { field: 'authors', header: 'Estudiantes', type: 'text', width: '15%' },
+    { field: 'authors', header: 'Estudiantes', type: 'text', width: '14%' },
     {
-      field: 'description', header: 'Descripción', type: 'actions', width: '8%',
-      actions: [{ action: ARCHIVED_WORK_ACTIONS.DESCRIPCION, label: 'Ver', variant: 'primary', disabled: false }]
+      field: 'description', header: 'Descripción', type: 'actions', width: '7%',
+      actions: [{ action: ARCHIVED_WORK_ACTIONS.DESCRIPCION, icon: 'description', tooltip: 'Ver descripción',
+        variant: 'primary', disabled: false }]
     },
-    { field: 'closedAt', header: 'Etapa', type: 'text', width: '10%' },
-    { field: 'state', header: 'Resultado', type: 'state', width: '9%' },
-    { field: 'reason', header: 'Motivo', type: 'text', width: '12%' },
+    { field: 'closedAt', header: 'Etapa', type: 'text', width: '9%' },
+    { field: 'state', header: 'Resultado', type: 'state', width: '11%' },
+    { field: 'reason', header: 'Motivo', type: 'text', width: '11%' },
     { field: 'closingDate', header: 'Fecha', type: 'text', width: '8%' },
     {
-      field: 'acciones', header: 'Consultar', type: 'actions', width: '6%',
+      // Cada etapa con el icono de su sección en la barra lateral
+      field: 'acciones', header: 'Consultar', type: 'actions', width: '10%',
       actions: [
-        { action: ARCHIVED_WORK_ACTIONS.PROPUESTA, label: 'Propuesta', variant: 'secondary', disabled: false },
-        { action: ARCHIVED_WORK_ACTIONS.ANTEPROYECTO, label: 'Anteproyecto', variant: 'secondary', disabled: false },
-        { action: ARCHIVED_WORK_ACTIONS.TRABAJO, label: 'Trabajo de grado', variant: 'secondary', disabled: false }
+        { action: ARCHIVED_WORK_ACTIONS.PROPUESTA, icon: 'article', tooltip: 'Consultar la propuesta',
+          variant: 'primary', disabled: false },
+        { action: ARCHIVED_WORK_ACTIONS.ANTEPROYECTO, icon: 'note_alt', tooltip: 'Consultar el anteproyecto',
+          variant: 'primary', disabled: false },
+        { action: ARCHIVED_WORK_ACTIONS.TRABAJO, icon: 'school', tooltip: 'Consultar el trabajo de grado',
+          variant: 'primary', disabled: false }
       ]
     }
   ];

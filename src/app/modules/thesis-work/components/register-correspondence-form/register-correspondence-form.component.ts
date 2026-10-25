@@ -26,17 +26,23 @@ export class RegisterCorrespondenceFormComponent {
   readonly selectedFile = signal<{ fileName: string; file: File } | null>(null);
   readonly isModalOpen  = signal(false);
 
-  /** Documentos del trabajo: formato E y paz y salvo (F) de la solicitud, actas (G) y versión definitiva (H) */
-  private readonly historicalDocuments = computed<FileDocument[]>(() => {
+  /**
+   * Formato E que adjuntó el Consejo al programar la última sesión (si la
+   * sustentación se aplazó, el de la segunda programación); sin sesiones, el
+   * de la solicitud vigente. Las sesiones vienen de la más reciente a la más antigua.
+   */
+  readonly formatoEDoc = computed<FileDocument | undefined>(() => {
     const thesis = this.thesisWork();
-    const delivery = thesis.finalDeliveries?.[0];
-    const actas = (thesis.sustentations ?? []).flatMap(s => s.verdicts.map(v => v.attachedDocument));
-    return [...(thesis.documents ?? []), delivery?.formatE, delivery?.pazYSalvo, ...actas]
-      .filter((document): document is FileDocument => !!document);
+    return thesis.sustentations?.find(sesion => !!sesion.formatEDocument)?.formatEDocument
+      ?? thesis.finalDeliveries?.[0]?.formatE;
   });
-  readonly formatoEDoc = computed(() => this.formService.findFormatoE(this.historicalDocuments()));
-  readonly formatoFDoc = computed(() => this.formService.findFormatoF(this.historicalDocuments()));
-  readonly formatoGDoc = computed(() => this.formService.findFormatoG(this.historicalDocuments()));
+  /** Paz y salvo (formato F) aprobado de la solicitud vigente */
+  readonly formatoFDoc = computed<FileDocument | undefined>(() => this.thesisWork().finalDeliveries?.[0]?.pazYSalvo);
+  /** Acta (formato G) de la última sesión calificada */
+  readonly formatoGDoc = computed<FileDocument | undefined>(() =>
+    (this.thesisWork().sustentations ?? [])
+      .flatMap(sesion => sesion.verdicts.map(veredicto => veredicto.attachedDocument))
+      .find((documento): documento is FileDocument => !!documento));
 
   getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork()); }
   getDirectorName(): string { return this.formService.getDirectorName(this.thesisWork()); }

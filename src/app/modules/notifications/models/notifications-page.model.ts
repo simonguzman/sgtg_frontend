@@ -19,8 +19,8 @@ export const INBOX_COLUMNS: Column[] = [
     header: 'Acciones',
     type: 'actions',
     actions: [
-      { action: 'ver_detalle', icon: 'visibility', variant: 'primary', disabled: false },
-      { action: 'eliminar',    icon: 'delete',     variant: 'primary', disabled: false }
+      { action: 'ver_detalle', icon: 'visibility', tooltip: 'Ver detalle', variant: 'primary', disabled: false },
+      { action: 'eliminar',    icon: 'delete',     tooltip: 'Eliminar', variant: 'primary', disabled: false }
     ],
     width: '10%'
   }

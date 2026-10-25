@@ -5,7 +5,6 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
-import { DocumentType } from '../../../../../core/enums/document-type.enum';
 
 @Injectable()
 export class RegisterCorrespondenceFormService {
@@ -24,23 +23,6 @@ export class RegisterCorrespondenceFormService {
   getMemberName(id: string | undefined): string      { return this.participants.getMemberName(id); }
   getAssignedJurors(thesisWork: ThesisWork): string {
     return this.participants.getAssignedJurors(thesisWork.sustentations?.[0]);
-  }
-
-  findFormatoE(documents: FileDocument[]): FileDocument | undefined {
-    return documents.find(document => document.type === DocumentType.FORMATO_E);
-  }
-
-  findFormatoF(documents: FileDocument[]): FileDocument | undefined {
-    return documents.find(document =>
-      document.type === DocumentType.PAZ_Y_SALVO || (document.type as string) === 'Formato F'
-    );
-  }
-
-  findFormatoG(documents: FileDocument[]): FileDocument | undefined {
-    const correctionDoc = documents.find(document =>
-      document.type === DocumentType.CORRECCION || (document.type as string) === 'CORRECCION'
-    );
-    return correctionDoc ?? documents.find(document => document.type === DocumentType.FORMATO_G);
   }
 
   async downloadDocument(document: FileDocument | undefined | null): Promise<void> {

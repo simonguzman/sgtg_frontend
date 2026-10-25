@@ -18,6 +18,8 @@ export interface ActionButton{
   action: string;
   label?: string;
   icon?: string;
+  /** Texto al pasar el cursor (y nombre accesible); útil en los botones que solo tienen icono */
+  tooltip?: string;
   variant: 'primary' | 'secondary';
   disabled: boolean;
 }

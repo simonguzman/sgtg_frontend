@@ -17,6 +17,8 @@ export interface NotificacionApi {
    * llevan a una vista propia. Null en las notificaciones anteriores a este dato.
    */
   evento?: string | null;
+  /** Sesión de sustentación a la que se refiere (ej. la que se calificó); null si no aplica */
+  sesion?: number | null;
   fecha: string;
   leida: boolean;
 }

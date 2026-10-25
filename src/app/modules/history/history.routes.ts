@@ -26,8 +26,12 @@ const ALL_ROLES = [
   UserRoleType.DECANATURA
 ];
 
-/** El evaluador consulta en su historial los anteproyectos que ya evaluó. */
-const ROLES_ANTEPROYECTO = [...ALL_ROLES, UserRoleType.EVALUADOR];
+/**
+ * El evaluador consulta en su historial los anteproyectos que ya evaluó; al
+ * cerrarse el trabajo pierde el rol EVALUADOR y conserva el de docente (el guard
+ * solo deja entrar a quien lo evaluó).
+ */
+const ROLES_ANTEPROYECTO = [...ALL_ROLES, UserRoleType.EVALUADOR, UserRoleType.DOCENTE];
 
 export const historyRoutes: Routes = [
   {

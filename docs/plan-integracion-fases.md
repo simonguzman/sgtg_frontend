@@ -421,3 +421,13 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     (la vigente) y la primera revisión del paz y salvo (la más reciente), en el orden del mapper; ya no ordena por
     fecha, porque una nueva solicitud puede tener la misma fecha que la no aprobada. Lo usan los formularios de paz y
     salvo, programación y evaluación de la sustentación.
+18. **Notificaciones de la sustentación:** programada → pestaña de sustentación; nueva fecha → solicitudes especiales;
+    calificada e inasistencia → detalle de su sesión (`sesion` de la notificación; sin ella, la pestaña de
+    sustentación); ajustes radicados y verificados → documentos corregidos. Si el hecho cerró el trabajo, al historial.
+19. **Versión definitiva (formato H):** el formulario muestra el formato E que adjuntó el Consejo en la última
+    programación (si se aplazó, el de la segunda), el acta de la última sesión calificada y el paz y salvo aprobado de
+    la solicitud vigente.
+20. **Historial:** las acciones son iconos con tooltip (descripción y las etapas con el icono de su sección en la barra
+    lateral: `article`, `note_alt`, `school`); `ActionButton.tooltip` también da el nombre accesible del botón. El
+    evaluador sigue consultando en su historial el anteproyecto que evaluó aunque pierda el rol EVALUADOR al cerrarse
+    el trabajo (la ruta admite DOCENTE; `archivedWorkGuard` solo deja entrar a quien lo evaluó).

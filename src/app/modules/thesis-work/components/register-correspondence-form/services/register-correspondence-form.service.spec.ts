@@ -188,44 +188,6 @@ describe('RegisterCorrespondenceFormService', () => {
     });
   });
 
-  describe('Búsqueda de Documentos Históricos', () => {
-    it('debería encontrar el Formato_E usando el enum', () => {
-      const docs = [
-        createMockFileDocument({ id: '1', type: DocumentType.MONOGRAFIA }),
-        createMockFileDocument({ id: '2', type: DocumentType.FORMATO_E })
-      ];
-
-      const result = service.findFormatoE(docs);
-      expect(result?.id).toBe('2');
-    });
-
-    it('debería encontrar Paz y Salvo usando enum o string legacy', () => {
-      const docsEnum = [createMockFileDocument({ id: '1', type: DocumentType.PAZ_Y_SALVO })];
-
-      const legacyDoc = createMockFileDocument({ id: '2' });
-      Object.defineProperty(legacyDoc, 'type', { value: 'Formato F' });
-      const docsLegacy = [legacyDoc];
-
-      expect(service.findFormatoF(docsEnum)?.id).toBe('1');
-      expect(service.findFormatoF(docsLegacy)?.id).toBe('2');
-    });
-
-    it('debería encontrar Acta (G) priorizando CORRECCION sobre FORMATO_G', () => {
-      const legacyCorrectionDoc = createMockFileDocument({ id: '2' });
-      Object.defineProperty(legacyCorrectionDoc, 'type', { value: 'CORRECCION' });
-
-      const docsBoth = [
-        createMockFileDocument({ id: '1', type: DocumentType.FORMATO_G }),
-        legacyCorrectionDoc
-      ];
-
-      expect(service.findFormatoG(docsBoth)?.id).toBe('2');
-
-      const docsOnlyG = [createMockFileDocument({ id: '1', type: DocumentType.FORMATO_G })];
-      expect(service.findFormatoG(docsOnlyG)?.id).toBe('1');
-    });
-  });
-
   describe('Manejo de Descargas y Validaciones', () => {
     it('debería notificar error si el documento no tiene URL', async () => {
       const mockDoc = createMockFileDocument({ url: '' });

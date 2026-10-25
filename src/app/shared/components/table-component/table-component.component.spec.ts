@@ -17,6 +17,7 @@ class MockButtonComponent {
   @Input() icon?: string;
   @Input() variant: 'primary' | 'secondary' = 'primary';
   @Input() disabled = false;
+  @Input() ariaLabel?: string;
   @Output() onClick = new EventEmitter<void>();
 }
 
@@ -155,6 +156,20 @@ describe('TableComponent', () => {
       const firstCell = fixture.debugElement.query(By.css('td span'));
       const tooltip = firstCell.injector.get(Tooltip);
       expect(tooltip.content).toBe(ROWS[0]['nombre']);
+    });
+  });
+
+  describe('Botones de acción con icono', () => {
+    it('muestran su tooltip y lo usan como nombre accesible', async () => {
+      const columnas: Column[] = [{ field: 'acciones', header: 'Consultar', type: 'actions', actions: [
+        { action: 'ver-propuesta', icon: 'article', tooltip: 'Consultar la propuesta', variant: 'primary', disabled: false }
+      ] }];
+      const { fixture } = await mountTable(columnas);
+      const boton = fixture.debugElement.query(By.directive(MockButtonComponent));
+
+      expect(boton.componentInstance.icon).toBe('article');
+      expect(boton.componentInstance.ariaLabel).toBe('Consultar la propuesta');
+      expect(boton.parent!.injector.get(Tooltip).content).toBe('Consultar la propuesta');
     });
   });
 

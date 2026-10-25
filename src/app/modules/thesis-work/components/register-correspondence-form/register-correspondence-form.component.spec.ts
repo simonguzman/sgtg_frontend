@@ -42,9 +42,6 @@ interface MockRegisterCorrespondenceFormService {
   getCodirectorName: jest.Mock<string, [ThesisWork]>;
   getAdvisorName: jest.Mock<string, [ThesisWork]>;
   getMemberName: jest.Mock<string, [string | undefined]>;
-  findFormatoE: jest.Mock<FileDocument | undefined, [FileDocument[]]>;
-  findFormatoF: jest.Mock<FileDocument | undefined, [FileDocument[]]>;
-  findFormatoG: jest.Mock<FileDocument | undefined, [FileDocument[]]>;
   downloadDocument: jest.Mock<Promise<void>, [FileDocument | undefined | null]>;
 }
 
@@ -135,9 +132,6 @@ describe('RegisterCorrespondenceFormComponent', () => {
       getCodirectorName: jest.fn(),
       getAdvisorName: jest.fn(),
       getMemberName: jest.fn(),
-      findFormatoE: jest.fn(),
-      findFormatoF: jest.fn(),
-      findFormatoG: jest.fn(),
       downloadDocument: jest.fn().mockResolvedValue(undefined),
     };
 
@@ -171,14 +165,39 @@ describe('RegisterCorrespondenceFormComponent', () => {
   });
 
   describe('Inicialización y Computed Signals', () => {
-    it('debería delegar llamadas a los métodos del servicio para derivar documentos', () => {
-      component.formatoEDoc();
-      component.formatoFDoc();
-      component.formatoGDoc();
+    it('el formato E es el que adjuntó el Consejo en la última programación; el acta, la de la última sesión calificada', () => {
+      const formatoE1 = createMockFileDocument({ id: 'e-1', type: DocumentType.FORMATO_E });
+      const formatoE2 = createMockFileDocument({ id: 'e-2', type: DocumentType.FORMATO_E });
+      const actaSesion1 = createMockFileDocument({ id: 'g-1', type: DocumentType.FORMATO_G });
+      const formatoSolicitud = createMockFileDocument({ id: 'e-solicitud', type: DocumentType.FORMATO_E });
+      const pazYSalvo = createMockFileDocument({ id: 'f-1', type: DocumentType.PAZ_Y_SALVO });
+      const sesion = (id: string, formatEDocument: FileDocument, acta?: FileDocument) => createMockSustentationRegistry({
+        id, formatEDocument,
+        verdicts: acta ? [{ jurorId: 'j1', veredict: stateList.APLAZADO, observations: '', evaluationDate: new Date(),
+          attachedDocument: acta }] : []
+      } as Partial<SustentationRegistry>);
+      // La segunda sesión (más reciente, primero) aún sin calificar; la primera se aplazó con su acta
+      fixture.componentRef.setInput('thesisWork', createMockThesisWork({
+        sustentations: [sesion('sesion-2', formatoE2), sesion('sesion-1', formatoE1, actaSesion1)],
+        finalDeliveries: [{ id: 'entrega-final', uploadDate: new Date(), monograph: formatoSolicitud,
+          formatE: formatoSolicitud, pazYSalvo, status: stateList.EN_REVISION }]
+      } as Partial<ThesisWork>));
 
-      expect(formServiceMock.findFormatoE).toHaveBeenCalledWith(mockThesisWork.documents);
-      expect(formServiceMock.findFormatoF).toHaveBeenCalledWith(mockThesisWork.documents);
-      expect(formServiceMock.findFormatoG).toHaveBeenCalledWith(mockThesisWork.documents);
+      expect(component.formatoEDoc()?.id).toBe('e-2');
+      expect(component.formatoGDoc()?.id).toBe('g-1');
+      expect(component.formatoFDoc()?.id).toBe('f-1');
+    });
+
+    it('sin sesiones el formato E es el de la solicitud de sustentación', () => {
+      const formatoSolicitud = createMockFileDocument({ id: 'e-solicitud', type: DocumentType.FORMATO_E });
+      fixture.componentRef.setInput('thesisWork', createMockThesisWork({
+        sustentations: [],
+        finalDeliveries: [{ id: 'entrega-final', uploadDate: new Date(), monograph: formatoSolicitud,
+          formatE: formatoSolicitud, status: stateList.EN_REVISION }]
+      } as Partial<ThesisWork>));
+
+      expect(component.formatoEDoc()?.id).toBe('e-solicitud');
+      expect(component.formatoGDoc()).toBeUndefined();
     });
 
     it('debería llamar al método de descarga del servicio', () => {

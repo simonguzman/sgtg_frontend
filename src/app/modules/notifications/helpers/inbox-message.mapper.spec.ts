@@ -34,6 +34,25 @@ describe('inbox-message.mapper', () => {
       .toBe('/thesis-work/details/15/loaded_documents?tab=ENTREGA_FINAL');
     expect(rutaDeNotificacion(15, 'SUSTENTACION', 'PAZ_Y_SALVO_APROBADO'))
       .toBe('/thesis-work/details/15/loaded_documents?tab=PAZ_Y_SALVO');
+  });
+
+  it('los hechos de la sustentación llevan a su pestaña, al detalle de la sesión o a los documentos corregidos', () => {
+    expect(rutaDeNotificacion(15, 'SUSTENTACION', 'SUSTENTACION_PROGRAMADA'))
+      .toBe('/thesis-work/details/15/loaded_documents?tab=SUSTENTACION');
+    expect(rutaDeNotificacion(15, 'SUSTENTACION', 'NUEVA_FECHA_RESUELTA'))
+      .toBe('/thesis-work/details/15/loaded_documents?tab=SOLICITUDES');
+    expect(rutaDeNotificacion(15, 'SUSTENTACION', 'SUSTENTACION_CALIFICADA', 2))
+      .toBe('/thesis-work/details/15/view_sustentation_details/sesion-2');
+    expect(rutaDeNotificacion(15, 'APLAZADO', 'INASISTENCIA_REGISTRADA', 1))
+      .toBe('/thesis-work/details/15/view_sustentation_details/sesion-1');
+    // Sin sesión (notificaciones anteriores a ese dato), la pestaña de sustentación
+    expect(rutaDeNotificacion(15, 'SUSTENTACION', 'SUSTENTACION_CALIFICADA'))
+      .toBe('/thesis-work/details/15/loaded_documents?tab=SUSTENTACION');
+    expect(rutaDeNotificacion(15, 'SUSTENTACION', 'AJUSTES_RADICADOS')).toBe('/thesis-work/details/15/corrected_documents');
+    expect(rutaDeNotificacion(15, 'SUSTENTACION', 'AJUSTES_VERIFICADOS')).toBe('/thesis-work/details/15/corrected_documents');
+    // Si el hecho cerró el trabajo (ej. finalizado o no aprobado), al historial
+    expect(rutaDeNotificacion(15, 'NO_APROBADO', 'SUSTENTACION_CALIFICADA', 2)).toBe('/history');
+    expect(rutaDeNotificacion(15, 'FINALIZADO', 'VERSION_DEFINITIVA_CARGADA')).toBe('/history');
     expect(aMensajeDelBuzon({
       id: 1, tipo: 'CONFIRMACION', titulo: 'Concepto del Comité de Programa', mensaje: 'M', trabajoId: 15,
       etapa: 'ANTEPROYECTO', evento: 'DECISION_COMITE', fecha: '2026-03-02T10:30:00', leida: false
