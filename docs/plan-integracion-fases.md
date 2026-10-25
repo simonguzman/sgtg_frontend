@@ -381,3 +381,6 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-23.md`.
    más reciente si la carta es posterior a todas), en lugar de ir siempre con la primera versión.
 
 Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
+4. **Notificaciones por evento:** el backend devuelve el `evento` de cada notificación. `rutaDeNotificacion` usa la
+   vista propia del evento si la tiene (`DECISION_COMITE` → `/proposal/details/{id}/evaluations_performed`) y, si no,
+   la de la etapa, como antes.

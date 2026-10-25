@@ -13,11 +13,24 @@ const TIPO: Record<TipoNotificacionApi, NotificationType> = {
 const ETAPAS_DE_ANTEPROYECTO: readonly ProcesoApi[] = ['ANTEPROYECTO', 'EVALUACION', 'APROBACION_CONSEJO'];
 
 /**
- * Vista a la que lleva la notificación según la etapa del trabajo al
- * notificar; un trabajo cerrado lleva al historial.
+ * Eventos que llevan a una vista propia, sin importar la etapa a la que pasó
+ * el trabajo (ej. el concepto aprobatorio del Comité lo pasa a anteproyecto,
+ * que aún no tiene documento).
  */
-export function rutaDeNotificacion(trabajoId: number | null, etapa: ProcesoApi | null): string | undefined {
+const RUTAS_POR_EVENTO: Record<string, (trabajoId: number) => string> = {
+  DECISION_COMITE: trabajoId => `/proposal/details/${trabajoId}/evaluations_performed`
+};
+
+/**
+ * Vista a la que lleva la notificación: la propia de su evento o, si no
+ * tiene, la de la etapa del trabajo al notificar; un trabajo cerrado lleva al
+ * historial.
+ */
+export function rutaDeNotificacion(trabajoId: number | null, etapa: ProcesoApi | null,
+  evento?: string | null): string | undefined {
   if (trabajoId === null || etapa === null) return undefined;
+  const rutaDelEvento = evento ? RUTAS_POR_EVENTO[evento] : undefined;
+  if (rutaDelEvento) return rutaDelEvento(trabajoId);
   if (ETAPAS_FINALES.includes(etapa)) return '/history';
   if (etapa === 'PROPUESTA') return `/proposal/details/${trabajoId}`;
   if (ETAPAS_DE_ANTEPROYECTO.includes(etapa)) return `/preliminary-draft/details/${trabajoId}`;
@@ -34,6 +47,6 @@ export function aMensajeDelBuzon(notificacion: NotificacionApi, userId: string):
     message: notificacion.mensaje,
     date: new Date(notificacion.fecha),
     status: notificacion.leida ? 'leido' : 'no leido',
-    actionUrl: rutaDeNotificacion(notificacion.trabajoId, notificacion.etapa)
+    actionUrl: rutaDeNotificacion(notificacion.trabajoId, notificacion.etapa, notificacion.evento)
   };
 }

@@ -12,6 +12,11 @@ export interface NotificacionApi {
   trabajoId: number | null;
   /** Etapa del trabajo al notificar: define a qué vista lleva la notificación */
   etapa: ProcesoApi | null;
+  /**
+   * Hecho que la generó (`EventoTrabajoGrado`, ej. `DECISION_COMITE`); algunos
+   * llevan a una vista propia. Null en las notificaciones anteriores a este dato.
+   */
+  evento?: string | null;
   fecha: string;
   leida: boolean;
 }

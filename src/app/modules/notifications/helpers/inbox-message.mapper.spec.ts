@@ -15,6 +15,18 @@ describe('inbox-message.mapper', () => {
     expect(rutaDeNotificacion(null, null)).toBeUndefined();
   });
 
+  it('el concepto del Comité lleva a las evaluaciones de la propuesta aunque el trabajo haya avanzado', () => {
+    expect(rutaDeNotificacion(15, 'ANTEPROYECTO', 'DECISION_COMITE')).toBe('/proposal/details/15/evaluations_performed');
+    expect(rutaDeNotificacion(15, 'PROPUESTA', 'DECISION_COMITE')).toBe('/proposal/details/15/evaluations_performed');
+    // Los demás eventos (o las notificaciones sin evento) siguen la etapa
+    expect(rutaDeNotificacion(15, 'ANTEPROYECTO', 'ANTEPROYECTO_RADICADO')).toBe('/preliminary-draft/details/15');
+    expect(rutaDeNotificacion(15, 'ANTEPROYECTO', null)).toBe('/preliminary-draft/details/15');
+    expect(aMensajeDelBuzon({
+      id: 1, tipo: 'CONFIRMACION', titulo: 'Concepto del Comité de Programa', mensaje: 'M', trabajoId: 15,
+      etapa: 'ANTEPROYECTO', evento: 'DECISION_COMITE', fecha: '2026-03-02T10:30:00', leida: false
+    }, '10').actionUrl).toBe('/proposal/details/15/evaluations_performed');
+  });
+
   it('convierte el tipo, la fecha y el estado de lectura', () => {
     const tipos = (['INFO', 'CONFIRMACION', 'ALERTA', 'ERROR'] as const).map(tipo => aMensajeDelBuzon({
       id: 1, tipo, titulo: 'T', mensaje: 'M', trabajoId: 15, etapa: 'EN_CURSO', fecha: '2026-03-02T10:30:00',
