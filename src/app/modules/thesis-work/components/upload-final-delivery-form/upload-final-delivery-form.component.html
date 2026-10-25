@@ -12,17 +12,9 @@
 
     <div class="flex flex-col gap-4">
 
-      <div class="flex flex-col gap-1">
-        <label for="thesisTitle" class="font-display font-semibold text-primary text-size-section">Título</label>
-        <input id="thesisTitle" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
-               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
-      </div>
+      <app-readonly-field label="Título" [value]="thesisWork.preliminaryDraftData.proposalData.title"></app-readonly-field>
 
-      <div class="flex flex-col gap-1">
-        <label for="thesisDescription" class="font-display font-semibold text-primary text-size-section">Descripción</label>
-        <textarea id="thesisDescription" [value]="thesisWork.preliminaryDraftData.proposalData.description || 'Sin descripción disponible'" disabled rows="4"
-                  class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full resize-none font-sans"></textarea>
-      </div>
+      <app-proposal-content-fields [proposal]="thesisWork.preliminaryDraftData.proposalData"></app-proposal-content-fields>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 

@@ -8,11 +8,12 @@ import { InfoBannerComponent } from '../../../../shared/components/info-banner/i
 import { PreliminaryDraft } from '../../interfaces/preliminary-draft.interface';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
 import { SaveEvaluationPayload } from './models/council-evaluation.model';
+import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
 @Component({
   selector: 'app-review-presentations-faculty-council-form',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],
+  imports: [ProposalContentFieldsComponent, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],
   providers: [ReviewPresentationsFacultyCouncilFormFacadeService],
   templateUrl: './review-presentations-faculty-council-form.component.html',
   styleUrls: ['./review-presentations-faculty-council-form.component.css']

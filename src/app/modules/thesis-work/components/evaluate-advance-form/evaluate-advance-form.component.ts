@@ -12,6 +12,7 @@ import { SubmitAdvanceEvaluationPayload } from '../../interfaces/advance-playloa
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
 import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
+import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
 /**
  * Revisión de un informe mensual: muestra el informe y las revisiones ya
@@ -20,7 +21,7 @@ import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
  */
 @Component({
   selector: 'app-evaluate-advance-form',
-  imports: [DatePipe, NgClass, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],
+  imports: [ProposalContentFieldsComponent, DatePipe, NgClass, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],
   providers: [EvaluateAdvanceFormService],
   templateUrl: './evaluate-advance-form.component.html',
   styleUrls: ['./evaluate-advance-form.component.css']

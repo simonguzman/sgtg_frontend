@@ -8,6 +8,7 @@ import { FileDocument } from '../../../../core/interfaces/file-document.interfac
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { PazYSalvoReviewPayload } from '../../interfaces/paz-y-salvo-review.interface';
 import { FinalDeliveryDocType } from '../../services/thesis-final-delivery-document-resolver.service';
+import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
 /**
  * Revisión del paz y salvo de Decanatura: lo aprueba o no, siempre con el
@@ -15,7 +16,7 @@ import { FinalDeliveryDocType } from '../../services/thesis-final-delivery-docum
  */
 @Component({
   selector: 'app-review-paz-y-salvo-form',
-  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent, ReadonlyFieldComponent],
+  imports: [ProposalContentFieldsComponent, FileUploadModalComponent, ButtonComponent, InfoBannerComponent, ReadonlyFieldComponent],
   providers: [ReviewPazYSalvoFormService],
   templateUrl: './review-paz-y-salvo-form.component.html',
   styleUrls: ['./review-paz-y-salvo-form.component.css']

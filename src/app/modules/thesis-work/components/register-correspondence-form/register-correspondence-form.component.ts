@@ -7,12 +7,13 @@ import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-f
 import { RegisterCorrespondenceFormService } from './services/register-correspondence-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
 @Component({
   selector: 'app-register-correspondence-form',
   templateUrl: './register-correspondence-form.component.html',
   styleUrls: ['./register-correspondence-form.component.css'],
-  imports: [ButtonComponent, DatePipe, InfoBannerComponent, FileUploadModalComponent, ReadonlyFieldComponent],
+  imports: [ProposalContentFieldsComponent, ButtonComponent, DatePipe, InfoBannerComponent, FileUploadModalComponent, ReadonlyFieldComponent],
   providers: [RegisterCorrespondenceFormService]
 })
 export class RegisterCorrespondenceFormComponent {

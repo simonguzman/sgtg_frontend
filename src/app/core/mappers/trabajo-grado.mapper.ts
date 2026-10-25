@@ -126,7 +126,9 @@ export function aAnteproyecto(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo)
         date: aFecha(concepto.fecha) ?? new Date(),
         deadlineStatus: estadoDelPlazo(concepto.aTiempo)
       })),
-      ...anteproyecto.decisionesConsejo.map((decision, i) => evaluacionDeDecision(trabajo, decision, i, ctx))
+      // El Consejo decide sobre cada remisión (formato C), en el mismo orden
+      ...anteproyecto.decisionesConsejo.map((decision, i) =>
+        evaluacionDeDecision(trabajo, decision, i, ctx, anteproyecto.remisiones[i]?.ruta))
     ],
     documents: documentos,
     state: estadoAnteproyecto(trabajo),

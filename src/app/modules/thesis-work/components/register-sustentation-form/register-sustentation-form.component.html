@@ -13,7 +13,7 @@
 
       <div class="flex flex-col gap-4">
         <app-readonly-field label="Título" [value]="thesisWork().preliminaryDraftData.proposalData.title"></app-readonly-field>
-        <app-readonly-field label="Descripción" [value]="thesisWork().preliminaryDraftData.proposalData.description"></app-readonly-field>
+        <app-proposal-content-fields [proposal]="thesisWork().preliminaryDraftData.proposalData"></app-proposal-content-fields>
         <app-readonly-field label="Modalidad del trabajo de grado" [value]="thesisWork().preliminaryDraftData.proposalData.modality"></app-readonly-field>
         <app-readonly-field label="Estudiante" [value]="getStudentNames()"></app-readonly-field>
 

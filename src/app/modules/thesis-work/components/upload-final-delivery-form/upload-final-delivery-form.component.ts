@@ -6,6 +6,8 @@ import { UploadFinalDeliveryFormService } from './services/upload-final-delivery
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { Modality } from '../../../proposal/enums/modality.enum';
 import { SustentationRequestFiles } from '../../services/thesis-work-sustentation.service';
+import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
+import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
 export type FileSlot = 'MONOGRAPH' | 'FORMAT_E' | 'ADVISOR_CONCEPT' | 'ANNEXES';
 export type UploadedFile = { fileName: string; file: File };
@@ -25,7 +27,7 @@ interface SlotConfig {
  */
 @Component({
   selector: 'app-upload-final-delivery-form',
-  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent],
+  imports: [ReadonlyFieldComponent, ProposalContentFieldsComponent, FileUploadModalComponent, ButtonComponent, InfoBannerComponent],
   providers: [UploadFinalDeliveryFormService],
   templateUrl: './upload-final-delivery-form.component.html',
   styleUrls: ['./upload-final-delivery-form.component.css']

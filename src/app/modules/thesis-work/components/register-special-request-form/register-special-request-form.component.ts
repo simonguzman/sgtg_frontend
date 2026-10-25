@@ -10,6 +10,7 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SpecialRequestType } from '../../enums/special-request-type.enum';
 import { SpecialRequestSubmission } from '../../services/thesis-work-special-request.service';
 import { availableRequestTypes } from '../../helpers/special-request-availability.helper';
+import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
 /** Texto de ayuda para el documento de cada solicitud. */
 const DOCUMENT_HINTS: Partial<Record<SpecialRequestType, string>> = {
@@ -24,7 +25,7 @@ const DOCUMENT_HINTS: Partial<Record<SpecialRequestType, string>> = {
   selector: 'app-register-special-request-form',
   templateUrl: './register-special-request-form.component.html',
   styleUrls: ['./register-special-request-form.component.css'],
-  imports: [DatePipe, ReactiveFormsModule, ButtonComponent, InfoBannerComponent, ReadonlyFieldComponent, FileUploadModalComponent],
+  imports: [ProposalContentFieldsComponent, DatePipe, ReactiveFormsModule, ButtonComponent, InfoBannerComponent, ReadonlyFieldComponent, FileUploadModalComponent],
   providers: [RegisterSpecialRequestFormService]
 })
 export class RegisterSpecialRequestFormComponent implements OnInit {

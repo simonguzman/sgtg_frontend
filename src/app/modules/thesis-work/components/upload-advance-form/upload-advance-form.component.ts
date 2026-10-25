@@ -8,11 +8,12 @@ import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-f
 import { MAX_ADVANCE_COMMENTS, UploadAdvanceFormService } from './services/upload-advance-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { UploadAdvancePayload } from '../../interfaces/advance-playload.interface';
+import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
 /** Formulario para radicar un informe mensual: un PDF (formato D) y observaciones opcionales. */
 @Component({
   selector: 'app-upload-advance-form',
-  imports: [NgClass, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],
+  imports: [ProposalContentFieldsComponent, NgClass, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],
   providers: [UploadAdvanceFormService],
   templateUrl: './upload-advance-form.component.html',
   styleUrls: ['./upload-advance-form.component.css']

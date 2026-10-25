@@ -7,10 +7,11 @@ import { ButtonComponent } from "../../../../shared/components/button-component/
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 import { SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select.component';
 import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
+import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
 @Component({
   selector: 'app-assign-evaluators-form',
-  imports: [ReactiveFormsModule, ButtonComponent, DatePipe, InfoBannerComponent, SearchableSelectComponent, ReadonlyFieldComponent],
+  imports: [ProposalContentFieldsComponent, ReactiveFormsModule, ButtonComponent, DatePipe, InfoBannerComponent, SearchableSelectComponent, ReadonlyFieldComponent],
   providers: [DatePipe, AssignEvaluatorsFormFacadeService],
   templateUrl: './assign-evaluators-form.component.html',
   styleUrls: ['./assign-evaluators-form.component.css']

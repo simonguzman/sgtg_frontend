@@ -4,6 +4,7 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { PreliminaryDraftTabConfiguration, PreliminaryDraftEvaluationContext } from './tab-config.interface';
 import { anteproyectoCorregible, versionesDelAnteproyecto } from '../../../services/preliminary-draft-rules';
 import { stateList } from '../../../../../core/enums/state.enum';
+import { formatDisplayDate } from '../../../../../core/utils/date-utils';
 
 export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
   tabValue: 'ANTEPROYECTOS',
@@ -43,7 +44,12 @@ export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
       if (esVigenteEnRevision && isAssignedEvaluator && !yaConcepto && !preliminaryDraft.isArchived) {
         allowedActions.push('evaluate');
       }
-      return { ...document, status: document.status ?? stateList.EN_REVISION, allowedActions };
+      return {
+        ...document,
+        uploadDate: document.uploadDate instanceof Date ? formatDisplayDate(document.uploadDate) : document.uploadDate,
+        status: document.status ?? stateList.EN_REVISION,
+        allowedActions
+      };
     });
   },
 

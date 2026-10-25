@@ -10,6 +10,7 @@ import { SpecialRequestType } from '../../enums/special-request-type.enum';
 import { SpecialRequestDecision } from '../../services/thesis-work-special-request.service';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
+import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
 type SpecialRequestVerdict = stateList.APROBADO | stateList.NO_APROBADO;
 
@@ -22,7 +23,7 @@ type SpecialRequestVerdict = stateList.APROBADO | stateList.NO_APROBADO;
   selector: 'app-evaluate-special-request-form',
   templateUrl: './evaluate-special-request-form.component.html',
   styleUrls: ['./evaluate-special-request-form.component.css'],
-  imports: [ButtonComponent, InfoBannerComponent, ReadonlyFieldComponent, FileUploadModalComponent],
+  imports: [ProposalContentFieldsComponent, ButtonComponent, InfoBannerComponent, ReadonlyFieldComponent, FileUploadModalComponent],
   providers: [EvaluateSpecialRequestFormService]
 })
 export class EvaluateSpecialRequestFormComponent {

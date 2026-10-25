@@ -11,6 +11,7 @@ import { RegisterSustentationFormService } from './services/register-sustentatio
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { User } from '../../../users/interfaces/user.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
 export interface SustentationFormPayload {
   sustentationDate: string | Date;
@@ -23,7 +24,7 @@ export interface SustentationFormPayload {
   selector: 'app-register-sustentation-form',
   templateUrl: './register-sustentation-form.component.html',
   styleUrls: ['./register-sustentation-form.component.css'],
-  imports: [ReactiveFormsModule, FileUploadModalComponent, ButtonComponent, DatePicker, InfoBannerComponent, SearchableSelectComponent, ReadonlyFieldComponent],
+  imports: [ProposalContentFieldsComponent, ReactiveFormsModule, FileUploadModalComponent, ButtonComponent, DatePicker, InfoBannerComponent, SearchableSelectComponent, ReadonlyFieldComponent],
   providers: [RegisterSustentationFormService]
 })
 export class RegisterSustentationFormComponent implements OnInit {

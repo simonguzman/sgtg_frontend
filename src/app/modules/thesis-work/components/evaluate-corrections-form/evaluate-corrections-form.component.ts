@@ -7,13 +7,14 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { CorrectedDelivery } from '../../interfaces/corrected-delivery.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { stateList } from '../../../../core/enums/state.enum';
+import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
 @Component({
   selector: 'app-evaluate-corrections-form',
   templateUrl: './evaluate-corrections-form.component.html',
   styleUrls: ['./evaluate-corrections-form.component.css'],
   standalone: true,
-  imports: [ButtonComponent, InfoBannerComponent, ReadonlyFieldComponent],
+  imports: [ProposalContentFieldsComponent, ButtonComponent, InfoBannerComponent, ReadonlyFieldComponent],
   providers: [EvaluateCorrectionsFormService]
 })
 export class EvaluateCorrectionsFormComponent {

@@ -390,3 +390,13 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
 6. **Registro de anteproyecto:** muestra lo registrado en la propuesta (objetivos, descripción, línea, organización;
    sin los opcionales vacíos) y descarga la respuesta del Comité con `FileDownloadService`: el enlace directo no
    llevaba el token y bajaba la respuesta de error.
+7. **Lo registrado en todos los formularios:** `app-proposal-content-fields` (shared) muestra objetivo general,
+   objetivos específicos, descripción, línea de investigación y organización, sin los opcionales vacíos (usa
+   `proposalContent`). Reemplaza la "Descripción" en los formularios de anteproyecto (asignar evaluadores, evaluar,
+   presentación al Consejo) y de trabajo de grado (avances, correcciones, solicitudes, sustentación, correspondencia,
+   paz y salvo, entrega final). El título y la descripción que iban en `<input disabled>` de una línea pasan a campos
+   de solo lectura que no recortan el texto.
+8. **Evaluaciones del anteproyecto:** cada decisión del Consejo apunta a su remisión (formato C), en el mismo orden;
+   los conceptos de los evaluadores ya apuntaban a la versión evaluada.
+9. **Fechas en las tablas:** las fechas de carga de anteproyectos, remisiones, correspondencia y documentos corregidos
+   se muestran como `dd - MM - yyyy` (antes salía el texto crudo del `Date`).

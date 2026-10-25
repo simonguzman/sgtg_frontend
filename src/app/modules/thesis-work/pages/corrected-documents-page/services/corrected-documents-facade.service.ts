@@ -10,6 +10,7 @@ import { CorrectedDelivery } from '../../../interfaces/corrected-delivery.interf
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { CorrectedDeliveryTableRow } from '../models/corrected-documents-page.model';
+import { formatThesisDate } from '../../../helpers/thesis-date.helper';
 
 @Injectable({ providedIn: 'root' })
 export class CorrectedDocumentsFacadeService {
@@ -50,7 +51,7 @@ export class CorrectedDocumentsFacadeService {
     return thesisWork.correctedDeliveries.map((delivery, index) => ({
       id: delivery.id,
       name: `Ajustes radicados ${index + 1}`,
-      date: delivery.uploadDate ?? 'Sin fecha',
+      date: delivery.uploadDate instanceof Date ? formatThesisDate(delivery.uploadDate) : delivery.uploadDate ?? 'Sin fecha',
       status: delivery.status ?? delivery.monograph?.status ?? stateList.EN_REVISION,
       allowedActions: ['view-details'],
       rawDelivery: delivery

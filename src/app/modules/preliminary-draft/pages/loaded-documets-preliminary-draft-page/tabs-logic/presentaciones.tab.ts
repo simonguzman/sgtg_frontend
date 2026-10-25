@@ -3,6 +3,7 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { PreliminaryDraftTabConfiguration, PreliminaryDraftEvaluationContext } from './tab-config.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { versionVigente } from '../../../services/preliminary-draft-rules';
+import { formatDisplayDate } from '../../../../../core/utils/date-utils';
 
 export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
   tabValue: 'PRESENTACIONES',
@@ -37,7 +38,8 @@ export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
         && !preliminaryDraft.isArchived) {
         allowedActions.push('evaluate-presentation');
       }
-      return { ...document, status, allowedActions };
+      const uploadDate = document.uploadDate instanceof Date ? formatDisplayDate(document.uploadDate) : document.uploadDate;
+      return { ...document, uploadDate, status, allowedActions };
     });
   },
 

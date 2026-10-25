@@ -78,6 +78,11 @@ describe('AnteproyectosTabConfig', () => {
       ]);
     });
 
+    it('muestra la fecha de carga legible (no el texto crudo de la fecha)', () => {
+      const conFecha = { ...version('doc-1', 1, stateList.EN_REVISION), uploadDate: new Date(2026, 9, 24) };
+      expect(AnteproyectosTabConfig.getTableData([conFecha], mockContext, servicio)[0].uploadDate).toBe('24 - 10 - 2026');
+    });
+
     it('el evaluador asignado evalúa solo la versión vigente que está en revisión', () => {
       const documentos = [version('doc-1', 1, stateList.APROBADO_CON_OBSERVACIONES), version('doc-2', 2, stateList.EN_REVISION)];
 

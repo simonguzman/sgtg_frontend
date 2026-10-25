@@ -11,17 +11,9 @@
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
 
     <div class="flex flex-col gap-4">
-      <div class="flex flex-col gap-1">
-        <label for="infoTitle" class="font-display font-semibold text-primary text-size-section">Título</label>
-        <input id="infoTitle" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.title || ''" disabled
-               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
-      </div>
+      <app-readonly-field label="Título" [value]="thesisWork.preliminaryDraftData.proposalData.title"></app-readonly-field>
 
-      <div class="flex flex-col gap-1">
-        <label for="infoDescription" class="font-display font-semibold text-primary text-size-section">Descripción</label>
-        <input id="infoDescription" type="text" [value]="thesisWork.preliminaryDraftData.proposalData.description || ''" disabled
-               class="information-block p-2 rounded-md text-text-body bg-gray-50 cursor-not-allowed w-full">
-      </div>
+      <app-proposal-content-fields [proposal]="thesisWork.preliminaryDraftData.proposalData"></app-proposal-content-fields>
 
       <div class="flex flex-col gap-1">
         <label for="infoModality" class="font-display font-semibold text-primary text-size-section">Modalidad del trabajo de grado</label>

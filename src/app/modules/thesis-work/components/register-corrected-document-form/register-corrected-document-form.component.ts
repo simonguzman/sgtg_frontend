@@ -4,6 +4,8 @@ import { FileUploadModalComponent } from '../../../../shared/components/modals/f
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 import { RegisterCorrectedDocumentFormService } from './services/register-corrected-document-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
+import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
+import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
 type FileSlot = 'MONOGRAPH' | 'ANNEXES';
 
@@ -11,7 +13,7 @@ type FileSlot = 'MONOGRAPH' | 'ANNEXES';
   selector: 'app-register-corrected-document-form',
   templateUrl: './register-corrected-document-form.component.html',
   styleUrls: ['./register-corrected-document-form.component.css'],
-  imports: [FileUploadModalComponent, ButtonComponent, InfoBannerComponent],
+  imports: [ReadonlyFieldComponent, ProposalContentFieldsComponent, FileUploadModalComponent, ButtonComponent, InfoBannerComponent],
   providers: [RegisterCorrectedDocumentFormService]
 })
 export class RegisterCorrectedDocumentFormComponent {

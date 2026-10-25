@@ -3,6 +3,7 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { TabConfiguration, ThesisEvaluationContext } from './tab-config.interface';
+import { formatThesisDate } from '../../../helpers/thesis-date.helper';
 
 interface CorrespondenceTableRow {
   id: string;
@@ -44,7 +45,7 @@ export const CorrespondenceTabConfig: TabConfiguration<CorrespondenceTableRow> =
       .map((document): CorrespondenceTableRow => ({
         id: document.id,
         name: document.name,
-        date: document.uploadDate || 'Sin fecha',
+        date: document.uploadDate instanceof Date ? formatThesisDate(document.uploadDate) : document.uploadDate || 'Sin fecha',
         status: document.status || stateList.APROBADO,
         allowedActions: ['view-details'],
         url: document.url

@@ -1,0 +1,19 @@
+@if (content(); as registered) {
+  <div class="flex flex-col gap-4">
+    @if (registered.generalObjective) {
+      <app-readonly-field label="Objetivo general" [value]="registered.generalObjective"></app-readonly-field>
+    }
+    @if (registered.specificObjectives.length > 0) {
+      <app-readonly-field label="Objetivos específicos" [values]="registered.specificObjectives"></app-readonly-field>
+    }
+    @if (registered.description) {
+      <app-readonly-field label="Descripción" [value]="registered.description"></app-readonly-field>
+    }
+    @if (registered.lineOfResearch) {
+      <app-readonly-field label="Línea de investigación" [value]="registered.lineOfResearch"></app-readonly-field>
+    }
+    @if (registered.organization) {
+      <app-readonly-field label="Organización" [value]="registered.organization"></app-readonly-field>
+    }
+  </div>
+}

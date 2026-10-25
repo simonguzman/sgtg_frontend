@@ -12,7 +12,7 @@
 
       <div class="flex flex-col gap-4">
         <app-readonly-field label="Título" [value]="facade.preliminaryDraft()?.proposalData?.title"></app-readonly-field>
-        <app-readonly-field label="Descripción" [value]="facade.preliminaryDraft()?.proposalData?.description" emptyText="Sin descripción disponible"></app-readonly-field>
+        <app-proposal-content-fields [proposal]="facade.preliminaryDraft()?.proposalData"></app-proposal-content-fields>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <app-readonly-field label="Fecha de carga" [value]="facade.documentUploadDate()"></app-readonly-field>

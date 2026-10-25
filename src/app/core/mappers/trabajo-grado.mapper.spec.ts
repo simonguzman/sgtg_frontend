@@ -370,6 +370,20 @@ describe('trabajo-grado.mapper', () => {
         .toBe(stateList.EN_REVISION);
     });
 
+    it('cada evaluación del anteproyecto apunta al documento que evaluó y a quien la registró', () => {
+      const base = crearTrabajoEnCurso();
+      const trabajo = crearTrabajoEnCurso({ anteproyecto: { ...base.anteproyecto,
+        decisionesConsejo: [{ ...base.anteproyecto.decisionesConsejo[0], responsableId: 70 }] } });
+      const evaluaciones = aAnteproyecto(trabajo, ctx)!.evaluations;
+
+      // Los evaluadores conceptúan una versión del anteproyecto
+      expect(evaluaciones[0]).toEqual(expect.objectContaining({
+        evaluatorId: '20', documentId: '15/ANTEPROYECTO/v1/anteproyecto.pdf' }));
+      // El Consejo decide sobre la remisión (formato C)
+      expect(evaluaciones[2]).toEqual(expect.objectContaining({
+        evaluatorId: '70', documentId: '15/TI-C/v1/formato-c.pdf' }));
+    });
+
     it('el concepto incluye el documento de anotaciones del evaluador', () => {
       const base = crearTrabajoEnCurso();
       const conAnotaciones = crearTrabajoEnCurso({

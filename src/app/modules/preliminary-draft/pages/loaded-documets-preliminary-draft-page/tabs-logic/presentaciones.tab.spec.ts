@@ -81,6 +81,9 @@ describe('PresentacionesTabConfig', () => {
         ['remision-v2', 2, stateList.EN_REVISION],
         ['remision-v1', 1, stateList.NO_APROBADO]
       ]);
+      const conFecha = { ...remision(1, stateList.EN_REVISION), uploadDate: new Date(2026, 9, 24) };
+      expect(PresentacionesTabConfig.getTableData([conFecha], createMockContext(), servicio)[0].uploadDate)
+        .toBe('24 - 10 - 2026');
     });
 
     it('solo el Consejo evalúa la remisión vigente mientras está en revisión', () => {

@@ -9,6 +9,8 @@ import { stateList } from '../../../../core/enums/state.enum';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SustentationRegistry } from '../../interfaces/sustentation-registry.interface';
+import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
+import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
 /** Calificación del coordinador o la inasistencia del estudiante. */
 export type SustentationVeredict =
@@ -28,7 +30,7 @@ export interface SustentationEvaluationPayload {
   selector: 'app-evaluate-sustentation-form',
   templateUrl: './evaluate-sustentation-form.component.html',
   styleUrls: ['./evaluate-sustentation-form.component.css'],
-  imports: [ReactiveFormsModule, FileUploadModalComponent, ButtonComponent, DatePipe, InfoBannerComponent],
+  imports: [ReadonlyFieldComponent, ProposalContentFieldsComponent, ReactiveFormsModule, FileUploadModalComponent, ButtonComponent, DatePipe, InfoBannerComponent],
   providers: [EvaluateSustentationFormService]
 })
 export class EvaluateSustentationFormComponent {
