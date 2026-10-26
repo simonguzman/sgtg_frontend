@@ -6,6 +6,18 @@ export const STATUS_CHART_LABELS: string[] = [
   'En Desarrollo', 'Aplazados', 'Suspendidos', 'Cancelados'
 ];
 
+/** Estado de un trabajo, en singular (tabla del reporte) */
+export const STATUS_LABELS: Record<ProjectStatus, string> = {
+  [ProjectStatus.APROBADO]: 'Aprobado',
+  [ProjectStatus.APROBADO_OBSERVACIONES]: 'Aprobado con observaciones',
+  [ProjectStatus.NO_APROBADO]: 'No aprobado',
+  [ProjectStatus.EN_REVISION]: 'En revisión',
+  [ProjectStatus.EN_DESARROLLO]: 'En desarrollo',
+  [ProjectStatus.APLAZADO]: 'Aplazado',
+  [ProjectStatus.SUSPENDIDO]: 'Suspendido',
+  [ProjectStatus.CANCELADO]: 'Cancelado'
+};
+
 export const STATUS_CHART_ORDER: ProjectStatus[] = [
   ProjectStatus.APROBADO,
   ProjectStatus.APROBADO_OBSERVACIONES,
@@ -37,3 +49,6 @@ export const STAGE_CHART_ORDER: ProjectStage[] = [
 ];
 
 export const STAGE_CHART_COLORS: string[] = ['#3b82f6', '#8b5cf6', '#ec4899'];
+
+/** Colores de las categorías sin orden fijo (modalidades, programas) */
+export const CATEGORY_CHART_COLORS: string[] = ['#3b82f6', '#ec4899', '#22c55e', '#f59e0b', '#8b5cf6', '#14b8a6', '#ef4444', '#64748b'];

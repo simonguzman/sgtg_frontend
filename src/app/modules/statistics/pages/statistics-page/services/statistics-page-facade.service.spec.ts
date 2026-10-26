@@ -4,8 +4,8 @@ import { StatisticsPageFacadeService } from './statistics-page-facade.service';
 import { StatisticsStateService } from '../../../services/statistics-state.service';
 import { StatisticsMetricsService } from '../../../services/statistics-metrics.service';
 import { StatisticsChartDataService } from '../../../services/statistics-chart-data.service';
-import { StatisticsReportService } from '../../../services/statistics-reports.service';
-import { StatisticsFilters } from '../../../interfaces/statisticsFilters.interface';
+import { StatisticsReportContext, StatisticsReportService } from '../../../services/statistics-reports.service';
+import { DEFAULT_STATISTICS_FILTERS, StatisticsFilters } from '../../../interfaces/statisticsFilters.interface';
 import { StatisticsReportKpis } from '../../../interfaces/statisticsReportKpis.interface';
 import { RawProjectData } from '../../../interfaces/rawProjectData.interface';
 import { ProjectStage } from '../../../enum/projectStage.enum';
@@ -43,6 +43,9 @@ describe('StatisticsPageFacadeService', () => {
     stagesOptions: MockStageOption[];
     periodsOptions: WritableSignal<string[]>;
     directorsOptions: WritableSignal<{ id: string; name: string }[]>;
+    modalityOptions: WritableSignal<string[]>;
+    programOptions: WritableSignal<string[]>;
+    scope: WritableSignal<string>;
     updateFilters: jest.Mock<void, [Partial<StatisticsFilters>]>;
     clearFilters: jest.Mock<void, []>;
   };
@@ -55,25 +58,24 @@ describe('StatisticsPageFacadeService', () => {
   let mockChartDataService: {
     statusChartData: WritableSignal<MockChartData>;
     stageChartData: WritableSignal<MockChartData>;
+    modalityChartData: WritableSignal<MockChartData>;
+    programChartData: WritableSignal<MockChartData>;
   };
   let mockReportService: {
-    downloadPdfReport: jest.Mock<void, [StatisticsFilters, RawProjectData[], StatisticsReportKpis]>;
+    downloadPdfReport: jest.Mock<void, [StatisticsFilters, RawProjectData[], StatisticsReportKpis, StatisticsReportContext]>;
   };
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     mockStateService = {
-      currentFilters: signal<StatisticsFilters>({
-        stage: null,
-        period: null,
-        directorId: null,
-        archiveStatus: 'ACTIVE',
-        deadlineFilter: 'ALL',
-      }),
+      currentFilters: signal<StatisticsFilters>({ ...DEFAULT_STATISTICS_FILTERS }),
       filteredData: signal<RawProjectData[]>([]),
       stagesOptions: [],
       periodsOptions: signal<string[]>(['2026-1', '2025-2']),
       directorsOptions: signal<{ id: string; name: string }[]>([{ id: 'd1', name: 'Director 1' }]),
+      modalityOptions: signal<string[]>([]),
+      programOptions: signal<string[]>([]),
+      scope: signal('Todos los trabajos de grado de la facultad.'),
       updateFilters: jest.fn(),
       clearFilters: jest.fn(),
     };
@@ -86,6 +88,8 @@ describe('StatisticsPageFacadeService', () => {
     mockChartDataService = {
       statusChartData: signal<MockChartData>({ labels: [], datasets: [] }),
       stageChartData: signal<MockChartData>({ labels: [], datasets: [] }),
+      modalityChartData: signal<MockChartData>({ labels: [], datasets: [] }),
+      programChartData: signal<MockChartData>({ labels: [], datasets: [] }),
     };
     mockReportService = {
       downloadPdfReport: jest.fn(),
@@ -138,11 +142,10 @@ describe('StatisticsPageFacadeService', () => {
   describe('Orquestación de Reportes PDF (downloadPdfReport)', () => {
     it('debería recolectar filtros, datos y KPIs para generar el reporte', () => {
       const currentFilters: StatisticsFilters = {
+        ...DEFAULT_STATISTICS_FILTERS,
         stage: ProjectStage.ANTEPROYECTO,
         period: '2026-1',
-        directorId: null,
-        archiveStatus: 'ACTIVE',
-        deadlineFilter: 'ALL'
+        directorId: 'd1'
       };
       const filteredData: RawProjectData[] = [
         createMockRawProjectData({ id: '1', title: 'Test 1' })
@@ -164,7 +167,8 @@ describe('StatisticsPageFacadeService', () => {
       expect(mockReportService.downloadPdfReport).toHaveBeenCalledWith(
         currentFilters,
         filteredData,
-        expectedKpis
+        expectedKpis,
+        { scope: 'Todos los trabajos de grado de la facultad.', directorName: 'Director 1' }
       );
     });
   });

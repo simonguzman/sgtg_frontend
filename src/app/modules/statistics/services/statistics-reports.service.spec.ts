@@ -1,18 +1,17 @@
 import { TestBed } from '@angular/core/testing';
-import { StatisticsReportService } from './statistics-reports.service';
+import { StatisticsReportContext, StatisticsReportService } from './statistics-reports.service';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { StatisticsFilters } from '../interfaces/statisticsFilters.interface';
+import { DEFAULT_STATISTICS_FILTERS, StatisticsFilters } from '../interfaces/statisticsFilters.interface';
 import { RawProjectData } from '../interfaces/rawProjectData.interface';
 import { StatisticsReportKpis } from '../interfaces/statisticsReportKpis.interface';
 import { ProjectStage } from '../enum/projectStage.enum';
 import { ProjectStatus } from '../enum/projectStatus.enum';
+import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
 
 // Hacemos mock de las librerías externas para evitar renderizados reales
 jest.mock('jspdf');
 jest.mock('jspdf-autotable');
-
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any') ────────────────────────
 
 const createMockRawProjectData = (overrides: Partial<RawProjectData> = {}): RawProjectData => ({
   id: 'proj-123',
@@ -26,18 +25,12 @@ const createMockRawProjectData = (overrides: Partial<RawProjectData> = {}): RawP
   registrationDate: new Date(),
   isArchived: false,
   deadlineStatus: null,
+  modality: 'Trabajo de investigación',
+  program: 'Ingeniería de Sistemas',
   ...overrides
 } as RawProjectData);
 
-const createMockStatisticsFilters = (overrides: Partial<StatisticsFilters> = {}): StatisticsFilters => ({
-  stage: null,
-  period: '',
-  directorId: '',
-  archiveStatus: 'ALL',
-  ...overrides
-} as StatisticsFilters);
-
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
+const context: StatisticsReportContext = { scope: 'Todos los trabajos de grado de la facultad.', directorName: null };
 
 describe('StatisticsReportService', () => {
   let service: StatisticsReportService;
@@ -47,28 +40,24 @@ describe('StatisticsReportService', () => {
     setFontSize: jest.Mock;
     setTextColor: jest.Mock;
     text: jest.Mock;
+    splitTextToSize: jest.Mock;
     save: jest.Mock;
   };
 
   beforeEach(() => {
-    // 🔕 Silenciar consola para mantener terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Definimos los métodos espía para el documento PDF virtual
     mockJsPdfInstance = {
       setFontSize: jest.fn(),
       setTextColor: jest.fn(),
       text: jest.fn(),
+      splitTextToSize: jest.fn((texto: string) => [texto]),
       save: jest.fn(),
     };
 
-    // FIX: Cuando mockeamos clases de librerías externas, TypeScript obliga
-    // a usar 'unknown' porque el tipo nativo de 'jsPDF' no se superpone
-    // en absoluto con el tipo de una función espía de Jest.
+    // El tipo de 'jsPDF' no se superpone con el de una función espía de Jest
     (jsPDF as unknown as jest.Mock).mockImplementation(() => mockJsPdfInstance);
-
-    // Limpiamos el mock de la tabla antes de cada test
     (autoTable as unknown as jest.Mock).mockClear();
 
     TestBed.configureTestingModule({
@@ -80,7 +69,7 @@ describe('StatisticsReportService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar los espías de consola
+    jest.restoreAllMocks();
   });
 
   it('debería inyectarse correctamente', () => {
@@ -95,102 +84,86 @@ describe('StatisticsReportService', () => {
       rejected: 3
     };
 
-    // Usamos el Factory puro para los datos
     const mockData: RawProjectData[] = [
       createMockRawProjectData({
         title: 'Proyecto de Prueba',
         stage: ProjectStage.PROPUESTA,
-        status: ProjectStatus.EN_DESARROLLO,
+        status: ProjectStatus.APROBADO_OBSERVACIONES,
         directorName: 'Juan Pérez',
-        period: '2026-1'
+        period: '2026-1',
+        modality: 'Práctica profesional',
+        program: 'Ingeniería Electrónica'
       })
     ];
 
     it('debería inicializar jsPDF y guardar el documento con la fecha actual', () => {
-      const mockFilters = createMockStatisticsFilters();
-
-      service.downloadPdfReport(mockFilters, mockData, mockKpis);
+      service.downloadPdfReport({ ...DEFAULT_STATISTICS_FILTERS }, mockData, mockKpis, context);
 
       expect(jsPDF).toHaveBeenCalledWith('p', 'mm', 'a4');
-      // Verificamos que contenga el prefijo y termine en .pdf
       expect(mockJsPdfInstance.save).toHaveBeenCalledWith(expect.stringContaining('Reporte_Academico_'));
       expect(mockJsPdfInstance.save).toHaveBeenCalledWith(expect.stringContaining('.pdf'));
     });
 
-    it('debería imprimir el header y los KPIs correctamente', () => {
-      const mockFilters = createMockStatisticsFilters();
+    it('imprime el encabezado con el alcance y los KPIs', () => {
+      service.downloadPdfReport({ ...DEFAULT_STATISTICS_FILTERS }, mockData, mockKpis, context);
 
-      service.downloadPdfReport(mockFilters, mockData, mockKpis);
-
-      // Verificación de Header (Título principal)
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('Reporte de Control Académico', 14, 20);
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith(expect.stringContaining('Generado el:'), 14, 28);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith(['Alcance: Todos los trabajos de grado de la facultad.'], 14, 34);
 
-      // Verificación de KPIs
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('Resumen de Métricas:', 100, 40);
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Proyectos Totales: 10', 100, 48);
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Aprobados: 5', 100, 54);
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Aprobados c/Obs: 2', 100, 60);
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• No Aprobados/Cancelados: 3', 100, 66);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('Resumen de Métricas:', 110, 46);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Trabajos registrados: 10', 110, 54);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Aprobados: 5', 110, 60);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Aprobados con observaciones: 2', 110, 66);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• No aprobados o cancelados: 3', 110, 72);
     });
 
-    it('debería formatear correctamente los textos de la sección de filtros', () => {
-      // FIX: Configuramos filtros específicos usando los Enums correctos
-      const mockFilters = createMockStatisticsFilters({
+    it('escribe los filtros con textos legibles (etapa, director, modalidad, programa, estado y plazo)', () => {
+      const filtros: StatisticsFilters = {
         stage: ProjectStage.TRABAJO_GRADO,
         period: '2025-2',
         directorId: 'dir-123',
+        modality: 'Práctica profesional',
+        program: 'Ingeniería Electrónica',
         archiveStatus: 'ARCHIVED',
-      });
+        deadlineFilter: EvaluationDeadlineStatus.DELAYED
+      };
 
-      service.downloadPdfReport(mockFilters, mockData, mockKpis);
+      service.downloadPdfReport(filtros, mockData, mockKpis, { ...context, directorName: 'Ana Gómez' });
 
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('Filtros Aplicados:', 14, 40);
-      // Usamos template literal con el Enum para que haga match dinámicamente
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith(`• Etapa: ${ProjectStage.TRABAJO_GRADO}`, 14, 48);
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Periodo: 2025-2', 14, 54);
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Director: Director Específico', 14, 60);
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Registros: Historial (Archivados)', 14, 66);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('Filtros Aplicados:', 14, 46);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Etapa: Trabajo de Grado', 14, 54);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Periodo: 2025-2', 14, 60);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Director: Ana Gómez', 14, 66);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Modalidad: Práctica profesional', 14, 72);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Programa: Ingeniería Electrónica', 14, 78);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Registros: Cerrados (historial)', 14, 84);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Plazo: Evaluado con retraso', 14, 90);
     });
 
-    it('debería usar textos por defecto cuando no hay filtros aplicados', () => {
-      // Filtros vacíos o no definidos explícitamente con null
-      const mockFilters = createMockStatisticsFilters({
-        stage: null,
-        period: '',
-        directorId: '',
-        archiveStatus: 'ALL'
-      });
+    it('usa textos por defecto cuando no hay filtros aplicados', () => {
+      service.downloadPdfReport({ ...DEFAULT_STATISTICS_FILTERS }, mockData, mockKpis, context);
 
-      service.downloadPdfReport(mockFilters, mockData, mockKpis);
-
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Etapa: Todas las etapas', 14, 48);
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Periodo: Todos los periodos', 14, 54);
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Director: Todos los directores', 14, 60);
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Registros: Todos', 14, 66);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Etapa: Todas las etapas', 14, 54);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Periodo: Todos los periodos', 14, 60);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Director: Todos los directores', 14, 66);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Modalidad: Todas las modalidades', 14, 72);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Programa: Todos los programas', 14, 78);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Registros: Todos', 14, 84);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Plazo: Todos los plazos', 14, 90);
     });
 
-    it('debería configurar autoTable mapeando correctamente la data cruda', () => {
-      const mockFilters = createMockStatisticsFilters();
+    it('arma la tabla con la modalidad, el programa y la etapa y el estado legibles', () => {
+      service.downloadPdfReport({ ...DEFAULT_STATISTICS_FILTERS }, mockData, mockKpis, context);
 
-      service.downloadPdfReport(mockFilters, mockData, mockKpis);
-
-      // Verificamos que se haya llamado la función exportada por defecto de jspdf-autotable
       expect(autoTable).toHaveBeenCalled();
-
-      // Obtenemos los argumentos con los que se llamó a autoTable
-      const autoTableArgs = (autoTable as unknown as jest.Mock).mock.calls[0];
-
-      // El primer argumento es la instancia del doc
-      expect(autoTableArgs[0]).toBe(mockJsPdfInstance);
-
-      // El segundo argumento es la configuración de la tabla
-      const tableConfig = autoTableArgs[1];
-      expect(tableConfig.startY).toBe(75);
-
-      // Aseguramos que la data cruda se transformó usando directamente los enums subyacentes
-      expect(tableConfig.body).toEqual([
-        ['1', 'Proyecto de Prueba', ProjectStage.PROPUESTA, ProjectStatus.EN_DESARROLLO, 'Juan Pérez', '2026-1']
+      const [documento, tabla] = (autoTable as unknown as jest.Mock).mock.calls[0];
+      expect(documento).toBe(mockJsPdfInstance);
+      expect(tabla.startY).toBe(98);
+      expect(tabla.head).toEqual([['#', 'Título del trabajo', 'Modalidad', 'Programa', 'Etapa', 'Estado', 'Director', 'Periodo']]);
+      expect(tabla.body).toEqual([
+        ['1', 'Proyecto de Prueba', 'Práctica profesional', 'Ingeniería Electrónica', 'Propuesta',
+          'Aprobado con observaciones', 'Juan Pérez', '2026-1']
       ]);
     });
   });

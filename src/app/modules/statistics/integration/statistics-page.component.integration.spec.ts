@@ -6,6 +6,7 @@ import { StatisticsPageFacadeService } from '../pages/statistics-page/services/s
 import { ProjectStage } from '../enum/projectStage.enum';
 import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
 import { STAGE_OPTIONS } from '../models/statistics-options.model';
+import { DEFAULT_STATISTICS_FILTERS } from '../interfaces/statisticsFilters.interface';
 
 if (typeof globalThis.structuredClone === 'undefined') {
   globalThis.structuredClone = (val: unknown) => JSON.parse(JSON.stringify(val));
@@ -29,7 +30,12 @@ describe('StatisticsPageComponent - Integración UI', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     mockFacade = {
-      currentFilters: signal({ stage: null, period: null, directorId: null, archiveStatus: 'ACTIVE', deadlineFilter: 'ALL' }),
+      currentFilters: signal({ ...DEFAULT_STATISTICS_FILTERS }),
+      modalityOptions: signal(['Trabajo de investigación']),
+      programOptions: signal(['Ingeniería de Sistemas']),
+      scope: signal('Todos los trabajos de grado de la facultad.'),
+      modalityChartData: signal({ labels: [], datasets: [] }),
+      programChartData: signal({ labels: [], datasets: [] }),
       stagesOptions: STAGE_OPTIONS,
       periodsOptions: signal(['2026-1', '2026-2']),
       directorsOptions: signal([{ id: 'dir-1', name: 'Director Test' }]),

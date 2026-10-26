@@ -5,7 +5,8 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { StatisticsStateService } from './statistics-state.service';
 import { ProjectDataMapperService } from './project-data-mapper.service';
 import { RawProjectData } from '../interfaces/rawProjectData.interface';
-import { StatisticsFilters } from '../interfaces/statisticsFilters.interface';
+import { DEFAULT_STATISTICS_FILTERS } from '../interfaces/statisticsFilters.interface';
+import { statisticsScope } from '../models/statistics-options.model';
 import { ProjectStage } from '../enum/projectStage.enum';
 import { ProjectStatus } from '../enum/projectStatus.enum';
 import { stateList } from '../../../core/enums/state.enum';
@@ -93,14 +94,47 @@ describe('StatisticsStateService', () => {
         stage: ProjectStage.TRABAJO_GRADO, isArchived: true, status: ProjectStatus.NO_APROBADO }));
       expect(porId.get('3')).toEqual(expect.objectContaining({
         stage: ProjectStage.TRABAJO_GRADO, isArchived: true, status: ProjectStatus.APROBADO }));
-      // Por defecto solo se ven los activos
-      expect(service.filteredData()).toEqual([]);
+      // Por defecto se cuentan todos, en proceso y cerrados
+      expect(service.filteredData()).toHaveLength(3);
+    });
+
+    it('cuenta la modalidad y el programa del trabajo, y filtra por ellos', () => {
+      const service = configurar();
+      iniciarSesionConTrabajos(consejo, [
+        crearTrabajoDePrueba({ id: 1 }),
+        crearTrabajoDePrueba({ id: 2, modalidad: 'PRACTICA_PROFESIONAL', estudiantes: [{ usuarioId: 11, codigo: '1111',
+          nombreCompleto: 'Leo Estudiante', email: 'leo@unicauca.edu.co', programa: { id: 2, nombre: 'Ingeniería Electrónica' } }] })
+      ]);
+
+      expect(service.modalityOptions()).toEqual(['Práctica profesional', 'Trabajo de investigación']);
+      expect(service.programOptions()).toEqual(['Ingeniería de Sistemas', 'Ingeniería Electrónica']);
+      service.updateFilters({ modality: 'Práctica profesional' });
+      expect(service.filteredData().map(dato => dato.id)).toEqual(['2']);
+      service.updateFilters({ modality: null, program: 'Ingeniería de Sistemas' });
+      expect(service.filteredData().map(dato => dato.id)).toEqual(['1']);
     });
 
     it('un anteproyecto que espera al Consejo (evaluado) también se cuenta', () => {
       const service = configurar();
       iniciarSesionConTrabajos(consejo, [crearTrabajoEnEvaluacion({ id: 3, etapa: 'APROBACION_CONSEJO' })]);
       expect(service.filteredData().map(dato => dato.stage)).toEqual([ProjectStage.ANTEPROYECTO]);
+    });
+  });
+
+  describe('alcance según el rol', () => {
+    it('el Consejo, la Decanatura y el administrador cuentan toda la facultad', () => {
+      const service = configurar();
+      iniciarSesionConTrabajos(consejo, []);
+      expect(service.scope()).toBe('Todos los trabajos de grado de la facultad.');
+      expect(statisticsScope([UserRoleType.DECANATURA])).toBe('Todos los trabajos de grado de la facultad.');
+    });
+
+    it('el Comité, el jefe y los docentes cuentan los trabajos que el backend les deja consultar', () => {
+      expect(statisticsScope([UserRoleType.DOCENTE, UserRoleType.DIRECTOR])).toBe('Trabajos de grado que puede consultar: '
+        + 'aquellos en los que participa (como director, codirector, asesor, evaluador o jurado).');
+      expect(statisticsScope([UserRoleType.DOCENTE, UserRoleType.COMITE, UserRoleType.JEFE_DEP])).toBe(
+        'Trabajos de grado que puede consultar: los de los programas de su departamento, los dirigidos por docentes '
+        + 'de su departamento y aquellos en los que participa (como director, codirector, asesor, evaluador o jurado).');
     });
   });
 
@@ -121,16 +155,15 @@ describe('StatisticsStateService', () => {
       iniciarSesionConTrabajos(consejo, [1, 2, 3, 4].map(id => crearTrabajoDePrueba({ id })));
     });
 
-    it('inicia con los filtros por defecto y los limpia', () => {
-      const porDefecto: StatisticsFilters = {
-        stage: null, period: null, directorId: null, archiveStatus: 'ACTIVE', deadlineFilter: 'ALL'
-      };
+    it('inicia con los filtros por defecto (todos los trabajos) y los limpia', () => {
+      const porDefecto = DEFAULT_STATISTICS_FILTERS;
+      expect(porDefecto.archiveStatus).toBe('ALL');
       expect(service.currentFilters()).toEqual(porDefecto);
 
       service.updateFilters({ stage: ProjectStage.PROPUESTA });
       expect(service.currentFilters()).toEqual({ ...porDefecto, stage: ProjectStage.PROPUESTA });
 
-      service.updateFilters({ period: '2025-1', archiveStatus: 'ALL' });
+      service.updateFilters({ period: '2025-1', archiveStatus: 'ACTIVE' });
       service.clearFilters();
       expect(service.currentFilters()).toEqual(porDefecto);
     });
@@ -143,12 +176,12 @@ describe('StatisticsStateService', () => {
       ]);
     });
 
-    it('filtra por estado de archivo', () => {
+    it('filtra por estado del trabajo (en proceso o cerrado)', () => {
+      expect(service.filteredData().map(p => p.id)).toEqual(['1', '2', '3', '4']);
+      service.updateFilters({ archiveStatus: 'ACTIVE' });
       expect(service.filteredData().map(p => p.id)).toEqual(['1', '3']);
       service.updateFilters({ archiveStatus: 'ARCHIVED' });
       expect(service.filteredData().map(p => p.id)).toEqual(['2', '4']);
-      service.updateFilters({ archiveStatus: 'ALL' });
-      expect(service.filteredData().map(p => p.id)).toEqual(['1', '2', '3', '4']);
     });
 
     it('filtra por plazo de evaluación', () => {

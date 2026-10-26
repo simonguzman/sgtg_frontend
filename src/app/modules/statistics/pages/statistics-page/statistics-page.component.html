@@ -7,6 +7,10 @@
       <p class="text-size-body text-text-body">
         Monitoreo en tiempo real de propuestas, anteproyectos y trabajos de grado
       </p>
+      <p class="text-size-role-footer text-text-body flex items-center gap-1">
+        <span class="material-symbols-outlined text-size-body text-primary">visibility</span>
+        {{ facade.scope() }}
+      </p>
     </div>
     <div>
       <app-button-component
@@ -20,7 +24,7 @@
     <h3 class="font-display font-semibold text-primary text-size-section mb-2 flex items-center gap-2">
       <span class="material-symbols-outlined text-size-sidebar-title">filter_alt</span> Filtros de Búsqueda
     </h3>
-    <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
       <div class="flex flex-col gap-1">
         <label for="stageFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Etapa del Proceso
@@ -68,8 +72,36 @@
         </p-select>
       </div>
       <div class="flex flex-col gap-1">
+        <label for="modalityFilter" class="font-display font-semibold text-size-role-footer text-primary">
+          Modalidad
+        </label>
+        <p-select
+          id="modalityFilter"
+          [options]="facade.modalityOptions()"
+          [ngModel]="facade.currentFilters().modality"
+          (ngModelChange)="onModalityChange($event)"
+          placeholder="Todas las modalidades"
+          [showClear]="true"
+          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
+        </p-select>
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="programFilter" class="font-display font-semibold text-size-role-footer text-primary">
+          Programa
+        </label>
+        <p-select
+          id="programFilter"
+          [options]="facade.programOptions()"
+          [ngModel]="facade.currentFilters().program"
+          (ngModelChange)="onProgramChange($event)"
+          placeholder="Todos los programas"
+          [showClear]="true"
+          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
+        </p-select>
+      </div>
+      <div class="flex flex-col gap-1">
         <label for="archiveFilter" class="font-display font-semibold text-size-role-footer text-primary">
-          Tipo de Registro
+          Estado del trabajo
         </label>
         <p-select
           id="archiveFilter"
@@ -110,7 +142,7 @@
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm flex items-center justify-between">
       <div class="flex flex-col gap-1">
-        <span class="text-size-role-footer text-text-body font-medium">Proyectos Cargados</span>
+        <span class="text-size-role-footer text-text-body font-medium">Trabajos registrados</span>
         <span class="text-3xl font-display font-bold text-primary">{{ facade.totalLoaded() }}</span>
       </div>
       <div class="p-3 bg-blue-50 text-primary rounded-lg flex items-center justify-center">
@@ -119,7 +151,7 @@
     </div>
     <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-[#2e7d32] rounded-xl shadow-sm flex items-center justify-between">
       <div class="flex flex-col gap-1">
-        <span class="text-size-role-footer text-text-body font-medium">Proyectos Aprobados</span>
+        <span class="text-size-role-footer text-text-body font-medium">Aprobados</span>
         <span class="text-3xl font-display font-bold text-[#2e7d32]">{{ facade.totalApproved() }}</span>
       </div>
       <div class="p-3 bg-green-50 text-[#2e7d32] rounded-lg flex items-center justify-center">
@@ -137,7 +169,7 @@
     </div>
     <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-danger rounded-xl shadow-sm flex items-center justify-between">
       <div class="flex flex-col gap-1">
-        <span class="text-size-role-footer text-text-body font-medium">No Aprobados</span>
+        <span class="text-size-role-footer text-text-body font-medium">No aprobados o cancelados</span>
         <span class="text-3xl font-display font-bold text-danger">{{ facade.totalNotApproved() }}</span>
       </div>
       <div class="p-3 bg-red-50 text-danger rounded-lg flex items-center justify-center">
@@ -145,10 +177,15 @@
       </div>
     </div>
   </div>
+  @if (facade.totalLoaded() === 0) {
+    <div class="information-block p-6 rounded-xl text-size-body text-text-body text-center">
+      No hay trabajos de grado con los filtros seleccionados.
+    </div>
+  } @else {
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <div class="bg-white p-6 border border-gray-200 rounded-xl shadow-sm flex flex-col gap-4">
       <h3 class="font-display font-semibold text-primary text-size-section">
-        Estado de Evaluaciones Generales
+        Estado de los trabajos
       </h3>
       <div class="h-80 w-full relative">
         <p-chart type="doughnut" [data]="facade.statusChartData()" [options]="doughnutOptions"></p-chart>
@@ -156,11 +193,28 @@
     </div>
     <div class="bg-white p-6 border border-gray-200 rounded-xl shadow-sm flex flex-col gap-4">
       <h3 class="font-display font-semibold text-primary text-size-section">
-        Volumen de Proyectos por Fase
+        Trabajos por etapa alcanzada
       </h3>
       <div class="h-80 w-full relative">
         <p-chart type="bar" [data]="facade.stageChartData()" [options]="barOptions"></p-chart>
       </div>
     </div>
+    <div class="bg-white p-6 border border-gray-200 rounded-xl shadow-sm flex flex-col gap-4">
+      <h3 class="font-display font-semibold text-primary text-size-section">
+        Trabajos por modalidad
+      </h3>
+      <div class="h-80 w-full relative">
+        <p-chart type="doughnut" [data]="facade.modalityChartData()" [options]="doughnutOptions"></p-chart>
+      </div>
+    </div>
+    <div class="bg-white p-6 border border-gray-200 rounded-xl shadow-sm flex flex-col gap-4">
+      <h3 class="font-display font-semibold text-primary text-size-section">
+        Trabajos por programa
+      </h3>
+      <div class="h-80 w-full relative">
+        <p-chart type="bar" [data]="facade.programChartData()" [options]="barOptions"></p-chart>
+      </div>
+    </div>
   </div>
+  }
 </div>

@@ -14,5 +14,12 @@ export interface RawProjectData {
   directorName: string;
   registrationDate: Date;
   isArchived: boolean;
-  deadlineStatus: EvaluationDeadlineStatus | null; // ← NUEVO
+  deadlineStatus: EvaluationDeadlineStatus | null;
+  /** Modalidad del trabajo (investigación o práctica profesional) */
+  modality: string;
+  /** Programa de los estudiantes */
+  program: string;
 }
+
+/** Datos de la etapa que alcanzó el trabajo; la modalidad y el programa son del trabajo. */
+export type ProjectStageData = Omit<RawProjectData, 'modality' | 'program'>;

@@ -55,7 +55,8 @@ describe('Integración [Estadísticas]: Ensamblado real de KPIs para el reporte 
     expect(report.downloadPdfReport).toHaveBeenCalledWith(
       state.currentFilters(),
       state.filteredData(),
-      { loaded: 3, approved: 1, obs: 1, rejected: 1 }
+      { loaded: 3, approved: 1, obs: 1, rejected: 1 },
+      { scope: state.scope(), directorName: null }
     );
   });
 

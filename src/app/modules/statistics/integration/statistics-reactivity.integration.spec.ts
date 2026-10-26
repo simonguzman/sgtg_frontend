@@ -53,22 +53,33 @@ describe('Estadísticas - Integración del motor reactivo con los trabajos del b
 
   afterEach(() => jest.restoreAllMocks());
 
-  it('cada trabajo se cuenta una sola vez y por defecto solo los activos', () => {
+  it('cada trabajo se cuenta una sola vez y por defecto todos, en proceso y cerrados', () => {
     expect(state.rawData()).toHaveLength(4);
-    expect(metrics.totalLoaded()).toBe(3);
+    expect(metrics.totalLoaded()).toBe(4);
     expect(metrics.totalApproved()).toBe(1);
-    expect(metrics.totalNotApproved()).toBe(0);
+    expect(metrics.totalNotApproved()).toBe(1);
   });
 
-  it('el gráfico por etapa cuenta un trabajo por etapa', () => {
+  it('el gráfico por etapa cuenta un trabajo por la etapa que alcanzó', () => {
     const grafico = charts.stageChartData();
     const valor = (etiqueta: string) => grafico.datasets[0].data[grafico.labels.indexOf(etiqueta)];
-    expect(valor('Propuestas')).toBe(1);
+    // La propuesta aprobada y la anulada en propuesta
+    expect(valor('Propuestas')).toBe(2);
     expect(valor('Anteproyectos')).toBe(1);
     expect(valor('Trabajos de Grado')).toBe(1);
   });
 
-  it('al incluir los archivados cuenta la anulación como cancelado', () => {
+  it('los gráficos por modalidad y programa cuentan los trabajos del backend', () => {
+    expect(charts.modalityChartData().labels).toEqual(['Trabajo de investigación']);
+    expect(charts.modalityChartData().datasets[0].data).toEqual([4]);
+    expect(charts.programChartData().labels).toEqual(['Ingeniería de Sistemas']);
+    expect(charts.programChartData().datasets[0].data).toEqual([4]);
+  });
+
+  it('en proceso no cuenta la anulación; con todos, cuenta como cancelado', () => {
+    state.updateFilters({ archiveStatus: 'ACTIVE' });
+    expect(metrics.totalLoaded()).toBe(3);
+    expect(metrics.totalNotApproved()).toBe(0);
     state.updateFilters({ archiveStatus: 'ALL' });
     expect(metrics.totalLoaded()).toBe(4);
     expect(metrics.totalNotApproved()).toBe(1);
@@ -80,12 +91,13 @@ describe('Estadísticas - Integración del motor reactivo con los trabajos del b
     state.updateFilters({ stage: ProjectStage.ANTEPROYECTO });
     expect(state.filteredData().map(d => d.id)).toEqual(['2']);
     state.clearFilters();
-    expect(metrics.totalLoaded()).toBe(3);
+    expect(metrics.totalLoaded()).toBe(4);
   });
 
   it('se recalcula cuando cambia un trabajo en el almacén', () => {
     TestBed.inject(TrabajoGradoStoreService).upsert(
       cerrarTrabajo(crearTrabajoEnCurso({ id: 3 }), 'FINALIZADO', null));
+    state.updateFilters({ archiveStatus: 'ACTIVE' });
     expect(metrics.totalLoaded()).toBe(2);
     state.updateFilters({ archiveStatus: 'ARCHIVED' });
     expect(metrics.totalApproved()).toBe(1);

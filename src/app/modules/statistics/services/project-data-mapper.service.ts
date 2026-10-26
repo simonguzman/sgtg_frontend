@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { RawProjectData } from '../interfaces/rawProjectData.interface';
+import { ProjectStageData } from '../interfaces/rawProjectData.interface';
 import { ProjectStage } from '../enum/projectStage.enum';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
 import { PreliminaryDraft } from '../../preliminary-draft/interfaces/preliminary-draft.interface';
@@ -16,7 +16,7 @@ import { mapStateToProjectStatus } from '../helpers/project-status.helper';
 export class ProjectDataMapperService {
   private readonly userService = inject(UserService);
 
-  mapProposal(proposal: Proposal): RawProjectData {
+  mapProposal(proposal: Proposal): ProjectStageData {
     const creationDate = this.resolveDate(proposal.createdAt);
     return {
       id: proposal.id ?? '',
@@ -34,7 +34,7 @@ export class ProjectDataMapperService {
     };
   }
 
-  mapPreliminaryDraft(draft: PreliminaryDraft): RawProjectData {
+  mapPreliminaryDraft(draft: PreliminaryDraft): ProjectStageData {
     const creationDate = this.resolveDate(draft.createdData ?? draft.proposalData?.createdAt);
     const director = draft.proposalData?.director;
     return {
@@ -58,7 +58,7 @@ export class ProjectDataMapperService {
     };
   }
 
-  mapThesisWork(thesis: ThesisWork): RawProjectData {
+  mapThesisWork(thesis: ThesisWork): ProjectStageData {
     const creationDate = this.resolveDate(thesis.createdDate);
     const director = thesis.preliminaryDraftData?.proposalData?.director;
     return {

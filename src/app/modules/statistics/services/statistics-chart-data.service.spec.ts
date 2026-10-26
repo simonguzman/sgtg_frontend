@@ -117,7 +117,7 @@ describe('StatisticsChartDataService', () => {
       const result = service.stageChartData();
 
       expect(result.labels).toEqual(STAGE_CHART_LABELS);
-      expect(result.datasets[0].label).toBe('Proyectos Activos');
+      expect(result.datasets[0].label).toBe('Trabajos');
       expect(result.datasets[0].backgroundColor).toEqual(STAGE_CHART_COLORS);
       expect(result.datasets[0].borderWidth).toBe(0);
     });

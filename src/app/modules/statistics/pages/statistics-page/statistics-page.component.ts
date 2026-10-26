@@ -35,6 +35,14 @@ export class StatisticsPageComponent {
     this.facade.updateFilters({ directorId });
   }
 
+  onModalityChange(modality: string | null): void {
+    this.facade.updateFilters({ modality });
+  }
+
+  onProgramChange(program: string | null): void {
+    this.facade.updateFilters({ program });
+  }
+
   onArchiveStatusChange(archiveStatus: 'ACTIVE' | 'ARCHIVED' | 'ALL'): void {
     this.facade.updateFilters({ archiveStatus });
   }

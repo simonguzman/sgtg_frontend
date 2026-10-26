@@ -17,12 +17,17 @@ export class StatisticsPageFacadeService {
   readonly stagesOptions = this.state.stagesOptions;
   readonly periodsOptions = this.state.periodsOptions;
   readonly directorsOptions = this.state.directorsOptions;
+  readonly modalityOptions = this.state.modalityOptions;
+  readonly programOptions = this.state.programOptions;
+  readonly scope = this.state.scope;
   readonly totalLoaded = this.metrics.totalLoaded;
   readonly totalApproved = this.metrics.totalApproved;
   readonly totalApprovedWithObservations = this.metrics.totalApprovedWithObservations;
   readonly totalNotApproved = this.metrics.totalNotApproved;
   readonly statusChartData = this.chartData.statusChartData;
   readonly stageChartData = this.chartData.stageChartData;
+  readonly modalityChartData = this.chartData.modalityChartData;
+  readonly programChartData = this.chartData.programChartData;
 
   updateFilters(newFilters: Partial<StatisticsFilters>): void {
     this.state.updateFilters(newFilters);
@@ -41,6 +46,7 @@ export class StatisticsPageFacadeService {
       obs: this.metrics.totalApprovedWithObservations(),
       rejected: this.metrics.totalNotApproved()
     };
-    this.reportService.downloadPdfReport(filters, data, kpis);
+    const directorName = this.state.directorsOptions().find(director => director.id === filters.directorId)?.name ?? null;
+    this.reportService.downloadPdfReport(filters, data, kpis, { scope: this.state.scope(), directorName });
   }
 }

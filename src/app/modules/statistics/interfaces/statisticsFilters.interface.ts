@@ -7,9 +7,22 @@ export interface StatisticsFilters {
   stage: ProjectStage | null;
   period: string | null;
   directorId: string | null;
+  modality: string | null;
+  program: string | null;
   archiveStatus: 'ACTIVE' | 'ARCHIVED' | 'ALL';
   deadlineFilter: DeadlineFilterValue;
 }
+
+/** Sin filtros: todos los trabajos, en proceso y cerrados */
+export const DEFAULT_STATISTICS_FILTERS: StatisticsFilters = {
+  stage: null,
+  period: null,
+  directorId: null,
+  modality: null,
+  program: null,
+  archiveStatus: 'ALL',
+  deadlineFilter: 'ALL'
+};
 
 export const DEADLINE_FILTER_OPTIONS: { label: string; value: DeadlineFilterValue }[] = [
   { label: 'Todos los plazos', value: 'ALL' },

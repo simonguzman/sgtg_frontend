@@ -4,7 +4,7 @@ import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 import { StatisticsPageComponent } from './statistics-page.component';
 import { StatisticsPageFacadeService } from './services/statistics-page-facade.service';
 import { ProjectStage } from '../../enum/projectStage.enum';
-import { DeadlineFilterValue, StatisticsFilters } from '../../interfaces/statisticsFilters.interface';
+import { DEFAULT_STATISTICS_FILTERS, DeadlineFilterValue, StatisticsFilters } from '../../interfaces/statisticsFilters.interface';
 import { EvaluationDeadlineStatus } from '../../../../core/enums/evaluation-deadline-status.enum';
 import { ChartModule } from 'primeng/chart';
 import { SelectModule } from 'primeng/select';
@@ -78,14 +78,13 @@ describe('StatisticsPageComponent', () => {
     totalNotApproved: WritableSignal<number>;
     statusChartData: WritableSignal<MockChartData>;
     stageChartData: WritableSignal<MockChartData>;
+    modalityChartData: WritableSignal<MockChartData>;
+    programChartData: WritableSignal<MockChartData>;
+    modalityOptions: WritableSignal<string[]>;
+    programOptions: WritableSignal<string[]>;
+    scope: WritableSignal<string>;
   };
-  const initialFilters: StatisticsFilters = {
-    stage: null,
-    period: null,
-    directorId: null,
-    archiveStatus: 'ACTIVE',
-    deadlineFilter: 'ALL',
-  };
+  const initialFilters: StatisticsFilters = { ...DEFAULT_STATISTICS_FILTERS };
   beforeEach(async () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -103,6 +102,11 @@ describe('StatisticsPageComponent', () => {
       totalNotApproved: signal<number>(0),
       statusChartData: signal<MockChartData>({ labels: [], datasets: [] }),
       stageChartData: signal<MockChartData>({ labels: [], datasets: [] }),
+      modalityChartData: signal<MockChartData>({ labels: [], datasets: [] }),
+      programChartData: signal<MockChartData>({ labels: [], datasets: [] }),
+      modalityOptions: signal<string[]>([]),
+      programOptions: signal<string[]>([]),
+      scope: signal('Todos los trabajos de grado de la facultad.'),
     };
     await TestBed.configureTestingModule({
       imports: [StatisticsPageComponent],
@@ -126,6 +130,24 @@ describe('StatisticsPageComponent', () => {
   describe('Inicialización', () => {
     it('debería crear el componente correctamente', () => {
       expect(component).toBeTruthy();
+    });
+
+    it('muestra qué trabajos cuentan y, sin trabajos, un aviso en lugar de las gráficas', () => {
+      const texto = () => fixture.nativeElement.textContent as string;
+      expect(texto()).toContain('Todos los trabajos de grado de la facultad.');
+      expect(texto()).toContain('No hay trabajos de grado con los filtros seleccionados.');
+      expect(fixture.nativeElement.querySelectorAll('p-chart').length).toBe(0);
+
+      mockFacadeService.totalLoaded.set(5);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelectorAll('p-chart').length).toBe(4);
+    });
+
+    it('delega los filtros de modalidad y programa al Facade', () => {
+      component.onModalityChange('Práctica profesional');
+      component.onProgramChange(null);
+      expect(mockFacadeService.updateFilters).toHaveBeenCalledWith({ modality: 'Práctica profesional' });
+      expect(mockFacadeService.updateFilters).toHaveBeenCalledWith({ program: null });
     });
   });
   describe('Interacciones del Usuario (Actualización de Filtros)', () => {
