@@ -158,7 +158,7 @@ describe('RegisterCorrespondencePageComponent', () => {
       fixture.detectChanges();
 
       expect(facadeMock.showNavigationError).toHaveBeenCalled();
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent, queryParams: { tab: 'CORRESPONDENCIA' } });
       expect(facadeMock.loadThesisWork).not.toHaveBeenCalled();
     });
 
@@ -189,7 +189,7 @@ describe('RegisterCorrespondencePageComponent', () => {
 
       fixture.detectChanges();
 
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent, queryParams: { tab: 'CORRESPONDENCIA' } });
     });
   });
 
@@ -232,7 +232,7 @@ describe('RegisterCorrespondencePageComponent', () => {
       );
 
       expect(component.isSubmitting()).toBe(false);
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent, queryParams: { tab: 'CORRESPONDENCIA' } });
     });
 
     it('debería resetear estado de carga al fallar el procesamiento (Error)', () => {

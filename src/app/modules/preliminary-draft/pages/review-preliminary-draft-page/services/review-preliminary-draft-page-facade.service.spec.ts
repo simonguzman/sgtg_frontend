@@ -220,7 +220,7 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
         message: 'El veredicto positivo ha sido guardado exitosamente.'
       }));
       expect(service.isConfirmModalOpen()).toBe(false);
-      expect(routerMock.navigate).toHaveBeenCalledWith(['../../'], expect.any(Object));
+      expect(routerMock.navigate).toHaveBeenCalledWith(['../'], expect.any(Object));
     });
 
     it('si pide correcciones envía CON_CORRECCIONES con el formato B y las anotaciones', async () => {

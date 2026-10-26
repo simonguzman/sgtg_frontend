@@ -64,6 +64,6 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
   }
 
   public goBack(): void {
-    this.navigation.back(() => this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent }));
+    this.navigation.back(() => this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent, queryParams: { tab: 'SOLICITUDES' } }));
   }
 }

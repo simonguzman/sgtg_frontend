@@ -160,7 +160,7 @@ describe('RegisterSpecialRequestPageComponent', () => {
 
       fixture.detectChanges();
 
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent, queryParams: { tab: 'SOLICITUDES' } });
       expect(facadeMock.loadThesisWork).not.toHaveBeenCalled();
     });
 
@@ -185,7 +185,7 @@ describe('RegisterSpecialRequestPageComponent', () => {
       fixture.detectChanges();
 
       expect(component.isLoading()).toBe(false);
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent, queryParams: { tab: 'SOLICITUDES' } });
     });
 
     it('debería quitar el estado de carga si ocurre un error en la petición (callback onError)', () => {
@@ -237,7 +237,7 @@ describe('RegisterSpecialRequestPageComponent', () => {
         expect.any(Function),
         expect.any(Function)
       );
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent, queryParams: { tab: 'SOLICITUDES' } });
     });
 
     it('processSaveRequest debería quitar estado isSubmitting pero no navegar si falla el guardado', () => {

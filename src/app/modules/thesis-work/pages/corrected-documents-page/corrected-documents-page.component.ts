@@ -121,19 +121,16 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
   }
 
   goBack(): void {
+    // Se llega desde el detalle de la sesión calificada (o desde la pestaña de sustentación). Relativo a esta
+    // ruta, para que también sirva en el historial (/history/thesis-work-details/:id/...)
     this.navigation.back(() => {
-      const id             = this.thesisWorkId();
       const sustentationId = this.currentThesisWork()?.sustentations?.[0]?.id;
-      const currentUrl     = this.router.url;
-      const baseUrlSegment = currentUrl.split('/details')[0] || '/thesis-work';
-      if (!id) {
-        this.router.navigate([baseUrlSegment]);
-        return;
-      }
-      if (sustentationId) {
-        this.router.navigate([baseUrlSegment, 'details', id, 'view_sustentation_details', sustentationId]);
+      if (!this.thesisWorkId()) {
+        this.router.navigate(['/thesis-work']);
+      } else if (sustentationId) {
+        this.router.navigate(['../view_sustentation_details', sustentationId], { relativeTo: this.route });
       } else {
-        this.router.navigate([baseUrlSegment, 'details', id, 'loaded_documents']);
+        this.router.navigate(['../loaded_documents'], { relativeTo: this.route, queryParams: { tab: 'SUSTENTACION' } });
       }
     });
   }

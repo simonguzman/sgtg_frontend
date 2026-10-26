@@ -201,7 +201,7 @@ describe('EvaluateSustentationPageComponent', () => {
 
       expect(routerMock.navigate).toHaveBeenCalledWith(
         ['loaded_documents'],
-        { relativeTo: activatedRouteMock.parent }
+        { relativeTo: activatedRouteMock.parent, queryParams: { tab: 'SUSTENTACION' } }
       );
     });
   });

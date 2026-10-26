@@ -284,7 +284,7 @@ describe('EvaluateAdvancePageComponent', () => {
     it('navigateBack debe usar el router para retroceder usando el padre actual de la ruta', () => {
       component.navigateBack();
 
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: mockActivatedRoute.parent });
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: mockActivatedRoute.parent, queryParams: { tab: 'AVANCES' } });
     });
   });
 
@@ -325,7 +325,7 @@ describe('EvaluateAdvancePageComponent', () => {
 
       expect(component.isSaving()).toBe(false);
       expect(component.isConfirmModalOpen()).toBe(false);
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: mockActivatedRoute.parent });
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: mockActivatedRoute.parent, queryParams: { tab: 'AVANCES' } });
     });
 
     it('si falla, cierra el modal sin navegar', () => {

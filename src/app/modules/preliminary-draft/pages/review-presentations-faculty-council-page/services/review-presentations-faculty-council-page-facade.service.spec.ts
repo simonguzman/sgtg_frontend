@@ -226,7 +226,7 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
         expect.objectContaining({ type: NotificationType.CONFIRMATION })
       );
       expect(facade.isConfirmModalOpen()).toBe(false);
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['../../'], { relativeTo: mockRouteValue });
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['../'], { relativeTo: mockRouteValue, queryParams: { tab: 'PRESENTACIONES' } });
     });
 
     it('cualquier resultado distinto de APROBADO se registra como NO_APROBADO', async () => {
@@ -274,7 +274,7 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
 
     it('debería navegar hacia atrás (goBack)', () => {
       facade.goBack();
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['../../'], { relativeTo: mockRouteValue });
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['../'], { relativeTo: mockRouteValue, queryParams: { tab: 'PRESENTACIONES' } });
     });
   });
 });

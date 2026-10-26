@@ -187,7 +187,7 @@ describe('UploadAdvancePageComponent', () => {
       expect(facadeSpy.showNavigationError).toHaveBeenCalled();
       expect(routerSpy.navigate).toHaveBeenCalledWith(
         ['loaded_documents'],
-        { relativeTo: mockActivatedRoute.parent }
+        { relativeTo: mockActivatedRoute.parent, queryParams: { tab: 'AVANCES' } }
       );
     });
 
@@ -213,7 +213,7 @@ describe('UploadAdvancePageComponent', () => {
 
       expect(routerSpy.navigate).toHaveBeenCalledWith(
         ['loaded_documents'],
-        { relativeTo: mockActivatedRoute.parent }
+        { relativeTo: mockActivatedRoute.parent, queryParams: { tab: 'AVANCES' } }
       );
     });
   });

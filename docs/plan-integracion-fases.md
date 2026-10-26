@@ -451,12 +451,17 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     `ajustes-2026-10-24.md`).
 27. **Revisión del informe mensual:** las notas de la revisión se muestran como tarjeta de documento (icono PDF, nombre,
     "Descargar"), igual que los demás documentos; el título y las observaciones quedan como estaban.
-28. **Regresar a la página anterior:** `NavigationHistoryService` (`core/services/navigation`, creado al arrancar en
-    `app.config.ts`) registra las páginas visitadas. "Regresar" y el regreso tras guardar un formulario usan
-    `navigation.back(respaldo)`: si hay página anterior dentro de la aplicación, `location.back()` (así el formulario
-    guardado no queda en el historial); si no (enlace directo o recarga), la navegación de respaldo de cada página (su
-    sección o documentos cargados, como antes). Las páginas de inicio de sesión no cuentan como anteriores. Los
-    documentos cargados dejan la pestaña activa en la URL (`?tab=`, con `replaceUrl`) para volver a la misma pestaña.
+28. **Regresar a la vista anterior del flujo:** `NavigationHistoryService` (`core/services/navigation`, creado al
+    arrancar en `app.config.ts`) registra las páginas visitadas. "Regresar" y el regreso tras guardar un formulario
+    usan `navigation.back(respaldo)`: si la página anterior es del flujo, `location.back()` (así el formulario guardado
+    no queda en el historial). Si no hay página anterior (enlace directo o recarga) o es una página de entrada (la
+    bandeja de notificaciones), la navegación de respaldo de cada página: la vista anterior del flujo de su sección
+    (ej. documentos cargados → detalle del trabajo → listado de la sección; un formulario → su pestaña de documentos
+    cargados; la verificación de ajustes → documentos corregidos). La página que se deja por un respaldo sale de las
+    visitadas, para que desde la vista de respaldo no se vuelva a ella. Las páginas de inicio de sesión no cuentan
+    como anteriores. Los documentos cargados dejan la pestaña activa en la URL (`?tab=`, con `replaceUrl`) para volver
+    a la misma pestaña. Los respaldos son relativos a la ruta de la página (también sirven en el historial): antes,
+    documentos cargados del trabajo y documentos corregidos armaban rutas inexistentes, que terminaban en la bandeja.
     El acceso denegado al revisar un anteproyecto ya no envía a `/dashboard` (no existe).
 29. **Notificaciones de las solicitudes especiales:** la solicitud (cambio de título y objetivos, prórroga, suspensión,
     cancelación, nueva fecha) y la reanudación llevan a documentos cargados en la pestaña de solicitudes

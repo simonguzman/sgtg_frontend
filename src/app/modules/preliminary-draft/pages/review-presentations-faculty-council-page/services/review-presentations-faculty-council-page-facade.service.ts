@@ -130,7 +130,7 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
   }
 
   goBack(): void {
-    this.navigation.back(() => this.router.navigate(['../../'], { relativeTo: this.route }));
+    this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route, queryParams: { tab: 'PRESENTACIONES' } }));
   }
 
   private showNotFoundNotification(): void {

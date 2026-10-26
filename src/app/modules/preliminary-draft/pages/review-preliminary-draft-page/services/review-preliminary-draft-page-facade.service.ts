@@ -91,7 +91,7 @@ export class ReviewPreliminaryDraftPageFacadeService {
         next: () => {
           this.showEvaluationSuccessNotification(isApproved);
           this.isConfirmModalOpen.set(false);
-          this.navigation.back(() => this.router.navigate(['../../'], { relativeTo: this.route }));
+          this.goBack();
         },
         error: (err) => this.showSaveErrorNotification(err)
       });

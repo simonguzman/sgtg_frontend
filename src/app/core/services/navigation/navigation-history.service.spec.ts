@@ -39,8 +39,8 @@ describe('NavigationHistoryService', () => {
     expect(location.back).not.toHaveBeenCalled();
   });
 
-  it('con página anterior vuelve a ella', () => {
-    navegar('/notifications');
+  it('con página anterior del flujo vuelve a ella', () => {
+    navegar('/thesis-work/details/1');
     navegar('/thesis-work/details/1/loaded_documents');
     const respaldo = jest.fn();
     servicio.back(respaldo);
@@ -48,12 +48,37 @@ describe('NavigationHistoryService', () => {
     expect(respaldo).not.toHaveBeenCalled();
   });
 
-  it('el regreso del navegador saca la página actual; la misma URL no se repite', () => {
+  it('desde una notificación sigue el flujo de la sección y no vuelve a la bandeja ni a la página que dejó', () => {
     navegar('/notifications');
-    navegar('/notifications');
-    expect(servicio.hayAnterior()).toBe(false);
+    navegar('/thesis-work/details/1/loaded_documents?tab=AVANCES');
+
+    // Regresar: la vista anterior del flujo (detalle del trabajo), no la bandeja
+    servicio.back(() => navegar('/thesis-work/details/1'));
+    expect(location.back).not.toHaveBeenCalled();
+
+    // Desde el detalle, regresar sigue el flujo (la sección), no vuelve a documentos cargados
+    const alListado = jest.fn(() => navegar('/thesis-work'));
+    servicio.back(alListado);
+    expect(alListado).toHaveBeenCalled();
+    expect(location.back).not.toHaveBeenCalled();
+
+    // Dentro del flujo, regresar vuelve a la página anterior
+    navegar('/thesis-work/details/1');
+    servicio.back(jest.fn());
+    expect(location.back).toHaveBeenCalled();
+  });
+
+  it('el regreso del navegador saca la página actual; si no coincide con la anterior, empieza de nuevo', () => {
     navegar('/proposal');
-    navegar('/notifications', 'popstate');
+    navegar('/proposal');
+    expect(servicio.hayAnterior()).toBe(false);
+    navegar('/proposal/details/1');
+    expect(servicio.hayAnterior()).toBe(true);
+    navegar('/proposal', 'popstate');
+    expect(servicio.hayAnterior()).toBe(false);
+    navegar('/proposal/details/1');
+    navegar('/proposal/details/1/evaluations_performed');
+    navegar('/thesis-work', 'popstate');
     expect(servicio.hayAnterior()).toBe(false);
   });
 
@@ -65,7 +90,7 @@ describe('NavigationHistoryService', () => {
 
   it('las páginas de inicio de sesión no cuentan como anteriores', () => {
     navegar('/auth/login');
-    navegar('/notifications');
+    navegar('/proposal');
     expect(servicio.hayAnterior()).toBe(false);
   });
 });

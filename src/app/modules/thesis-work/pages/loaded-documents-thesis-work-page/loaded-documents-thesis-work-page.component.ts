@@ -249,6 +249,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   ensureDate = ensureDate;
 
   goBack(): void {
-    this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route.parent }));
+    this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route }));
   }
 }

@@ -419,7 +419,7 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
   describe('Navegación general', () => {
     it('goBack debe navegar a la ruta padre usando el router', () => {
       component.goBack();
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['../'], { relativeTo: routeMock.parent });
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['../'], { relativeTo: routeMock });
     });
   });
 });

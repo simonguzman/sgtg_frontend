@@ -330,13 +330,7 @@ describe('CorrectedDocumentsPageComponent', () => {
 
       component.goBack();
 
-      expect(routerSpy.navigate).toHaveBeenCalledWith([
-        '/thesis-work',
-        'details',
-        'tw-123',
-        'view_sustentation_details',
-        'sus-999'
-      ]);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['../view_sustentation_details', 'sus-999'], { relativeTo: routeSpy });
     });
 
     it('goBack debe volver a loaded_documents si el proyecto no tiene sustentaciones', () => {
@@ -344,16 +338,14 @@ describe('CorrectedDocumentsPageComponent', () => {
       facadeSpy.findThesisWork.mockReturnValue(thesisEmpty);
       thesisWorkServiceSpy.allThesisWorks.set([thesisEmpty]);
 
-      routerSpy.url = '/history/details/tw-123/corrected_documents';
+      routerSpy.url = '/history/thesis-work-details/tw-123/corrected_documents';
 
       component.goBack();
 
-      expect(routerSpy.navigate).toHaveBeenCalledWith([
-        '/history',
-        'details',
-        'tw-123',
-        'loaded_documents'
-      ]);
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['../loaded_documents'], {
+        relativeTo: routeSpy,
+        queryParams: { tab: 'SUSTENTACION' }
+      });
     });
   });
 });

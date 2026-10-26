@@ -172,7 +172,7 @@ describe('UploadFinalDeliveryPageComponent', () => {
 
       expect(facadeMock.showNavigationError).toHaveBeenCalled();
       expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], {
-        relativeTo: activatedRouteMock.parent
+        relativeTo: activatedRouteMock.parent, queryParams: { tab: 'ENTREGA_FINAL' }
       });
     });
   });
@@ -191,7 +191,7 @@ describe('UploadFinalDeliveryPageComponent', () => {
       component.goBack();
 
       expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], {
-        relativeTo: activatedRouteMock.parent
+        relativeTo: activatedRouteMock.parent, queryParams: { tab: 'ENTREGA_FINAL' }
       });
     });
   });
@@ -228,7 +228,7 @@ describe('UploadFinalDeliveryPageComponent', () => {
       expect(component.isSubmitting()).toBe(false);
       expect(component.isConfirmModalOpen()).toBe(false);
       expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], {
-        relativeTo: activatedRouteMock.parent
+        relativeTo: activatedRouteMock.parent, queryParams: { tab: 'ENTREGA_FINAL' }
       });
     });
 

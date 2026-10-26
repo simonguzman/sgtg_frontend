@@ -198,7 +198,7 @@ describe('EvaluateSpecialRequestPageComponent', () => {
       fixture.detectChanges();
 
       expect(console.warn).toHaveBeenCalledWith('Faltan parámetros en la URL:', { thesisId: null, requestId: null });
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent, queryParams: { tab: 'SOLICITUDES' } });
       expect(facadeMock.loadThesisWorkAndRequest).not.toHaveBeenCalled();
     });
 
@@ -207,7 +207,7 @@ describe('EvaluateSpecialRequestPageComponent', () => {
 
       fixture.detectChanges();
 
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent, queryParams: { tab: 'SOLICITUDES' } });
     });
   });
 
@@ -252,7 +252,7 @@ describe('EvaluateSpecialRequestPageComponent', () => {
         expect.any(Function),
         expect.any(Function)
       );
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent, queryParams: { tab: 'SOLICITUDES' } });
     });
 
     it('processSpecialRequestEvaluation debería quitar el isSubmitting pero no navegar si falla la API', () => {

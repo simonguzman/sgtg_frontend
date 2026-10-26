@@ -247,7 +247,7 @@ describe('EvaluationProposalFacadeService', () => {
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Evaluación registrada', type: NotificationType.CONFIRMATION })
       );
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['../../'], { relativeTo: mockRoute });
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['../'], { relativeTo: mockRoute });
       expect(onError).not.toHaveBeenCalled();
     });
 

@@ -123,7 +123,7 @@ describe('SustentationDetailsPageComponent', () => {
       fixture.detectChanges();
 
       expect(facadeSpy.showError).toHaveBeenCalledWith('Error', 'Identificadores inválidos.');
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent, queryParams: { tab: 'SUSTENTACION' } });
       expect(facadeSpy.loadDetails).not.toHaveBeenCalled();
     });
 
@@ -133,7 +133,7 @@ describe('SustentationDetailsPageComponent', () => {
       fixture.detectChanges();
 
       expect(facadeSpy.showError).toHaveBeenCalledWith('Error', 'Identificadores inválidos.');
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent, queryParams: { tab: 'SUSTENTACION' } });
       expect(facadeSpy.loadDetails).not.toHaveBeenCalled();
     });
   });
@@ -148,7 +148,7 @@ describe('SustentationDetailsPageComponent', () => {
     it('goBack debe navegar con relativeTo a la ruta padre', () => {
       component.goBack();
 
-      expect(routerSpy.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent, queryParams: { tab: 'SUSTENTACION' } });
     });
   });
 });

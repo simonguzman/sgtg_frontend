@@ -182,7 +182,7 @@ describe('EvaluateCorrectionsPageComponent', () => {
       fixture.detectChanges();
 
       expect(facadeMock.showNavigationError).toHaveBeenCalled();
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], expect.any(Object));
+      expect(routerMock.navigate).toHaveBeenCalledWith(['corrected_documents'], expect.any(Object));
       expect(facadeMock.loadThesisWork).not.toHaveBeenCalled();
     });
 
@@ -212,7 +212,7 @@ describe('EvaluateCorrectionsPageComponent', () => {
     it('goBack debería navegar hacia loaded_documents con la ruta padre relativa', () => {
       component.goBack();
 
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: activatedRouteMock.parent });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['corrected_documents'], { relativeTo: activatedRouteMock.parent });
     });
   });
 
@@ -248,7 +248,7 @@ describe('EvaluateCorrectionsPageComponent', () => {
         expect.any(Function),
         expect.any(Function)
       );
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: activatedRouteMock.parent });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['corrected_documents'], { relativeTo: activatedRouteMock.parent });
     });
 
     it('debería manejar el flujo de error de guardado bajando la bandera de envío sin retroceder', () => {

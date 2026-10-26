@@ -198,7 +198,7 @@ describe('RegisterSustentationPageComponent', () => {
     it('debería navegar a loaded_documents al llamar a goBack', () => {
       component.goBack();
 
-      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['loaded_documents'], { relativeTo: routeMock.parent, queryParams: { tab: 'SUSTENTACION' } });
     });
   });
 

@@ -105,7 +105,7 @@ export class EvaluationProposalFacadeService {
             'La decisión del comité ha sido guardada y el estado de la propuesta actualizado.',
             NotificationType.CONFIRMATION
           );
-          this.navigation.back(() => this.router.navigate(['../../'], { relativeTo: route }));
+          this.navigation.back(() => this.router.navigate(['../'], { relativeTo: route }));
         },
         error: (err) => {
           this.showNotification(
