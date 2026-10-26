@@ -42,6 +42,6 @@ function aItem(catalogo: CatalogoResponse): CatalogItem {
 
 function aPrograma(programa: ProgramaResponse): CatalogItem {
   return programa.departamento
-    ? { ...aItem(programa), detail: programa.departamento.nombre }
+    ? { ...aItem(programa), detail: programa.departamento.nombre, parentId: programa.departamento.id }
     : aItem(programa);
 }

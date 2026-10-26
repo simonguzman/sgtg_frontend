@@ -4,6 +4,7 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { EvaluateCorrectionsFacadeService } from './services/evaluate-corrections-facade.service';
 import { EvaluateCorrectionsFormComponent } from '../../components/evaluate-corrections-form/evaluate-corrections-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-evaluate-corrections-page',
@@ -15,6 +16,7 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 export class EvaluateCorrectionsPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   protected readonly facade = inject(EvaluateCorrectionsFacadeService);
 
   readonly thesisWorkState = signal<ThesisWork | null>(null);
@@ -59,6 +61,6 @@ export class EvaluateCorrectionsPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
+    this.navigation.back(() => this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent }));
   }
 }

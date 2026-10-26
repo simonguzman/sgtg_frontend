@@ -10,6 +10,7 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { cartaDeAceptacion, versionEnRevision } from '../../../services/proposal-rules.service';
 import { SaveProposalEvaluationEvent } from '../../../interfaces/evaluation-proposal-payload.interface';
+import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
 export type { SaveProposalEvaluationEvent };
 
@@ -24,6 +25,7 @@ export class EvaluationProposalFacadeService {
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
 
   public load(
     id: string,
@@ -103,7 +105,7 @@ export class EvaluationProposalFacadeService {
             'La decisión del comité ha sido guardada y el estado de la propuesta actualizado.',
             NotificationType.CONFIRMATION
           );
-          this.router.navigate(['../../'], { relativeTo: route });
+          this.navigation.back(() => this.router.navigate(['../../'], { relativeTo: route }));
         },
         error: (err) => {
           this.showNotification(

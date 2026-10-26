@@ -3,10 +3,12 @@ import { Router } from '@angular/router';
 import { UserService } from '../../../services/user.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { User } from '../../../interfaces/user.interface';
+import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
 @Injectable()
 export class UserDetailsFacadeService {
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   private readonly userService = inject(UserService);
   private readonly authService = inject(AuthService);
 
@@ -39,10 +41,12 @@ export class UserDetailsFacadeService {
   }
 
   public goBack(): void {
-    if (this.isMyProfile()) {
-      this.router.navigate(['/notifications']);
-    } else {
-      this.router.navigate(['/users']);
-    }
+    this.navigation.back(() => {
+      if (this.isMyProfile()) {
+        this.router.navigate(['/notifications']);
+      } else {
+        this.router.navigate(['/users']);
+      }
+    });
   }
 }

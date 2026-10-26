@@ -3,6 +3,7 @@ import { ActivatedRoute, ActivatedRouteSnapshot, Router } from '@angular/router'
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { DatePipe, LowerCasePipe } from '@angular/common';
 import { SustentationDetailsFacadeService } from './services/sustentation-details-facade.service';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-sustentation-details-page',
@@ -14,6 +15,7 @@ import { SustentationDetailsFacadeService } from './services/sustentation-detail
 export class SustentationDetailsPageComponent implements OnInit {
   private readonly route  = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   protected readonly facade = inject(SustentationDetailsFacadeService);
 
   ngOnInit(): void {
@@ -45,6 +47,6 @@ export class SustentationDetailsPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
+    this.navigation.back(() => this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent }));
   }
 }

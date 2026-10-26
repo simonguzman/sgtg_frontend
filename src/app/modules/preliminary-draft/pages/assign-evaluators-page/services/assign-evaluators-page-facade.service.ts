@@ -4,11 +4,13 @@ import { PreliminaryDraftService } from '../../../services/preliminary-draft.ser
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
+import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
 @Injectable()
 export class AssignEvaluatorsPageFacadeService {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
   private readonly notificationService = inject(NotificationService);
 
@@ -94,7 +96,7 @@ export class AssignEvaluatorsPageFacadeService {
   }
 
   goBack(): void {
-    this.router.navigate(['../'], { relativeTo: this.route });
+    this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route }));
   }
 
   private showProcessingNotification(): void {

@@ -19,7 +19,12 @@ describe('inbox-message.mapper', () => {
     expect(rutaDeNotificacion(15, 'ANTEPROYECTO', 'DECISION_COMITE')).toBe('/proposal/details/15/evaluations_performed');
     expect(rutaDeNotificacion(15, 'PROPUESTA', 'DECISION_COMITE')).toBe('/proposal/details/15/evaluations_performed');
     // Los demás eventos (o las notificaciones sin evento) siguen la etapa
-    expect(rutaDeNotificacion(15, 'ANTEPROYECTO', 'ANTEPROYECTO_RADICADO')).toBe('/preliminary-draft/details/15');
+    expect(rutaDeNotificacion(15, 'ANTEPROYECTO', 'ETAPA_ACTUALIZADA')).toBe('/preliminary-draft/details/15');
+    // El anteproyecto radicado o corregido y la asignación de evaluadores, a sus documentos cargados
+    for (const evento of ['ANTEPROYECTO_RADICADO', 'ANTEPROYECTO_CORREGIDO', 'EVALUADORES_ASIGNADOS']) {
+      expect(rutaDeNotificacion(15, 'EVALUACION', evento))
+        .toBe('/preliminary-draft/details/15/loaded_documents?tab=ANTEPROYECTOS');
+    }
     expect(rutaDeNotificacion(15, 'ANTEPROYECTO', null)).toBe('/preliminary-draft/details/15');
     // Conceptos y decisiones del anteproyecto, a sus evaluaciones; la remisión, a las presentaciones
     expect(rutaDeNotificacion(15, 'EVALUACION', 'CONCEPTO_EVALUADOR')).toBe('/preliminary-draft/details/15/evaluations_performed');
@@ -37,10 +42,18 @@ describe('inbox-message.mapper', () => {
   });
 
   it('los hechos de la sustentación llevan a su pestaña, al detalle de la sesión o a los documentos corregidos', () => {
+    expect(rutaDeNotificacion(15, 'EN_CURSO', 'INFORME_RADICADO')).toBe('/thesis-work/details/15/loaded_documents?tab=AVANCES');
+    expect(rutaDeNotificacion(15, 'PRORROGA', 'INFORME_REVISADO')).toBe('/thesis-work/details/15/evaluations_performed');
+    // Solicitudes especiales: la solicitud en su pestaña; la decisión del Consejo, en las evaluaciones realizadas
+    expect(rutaDeNotificacion(15, 'EN_CURSO', 'SUSPENSION_SOLICITADA')).toBe('/thesis-work/details/15/loaded_documents?tab=SOLICITUDES');
+    expect(rutaDeNotificacion(15, 'EN_CURSO', 'CAMBIO_OBJETIVOS_SOLICITADO')).toBe('/thesis-work/details/15/loaded_documents?tab=SOLICITUDES');
+    expect(rutaDeNotificacion(15, 'SUSPENDIDO', 'SUSPENSION_RESUELTA')).toBe('/thesis-work/details/15/evaluations_performed');
+    expect(rutaDeNotificacion(15, 'EN_CURSO', 'CANCELACION_RESUELTA')).toBe('/thesis-work/details/15/evaluations_performed');
+    expect(rutaDeNotificacion(15, 'CANCELADO', 'CANCELACION_RESUELTA')).toBe('/history');
     expect(rutaDeNotificacion(15, 'SUSTENTACION', 'SUSTENTACION_PROGRAMADA'))
       .toBe('/thesis-work/details/15/loaded_documents?tab=SUSTENTACION');
     expect(rutaDeNotificacion(15, 'SUSTENTACION', 'NUEVA_FECHA_RESUELTA'))
-      .toBe('/thesis-work/details/15/loaded_documents?tab=SOLICITUDES');
+      .toBe('/thesis-work/details/15/evaluations_performed');
     expect(rutaDeNotificacion(15, 'SUSTENTACION', 'SUSTENTACION_CALIFICADA', 2))
       .toBe('/thesis-work/details/15/view_sustentation_details/sesion-2');
     expect(rutaDeNotificacion(15, 'APLAZADO', 'INASISTENCIA_REGISTRADA', 1))

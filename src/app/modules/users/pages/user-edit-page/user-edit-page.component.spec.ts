@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
-import { Location } from '@angular/common';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { Observable, of, throwError } from 'rxjs';
@@ -53,7 +53,7 @@ describe('Component: UserEditPageComponent', () => {
     updateUser: jest.Mock<void, [string, User, () => void, () => void]>;
   };
 
-  let mockLocation: {
+  let mockNavigation: {
     back: jest.Mock<void, []>;
   };
 
@@ -75,7 +75,7 @@ describe('Component: UserEditPageComponent', () => {
       updateUser: jest.fn()
     };
 
-    mockLocation = {
+    mockNavigation = {
       back: jest.fn()
     };
 
@@ -87,7 +87,7 @@ describe('Component: UserEditPageComponent', () => {
       imports: [UserEditPageComponent],
       providers: [
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
-        { provide: Location, useValue: mockLocation }
+        { provide: NavigationHistoryService, useValue: mockNavigation }
       ]
     })
     .overrideComponent(UserEditPageComponent, {
@@ -196,9 +196,9 @@ describe('Component: UserEditPageComponent', () => {
   });
 
   describe('Navegación', () => {
-    it('debería llamar a location.back() al ejecutar goBack()', () => {
+    it('debería llamar a navigation.back() al ejecutar goBack()', () => {
       component.goBack();
-      expect(mockLocation.back).toHaveBeenCalled();
+      expect(mockNavigation.back).toHaveBeenCalled();
     });
   });
 });

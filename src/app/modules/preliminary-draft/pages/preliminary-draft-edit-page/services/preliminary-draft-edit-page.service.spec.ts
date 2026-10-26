@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Location } from '@angular/common';
+import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 import { of, throwError } from 'rxjs';
 import { signal, WritableSignal } from '@angular/core';
 import { PreliminaryDraftEditPageService } from './preliminary-draft-edit-page.service';
@@ -46,7 +46,7 @@ describe('PreliminaryDraftEditPageService', () => {
 
   let mockRouteParamMapGet: jest.Mock;
   let mockRouter: { navigate: jest.Mock };
-  let mockLocation: { back: jest.Mock };
+  let mockNavigation: { back: jest.Mock };
   let mockPreliminaryDraftService: {
     getPreliminaryDraftById: jest.Mock;
     updatePreliminaryDraft: jest.Mock;
@@ -67,7 +67,7 @@ describe('PreliminaryDraftEditPageService', () => {
     };
 
     mockRouter = { navigate: jest.fn() };
-    mockLocation = { back: jest.fn() };
+    mockNavigation = { back: jest.fn((respaldo: () => unknown) => respaldo()) }; // sin página anterior: usa la navegación de respaldo
 
     mockPreliminaryDraftService = {
       getPreliminaryDraftById: jest.fn(),
@@ -86,7 +86,7 @@ describe('PreliminaryDraftEditPageService', () => {
         PreliminaryDraftEditPageService,
         { provide: ActivatedRoute, useValue: mockRoute },
         { provide: Router, useValue: mockRouter },
-        { provide: Location, useValue: mockLocation },
+        { provide: NavigationHistoryService, useValue: mockNavigation },
         { provide: PreliminaryDraftService, useValue: mockPreliminaryDraftService },
         { provide: NotificationService, useValue: mockNotificationService },
         { provide: AuthService, useValue: mockAuthService }
@@ -232,9 +232,9 @@ describe('PreliminaryDraftEditPageService', () => {
   });
 
   describe('Navegación', () => {
-    it('debería llamar a Location.back al ejecutar goBack', () => {
+    it('debería llamar a NavigationHistoryService.back() al ejecutar goBack', () => {
       service.goBack();
-      expect(mockLocation.back).toHaveBeenCalled();
+      expect(mockNavigation.back).toHaveBeenCalled();
     });
   });
 });

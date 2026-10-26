@@ -12,6 +12,7 @@ import { PreliminaryDraftService } from '../../../services/preliminary-draft.ser
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { SaveEvaluationPayload } from '../../../components/review-presentations-faculty-council-form/models/council-evaluation.model';
+import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
 @Injectable()
 export class ReviewPresentationsFacultyCouncilPageFacadeService {
@@ -20,6 +21,7 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
   private readonly downloadService = inject(FileDownloadService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly preliminaryDraftState = signal<PreliminaryDraft | null>(null);
@@ -109,7 +111,7 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
         next: () => {
           this.showSuccessNotification();
           this.isConfirmModalOpen.set(false);
-          this.router.navigate(['../../'], { relativeTo: this.route });
+          this.goBack();
         },
         error: (err) => this.showSaveErrorNotification(err)
       });
@@ -128,7 +130,7 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
   }
 
   goBack(): void {
-    this.router.navigate(['../../'], { relativeTo: this.route });
+    this.navigation.back(() => this.router.navigate(['../../'], { relativeTo: this.route }));
   }
 
   private showNotFoundNotification(): void {

@@ -1,4 +1,4 @@
-/** Datos para radicar un informe mensual: el PDF (formato D) y observaciones opcionales. */
+/** Datos para radicar un informe mensual: el PDF del informe y observaciones opcionales. */
 export interface UploadAdvancePayload {
   comments: string;
   file: File;

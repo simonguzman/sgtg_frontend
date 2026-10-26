@@ -1,9 +1,10 @@
 import { Component, inject } from '@angular/core';
-import { Location } from '@angular/common';
+import { Router } from '@angular/router';
 import { UserFormComponent } from '../../components/user-form/user-form.component';
 import { User } from '../../interfaces/user.interface';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { UserFormFacadeService } from '../services/user-form-facade.service';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-user-create-page',
@@ -13,7 +14,8 @@ import { UserFormFacadeService } from '../services/user-form-facade.service';
   styleUrls: ['./user-create-page.component.css']
 })
 export class UserCreatePageComponent {
-  private readonly location = inject(Location);
+  private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   protected readonly facade = inject(UserFormFacadeService);
 
   isConfirmModalOpen = false;
@@ -38,6 +40,6 @@ export class UserCreatePageComponent {
   }
 
   goBack(): void {
-    this.location.back();
+    this.navigation.back(() => this.router.navigate(['/users']));
   }
 }

@@ -148,7 +148,8 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
         type: NotificationType.ERROR,
         title: 'Acceso Denegado'
       }));
-      expect(routerMock.navigate).toHaveBeenCalledWith(['/dashboard']);
+      // Sin página anterior vuelve a los documentos cargados (antes iba a /dashboard, que no existe)
+      expect(routerMock.navigate).toHaveBeenCalledWith(['../'], expect.objectContaining({ relativeTo: expect.anything() }));
     });
 
     it('debería notificar error si no encuentra el anteproyecto (API retorna null/undefined)', () => {

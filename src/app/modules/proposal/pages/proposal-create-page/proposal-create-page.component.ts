@@ -1,9 +1,10 @@
 import { Component, inject, signal } from '@angular/core';
-import { Location } from '@angular/common';
+import { Router } from '@angular/router';
 import { Proposal } from '../../interfaces/proposal.interface';
 import { ProposalCreateFacadeService } from './services/proposal-create-facade.service';
 import { ProposalFormComponent } from '../../components/proposal-form/proposal-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-proposal-create-page',
@@ -13,7 +14,8 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
   styleUrls: ['./proposal-create-page.component.css']
 })
 export class ProposalCreatePageComponent {
-  private readonly location = inject(Location);
+  private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   protected readonly facade = inject(ProposalCreateFacadeService);
 
   readonly isModalOpen = signal<boolean>(false);
@@ -42,6 +44,6 @@ export class ProposalCreatePageComponent {
   }
 
   goBack(): void {
-    this.location.back();
+    this.navigation.back(() => this.router.navigate(['/proposal']));
   }
 }

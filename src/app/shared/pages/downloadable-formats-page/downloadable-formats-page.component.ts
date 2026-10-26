@@ -9,6 +9,7 @@ import {
   DOWNLOADABLE_FORMATS_COLUMNS,
   DOWNLOADABLE_FORMATS_BY_CATEGORY
 } from './models/downloadable-formats-page.model';
+import { NavigationHistoryService } from '../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-downloadable-formats-page',
@@ -19,6 +20,7 @@ import {
 export class DownloadableFormatsPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   private readonly facade = inject(DownloadableFormatsFacadeService);
 
   protected readonly tabs = DOWNLOADABLE_FORMATS_TABS;
@@ -35,6 +37,6 @@ export class DownloadableFormatsPageComponent {
   }
 
   goBack(): void {
-    this.router.navigate(['../'], { relativeTo: this.route });
+    this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route }));
   }
 }

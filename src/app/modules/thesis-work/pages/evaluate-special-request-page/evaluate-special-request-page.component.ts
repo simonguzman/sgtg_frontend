@@ -7,6 +7,7 @@ import { FileDocument } from '../../../../core/interfaces/file-document.interfac
 import { EvaluateSpecialRequestFacadeService } from './services/evaluate-special-request-facade.service';
 import { EvaluateSpecialRequestFormComponent } from '../../components/evaluate-special-request-form/evaluate-special-request-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-evaluate-special-request-page',
@@ -17,6 +18,7 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 export class EvaluateSpecialRequestPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   protected readonly facade = inject(EvaluateSpecialRequestFacadeService);
 
   readonly thesisWorkState = signal<ThesisWork | null>(null);
@@ -76,6 +78,6 @@ export class EvaluateSpecialRequestPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
+    this.navigation.back(() => this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent }));
   }
 }

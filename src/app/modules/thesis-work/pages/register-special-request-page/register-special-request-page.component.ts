@@ -5,6 +5,7 @@ import { SpecialRequestSubmission } from '../../services/thesis-work-special-req
 import { RegisterSpecialRequestFacadeService } from './services/register-special-request-facade.service';
 import { RegisterSpecialRequestFormComponent } from '../../components/register-special-request-form/register-special-request-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-register-special-request-page',
@@ -14,6 +15,7 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 })
 export class RegisterSpecialRequestPageComponent implements OnInit {
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   private readonly route = inject(ActivatedRoute);
   protected readonly facade = inject(RegisterSpecialRequestFacadeService);
 
@@ -62,6 +64,6 @@ export class RegisterSpecialRequestPageComponent implements OnInit {
   }
 
   public goBack(): void {
-    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
+    this.navigation.back(() => this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent }));
   }
 }

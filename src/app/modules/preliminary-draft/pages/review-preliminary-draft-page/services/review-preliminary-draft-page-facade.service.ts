@@ -11,6 +11,7 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { PendingReviewData, ReviewEvaluationFormValues } from '../../../interfaces/review-preliminary-draft-payload.interface';
+import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
 export type { ReviewEvaluationFormValues, PendingReviewData };
 
@@ -22,6 +23,7 @@ export class ReviewPreliminaryDraftPageFacadeService {
   private readonly downloadService = inject(FileDownloadService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
 
   readonly preliminaryDraftState = signal<PreliminaryDraft | null>(null);
   readonly isConfirmModalOpen = signal(false);
@@ -57,7 +59,7 @@ export class ReviewPreliminaryDraftPageFacadeService {
           const isEvaluator = data.evaluators?.some(evaluator => evaluator.id === this.authService.currentUser()?.id);
           if (!isEvaluator) {
             this.showAccessDeniedNotification();
-            this.router.navigate(['/dashboard']);
+            this.goBack();
             return;
           }
           this.preliminaryDraftState.set(data);
@@ -89,7 +91,7 @@ export class ReviewPreliminaryDraftPageFacadeService {
         next: () => {
           this.showEvaluationSuccessNotification(isApproved);
           this.isConfirmModalOpen.set(false);
-          this.router.navigate(['../../'], { relativeTo: this.route });
+          this.navigation.back(() => this.router.navigate(['../../'], { relativeTo: this.route }));
         },
         error: (err) => this.showSaveErrorNotification(err)
       });
@@ -110,7 +112,7 @@ export class ReviewPreliminaryDraftPageFacadeService {
   }
 
   goBack(): void {
-    this.router.navigate(['../'], { relativeTo: this.route });
+    this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route }));
   }
 
   private showEvaluationSuccessNotification(isApproved: boolean): void {

@@ -707,7 +707,8 @@ const ETIQUETAS_POR_FORMATO: Record<string, string> = {
   A: 'Formato A (propuesta)',
   B: 'Formato B (concepto del evaluador)',
   C: 'Formato C (remisión al Consejo)',
-  D: 'Formato D (informe mensual)',
+  // Los informes mensuales cargados antes se guardaron como formato D (hoy van a la carpeta INFORME_MENSUAL)
+  D: 'Informe mensual',
   E: 'Formato E (documento final)',
   F: 'Formato F (paz y salvo)',
   G: 'Formato G (acta de sustentación)',
@@ -719,6 +720,7 @@ const ETIQUETAS_POR_CARPETA: Record<string, string> = {
   MONOGRAFIA: 'Monografía',
   ANEXOS: 'Anexos',
   CARTA_ACEPTACION: 'Carta de aceptación',
+  INFORME_MENSUAL: 'Informe mensual',
   RESOLUCION: 'Resolución del Consejo',
   ACTA_COMITE: 'Respuesta del Comité',
   SOLICITUD_PRORROGA: 'Solicitud de prórroga',

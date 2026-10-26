@@ -13,7 +13,7 @@
     <app-tabs
       [tabs]="facade.tabs"
       [activeTab]="facade.activeTab()"
-      (tabChange)="facade.activeTab.set($event)"
+      (tabChange)="facade.changeTab($event)"
     ></app-tabs>
 
     <div class="mt-6">

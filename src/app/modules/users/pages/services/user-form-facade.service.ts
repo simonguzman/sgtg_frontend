@@ -6,12 +6,14 @@ import { NotificationService } from '../../../../shared/components/notifications
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { User } from '../../interfaces/user.interface';
 import { apiErrorMessage } from '../../../../core/utils/api-error.utils';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Injectable({ providedIn: 'root' })
 export class UserFormFacadeService {
   private readonly userService = inject(UserService);
   private readonly notificationService = inject(NotificationService);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
 
   public getUserById(id: string): Observable<User | undefined> {
     return this.userService.getUserById(id);
@@ -29,7 +31,7 @@ export class UserFormFacadeService {
       next: () => {
         this.showNotification('Usuario registrado', 'El usuario ha sido registrado correctamente.', NotificationType.CONFIRMATION);
         onSuccess();
-        this.router.navigate(['/users']);
+        this.navigation.back(() => this.router.navigate(['/users']));
       },
       error: (err) => {
         console.error('Error en la creación:', err);
@@ -46,7 +48,7 @@ export class UserFormFacadeService {
       next: () => {
         this.showNotification('¡Actualización exitosa!', 'Los datos del usuario han sido modificados correctamente.', NotificationType.CONFIRMATION);
         onSuccess();
-        this.router.navigate(['/users']);
+        this.navigation.back(() => this.router.navigate(['/users']));
       },
       error: (err) => {
         console.error('Error en la actualización:', err);

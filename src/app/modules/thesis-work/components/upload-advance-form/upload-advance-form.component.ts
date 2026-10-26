@@ -10,7 +10,7 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { UploadAdvancePayload } from '../../interfaces/advance-playload.interface';
 import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
-/** Formulario para radicar un informe mensual: un PDF (formato D) y observaciones opcionales. */
+/** Formulario para radicar un informe mensual: el PDF del informe y observaciones opcionales. */
 @Component({
   selector: 'app-upload-advance-form',
   imports: [ProposalContentFieldsComponent, NgClass, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],

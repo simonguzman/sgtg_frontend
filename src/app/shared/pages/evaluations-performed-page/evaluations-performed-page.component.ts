@@ -8,6 +8,7 @@ import { NotificationService } from '../../components/notifications/services/not
 import { EvaluationsFacadeService } from './services/evaluations-facade.service';
 import { TableComponent } from '../../components/table-component/table-component.component';
 import { EvaluationModalComponent } from '../../components/modals/evaluation-modal/evaluation-modal.component';
+import { NavigationHistoryService } from '../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-evaluations-performed-page',
@@ -19,6 +20,7 @@ import { EvaluationModalComponent } from '../../components/modals/evaluation-mod
 export class EvaluationsPerformedPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   private readonly evaluationsFacade = inject(EvaluationsFacadeService);
   private readonly notificationService = inject(NotificationService);
 
@@ -61,7 +63,7 @@ export class EvaluationsPerformedPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['../'], { relativeTo: this.route });
+    this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route }));
   }
 
   private showNotification(title: string, message: string, type: NotificationType): void {

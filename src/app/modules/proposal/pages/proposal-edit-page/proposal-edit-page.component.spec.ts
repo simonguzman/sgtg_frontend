@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Location } from '@angular/common';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { ProposalEditPageComponent } from './proposal-edit-page.component';
 import { ProposalEditFacadeService } from './services/proposal-edit-facade.service';
@@ -34,7 +34,7 @@ interface MockRouter {
 interface MockActivatedRoute {
   snapshot: { paramMap: { get: jest.Mock } };
 }
-interface MockLocation {
+interface MockNavigation {
   back: jest.Mock;
 }
 interface MockFacade {
@@ -62,7 +62,7 @@ describe('ProposalEditPageComponent', () => {
   let fixture: ComponentFixture<ProposalEditPageComponent>;
   let mockRouter: MockRouter;
   let mockRoute: MockActivatedRoute;
-  let mockLocation: MockLocation;
+  let mockNavigation: MockNavigation;
   let mockFacade: MockFacade;
   const mockProposal = createMockProposal({ id: '1', title: 'Test' });
   beforeEach(async () => {
@@ -71,7 +71,7 @@ describe('ProposalEditPageComponent', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     mockRouter = { navigate: jest.fn() };
     mockRoute = { snapshot: { paramMap: { get: jest.fn() } } };
-    mockLocation = { back: jest.fn() };
+    mockNavigation = { back: jest.fn((respaldo: () => unknown) => respaldo()) }; // sin página anterior: usa la navegación de respaldo
     mockFacade = {
       loadAndAuthorize: jest.fn(),
       validateRules: jest.fn(),
@@ -83,7 +83,7 @@ describe('ProposalEditPageComponent', () => {
       providers: [
         { provide: Router, useValue: mockRouter },
         { provide: ActivatedRoute, useValue: mockRoute },
-        { provide: Location, useValue: mockLocation },
+        { provide: NavigationHistoryService, useValue: mockNavigation },
         { provide: ProposalEditFacadeService, useValue: mockFacade },
       ],
     })
@@ -128,9 +128,9 @@ describe('ProposalEditPageComponent', () => {
     });
   });
   describe('Interacciones de UI', () => {
-    it('debe llamar a location.back() al ejecutar goBack', () => {
+    it('debe llamar a navigation.back() al ejecutar goBack', () => {
       component.goBack();
-      expect(mockLocation.back).toHaveBeenCalled();
+      expect(mockNavigation.back).toHaveBeenCalled();
     });
     it('debe limpiar los datos pendientes y cerrar el modal al cancelar', () => {
       component.isModalOpen.set(true);

@@ -4,6 +4,7 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { RegisterCorrespondenceFacadeService } from './services/register-correspondence-facade.service';
 import { RegisterCorrespondenceFormComponent } from '../../components/register-correspondence-form/register-correspondence-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-register-correspondence-page',
@@ -14,6 +15,7 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 export class RegisterCorrespondencePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   protected readonly facade = inject(RegisterCorrespondenceFacadeService);
 
   readonly thesisWorkDetails = signal<ThesisWork | null>(null);
@@ -64,6 +66,6 @@ export class RegisterCorrespondencePageComponent implements OnInit {
   }
 
   goBack(): void {
-    void this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
+    this.navigation.back(() => this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent }));
   }
 }

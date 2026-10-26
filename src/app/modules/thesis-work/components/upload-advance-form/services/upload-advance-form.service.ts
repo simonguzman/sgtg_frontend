@@ -35,7 +35,7 @@ export class UploadAdvanceFormService {
   notifyMissingFiles(): void {
     this.notificationService.show({
       title: 'Archivo requerido',
-      message: 'Debe adjuntar el informe mensual (formato D) en PDF.',
+      message: 'Debe adjuntar el documento del informe mensual en PDF.',
       type: NotificationType.ERROR
     });
   }

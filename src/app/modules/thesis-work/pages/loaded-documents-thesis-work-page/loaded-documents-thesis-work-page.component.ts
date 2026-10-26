@@ -27,6 +27,7 @@ import {
   TAB_MODAL_HEADERS,
   TAB_MODAL_SUBTITLES
 } from './models/loaded-documents-thesis-work.model';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-loaded-documents-thesis-work-page',
@@ -41,6 +42,7 @@ import {
 export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly authService = inject(AuthService);
   private readonly breadcrumbService = inject(BreadcrumbService);
@@ -89,6 +91,12 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     // Pestaña indicada en la URL (ej. ?tab=ENTREGA_FINAL desde una notificación)
     const tab = this.route.snapshot.queryParamMap?.get('tab')?.replaceAll('_', ' ');
     if (tab && this.tabsConfig.some(item => item.value === tab)) this.activeTab.set(tab);
+  }
+
+  /** Cambia de pestaña y la deja en la URL, para que al regresar a esta página se abra la misma */
+  changeTab(tab: string): void {
+    this.activeTab.set(tab);
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { tab: tab.replaceAll(' ', '_') }, replaceUrl: true });
   }
 
   ngOnDestroy(): void {
@@ -241,6 +249,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   ensureDate = ensureDate;
 
   goBack(): void {
-    this.router.navigate(['../'], { relativeTo: this.route.parent });
+    this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route.parent }));
   }
 }

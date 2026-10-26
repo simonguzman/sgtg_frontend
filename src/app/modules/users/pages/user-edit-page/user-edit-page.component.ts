@@ -1,10 +1,10 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { UserFormComponent } from '../../components/user-form/user-form.component';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { User } from '../../interfaces/user.interface';
-import { Location } from '@angular/common';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { UserFormFacadeService } from '../services/user-form-facade.service';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 @Component({
   selector: 'app-user-edit-page',
   standalone: true,
@@ -14,7 +14,8 @@ import { UserFormFacadeService } from '../services/user-form-facade.service';
 })
 export class UserEditPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
-  private readonly location = inject(Location);
+  private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
 
   protected readonly facade = inject(UserFormFacadeService);
 
@@ -63,6 +64,6 @@ export class UserEditPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.location.back();
+    this.navigation.back(() => this.router.navigate(['/users']));
   }
 }

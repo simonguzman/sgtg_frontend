@@ -7,6 +7,7 @@ import { Proposal } from '../../../../modules/proposal/interfaces/proposal.inter
 import { PreliminaryDraft } from '../../../../modules/preliminary-draft/interfaces/preliminary-draft.interface';
 import { ThesisWork } from '../../../../modules/thesis-work/interfaces/thesis-work.interface';
 import { SpecialRequest } from '../../../../modules/thesis-work/interfaces/special-request.interface';
+import { SpecialRequestType } from '../../../../modules/thesis-work/enums/special-request-type.enum';
 import { SustentationRegistry } from '../../../../modules/thesis-work/interfaces/sustentation-registry.interface';
 import { JurorVerdict } from '../../../../modules/thesis-work/interfaces/juror-verdict.interface';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
@@ -258,6 +259,31 @@ describe('EvaluationsMapperService', () => {
       expect(result[0].evaluatorRole).toBe('Consejo');
       expect(result[0].evaluatorName).toBe('Consejo de Facultad');
       expect(result[0].documentTargetName).toBe('Solicitud Especial (Prorroga tiempo)');
+    });
+
+    it('una solicitud resuelta muestra su documento, la resolución del Consejo y la fecha de la decisión; la reanudación no es una evaluación', () => {
+      const resolutionDate = new Date('2026-10-20T10:00:00');
+      const mockThesis = createMockThesisWork({
+        specialRequests: [
+          createMockSpecialRequest({
+            id: 'prorroga-0',
+            requestType: SpecialRequestType.PRORROGA,
+            status: stateList.APROBADO,
+            requestDate: new Date('2026-10-01T10:00:00'),
+            resolutionDate,
+            documents: [{ name: 'Solicitud de prórroga - v1.pdf', url: 'ruta/solicitud.pdf' } as FileDocument],
+            resolution: { name: 'Resolución - v1.pdf', url: 'ruta/resolucion.pdf' } as FileDocument
+          }),
+          createMockSpecialRequest({ id: 'reanudacion-0', requestType: SpecialRequestType.REANUDACION, status: stateList.APROBADO })
+        ]
+      });
+
+      const result = service.processThesisEvaluations(mockThesis);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].documentTargetName).toBe('Solicitud de prórroga - v1.pdf');
+      expect(result[0].date).toEqual(resolutionDate);
+      expect(result[0].signedDocuments).toEqual([{ name: 'Resolución - v1.pdf', url: 'ruta/resolucion.pdf' }]);
     });
   });
 

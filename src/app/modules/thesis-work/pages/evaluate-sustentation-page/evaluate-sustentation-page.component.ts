@@ -5,6 +5,7 @@ import { EvaluateSustentationFacadeService } from './services/evaluate-sustentat
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { EvaluateSustentationFormComponent, SustentationEvaluationPayload } from '../../components/evaluate-sustentation-form/evaluate-sustentation-form.component';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-evaluate-sustentation-page',
@@ -15,6 +16,7 @@ import { FileDocument } from '../../../../core/interfaces/file-document.interfac
 export class EvaluateSustentationPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   protected readonly facade = inject(EvaluateSustentationFacadeService);
 
   readonly thesisWorkState = signal<ThesisWork | null>(null);
@@ -63,6 +65,6 @@ export class EvaluateSustentationPageComponent implements OnInit {
   }
 
   goBack(): void {
-    void this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
+    this.navigation.back(() => this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent }));
   }
 }

@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Location } from '@angular/common';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { UserCreatePageComponent } from './user-create-page.component';
@@ -48,7 +48,7 @@ describe('Component: UserCreatePageComponent', () => {
     createUser: jest.Mock<void, [User, () => void]>;
   };
 
-  let mockLocation: {
+  let mockNavigation: {
     back: jest.Mock<void, []>;
   };
 
@@ -60,7 +60,7 @@ describe('Component: UserCreatePageComponent', () => {
       createUser: jest.fn()
     };
 
-    mockLocation = {
+    mockNavigation = {
       back: jest.fn()
     };
 
@@ -68,7 +68,7 @@ describe('Component: UserCreatePageComponent', () => {
       imports: [UserCreatePageComponent],
       providers: [
         { provide: UserFormFacadeService, useValue: mockFacade },
-        { provide: Location, useValue: mockLocation }
+        { provide: NavigationHistoryService, useValue: mockNavigation }
       ]
     })
     .overrideComponent(UserCreatePageComponent, {
@@ -135,15 +135,15 @@ describe('Component: UserCreatePageComponent', () => {
   });
 
   describe('Navegación e Interacción de UI', () => {
-    it('debería llamar a location.back() al ejecutar goBack() directamente', () => {
+    it('debería llamar a navigation.back() al ejecutar goBack() directamente', () => {
       component.goBack();
-      expect(mockLocation.back).toHaveBeenCalled();
+      expect(mockNavigation.back).toHaveBeenCalled();
     });
 
-    it('debería llamar a location.back() al hacer clic en el botón de regresar del HTML', () => {
+    it('debería llamar a navigation.back() al hacer clic en el botón de regresar del HTML', () => {
       const backButton = fixture.debugElement.query(By.css('button'));
       backButton.triggerEventHandler('click', null);
-      expect(mockLocation.back).toHaveBeenCalled();
+      expect(mockNavigation.back).toHaveBeenCalled();
     });
   });
 });

@@ -8,10 +8,12 @@ import { ThesisWorkDetailsMapperService } from './thesis-work-details-mapper.ser
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWorkDetailsView } from '../models/thesis-work-details-page.model';
 import { WorkDetailsDocument } from '../../../../../shared/components/work-details/work-details.model';
+import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkDetailsFacadeService {
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly mapper = inject(ThesisWorkDetailsMapperService);
   private readonly downloadService = inject(FileDownloadService);
@@ -59,12 +61,14 @@ export class ThesisWorkDetailsFacadeService {
   }
 
   public goBack(): void {
-    const currentUrl = this.router.url;
-    if (currentUrl.includes('/history')) {
-      this.router.navigate(['/history']);
-    } else {
-      this.router.navigate(['/thesis-work']);
-    }
+    this.navigation.back(() => {
+      const currentUrl = this.router.url;
+      if (currentUrl.includes('/history')) {
+        this.router.navigate(['/history']);
+      } else {
+        this.router.navigate(['/thesis-work']);
+      }
+    });
   }
 
   public handleMissingId(): void {

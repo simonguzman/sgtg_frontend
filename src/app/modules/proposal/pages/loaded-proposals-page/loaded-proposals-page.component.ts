@@ -6,6 +6,7 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
 import { LoadedProposalsFacadeService } from './services/loaded-proposals-facade.service';
 import { DOCUMENTS_COLUMNS, DocumentTableRow, ProposalRegistrationDetails } from './models/loaded-proposals-page.model';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-loaded-proposals-page',
@@ -16,6 +17,7 @@ import { DOCUMENTS_COLUMNS, DocumentTableRow, ProposalRegistrationDetails } from
 export class LoadedProposalsPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   protected readonly facade = inject(LoadedProposalsFacadeService);
 
   readonly columns = DOCUMENTS_COLUMNS;
@@ -105,6 +107,6 @@ export class LoadedProposalsPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['../'], { relativeTo: this.route });
+    this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route }));
   }
 }

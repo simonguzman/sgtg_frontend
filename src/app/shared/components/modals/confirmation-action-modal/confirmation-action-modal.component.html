@@ -26,6 +26,7 @@
       <app-button-component
         label="Aceptar"
         variant="primary"
+        [disabled]="confirmed"
         (onClick)="confirmAction()"
       ></app-button-component>
     </div>

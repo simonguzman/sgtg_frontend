@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { Location } from '@angular/common';
+import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 import { of, throwError } from 'rxjs';
 import { PreliminaryDraftCreatePageService } from './preliminary-draft-create-page.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
@@ -42,7 +42,7 @@ describe('PreliminaryDraftCreatePageService', () => {
   let mockNotificationService: { show: jest.Mock };
   let mockAuthService: { hasAnyRole: jest.Mock };
   let mockRouter: { navigate: jest.Mock };
-  let mockLocation: { back: jest.Mock };
+  let mockNavigation: { back: jest.Mock };
 
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -64,8 +64,8 @@ describe('PreliminaryDraftCreatePageService', () => {
       navigate: jest.fn()
     };
 
-    mockLocation = {
-      back: jest.fn()
+    mockNavigation = {
+      back: jest.fn((respaldo: () => unknown) => respaldo()) // sin página anterior: usa la navegación de respaldo
     };
 
     TestBed.configureTestingModule({
@@ -75,7 +75,7 @@ describe('PreliminaryDraftCreatePageService', () => {
         { provide: NotificationService, useValue: mockNotificationService },
         { provide: AuthService, useValue: mockAuthService },
         { provide: Router, useValue: mockRouter },
-        { provide: Location, useValue: mockLocation }
+        { provide: NavigationHistoryService, useValue: mockNavigation }
       ]
     });
 
@@ -183,9 +183,9 @@ describe('PreliminaryDraftCreatePageService', () => {
   });
 
   describe('Navegación', () => {
-    it('debería llamar a Location.back() al ejecutar goBack()', () => {
+    it('debería llamar a NavigationHistoryService.back() al ejecutar goBack()', () => {
       service.goBack();
-      expect(mockLocation.back).toHaveBeenCalled();
+      expect(mockNavigation.back).toHaveBeenCalled();
     });
   });
 });

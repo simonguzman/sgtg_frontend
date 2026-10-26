@@ -8,6 +8,7 @@ import { EvaluateAdvanceFacadeService } from './services/evaluate-advance-facade
 import { EvaluateAdvanceFormComponent } from '../../components/evaluate-advance-form/evaluate-advance-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-evaluate-advance-page',
@@ -18,6 +19,7 @@ import { FormattedDocument } from '../../../../core/interfaces/formatted-documen
 export class EvaluateAdvancePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   private readonly authService = inject(AuthService);
   protected readonly facade = inject(EvaluateAdvanceFacadeService);
 
@@ -92,6 +94,6 @@ export class EvaluateAdvancePageComponent implements OnInit {
   }
 
   navigateBack(): void {
-    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
+    this.navigation.back(() => this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent }));
   }
 }

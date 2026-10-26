@@ -1,4 +1,5 @@
 import { TrabajoGradoApiService } from '../../../../../core/services/trabajo-grado/trabajo-grado-api.service';
+import { CatalogApiService } from '../../../../../core/services/catalog/catalog-api.service';
 import { TestBed } from '@angular/core/testing';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { signal, WritableSignal } from '@angular/core';
@@ -123,7 +124,11 @@ describe('ProposalFormService', () => {
         { provide: AuthService, useValue: mockAuthService },
         { provide: ProposalService, useValue: mockProposalService },
         // El backend solo permite elegir a stu-1 y stu-2 (stu-busy ya tiene un trabajo activo)
-        { provide: TrabajoGradoApiService, useValue: { estudiantesDisponibles: () => of(['stu-1', 'stu-2'] as unknown as number[]) } }
+        { provide: TrabajoGradoApiService, useValue: { estudiantesDisponibles: () => of(['stu-1', 'stu-2'] as unknown as number[]) } },
+        // Ingeniería de Sistemas está adscrita a Sistemas; Ingeniería Electrónica, a Telemática
+        { provide: CatalogApiService, useValue: { getPrograms: () => of([
+          { ...ING_SISTEMAS, parentId: SISTEMAS.id }, { ...ING_ELECTRONICA, parentId: TELEMATICA.id }
+        ]) } }
       ]
     });
     service = TestBed.inject(ProposalFormService);
@@ -180,6 +185,29 @@ describe('ProposalFormService', () => {
       mockUserService.teachers.set([mockDirector, mockTeacher1, jefeSistemas, jefeTelematica]);
 
       expect(ids(service.codirectorOptions())).toEqual(['teacher-1', 'jefe-tel']);
+    });
+
+    it('un miembro del Comité del programa de los estudiantes no puede ser codirector; uno de otro departamento sí', () => {
+      const comiteSistemas = createMockUser({ id: 'com-sis', firstName: 'Diego', lastName: 'Comité',
+        contractType: ContractType.PLANTA, department: SISTEMAS, roles: [UserRoleType.DOCENTE, UserRoleType.COMITE] });
+      const comiteTelematica = createMockUser({ id: 'com-tel', firstName: 'José', lastName: 'Comité',
+        contractType: ContractType.PLANTA, department: TELEMATICA, roles: [UserRoleType.DOCENTE, UserRoleType.COMITE] });
+      mockUserService.teachers.set([mockDirector, mockTeacher1, comiteSistemas, comiteTelematica]);
+      mockUserService.students.set([mockStudent1, mockStudentOtroPrograma]);
+
+      // Sin estudiante aún no se conoce el Comité que evalúa
+      expect(ids(service.codirectorOptions())).toEqual(['teacher-1', 'com-sis', 'com-tel']);
+
+      // Estudiante de Ingeniería de Sistemas: evalúa el Comité de Sistemas
+      service.form.controls.codirector.setValue('com-sis');
+      service.form.controls.student1.setValue('stu-1');
+      expect(ids(service.codirectorOptions())).toEqual(['teacher-1', 'com-tel']);
+      // El codirector elegido dejó de ser opción: se quita
+      expect(service.form.controls.codirector.value).toBe('');
+
+      // Estudiante de Ingeniería Electrónica (adscrita a Telemática): evalúa el Comité de Telemática
+      service.form.controls.student1.setValue('stu-3');
+      expect(ids(service.codirectorOptions())).toEqual(['teacher-1', 'com-sis']);
     });
 
     it('si el director no es de planta, el codirector es obligatorio y de planta de su departamento', () => {

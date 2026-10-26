@@ -1,10 +1,9 @@
-<div class="flex flex-col gap-6 p-6 min-h-screen">
+<div class="flex flex-col gap-6">
   <app-table-component
     [value]="facade.tableData()"
     [headerButtons]="facade.headerButtons()"
     [columns]="columns"
     [paginator]="true"
-    [rows]="10"
     (actionClick)="handleTableAction($event)"
     (headerButtonClick)="handleHeaderButton($event)"
     emptyMessage="No tienes notificaciones en tu bandeja de entrada en este momento."

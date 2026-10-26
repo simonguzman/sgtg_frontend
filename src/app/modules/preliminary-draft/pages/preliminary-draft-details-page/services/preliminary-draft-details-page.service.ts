@@ -13,11 +13,13 @@ import {
   buildWorkDetailsView, fullName, remainingDaysHint
 } from '../../../../../shared/components/work-details/work-details.builder';
 import { WorkDetailsDocument, WorkDetailsView } from '../../../../../shared/components/work-details/work-details.model';
+import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
 @Injectable()
 export class PreliminaryDraftDetailsPageService {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
   private readonly notificationService = inject(NotificationService);
   private readonly downloadService = inject(FileDownloadService);
@@ -103,12 +105,14 @@ export class PreliminaryDraftDetailsPageService {
   }
 
   goBack(): void {
-    const currentUrl = this.router.url;
-    if (currentUrl.includes('/history')) {
-      void this.router.navigate(['/history']);
-    } else {
-      void this.router.navigate(['/preliminary-draft']);
-    }
+    this.navigation.back(() => {
+      const currentUrl = this.router.url;
+      if (currentUrl.includes('/history')) {
+        void this.router.navigate(['/history']);
+      } else {
+        void this.router.navigate(['/preliminary-draft']);
+      }
+    });
   }
 
   navigateToEvaluations(): void {

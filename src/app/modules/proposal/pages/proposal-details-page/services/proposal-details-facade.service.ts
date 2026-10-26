@@ -9,6 +9,7 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { versionActual, versionesDePropuesta } from '../../../services/proposal-rules.service';
 import { buildWorkDetailsView, remainingDaysHint } from '../../../../../shared/components/work-details/work-details.builder';
 import { WorkDetailsDocument, WorkDetailsView } from '../../../../../shared/components/work-details/work-details.model';
+import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
 @Injectable({ providedIn: 'root' })
 export class ProposalDetailsFacadeService {
@@ -16,6 +17,7 @@ export class ProposalDetailsFacadeService {
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
 
   public load(
     id: string,
@@ -58,8 +60,10 @@ export class ProposalDetailsFacadeService {
   }
 
   public goBack(): void {
-    const currentUrl = this.router.url;
-    this.router.navigate([currentUrl.includes('/history') ? '/history' : '/proposal']);
+    this.navigation.back(() => {
+      const currentUrl = this.router.url;
+      this.router.navigate([currentUrl.includes('/history') ? '/history' : '/proposal']);
+    });
   }
 
   /**

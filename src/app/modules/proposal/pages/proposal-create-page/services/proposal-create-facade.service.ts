@@ -6,12 +6,14 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { Proposal } from '../../../interfaces/proposal.interface';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
+import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
 @Injectable({ providedIn: 'root' })
 export class ProposalCreateFacadeService {
   private readonly proposalService = inject(ProposalService);
   private readonly notificationService = inject(NotificationService);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
 
   public validate(proposal: Proposal): boolean {
     const error = this.proposalService.validateProposalRules(proposal);
@@ -42,7 +44,7 @@ export class ProposalCreateFacadeService {
             'La propuesta ha sido creada exitosamente y ya puede ser gestionada.',
             NotificationType.CONFIRMATION
           );
-          this.router.navigate(['/proposal']);
+          this.navigation.back(() => this.router.navigate(['/proposal']));
           onSuccess();
         },
         error: (err) => {

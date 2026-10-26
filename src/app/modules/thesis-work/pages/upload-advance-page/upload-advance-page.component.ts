@@ -5,6 +5,7 @@ import { UploadAdvancePayload } from '../../interfaces/advance-playload.interfac
 import { UploadAdvancePageFacadeService } from './services/upload-advance-page-facade.service';
 import { UploadAdvanceFormComponent } from '../../components/upload-advance-form/upload-advance-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-upload-advance-page',
@@ -15,6 +16,7 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 export class UploadAdvancePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   protected readonly facade = inject(UploadAdvancePageFacadeService);
 
   readonly thesisWorkState = signal<ThesisWork | null>(null);
@@ -69,6 +71,6 @@ export class UploadAdvancePageComponent implements OnInit {
   }
 
   navigateBack(): void {
-    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
+    this.navigation.back(() => this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent }));
   }
 }

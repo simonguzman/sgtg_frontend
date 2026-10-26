@@ -10,6 +10,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { AuthService } from './core/services/auth/auth.service';
 import { iniciarRefrescoDeTrabajos } from './core/services/trabajo-grado/trabajo-grado-refresco';
+import { NavigationHistoryService } from './core/services/navigation/navigation-history.service';
 
 // Preset personalizado basado en Aura con el color institucional
 // de la Universidad del Cauca como color primario.
@@ -41,6 +42,8 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(() => inject(AuthService).initialize()),
     // Recarga los trabajos vencidos en memoria al navegar o al volver a la pestaña
     provideAppInitializer(() => iniciarRefrescoDeTrabajos()),
+    // Registra las páginas visitadas desde la primera, para que "Regresar" vuelva a la anterior
+    provideAppInitializer(() => { inject(NavigationHistoryService); }),
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),

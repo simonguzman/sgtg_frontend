@@ -2,7 +2,7 @@
   <form [formGroup]="advanceForm" (ngSubmit)="submit()" class="flex flex-col gap-8">
 
     <app-info-banner title="Carga del informe mensual">
-      Cargue el informe mensual del trabajo de grado (formato D) en PDF. Si lo considera necesario, agregue observaciones para el director, el codirector o el asesor, quienes podrán revisarlo y registrar sus notas.
+      Cargue el informe mensual de avance del trabajo de grado en PDF. Si lo considera necesario, agregue observaciones para el director, el codirector o el asesor, quienes podrán revisarlo y registrar sus notas.
     </app-info-banner>
 
     <section>
@@ -56,7 +56,7 @@
         </div>
 
         <div class="flex flex-col gap-4 mt-2">
-          <span class="font-display font-semibold text-primary text-size-section">Informe (formato D) <span class="text-alert">*</span></span>
+          <span class="font-display font-semibold text-primary text-size-section">Documento del informe mensual <span class="text-alert">*</span></span>
 
           @if (uploadedFile(); as item) {
             <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm transition-all hover:shadow-md">
@@ -93,7 +93,7 @@
 
 <app-file-upload-modal
   [isOpen]="isUploadModalOpen()"
-  description="Subir el informe mensual (formato D) en PDF"
+  description="Subir el informe mensual de avance en PDF"
   (onFileUploaded)="handleFileUploaded($event)"
   (onClose)="isUploadModalOpen.set(false)">
 </app-file-upload-modal>

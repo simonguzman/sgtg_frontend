@@ -213,7 +213,7 @@ describe('trabajo-grado.mapper', () => {
       expect(primero).toEqual(expect.objectContaining({
         comments: 'Primer mes', studentId: '10', uploadedBy: 'Eva Estudiante'
       }));
-      expect(primero.documents[0]).toEqual(expect.objectContaining({ name: 'Formato D (informe mensual)', type: DocumentType.AVANCE }));
+      expect(primero.documents[0]).toEqual(expect.objectContaining({ name: 'Informe mensual', type: DocumentType.AVANCE }));
       expect(trabajo.evaluations).toEqual([expect.objectContaining({
         advanceId: '1', evaluatorId: '1', evaluatorName: 'Dora Directora Pérez', evaluatorRole: UserRoleType.DIRECTOR,
         veredict: stateList.EVALUADO, observations: 'Ajustar el cronograma',

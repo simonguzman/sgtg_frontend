@@ -1,6 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Location } from '@angular/common';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
@@ -8,6 +7,7 @@ import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interfac
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { first } from 'rxjs';
+import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
 @Injectable()
 export class PreliminaryDraftCreatePageService {
@@ -15,7 +15,7 @@ export class PreliminaryDraftCreatePageService {
   private readonly notificationService = inject(NotificationService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly location = inject(Location);
+  private readonly navigation = inject(NavigationHistoryService);
 
   readonly confirmState = signal({
     isOpen: false,
@@ -67,13 +67,13 @@ export class PreliminaryDraftCreatePageService {
   }
 
   goBack(): void {
-    this.location.back();
+    this.navigation.back(() => this.router.navigate(['/preliminary-draft']));
   }
 
   private handleCreationSuccess(): void {
     this.showSuccessNotification();
     this.confirmState.set({ isOpen: false, pendingData: null, isProcessing: false });
-    this.router.navigate(['/preliminary-draft']);
+    this.goBack();
   }
 
   private showSuccessNotification(): void {

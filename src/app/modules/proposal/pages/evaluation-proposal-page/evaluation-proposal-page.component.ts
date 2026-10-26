@@ -1,9 +1,9 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { Location } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Proposal } from '../../interfaces/proposal.interface';
 import { EvaluationProposalFacadeService, SaveProposalEvaluationEvent } from './services/evaluation-proposal-facade.service';
 import { EvaluationProposalFormComponent } from '../../components/evaluation-proposal-form/evaluation-proposal-form.component';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-evaluation-proposal-page',
@@ -13,7 +13,8 @@ import { EvaluationProposalFormComponent } from '../../components/evaluation-pro
 })
 export class EvaluationProposalPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
-  private readonly location = inject(Location);
+  private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   protected readonly facade = inject(EvaluationProposalFacadeService);
 
   readonly proposal = signal<Proposal | null>(null);
@@ -47,6 +48,6 @@ export class EvaluationProposalPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.location.back();
+    this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route }));
   }
 }

@@ -4,4 +4,6 @@ export interface CatalogItem {
   name: string;
   /** Dato complementario que se muestra junto al nombre (ej. el departamento de un programa) */
   detail?: string;
+  /** Elemento al que está adscrito (ej. el departamento de un programa) */
+  parentId?: number;
 }

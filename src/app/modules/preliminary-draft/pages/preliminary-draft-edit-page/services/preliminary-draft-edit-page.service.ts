@@ -1,6 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Location } from '@angular/common';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
@@ -8,12 +7,13 @@ import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interfac
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { anteproyectoCorregible } from '../../../services/preliminary-draft-rules';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
+import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
 @Injectable()
 export class PreliminaryDraftEditPageService {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly location = inject(Location);
+  private readonly navigation = inject(NavigationHistoryService);
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
   private readonly notificationService = inject(NotificationService);
   private readonly authService = inject(AuthService);
@@ -91,13 +91,13 @@ export class PreliminaryDraftEditPageService {
   }
 
   goBack(): void {
-    this.location.back();
+    this.navigation.back(() => this.router.navigate(['/preliminary-draft']));
   }
 
   private handleUpdateSuccess(): void {
     this.showUpdateSuccessNotification();
     this.confirmState.set({ isOpen: false, pendingData: null, isProcessing: false });
-    this.router.navigate(['/preliminary-draft']);
+    this.goBack();
   }
 
   private handleUpdateError(customMessage?: string): void {

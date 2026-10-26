@@ -1,6 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Location } from '@angular/common';
 
 import { ProposalEditFacadeService } from './services/proposal-edit-facade.service';
 import { Proposal } from '../../interfaces/proposal.interface';
@@ -8,6 +7,7 @@ import { Proposal } from '../../interfaces/proposal.interface';
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { ProposalFormComponent } from "../../components/proposal-form/proposal-form.component";
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-proposal-edit-page',
@@ -19,7 +19,7 @@ import { InfoBannerComponent } from "../../../../shared/components/info-banner/i
 export class ProposalEditPageComponent implements OnInit {
   private readonly route  = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly location = inject(Location);
+  private readonly navigation = inject(NavigationHistoryService);
   private readonly facade = inject(ProposalEditFacadeService);
 
   readonly proposalToEdit = signal<Proposal | null>(null);
@@ -67,7 +67,7 @@ export class ProposalEditPageComponent implements OnInit {
       dataToSave,
       () => {
         this.pendingData.set(null);
-        this.router.navigate(['/proposal']);
+        this.goBack();
       },
       () => {
         this.isModalOpen.set(false);
@@ -81,6 +81,6 @@ export class ProposalEditPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.location.back();
+    this.navigation.back(() => this.router.navigate(['/proposal']));
   }
 }

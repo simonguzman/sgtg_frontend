@@ -431,3 +431,36 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     lateral: `article`, `note_alt`, `school`); `ActionButton.tooltip` también da el nombre accesible del botón. El
     evaluador sigue consultando en su historial el anteproyecto que evaluó aunque pierda el rol EVALUADOR al cerrarse
     el trabajo (la ruta admite DOCENTE; `archivedWorkGuard` solo deja entrar a quien lo evaluó).
+21. **Codirector y Comité:** el formulario de propuesta no ofrece como codirector a un miembro del Comité del programa
+    del estudiante 1 (departamento del programa, `CatalogItem.parentId` del catálogo de programas); si al cambiar el
+    estudiante el codirector elegido deja de ser opción, se quita. El backend lo valida (§12 de `ajustes-2026-10-24.md`).
+22. **Informe mensual:** los textos del formulario, del modal de carga y de la revisión ya no lo llaman "formato D" (el
+    formato D es la evaluación del asesor en práctica profesional); la carpeta `INFORME_MENSUAL` y la `D` (informes
+    anteriores) se etiquetan "Informe mensual".
+23. **Notificaciones del anteproyecto radicado, corregido y con evaluadores asignados:** llevan a documentos cargados
+    (pestaña de anteproyectos), donde el jefe asigna los evaluadores y el evaluador descarga la versión y la evalúa; el
+    formulario de evaluación muestra todo lo registrado del proyecto.
+
+24. **Notificaciones del informe mensual:** `INFORME_RADICADO` lleva a documentos cargados en la pestaña de informes
+    mensuales (`?tab=AVANCES`), donde el director lo revisa; `INFORME_REVISADO`, a las evaluaciones realizadas del
+    trabajo, donde el estudiante ve la revisión.
+25. **Bandeja de entrada:** pagina de a 5 filas, como las demás tablas, y ya no tiene el `min-h-screen` que la estiraba.
+26. **Doble envío:** `ConfirmationActionModalComponent` emite `confirm` una sola vez por apertura (Aceptar queda
+    deshabilitado mientras el modal se cierra). Un doble clic enviaba la acción dos veces: la primera se guardaba y la
+    segunda respondía un error genérico. Si vuelve a pasar, el backend responde 409 con un mensaje claro (§14 de
+    `ajustes-2026-10-24.md`).
+27. **Revisión del informe mensual:** las notas de la revisión se muestran como tarjeta de documento (icono PDF, nombre,
+    "Descargar"), igual que los demás documentos; el título y las observaciones quedan como estaban.
+28. **Regresar a la página anterior:** `NavigationHistoryService` (`core/services/navigation`, creado al arrancar en
+    `app.config.ts`) registra las páginas visitadas. "Regresar" y el regreso tras guardar un formulario usan
+    `navigation.back(respaldo)`: si hay página anterior dentro de la aplicación, `location.back()` (así el formulario
+    guardado no queda en el historial); si no (enlace directo o recarga), la navegación de respaldo de cada página (su
+    sección o documentos cargados, como antes). Las páginas de inicio de sesión no cuentan como anteriores. Los
+    documentos cargados dejan la pestaña activa en la URL (`?tab=`, con `replaceUrl`) para volver a la misma pestaña.
+    El acceso denegado al revisar un anteproyecto ya no envía a `/dashboard` (no existe).
+29. **Notificaciones de las solicitudes especiales:** la solicitud (cambio de título y objetivos, prórroga, suspensión,
+    cancelación, nueva fecha) y la reanudación llevan a documentos cargados en la pestaña de solicitudes
+    (`?tab=SOLICITUDES`), donde el Consejo las resuelve; la decisión del Consejo (`*_RESUELTA`, `CAMBIO_OBJETIVOS_RESUELTO`)
+    lleva a las evaluaciones realizadas del trabajo (si la cancelación lo cerró, al historial). Ahí cada solicitud
+    resuelta muestra como documento evaluado el de la solicitud, la fecha de la decisión y la resolución del Consejo
+    para descargar; la reanudación ya no aparece como evaluación (solo se registra).

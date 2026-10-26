@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Location } from '@angular/common';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 import { Component } from '@angular/core';
 import { ProposalCreatePageComponent } from './proposal-create-page.component';
 import { ProposalCreateFacadeService } from './services/proposal-create-facade.service';
@@ -13,7 +13,7 @@ class MockProposalFormComponent {}
 @Component({ selector: 'app-confirmation-action-modal', standalone: true, template: '' })
 class MockConfirmationActionModalComponent {}
 
-interface MockLocation {
+interface MockNavigation {
   back: jest.Mock;
 }
 
@@ -25,7 +25,7 @@ interface MockFacade {
 describe('ProposalCreatePageComponent', () => {
   let component: ProposalCreatePageComponent;
   let fixture: ComponentFixture<ProposalCreatePageComponent>;
-  let mockLocation: MockLocation;
+  let mockNavigation: MockNavigation;
   let mockFacade: MockFacade;
   const mockProposal = { title: 'Test Proposal' } as Proposal;
 
@@ -34,7 +34,7 @@ describe('ProposalCreatePageComponent', () => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    mockLocation = {
+    mockNavigation = {
       back: jest.fn(),
     };
 
@@ -46,7 +46,7 @@ describe('ProposalCreatePageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ProposalCreatePageComponent],
       providers: [
-        { provide: Location, useValue: mockLocation as Partial<Location> },
+        { provide: NavigationHistoryService, useValue: mockNavigation as Partial<NavigationHistoryService> },
         { provide: ProposalCreateFacadeService, useValue: mockFacade as Partial<ProposalCreateFacadeService> },
       ],
     })
@@ -125,9 +125,9 @@ describe('ProposalCreatePageComponent', () => {
   });
 
   describe('goBack()', () => {
-    it('debe llamar a location.back()', () => {
+    it('debe llamar a navigation.back()', () => {
       component.goBack();
-      expect(mockLocation.back).toHaveBeenCalled();
+      expect(mockNavigation.back).toHaveBeenCalled();
     });
   });
 });

@@ -4,6 +4,7 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { RegisterCorrectedDocumentsFacadeService } from './services/register-corrected-documents-facade.service';
 import { RegisterCorrectedDocumentFormComponent } from '../../components/register-corrected-document-form/register-corrected-document-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-register-corrected-documents-page',
@@ -14,6 +15,7 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 export class RegisterCorrectedDocumentsPageComponent implements OnInit {
   private readonly route  = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   protected readonly facade = inject(RegisterCorrectedDocumentsFacadeService);
 
   readonly thesisWorkState = signal<ThesisWork | null>(null);
@@ -59,6 +61,6 @@ export class RegisterCorrectedDocumentsPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['../'], { relativeTo: this.route });
+    this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route }));
   }
 }

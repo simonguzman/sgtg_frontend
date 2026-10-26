@@ -10,6 +10,7 @@ import { CorrectedDocumentsFacadeService } from './services/corrected-documents-
 import { CORRECTED_DOCUMENTS_COLUMNS, CorrectedDeliveryTableRow } from './models/corrected-documents-page.model';
 import { CorrectedDelivery } from '../../interfaces/corrected-delivery.interface';
 import { ensureDate } from '../../helpers/thesis-date.helper';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
   selector: 'app-corrected-documents-page',
@@ -21,6 +22,7 @@ import { ensureDate } from '../../helpers/thesis-date.helper';
 export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
   private readonly route             = inject(ActivatedRoute);
   private readonly router            = inject(Router);
+  private readonly navigation        = inject(NavigationHistoryService);
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly breadcrumbService = inject(BreadcrumbService);
   protected readonly facade          = inject(CorrectedDocumentsFacadeService);
@@ -119,18 +121,20 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
   }
 
   goBack(): void {
-    const id             = this.thesisWorkId();
-    const sustentationId = this.currentThesisWork()?.sustentations?.[0]?.id;
-    const currentUrl     = this.router.url;
-    const baseUrlSegment = currentUrl.split('/details')[0] || '/thesis-work';
-    if (!id) {
-      this.router.navigate([baseUrlSegment]);
-      return;
-    }
-    if (sustentationId) {
-      this.router.navigate([baseUrlSegment, 'details', id, 'view_sustentation_details', sustentationId]);
-    } else {
-      this.router.navigate([baseUrlSegment, 'details', id, 'loaded_documents']);
-    }
+    this.navigation.back(() => {
+      const id             = this.thesisWorkId();
+      const sustentationId = this.currentThesisWork()?.sustentations?.[0]?.id;
+      const currentUrl     = this.router.url;
+      const baseUrlSegment = currentUrl.split('/details')[0] || '/thesis-work';
+      if (!id) {
+        this.router.navigate([baseUrlSegment]);
+        return;
+      }
+      if (sustentationId) {
+        this.router.navigate([baseUrlSegment, 'details', id, 'view_sustentation_details', sustentationId]);
+      } else {
+        this.router.navigate([baseUrlSegment, 'details', id, 'loaded_documents']);
+      }
+    });
   }
 }

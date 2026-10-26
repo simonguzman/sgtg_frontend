@@ -83,6 +83,24 @@ describe('ConfirmationActionModalComponent', () => {
       expect(closeSpy).toHaveBeenCalledTimes(1);
     });
 
+    it('un doble clic en Aceptar confirma una sola vez; al volver a abrir se puede confirmar de nuevo', () => {
+      const confirmSpy = jest.spyOn(component.confirm, 'emit');
+      fixture.componentRef.setInput('isOpen', true);
+      fixture.detectChanges();
+
+      component.confirmAction();
+      component.confirmAction();
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
+      expect(component.confirmed).toBe(true);
+
+      fixture.componentRef.setInput('isOpen', false);
+      fixture.detectChanges();
+      fixture.componentRef.setInput('isOpen', true);
+      fixture.detectChanges();
+      component.confirmAction();
+      expect(confirmSpy).toHaveBeenCalledTimes(2);
+    });
+
     it('confirmAction() debería emitir el evento confirm e invocar el cierre del modal', () => {
       const confirmSpy = jest.spyOn(component.confirm, 'emit');
       const closeSpy = jest.spyOn(component.onClose, 'emit');

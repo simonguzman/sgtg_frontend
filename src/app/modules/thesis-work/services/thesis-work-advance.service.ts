@@ -8,7 +8,7 @@ import { TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 
 /**
- * Informes mensuales (formato D) contra el backend. Los radica un estudiante
+ * Informes mensuales contra el backend. Los radica un estudiante
  * del trabajo (en práctica profesional también el director) y los revisan el
  * director, el codirector o el asesor con observaciones y/o un PDF de notas.
  * La revisión es una formalidad: no cambia la etapa del trabajo.
@@ -22,7 +22,7 @@ export class ThesisWorkAdvanceService {
   /**
    * Radica un informe mensual.
    *
-   * @param informe       PDF del informe (formato D)
+   * @param informe       PDF del informe mensual
    * @param observaciones comentario opcional de quien lo radica
    */
   radicarInforme(thesisWorkId: string, informe: File, observaciones: string): Observable<ThesisWork> {

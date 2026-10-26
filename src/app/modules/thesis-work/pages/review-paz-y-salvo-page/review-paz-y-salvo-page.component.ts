@@ -6,6 +6,7 @@ import { ReviewPazYSalvoFacadeService } from './services/review-paz-y-salvo-faca
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { ReviewPazYSalvoFormComponent } from '../../components/review-paz-y-salvo-form/review-paz-y-salvo-form.component';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 /** Decanatura revisa el paz y salvo (formato F) de la sustentación solicitada. */
 @Component({
@@ -17,6 +18,7 @@ import { FileDocument } from '../../../../core/interfaces/file-document.interfac
 export class ReviewPazYSalvoPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   protected readonly facade = inject(ReviewPazYSalvoFacadeService);
 
   readonly thesisWorkState = signal<ThesisWork | null>(null);
@@ -72,6 +74,6 @@ export class ReviewPazYSalvoPageComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent });
+    this.navigation.back(() => this.router.navigate(['loaded_documents'], { relativeTo: this.route.parent }));
   }
 }

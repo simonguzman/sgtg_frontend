@@ -18,11 +18,13 @@ import { AnteproyectosTabConfig } from '../tabs-logic/anteproyectos.tab';
 import { PresentacionesTabConfig } from '../tabs-logic/presentaciones.tab';
 import { LoadedDocumentsPreliminaryDraftMapperService } from './loaded-documents-preliminary-draft-mapper.service';
 import { LOADED_DOCUMENTS_TABS, LoadedDocumentsTabType, UploadContext } from '../models/loaded-documents-preliminary-draft-page.model';
+import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
 @Injectable()
 export class LoadedDocumentsPreliminaryDraftFacadeService {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly navigation = inject(NavigationHistoryService);
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
@@ -125,6 +127,12 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     if (tab && Object.values(LoadedDocumentsTabType).includes(tab as LoadedDocumentsTabType)) this.activeTab.set(tab);
   }
 
+  /** Cambia de pestaña y la deja en la URL, para que al regresar a esta página se abra la misma */
+  changeTab(tab: string): void {
+    this.activeTab.set(tab);
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { tab }, replaceUrl: true });
+  }
+
   destroy(): void {
     this.breadcrumbService.clearDynamicBreadcrumb();
     this.breadcrumbService.setDynamicTitle(null);
@@ -195,7 +203,7 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
   }
 
   goBack(): void {
-    this.router.navigate(['../'], { relativeTo: this.route });
+    this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route }));
   }
 
   private async handleDownload(document: FileDocument): Promise<void> {

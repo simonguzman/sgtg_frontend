@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
-import { Location } from '@angular/common';
+import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { EvaluationProposalPageComponent } from './evaluation-proposal-page.component';
@@ -27,7 +27,7 @@ describe('EvaluationProposalPageComponent', () => {
   let consoleErrorSpy: jest.SpyInstance;
   let consoleWarnSpy: jest.SpyInstance;
   let mockFacade: jest.Mocked<EvaluationProposalFacadeService>;
-  let mockLocation: jest.Mocked<Location>;
+  let mockNavigation: jest.Mocked<NavigationHistoryService>;
   let mockActivatedRoute: jest.Mocked<ActivatedRoute>;
   const mockProposal: Proposal = { id: 'prop-1', title: 'Propuesta 1' } as Proposal;
   const mockFile = new File(['contenido de prueba'], 'firma.pdf', { type: 'application/pdf' });
@@ -48,9 +48,9 @@ describe('EvaluationProposalPageComponent', () => {
       saveEvaluation: jest.fn()
     } as unknown as jest.Mocked<EvaluationProposalFacadeService>;
 
-    mockLocation = {
+    mockNavigation = {
       back: jest.fn()
-    } as unknown as jest.Mocked<Location>;
+    } as unknown as jest.Mocked<NavigationHistoryService>;
 
     mockActivatedRoute = {
       snapshot: { paramMap: { get: jest.fn() } },
@@ -61,7 +61,7 @@ describe('EvaluationProposalPageComponent', () => {
       imports: [EvaluationProposalPageComponent],
       providers: [
         { provide: EvaluationProposalFacadeService, useValue: mockFacade },
-        { provide: Location, useValue: mockLocation },
+        { provide: NavigationHistoryService, useValue: mockNavigation },
         { provide: ActivatedRoute, useValue: mockActivatedRoute }
       ]
     })
@@ -90,7 +90,7 @@ describe('EvaluationProposalPageComponent', () => {
       (mockActivatedRoute.snapshot.paramMap.get as jest.Mock).mockReturnValue(null);
       (mockActivatedRoute.parent!.snapshot.paramMap.get as jest.Mock).mockReturnValue(null);
       fixture.detectChanges();
-      expect(mockLocation.back).toHaveBeenCalled();
+      expect(mockNavigation.back).toHaveBeenCalled();
       expect(mockFacade.load).not.toHaveBeenCalled();
     });
 
@@ -126,7 +126,7 @@ describe('EvaluationProposalPageComponent', () => {
         onNotFound();
       });
       fixture.detectChanges();
-      expect(mockLocation.back).toHaveBeenCalled();
+      expect(mockNavigation.back).toHaveBeenCalled();
       expect(component.proposal()).toBeNull();
     });
   });
@@ -138,7 +138,7 @@ describe('EvaluationProposalPageComponent', () => {
 
     it('debería llamar a goBack correctamente', () => {
       component.goBack();
-      expect(mockLocation.back).toHaveBeenCalled();
+      expect(mockNavigation.back).toHaveBeenCalled();
     });
 
     it('downloadOriginalDocument: debería delegar al facade si hay propuesta', () => {

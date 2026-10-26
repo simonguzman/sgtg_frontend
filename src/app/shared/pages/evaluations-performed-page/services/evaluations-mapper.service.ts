@@ -5,6 +5,7 @@ import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
 import { ThesisWork } from '../../../../modules/thesis-work/interfaces/thesis-work.interface';
 import { SpecialRequest } from '../../../../modules/thesis-work/interfaces/special-request.interface';
+import { SpecialRequestType } from '../../../../modules/thesis-work/enums/special-request-type.enum';
 import { SustentationRegistry } from '../../../../modules/thesis-work/interfaces/sustentation-registry.interface';
 import { JurorVerdict } from '../../../../modules/thesis-work/interfaces/juror-verdict.interface';
 import { stateList } from '../../../../core/enums/state.enum';
@@ -93,8 +94,10 @@ export class EvaluationsMapperService {
       });
     });
 
+    // Solicitudes que ya resolvió el Consejo (la reanudación solo se registra, no se resuelve)
     const specialRequestsEvaluations: RawEvaluationData[] = (thesisWork.specialRequests || [])
-      .filter((request: SpecialRequest) => request.status !== stateList.EN_REVISION)
+      .filter((request: SpecialRequest) => request.status !== stateList.EN_REVISION
+        && request.requestType !== SpecialRequestType.REANUDACION)
       .map((request: SpecialRequest) => {
         const formattedType = request.requestType.replaceAll('_', ' ').toLowerCase();
         const capitalizedType = formattedType.charAt(0).toUpperCase() + formattedType.slice(1);
@@ -106,9 +109,10 @@ export class EvaluationsMapperService {
           evaluatorRole: 'Consejo',
           veredict: request.status,
           observations: request.resolutionDetails || 'Sin detalles de resolución registrados.',
-          date: request.requestDate,
-          documentTargetName: `Solicitud Especial (${capitalizedType})`,
-          signedDocuments: []
+          date: request.resolutionDate ?? request.requestDate,
+          // El documento evaluado es el de la solicitud (el cambio de título y objetivos no tiene)
+          documentTargetName: request.documents?.[0]?.name ?? `Solicitud Especial (${capitalizedType})`,
+          signedDocuments: request.resolution ? [{ name: request.resolution.name, url: request.resolution.url }] : []
         };
       });
 

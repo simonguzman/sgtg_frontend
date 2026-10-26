@@ -3,6 +3,7 @@ import { FormArray, FormBuilder, FormControl, Validators } from '@angular/forms'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, map, of } from 'rxjs';
 import { TrabajoGradoApiService } from '../../../../../core/services/trabajo-grado/trabajo-grado-api.service';
+import { CatalogApiService } from '../../../../../core/services/catalog/catalog-api.service';
 import { UserService } from '../../../../users/services/user.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { ProposalService } from '../../../services/proposal.service';
@@ -26,6 +27,7 @@ export class ProposalFormService {
   private readonly proposalService = inject(ProposalService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly trabajoApi = inject(TrabajoGradoApiService);
+  private readonly catalogApi = inject(CatalogApiService);
 
   readonly form = this.fb.nonNullable.group({
     title: ['', Validators.required],
@@ -109,11 +111,25 @@ export class ProposalFormService {
 
   readonly directorDepartment = computed(() => this.authService.currentUser()?.department ?? null);
 
+  /** Programas del catálogo con su departamento (vacío si no responde) */
+  private readonly programas = toSignal(this.catalogApi.getPrograms().pipe(catchError(() => of([]))),
+    { initialValue: [] });
+
+  /**
+   * Departamento al que está adscrito el programa de los estudiantes: su Comité
+   * de Programa emite el concepto sobre la propuesta. Null hasta elegir el estudiante.
+   */
+  readonly student1ProgramDepartmentId = computed(() => {
+    const programa = this.student1Program();
+    return programa ? this.programas().find(item => item.id === programa.id)?.parentId ?? null : null;
+  });
+
   /**
    * Docentes que pueden ser codirector: con perfil docente, que no sean
-   * estudiantes de posgrado ni el jefe del departamento del director (gestiona
-   * el trabajo); si el director no es de planta, solo los de planta de su
-   * departamento (mismas reglas que valida el backend).
+   * estudiantes de posgrado, ni el jefe del departamento del director (gestiona
+   * el trabajo), ni miembros del Comité del programa de los estudiantes (emite
+   * el concepto sobre la propuesta); si el director no es de planta, solo los
+   * de planta de su departamento (mismas reglas que valida el backend).
    */
   readonly codirectorOptions = computed<SelectOption[]>(() => {
     const departamento = this.directorDepartment();
@@ -124,8 +140,16 @@ export class ProposalFormService {
         || (teacher.contractType === ContractType.PLANTA && teacher.department?.id === departamento?.id))
       .filter(teacher => this.isEditing()
         || !(teacher.roles?.includes(UserRoleType.JEFE_DEP) && teacher.department?.id === departamento?.id))
+      .filter(teacher => this.isEditing() || !this.isProgramCommitteeMember(teacher))
       .map(teacher => this.mapUserToOption(teacher));
   });
+
+  /** ¿Es miembro del Comité del programa de los estudiantes (del departamento al que está adscrito)? */
+  private isProgramCommitteeMember(teacher: User): boolean {
+    const departamentoDelPrograma = this.student1ProgramDepartmentId();
+    return departamentoDelPrograma !== null && !!teacher.roles?.includes(UserRoleType.COMITE)
+      && teacher.department?.id === departamentoDelPrograma;
+  }
 
   /** Al corregir, los participantes ya están fijados: no se filtran sus opciones. */
   private isEditing(): boolean {
@@ -192,6 +216,11 @@ export class ProposalFormService {
         const student2 = this.form.get('student2')?.value;
         if (student2 && !this.student2Options().some(option => option.id === student2)) {
           this.form.get('student2')?.setValue('');
+        }
+        // Con otro programa, el codirector elegido puede ser del Comité que evalúa: si ya no es opción, se quita
+        const codirector = this.form.get('codirector')?.value;
+        if (codirector && !this.codirectorOptions().some(option => option.id === codirector)) {
+          this.form.get('codirector')?.setValue('');
         }
       });
   }

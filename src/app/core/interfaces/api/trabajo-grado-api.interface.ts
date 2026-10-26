@@ -164,7 +164,7 @@ export interface RevisionInformeApi {
   fecha: string;
 }
 
-/** Informe mensual (formato D): lo radica un estudiante (en práctica profesional también el director). */
+/** Informe mensual de avance: lo radica un estudiante (en práctica profesional también el director). */
 export interface InformeMensualApi {
   numero: number;
   rutaArchivo: string;

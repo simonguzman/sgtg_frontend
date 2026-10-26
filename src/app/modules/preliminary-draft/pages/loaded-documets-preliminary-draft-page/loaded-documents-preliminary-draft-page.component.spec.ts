@@ -59,6 +59,7 @@ interface MockFacade {
   uploadModalUserRole: WritableSignal<string>;
   confirmModalDescription: WritableSignal<string>;
   activeTab: WritableSignal<string>;
+  changeTab: jest.Mock;
   isUploadModalOpen: WritableSignal<boolean>;
   isConfirmModalOpen: WritableSignal<boolean>;
   handleHeaderButton: jest.Mock;
@@ -92,6 +93,7 @@ describe('LoadedDocumentsPreliminaryDraftPageComponent', () => {
       activeTab: signal('ANTEPROYECTOS'),
       isUploadModalOpen: signal(false),
       isConfirmModalOpen: signal(false),
+      changeTab: jest.fn(),
       handleHeaderButton: jest.fn(),
       handleTableAction: jest.fn(),
       onFileSelected: jest.fn(),
@@ -149,7 +151,7 @@ describe('LoadedDocumentsPreliminaryDraftPageComponent', () => {
 
       tabsComponent.componentInstance.tabChange.emit('PRESENTACIONES');
 
-      expect(mockFacade.activeTab()).toBe('PRESENTACIONES');
+      expect(mockFacade.changeTab).toHaveBeenCalledWith('PRESENTACIONES');
     });
 
     it('debería enlazar correctamente los eventos de app-table-component', () => {

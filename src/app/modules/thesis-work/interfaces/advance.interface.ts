@@ -2,7 +2,7 @@ import { stateList } from "../../../core/enums/state.enum";
 import { FileDocument } from "../../../core/interfaces/file-document.interface";
 
 /**
- * Informe mensual (formato D) del trabajo en curso. Su id es el número del
+ * Informe mensual de avance del trabajo en curso. Su id es el número del
  * informe en el backend; sus revisiones están en `ThesisWork.evaluations`
  * (con `advanceId` = id del informe).
  */

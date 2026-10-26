@@ -23,7 +23,7 @@ export interface AdvanceTableRow {
 const ETAPAS_CON_INFORMES = ['EN_CURSO', 'PRORROGA'];
 
 /**
- * Informes mensuales (formato D). Los radica un estudiante (en práctica
+ * Informes mensuales de avance. Los radica un estudiante (en práctica
  * profesional también el director) mientras el trabajo está en curso o en
  * prórroga; los revisan el director, el codirector o el asesor, una vez cada uno.
  */
@@ -106,7 +106,7 @@ export const AdvancesTabConfig: TabConfiguration<AdvanceTableRow> = {
   },
 
   modalConfig: {
-    uploadDescription: 'Seleccione el PDF del informe mensual (formato D)',
+    uploadDescription: 'Seleccione el PDF del informe mensual',
     uploadedByText: 'Estudiante',
     confirmDescription: '¿Está seguro de radicar este informe mensual? Se notificará al director, codirector y asesor (si aplican).',
     uploadDocumentType: DocumentType.AVANCE
