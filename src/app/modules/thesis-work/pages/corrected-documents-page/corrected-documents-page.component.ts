@@ -4,12 +4,12 @@ import { ThesisWorkService } from '../../services/thesis-work.service';
 import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcrumb.service';
 import { TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
-import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
+import { RegisterDetailField, RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 import { CorrectedDocumentsFacadeService } from './services/corrected-documents-facade.service';
 import { CORRECTED_DOCUMENTS_COLUMNS, CorrectedDeliveryTableRow } from './models/corrected-documents-page.model';
 import { CorrectedDelivery } from '../../interfaces/corrected-delivery.interface';
-import { ensureDate } from '../../helpers/thesis-date.helper';
+import { ensureDate, formatThesisDate } from '../../helpers/thesis-date.helper';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
 @Component({
@@ -89,6 +89,20 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
   readonly selectedDeliveryDocuments = computed<string[]>(() =>
     this.facade.getDeliveryDocumentNames(this.selectedDelivery())
   );
+
+  /** Datos de la entrega con su etiqueta: qué es y, si ya la registró, la verificación del jurado coordinador */
+  readonly selectedDeliveryFields = computed<RegisterDetailField[]>(() => {
+    const fields: RegisterDetailField[] = [{ label: 'Descripción',
+      value: 'Paquete de correcciones cargado tras la sustentación y sujeto a revisión por parte del jurado calificador.' }];
+    const verification = this.selectedDelivery()?.verification;
+    if (verification) {
+      fields.push({ label: 'Verificación',
+        value: `${verification.favorable ? 'Favorable' : 'No favorable'}, por ${verification.jurorName} `
+          + `(${formatThesisDate(ensureDate(verification.date))})` });
+      fields.push({ label: 'Observaciones del jurado', value: verification.observations || 'Sin observaciones registradas.' });
+    }
+    return fields;
+  });
 
   readonly studentName    = computed(() => this.facade.getStudentName(this.currentThesisWork()));
   readonly directorName   = computed(() => this.facade.getDirectorName(this.currentThesisWork()));

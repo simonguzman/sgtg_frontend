@@ -52,7 +52,7 @@
   [modalHeader]="'Detalles del Paquete de Correcciones'"
   [subTitle]="'Información de la Entrega'"
   [title]="currentThesisWork()?.preliminaryDraftData?.proposalData?.title || 'Sin título registrado'"
-  [comments]="'Paquete de correcciones cargado tras la sustentación y sujeto a revisión por parte del jurado calificador.'"
+  [fields]="selectedDeliveryFields()"
   [modality]="modalityName()"
   [student]="studentName()"
   [director]="directorName()"

@@ -304,6 +304,22 @@ describe('CorrectedDocumentsPageComponent', () => {
     });
   });
 
+  describe('Detalles de la entrega', () => {
+    it('muestra la descripción y, si ya la registró, la verificación del jurado con su etiqueta', () => {
+      component.selectedDelivery.set(createMockDelivery());
+      expect(component.selectedDeliveryFields().map(field => field.label)).toEqual(['Descripción']);
+
+      component.selectedDelivery.set(createMockDelivery({
+        verification: { favorable: false, observations: 'Faltan anexos', jurorName: 'Jorge Jurado', date: new Date(2026, 9, 20) }
+      }));
+      expect(component.selectedDeliveryFields()).toEqual([
+        expect.objectContaining({ label: 'Descripción' }),
+        { label: 'Verificación', value: 'No favorable, por Jorge Jurado (20 - 10 - 2026)' },
+        { label: 'Observaciones del jurado', value: 'Faltan anexos' }
+      ]);
+    });
+  });
+
   describe('Navegación', () => {
     beforeEach(() => {
       fixture.detectChanges();

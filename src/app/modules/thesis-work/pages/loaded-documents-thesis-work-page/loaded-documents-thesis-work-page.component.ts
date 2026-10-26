@@ -17,10 +17,9 @@ import { ThesisParticipantsFormatterService } from '../../services/thesis-partic
 import { TabsComponent } from '../../../../shared/components/tabs/tabs.component';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
-import { Advance } from '../../interfaces/advance.interface';
 import { User } from '../../../users/interfaces/user.interface';
 import { LoadedDocumentsThesisWorkFacadeService } from './services/loaded-documents-thesis-work-facade.service';
-import { ThesisWorkDetailsModalResolverService } from './services/thesis-work-details-modal-resolver.service';
+import { RegisterDetail, ThesisWorkDetailsModalResolverService } from './services/thesis-work-details-modal-resolver.service';
 import { ensureDate } from '../../helpers/thesis-date.helper';
 import {
   THESIS_TABS_CONFIG,
@@ -65,7 +64,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   readonly activeTab = signal<string>('AVANCES');
   readonly thesisWorkId = signal<string | null>(null);
   readonly isDetailsModalOpen = signal(false);
-  readonly selectedAdvance = signal<Advance | null>(null);
+  readonly selectedAdvance = signal<RegisterDetail | null>(null);
 
   constructor() {
     effect(() => {

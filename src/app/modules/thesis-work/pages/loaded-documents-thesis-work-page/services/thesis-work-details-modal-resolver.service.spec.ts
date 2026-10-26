@@ -169,7 +169,7 @@ describe('ThesisWorkDetailsModalResolverService', () => {
       expect(result?.title).toBe('Avance Especial');
     });
 
-    it('resume quién radicó el informe, sus observaciones y sus revisiones', () => {
+    it('muestra quién radicó el informe, sus observaciones y sus revisiones, cada uno con su etiqueta', () => {
       (formatThesisDate as jest.Mock).mockReturnValue('25 - 04 - 2026');
       const advance = createMockAdvance({ id: '1', comments: 'Primer mes', uploadedBy: 'Eva Estudiante' });
       const thesis = createMockThesisWork({
@@ -180,9 +180,11 @@ describe('ThesisWorkDetailsModalResolverService', () => {
 
       const result = service.resolve('1', 'AVANCES', thesis);
 
-      expect(result?.comments).toContain('Radicado por: Eva Estudiante');
-      expect(result?.comments).toContain('Observaciones: Primer mes');
-      expect(result?.comments).toContain('Revisión de Dora Directora (25 - 04 - 2026): ver notas adjuntas');
+      expect(result?.fields).toEqual([
+        { label: 'Radicado por', value: 'Eva Estudiante' },
+        { label: 'Observaciones', value: 'Primer mes' },
+        { label: 'Revisiones', values: ['Dora Directora (25 - 04 - 2026): ver notas adjuntas'] }
+      ]);
     });
 
     it('debe retornar null si no encuentra el avance o el array no existe/está vacío', () => {
@@ -296,12 +298,12 @@ describe('ThesisWorkDetailsModalResolverService', () => {
   });
 
   describe('resolveSpecialRequest', () => {
-    it('debe resolver SOLICITUDES con todos los detalles incluyendo grantedDeadline formateado', () => {
+    it('la suspensión muestra su descripción, la decisión del Consejo y la fecha máxima de reanudación', () => {
       (formatThesisDate as jest.Mock).mockReturnValue('27 - 07 - 2026');
 
       const request = createMockSpecialRequest({
         id: 'req-1',
-        requestType: SpecialRequestType.PRORROGA,
+        requestType: SpecialRequestType.SUSPENSION,
         description: 'Motivos de salud',
         resolutionDetails: 'Aprobado por comité',
         grantedDeadline: new Date('2026-07-27'),
@@ -313,30 +315,36 @@ describe('ThesisWorkDetailsModalResolverService', () => {
 
       const result = service.resolve('req-1', 'SOLICITUDES', thesis);
 
-      expect(result?.title).toBe(SpecialRequestType.PRORROGA);
+      expect(result?.title).toBe(SpecialRequestType.SUSPENSION);
       expect(result?.studentId).toBe('dir-1');
-      expect(result?.comments).toContain('Motivos de salud');
-      expect(result?.comments).toContain('Observaciones del Consejo: Aprobado por comité');
-      expect(result?.comments).toContain('Reanudación a más tardar: 27 - 07 - 2026');
+      expect(result?.fields).toEqual([
+        { label: 'Descripción', value: 'Motivos de salud' },
+        { label: 'Observaciones del Consejo', value: 'Aprobado por comité' },
+        { label: 'Reanudación a más tardar', value: '27 - 07 - 2026' }
+      ]);
     });
 
-    it('el cambio de título muestra lo propuesto, la decisión del Consejo y los documentos con la resolución', () => {
+    it('el cambio de título separa título, objetivos y justificación, y lleva la decisión y la resolución', () => {
       (formatThesisDate as jest.Mock).mockReturnValue('10 - 05 - 2026');
       const solicitud = { id: 'a', name: 'solicitud', url: '/s', uploadDate: '2026-05-01', type: DocumentType.FORMATO };
       const resolucion = { id: 'b', name: 'resolucion', url: '/r', uploadDate: '2026-05-10', type: DocumentType.RESOLUCION };
       const request = createMockSpecialRequest({
         id: 'cambio-objetivos-0', requestType: SpecialRequestType.CAMBIO_TITULO, description: 'Cambio de alcance',
-        proposedTitle: 'Nuevo título', proposedObjectives: ['General', 'Específico'], status: stateList.APROBADO,
+        previousTitle: 'Título actual', proposedTitle: 'Nuevo título', proposedObjectives: ['General', 'Específico 1', 'Específico 2'],
+        status: stateList.APROBADO,
         resolutionDate: new Date(2026, 4, 10), documents: [solicitud], resolution: resolucion
       });
 
       const result = service.resolve('cambio-objetivos-0', 'SOLICITUDES', createMockThesisWork({ specialRequests: [request] }));
 
-      expect(result?.comments).toContain('Título propuesto: Nuevo título');
-      expect(result?.comments).toContain('Objetivo general: General');
-      expect(result?.comments).toContain('Objetivo específico 1: Específico');
-      expect(result?.comments).toContain('Justificación: Cambio de alcance');
-      expect(result?.comments).toContain('Decisión del Consejo (10 - 05 - 2026): Aprobado');
+      expect(result?.fields).toEqual([
+        { label: 'Título anterior', value: 'Título actual' },
+        { label: 'Título propuesto', value: 'Nuevo título' },
+        { label: 'Objetivo general', value: 'General' },
+        { label: 'Objetivos específicos', values: ['Específico 1', 'Específico 2'] },
+        { label: 'Justificación', value: 'Cambio de alcance' },
+        { label: 'Decisión del Consejo', value: 'Aprobado (10 - 05 - 2026)' }
+      ]);
       expect(result?.documents).toEqual([solicitud, resolucion]);
     });
 
@@ -350,9 +358,18 @@ describe('ThesisWorkDetailsModalResolverService', () => {
 
       const result = service.resolve('req-2', 'SOLICITUDES', thesis);
 
-      expect(result?.comments).toBe('Solo descripción sin respuesta aún');
-      expect(result?.comments).not.toContain('Observaciones del Consejo');
-      expect(result?.comments).not.toContain('Reanudación a más tardar');
+      expect(result?.fields).toEqual([{ label: 'Descripción', value: 'Solo descripción sin respuesta aún' }]);
+    });
+
+    it('la nueva fecha de sustentación aprobada muestra la nueva fecha (no una reanudación)', () => {
+      (formatThesisDate as jest.Mock).mockReturnValue('20 - 08 - 2026');
+      const request = createMockSpecialRequest({ id: 'nueva-fecha-0', requestType: SpecialRequestType.NUEVA_SUSTENTACION,
+        description: 'Nueva fecha', status: stateList.APROBADO, grantedDeadline: new Date(2026, 7, 20) });
+
+      const result = service.resolve('nueva-fecha-0', 'SOLICITUDES', createMockThesisWork({ specialRequests: [request] }));
+
+      expect(result?.fields).toContainEqual({ label: 'Nueva fecha de la sesión', value: '20 - 08 - 2026' });
+      expect(result?.fields?.map(field => field.label)).not.toContain('Reanudación a más tardar');
     });
 
     it('debe retornar null si no encuentra la solicitud especial', () => {

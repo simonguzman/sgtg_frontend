@@ -469,3 +469,35 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     lleva a las evaluaciones realizadas del trabajo (si la cancelación lo cerró, al historial). Ahí cada solicitud
     resuelta muestra como documento evaluado el de la solicitud, la fecha de la decisión y la resolución del Consejo
     para descargar; la reanudación ya no aparece como evaluación (solo se registra).
+30. **Tabla de usuarios:** la columna "Nombres" muestra el primer y el segundo nombre (si lo tiene), como "Apellidos"
+    muestra los dos apellidos, sin espacios sobrantes cuando falta el segundo.
+31. **Corrección del anteproyecto como la propuesta:** el formulario de edición permite corregir el título, el objetivo
+    general, los objetivos específicos, la descripción y la línea de investigación (los participantes no cambian). Al
+    actualizar se guardan con `PUT /{id}/anteproyecto` y, solo si se cargó un nuevo documento, se radica como nueva
+    versión (`POST /{id}/anteproyecto`); el documento vigente aparece como "Versión vigente del anteproyecto".
+    `datosDescriptivos` (en `proposal-api.service.ts`) arma los datos para la propuesta y el anteproyecto.
+32. **Formato A firmado:** el documento que carga el Comité al emitir su concepto (`ACTA_COMITE`) se llama "Formato A
+    firmado" (antes "Respuesta del Comité"), en el formulario del anteproyecto, su detalle, las evaluaciones
+    realizadas y el formulario de evaluación del Comité.
+33. **Evaluación de la presentación por el Consejo:** en práctica profesional, "Archivos para revisión" incluye la carta de
+    aceptación de la organización (versión vigente, `cartaDeAceptacion`). Además muestra la versión vigente del
+    anteproyecto (antes la primera), el formato C de la última remisión y solo los conceptos de los evaluadores sobre la
+    versión vigente (antes también los de versiones anteriores).
+34. **Modales de información registrada con datos separados:** en documentos cargados del trabajo, el detalle de la
+    solicitud especial muestra cada dato con su etiqueta (en el cambio de título y objetivos: título anterior, título
+    propuesto, objetivo general, objetivos específicos y justificación; en las demás, la descripción), la decisión y
+    las observaciones del Consejo y la fecha que concedió (reanudación a más tardar en la suspensión, nueva fecha de la
+    sesión en la nueva fecha; antes ambas decían "reanudación"). El informe mensual separa quién lo radicó, sus
+    observaciones y sus revisiones; el paquete de correcciones, la descripción y la verificación del jurado con sus
+    observaciones. `ThesisWorkDetailsModalResolverService` devuelve `fields` (`RegisterDetailField`).
+35. **Estadísticas:**
+    - Estaban vacías porque el filtro por defecto era "Activos en proceso" y todos los trabajos estaban cerrados. Ahora
+      se cuentan por defecto todos los trabajos (en proceso y cerrados); el filtro "Estado del trabajo" permite elegir.
+    - Las consultan todos los roles menos el estudiante (`STATISTICS_ROLES`), cada uno sobre los trabajos que el
+      backend le deja consultar (toda la facultad: administrador, Consejo y Decanatura; los programas de su
+      departamento: Comité; los dirigidos en su departamento: jefe; aquellos en los que participa: docentes). La
+      página indica el alcance (`statisticsScope`).
+    - Filtros y gráficas por modalidad y por programa (el del estudiante 1); aviso cuando no hay trabajos con los
+      filtros elegidos.
+    - El reporte PDF incluye el alcance, todos los filtros con textos legibles (etapa, director, plazo) y la modalidad
+      y el programa de cada trabajo; la etapa y el estado ya no salen como códigos.
