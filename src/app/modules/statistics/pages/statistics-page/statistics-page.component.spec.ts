@@ -74,7 +74,7 @@ describe('StatisticsPageComponent', () => {
     directorsOptions: WritableSignal<{ id: string; name: string }[]>;
     totalLoaded: WritableSignal<number>;
     totalApproved: WritableSignal<number>;
-    totalApprovedWithObservations: WritableSignal<number>;
+    totalInProgress: WritableSignal<number>;
     totalNotApproved: WritableSignal<number>;
     statusChartData: WritableSignal<MockChartData>;
     stageChartData: WritableSignal<MockChartData>;
@@ -98,7 +98,7 @@ describe('StatisticsPageComponent', () => {
       directorsOptions: signal<{ id: string; name: string }[]>([]),
       totalLoaded: signal<number>(0),
       totalApproved: signal<number>(0),
-      totalApprovedWithObservations: signal<number>(0),
+      totalInProgress: signal<number>(0),
       totalNotApproved: signal<number>(0),
       statusChartData: signal<MockChartData>({ labels: [], datasets: [] }),
       stageChartData: signal<MockChartData>({ labels: [], datasets: [] }),

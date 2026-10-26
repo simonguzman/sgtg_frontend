@@ -67,7 +67,7 @@ describe('StatisticsMetricsService', () => {
     it('debería inicializar todas las métricas en 0 cuando no hay datos', () => {
       expect(service.totalLoaded()).toBe(0);
       expect(service.totalApproved()).toBe(0);
-      expect(service.totalApprovedWithObservations()).toBe(0);
+      expect(service.totalInProgress()).toBe(0);
       expect(service.totalNotApproved()).toBe(0);
     });
 
@@ -76,17 +76,18 @@ describe('StatisticsMetricsService', () => {
       const mockData: RawProjectData[] = [
         createMockRawProjectData({ status: ProjectStatus.APROBADO }),
         createMockRawProjectData({ status: ProjectStatus.APROBADO }), // 2 Aprobados
-        createMockRawProjectData({ status: ProjectStatus.APROBADO_OBSERVACIONES }), // 1 Aprobado con Observaciones
+        createMockRawProjectData({ status: ProjectStatus.EN_REVISION }),
+        createMockRawProjectData({ status: ProjectStatus.SUSPENDIDO }), // 3 en proceso con el de desarrollo
         createMockRawProjectData({ status: ProjectStatus.NO_APROBADO }),
         createMockRawProjectData({ status: ProjectStatus.CANCELADO }), // 2 No Aprobados (suma de ambos estados)
-        createMockRawProjectData({ status: ProjectStatus.EN_DESARROLLO }) // 1 Estado diferente genuino para probar exclusión
+        createMockRawProjectData({ status: ProjectStatus.EN_DESARROLLO })
       ];
 
       mockFilteredDataSignal.set(mockData);
 
-      expect(service.totalLoaded()).toBe(6); // Total del array
+      expect(service.totalLoaded()).toBe(7); // Total del array
       expect(service.totalApproved()).toBe(2);
-      expect(service.totalApprovedWithObservations()).toBe(1);
+      expect(service.totalInProgress()).toBe(3);
 
       // La lógica dictamina que NO_APROBADO y CANCELADO se suman aquí
       expect(service.totalNotApproved()).toBe(2);

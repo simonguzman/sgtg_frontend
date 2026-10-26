@@ -22,7 +22,7 @@ export class StatisticsPageFacadeService {
   readonly scope = this.state.scope;
   readonly totalLoaded = this.metrics.totalLoaded;
   readonly totalApproved = this.metrics.totalApproved;
-  readonly totalApprovedWithObservations = this.metrics.totalApprovedWithObservations;
+  readonly totalInProgress = this.metrics.totalInProgress;
   readonly totalNotApproved = this.metrics.totalNotApproved;
   readonly statusChartData = this.chartData.statusChartData;
   readonly stageChartData = this.chartData.stageChartData;
@@ -43,7 +43,7 @@ export class StatisticsPageFacadeService {
     const kpis: StatisticsReportKpis = {
       loaded: this.metrics.totalLoaded(),
       approved: this.metrics.totalApproved(),
-      obs: this.metrics.totalApprovedWithObservations(),
+      inProgress: this.metrics.totalInProgress(),
       rejected: this.metrics.totalNotApproved()
     };
     const directorName = this.state.directorsOptions().find(director => director.id === filters.directorId)?.name ?? null;

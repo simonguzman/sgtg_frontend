@@ -7,10 +7,13 @@ import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { PendingReviewData } from '../../../interfaces/review-preliminary-draft-payload.interface';
 
-/** El anteproyecto no se rechaza (Art. 13): el evaluador lo aprueba o pide correcciones. */
+/**
+ * El evaluador aprueba el anteproyecto o no lo aprueba; si no, el director lo
+ * corrige y radica una nueva versión (no se rechaza: Art. 13).
+ */
 const RESULT_TO_STATE: Record<string, stateList> = {
   'Aprobado': stateList.APROBADO,
-  'Requiere correcciones': stateList.APROBADO_CON_OBSERVACIONES
+  'No aprobado': stateList.NO_APROBADO
 };
 
 @Injectable()

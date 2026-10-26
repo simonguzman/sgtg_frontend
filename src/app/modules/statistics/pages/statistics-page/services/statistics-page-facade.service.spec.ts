@@ -52,7 +52,7 @@ describe('StatisticsPageFacadeService', () => {
   let mockMetricsService: {
     totalLoaded: WritableSignal<number>;
     totalApproved: WritableSignal<number>;
-    totalApprovedWithObservations: WritableSignal<number>;
+    totalInProgress: WritableSignal<number>;
     totalNotApproved: WritableSignal<number>;
   };
   let mockChartDataService: {
@@ -82,7 +82,7 @@ describe('StatisticsPageFacadeService', () => {
     mockMetricsService = {
       totalLoaded: signal<number>(10),
       totalApproved: signal<number>(5),
-      totalApprovedWithObservations: signal<number>(3),
+      totalInProgress: signal<number>(3),
       totalNotApproved: signal<number>(2),
     };
     mockChartDataService = {
@@ -119,7 +119,7 @@ describe('StatisticsPageFacadeService', () => {
     it('debería re-exponer correctamente los KPIs del MetricsService', () => {
       expect(facadeService.totalLoaded()).toBe(10);
       expect(facadeService.totalApproved()).toBe(5);
-      expect(facadeService.totalApprovedWithObservations()).toBe(3);
+      expect(facadeService.totalInProgress()).toBe(3);
       expect(facadeService.totalNotApproved()).toBe(2);
     });
     it('debería re-exponer correctamente los datos de gráficos del ChartDataService', () => {
@@ -154,13 +154,13 @@ describe('StatisticsPageFacadeService', () => {
       mockStateService.filteredData.set(filteredData);
       mockMetricsService.totalLoaded.set(20);
       mockMetricsService.totalApproved.set(10);
-      mockMetricsService.totalApprovedWithObservations.set(5);
+      mockMetricsService.totalInProgress.set(5);
       mockMetricsService.totalNotApproved.set(5);
       facadeService.downloadPdfReport();
       const expectedKpis: StatisticsReportKpis = {
         loaded: 20,
         approved: 10,
-        obs: 5,
+        inProgress: 5,
         rejected: 5,
       };
       expect(mockReportService.downloadPdfReport).toHaveBeenCalledTimes(1);

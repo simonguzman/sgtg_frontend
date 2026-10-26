@@ -564,21 +564,29 @@ export function estadoTrabajo(etapa: ProcesoApi): stateList {
   }
 }
 
+/**
+ * Estado de una versión radicada. Con correcciones (un evaluador no aprobó el
+ * anteproyecto) se muestra como no aprobado: no puede seguir y el director
+ * radica una nueva versión.
+ */
 function estadoDeEntrega(estado: EstadoApi | null): stateList {
   switch (estado) {
     case 'APROBADO': return stateList.APROBADO;
-    case 'CON_CORRECCIONES': return stateList.APROBADO_CON_OBSERVACIONES;
+    case 'CON_CORRECCIONES':
     case 'NO_APROBADO':
     case 'RECHAZADO': return stateList.NO_APROBADO;
     default: return stateList.EN_REVISION;
   }
 }
 
-/** Resultado de un concepto, decisión o calificación del backend como veredicto del front. */
+/**
+ * Resultado de un concepto, decisión o calificación del backend como veredicto
+ * del front. El concepto con correcciones de un evaluador es un no aprobado;
+ * "aprobado con observaciones" solo es una calificación de la sustentación.
+ */
 export function veredicto(resultado: ResultadoConceptoApi | CalificacionApi): stateList {
   switch (resultado) {
     case 'APROBADO': return stateList.APROBADO;
-    case 'CON_CORRECCIONES':
     case 'APROBADO_CON_OBSERVACIONES': return stateList.APROBADO_CON_OBSERVACIONES;
     case 'APLAZADO': return stateList.APLAZADO;
     case 'EVALUADO': return stateList.EVALUADO;

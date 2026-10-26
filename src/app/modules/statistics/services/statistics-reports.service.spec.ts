@@ -80,7 +80,7 @@ describe('StatisticsReportService', () => {
     const mockKpis: StatisticsReportKpis = {
       loaded: 10,
       approved: 5,
-      obs: 2,
+      inProgress: 2,
       rejected: 3
     };
 
@@ -88,7 +88,7 @@ describe('StatisticsReportService', () => {
       createMockRawProjectData({
         title: 'Proyecto de Prueba',
         stage: ProjectStage.PROPUESTA,
-        status: ProjectStatus.APROBADO_OBSERVACIONES,
+        status: ProjectStatus.EN_DESARROLLO,
         directorName: 'Juan Pérez',
         period: '2026-1',
         modality: 'Práctica profesional',
@@ -113,8 +113,8 @@ describe('StatisticsReportService', () => {
 
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('Resumen de Métricas:', 110, 46);
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Trabajos registrados: 10', 110, 54);
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Aprobados: 5', 110, 60);
-      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Aprobados con observaciones: 2', 110, 66);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• En proceso: 2', 110, 60);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Aprobados: 5', 110, 66);
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• No aprobados o cancelados: 3', 110, 72);
     });
 
@@ -163,7 +163,7 @@ describe('StatisticsReportService', () => {
       expect(tabla.head).toEqual([['#', 'Título del trabajo', 'Modalidad', 'Programa', 'Etapa', 'Estado', 'Director', 'Periodo']]);
       expect(tabla.body).toEqual([
         ['1', 'Proyecto de Prueba', 'Práctica profesional', 'Ingeniería Electrónica', 'Propuesta',
-          'Aprobado con observaciones', 'Juan Pérez', '2026-1']
+          'En desarrollo', 'Juan Pérez', '2026-1']
       ]);
     });
   });

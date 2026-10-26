@@ -1,8 +1,12 @@
 import { ProjectStatus } from '../enum/projectStatus.enum';
 import { ProjectStage } from '../enum/projectStage.enum';
 
+/**
+ * Estados del gráfico. No incluye "aprobado con observaciones": ningún trabajo
+ * queda así (las correcciones de los evaluadores son un no aprobado).
+ */
 export const STATUS_CHART_LABELS: string[] = [
-  'Aprobados', 'Aprobados c/ Obs.', 'No Aprobados', 'En Revisión',
+  'Aprobados', 'No Aprobados', 'En Revisión',
   'En Desarrollo', 'Aplazados', 'Suspendidos', 'Cancelados'
 ];
 
@@ -20,7 +24,6 @@ export const STATUS_LABELS: Record<ProjectStatus, string> = {
 
 export const STATUS_CHART_ORDER: ProjectStatus[] = [
   ProjectStatus.APROBADO,
-  ProjectStatus.APROBADO_OBSERVACIONES,
   ProjectStatus.NO_APROBADO,
   ProjectStatus.EN_REVISION,
   ProjectStatus.EN_DESARROLLO,
@@ -31,11 +34,11 @@ export const STATUS_CHART_ORDER: ProjectStatus[] = [
 
 export const STATUS_CHART_COLORS = {
   background: [
-    '#4ade80', '#fbbf24', '#f87171', '#94a3b8',
+    '#4ade80', '#f87171', '#94a3b8',
     '#38bdf8', '#fdba74', '#c084fc', '#64748b'
   ],
   border: [
-    '#22c55e', '#d97706', '#dc2626', '#64748b',
+    '#22c55e', '#dc2626', '#64748b',
     '#0ea5e9', '#ea580c', '#9333ea', '#475569'
   ]
 };

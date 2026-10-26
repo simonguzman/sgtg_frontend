@@ -422,7 +422,8 @@ describe('trabajo-grado.mapper', () => {
       const conCorrecciones = crearTrabajoEnAnteproyecto({
         anteproyecto: { ...base.anteproyecto, versiones: [{ ...version, estado: 'CON_CORRECCIONES' }] }
       });
-      expect(estadoAnteproyecto(conCorrecciones)).toBe(stateList.APROBADO_CON_OBSERVACIONES);
+      // Un evaluador pidió correcciones: no aprobado, el director radica una nueva versión
+      expect(estadoAnteproyecto(conCorrecciones)).toBe(stateList.NO_APROBADO);
 
       const enRevision = crearTrabajoEnAnteproyecto({
         anteproyecto: { ...base.anteproyecto, versiones: [
@@ -432,12 +433,12 @@ describe('trabajo-grado.mapper', () => {
       });
       expect(estadoAnteproyecto(enRevision)).toBe(stateList.EN_REVISION);
       expect(aAnteproyecto(enRevision, ctx)?.documents.map(documento => documento.status))
-        .toEqual([stateList.APROBADO_CON_OBSERVACIONES, stateList.EN_REVISION]);
+        .toEqual([stateList.NO_APROBADO, stateList.EN_REVISION]);
     });
 
     it('veredictos', () => {
       expect(veredicto('APROBADO')).toBe(stateList.APROBADO);
-      expect(veredicto('CON_CORRECCIONES')).toBe(stateList.APROBADO_CON_OBSERVACIONES);
+      expect(veredicto('CON_CORRECCIONES')).toBe(stateList.NO_APROBADO);
       expect(veredicto('APROBADO_CON_OBSERVACIONES')).toBe(stateList.APROBADO_CON_OBSERVACIONES);
       expect(veredicto('APLAZADO')).toBe(stateList.APLAZADO);
       expect(veredicto('RECHAZADO')).toBe(stateList.NO_APROBADO);

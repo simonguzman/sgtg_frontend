@@ -84,8 +84,8 @@ export class StatisticsReportService {
     doc.setFontSize(10);
     doc.setTextColor(...PDF_COLORS.body);
     doc.text(`• Trabajos registrados: ${kpis.loaded}`, 110, 54);
-    doc.text(`• Aprobados: ${kpis.approved}`, 110, 60);
-    doc.text(`• Aprobados con observaciones: ${kpis.obs}`, 110, 66);
+    doc.text(`• En proceso: ${kpis.inProgress}`, 110, 60);
+    doc.text(`• Aprobados: ${kpis.approved}`, 110, 66);
     doc.text(`• No aprobados o cancelados: ${kpis.rejected}`, 110, 72);
   }
 

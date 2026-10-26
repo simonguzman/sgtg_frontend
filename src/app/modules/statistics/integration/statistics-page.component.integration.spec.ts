@@ -41,7 +41,7 @@ describe('StatisticsPageComponent - Integración UI', () => {
       directorsOptions: signal([{ id: 'dir-1', name: 'Director Test' }]),
       totalLoaded: signal(150),
       totalApproved: signal(100),
-      totalApprovedWithObservations: signal(30),
+      totalInProgress: signal(30),
       totalNotApproved: signal(20),
       statusChartData: signal({ labels: [], datasets: [] }),
       stageChartData: signal({ labels: [], datasets: [] }),

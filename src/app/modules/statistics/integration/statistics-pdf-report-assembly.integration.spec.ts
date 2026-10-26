@@ -47,7 +47,7 @@ describe('Integración [Estadísticas]: Ensamblado real de KPIs para el reporte 
 
   it('pasa al reporte los KPIs calculados de los trabajos del backend', () => {
     iniciarSesionConTrabajos(comite, [
-      propuesta(1, 'APROBADO'), propuesta(2, 'CON_CORRECCIONES'), propuesta(3, 'NO_APROBADO')
+      propuesta(1, 'APROBADO'), propuesta(2, 'EN_REVISION'), propuesta(3, 'NO_APROBADO')
     ]);
 
     facade.downloadPdfReport();
@@ -55,7 +55,7 @@ describe('Integración [Estadísticas]: Ensamblado real de KPIs para el reporte 
     expect(report.downloadPdfReport).toHaveBeenCalledWith(
       state.currentFilters(),
       state.filteredData(),
-      { loaded: 3, approved: 1, obs: 1, rejected: 1 },
+      { loaded: 3, approved: 1, inProgress: 1, rejected: 1 },
       { scope: state.scope(), directorName: null }
     );
   });

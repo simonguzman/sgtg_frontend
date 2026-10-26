@@ -31,11 +31,11 @@ const createMockProposalData = (overrides: Partial<ProposalData> = {}): Proposal
 const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft => {
   const base: Partial<PreliminaryDraft> = {
     preliminaryDraftId: 'draft-123',
-    state: stateList.APROBADO_CON_OBSERVACIONES,
+    state: stateList.NO_APROBADO,
     proposalData: createMockProposalData({ director: createMockUser({ id: 'user-1' }) }),
     // Versión vigente con correcciones: el director puede radicar una nueva
     documents: [{ id: 'v1', name: 'anteproyecto', url: '/a', uploadDate: '09 - 03 - 2026',
-      type: DocumentType.ANTEPROYECTO, version: 1, status: stateList.APROBADO_CON_OBSERVACIONES }],
+      type: DocumentType.ANTEPROYECTO, version: 1, status: stateList.NO_APROBADO }],
     ...overrides
   };
   return base as PreliminaryDraft;

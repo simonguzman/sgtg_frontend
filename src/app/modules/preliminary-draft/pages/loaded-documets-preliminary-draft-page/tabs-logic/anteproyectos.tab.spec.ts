@@ -67,14 +67,14 @@ describe('AnteproyectosTabConfig', () => {
 
   describe('getTableData', () => {
     it('muestra las versiones de la más reciente a la más antigua con el estado de cada una', () => {
-      const documentos = [version('doc-1', 1, stateList.APROBADO_CON_OBSERVACIONES), resolucion,
+      const documentos = [version('doc-1', 1, stateList.NO_APROBADO), resolucion,
         version('doc-2', 2, stateList.EN_REVISION)];
 
       const result = AnteproyectosTabConfig.getTableData(documentos, { ...mockContext, latestAnteproyectoId: 'doc-2' }, servicio);
 
       expect(result.map(fila => [fila.id, fila.version, fila.status])).toEqual([
         ['doc-2', 2, stateList.EN_REVISION],
-        ['doc-1', 1, stateList.APROBADO_CON_OBSERVACIONES]
+        ['doc-1', 1, stateList.NO_APROBADO]
       ]);
     });
 
@@ -84,7 +84,7 @@ describe('AnteproyectosTabConfig', () => {
     });
 
     it('el evaluador asignado evalúa solo la versión vigente que está en revisión', () => {
-      const documentos = [version('doc-1', 1, stateList.APROBADO_CON_OBSERVACIONES), version('doc-2', 2, stateList.EN_REVISION)];
+      const documentos = [version('doc-1', 1, stateList.NO_APROBADO), version('doc-2', 2, stateList.EN_REVISION)];
 
       const result = AnteproyectosTabConfig.getTableData(documentos,
         { ...mockContext, isAssignedEvaluator: true, latestAnteproyectoId: 'doc-2' }, servicio);
@@ -132,11 +132,10 @@ describe('AnteproyectosTabConfig', () => {
     it.each([
       [stateList.EN_REVISION, true],
       [stateList.APROBADO, true],
-      [stateList.APROBADO_CON_OBSERVACIONES, false],
       [stateList.NO_APROBADO, false]
     ])('el director corrige según el estado de la versión vigente (%s → deshabilitado %s)', (estado, deshabilitado) => {
       const preliminaryDraft = createMockPreliminaryDraft({
-        documents: [version('doc-1', 1, stateList.APROBADO_CON_OBSERVACIONES), version('doc-2', 2, estado)]
+        documents: [version('doc-1', 1, stateList.NO_APROBADO), version('doc-2', 2, estado)]
       });
       const result = AnteproyectosTabConfig.getHeaderButtons({ ...mockContext, isDirector: true, preliminaryDraft }, servicio);
       expect(result).toEqual([expect.objectContaining({ action: 'upload_document', disabled: deshabilitado })]);

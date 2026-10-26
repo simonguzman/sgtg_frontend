@@ -160,11 +160,11 @@
     </div>
     <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-alert rounded-xl shadow-sm flex items-center justify-between">
       <div class="flex flex-col gap-1">
-        <span class="text-size-role-footer text-text-body font-medium">Aprobados con Obs.</span>
-        <span class="text-3xl font-display font-bold text-alert">{{ facade.totalApprovedWithObservations() }}</span>
+        <span class="text-size-role-footer text-text-body font-medium">En proceso</span>
+        <span class="text-3xl font-display font-bold text-alert">{{ facade.totalInProgress() }}</span>
       </div>
       <div class="p-3 bg-orange-50 text-alert rounded-lg flex items-center justify-center">
-        <span class="material-symbols-outlined text-size-modal-title">warning</span>
+        <span class="material-symbols-outlined text-size-modal-title">hourglass_top</span>
       </div>
     </div>
     <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-danger rounded-xl shadow-sm flex items-center justify-between">
