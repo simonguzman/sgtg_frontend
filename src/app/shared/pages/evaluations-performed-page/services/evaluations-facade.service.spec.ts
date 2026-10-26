@@ -140,6 +140,21 @@ describe('EvaluationsFacadeService', () => {
       expect(result).toHaveLength(3);
     });
 
+    it('la más reciente queda primero; entre las del mismo día, la última registrada', () => {
+      mockThesisWorkService.allThesisWorks.mockReturnValue([{ thesisWorkId: 'thesis-1' }]);
+      const mismoDia = new Date('2026-05-09T00:00:00');
+      mockMapperService.processThesisEvaluations.mockReturnValue([
+        createMockEvaluationTableRow({ id: 'primera', date: mismoDia }),
+        createMockEvaluationTableRow({ id: 'anterior', date: new Date('2026-05-01T00:00:00') }),
+        createMockEvaluationTableRow({ id: 'segunda', date: mismoDia }),
+        createMockEvaluationTableRow({ id: 'tercera', date: mismoDia })
+      ]);
+
+      const result = service.getMappedEvaluations('thesis-1', '/thesis-work/details/thesis-1/evaluations_performed');
+
+      expect(result.map(row => row.id)).toEqual(['tercera', 'segunda', 'primera', 'anterior']);
+    });
+
     it('debería retornar un arreglo vacío si la URL no coincide con ninguna entidad', () => {
       const result = service.getMappedEvaluations('unknown-1', '/history/unknown/unknown-1');
 

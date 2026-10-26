@@ -501,3 +501,19 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
       filtros elegidos.
     - El reporte PDF incluye el alcance, todos los filtros con textos legibles (etapa, director, plazo) y la modalidad
       y el programa de cada trabajo; la etapa y el estado ya no salen como códigos.
+36. **Propuesta corregida de práctica profesional con nueva carta de aceptación:** en propuestas cargadas, "Cargar
+    propuesta corregida" pide después del formato A la nueva carta de aceptación (si se cierra sin elegirla, no se
+    carga la corrección) y la confirmación lo indica. El formato A y la carta van en la misma petición
+    (`POST /{id}/propuesta` con `archivo` y `cartaAceptacion`), tanto desde ahí (`uploadCorrection`) como desde el
+    formulario de edición (`updateProposal`), donde cargar un formato A nuevo en una práctica exige también una carta
+    nueva; una carta sin formato A nuevo se carga sola. El backend lo valida (§16 de `ajustes-2026-10-24.md`).
+37. **Anteproyecto con correcciones = No aprobado:** si un evaluador no aprueba el anteproyecto (`CON_CORRECCIONES` en el
+    backend), la versión y el concepto se muestran como "No aprobado" (antes "Aprobado con observaciones", que daba a
+    entender que podía seguir); el director radica una nueva versión. El evaluador elige "Aprobado" o "No aprobado".
+    "Aprobado con observaciones" queda solo como calificación de la sustentación. En estadísticas, la tarjeta
+    "Aprobados con obs." (siempre en cero) pasa a "En proceso" (en revisión, en desarrollo, aplazados o suspendidos)
+    y el gráfico de estados ya no tiene esa categoría. Antes, además, el estado calculado de una versión con un
+    concepto aprobado y otro con correcciones daba "Aprobado" (`calculateDocumentStatus`).
+38. **Evaluaciones realizadas, la más reciente primero:** se ordenaban por fecha, pero las fechas no tienen hora y las
+    del mismo día (los conceptos de los evaluadores, la decisión del Consejo) quedaban de la más antigua a la más
+    reciente. Ahora, entre las del mismo día, va primero la última registrada; una fecha inválida va al final.

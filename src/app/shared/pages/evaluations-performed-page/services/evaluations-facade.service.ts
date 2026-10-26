@@ -10,6 +10,12 @@ import { EvaluationTableRow } from '../models/evaluations-page.model';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
 import { ThesisWork } from '../../../../modules/thesis-work/interfaces/thesis-work.interface';
 
+/** Momento de la fecha; una fecha inválida va al final */
+const tiempo = (fecha: Date | string | undefined): number => {
+  const valor = fecha ? new Date(fecha).getTime() : NaN;
+  return Number.isNaN(valor) ? 0 : valor;
+};
+
 @Injectable({ providedIn: 'root' })
 export class EvaluationsFacadeService {
   private readonly mapper = inject(EvaluationsMapperService);
@@ -33,9 +39,9 @@ export class EvaluationsFacadeService {
         mappedEvaluations = this.mapper.processThesisEvaluations(thesis);
       }
     }
-    return mappedEvaluations.sort((a, b) =>
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    // La más reciente primero. Las fechas no tienen hora: entre las del mismo día va primero la última
+    // registrada (los mappers las entregan en el orden en que se registraron)
+    return [...mappedEvaluations].reverse().sort((a, b) => tiempo(b.date) - tiempo(a.date));
   }
 
   public async handleDownload(document: FormattedDocument): Promise<void> {
