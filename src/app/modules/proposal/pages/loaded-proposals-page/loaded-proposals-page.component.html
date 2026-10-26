@@ -43,15 +43,23 @@
 
 <app-file-upload-modal
   [isOpen]="fileModalOpen()"
-  description="Seleccione el archivo PDF de la propuesta corregida"
-  uploadedBy="Estudiante"
+  description="Seleccione el archivo PDF de la propuesta corregida (Formato A)"
+  uploadedBy="Cargado por el director"
   (onFileUploaded)="onFileSelected($event)"
   (onClose)="fileModalOpen.set(false)"
 ></app-file-upload-modal>
 
+<app-file-upload-modal
+  [isOpen]="letterModalOpen()"
+  description="Seleccione la nueva carta de aceptación de la organización (PDF)"
+  uploadedBy="Cargado por el director"
+  (onFileUploaded)="onLetterSelected($event)"
+  (onClose)="closeLetterModal()"
+></app-file-upload-modal>
+
 <app-confirmation-action-modal
   [isOpen]="confirmModalOpen()"
-  description="¿Está seguro de cargar esta corrección? El estado cambiará a 'En revisión'."
+  [description]="confirmDescription()"
   (confirm)="confirmUpload()"
   (onClose)="cancelUpload()"
 ></app-confirmation-action-modal>

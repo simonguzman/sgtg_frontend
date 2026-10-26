@@ -57,9 +57,9 @@ export class ProposalService {
     return this.documentService.registerCommitteeDecision(proposalId, veredict, observations, signedFile);
   }
 
-  /** Nueva versión del formato A. */
-  uploadCorrection(proposalId: string, file: File): Observable<Proposal> {
-    return this.documentService.uploadCorrection(proposalId, file);
+  /** Nueva versión del formato A (en práctica profesional, con la nueva carta de aceptación). */
+  uploadCorrection(proposalId: string, file: File, acceptanceLetter: File | null = null): Observable<Proposal> {
+    return this.documentService.uploadCorrection(proposalId, file, acceptanceLetter);
   }
 
   getDocumentsByProposalId(id: string): FileDocument[] {

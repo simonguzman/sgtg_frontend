@@ -36,9 +36,14 @@ export class ProposalDocumentService {
     );
   }
 
-  /** Radica una nueva versión del formato A (tras un NO APROBADO del Comité). */
-  uploadCorrection(proposalId: string, file: File): Observable<Proposal> {
-    return this.api.enviarArchivos(proposalId, 'propuesta', null, { archivo: file }).pipe(
+  /**
+   * Radica una nueva versión del formato A (tras un NO APROBADO del Comité).
+   * En práctica profesional va con la nueva carta de aceptación, en la misma
+   * petición: el backend no radica la corrección sin ella, y si la radicación
+   * falla tampoco registra la carta.
+   */
+  uploadCorrection(proposalId: string, file: File, acceptanceLetter: File | null = null): Observable<Proposal> {
+    return this.api.enviarArchivos(proposalId, 'propuesta', null, { archivo: file, cartaAceptacion: acceptanceLetter }).pipe(
       tap(trabajo => this.store.upsert(trabajo)),
       map(trabajo => aPropuesta(trabajo, this.vistas.contexto()))
     );

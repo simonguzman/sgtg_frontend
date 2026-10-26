@@ -83,8 +83,12 @@ export class ProposalFormComponent {
   get isFileFieldInvalid(): boolean {
     return this.isSubmitAttempted() && !this.attachedFile.hasFile;
   }
+  /** En práctica profesional, la propuesta corregida (un formato A nuevo) se radica con una nueva carta de aceptación */
+  get requiresNewLetter(): boolean {
+    return this.isEditMode && this.showAdvisorField && !!this.attachedFile.file && !this.acceptanceLetter.file;
+  }
   get isLetterFieldInvalid(): boolean {
-    return this.isSubmitAttempted() && this.showAdvisorField && !this.acceptanceLetter.hasFile;
+    return this.isSubmitAttempted() && this.showAdvisorField && (!this.acceptanceLetter.hasFile || this.requiresNewLetter);
   }
 
   isFieldInvalid(fieldName: string): boolean {
@@ -135,7 +139,9 @@ export class ProposalFormComponent {
     }
 
     if (this.isLetterFieldInvalid) {
-      this.notificationService.show({ title: 'Archivo requerido', message: 'Debe adjuntar la carta de aceptación de la organización.', type: NotificationType.ERROR });
+      this.notificationService.show({ title: 'Archivo requerido', message: this.requiresNewLetter
+        ? 'Al cargar la propuesta corregida, cargue también la nueva carta de aceptación de la organización.'
+        : 'Debe adjuntar la carta de aceptación de la organización.', type: NotificationType.ERROR });
       return;
     }
 

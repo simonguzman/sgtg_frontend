@@ -101,5 +101,19 @@ describe('ProposalDocumentService', () => {
 
       expect(resultado?.id).toBe('15');
     });
+
+    it('en práctica profesional radica el formato A con la nueva carta de aceptación en la misma petición', () => {
+      let resultado: Proposal | undefined;
+      service.uploadCorrection('15', pdf('formato-a-v2.pdf'), pdf('carta-v2.pdf')).subscribe(propuesta => resultado = propuesta);
+
+      const req = http.expectOne(`${API}/15/propuesta`);
+      const partes = req.request.body as FormData;
+      expect((partes.get('archivo') as File).name).toBe('formato-a-v2.pdf');
+      expect((partes.get('cartaAceptacion') as File).name).toBe('carta-v2.pdf');
+      req.flush(crearTrabajoDePrueba());
+      http.expectNone(`${API}/15/propuesta/carta-aceptacion`);
+
+      expect(resultado?.id).toBe('15');
+    });
   });
 });

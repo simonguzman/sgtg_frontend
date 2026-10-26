@@ -25,6 +25,13 @@ export class LoadedProposalsPageComponent implements OnInit {
   readonly proposalId = signal<string | null>(null);
   readonly uploadState = signal<{ fileName: string; file: File } | null>(null);
   readonly fileModalOpen = signal(false);
+  /** Nueva carta de aceptación (práctica profesional), que acompaña a la propuesta corregida */
+  readonly letterState = signal<{ fileName: string; file: File } | null>(null);
+  readonly letterModalOpen = signal(false);
+  readonly requiresAcceptanceLetter = computed(() => this.facade.requiresAcceptanceLetter(this.proposalId()));
+  readonly confirmDescription = computed(() => this.requiresAcceptanceLetter()
+    ? '¿Está seguro de cargar esta corrección? Se cargará la nueva carta de aceptación y la propuesta pasará a \'En revisión\'.'
+    : '¿Está seguro de cargar esta corrección? El estado cambiará a \'En revisión\'.');
   readonly confirmModalOpen = signal(false);
   /** Registro abierto en el modal de detalles */
   readonly selectedRow = signal<DocumentTableRow | null>(null);
@@ -74,7 +81,23 @@ export class LoadedProposalsPageComponent implements OnInit {
   onFileSelected(event: { fileName: string; file: File }): void {
     this.uploadState.set(event);
     this.fileModalOpen.set(false);
+    // En práctica profesional, después del formato A se pide la nueva carta de aceptación
+    if (this.requiresAcceptanceLetter()) this.letterModalOpen.set(true);
+    else this.confirmModalOpen.set(true);
+  }
+
+  onLetterSelected(event: { fileName: string; file: File }): void {
+    this.letterState.set(event);
+    this.letterModalOpen.set(false);
     this.confirmModalOpen.set(true);
+  }
+
+  /** Sin la nueva carta no se carga la corrección de una práctica profesional */
+  closeLetterModal(): void {
+    this.letterModalOpen.set(false);
+    if (this.letterState()) return;
+    this.uploadState.set(null);
+    this.facade.showAcceptanceLetterRequiredNotification();
   }
 
   confirmUpload(): void {
@@ -88,8 +111,10 @@ export class LoadedProposalsPageComponent implements OnInit {
       () => {
         this.confirmModalOpen.set(false);
         this.uploadState.set(null);
+        this.letterState.set(null);
       },
-      () => { }
+      () => { },
+      this.letterState()?.file ?? null
     );
   }
 
@@ -104,6 +129,7 @@ export class LoadedProposalsPageComponent implements OnInit {
   cancelUpload(): void {
     this.confirmModalOpen.set(false);
     this.uploadState.set(null);
+    this.letterState.set(null);
   }
 
   goBack(): void {

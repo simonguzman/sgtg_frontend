@@ -353,7 +353,7 @@ describe('LoadedProposalsFacadeService', () => {
       await service.upload('prop-1', fileData, onSuccess, onError);
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Subiendo documento' }));
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ title: '¡Documento cargado!' }));
-      expect(mockProposalService.uploadCorrection).toHaveBeenCalledWith('prop-1', fileData.file);
+      expect(mockProposalService.uploadCorrection).toHaveBeenCalledWith('prop-1', fileData.file, null);
       expect(onSuccess).toHaveBeenCalled();
       expect(onError).not.toHaveBeenCalled();
     });
@@ -369,6 +369,15 @@ describe('LoadedProposalsFacadeService', () => {
       }));
       expect(onError).toHaveBeenCalled();
       expect(onSuccess).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Método: requiresAcceptanceLetter', () => {
+    it('solo la práctica profesional carga una nueva carta con la propuesta corregida', () => {
+      mockAllProposalsSignal.set([{ ...mockProposal, modality: Modality.PP }, { ...mockProposal, id: 'prop-2', modality: Modality.TI }]);
+      expect(service.requiresAcceptanceLetter('prop-1')).toBe(true);
+      expect(service.requiresAcceptanceLetter('prop-2')).toBe(false);
+      expect(service.requiresAcceptanceLetter(null)).toBe(false);
     });
   });
 

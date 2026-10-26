@@ -14,6 +14,7 @@ import { aFecha } from '../../../../../core/mappers/trabajo-grado.mapper';
 import { parseDisplayDate } from '../../../../../core/utils/date-utils';
 import { TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { Proposal } from '../../../interfaces/proposal.interface';
+import { Modality } from '../../../enums/modality.enum';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
@@ -139,6 +140,19 @@ export class LoadedProposalsFacadeService {
     }
   }
 
+  /** En práctica profesional la propuesta corregida se carga con una nueva carta de aceptación */
+  public requiresAcceptanceLetter(proposalId: string | null): boolean {
+    return this.findProposal(proposalId)?.modality === Modality.PP;
+  }
+
+  public showAcceptanceLetterRequiredNotification(): void {
+    this.showNotification(
+      'Carta de aceptación requerida',
+      'En práctica profesional, la propuesta corregida se carga junto con la nueva carta de aceptación de la organización.',
+      NotificationType.INFO
+    );
+  }
+
   public showRestrictedActionNotification(): void {
     this.showNotification(
       'Acción no permitida',
@@ -151,15 +165,18 @@ export class LoadedProposalsFacadeService {
     proposalId: string,
     fileData: { fileName: string; file: File },
     onSuccess: () => void,
-    onError:   () => void
+    onError:   () => void,
+    acceptanceLetter: File | null = null
   ): Promise<void> {
     this.showNotification('Subiendo documento', 'Estamos procesando la corrección...', NotificationType.INFO);
 
-    this.proposalService.uploadCorrection(proposalId, fileData.file)
+    this.proposalService.uploadCorrection(proposalId, fileData.file, acceptanceLetter)
       .pipe(first())
       .subscribe({
         next: () => {
-          this.showNotification('¡Documento cargado!', 'Enviado a revisión exitosamente.', NotificationType.CONFIRMATION);
+          this.showNotification('¡Documento cargado!', acceptanceLetter
+            ? 'La propuesta corregida y la nueva carta de aceptación se enviaron a revisión.'
+            : 'Enviado a revisión exitosamente.', NotificationType.CONFIRMATION);
           onSuccess();
         },
         error: (err) => {

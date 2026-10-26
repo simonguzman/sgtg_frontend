@@ -188,18 +188,29 @@ describe('ProposalApiService', () => {
       radicacion.flush(crearTrabajoDePrueba());
     });
 
-    it('con una nueva carta de aceptación la carga antes de radicar el formato A', () => {
+    it('con una nueva carta de aceptación la radica junto con el formato A, en la misma petición', () => {
       storage.getProposalsListSnapshot.mockReturnValue([propuestaNueva({ id: '15', attachments: undefined })]);
       service.updateProposal('15', { attachments: { proposal: pdf('v2.pdf'), acceptanceLetter: pdf('carta-2.pdf') } })
         .subscribe();
 
       http.expectOne(req => req.method === 'PUT' && req.url === `${API}/15/propuesta`).flush(crearTrabajoDePrueba());
-      // Mientras no se radica el formato A, el formato A no se ha enviado
-      http.expectNone(req => req.method === 'POST' && req.url === `${API}/15/propuesta`);
+      const radicacion = http.expectOne(req => req.method === 'POST' && req.url === `${API}/15/propuesta`);
+      const partes = radicacion.request.body as FormData;
+      expect((partes.get('archivo') as File).name).toBe('v2.pdf');
+      expect((partes.get('cartaAceptacion') as File).name).toBe('carta-2.pdf');
+      radicacion.flush(crearTrabajoDePrueba());
+      http.expectNone(`${API}/15/propuesta/carta-aceptacion`);
+    });
+
+    it('una nueva carta sin formato A nuevo se carga sola como nueva versión', () => {
+      storage.getProposalsListSnapshot.mockReturnValue([propuestaNueva({ id: '15', attachments: undefined })]);
+      service.updateProposal('15', { attachments: { proposal: null, acceptanceLetter: pdf('carta-2.pdf') } }).subscribe();
+
+      http.expectOne(req => req.method === 'PUT' && req.url === `${API}/15/propuesta`).flush(crearTrabajoDePrueba());
       const carta = http.expectOne(req => req.method === 'POST' && req.url === `${API}/15/propuesta/carta-aceptacion`);
       expect(((carta.request.body as FormData).get('archivo') as File).name).toBe('carta-2.pdf');
       carta.flush(crearTrabajoDePrueba());
-      http.expectOne(req => req.method === 'POST' && req.url === `${API}/15/propuesta`).flush(crearTrabajoDePrueba());
+      http.expectNone(req => req.method === 'POST' && req.url === `${API}/15/propuesta`);
     });
   });
 

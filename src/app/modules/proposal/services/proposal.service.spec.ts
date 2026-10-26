@@ -122,7 +122,7 @@ describe('ProposalService', () => {
       mockDocumentService.uploadCorrection.mockReturnValue(of(updatedProp));
       service.uploadCorrection('1', archivo).subscribe(result => {
         expect(result).toEqual(updatedProp);
-        expect(mockDocumentService.uploadCorrection).toHaveBeenCalledWith('1', archivo);
+        expect(mockDocumentService.uploadCorrection).toHaveBeenCalledWith('1', archivo, null);
         done();
       });
     });

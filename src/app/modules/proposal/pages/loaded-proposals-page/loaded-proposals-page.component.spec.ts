@@ -38,6 +38,8 @@ describe('LoadedProposalsPageComponent', () => {
       buildRegistrationDetails: jest.fn().mockReturnValue(null),
       downloadRegistrationDocument: jest.fn().mockResolvedValue(undefined),
       canUpload: jest.fn().mockReturnValue(true),
+      requiresAcceptanceLetter: jest.fn().mockReturnValue(false),
+      showAcceptanceLetterRequiredNotification: jest.fn(),
       upload: jest.fn().mockResolvedValue(undefined)
     } as unknown as jest.Mocked<LoadedProposalsFacadeService>;
 
@@ -166,10 +168,45 @@ describe('LoadedProposalsPageComponent', () => {
         'prop-123',
         mockFileData,
         expect.any(Function),
-        expect.any(Function)
+        expect.any(Function),
+        null
       );
       expect(component.confirmModalOpen()).toBe(false);
       expect(component.uploadState()).toBeNull();
+    });
+  });
+
+  describe('Práctica profesional: la corrección lleva una nueva carta de aceptación', () => {
+    const formatoA = { fileName: 'formato-a.pdf', file: new File([], 'formato-a.pdf') };
+    const carta = { fileName: 'carta.pdf', file: new File([], 'carta.pdf') };
+
+    beforeEach(() => {
+      mockFacade.requiresAcceptanceLetter.mockReturnValue(true);
+      // El valor depende del id de la propuesta: se recalcula con uno distinto
+      component.proposalId.set('prop-pp');
+    });
+
+    it('después del formato A pide la carta y envía las dos al confirmar', () => {
+      component.onFileSelected(formatoA);
+      expect(component.letterModalOpen()).toBe(true);
+      expect(component.confirmModalOpen()).toBe(false);
+
+      component.onLetterSelected(carta);
+      expect(component.confirmModalOpen()).toBe(true);
+      expect(component.confirmDescription()).toContain('nueva carta de aceptación');
+
+      component.confirmUpload();
+      expect(mockFacade.upload).toHaveBeenCalledWith('prop-pp', formatoA, expect.any(Function), expect.any(Function),
+        carta.file);
+    });
+
+    it('si se cierra sin elegir la carta, no se carga la corrección y avisa', () => {
+      component.onFileSelected(formatoA);
+      component.closeLetterModal();
+
+      expect(component.uploadState()).toBeNull();
+      expect(component.confirmModalOpen()).toBe(false);
+      expect(mockFacade.showAcceptanceLetterRequiredNotification).toHaveBeenCalled();
     });
   });
 

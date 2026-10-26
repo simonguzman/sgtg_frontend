@@ -342,6 +342,29 @@ describe('ProposalFormComponent', () => {
       expect(mockFormService.buildProposalPayload).toHaveBeenCalledWith(mockProposal, { proposal: null, acceptanceLetter: nueva });
     });
 
+    it('en una práctica, la propuesta corregida (formato A nuevo) se envía con una nueva carta de aceptación', async () => {
+      const cartaVigente = { id: 'carta', name: 'Carta de aceptación', type: DocumentType.FORMATO } as FileDocument;
+      const mockProposal = createMockProposal({ documents: [...createMockProposal().documents, cartaVigente] });
+      fixture.componentRef.setInput('proposal', mockProposal);
+      mockFormGroup.patchValue({ modality: Modality.PP });
+      fixture.detectChanges();
+
+      const formatoA = new File([''], 'formato-a-v2.pdf');
+      component.handleFileUploaded({ fileName: 'formato-a-v2.pdf', file: formatoA });
+      await component.submit();
+      expect(component.requiresNewLetter).toBe(true);
+      expect(mockFormService.buildProposalPayload).not.toHaveBeenCalled();
+      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Al cargar la propuesta corregida, cargue también la nueva carta de aceptación de la organización.'
+      }));
+
+      mockFormService.buildProposalPayload.mockReturnValue(createMockProposal());
+      const carta = new File([''], 'carta-2.pdf');
+      component.handleLetterUploaded({ fileName: 'carta-2.pdf', file: carta });
+      await component.submit();
+      expect(mockFormService.buildProposalPayload).toHaveBeenCalledWith(mockProposal, { proposal: formatoA, acceptanceLetter: carta });
+    });
+
     it('debería notificar error si buildProposalPayload retorna null', async () => {
       mockFormService.buildProposalPayload.mockReturnValue(null);
       component.handleFileUploaded({ fileName: 'A.pdf', file: new File([''], 'A.pdf') });
