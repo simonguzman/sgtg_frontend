@@ -111,6 +111,19 @@
               </div>
             }
 
+            @if (facade.acceptanceLetter(); as letter) {
+              <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
+                <div class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-danger text-file">picture_as_pdf</span>
+                  <div class="flex flex-col">
+                    <span class="text-size-body font-bold text-primary">{{ letter.name }}</span>
+                    <span class="text-size-role-footer text-text-body">Carta de aceptación de la organización (práctica profesional)</span>
+                  </div>
+                </div>
+                <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadFile.emit(letter)"></app-button-component>
+              </div>
+            }
+
             @for (evalFile of facade.evaluationFiles(); track evalFile.name) {
               <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
                 <div class="flex items-center gap-3">

@@ -117,6 +117,34 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
       expect(doc?.name).toBe('Documento V1');
     });
 
+    it('con varias versiones muestra la vigente, el último formato C y solo los conceptos sobre la vigente', () => {
+      facade.preliminaryDraft.set(createMockDraft({
+        documents: [
+          createMockFileDocument({ id: 'v1', name: 'Anteproyecto', version: 1 }),
+          createMockFileDocument({ id: 'v2', name: 'Anteproyecto - versión 2', version: 2 }),
+          createMockFileDocument({ id: 'c1', name: 'Formato C', type: DocumentType.FORMATO_C, version: 1 }),
+          createMockFileDocument({ id: 'c2', name: 'Formato C - versión 2', type: DocumentType.FORMATO_C, version: 2 })
+        ],
+        evaluations: [
+          createMockEvaluation({ documentId: 'v1', evaluatorName: 'Sobre la versión 1' }),
+          createMockEvaluation({ documentId: 'v2', evaluatorName: 'Sobre la versión 2' }),
+          createMockEvaluation({ documentId: 'c1', evaluatorName: 'Consejo', evaluatorRole: 'Consejo' })
+        ]
+      }));
+
+      expect(facade.approvedPreliminaryDraftDocument()?.name).toBe('Anteproyecto - versión 2');
+      expect(facade.presentationDocument()?.name).toBe('Formato C - versión 2');
+      expect(facade.evaluationFiles().map(file => file.evaluator)).toEqual(['Sobre la versión 2']);
+    });
+
+    it('muestra la carta de aceptación solo si la propuesta la tiene (práctica profesional)', () => {
+      expect(facade.acceptanceLetter()).toBeUndefined();
+
+      const carta = createMockFileDocument({ id: 'carta', name: 'Carta de aceptación', type: DocumentType.FORMATO });
+      facade.preliminaryDraft.set(createMockDraft({ proposalData: createMockProposal({ documents: [carta] }) }));
+      expect(facade.acceptanceLetter()).toBe(carta);
+    });
+
     it('evaluationFiles debería listar las evaluaciones aprobadas con su evaluador', () => {
       const evalFiles = facade.evaluationFiles();
       expect(evalFiles).toHaveLength(1);

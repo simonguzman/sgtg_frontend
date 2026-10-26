@@ -46,6 +46,7 @@ interface MockFacadeService {
   isReadOnly: WritableSignal<boolean>;
   executionMonthOptions: WritableSignal<Array<{ months: number; deadline: string }>>;
   signedProposalDocument: WritableSignal<FormattedDocument | undefined>;
+  acceptanceLetter: WritableSignal<FormattedDocument | undefined>;
   approvedPreliminaryDraftDocument: WritableSignal<FormattedDocument | undefined>;
   presentationDocument: WritableSignal<FormattedDocument | undefined>;
   evaluationFiles: WritableSignal<Array<FormattedDocument & { evaluator?: string }>>;
@@ -125,6 +126,7 @@ describe('ReviewPresentationsFacultyCouncilFormComponent', () => {
       isUploadModalOpen: signal<boolean>(false),
       isReadOnly: signal<boolean>(false),
       signedProposalDocument: signal<FormattedDocument | undefined>(undefined),
+      acceptanceLetter: signal<FormattedDocument | undefined>(undefined),
       approvedPreliminaryDraftDocument: signal<FormattedDocument | undefined>(undefined),
       presentationDocument: signal<FormattedDocument | undefined>(undefined),
       evaluationFiles: signal<Array<FormattedDocument & { evaluator?: string }>>([]),
@@ -234,6 +236,20 @@ describe('ReviewPresentationsFacultyCouncilFormComponent', () => {
       component.onDownloadFile.emit(mockFormattedDocument);
 
       expect(emitSpy).toHaveBeenCalledWith(mockFormattedDocument);
+    });
+
+    it('en práctica profesional muestra la carta de aceptación para descargar, como los demás documentos', () => {
+      const carta: FormattedDocument = { name: 'Carta de aceptación', url: 'http://mock/carta.pdf' };
+      mockFacade.acceptanceLetter.set(carta);
+      fixture.detectChanges();
+      const emitSpy = jest.spyOn(component.onDownloadFile, 'emit');
+
+      const tarjeta = Array.from(fixture.nativeElement.querySelectorAll('.border-l-primary') as NodeListOf<HTMLElement>)
+        .find(elemento => elemento.textContent?.includes('Carta de aceptación de la organización'));
+      expect(tarjeta?.textContent).toContain('Carta de aceptación');
+      tarjeta?.querySelector('button')?.click();
+
+      expect(emitSpy).toHaveBeenCalledWith(carta);
     });
 
     it('debería actualizar el estado del modal de carga cuando se dispara la apertura', () => {

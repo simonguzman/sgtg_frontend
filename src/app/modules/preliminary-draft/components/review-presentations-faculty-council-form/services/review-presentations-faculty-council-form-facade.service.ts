@@ -12,6 +12,7 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { SaveEvaluationPayload } from '../models/council-evaluation.model';
 import { formatDisplayDate } from '../../../../../core/utils/date-utils';
 import { versionVigente } from '../../../services/preliminary-draft-rules';
+import { cartaDeAceptacion } from '../../../../proposal/services/proposal-rules.service';
 
 const RESULT_TO_STATE: Record<string, stateList> = {
   'Aprobado': stateList.APROBADO,
@@ -67,18 +68,27 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
     return approvedEvaluation?.signedDocuments?.[0];
   });
 
+  /** Carta de aceptación de la organización (solo práctica profesional), la versión vigente */
+  readonly acceptanceLetter = computed<FileDocument | undefined>(() =>
+    cartaDeAceptacion(this.preliminaryDraft()?.proposalData) ?? undefined
+  );
+
+  /** La versión vigente del anteproyecto: la que se remitió al Consejo */
   readonly approvedPreliminaryDraftDocument = computed<FileDocument | undefined>(() =>
-    this.preliminaryDraft()?.documents.find(
-      (document) => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION
-    )
+    versionVigente(this.preliminaryDraft()) ?? undefined
   );
 
+  /** El formato C de la última remisión */
   readonly presentationDocument = computed<FileDocument | undefined>(() =>
-    this.preliminaryDraft()?.documents.find((document) => document.type === DocumentType.FORMATO_C)
+    [...(this.preliminaryDraft()?.documents ?? [])]
+      .filter((document) => document.type === DocumentType.FORMATO_C)
+      .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0]
   );
 
+  /** Los conceptos aprobatorios sobre la versión vigente (los de versiones anteriores ya no aplican) */
   readonly evaluationFiles = computed<EvaluatorSignedDocumentView[]>(() =>
-    this.preliminaryDraft()?.evaluations.filter((evaluation) => evaluation.veredict === stateList.APROBADO)
+    this.preliminaryDraft()?.evaluations.filter((evaluation) => evaluation.veredict === stateList.APROBADO
+        && evaluation.documentId === this.approvedPreliminaryDraftDocument()?.id)
       .map((evaluation) => {
         const doc = evaluation.signedDocuments?.[0];
         return {
