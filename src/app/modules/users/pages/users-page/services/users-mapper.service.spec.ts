@@ -103,6 +103,10 @@ describe('Service: UsersMapperService', () => {
       expect(result.allowedActions).toEqual(['ver roles asignados', 'ver', 'editar', 'eliminar']);
       expect(result.originalData).toEqual(baseUser);
     });
+    it('debería mostrar el segundo nombre junto al primero', () => {
+      const result = service.mapUserToTable(createMockUser({ secondName: 'David' }));
+      expect(result.nombre).toBe('Juan David');
+    });
     it('debería mapear correctamente un usuario INACTIVO', () => {
       const inactiveUser = createMockUser({ state: UserState.inactive });
       const result = service.mapUserToTable(inactiveUser);
@@ -112,7 +116,7 @@ describe('Service: UsersMapperService', () => {
     it('debería manejar correctamente la ausencia de secondLastName', () => {
       const userNoSecondName = createMockUser({ secondLastName: '' });
       const result = service.mapUserToTable(userNoSecondName);
-      expect(result.apellidos).toBe('Pérez ');
+      expect(result.apellidos).toBe('Pérez');
     });
     it('debería convertir idNumber a string vacío si es null/undefined', () => {
       const userNoId = createMockUser({ idNumber: undefined });

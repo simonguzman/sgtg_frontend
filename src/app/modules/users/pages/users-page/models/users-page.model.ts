@@ -20,7 +20,7 @@ export interface UserTableRow {
 
 export const USER_COLUMNS: Column[] = [
   { field: 'identificacion', header: 'Identificación', type: 'text', width: '15%' },
-  { field: 'nombre', header: 'Nombre', type: 'text', width: '15%' },
+  { field: 'nombre', header: 'Nombres', type: 'text', width: '15%' },
   { field: 'apellidos', header: 'Apellidos', type: 'text', width: '15%' },
   { field: 'estado', header: 'Estado', type: 'text', width: '15%' },
   {

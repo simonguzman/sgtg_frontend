@@ -14,8 +14,9 @@ export class UsersMapperService {
 
     return {
       identificacion: user.idNumber?.toString() || '',
-      nombre: user.firstName,
-      apellidos: `${user.lastName} ${user.secondLastName || ''}`,
+      // Primer y segundo nombre en la misma columna, como los dos apellidos
+      nombre: [user.firstName, user.secondName].filter(Boolean).join(' '),
+      apellidos: [user.lastName, user.secondLastName].filter(Boolean).join(' '),
       estado: isInactive ? 'Inactivo' : 'Activo',
       // La búsqueda ignora tildes y mayúsculas: "comite" encuentra "Comité del programa"
       hiddenRoles: user.roles.join(', '),
