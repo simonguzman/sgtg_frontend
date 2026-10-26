@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators, NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
+import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators, NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 import { signal, WritableSignal, Component, Input, Output, EventEmitter, forwardRef } from '@angular/core';
 import { PreliminaryDraftFormComponent } from './preliminary-draft-form.component';
 import { PreliminaryDraftFormService } from './services/preliminary-draft-form.service';
@@ -112,7 +112,10 @@ const createMockPreliminaryDraft = (overrides: Partial<PreliminaryDraft> = {}): 
 type MockFormType = FormGroup<{
   proposalId: FormControl<string | null>;
   title: FormControl<string | null>;
+  generalObjective: FormControl<string | null>;
+  specificObjectives: FormArray<FormControl<string>>;
   description: FormControl<string | null>;
+  lineOfResearch: FormControl<string | null>;
   document: FormControl<File | FileDocument | null>;
 }>;
 
@@ -123,6 +126,9 @@ interface MockPreliminaryDraftFormService {
   proposalEvaluationDocument: WritableSignal<FileDocument | null>;
   initForCreate: jest.Mock<void, []>;
   initForEdit: jest.Mock<void, [PreliminaryDraft]>;
+  specificObjectives: FormArray<FormControl<string>>;
+  addSpecificObjective: jest.Mock<void, []>;
+  removeSpecificObjective: jest.Mock<void, [number]>;
   buildPreliminaryDraftPayload: jest.Mock<PreliminaryDraft | null, [PreliminaryDraft | null, FileDocument[]]>;
   getAuthorsNames: jest.Mock<string, [User[]]>;
   getMemberName: jest.Mock<string, [User | null | undefined]>;
@@ -143,7 +149,10 @@ describe('PreliminaryDraftFormComponent', () => {
     const form: MockFormType = new FormGroup({
       proposalId: new FormControl<string | null>('', Validators.required),
       title: new FormControl<string | null>('', Validators.required),
-      description: new FormControl<string | null>('', Validators.required),
+      generalObjective: new FormControl<string | null>('', Validators.required),
+      specificObjectives: new FormArray<FormControl<string>>([new FormControl('Específico 1', { nonNullable: true })]),
+      description: new FormControl<string | null>(''),
+      lineOfResearch: new FormControl<string | null>(''),
       document: new FormControl<File | FileDocument | null>(null, Validators.required)
     });
 
@@ -154,6 +163,9 @@ describe('PreliminaryDraftFormComponent', () => {
       proposalEvaluationDocument: signal<FileDocument | null>(null),
       initForCreate: jest.fn(),
       initForEdit: jest.fn(),
+      specificObjectives: form.controls.specificObjectives,
+      addSpecificObjective: jest.fn(),
+      removeSpecificObjective: jest.fn(),
       buildPreliminaryDraftPayload: jest.fn(),
       getAuthorsNames: jest.fn().mockReturnValue('Autores de prueba'),
       getMemberName: jest.fn().mockReturnValue('Director de prueba')
@@ -302,7 +314,8 @@ describe('PreliminaryDraftFormComponent', () => {
       fixture.componentRef.setInput('preliminaryDraft', mockDraft);
       fixture.detectChanges();
 
-      component.form.patchValue({ proposalId: 'p1', title: 'Título', description: 'Descripción', document: mockExistingDoc });
+      component.form.patchValue({ proposalId: 'p1', title: 'Título', generalObjective: 'Objetivo', description: 'Descripción',
+        document: mockExistingDoc });
       component.attachedFile = { hasFile: true, name: 'doc-existente.pdf', file: null };
 
       mockFormService.buildPreliminaryDraftPayload.mockReturnValue(mockDraft);
@@ -317,7 +330,8 @@ describe('PreliminaryDraftFormComponent', () => {
     it('envía el PDF elegido como adjunto (sin convertirlo a base64)', async () => {
       const mockFile = new File([''], 'nuevo-anteproyecto.pdf', { type: 'application/pdf' });
 
-      component.form.patchValue({ proposalId: 'p1', title: 'Título de Prueba', description: 'Descripción', document: mockFile });
+      component.form.patchValue({ proposalId: 'p1', title: 'Título de Prueba', generalObjective: 'Objetivo', description: 'Descripción',
+        document: mockFile });
       component.attachedFile = { hasFile: true, name: 'nuevo-anteproyecto.pdf', file: mockFile };
 
       const mockPayload = createMockPreliminaryDraft();
@@ -364,6 +378,22 @@ describe('PreliminaryDraftFormComponent', () => {
       expect(items).toEqual(['Específico 1', 'Específico 2']);
     });
 
+    it('al corregir permite editar título, objetivos, descripción y línea de investigación', () => {
+      fixture.componentRef.setInput('preliminaryDraft', createMockPreliminaryDraft());
+      mockFormService.selectedProposal.set(createMockProposal());
+      fixture.detectChanges();
+
+      ['#title', '#generalObjective', '#specificObjective-0', '#description', '#lineOfResearch']
+        .forEach(selector => expect(fixture.nativeElement.querySelector(selector)).toBeTruthy());
+      expect(textoDe()).toContain('Puede corregir el título, los objetivos, la descripción y la línea de investigación');
+      expect(textoDe()).toContain('Versión vigente del anteproyecto');
+
+      const agregar = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+        .find(boton => boton.textContent?.includes('Agregar objetivo específico'));
+      agregar?.click();
+      expect(mockFormService.addSpecificObjective).toHaveBeenCalled();
+    });
+
     it('omite los datos opcionales que no se registraron', () => {
       mockFormService.selectedProposal.set(createMockProposal({ description: 'Objetivo G', objectives: ['Objetivo G'] }));
       fixture.detectChanges();
@@ -374,7 +404,7 @@ describe('PreliminaryDraftFormComponent', () => {
     });
   });
 
-  describe('Respuesta del Comité', () => {
+  describe('Formato A firmado por el Comité', () => {
     it('la descarga con la sesión del usuario (no con un enlace directo)', async () => {
       mockFormService.proposalEvaluationDocument.set(createMockFileDocument({ name: 'Respuesta del Comité', url: '/api/archivos/acta.pdf' }));
       fixture.detectChanges();

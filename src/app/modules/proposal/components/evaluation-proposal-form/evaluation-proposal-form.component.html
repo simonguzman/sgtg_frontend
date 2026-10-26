@@ -21,7 +21,7 @@
     <div class="flex flex-col gap-8">
 
       <app-info-banner title="Evaluación de propuesta de grado">
-        Revise detenidamente la información del proyecto y descargue el documento adjunto. Posteriormente, seleccione el veredicto oficial del Comité, redacte las observaciones pertinentes y <strong>cargue obligatoriamente el documento de respuesta del Comité</strong> para oficializar la decisión.
+        Revise detenidamente la información del proyecto y descargue el documento adjunto. Posteriormente, seleccione el veredicto oficial del Comité, redacte las observaciones pertinentes y <strong>cargue obligatoriamente el Formato A firmado por el Comité</strong> para oficializar la decisión.
       </app-info-banner>
 
       <section>
@@ -113,7 +113,7 @@
 
             @if (!signedFile()) {
               <div class="information-block p-4 rounded-lg text-size-body text-text-body mb-2">
-                No ha sido cargado ningún archivo de veredicto. Para guardar la evaluación, es obligatorio adjuntar el documento de respuesta del Comité (PDF), tanto si aprueba como si no aprueba.
+                No ha sido cargado ningún archivo de veredicto. Para guardar la evaluación, es obligatorio adjuntar el Formato A firmado por el Comité (PDF), tanto si aprueba como si no aprueba.
               </div>
             }
 
@@ -175,9 +175,9 @@
                     <span class="text-size-body font-bold truncate transition-colors duration-200"
                           [class.text-primary]="signedFile() && !isFileInvalid"
                           [class.text-alert]="isFileInvalid">
-                      {{ signedFile()?.name || 'Documento de respuesta del Comité' }}
+                      {{ signedFile()?.name || 'Formato A firmado por el Comité' }}
                     </span>
-                    <span class="text-size-role-footer text-text-body">Documento de evaluación de la propuesta (Obligatorio)</span>
+                    <span class="text-size-role-footer text-text-body">Formato A con el concepto y la firma del Comité (Obligatorio)</span>
 
                     @if (isFileInvalid) {
                       <span class="text-size-role-footer text-textbox-alert mt-1 font-semibold">Este archivo es requerido para registrar la evaluación</span>
@@ -214,8 +214,8 @@
 
 <app-file-upload-modal
   [isOpen]="modalState().upload"
-  description="Subir formato de evaluación firmado"
-  uploadedBy="Cargado por el evaluador"
+  description="Subir el Formato A firmado por el Comité"
+  uploadedBy="Cargado por el Comité del programa"
   (onFileUploaded)="handleFileUploaded($event)"
   (onClose)="setUploadModal(false)"
 ></app-file-upload-modal>

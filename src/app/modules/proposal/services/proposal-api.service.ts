@@ -15,6 +15,24 @@ import { Proposal } from '../interfaces/proposal.interface';
 import { Modality } from '../enums/modality.enum';
 
 /**
+ * Título, objetivos (el primero es el general), descripción y línea de
+ * investigación del trabajo, como los reciben la creación y las correcciones
+ * de la propuesta y del anteproyecto.
+ */
+export function datosDescriptivos(proposal: Proposal) {
+  const objetivos = (proposal.objectives?.length ? proposal.objectives : [proposal.description])
+    .map(objetivo => objetivo?.trim())
+    .filter(objetivo => !!objetivo);
+  const descripcion = proposal.description?.trim();
+  return {
+    titulo: proposal.title,
+    objetivos,
+    descripcion: descripcion && descripcion !== objetivos[0] ? descripcion : null,
+    lineaInvestigacion: proposal.lineOfResearch?.trim() || null
+  };
+}
+
+/**
  * Operaciones de la propuesta contra el backend. La propuesta es la vista de
  * un trabajo de grado: crearla crea el trabajo y radica el formato A.
  */
@@ -45,13 +63,13 @@ export class ProposalApiService {
 
     const creacion = proposal.modality === Modality.PP
       ? this.api.enviarArchivos(null, 'practica-profesional', {
-        ...this.datosDeLaPropuesta(proposal),
+        ...datosDescriptivos(proposal),
         estudianteId: Number(proposal.authors[0]?.id),
         codirectorId: this.idNumerico(proposal.codirector?.id),
         asesor: this.asesor(proposal)
       }, { archivo: proposal.attachments?.acceptanceLetter })
       : this.api.enviarJson(null, 'investigacion', {
-        ...this.datosDeLaPropuesta(proposal),
+        ...datosDescriptivos(proposal),
         estudiantesIds: proposal.authors.map(author => Number(author.id)),
         codirectorId: this.idNumerico(proposal.codirector?.id),
         asesor: null
@@ -81,7 +99,7 @@ export class ProposalApiService {
     const formatoA = changes.attachments?.proposal;
     const carta = changes.attachments?.acceptanceLetter;
 
-    return this.api.actualizar(id, 'propuesta', this.datosDeLaPropuesta(propuesta)).pipe(
+    return this.api.actualizar(id, 'propuesta', datosDescriptivos(propuesta)).pipe(
       tap(trabajo => this.store.upsert(trabajo)),
       switchMap(trabajo => carta
         ? this.api.enviarArchivos(trabajo.id, 'propuesta/carta-aceptacion', null, { archivo: carta })
@@ -102,19 +120,6 @@ export class ProposalApiService {
 
   // ── Apoyo ─────────────────────────────────────────────────────────────────
 
-  /** Título, objetivos (el primero es el general), descripción y línea de investigación. */
-  private datosDeLaPropuesta(proposal: Proposal) {
-    const objetivos = (proposal.objectives?.length ? proposal.objectives : [proposal.description])
-      .map(objetivo => objetivo?.trim())
-      .filter(objetivo => !!objetivo);
-    const descripcion = proposal.description?.trim();
-    return {
-      titulo: proposal.title,
-      objetivos,
-      descripcion: descripcion && descripcion !== objetivos[0] ? descripcion : null,
-      lineaInvestigacion: proposal.lineOfResearch?.trim() || null
-    };
-  }
 
   /** Asesor de la práctica profesional: usuario con rol ASESOR y su organización. */
   private asesor(proposal: Proposal) {

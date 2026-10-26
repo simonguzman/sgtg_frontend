@@ -238,28 +238,41 @@ describe('PreliminaryDraftFormService', () => {
   });
 
   describe('Flujo de inicialización', () => {
-    it('initForCreate debería limpiar el formulario y deshabilitar titulo/descripcion', () => {
+    it('initForCreate debería limpiar el formulario y dejar los datos del proyecto solo de lectura', () => {
       service.initForCreate();
       expect(service.currentPreliminaryDraftId()).toBeNull();
       expect(service.form.get('title')?.disabled).toBeTruthy();
+      expect(service.form.get('generalObjective')?.disabled).toBeTruthy();
       expect(service.form.get('description')?.disabled).toBeTruthy();
+      expect(service.specificObjectives.length).toBe(0);
     });
 
-    it('initForEdit debería popular el formulario; título y descripción quedan solo de lectura', () => {
+    it('initForEdit carga los datos del proyecto para corregirlos, como en la propuesta', () => {
       const mockDraft = createMockPreliminaryDraft({
         preliminaryDraftId: 'draft-1',
         proposalId: 'p1',
-        proposalData: createMockProposal({ title: 'Test', description: 'Desc' })
+        proposalData: createMockProposal({ title: 'Test', objectives: ['General', 'Específico 1', 'Específico 2'],
+          description: 'Desc', lineOfResearch: 'IA' })
       });
 
       service.initForEdit(mockDraft);
 
       expect(service.currentPreliminaryDraftId()).toBe('draft-1');
       expect(service.form.get('proposalId')?.value).toBe('p1');
-      expect(service.form.get('title')?.value).toBe('Test');
-      // Pertenecen a la propuesta: el backend no los edita desde el anteproyecto
-      expect(service.form.get('title')?.disabled).toBe(true);
-      expect(service.form.get('description')?.disabled).toBe(true);
+      expect(service.form.get('title')?.enabled).toBe(true);
+      expect(service.form.getRawValue()).toEqual(expect.objectContaining({
+        title: 'Test', generalObjective: 'General', specificObjectives: ['Específico 1', 'Específico 2'],
+        description: 'Desc', lineOfResearch: 'IA'
+      }));
+    });
+
+    it('initForEdit deja un objetivo específico vacío para agregar y no quita el último', () => {
+      service.initForEdit(createMockPreliminaryDraft({ proposalData: createMockProposal({ objectives: ['General'] }) }));
+      expect(service.specificObjectives.getRawValue()).toEqual(['']);
+      service.removeSpecificObjective(0);
+      expect(service.specificObjectives.length).toBe(1);
+      service.addSpecificObjective('Nuevo');
+      expect(service.specificObjectives.getRawValue()).toEqual(['', 'Nuevo']);
     });
   });
 
@@ -288,23 +301,31 @@ describe('PreliminaryDraftFormService', () => {
       expect(payload?.documents).toEqual([]);
     });
 
-    it('en edición conserva los documentos y adjunta la nueva versión', () => {
+    it('en edición conserva los documentos, lleva los datos corregidos y adjunta la nueva versión', () => {
       const mockUser = createMockUser({ id: 'u1' });
       const proposal = createMockProposal({ id: 'p-edit', title: 'Título de la propuesta', director: mockUser });
       const documentos: FileDocument[] = [{ id: 'v1', name: 'anteproyecto', url: '/a', uploadDate: new Date(),
         type: DocumentType.ANTEPROYECTO, version: 1 }];
-      const originalDraft = createMockPreliminaryDraft({ preliminaryDraftId: 'draft-2', documents: documentos });
+      const originalDraft = createMockPreliminaryDraft({ preliminaryDraftId: 'draft-2', proposalId: 'p-edit',
+        proposalData: proposal, documents: documentos });
 
       proposalsSignal.set([proposal]);
       currentUserSignal.set(mockUser);
-      service.currentPreliminaryDraftId.set('draft-2');
-      service.form.patchValue({ proposalId: 'p-edit' });
+      service.initForEdit(originalDraft);
+      service.form.patchValue({ title: ' Título corregido ', generalObjective: 'General', description: '',
+        lineOfResearch: ' IA ' });
+      service.specificObjectives.at(0).setValue('Específico');
+      service.addSpecificObjective('  ');
 
       const archivo = new File(['%PDF'], 'anteproyecto-v2.pdf');
       const payload = service.buildPreliminaryDraftPayload(originalDraft, archivo);
 
       expect(payload?.preliminaryDraftId).toBe('draft-2');
-      expect(payload?.proposalData.title).toBe('Título de la propuesta');
+      expect(payload?.proposalData).toEqual(expect.objectContaining({
+        id: 'p-edit', title: 'Título corregido', objectives: ['General', 'Específico'],
+        // Sin descripción, el front la llena con el objetivo general (el backend la guarda vacía)
+        description: 'General', lineOfResearch: 'IA'
+      }));
       expect(payload?.documents).toEqual(documentos);
       expect(payload?.attachment).toBe(archivo);
     });

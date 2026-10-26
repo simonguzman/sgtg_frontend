@@ -76,7 +76,7 @@ export class EvaluationProposalFormService {
   notifyMissingFile(): void {
     this.notificationService.show({
       title: 'Documento requerido',
-      message: 'Debe cargar el documento de respuesta del Comité para poder registrar la evaluación.',
+      message: 'Debe cargar el Formato A firmado por el Comité para poder registrar la evaluación.',
       type: NotificationType.ERROR
     });
   }

@@ -24,7 +24,7 @@ export class ProposalDocumentService {
    * Registra el concepto del Comité de Programa: APROBADO (el trabajo pasa a
    * anteproyecto) o NO APROBADO (el director radica una nueva versión).
    *
-   * @param signedFile documento de respuesta del Comité
+   * @param signedFile Formato A firmado por el Comité
    */
   registerCommitteeDecision(proposalId: string, veredict: stateList, observations: string,
     signedFile: File): Observable<Proposal> {

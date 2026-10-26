@@ -67,7 +67,7 @@ describe('trabajo-grado.mapper', () => {
         evaluatorName: 'Comité de Programa',
         evaluatorRole: UserRoleType.COMITE,
         veredict: stateList.APROBADO,
-        signedDocuments: [expect.objectContaining({ name: 'Respuesta del Comité' })]
+        signedDocuments: [expect.objectContaining({ name: 'Formato A firmado' })]
       })]);
     });
 

@@ -59,18 +59,32 @@ describe('PreliminaryDraftApiService', () => {
     expect(error?.message).toBe('Debe adjuntar el documento del anteproyecto.');
   });
 
-  it('corregir radica una nueva versión', () => {
-    service.updatePreliminaryDraft('15', { attachment: pdf('anteproyecto-v2.pdf') } as PreliminaryDraft).subscribe();
+  const corregido = (attachment: File | null) => ({
+    attachment,
+    proposalData: { title: 'Título corregido', objectives: ['General', 'Específico'], description: 'Descripción',
+      lineOfResearch: 'IA' }
+  }) as PreliminaryDraft;
 
-    const req = http.expectOne(`${API}/15/anteproyecto`);
+  it('corregir guarda los datos del trabajo y radica el nuevo documento como nueva versión', () => {
+    service.updatePreliminaryDraft('15', corregido(pdf('anteproyecto-v2.pdf'))).subscribe();
+
+    const datos = http.expectOne({ method: 'PUT', url: `${API}/15/anteproyecto` });
+    expect(datos.request.body).toEqual({ titulo: 'Título corregido', objetivos: ['General', 'Específico'],
+      descripcion: 'Descripción', lineaInvestigacion: 'IA' });
+    datos.flush(crearTrabajoConAnteproyectoRadicado());
+
+    const req = http.expectOne({ method: 'POST', url: `${API}/15/anteproyecto` });
     expect(((req.request.body as FormData).get('archivo') as File).name).toBe('anteproyecto-v2.pdf');
     req.flush(crearTrabajoConAnteproyectoRadicado());
   });
 
-  it('corregir sin un archivo nuevo no llama al backend', () => {
-    let error: Error | undefined;
-    service.updatePreliminaryDraft('15', {} as PreliminaryDraft).subscribe({ error: e => error = e });
-    expect(error?.message).toBe('Adjunte la nueva versión del anteproyecto.');
+  it('corregir sin un documento nuevo solo guarda los datos', () => {
+    let terminado = false;
+    service.updatePreliminaryDraft('15', corregido(null)).subscribe(() => terminado = true);
+
+    http.expectOne({ method: 'PUT', url: `${API}/15/anteproyecto` }).flush(crearTrabajoConAnteproyectoRadicado());
+    http.expectNone({ method: 'POST', url: `${API}/15/anteproyecto` });
+    expect(terminado).toBe(true);
   });
 
   it('anular envía la justificación al backend', () => {

@@ -722,7 +722,8 @@ const ETIQUETAS_POR_CARPETA: Record<string, string> = {
   CARTA_ACEPTACION: 'Carta de aceptación',
   INFORME_MENSUAL: 'Informe mensual',
   RESOLUCION: 'Resolución del Consejo',
-  ACTA_COMITE: 'Respuesta del Comité',
+  // Formato A con el concepto y la firma del Comité de Programa
+  ACTA_COMITE: 'Formato A firmado',
   SOLICITUD_PRORROGA: 'Solicitud de prórroga',
   SOLICITUD_SUSPENSION: 'Solicitud de suspensión',
   REANUDACION: 'Reanudación',

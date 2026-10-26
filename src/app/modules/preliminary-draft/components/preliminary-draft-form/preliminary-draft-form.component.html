@@ -32,23 +32,27 @@
           }
         </div>
       </section>
+    } @else {
+      <app-info-banner title="Corrección del anteproyecto">
+        Puede corregir el título, los objetivos, la descripción y la línea de investigación. Los <strong>participantes no cambian</strong>. Si carga un nuevo documento del anteproyecto, se radicará como una <strong>nueva versión</strong> para su evaluación.
+      </app-info-banner>
     }
 
     @if (selectedProposal; as proposal) {
       <section class="animate-fade-in bg-gray-50/50 p-6 rounded-xl border border-gray-100">
         <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2 border-gray-200">
-          {{ isEditMode ? 'Editar Información de la Propuesta' : 'Información de la propuesta' }}
+          {{ isEditMode ? 'Información del anteproyecto' : 'Información de la propuesta' }}
         </h3>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
           <!-- Titulo -->
           <div class="flex flex-col gap-1 md:col-span-2">
-            <span class="font-display font-semibold text-primary text-size-section">
+            <label for="title" class="font-display font-semibold text-primary text-size-section">
               Título <span class="text-alert">*</span>
-            </span>
+            </label>
             @if (isEditMode) {
               <div class="relative flex items-center">
-                <input id=""
+                <input id="title"
                        type="text" formControlName="title" class="w-full p-2 border rounded-md font-sans text-size-body text-textbox focus:ring-1 focus:ring-primary outline-none bg-white"
                        [class.border-alert]="isFieldInvalid('title')"
                        [class.input-success]="form.get('title')?.valid && form.get('title')?.touched"
@@ -101,25 +105,61 @@
             }
           }
 
-          <!-- Descripción (editable al corregir) -->
+          <!-- Datos del proyecto (editables al corregir, como en la propuesta) -->
           @if (isEditMode) {
             <div class="flex flex-col gap-1 md:col-span-2">
-              <span class="font-display font-semibold text-primary text-size-section">
-                Descripción de la propuesta <span class="text-alert">*</span>
-              </span>
+              <label for="generalObjective" class="font-display font-semibold text-primary text-size-section">
+                Objetivo general <span class="text-alert">*</span>
+              </label>
               <div class="relative flex items-center">
-                <textarea id=""
-                          formControlName="description" rows="4" class="w-full p-2 border rounded-md font-sans text-size-body text-textbox focus:ring-1 focus:ring-primary outline-none bg-white"
-                          [class.border-alert]="isFieldInvalid('description')"
-                          [class.input-success]="form.get('description')?.valid && form.get('description')?.touched"
-                          placeholder="Ingrese la descripción o resumen"></textarea>
-                @if (form.get('description')?.valid && form.get('description')?.touched) {
+                <input id="generalObjective" type="text" formControlName="generalObjective"
+                       class="w-full p-2 border rounded-md font-sans text-size-body text-textbox focus:ring-1 focus:ring-primary outline-none bg-white"
+                       [class.border-alert]="isFieldInvalid('generalObjective')"
+                       [class.input-success]="form.get('generalObjective')?.valid && form.get('generalObjective')?.touched"
+                       placeholder="Ingrese el objetivo general">
+                @if (form.get('generalObjective')?.valid && form.get('generalObjective')?.touched) {
                   <span class="material-symbols-outlined success-icon">check_circle</span>
                 }
               </div>
-              @if (isFieldInvalid('description')) {
-                <span class="text-textbox-alert">La descripción es obligatoria</span>
+              @if (isFieldInvalid('generalObjective')) {
+                <span class="text-textbox-alert">El objetivo general es obligatorio</span>
               }
+            </div>
+
+            <div class="flex flex-col gap-2 md:col-span-2" formArrayName="specificObjectives">
+              <span class="font-display font-semibold text-primary text-size-section">Objetivos específicos</span>
+              @for (objective of specificObjectives.controls; track objective) {
+                <div class="relative flex items-center gap-2">
+                  <label [for]="'specificObjective-' + $index" class="sr-only">Objetivo específico {{ $index + 1 }}</label>
+                  <input [id]="'specificObjective-' + $index" type="text" [formControlName]="$index"
+                         [placeholder]="'Objetivo específico ' + ($index + 1)"
+                         class="w-full p-2 border rounded-md font-sans text-size-body text-textbox focus:ring-1 focus:ring-primary outline-none bg-white">
+                  @if (specificObjectives.length > 1) {
+                    <button type="button" (click)="removeSpecificObjective($index)"
+                            class="text-text-body hover:text-danger transition-colors" aria-label="Quitar objetivo específico">
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  }
+                </div>
+              }
+              <div>
+                <app-button-component label="Agregar objetivo específico" variant="secondary" type="button"
+                                      (onClick)="addSpecificObjective()"></app-button-component>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-1 md:col-span-2">
+              <label for="description" class="font-display font-semibold text-primary text-size-section">Descripción</label>
+              <textarea id="description" formControlName="description" rows="4"
+                        class="w-full p-2 border rounded-md font-sans text-size-body text-textbox focus:ring-1 focus:ring-primary outline-none bg-white"
+                        placeholder="Descripción general del proyecto (opcional)"></textarea>
+            </div>
+
+            <div class="flex flex-col gap-1 md:col-span-2">
+              <label for="lineOfResearch" class="font-display font-semibold text-primary text-size-section">Línea de investigación</label>
+              <input id="lineOfResearch" type="text" formControlName="lineOfResearch"
+                     class="w-full p-2 border rounded-md font-sans text-size-body text-textbox focus:ring-1 focus:ring-primary outline-none bg-white"
+                     placeholder="Ej: Ingeniería de software (opcional)">
             </div>
           }
 
@@ -148,13 +188,13 @@
 
       @if (proposalEvaluationDocument; as evaluationDoc) {
         <div class="information-block mb-6 p-6 rounded-xl transition-all shadow-sm">
-          <span class="font-display font-semibold text-primary text-size-section mb-3 block">Formato de evaluación aprobado por comité</span>
+          <span class="font-display font-semibold text-primary text-size-section mb-3 block">Propuesta aprobada por el Comité</span>
           <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
             <div class="flex items-center gap-3">
               <span class="material-symbols-outlined text-danger text-file">picture_as_pdf</span>
               <div class="flex flex-col">
                 <span class="text-size-body font-bold text-primary">{{ evaluationDoc.name }}</span>
-                <span class="text-size-role-footer text-text-body font-sans">Documento firmado por el comité evaluador</span>
+                <span class="text-size-role-footer text-text-body font-sans">Formato A con el concepto y la firma del Comité de Programa</span>
               </div>
             </div>
             <app-button-component label="Descargar" variant="primary" type="button"
@@ -165,7 +205,11 @@
 
       @if (!attachedFile.hasFile) {
         <div class="information-block p-4 rounded-lg text-size-body text-text-body mb-6">
-          No ha sido cargado ningún archivo, para realizar el registro del anteproyecto debe cargar el documento correspondiente para poder continuar con el proceso.
+          @if (isEditMode) {
+            Cargue la nueva versión del anteproyecto para radicarla. Si no carga una, solo se guardan los cambios de la información.
+          } @else {
+            No ha sido cargado ningún archivo, para realizar el registro del anteproyecto debe cargar el documento correspondiente para poder continuar con el proceso.
+          }
         </div>
       }
 
@@ -189,7 +233,7 @@
                     [class.text-alert]="isFieldInvalid('document')">
                 {{ attachedFile.name || 'Documento del anteproyecto' }}
               </span>
-              <span class="text-size-role-footer text-text-body">Documento base (Obligatorio)</span>
+              <span class="text-size-role-footer text-text-body">{{ documentHint }}</span>
               @if (isFieldInvalid('document')) {
                 <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span>
               }

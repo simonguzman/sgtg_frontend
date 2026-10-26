@@ -58,7 +58,7 @@ export class PreliminaryDraftDetailsPageService {
       ],
       documents: [
         vigente && { name: vigente.name, description: 'Versión vigente del anteproyecto', url: vigente.url },
-        respuestaComite && { name: respuestaComite.name, description: 'Respuesta del Comité que aprobó la propuesta',
+        respuestaComite && { name: respuestaComite.name, description: 'Formato A firmado por el Comité que aprobó la propuesta',
           url: respuestaComite.url }
       ]
     });

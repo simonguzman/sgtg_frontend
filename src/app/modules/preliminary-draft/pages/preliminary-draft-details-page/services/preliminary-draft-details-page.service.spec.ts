@@ -248,7 +248,7 @@ describe('PreliminaryDraftDetailsPageService', () => {
       ]);
       expect(view.documents).toEqual([
         expect.objectContaining({ name: 'Anteproyecto', description: 'Versión vigente del anteproyecto' }),
-        expect.objectContaining({ description: 'Respuesta del Comité que aprobó la propuesta' })
+        expect.objectContaining({ description: 'Formato A firmado por el Comité que aprobó la propuesta' })
       ]);
     });
 

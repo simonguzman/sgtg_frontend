@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { map, Observable, tap, throwError } from 'rxjs';
+import { map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { PreliminaryDraftStorageService } from './preliminary-draft-storage.service';
 import { TrabajoGradoApiService } from '../../../core/services/trabajo-grado/trabajo-grado-api.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
@@ -8,11 +8,12 @@ import { TrabajoGradoAnulacionService } from '../../../core/services/trabajo-gra
 import { aAnteproyecto } from '../../../core/mappers/trabajo-grado.mapper';
 import { TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado-api.interface';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
+import { datosDescriptivos } from '../../proposal/services/proposal-api.service';
 
 /**
  * Operaciones del anteproyecto contra el backend. El anteproyecto es una vista
  * del trabajo de grado (mismo id): registrarlo es radicar su primera versión y
- * corregirlo es radicar una nueva.
+ * corregirlo es guardar los datos del trabajo y radicar una nueva.
  */
 @Injectable({ providedIn: 'root' })
 export class PreliminaryDraftApiService {
@@ -32,15 +33,18 @@ export class PreliminaryDraftApiService {
   }
 
   /**
-   * Corrige el anteproyecto radicando una nueva versión del documento. El
-   * backend solo lo permite tras correcciones de los evaluadores o un NO
-   * APROBADO del Consejo; el título y la descripción no se editan aquí.
+   * Corrige el anteproyecto como la propuesta: guarda el título, los objetivos,
+   * la descripción y la línea de investigación (`PUT /{id}/anteproyecto`) y, si
+   * se cargó un nuevo documento, lo radica como nueva versión. El backend solo
+   * lo permite tras correcciones de los evaluadores o un NO APROBADO del Consejo.
    */
   public updatePreliminaryDraft(id: string, updatedData: PreliminaryDraft): Observable<PreliminaryDraft> {
-    if (!updatedData.attachment) {
-      return throwError(() => new Error('Adjunte la nueva versión del anteproyecto.'));
-    }
-    return this.radicar(id, updatedData.attachment);
+    return this.api.actualizar(id, 'anteproyecto', datosDescriptivos(updatedData.proposalData)).pipe(
+      tap(trabajo => this.store.upsert(trabajo)),
+      switchMap(trabajo => updatedData.attachment
+        ? this.radicar(id, updatedData.attachment)
+        : of(this.vista(trabajo)))
+    );
   }
 
   /** Anulación del director (borrado lógico): el trabajo queda cancelado y pasa al historial. */

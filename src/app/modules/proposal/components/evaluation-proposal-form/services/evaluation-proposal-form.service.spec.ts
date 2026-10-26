@@ -195,7 +195,7 @@ describe('EvaluationProposalFormService', () => {
       service.notifyMissingFile();
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
         title: 'Documento requerido',
-        message: 'Debe cargar el documento de respuesta del Comité para poder registrar la evaluación.',
+        message: 'Debe cargar el Formato A firmado por el Comité para poder registrar la evaluación.',
         type: NotificationType.ERROR
       });
       expect(notificationServiceMock.show).toHaveBeenCalledTimes(1);

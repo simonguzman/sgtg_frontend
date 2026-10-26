@@ -52,17 +52,27 @@ export class PreliminaryDraftFormComponent {
   get proposalOptions(): SelectOption[] { return this.formService.proposalOptions(); }
   get selectedProposal() { return this.formService.selectedProposal(); }
   get proposalEvaluationDocument() { return this.formService.proposalEvaluationDocument(); }
+  get specificObjectives() { return this.formService.specificObjectives; }
+
+  addSpecificObjective(): void { this.formService.addSpecificObjective(); }
+  removeSpecificObjective(index: number): void { this.formService.removeSpecificObjective(index); }
+
+  /** Qué es el documento cargado: al corregir, la versión vigente o la nueva que se radicará */
+  get documentHint(): string {
+    if (!this.isEditMode) return 'Documento base (Obligatorio)';
+    return this.attachedFile.file ? 'Nueva versión: se radicará al actualizar' : 'Versión vigente del anteproyecto';
+  }
   /** Objetivos, descripción, línea de investigación y organización registrados en la propuesta elegida */
   readonly content = computed(() => {
     const proposal = this.formService.selectedProposal();
     return proposal ? proposalContent(proposal) : null;
   });
 
-  /** Descarga la respuesta del Comité con la sesión del usuario (el enlace directo no lleva el token). */
+  /** Descarga el formato A firmado por el Comité con la sesión del usuario (el enlace directo no lleva el token). */
   async downloadEvaluationDocument(): Promise<void> {
     const document = this.proposalEvaluationDocument;
     if (!document?.url?.trim()) {
-      this.notificationService.show({ title: 'Error de descarga', message: 'No se pudo obtener el documento de respuesta del Comité.', type: NotificationType.ERROR });
+      this.notificationService.show({ title: 'Error de descarga', message: 'No se pudo obtener el formato A firmado por el Comité.', type: NotificationType.ERROR });
       return;
     }
     try {
