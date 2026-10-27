@@ -12,6 +12,7 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
+import { etiquetaDeRuta } from '../../../../../core/mappers/trabajo-grado.mapper';
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'user-1',
@@ -135,6 +136,24 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
       expect(facade.approvedPreliminaryDraftDocument()?.name).toBe('Anteproyecto - versión 2');
       expect(facade.presentationDocument()?.name).toBe('Formato C - versión 2');
       expect(facade.evaluationFiles().map(file => file.evaluator)).toEqual(['Sobre la versión 2']);
+    });
+
+    it('los formatos B de los dos evaluadores se distinguen por su evaluador y cada uno conserva su archivo', () => {
+      // El formato B de cada evaluador se guarda en su propia carpeta (v1, v2); ambos se llaman igual
+      const formatoB = (carpeta: string) => ({ name: etiquetaDeRuta(`15/TI-B/${carpeta}/Formato B - ${carpeta}.pdf`),
+        url: `/api/v1/sgtg/trabajos-grado/15/archivos/TI-B/${carpeta}` });
+      facade.preliminaryDraft.set(createMockDraft({
+        documents: [createMockFileDocument({ id: 'v1', name: 'Anteproyecto', version: 1 })],
+        evaluations: [
+          createMockEvaluation({ documentId: 'v1', evaluatorName: 'Ana Pérez', signedDocuments: [formatoB('v1')] }),
+          createMockEvaluation({ documentId: 'v1', evaluatorName: 'Luis Gómez', signedDocuments: [formatoB('v2')] })
+        ]
+      }));
+
+      expect(facade.evaluationFiles()).toEqual([
+        { name: 'Formato B (concepto del evaluador)', url: '/api/v1/sgtg/trabajos-grado/15/archivos/TI-B/v1', evaluator: 'Ana Pérez' },
+        { name: 'Formato B (concepto del evaluador)', url: '/api/v1/sgtg/trabajos-grado/15/archivos/TI-B/v2', evaluator: 'Luis Gómez' }
+      ]);
     });
 
     it('muestra la carta de aceptación solo si la propuesta la tiene (práctica profesional)', () => {
