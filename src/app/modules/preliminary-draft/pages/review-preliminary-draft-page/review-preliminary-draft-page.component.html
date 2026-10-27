@@ -13,6 +13,7 @@
     @if (facade.preliminaryDraftState()) {
       <app-review-preliminary-draft-form
         [preliminaryDraft]="facade.preliminaryDraftState()!"
+        [isSubmitting]="facade.isSubmitting()"
         (onSaveEvaluation)="facade.handleRequestConfirmation($event)"
         (onDownloadPreliminaryDraft)="facade.downloadCurrentDocument()">
       </app-review-preliminary-draft-form>

@@ -517,3 +517,19 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
 38. **Evaluaciones realizadas, la más reciente primero:** se ordenaban por fecha, pero las fechas no tienen hora y las
     del mismo día (los conceptos de los evaluadores, la decisión del Consejo) quedaban de la más antigua a la más
     reciente. Ahora, entre las del mismo día, va primero la última registrada; una fecha inválida va al final.
+39. **Auditoría: un formulario no se envía dos veces.** Mientras se guardaba, el botón seguía activo y se podía volver a
+    enviar (el modal de confirmación solo evitaba el doble clic dentro de la misma apertura); la segunda petición
+    fallaba en el backend o, a la vez, pisaba a la primera. Ahora, mientras la petición está en curso, el botón queda
+    deshabilitado y no se abre otra confirmación en: registrar y corregir la propuesta, la decisión del Comité, la
+    corrección de la propuesta y del anteproyecto (también desde las tablas de documentos), registrar y editar el
+    anteproyecto, asignar evaluadores, el concepto del evaluador, la decisión del Consejo y la programación de la
+    sustentación. Si falla, se puede reintentar. Al asignar evaluadores se muestra el motivo del backend (antes un
+    mensaje genérico). Si dos usuarios modifican el mismo trabajo a la vez, el backend responde 409 con un mensaje
+    que pide actualizar la página (§1 de `ajustes-2026-10-26.md`).
+40. **Auditoría: "versión N" solo en los documentos con versiones.** El número de la carpeta donde se guarda un archivo
+    es la versión en el formato A, el anteproyecto o la carta de aceptación, pero en otros es solo el consecutivo de
+    los archivos del tipo: el formato B del segundo evaluador aparecía como "versión 2", y la resolución del cambio de
+    objetivos como "versión 2" por ser la segunda resolución del trabajo. Ya no se agrega en el formato B, el C, las
+    anotaciones del evaluador, las resoluciones, los informes mensuales ni las notas de revisión
+    (`CARPETAS_SIN_VERSION` en `etiquetaDeRuta`). Los archivos de los evaluadores en el formulario del Consejo ya no
+    se identifican por su nombre (`track $index`), porque ahora dos pueden llamarse igual.

@@ -249,7 +249,8 @@ describe('trabajo-grado.mapper', () => {
         description: 'Cambio de alcance', proposedTitle: 'Nuevo', proposedObjectives: ['G2', 'E2'],
         resolutionDetails: 'Procede', resolutionDate: new Date(2026, 4, 10)
       }));
-      expect(cambio.resolution?.name).toBe('Resolución del Consejo – versión 2');
+      // Es la segunda resolución del trabajo, pero no una "versión 2" de la del cambio de objetivos
+      expect(cambio.resolution?.name).toBe('Resolución del Consejo');
     });
 
     it('las revisiones del paz y salvo de Decanatura: la más reciente primero; sin aprobar no se programa', () => {
@@ -480,6 +481,16 @@ describe('etiquetaDeRuta', () => {
   it('agrega la versión desde la segunda', () => {
     expect(etiquetaDeRuta('15/TI-A/v2/Formato A - v2.pdf')).toBe('Formato A (propuesta) – versión 2');
     expect(etiquetaDeRuta('15/ANEXOS/v3/Anexos - v3.pdf')).toBe('Anexos – versión 3');
+  });
+
+  it('sin versión cuando el número es el consecutivo de los archivos del tipo, no una versión', () => {
+    // Formato B del segundo evaluador, segunda resolución del Consejo, informe del tercer mes...
+    expect(etiquetaDeRuta('15/TI-B/v2/Formato B - v2.pdf')).toBe('Formato B (concepto del evaluador)');
+    expect(etiquetaDeRuta('15/PP-C/v2/Formato C - v2.pdf')).toBe('Formato C (remisión al Consejo)');
+    expect(etiquetaDeRuta('15/RESOLUCION/v4/Resolucion - v4.pdf')).toBe('Resolución del Consejo');
+    expect(etiquetaDeRuta('15/INFORME_MENSUAL/v3/Informe - v3.pdf')).toBe('Informe mensual');
+    expect(etiquetaDeRuta('15/REVISION_INFORME/v2/Notas - v2.pdf')).toBe('Notas de revisión');
+    expect(etiquetaDeRuta('15/ANOTACIONES_EVALUACION/v2/Notas - v2.pdf')).toBe('Anotaciones del evaluador');
   });
 
   it('con una carpeta desconocida usa el nombre del archivo', () => {

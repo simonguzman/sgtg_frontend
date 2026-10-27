@@ -178,7 +178,7 @@
         </div>
 
         <div class="flex justify-end gap-4 mt-10">
-          <app-button-component label="Guardar evaluación" variant="primary" type="submit" [disabled]="facade.isReadOnly()"></app-button-component>
+          <app-button-component label="Guardar evaluación" variant="primary" type="submit" [disabled]="facade.isReadOnly() || isSubmitting()"></app-button-component>
         </div>
       </form>
     </section>

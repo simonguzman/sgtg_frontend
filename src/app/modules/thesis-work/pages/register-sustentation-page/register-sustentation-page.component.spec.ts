@@ -211,6 +211,15 @@ describe('RegisterSustentationPageComponent', () => {
       expect(component.pendingData()).toEqual(mockData);
       expect(component.isConfirmModalOpen()).toBe(true);
     });
+
+    it('mientras se guarda la programación no abre otra confirmación', () => {
+      component.isSubmitting.set(true);
+
+      component.handleRequestConfirmation({ payload: createMockPayload(), file: new File([''], 'test.pdf') });
+
+      expect(component.pendingData()).toBeNull();
+      expect(component.isConfirmModalOpen()).toBe(false);
+    });
   });
 
   describe('Proceso de Sustentación (processSustentacion)', () => {

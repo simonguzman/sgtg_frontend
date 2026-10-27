@@ -18,6 +18,8 @@ export class EvaluationProposalPageComponent implements OnInit {
   protected readonly facade = inject(EvaluationProposalFacadeService);
 
   readonly proposal = signal<Proposal | null>(null);
+  /** Mientras se guarda la decisión no se envía otra */
+  readonly isSubmitting = signal<boolean>(false);
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')
@@ -43,8 +45,9 @@ export class EvaluationProposalPageComponent implements OnInit {
 
   handleSaveEvaluation(event: SaveProposalEvaluationEvent): void {
     const proposal = this.proposal();
-    if (!proposal) return;
-    void this.facade.saveEvaluation(event, proposal, this.route, () => {});
+    if (!proposal || this.isSubmitting()) return;
+    this.isSubmitting.set(true);
+    void this.facade.saveEvaluation(event, proposal, this.route, () => this.isSubmitting.set(false));
   }
 
   goBack(): void {

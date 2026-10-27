@@ -30,6 +30,8 @@ export class EvaluationProposalFormComponent {
   protected readonly formService = inject(EvaluationProposalFormService);
 
   proposal = input.required<Proposal>();
+  /** Mientras se guarda la decisión, el botón queda deshabilitado */
+  isSubmitting = input<boolean>(false);
   onDownloadOriginal = output<void>();
   onDownloadLetter = output<void>();
   onSaveEvaluation = output<SaveProposalEvaluationEvent>();

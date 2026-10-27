@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ReviewPreliminaryDraftPageFacadeService, PendingReviewData } from './review-preliminary-draft-page-facade.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
@@ -240,6 +240,24 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
         type: NotificationType.CONFIRMATION,
         message: 'Se ha registrado el veredicto negativo y se solicitarán correcciones.'
       }));
+    });
+
+    it('mientras se guarda el concepto no se envía otro; si falla, se puede reintentar', async () => {
+      service.preliminaryDraftState.set(createMockDraft());
+      service.pendingReviewData.set({ formValues: { result: stateList.APROBADO, comments: 'Ok' }, file: mockFile });
+      const respuesta = new Subject<PreliminaryDraft>();
+      preliminaryDraftServiceMock.registerEvaluatorConcept.mockReturnValue(respuesta.asObservable());
+
+      await service.processEvaluation();
+      await service.processEvaluation();
+      service.handleRequestConfirmation({ formValues: { result: stateList.APROBADO, comments: 'Otro' }, file: mockFile });
+
+      expect(preliminaryDraftServiceMock.registerEvaluatorConcept).toHaveBeenCalledTimes(1);
+      expect(service.isSubmitting()).toBe(true);
+      expect(service.pendingReviewData()?.formValues.comments).toBe('Ok');
+
+      respuesta.error(new HttpErrorResponse({ status: 500 }));
+      expect(service.isSubmitting()).toBe(false);
     });
 
     it('debería mostrar el mensaje del backend si falla el registro', async () => {

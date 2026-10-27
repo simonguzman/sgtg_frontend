@@ -11,6 +11,7 @@
 </div>
 
 <app-preliminary-draft-form
+  [isSubmitting]="pageService.confirmState().isProcessing"
   (onSave)="pageService.openConfirmation($event)">
 </app-preliminary-draft-form>
 

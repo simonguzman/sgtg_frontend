@@ -1,7 +1,7 @@
 import { signal, WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { stateList } from '../../../../../core/enums/state.enum';
@@ -237,6 +237,24 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
 
       expect(mockPreliminaryDraftService.registerCouncilDecision)
         .toHaveBeenCalledWith(mockDraft.preliminaryDraftId, stateList.NO_APROBADO, 'Excelente', mockPayload.file, 9);
+    });
+
+    it('mientras se guarda la decisión no se envía otra; si falla, se puede reintentar', async () => {
+      const respuesta = new Subject<unknown>();
+      mockPreliminaryDraftService.registerCouncilDecision.mockReturnValue(respuesta.asObservable());
+      facade.preliminaryDraftState.set(mockDraft);
+      facade.pendingData.set(mockPayload);
+
+      await facade.processCouncilDecision();
+      await facade.processCouncilDecision();
+      facade.handleRequestConfirmation(mockPayload);
+
+      expect(mockPreliminaryDraftService.registerCouncilDecision).toHaveBeenCalledTimes(1);
+      expect(facade.isSubmitting()).toBe(true);
+      expect(facade.isConfirmModalOpen()).toBe(false);
+
+      respuesta.error(new HttpErrorResponse({ status: 500 }));
+      expect(facade.isSubmitting()).toBe(false);
     });
 
     it('muestra el mensaje del backend si falla el registro', async () => {

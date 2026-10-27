@@ -8,6 +8,7 @@
 @if (facade.filteredPreliminaryDraft(); as draft) {
   <app-review-presentations-faculty-council-form
     [preliminaryDraft]="draft"
+    [isSubmitting]="facade.isSubmitting()"
     (onSaveEvaluation)="facade.handleRequestConfirmation($event)"
     (onDownloadFile)="facade.downloadFile($event)">
   </app-review-presentations-faculty-council-form>

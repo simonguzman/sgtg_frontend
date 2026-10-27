@@ -176,6 +176,24 @@ describe('LoadedProposalsPageComponent', () => {
     });
   });
 
+  describe('Doble envío de la corrección', () => {
+    it('mientras se carga no abre otra carga ni la vuelve a enviar; al terminar se puede cargar de nuevo', () => {
+      component.uploadState.set({ fileName: 'correccion.pdf', file: new File([''], 'correccion.pdf') });
+      component.confirmUpload();
+      expect(component.isUploading()).toBe(true);
+
+      component.confirmUpload();
+      mockFacade.canUpload.mockReturnValue(true);
+      component.handleHeaderButton({ action: 'upload_correction' } as TableButton);
+
+      expect(mockFacade.upload).toHaveBeenCalledTimes(1);
+      expect(component.fileModalOpen()).toBe(false);
+      const onError = mockFacade.upload.mock.calls[0][3];
+      onError();
+      expect(component.isUploading()).toBe(false);
+    });
+  });
+
   describe('Práctica profesional: la corrección lleva una nueva carta de aceptación', () => {
     const formatoA = { fileName: 'formato-a.pdf', file: new File([], 'formato-a.pdf') };
     const carta = { fileName: 'carta.pdf', file: new File([], 'carta.pdf') };

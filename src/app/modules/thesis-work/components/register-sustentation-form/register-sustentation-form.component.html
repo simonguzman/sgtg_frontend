@@ -259,7 +259,7 @@
     </section>
 
     <div class="flex gap-4 justify-end mt-10">
-      <app-button-component label="Confirmar y Agendar" variant="primary" type="submit"></app-button-component>
+      <app-button-component label="Confirmar y Agendar" variant="primary" type="submit" [disabled]="isSubmitting()"></app-button-component>
     </div>
 
   </form>

@@ -300,7 +300,8 @@
         <app-button-component
           [label]="isEditMode ? 'Actualizar propuesta' : 'Registrar propuesta'"
           variant="primary"
-          type="submit">
+          type="submit"
+          [disabled]="isSubmitting()">
         </app-button-component>
       </div>
     </section>

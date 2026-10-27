@@ -27,6 +27,8 @@ export class PreliminaryDraftFormComponent {
   private readonly downloadService = inject(FileDownloadService);
 
   preliminaryDraft = input<PreliminaryDraft | null>(null);
+  /** Mientras se guarda, el botón queda deshabilitado para no enviar dos veces */
+  isSubmitting = input<boolean>(false);
   @Output() onSave = new EventEmitter<PreliminaryDraft>();
 
   attachedFile = { hasFile: false, name: null as string | null, file: null as File | null };

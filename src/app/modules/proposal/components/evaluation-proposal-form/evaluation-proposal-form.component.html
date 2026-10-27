@@ -203,7 +203,7 @@
           </div>
 
           <div class="flex gap-4 justify-end mt-6">
-            <app-button-component label="Guardar Evaluación" variant="primary" type="submit"></app-button-component>
+            <app-button-component label="Guardar Evaluación" variant="primary" type="submit" [disabled]="isSubmitting()"></app-button-component>
           </div>
 
         </form>

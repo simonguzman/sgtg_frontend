@@ -55,6 +55,7 @@ describe('ReviewPreliminaryDraftPageComponent', () => {
   let facadeMock: {
     preliminaryDraftState: WritableSignal<PreliminaryDraft | null>;
     isConfirmModalOpen: WritableSignal<boolean>;
+    isSubmitting: WritableSignal<boolean>;
     pendingReviewData: WritableSignal<PendingReviewData | null>;
     init: jest.Mock;
     goBack: jest.Mock;
@@ -70,6 +71,7 @@ describe('ReviewPreliminaryDraftPageComponent', () => {
     facadeMock = {
       preliminaryDraftState: signal<PreliminaryDraft | null>(null),
       isConfirmModalOpen: signal<boolean>(false),
+      isSubmitting: signal<boolean>(false),
       pendingReviewData: signal<PendingReviewData | null>(null),
       init: jest.fn(),
       goBack: jest.fn(),

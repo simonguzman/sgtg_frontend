@@ -18,6 +18,7 @@ import { ReviewPresentationsFacultyCouncilPageFacadeService } from './services/r
 interface MockPageFacadeService {
   filteredPreliminaryDraft: WritableSignal<PreliminaryDraft | null>;
   isConfirmModalOpen: WritableSignal<boolean>;
+  isSubmitting: WritableSignal<boolean>;
   loadData: jest.Mock<void, []>;
   goBack: jest.Mock<void, []>;
   handleRequestConfirmation: jest.Mock<void, [SaveEvaluationPayload]>;
@@ -87,6 +88,7 @@ describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
     mockFacade = {
       filteredPreliminaryDraft: signal<PreliminaryDraft | null>(createMockDraft()),
       isConfirmModalOpen: signal<boolean>(false),
+      isSubmitting: signal<boolean>(false),
       loadData: jest.fn(),
       goBack: jest.fn(),
       handleRequestConfirmation: jest.fn(),

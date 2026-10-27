@@ -17,6 +17,7 @@
     } @else if (facade.selectedPreliminaryDraft()) {
       <app-assign-evaluators-form
         [preliminaryDraft]="facade.selectedPreliminaryDraft()!"
+        [isSubmitting]="facade.confirmState().isProcessing"
         (onSave)="facade.handleAssign($event)"
       ></app-assign-evaluators-form>
     }

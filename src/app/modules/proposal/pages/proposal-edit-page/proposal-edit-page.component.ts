@@ -25,6 +25,8 @@ export class ProposalEditPageComponent implements OnInit {
   readonly proposalToEdit = signal<Proposal | null>(null);
   readonly isModalOpen    = signal<boolean>(false);
   readonly pendingData    = signal<Proposal | null>(null);
+  /** Mientras se guarda no se envía otra actualización */
+  readonly isSubmitting   = signal<boolean>(false);
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -43,6 +45,7 @@ export class ProposalEditPageComponent implements OnInit {
   }
 
   handleUpdate(updatedData: Proposal): void {
+    if (this.isSubmitting()) return;
     const errorMessage = this.facade.validateRules(updatedData);
 
     if (errorMessage) {
@@ -58,18 +61,21 @@ export class ProposalEditPageComponent implements OnInit {
     const currentProposal = this.proposalToEdit();
     const dataToSave = this.pendingData();
 
-    if (!currentProposal?.id || !dataToSave) return;
+    if (!currentProposal?.id || !dataToSave || this.isSubmitting()) return;
 
     this.isModalOpen.set(false);
+    this.isSubmitting.set(true);
 
     this.facade.saveUpdate(
       currentProposal.id,
       dataToSave,
       () => {
+        this.isSubmitting.set(false);
         this.pendingData.set(null);
         this.goBack();
       },
       () => {
+        this.isSubmitting.set(false);
         this.isModalOpen.set(false);
       }
     );

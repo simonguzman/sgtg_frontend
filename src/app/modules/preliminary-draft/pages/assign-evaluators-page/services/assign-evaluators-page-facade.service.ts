@@ -5,6 +5,7 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
+import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
 @Injectable()
 export class AssignEvaluatorsPageFacadeService {
@@ -59,6 +60,8 @@ export class AssignEvaluatorsPageFacadeService {
   }
 
   handleAssign(evaluators: { ev1: string; ev2: string }): void {
+    // Mientras se guarda la asignación no se abre otra confirmación
+    if (this.confirmState().isProcessing) return;
     this.confirmState.set({
       isOpen: true,
       pendingData: evaluators,
@@ -84,9 +87,9 @@ export class AssignEvaluatorsPageFacadeService {
         this.confirmState.set({ isOpen: false, pendingData: null, isProcessing: false });
         this.goBack();
       },
-      error: () => {
+      error: (err: unknown) => {
         this.confirmState.update(state => ({ ...state, isProcessing: false, isOpen: false }));
-        this.showConnectionErrorNotification();
+        this.showAssignErrorNotification(err);
       }
     });
   }
@@ -128,6 +131,15 @@ export class AssignEvaluatorsPageFacadeService {
       title: 'Asignación exitosa',
       message: 'Los jurados evaluadores han sido vinculados al anteproyecto correctamente.',
       type: NotificationType.CONFIRMATION
+    });
+  }
+
+  /** El motivo del backend (ej. un evaluador con conflicto de interés) o un mensaje genérico */
+  private showAssignErrorNotification(err: unknown): void {
+    this.notificationService.show({
+      title: 'No se pudo asignar',
+      message: apiErrorMessage(err, 'No se pudo completar la asignación. Por favor, intente más tarde.'),
+      type: NotificationType.ERROR
     });
   }
 

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { of, Subject, throwError } from 'rxjs';
 import { AssignEvaluatorsPageFacadeService } from './assign-evaluators-page-facade.service';
 import { PreliminaryDraftService } from '../../../services/preliminary-draft.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
@@ -170,10 +171,38 @@ describe('AssignEvaluatorsPageFacadeService', () => {
       facade.confirmAssignment();
 
       expect(mockNotificationService.show).toHaveBeenCalledWith(
-        expect.objectContaining({ type: NotificationType.ERROR, title: 'Error de servicio' })
+        expect.objectContaining({ type: NotificationType.ERROR, title: 'No se pudo asignar' })
       );
       expect(facade.confirmState().isOpen).toBeFalsy();
       expect(facade.confirmState().isProcessing).toBeFalsy();
+    });
+
+    it('muestra el motivo del backend cuando no se puede asignar', () => {
+      mockPreliminaryDraftService.assignReviewers.mockReturnValue(throwError(() => new HttpErrorResponse({
+        status: 400, error: { message: 'Un evaluador no puede ser director, codirector, asesor ni estudiante del mismo trabajo de grado.' }
+      })));
+      facade.handleAssign(evaluators);
+
+      facade.confirmAssignment();
+
+      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
+        type: NotificationType.ERROR,
+        message: 'Un evaluador no puede ser director, codirector, asesor ni estudiante del mismo trabajo de grado.'
+      }));
+    });
+
+    it('mientras se guarda la asignación no se abre otra confirmación ni se envía de nuevo', () => {
+      const respuesta = new Subject<unknown>();
+      mockPreliminaryDraftService.assignReviewers.mockReturnValue(respuesta.asObservable());
+      facade.handleAssign(evaluators);
+      facade.confirmAssignment();
+
+      facade.handleAssign({ ev1: 'user-3', ev2: 'user-4' });
+      facade.confirmAssignment();
+
+      expect(mockPreliminaryDraftService.assignReviewers).toHaveBeenCalledTimes(1);
+      expect(facade.confirmState().pendingData).toEqual(evaluators);
+      expect(facade.confirmState().isProcessing).toBe(true);
     });
   });
 });

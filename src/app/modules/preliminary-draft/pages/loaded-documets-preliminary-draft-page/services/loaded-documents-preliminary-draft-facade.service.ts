@@ -45,6 +45,8 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
   readonly uploadContext = signal<UploadContext | null>(null);
   readonly isUploadModalOpen = signal<boolean>(false);
   readonly isConfirmModalOpen = signal<boolean>(false);
+  /** Mientras se carga un documento no se abre otra carga (se enviaría dos veces) */
+  readonly isUploading = signal<boolean>(false);
 
   constructor() {
     effect(() => {
@@ -140,7 +142,7 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
 
   handleHeaderButton(button: TableButton): void {
     if (button.action === 'upload_document') {
-      this.isUploadModalOpen.set(true);
+      if (!this.isUploading()) this.isUploadModalOpen.set(true);
     } else if (button.action) {
       this.router.navigate([button.action], { relativeTo: this.route });
     }
@@ -173,8 +175,9 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
   async confirmUpload(): Promise<void> {
     const selectedFileData = this.uploadContext();
     const preliminaryDraft = this.currentPreliminaryDraft();
-    if (!selectedFileData || !preliminaryDraft?.preliminaryDraftId) return;
+    if (!selectedFileData || !preliminaryDraft?.preliminaryDraftId || this.isUploading()) return;
 
+    this.isUploading.set(true);
     this.showProcessingNotification();
 
     // Corrección = nueva versión del anteproyecto; formato C = presentación al Consejo
@@ -187,10 +190,12 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
       .pipe(first())
       .subscribe({
         next: () => {
+          this.isUploading.set(false);
           this.showSuccessNotification();
           this.cancelUpload();
         },
         error: (err: unknown) => {
+          this.isUploading.set(false);
           this.showNotification('Error de carga',
             apiErrorMessage(err, 'No se pudo cargar el documento. Intente nuevamente.'), NotificationType.ERROR);
         }

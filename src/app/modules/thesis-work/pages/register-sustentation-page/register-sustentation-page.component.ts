@@ -42,6 +42,8 @@ export class RegisterSustentationPageComponent implements OnInit {
   }
 
   handleRequestConfirmation(data: { payload: SustentationFormPayload; file: File }): void {
+    // Mientras se guarda la programación no se envía otra
+    if (this.isSubmitting()) return;
     this.pendingData.set(data);
     this.isConfirmModalOpen.set(true);
   }

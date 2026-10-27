@@ -35,6 +35,8 @@ export class PreliminaryDraftCreatePageService {
   }
 
   openConfirmation(preliminaryDraft: PreliminaryDraft): void {
+    // Mientras se registra no se abre otra confirmación (se enviaría dos veces)
+    if (this.confirmState().isProcessing) return;
     this.confirmState.set({
       isOpen: true,
       pendingData: preliminaryDraft,

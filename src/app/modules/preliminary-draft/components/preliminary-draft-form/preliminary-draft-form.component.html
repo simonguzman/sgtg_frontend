@@ -259,7 +259,8 @@
         <app-button-component
           [label]="isEditMode ? 'Actualizar anteproyecto' : 'Registrar anteproyecto'"
           variant="primary"
-          type="submit">
+          type="submit"
+          [disabled]="isSubmitting()">
         </app-button-component>
       </div>
     </section>

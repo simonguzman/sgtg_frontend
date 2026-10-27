@@ -218,6 +218,14 @@ describe('PreliminaryDraftEditPageService', () => {
       expect(service.confirmState().isOpen).toBeFalsy();
     });
 
+    it('mientras se guarda la nueva versión no abre otra confirmación', () => {
+      service.confirmState.set({ isOpen: false, pendingData: mockDraft, isProcessing: true });
+
+      service.handleUpdate(createMockDraft({ preliminaryDraftId: 'draft-123', proposalId: '999' }));
+
+      expect(service.confirmState()).toEqual({ isOpen: false, pendingData: mockDraft, isProcessing: true });
+    });
+
     it('debería manejar el error de actualización', () => {
       mockPreliminaryDraftService.updatePreliminaryDraft.mockReturnValue(throwError(() => new Error('Error')));
       service.handleUpdate(mockDraft);

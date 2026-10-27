@@ -20,21 +20,24 @@ export class ProposalCreatePageComponent {
 
   readonly isModalOpen = signal<boolean>(false);
   readonly pendingProposal  = signal<Proposal | null>(null);
+  /** Mientras se registra no se envía otra (se crearía dos veces) */
+  readonly isSubmitting = signal<boolean>(false);
 
   handleCreateProposal(proposalData: Proposal): void {
-    if (!this.facade.validate(proposalData)) return;
+    if (this.isSubmitting() || !this.facade.validate(proposalData)) return;
     this.pendingProposal.set(proposalData);
     this.isModalOpen.set(true);
   }
 
   confirmCreation(): void {
     const proposal = this.pendingProposal();
-    if (!proposal) return;
+    if (!proposal || this.isSubmitting()) return;
     this.isModalOpen.set(false);
+    this.isSubmitting.set(true);
     this.facade.save(
       proposal,
-      () => this.pendingProposal.set(null),
-      () => {}
+      () => { this.isSubmitting.set(false); this.pendingProposal.set(null); },
+      () => this.isSubmitting.set(false)
     );
   }
 

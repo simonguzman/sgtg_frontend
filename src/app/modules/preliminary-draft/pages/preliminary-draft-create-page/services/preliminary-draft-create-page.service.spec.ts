@@ -135,6 +135,14 @@ describe('PreliminaryDraftCreatePageService', () => {
       expect(state.isProcessing).toBeFalsy();
     });
 
+    it('mientras se registra no abre otra confirmación (el formulario podría enviarse de nuevo)', () => {
+      service.confirmState.set({ isOpen: false, pendingData: mockDraft, isProcessing: true });
+
+      service.openConfirmation({ ...mockDraft, title: 'Otro' });
+
+      expect(service.confirmState()).toEqual({ isOpen: false, pendingData: mockDraft, isProcessing: true });
+    });
+
     it('no debería ejecutar la creación si no hay datos pendientes o ya está procesando', () => {
       service.confirmCreation();
       expect(mockPreliminaryDraftService.createPreliminaryDraft).not.toHaveBeenCalled();

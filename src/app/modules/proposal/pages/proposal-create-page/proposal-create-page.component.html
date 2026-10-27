@@ -10,7 +10,7 @@
   </button>
 </div>
 
-<app-proposal-form (onSubmit)="handleCreateProposal($event)"></app-proposal-form>
+<app-proposal-form [isSubmitting]="isSubmitting()" (onSubmit)="handleCreateProposal($event)"></app-proposal-form>
 
 <app-confirmation-action-modal
   [isOpen]="isModalOpen()"

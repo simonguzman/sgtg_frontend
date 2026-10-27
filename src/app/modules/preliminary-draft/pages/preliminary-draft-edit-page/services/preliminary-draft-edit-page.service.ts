@@ -61,6 +61,8 @@ export class PreliminaryDraftEditPageService {
   }
 
   handleUpdate(updatedData: PreliminaryDraft): void {
+    // Mientras se guarda la nueva versión no se abre otra confirmación
+    if (this.confirmState().isProcessing) return;
     this.confirmState.set({
       isOpen: true,
       pendingData: updatedData,

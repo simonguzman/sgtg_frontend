@@ -20,6 +20,8 @@ export class AssignEvaluatorsFormComponent {
   readonly facade = inject(AssignEvaluatorsFormFacadeService);
 
   preliminaryDraft = input.required<PreliminaryDraft>();
+  /** Mientras se guarda la asignación, el botón queda deshabilitado */
+  isSubmitting = input<boolean>(false);
   @Output() onSave = new EventEmitter<{ ev1: string, ev2: string }>();
 
   constructor() {

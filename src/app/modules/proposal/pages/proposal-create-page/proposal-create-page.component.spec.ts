@@ -114,6 +114,24 @@ describe('ProposalCreatePageComponent', () => {
     });
   });
 
+  describe('doble envío', () => {
+    it('mientras se registra no abre otra confirmación ni vuelve a guardar; al fallar se puede reintentar', () => {
+      mockFacade.validate.mockReturnValue(true);
+      component.pendingProposal.set(mockProposal);
+      component.confirmCreation();
+      expect(component.isSubmitting()).toBe(true);
+
+      component.handleCreateProposal(mockProposal);
+      component.confirmCreation();
+
+      expect(component.isModalOpen()).toBe(false);
+      expect(mockFacade.save).toHaveBeenCalledTimes(1);
+      const onErrorCallback = mockFacade.save.mock.calls[0][2];
+      onErrorCallback();
+      expect(component.isSubmitting()).toBe(false);
+    });
+  });
+
   describe('cancelCreation()', () => {
     it('debe cerrar el modal y limpiar pendingProposal', () => {
       component.isModalOpen.set(true);

@@ -28,6 +28,8 @@ export class ReviewPreliminaryDraftPageFacadeService {
   readonly preliminaryDraftState = signal<PreliminaryDraft | null>(null);
   readonly isConfirmModalOpen = signal(false);
   readonly pendingReviewData = signal<PendingReviewData | null>(null);
+  /** Mientras se guarda el concepto no se envía otro */
+  readonly isSubmitting = signal(false);
 
   readonly activeRevision = computed(() => {
     const preliminaryDraft = this.preliminaryDraftState();
@@ -69,6 +71,7 @@ export class ReviewPreliminaryDraftPageFacadeService {
   }
 
   handleRequestConfirmation(data: PendingReviewData): void {
+    if (this.isSubmitting()) return;
     this.pendingReviewData.set(data);
     this.isConfirmModalOpen.set(true);
   }
@@ -77,11 +80,13 @@ export class ReviewPreliminaryDraftPageFacadeService {
     const data = this.pendingReviewData();
     const preliminaryDraft = this.preliminaryDraftState();
     const user = this.authService.currentUser();
+    if (this.isSubmitting()) return;
     if (!data || !preliminaryDraft?.preliminaryDraftId || !user) {
       this.showValidationErrorNotification();
       return;
     }
 
+    this.isSubmitting.set(true);
     const isApproved = data.formValues.result === stateList.APROBADO;
     // Formato B firmado (obligatorio) y, si lo adjuntó, el documento con sus anotaciones
     this.preliminaryDraftService.registerEvaluatorConcept(preliminaryDraft.preliminaryDraftId,
@@ -89,11 +94,15 @@ export class ReviewPreliminaryDraftPageFacadeService {
       .pipe(first())
       .subscribe({
         next: () => {
+          this.isSubmitting.set(false);
           this.showEvaluationSuccessNotification(isApproved);
           this.isConfirmModalOpen.set(false);
           this.goBack();
         },
-        error: (err) => this.showSaveErrorNotification(err)
+        error: (err) => {
+          this.isSubmitting.set(false);
+          this.showSaveErrorNotification(err);
+        }
       });
   }
 

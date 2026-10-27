@@ -1,6 +1,7 @@
 @if (proposal(); as data) {
   <app-evaluation-proposal-form
     [proposal]="data"
+    [isSubmitting]="isSubmitting()"
     (onDownloadOriginal)="downloadOriginalDocument()"
     (onDownloadLetter)="downloadAcceptanceLetter()"
     (onSaveEvaluation)="handleSaveEvaluation($event)"

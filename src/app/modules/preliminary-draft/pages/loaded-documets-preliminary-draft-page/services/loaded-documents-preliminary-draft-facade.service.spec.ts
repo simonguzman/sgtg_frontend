@@ -2,7 +2,7 @@ import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LoadedDocumentsPreliminaryDraftFacadeService } from './loaded-documents-preliminary-draft-facade.service';
 import { LoadedDocumentsPreliminaryDraftMapperService } from './loaded-documents-preliminary-draft-mapper.service';
@@ -198,6 +198,23 @@ describe('LoadedDocumentsPreliminaryDraftFacadeService', () => {
       expect(mockDraftService.uploadCouncilPresentation).not.toHaveBeenCalled();
       expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ type: 'confirmation' }));
       expect(facade.uploadContext()).toBeNull();
+    });
+
+    it('mientras se carga un documento no abre otra carga ni lo vuelve a enviar', async () => {
+      facade.preliminaryDraftId.set('draft-123');
+      const respuesta = new Subject<unknown>();
+      mockDraftService.uploadCorrection.mockReturnValue(respuesta.asObservable());
+      facade.uploadContext.set({ fileName: 'doc.pdf', file: new File([], 'doc.pdf') });
+
+      await facade.confirmUpload();
+      await facade.confirmUpload();
+      facade.handleHeaderButton(createMockTableButton({ action: 'upload_document' }));
+
+      expect(mockDraftService.uploadCorrection).toHaveBeenCalledTimes(1);
+      expect(facade.isUploadModalOpen()).toBe(false);
+
+      respuesta.error(new HttpErrorResponse({ status: 500 }));
+      expect(facade.isUploading()).toBe(false);
     });
 
     it('debería mostrar el mensaje del backend si la carga falla', async () => {

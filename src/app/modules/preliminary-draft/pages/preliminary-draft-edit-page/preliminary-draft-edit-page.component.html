@@ -17,6 +17,7 @@
 @if (pageService.preliminaryDraftToEdit()) {
   <app-preliminary-draft-form
     [preliminaryDraft]="pageService.preliminaryDraftToEdit()"
+    [isSubmitting]="pageService.confirmState().isProcessing"
     (onSave)="pageService.handleUpdate($event)"
   ></app-preliminary-draft-form>
 } @else {

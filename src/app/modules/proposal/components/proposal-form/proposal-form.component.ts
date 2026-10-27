@@ -33,6 +33,8 @@ export class ProposalFormComponent {
   private readonly notificationService = inject(NotificationService);
 
   proposal = input<Proposal | null>(null);
+  /** Mientras se guarda, el botón queda deshabilitado para no enviar dos veces */
+  isSubmitting = input<boolean>(false);
   @Output() onSubmit = new EventEmitter<Proposal>();
 
   /** Formato A: obligatorio al crear; al corregir, uno nuevo se radica como nueva versión. */

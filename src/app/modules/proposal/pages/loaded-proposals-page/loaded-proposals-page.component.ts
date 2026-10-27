@@ -28,6 +28,8 @@ export class LoadedProposalsPageComponent implements OnInit {
   /** Nueva carta de aceptación (práctica profesional), que acompaña a la propuesta corregida */
   readonly letterState = signal<{ fileName: string; file: File } | null>(null);
   readonly letterModalOpen = signal(false);
+  /** Mientras se carga la corrección no se abre otra carga (se enviaría dos veces) */
+  readonly isUploading = signal(false);
   readonly requiresAcceptanceLetter = computed(() => this.facade.requiresAcceptanceLetter(this.proposalId()));
   readonly confirmDescription = computed(() => this.requiresAcceptanceLetter()
     ? '¿Está seguro de cargar esta corrección? Se cargará la nueva carta de aceptación y la propuesta pasará a \'En revisión\'.'
@@ -73,7 +75,7 @@ export class LoadedProposalsPageComponent implements OnInit {
   }
 
   handleHeaderButton(button: TableButton): void {
-    if (button.action !== 'upload_correction') return;
+    if (button.action !== 'upload_correction' || this.isUploading()) return;
     if (!this.facade.canUpload(this.proposalId())) return;
     this.fileModalOpen.set(true);
   }
@@ -103,17 +105,19 @@ export class LoadedProposalsPageComponent implements OnInit {
   confirmUpload(): void {
     const fileData = this.uploadState();
     const id = this.proposalId();
-    if (!fileData || !id) return;
+    if (!fileData || !id || this.isUploading()) return;
 
+    this.isUploading.set(true);
     void this.facade.upload(
       id,
       fileData,
       () => {
+        this.isUploading.set(false);
         this.confirmModalOpen.set(false);
         this.uploadState.set(null);
         this.letterState.set(null);
       },
-      () => { },
+      () => this.isUploading.set(false),
       this.letterState()?.file ?? null
     );
   }

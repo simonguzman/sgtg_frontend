@@ -744,10 +744,22 @@ const ETIQUETAS_POR_CARPETA: Record<string, string> = {
 };
 
 /**
+ * Carpetas en las que el número no es la versión de un mismo documento sino el
+ * consecutivo de los archivos de ese tipo: un formato B y unas anotaciones por
+ * evaluador, un formato C por remisión, una resolución por cada decisión del
+ * Consejo (de cualquier trámite), un informe mensual por mes y unas notas por
+ * revisión. Su nombre no lleva "versión N" (el formato B del segundo evaluador
+ * no es la "versión 2").
+ */
+const CARPETAS_SIN_VERSION = new Set(['B', 'C', 'D', 'ANOTACIONES_EVALUACION', 'RESOLUCION', 'INFORME_MENSUAL',
+  'REVISION_INFORME']);
+
+/**
  * Nombre que se muestra para un archivo según lo que es (no según el nombre
  * del archivo): "15/TI-A/v2/Formato A - v2.pdf" → "Formato A (propuesta) – versión 2".
- * La versión solo se agrega desde la segunda. Si la carpeta no es conocida,
- * se usa el nombre del archivo.
+ * La versión solo se agrega desde la segunda y solo a los documentos que tienen
+ * versiones (ver `CARPETAS_SIN_VERSION`). Si la carpeta no es conocida, se usa
+ * el nombre del archivo.
  */
 export function etiquetaDeRuta(ruta: string): string {
   const partes = ruta.split('/');
@@ -755,7 +767,8 @@ export function etiquetaDeRuta(ruta: string): string {
   const version = Number(/^v(\d+)$/.exec(partes[partes.length - 2] ?? '')?.[1] ?? 1);
   const formato = /^(?:TI|PP)-([A-H])$/.exec(carpeta)?.[1];
   const etiqueta = (formato ? ETIQUETAS_POR_FORMATO[formato] : ETIQUETAS_POR_CARPETA[carpeta]) ?? nombreDeRuta(ruta);
-  return version > 1 ? `${etiqueta} – versión ${version}` : etiqueta;
+  const versionada = !CARPETAS_SIN_VERSION.has(formato ?? carpeta);
+  return versionada && version > 1 ? `${etiqueta} – versión ${version}` : etiqueta;
 }
 
 /** "15/TI-A/v2/propuesta.pdf" → "propuesta" */

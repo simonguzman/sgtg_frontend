@@ -173,6 +173,17 @@ describe('EvaluationProposalPageComponent', () => {
       );
     });
 
+    it('handleSaveEvaluation: mientras se guarda no envía otra decisión; al fallar se puede reintentar', () => {
+      component.handleSaveEvaluation(mockSaveEvent);
+      component.handleSaveEvaluation(mockSaveEvent);
+
+      expect(mockFacade.saveEvaluation).toHaveBeenCalledTimes(1);
+      expect(component.isSubmitting()).toBe(true);
+      const onError = mockFacade.saveEvaluation.mock.calls[0][3];
+      onError();
+      expect(component.isSubmitting()).toBe(false);
+    });
+
     it('handleSaveEvaluation: NO debería hacer nada si no hay propuesta', () => {
       component.proposal.set(null);
       component.handleSaveEvaluation(mockSaveEvent);

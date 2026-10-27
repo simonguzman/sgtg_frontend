@@ -172,6 +172,19 @@ describe('ProposalEditPageComponent', () => {
       expect(component.pendingData()).toBeNull();
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/proposal']);
     });
+    it('mientras se guarda no abre otra confirmación ni vuelve a guardar', () => {
+      component.confirmUpdate();
+      expect(component.isSubmitting()).toBe(true);
+
+      component.handleUpdate(createMockProposal({ id: '1', title: 'Otra' }));
+      component.confirmUpdate();
+
+      expect(component.isModalOpen()).toBe(false);
+      expect(mockFacade.saveUpdate).toHaveBeenCalledTimes(1);
+      const onError = mockFacade.saveUpdate.mock.calls[0][3];
+      onError();
+      expect(component.isSubmitting()).toBe(false);
+    });
     it('solo debe cerrar el modal y no navegar si la fachada falla al guardar', () => {
       component.isModalOpen.set(true);
       component.confirmUpdate();

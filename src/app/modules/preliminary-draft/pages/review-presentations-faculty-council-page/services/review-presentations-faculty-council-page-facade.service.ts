@@ -27,6 +27,8 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
   readonly preliminaryDraftState = signal<PreliminaryDraft | null>(null);
   readonly isConfirmModalOpen = signal(false);
   readonly pendingData = signal<SaveEvaluationPayload | null>(null);
+  /** Mientras se guarda la decisión no se envía otra */
+  readonly isSubmitting = signal(false);
 
   readonly filteredPreliminaryDraft = computed(() => {
     const preliminaryDraft = this.preliminaryDraftState();
@@ -85,6 +87,7 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
   }
 
   handleRequestConfirmation(data: SaveEvaluationPayload): void {
+    if (this.isSubmitting()) return;
     this.pendingData.set(data);
     this.isConfirmModalOpen.set(true);
   }
@@ -92,11 +95,13 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
   async processCouncilDecision(): Promise<void> {
     const data = this.pendingData();
     const preliminaryDraft = this.preliminaryDraftState();
+    if (this.isSubmitting()) return;
     if (!data || !preliminaryDraft?.preliminaryDraftId) {
       this.showValidationErrorNotification();
       return;
     }
 
+    this.isSubmitting.set(true);
     const finalState = data.formValues.result === stateList.APROBADO ? stateList.APROBADO : stateList.NO_APROBADO;
     // El backend calcula la fecha máxima de entrega con el plazo elegido, desde hoy
     this.preliminaryDraftService.registerCouncilDecision(
@@ -109,11 +114,15 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
+          this.isSubmitting.set(false);
           this.showSuccessNotification();
           this.isConfirmModalOpen.set(false);
           this.goBack();
         },
-        error: (err) => this.showSaveErrorNotification(err)
+        error: (err) => {
+          this.isSubmitting.set(false);
+          this.showSaveErrorNotification(err);
+        }
       });
   }
 
