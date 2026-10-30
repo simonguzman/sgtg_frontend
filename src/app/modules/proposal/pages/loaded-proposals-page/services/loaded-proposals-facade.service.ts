@@ -101,7 +101,7 @@ export class LoadedProposalsFacadeService {
 
     const documents = this.buildDocumentsTableData(proposalId);
     const hasDocInReview = documents.some(document => document.status === stateList.EN_REVISION);
-    const isFullyApproved = proposal.state === stateList.APROBADO;
+    const isFullyApproved = proposal.state === stateList.PERTINENTE;
 
     return [{
       action: 'upload_correction',

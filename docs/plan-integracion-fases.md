@@ -533,3 +533,11 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     anotaciones del evaluador, las resoluciones, los informes mensuales ni las notas de revisión
     (`CARPETAS_SIN_VERSION` en `etiquetaDeRuta`). Los archivos de los evaluadores en el formulario del Consejo ya no
     se identifican por su nombre (`track $index`), porque ahora dos pueden llamarse igual.
+41. **Concepto de la propuesta: pertinente o no pertinente.** El Comité de Programa no aprueba la propuesta, la
+    considera pertinente o no. Nuevos estados `stateList.PERTINENTE` y `NO_PERTINENTE` (mismos colores que aprobado y
+    no aprobado); `comoPertinencia` los aplica en `aPropuesta` al estado de la propuesta, al de cada versión y al
+    concepto del Comité, así que se ven en el módulo de propuestas, en las evaluaciones realizadas y donde se muestra
+    el estado de la propuesta. El Comité elige "Pertinente" o "No pertinente"; al backend se sigue enviando `APROBADO`
+    / `NO_APROBADO` (§1 de `ajustes-2026-10-29.md`). En estadísticas cuentan como aprobado / no aprobado. Al registrar
+    el anteproyecto solo se ofrecen las propuestas pertinentes del director (antes también se aceptaba "Aprobado con
+    observaciones", que la propuesta no tiene) y el backend lo valida.

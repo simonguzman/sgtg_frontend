@@ -35,7 +35,7 @@ export class PreliminaryDraftDetailsPageService {
    * Información registrada del anteproyecto: la de la propuesta, los
    * evaluadores, sus fechas (registro, límite de evaluación mientras está en
    * revisión y fecha máxima de entrega), la versión vigente y la respuesta
-   * del Comité que aprobó la propuesta.
+   * del Comité que consideró pertinente la propuesta.
    */
   readonly view = computed<WorkDetailsView | null>(() => {
     const draft = this.preliminaryDraftDetails();
@@ -58,7 +58,7 @@ export class PreliminaryDraftDetailsPageService {
       ],
       documents: [
         vigente && { name: vigente.name, description: 'Versión vigente del anteproyecto', url: vigente.url },
-        respuestaComite && { name: respuestaComite.name, description: 'Formato A firmado por el Comité que aprobó la propuesta',
+        respuestaComite && { name: respuestaComite.name, description: 'Formato A firmado por el Comité que consideró pertinente la propuesta',
           url: respuestaComite.url }
       ]
     });

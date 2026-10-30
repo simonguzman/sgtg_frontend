@@ -43,8 +43,8 @@ describe('ProposalMapperService', () => {
       expect(result.allowedActions).toEqual(['ver descripcion', 'ver', 'editar', 'anular']);
     });
 
-    it('el director puede corregir su propuesta tras un NO APROBADO', () => {
-      const noAprobada = { ...radicada, state: stateList.NO_APROBADO } as Proposal;
+    it('el director puede corregir su propuesta tras un concepto no pertinente', () => {
+      const noAprobada = { ...radicada, state: stateList.NO_PERTINENTE } as Proposal;
       const result = service.mapProposalToTable(noAprobada, 'user-1');
       expect(result.allowedActions).toEqual(['ver descripcion', 'ver', 'editar', 'anular']);
     });
@@ -54,9 +54,9 @@ describe('ProposalMapperService', () => {
       expect(result.allowedActions).toEqual(['ver descripcion', 'ver', 'anular']);
     });
 
-    it('una propuesta aprobada ya no se anula desde aquí (se anula desde el anteproyecto)', () => {
-      const aprobada = { ...radicada, state: stateList.APROBADO } as Proposal;
-      expect(service.mapProposalToTable(aprobada, 'user-1').allowedActions).toEqual(['ver descripcion', 'ver']);
+    it('una propuesta pertinente ya no se anula desde aquí (se anula desde el anteproyecto)', () => {
+      const pertinente = { ...radicada, state: stateList.PERTINENTE } as Proposal;
+      expect(service.mapProposalToTable(pertinente, 'user-1').allowedActions).toEqual(['ver descripcion', 'ver']);
     });
 
     it('otros usuarios solo consultan', () => {
@@ -77,7 +77,7 @@ describe('ProposalMapperService', () => {
     it('debe retornar estado de evaluación si la propuesta está Aprobada/No Aprobada', () => {
       const evaluatedProposal = {
         ...mockProposal,
-        state: stateList.APROBADO,
+        state: stateList.PERTINENTE,
         evaluations: [{ deadlineStatus: 'Aprobado a tiempo' }]
       } as unknown as Proposal;
 
@@ -88,7 +88,7 @@ describe('ProposalMapperService', () => {
     it('toma el estado del plazo de la decisión más reciente del Comité', () => {
       const evaluatedProposal = {
         ...mockProposal,
-        state: stateList.APROBADO,
+        state: stateList.PERTINENTE,
         evaluations: [{ deadlineStatus: 'Evaluado con retraso' }, { deadlineStatus: 'Evaluado en plazo' }]
       } as unknown as Proposal;
 

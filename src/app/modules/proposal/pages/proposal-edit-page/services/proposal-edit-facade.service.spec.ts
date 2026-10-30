@@ -53,8 +53,8 @@ describe('ProposalEditFacadeService', () => {
       expect(onAuthorized).toHaveBeenCalledWith(mockProposal);
       expect(mockNotificationService.show).not.toHaveBeenCalled();
     });
-    it('debe emitir onAuthorized tras un NO APROBADO del Comité', () => {
-      const noAprobada = { ...mockProposal, state: stateList.NO_APROBADO, documents: [{ id: 'd1' }] } as unknown as Proposal;
+    it('debe emitir onAuthorized tras un concepto no pertinente del Comité', () => {
+      const noAprobada = { ...mockProposal, state: stateList.NO_PERTINENTE, documents: [{ id: 'd1' }] } as unknown as Proposal;
       mockProposalService.getProposalById.mockReturnValue(of(noAprobada));
       const onAuthorized = jest.fn();
       service.loadAndAuthorize('prop-1', onAuthorized, jest.fn(), jest.fn());

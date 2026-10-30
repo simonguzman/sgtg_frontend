@@ -33,10 +33,10 @@ export function cartaDeAceptacion(proposal: Pick<Proposal, 'documents'> | null |
 
 /**
  * La propuesta solo se corrige antes de radicar el formato A o después de
- * que el Comité no la apruebe (misma regla del backend).
+ * que el Comité la considere no pertinente (misma regla del backend).
  */
 export function propuestaEditable(proposal: Pick<Proposal, 'state' | 'documents'>): boolean {
-  return proposal.state === stateList.NO_APROBADO || !proposal.documents?.length;
+  return proposal.state === stateList.NO_PERTINENTE || !proposal.documents?.length;
 }
 
 @Injectable({

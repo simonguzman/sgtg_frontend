@@ -21,14 +21,15 @@ export class ProposalDocumentService {
   private readonly vistas = inject(TrabajoGradoVistasService);
 
   /**
-   * Registra el concepto del Comité de Programa: APROBADO (el trabajo pasa a
-   * anteproyecto) o NO APROBADO (el director radica una nueva versión).
+   * Registra el concepto del Comité de Programa: pertinente (APROBADO en el
+   * backend; el trabajo pasa a anteproyecto) o no pertinente (NO_APROBADO; el
+   * director radica una nueva versión).
    *
    * @param signedFile Formato A firmado por el Comité
    */
   registerCommitteeDecision(proposalId: string, veredict: stateList, observations: string,
     signedFile: File): Observable<Proposal> {
-    const resultado = veredict === stateList.APROBADO ? 'APROBADO' : 'NO_APROBADO';
+    const resultado = veredict === stateList.PERTINENTE ? 'APROBADO' : 'NO_APROBADO';
     return this.api.enviarArchivos(proposalId, 'propuesta/decisiones', { resultado, observaciones: observations },
       { archivo: signedFile }).pipe(
       tap(trabajo => this.store.upsert(trabajo)),
@@ -37,7 +38,7 @@ export class ProposalDocumentService {
   }
 
   /**
-   * Radica una nueva versión del formato A (tras un NO APROBADO del Comité).
+   * Radica una nueva versión del formato A (tras un concepto no pertinente del Comité).
    * En práctica profesional va con la nueva carta de aceptación, en la misma
    * petición: el backend no radica la corrección sin ella, y si la radicación
    * falla tampoco registra la carta.

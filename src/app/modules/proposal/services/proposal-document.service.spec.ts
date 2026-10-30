@@ -53,7 +53,7 @@ describe('ProposalDocumentService', () => {
   describe('registerCommitteeDecision', () => {
     it('envía el concepto del Comité con el acta firmada y actualiza el almacén', async () => {
       let resultado: Proposal | undefined;
-      service.registerCommitteeDecision('15', stateList.APROBADO, 'Cumple', pdf('acta.pdf'))
+      service.registerCommitteeDecision('15', stateList.PERTINENTE, 'Cumple', pdf('acta.pdf'))
         .subscribe(propuesta => resultado = propuesta);
 
       const req = http.expectOne(`${API}/15/propuesta/decisiones`);
@@ -63,12 +63,12 @@ describe('ProposalDocumentService', () => {
       expect(await leerDatos(body)).toEqual({ resultado: 'APROBADO', observaciones: 'Cumple' });
       req.flush(crearTrabajoEnAnteproyecto());
 
-      expect(resultado?.state).toBe(stateList.APROBADO);
+      expect(resultado?.state).toBe(stateList.PERTINENTE);
       expect(store.porId().get('15')?.etapa).toBe('ANTEPROYECTO');
     });
 
-    it('cualquier veredicto distinto de APROBADO se envía como NO_APROBADO', async () => {
-      service.registerCommitteeDecision('15', stateList.NO_APROBADO, 'Ajustar objetivos', pdf('acta.pdf')).subscribe();
+    it('cualquier veredicto distinto de pertinente se envía como NO_APROBADO', async () => {
+      service.registerCommitteeDecision('15', stateList.NO_PERTINENTE, 'Ajustar objetivos', pdf('acta.pdf')).subscribe();
 
       const req = http.expectOne(`${API}/15/propuesta/decisiones`);
       expect(await leerDatos(req.request.body as FormData))
@@ -78,7 +78,7 @@ describe('ProposalDocumentService', () => {
 
     it('si el backend falla no emite eventos', () => {
       let error: unknown;
-      service.registerCommitteeDecision('15', stateList.APROBADO, '', pdf('acta.pdf'))
+      service.registerCommitteeDecision('15', stateList.PERTINENTE, '', pdf('acta.pdf'))
         .subscribe({ error: e => error = e });
 
       http.expectOne(`${API}/15/propuesta/decisiones`)

@@ -47,10 +47,10 @@ describe('Evaluation Utils: resolveApprovedEvaluationDocument', () => {
     expect(resolveApprovedEvaluationDocument([])).toBeNull();
   });
 
-  it('debería retornar null si ninguna evaluación tiene el veredicto APROBADO', () => {
+  it('debería retornar null si ninguna evaluación tiene el concepto pertinente', () => {
     const evaluations: Evaluation[] = [
       createMockEvaluation({ veredict: stateList.EN_REVISION }),
-      createMockEvaluation({ veredict: stateList.NO_APROBADO }),
+      createMockEvaluation({ veredict: stateList.NO_PERTINENTE }),
       createMockEvaluation({ veredict: stateList.APROBADO_CON_OBSERVACIONES })
     ];
 
@@ -59,7 +59,7 @@ describe('Evaluation Utils: resolveApprovedEvaluationDocument', () => {
 
   it('debería retornar null si la evaluación APROBADA existe pero no tiene la propiedad signedDocuments', () => {
     const evaluations: Evaluation[] = [
-      createMockEvaluation({ veredict: stateList.APROBADO, signedDocuments: undefined })
+      createMockEvaluation({ veredict: stateList.PERTINENTE, signedDocuments: undefined })
     ];
 
     expect(resolveApprovedEvaluationDocument(evaluations)).toBeNull();
@@ -67,7 +67,7 @@ describe('Evaluation Utils: resolveApprovedEvaluationDocument', () => {
 
   it('debería retornar null si la evaluación APROBADA existe pero el arreglo signedDocuments está vacío', () => {
     const evaluations: Evaluation[] = [
-      createMockEvaluation({ veredict: stateList.APROBADO, signedDocuments: [] })
+      createMockEvaluation({ veredict: stateList.PERTINENTE, signedDocuments: [] })
     ];
 
     expect(resolveApprovedEvaluationDocument(evaluations)).toBeNull();
@@ -78,10 +78,10 @@ describe('Evaluation Utils: resolveApprovedEvaluationDocument', () => {
     const mockDocNew = createMockFormattedDocument('documento-reciente.pdf');
 
     const evaluations: Evaluation[] = [
-      createMockEvaluation({ id: '1', veredict: stateList.APROBADO, signedDocuments: [mockDocOld] }),
+      createMockEvaluation({ id: '1', veredict: stateList.PERTINENTE, signedDocuments: [mockDocOld] }),
       createMockEvaluation({ id: '2', veredict: stateList.EN_REVISION }),
-      createMockEvaluation({ id: '3', veredict: stateList.APROBADO, signedDocuments: [mockDocNew] }),
-      createMockEvaluation({ id: '4', veredict: stateList.NO_APROBADO })
+      createMockEvaluation({ id: '3', veredict: stateList.PERTINENTE, signedDocuments: [mockDocNew] }),
+      createMockEvaluation({ id: '4', veredict: stateList.NO_PERTINENTE })
     ];
 
     const result = resolveApprovedEvaluationDocument(evaluations);
@@ -92,8 +92,8 @@ describe('Evaluation Utils: resolveApprovedEvaluationDocument', () => {
   it('no debería mutar ni invertir el arreglo original de evaluaciones', () => {
     const evaluations: Evaluation[] = [
       createMockEvaluation({ id: 'eval-1', veredict: stateList.EN_REVISION }),
-      createMockEvaluation({ id: 'eval-2', veredict: stateList.APROBADO, signedDocuments: [createMockFormattedDocument('test.pdf')] }),
-      createMockEvaluation({ id: 'eval-3', veredict: stateList.NO_APROBADO })
+      createMockEvaluation({ id: 'eval-2', veredict: stateList.PERTINENTE, signedDocuments: [createMockFormattedDocument('test.pdf')] }),
+      createMockEvaluation({ id: 'eval-3', veredict: stateList.NO_PERTINENTE })
     ];
 
     const originalLength = evaluations.length;

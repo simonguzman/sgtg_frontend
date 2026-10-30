@@ -3,7 +3,7 @@
 
     @if (!isEditMode) {
       <app-info-banner title="Registro de nuevo anteproyecto">
-        Seleccione la propuesta aprobada, diligencie los campos requeridos y cargue el documento del anteproyecto. Una vez registrado, se habilitará para la <strong>asignación de evaluadores</strong>. Por favor, <strong>revise bien la información</strong> antes de confirmar el registro.
+        Seleccione la propuesta con concepto pertinente del Comité, diligencie los campos requeridos y cargue el documento del anteproyecto. Una vez registrado, se habilitará para la <strong>asignación de evaluadores</strong>. Por favor, <strong>revise bien la información</strong> antes de confirmar el registro.
       </app-info-banner>
 
       <section class="animate-fade-in">
@@ -13,7 +13,7 @@
 
         <div class="flex flex-col gap-1">
           <label for="proposalId" class="font-display font-semibold text-primary text-size-section">
-            Propuestas aprobadas <span class="text-alert">*</span>
+            Propuestas pertinentes <span class="text-alert">*</span>
           </label>
 
           <div class="relative flex items-center w-full">
@@ -21,7 +21,7 @@
               id="proposalId"
               formControlName="proposalId"
               [options]="proposalOptions"
-              placeholder="Seleccione una de las propuestas aprobadas"
+              placeholder="Seleccione una de las propuestas pertinentes"
               [hasError]="isFieldInvalid('proposalId')"
               [isValid]="isFieldValid('proposalId')"
               class="w-full block">
@@ -188,7 +188,7 @@
 
       @if (proposalEvaluationDocument; as evaluationDoc) {
         <div class="information-block mb-6 p-6 rounded-xl transition-all shadow-sm">
-          <span class="font-display font-semibold text-primary text-size-section mb-3 block">Propuesta aprobada por el Comité</span>
+          <span class="font-display font-semibold text-primary text-size-section mb-3 block">Propuesta pertinente según el Comité</span>
           <div class="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl shadow-sm border-l-4 border-l-primary">
             <div class="flex items-center gap-3">
               <span class="material-symbols-outlined text-danger text-file">picture_as_pdf</span>

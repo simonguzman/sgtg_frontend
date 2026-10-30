@@ -7,5 +7,8 @@ export enum stateList{
   EVALUADO = 'Evaluado',
   EN_REVISION = 'En revisión',
   CANCELADO = 'Cancelado',
-  SUSPENDIDO = 'Suspendido'
+  SUSPENDIDO = 'Suspendido',
+  // Concepto del Comité de Programa sobre la propuesta (en el backend, APROBADO / NO_APROBADO)
+  PERTINENTE = 'Pertinente',
+  NO_PERTINENTE = 'No pertinente'
 }

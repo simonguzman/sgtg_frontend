@@ -62,11 +62,11 @@ describe('trabajo-grado.mapper', () => {
     it('la decisión del Comité es su evaluación y define el estado', () => {
       const propuesta = aPropuesta(crearTrabajoEnAnteproyecto(), ctx);
 
-      expect(propuesta.state).toBe(stateList.APROBADO);
+      expect(propuesta.state).toBe(stateList.PERTINENTE);
       expect(propuesta.evaluations).toEqual([expect.objectContaining({
         evaluatorName: 'Comité de Programa',
         evaluatorRole: UserRoleType.COMITE,
-        veredict: stateList.APROBADO,
+        veredict: stateList.PERTINENTE,
         signedDocuments: [expect.objectContaining({ name: 'Formato A firmado' })]
       })]);
     });
@@ -97,7 +97,7 @@ describe('trabajo-grado.mapper', () => {
 
       expect(propuesta.state).toBe(stateList.EN_REVISION);
       expect(propuesta.documents.map(documento => documento.status))
-        .toEqual([stateList.NO_APROBADO, stateList.EN_REVISION]);
+        .toEqual([stateList.NO_PERTINENTE, stateList.EN_REVISION]);
     });
 
     it('sin versiones radicadas la propuesta no tiene anteproyecto', () => {

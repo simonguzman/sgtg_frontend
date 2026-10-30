@@ -15,8 +15,8 @@ import { NavigationHistoryService } from '../../../../../core/services/navigatio
 export type { SaveProposalEvaluationEvent };
 
 const RESULT_TO_STATE: Record<string, stateList> = {
-  'Aprobado': stateList.APROBADO,
-  'No aprobado': stateList.NO_APROBADO
+  'Pertinente': stateList.PERTINENTE,
+  'No pertinente': stateList.NO_PERTINENTE
 };
 
 @Injectable({ providedIn: 'root' })

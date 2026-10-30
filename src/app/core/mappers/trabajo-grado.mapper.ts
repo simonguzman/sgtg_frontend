@@ -30,7 +30,7 @@ import { CorrectedDelivery } from '../../modules/thesis-work/interfaces/correcte
  * desde un único trabajo del backend. Las tres usan el **id del trabajo**.
  *
  * - Propuesta: siempre existe.
- * - Anteproyecto: existe cuando el Comité aprobó la propuesta.
+ * - Anteproyecto: existe cuando el Comité consideró pertinente la propuesta.
  * - Trabajo de grado: existe cuando el Consejo aprobó el anteproyecto (hay ejecución).
  * - Todas quedan archivadas (`isArchived`) cuando el trabajo se cierra.
  */
@@ -50,7 +50,7 @@ export function aPropuesta(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): P
   const versiones = trabajo.propuesta.versiones;
   const documentos: FileDocument[] = versiones.map(version => ({
     ...aDocumento(trabajo.id, version, ctx, DocumentType.PROPUESTA),
-    status: estadoDeEntrega(version.estado)
+    status: comoPertinencia(estadoDeEntrega(version.estado))
   }));
   if (trabajo.cartaAceptacion) {
     documentos.push(aDocumento(trabajo.id, trabajo.cartaAceptacion, ctx, DocumentType.FORMATO));
@@ -75,9 +75,11 @@ export function aPropuesta(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): P
     evaluationDeadline: aFecha(trabajo.propuesta.fechaLimiteConcepto) ?? undefined,
     evaluationRemainingDays: trabajo.propuesta.diasHabilesRestantesConcepto ?? null,
     documents: documentos,
-    // El Comité emite un concepto por cada versión radicada, en el mismo orden
-    evaluations: trabajo.propuesta.decisiones.map((decision, i) =>
-      evaluacionDeDecision(trabajo, decision, i, ctx, versiones[i]?.ruta)),
+    // El Comité emite un concepto (pertinente o no) por cada versión radicada, en el mismo orden
+    evaluations: trabajo.propuesta.decisiones.map((decision, i) => {
+      const evaluacion = evaluacionDeDecision(trabajo, decision, i, ctx, versiones[i]?.ruta);
+      return { ...evaluacion, veredict: comoPertinencia(evaluacion.veredict) };
+    }),
     isArchived: estaCerrado(trabajo),
     isActive: true
   };
@@ -519,9 +521,20 @@ function ultimoEstado(versiones: VersionDocumentoApi[]): EstadoApi | null {
   return versiones.length > 0 ? versiones[versiones.length - 1].estado : null;
 }
 
+/**
+ * El concepto del Comité de Programa sobre la propuesta es de pertinencia: el
+ * APROBADO del backend se muestra como "Pertinente" y el NO_APROBADO como "No
+ * pertinente". Los demás estados no cambian.
+ */
+export function comoPertinencia(estado: stateList): stateList {
+  if (estado === stateList.APROBADO) return stateList.PERTINENTE;
+  if (estado === stateList.NO_APROBADO) return stateList.NO_PERTINENTE;
+  return estado;
+}
+
 /** Estado de la propuesta: el de su última versión (en revisión o el concepto del Comité). */
 export function estadoPropuesta(trabajo: TrabajoGradoResponse): stateList {
-  const estado = estadoDeEntrega(estadoActualPropuesta(trabajo));
+  const estado = comoPertinencia(estadoDeEntrega(estadoActualPropuesta(trabajo)));
   if (estado === stateList.EN_REVISION && trabajo.etapa === 'CANCELADO') return stateList.CANCELADO;
   return estado;
 }

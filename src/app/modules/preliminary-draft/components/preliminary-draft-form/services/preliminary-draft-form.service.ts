@@ -46,10 +46,11 @@ export class PreliminaryDraftFormService {
     const activeDraftId = this.currentPreliminaryDraftId();
     return allProposals.filter(proposal => {
       if (activeDraftId && proposal.id === this.form.get('proposalId')?.value) return true;
-      const isApproved = proposal.state === stateList.APROBADO || proposal.state === stateList.APROBADO_CON_OBSERVACIONES;
+      // Solo las propuestas con concepto pertinente del Comité pasan a anteproyecto
+      const isPertinent = proposal.state === stateList.PERTINENTE;
       const isDirector = proposal.director?.id === currentUser?.id;
       const isAlreadyRegistered = existingPreliminaryDrafts.some(draft => draft.proposalId === proposal.id);
-      return isApproved && isDirector && !isAlreadyRegistered;
+      return isPertinent && isDirector && !isAlreadyRegistered;
     });
   });
 
@@ -64,7 +65,7 @@ export class PreliminaryDraftFormService {
     const approvedEvaluation = [...proposal.evaluations]
       .reverse()
       .find(evaluation =>
-        evaluation.veredict === stateList.APROBADO
+        evaluation.veredict === stateList.PERTINENTE
       );
     return approvedEvaluation?.signedDocuments?.[0] ?? null;
   });

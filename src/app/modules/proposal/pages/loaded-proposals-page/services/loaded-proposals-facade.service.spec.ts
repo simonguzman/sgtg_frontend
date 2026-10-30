@@ -131,7 +131,7 @@ describe('LoadedProposalsFacadeService', () => {
     });
 
     it('agrupa la carta con la primera versión y lista los registros del más reciente al más antiguo', () => {
-      const v1 = { ...mockDocument, id: 'v1', type: DocumentType.PROPUESTA, version: 1, status: stateList.NO_APROBADO };
+      const v1 = { ...mockDocument, id: 'v1', type: DocumentType.PROPUESTA, version: 1, status: stateList.NO_PERTINENTE };
       const v2 = { ...mockDocument, id: 'v2', type: DocumentType.PROPUESTA, version: 2, status: stateList.EN_REVISION };
       const carta = { ...mockDocument, id: 'carta', type: DocumentType.FORMATO, version: 1, status: undefined };
       mockAllProposalsSignal.set([{ ...mockProposal, documents: [v1, carta, v2] }]);
@@ -269,14 +269,14 @@ describe('LoadedProposalsFacadeService', () => {
     });
 
     it('debería retornar botón habilitado si no hay docs en revisión y no está totalmente aprobada', () => {
-      mockMapper.mapRegistrationToRow.mockReturnValue({ ...mockMappedRow, status: stateList.NO_APROBADO });
+      mockMapper.mapRegistrationToRow.mockReturnValue({ ...mockMappedRow, status: stateList.NO_PERTINENTE });
       const buttons = service.buildHeaderButtons('prop-1');
       expect(buttons[0].disabled).toBe(false);
     });
 
-    it('debería retornar botón deshabilitado si la propuesta está APROBADA (totalmente)', () => {
-      mockMapper.mapRegistrationToRow.mockReturnValue({ ...mockMappedRow, status: stateList.APROBADO });
-      mockAllProposalsSignal.set([{ ...mockProposal, state: stateList.APROBADO } as Proposal]);
+    it('debería retornar botón deshabilitado si la propuesta es pertinente', () => {
+      mockMapper.mapRegistrationToRow.mockReturnValue({ ...mockMappedRow, status: stateList.PERTINENTE });
+      mockAllProposalsSignal.set([{ ...mockProposal, state: stateList.PERTINENTE } as Proposal]);
       const buttons = service.buildHeaderButtons('prop-1');
       expect(buttons[0].disabled).toBe(true);
     });

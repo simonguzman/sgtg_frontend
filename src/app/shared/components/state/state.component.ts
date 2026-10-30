@@ -24,7 +24,9 @@ export class StateComponent {
     [stateList.EN_DESARROLLO]: 'state-desarrollo',
     [stateList.APLAZADO]: 'state-aplazado',
     [stateList.CANCELADO]: 'state-cancelado',
-    [stateList.SUSPENDIDO]: 'state-suspendido'
+    [stateList.SUSPENDIDO]: 'state-suspendido',
+    [stateList.PERTINENTE]: 'state-aprobado',
+    [stateList.NO_PERTINENTE]: 'state-no-aprobado'
   }
 
   getState(): string {

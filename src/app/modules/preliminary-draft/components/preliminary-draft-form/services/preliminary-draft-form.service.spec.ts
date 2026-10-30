@@ -32,7 +32,7 @@ const createMockEvaluation = (overrides: Partial<Evaluation> = {}): Evaluation =
   evaluatorId: 'u2',
   evaluatorName: 'Evaluador Prueba',
   evaluatorRole: 'Evaluador',
-  veredict: stateList.APROBADO,
+  veredict: stateList.PERTINENTE,
   observations: '',
   signedDocuments: [],
   date: new Date(),
@@ -43,7 +43,7 @@ const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
   id: 'p1',
   title: 'Propuesta de Prueba',
   description: 'Descripción de prueba',
-  state: stateList.APROBADO,
+  state: stateList.PERTINENTE,
   director: createMockUser(),
   evaluations: [],
   ...overrides
@@ -126,15 +126,15 @@ describe('PreliminaryDraftFormService', () => {
   });
 
   describe('availableProposals (Signal Computed)', () => {
-    it('debería retornar solo propuestas aprobadas donde el usuario sea director y no tengan anteproyecto', () => {
+    it('debería retornar solo propuestas pertinentes donde el usuario sea director y no tengan anteproyecto', () => {
       const mockUser = createMockUser({ id: 'u1' });
       currentUserSignal.set(mockUser);
 
       const proposals: Proposal[] = [
-        createMockProposal({ id: 'p1', state: stateList.APROBADO, director: createMockUser({ id: 'u1' }) }),
+        createMockProposal({ id: 'p1', state: stateList.PERTINENTE, director: createMockUser({ id: 'u1' }) }),
         createMockProposal({ id: 'p2', state: stateList.EN_REVISION, director: createMockUser({ id: 'u1' }) }),
-        createMockProposal({ id: 'p3', state: stateList.APROBADO, director: createMockUser({ id: 'u2' }) }),
-        createMockProposal({ id: 'p4', state: stateList.APROBADO, director: createMockUser({ id: 'u1' }) })
+        createMockProposal({ id: 'p3', state: stateList.PERTINENTE, director: createMockUser({ id: 'u2' }) }),
+        createMockProposal({ id: 'p4', state: stateList.PERTINENTE, director: createMockUser({ id: 'u1' }) })
       ];
 
       const drafts: PreliminaryDraft[] = [
@@ -150,19 +150,17 @@ describe('PreliminaryDraftFormService', () => {
       expect(result[0].id).toBe('p1');
     });
 
-    it('debería incluir propuestas con estado APROBADO_CON_OBSERVACIONES', () => {
+    it('no ofrece propuestas sin concepto pertinente del Comité (en revisión o no pertinentes)', () => {
       const mockUser = createMockUser({ id: 'u1' });
       currentUserSignal.set(mockUser);
 
-      const proposals: Proposal[] = [
-        createMockProposal({ id: 'p1', state: stateList.APROBADO_CON_OBSERVACIONES, director: createMockUser({ id: 'u1' }) })
-      ];
+      proposalsSignal.set([
+        createMockProposal({ id: 'p1', state: stateList.EN_REVISION, director: mockUser }),
+        createMockProposal({ id: 'p2', state: stateList.NO_PERTINENTE, director: mockUser }),
+        createMockProposal({ id: 'p3', state: stateList.PERTINENTE, director: mockUser })
+      ]);
 
-      proposalsSignal.set(proposals);
-      const result = service.availableProposals();
-
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('p1');
+      expect(service.availableProposals().map(proposal => proposal.id)).toEqual(['p3']);
     });
 
     it('debería incluir siempre la propuesta asociada si estamos en modo edición (activeDraftId)', () => {
@@ -184,7 +182,7 @@ describe('PreliminaryDraftFormService', () => {
       const mockUser = createMockUser({ id: 'u1' });
       currentUserSignal.set(mockUser);
 
-      const validProposal = createMockProposal({ id: 'p1', title: 'Título Opciones', state: stateList.APROBADO, director: mockUser });
+      const validProposal = createMockProposal({ id: 'p1', title: 'Título Opciones', state: stateList.PERTINENTE, director: mockUser });
       proposalsSignal.set([validProposal]);
 
       const options = service.proposalOptions();
@@ -201,13 +199,13 @@ describe('PreliminaryDraftFormService', () => {
       expect(service.proposalEvaluationDocument()).toBeNull();
     });
 
-    it('debería retornar el primer documento firmado de la última evaluación aprobada', () => {
+    it('debería retornar el primer documento firmado de la última evaluación pertinente', () => {
       const mockDocument = { name: 'evaluacion.pdf', url: 'data:...' } as FormattedDocument;
       const proposal = createMockProposal({
         id: 'p1',
         evaluations: [
-          createMockEvaluation({ veredict: stateList.NO_APROBADO, signedDocuments: [] }),
-          createMockEvaluation({ veredict: stateList.APROBADO, signedDocuments: [mockDocument] })
+          createMockEvaluation({ veredict: stateList.NO_PERTINENTE, signedDocuments: [] }),
+          createMockEvaluation({ veredict: stateList.PERTINENTE, signedDocuments: [mockDocument] })
         ]
       });
 
@@ -220,11 +218,11 @@ describe('PreliminaryDraftFormService', () => {
       expect(service.proposalEvaluationDocument()).toEqual(mockDocument);
     });
 
-    it('debería retornar null si la última evaluación aprobada no tiene documentos firmados', () => {
+    it('debería retornar null si la última evaluación pertinente no tiene documentos firmados', () => {
       const proposal = createMockProposal({
         id: 'p1',
         evaluations: [
-          createMockEvaluation({ veredict: stateList.APROBADO, signedDocuments: undefined })
+          createMockEvaluation({ veredict: stateList.PERTINENTE, signedDocuments: undefined })
         ]
       });
 

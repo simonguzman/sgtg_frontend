@@ -231,7 +231,7 @@ describe('EvaluationProposalFacadeService', () => {
 
     const mockFile = new File(['contenido mock'], 'evaluacion_firmada.pdf', { type: 'application/pdf' });
     const eventPayload: SaveProposalEvaluationEvent = {
-      result: 'Aprobado',
+      result: 'Pertinente',
       comments: 'Excelente propuesta',
       file: mockFile
     };
@@ -243,7 +243,7 @@ describe('EvaluationProposalFacadeService', () => {
       await service.saveEvaluation(eventPayload, mockProposal, mockRoute, onError);
 
       expect(mockProposalService.registerCommitteeDecision)
-        .toHaveBeenCalledWith('prop-100', stateList.APROBADO, 'Excelente propuesta', mockFile);
+        .toHaveBeenCalledWith('prop-100', stateList.PERTINENTE, 'Excelente propuesta', mockFile);
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Evaluación registrada', type: NotificationType.CONFIRMATION })
       );
@@ -251,13 +251,13 @@ describe('EvaluationProposalFacadeService', () => {
       expect(onError).not.toHaveBeenCalled();
     });
 
-    it('debería enviar NO APROBADO cuando el Comité no aprueba', async () => {
+    it('envía no pertinente cuando el Comité no la considera pertinente', async () => {
       mockProposalService.registerCommitteeDecision.mockReturnValue(of({} as Proposal));
 
-      await service.saveEvaluation({ ...eventPayload, result: 'No aprobado' }, mockProposal, mockRoute, jest.fn());
+      await service.saveEvaluation({ ...eventPayload, result: 'No pertinente' }, mockProposal, mockRoute, jest.fn());
 
       expect(mockProposalService.registerCommitteeDecision)
-        .toHaveBeenCalledWith('prop-100', stateList.NO_APROBADO, 'Excelente propuesta', mockFile);
+        .toHaveBeenCalledWith('prop-100', stateList.NO_PERTINENTE, 'Excelente propuesta', mockFile);
     });
 
     it('debería fallar sin llamar al backend si la propuesta no tiene ID', async () => {

@@ -58,7 +58,7 @@ const createMockEvaluation = (overrides: Partial<Evaluation> = {}): Evaluation =
   evaluatorId: 'u1',
   evaluatorName: 'Evaluador Mock',
   evaluatorRole: 'Jurado',
-  veredict: stateList.APROBADO,
+  veredict: stateList.PERTINENTE,
   observations: '',
   date: new Date(),
   signedDocuments: [createMockFormattedDocument()],
@@ -203,11 +203,11 @@ describe('PreliminaryDraftDetailsPageService', () => {
   });
 
   describe('Señal Computada: approvedProposalDocument()', () => {
-    it('debería obtener el documento firmado de la última evaluación aprobada de la propuesta', () => {
+    it('debería obtener el documento firmado de la última evaluación pertinente de la propuesta', () => {
       const mockDoc = createMockFormattedDocument({ name: 'documento_aprobado.pdf' });
       const draft = createMockDraft({
         proposalData: createMockProposalData({
-          evaluations: [createMockEvaluation({ veredict: stateList.APROBADO, signedDocuments: [mockDoc] })]
+          evaluations: [createMockEvaluation({ veredict: stateList.PERTINENTE, signedDocuments: [mockDoc] })]
         })
       });
       service.preliminaryDraftDetails.set(draft);
@@ -248,7 +248,7 @@ describe('PreliminaryDraftDetailsPageService', () => {
       ]);
       expect(view.documents).toEqual([
         expect.objectContaining({ name: 'Anteproyecto', description: 'Versión vigente del anteproyecto' }),
-        expect.objectContaining({ description: 'Formato A firmado por el Comité que aprobó la propuesta' })
+        expect.objectContaining({ description: 'Formato A firmado por el Comité que consideró pertinente la propuesta' })
       ]);
     });
 
@@ -282,7 +282,7 @@ describe('PreliminaryDraftDetailsPageService', () => {
       const mockDoc = createMockFormattedDocument();
       service.preliminaryDraftDetails.set(createMockDraft({
         proposalData: createMockProposalData({
-          evaluations: [createMockEvaluation({ veredict: stateList.APROBADO, signedDocuments: [mockDoc] })]
+          evaluations: [createMockEvaluation({ veredict: stateList.PERTINENTE, signedDocuments: [mockDoc] })]
         })
       }));
       mockDownloadService.download.mockResolvedValue(undefined);
@@ -316,7 +316,7 @@ describe('PreliminaryDraftDetailsPageService', () => {
       const mockDoc = createMockFormattedDocument();
       service.preliminaryDraftDetails.set(createMockDraft({
         proposalData: createMockProposalData({
-          evaluations: [createMockEvaluation({ veredict: stateList.APROBADO, signedDocuments: [mockDoc] })]
+          evaluations: [createMockEvaluation({ veredict: stateList.PERTINENTE, signedDocuments: [mockDoc] })]
         })
       }));
       mockDownloadService.download.mockRejectedValue(new Error('Fallo de red'));

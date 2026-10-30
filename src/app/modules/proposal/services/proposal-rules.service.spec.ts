@@ -78,10 +78,10 @@ describe('propuestaEditable', () => {
   it('permite corregir antes de radicar el formato A', () => {
     expect(propuestaEditable({ state: stateList.EN_REVISION, documents: [] })).toBe(true);
   });
-  it('permite corregir después de un NO APROBADO del Comité', () => {
-    expect(propuestaEditable({ state: stateList.NO_APROBADO, documents: [documento] })).toBe(true);
+  it('permite corregir después de un concepto no pertinente del Comité', () => {
+    expect(propuestaEditable({ state: stateList.NO_PERTINENTE, documents: [documento] })).toBe(true);
   });
-  it.each([stateList.EN_REVISION, stateList.APROBADO])('no permite corregir una propuesta radicada en estado %s', estado => {
+  it.each([stateList.EN_REVISION, stateList.PERTINENTE])('no permite corregir una propuesta radicada en estado %s', estado => {
     expect(propuestaEditable({ state: estado, documents: [documento] })).toBe(false);
   });
 });

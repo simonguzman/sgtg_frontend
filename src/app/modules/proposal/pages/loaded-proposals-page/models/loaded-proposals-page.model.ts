@@ -11,7 +11,7 @@ export interface DocumentTableRow {
   id: string;
   name: string;
   uploadDate: string | Date;
-  /** Estado de la revisión de la versión (En revisión, Aprobado, No aprobado) */
+  /** Estado de la revisión de la versión (En revisión, Pertinente, No pertinente) */
   status?: stateList;
   /** Número de versión del formato A; vacío si el registro no tiene formato A */
   version?: number;

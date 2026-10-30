@@ -69,7 +69,8 @@ export function getSingleEvaluationDeadlineLabel(
   remainingBusinessDays: number | null | undefined,
   latestEvaluation: Evaluation | undefined
 ): string {
-  const isEvaluated = state === stateList.APROBADO || state === stateList.NO_APROBADO;
+  const isEvaluated = [stateList.APROBADO, stateList.NO_APROBADO, stateList.PERTINENTE, stateList.NO_PERTINENTE]
+    .includes(state);
 
   if (isEvaluated) {
     return latestEvaluation?.deadlineStatus

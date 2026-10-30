@@ -10,12 +10,12 @@ import { getSingleEvaluationDeadlineLabel } from '../../../../history/helpers/de
 export class ProposalMapperService {
   /**
    * @param annullable true si el trabajo está en una etapa en la que se puede anular; sin el dato del backend, mientras
-   *        la propuesta no esté aprobada
+   *        la propuesta no sea pertinente
    */
   public mapProposalToTable(
     proposal: Proposal,
     currentUserId: string | undefined,
-    annullable = proposal.state !== stateList.APROBADO
+    annullable = proposal.state !== stateList.PERTINENTE
   ): ProposalTableRow {
     // Solo el director corrige su propuesta, y solo cuando el estado lo permite
     const canEdit = proposal.director?.id === currentUserId && propuestaEditable(proposal);
