@@ -18,6 +18,7 @@ interface MockFormService {
   initForEdit: jest.Mock;
   buildProposalPayload: jest.Mock;
   isProfessionalPractice: jest.Mock;
+  isResearchWork: jest.Mock;
   modalityOptions: SelectOption[];
   student1Options: WritableSignal<SelectOption[]>;
   student2Options: WritableSignal<SelectOption[]>;
@@ -99,6 +100,7 @@ describe('ProposalFormComponent', () => {
       initForEdit: jest.fn(),
       buildProposalPayload: jest.fn(),
       isProfessionalPractice: jest.fn(() => mockFormGroup.get('modality')?.value === Modality.PP),
+      isResearchWork: jest.fn(() => mockFormGroup.get('modality')?.value === Modality.TI),
       modalityOptions: [{ id: '1', label: 'Practica profesional' }],
       student1Options: signal([{ id: 'stu1', label: 'Estudiante 1' }]),
       student2Options: signal([]),

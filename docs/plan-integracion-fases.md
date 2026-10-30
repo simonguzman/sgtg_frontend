@@ -551,3 +551,7 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     solo asigna o quita Estudiante y Docente (los demás roles aparecen bloqueados en los modales, `UserRole.locked`), el
     Comité y el jefe solo eligen su departamento y sus programas, y solo el administrador crea departamentos y programas
     (`allowCreate` del modal de catálogo). El backend valida todo (§4 de `ajustes-2026-10-29.md`).
+44. **Propuesta: objetivos específicos y línea de investigación obligatorios.** El formulario de registro y corrección
+    de la propuesta exige al menos un objetivo específico con texto (validador del `FormArray`; los campos vacíos no se
+    envían) y, en un trabajo de investigación, la línea de investigación (en práctica profesional sigue opcional). El
+    backend lo valida igual (§5 de `ajustes-2026-10-29.md`).

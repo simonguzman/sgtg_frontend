@@ -1,5 +1,5 @@
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
-import { FormArray, FormBuilder, FormControl, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, ValidatorFn, Validators } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, map, of } from 'rxjs';
 import { TrabajoGradoApiService } from '../../../../../core/services/trabajo-grado/trabajo-grado-api.service';
@@ -19,6 +19,12 @@ import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 /** Campos de participantes: se fijan al crear el trabajo y no se editan después. */
 const CAMPOS_PARTICIPANTES = ['modality', 'student1', 'student2', 'codirector', 'advisor', 'organization'] as const;
 
+/** Al menos un objetivo específico con texto (los campos vacíos no se envían). */
+const alMenosUnObjetivoEspecifico: ValidatorFn = control =>
+  (control as FormArray<FormControl<string>>).controls.some(objetivo => !!objetivo.value?.trim())
+    ? null
+    : { objetivosEspecificos: true };
+
 @Injectable()
 export class ProposalFormService {
   private readonly fb = inject(FormBuilder);
@@ -33,8 +39,9 @@ export class ProposalFormService {
     title: ['', Validators.required],
     /** Objetivo general (primer objetivo del trabajo) */
     description: ['', Validators.required],
-    /** Objetivos específicos, un campo por objetivo (opcionales; los vacíos no se envían) */
-    specificObjectives: this.fb.array<FormControl<string>>([this.fb.nonNullable.control('')]),
+    /** Objetivos específicos, un campo por objetivo (al menos uno; los vacíos no se envían) */
+    specificObjectives: this.fb.array<FormControl<string>>([this.fb.nonNullable.control('')],
+      { validators: alMenosUnObjetivoEspecifico }),
     generalDescription: [''],
     lineOfResearch: [''],
     modality: ['', Validators.required],
@@ -183,6 +190,11 @@ export class ProposalFormService {
     (objectives.length ? objectives : ['']).forEach(objective => this.addSpecificObjective(objective));
   }
 
+  /** @returns true si la modalidad elegida es trabajo de investigación (exige la línea de investigación) */
+  isResearchWork(): boolean {
+    return this.form.get('modality')?.value === Modality.TI;
+  }
+
   /** @returns true si la modalidad elegida es práctica profesional */
   isProfessionalPractice(): boolean {
     return this.form.get('modality')?.value === Modality.PP;
@@ -206,6 +218,10 @@ export class ProposalFormService {
         }
         // La práctica profesional es de un solo estudiante
         if (esPractica) this.form.get('student2')?.setValue('', { emitEvent: false });
+        // El trabajo de investigación exige su línea de investigación
+        const lineOfResearch = this.form.controls.lineOfResearch;
+        lineOfResearch.setValidators(modality === Modality.TI ? Validators.required : []);
+        lineOfResearch.updateValueAndValidity({ emitEvent: false });
       });
 
     this.form.get('student1')?.valueChanges

@@ -51,13 +51,14 @@
         </div>
 
         <div class="flex flex-col gap-2" formArrayName="specificObjectives">
-          <span class="font-display font-semibold text-size-section title-textbox">Objetivos específicos</span>
+          <span class="font-display font-semibold text-size-section title-textbox">Objetivos específicos <span class="text-alert">*</span></span>
           @for (objective of specificObjectives.controls; track objective) {
             <div class="relative flex items-center gap-2">
               <label [for]="'specificObjective-' + $index" class="sr-only">Objetivo específico {{ $index + 1 }}</label>
               <input [id]="'specificObjective-' + $index" type="text" [formControlName]="$index"
                      [placeholder]="'Objetivo específico ' + ($index + 1)"
-                     class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary">
+                     class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
+                     [class.border-alert]="specificObjectivesInvalid">
               @if (specificObjectives.length > 1) {
                 <button type="button" (click)="removeSpecificObjective($index)"
                         class="text-text-body hover:text-danger transition-colors" aria-label="Quitar objetivo específico">
@@ -65,6 +66,9 @@
                 </button>
               }
             </div>
+          }
+          @if (specificObjectivesInvalid) {
+            <span class="text-textbox-alert">Debe registrar al menos un objetivo específico</span>
           }
           <div>
             <app-button-component label="Agregar objetivo específico" variant="secondary" type="button"
@@ -80,9 +84,15 @@
         </div>
 
         <div class="flex flex-col gap-1">
-          <label for="lineOfResearch" class="font-display font-semibold text-size-section title-textbox">Línea de investigación</label>
-          <input id="lineOfResearch" type="text" formControlName="lineOfResearch" placeholder="Ej: Ingeniería de software (opcional)"
-                 class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary">
+          <label for="lineOfResearch" class="font-display font-semibold text-size-section title-textbox">Línea de investigación
+            @if (lineOfResearchRequired) { <span class="text-alert">*</span> }</label>
+          <input id="lineOfResearch" type="text" formControlName="lineOfResearch"
+                 [placeholder]="lineOfResearchRequired ? 'Ej: Ingeniería de software' : 'Ej: Ingeniería de software (opcional)'"
+                 class="font-sans font-normal text-size-body text-textbox p-2 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
+                 [class.border-alert]="isFieldInvalid('lineOfResearch')">
+          @if (isFieldInvalid('lineOfResearch')) {
+            <span class="text-textbox-alert">La línea de investigación es obligatoria en un trabajo de investigación</span>
+          }
         </div>
 
         <div class="flex flex-col gap-1">

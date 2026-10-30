@@ -77,6 +77,12 @@ export class ProposalFormComponent {
   addSpecificObjective(): void { this.formService.addSpecificObjective(); }
   removeSpecificObjective(index: number): void { this.formService.removeSpecificObjective(index); }
   get showAdvisorField(): boolean { return this.formService.isProfessionalPractice(); }
+  /** El trabajo de investigación exige la línea de investigación */
+  get lineOfResearchRequired(): boolean { return this.formService.isResearchWork(); }
+  /** Falta al menos un objetivo específico */
+  get specificObjectivesInvalid(): boolean {
+    return this.specificObjectives.invalid && (this.specificObjectives.touched || this.isSubmitAttempted());
+  }
   /** La práctica profesional es de un solo estudiante */
   get showSecondStudent(): boolean { return !this.formService.isProfessionalPractice(); }
   get student1ProgramName(): string { return this.formService.student1Program()?.name ?? ''; }

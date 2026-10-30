@@ -246,6 +246,28 @@ describe('ProposalFormService', () => {
   });
   describe('Lógica Dinámica del Formulario (valueChanges)', () => {
 
+    it('el trabajo de investigación exige la línea de investigación; la práctica profesional no', () => {
+      const linea = service.form.controls.lineOfResearch;
+      service.form.get('modality')?.setValue(Modality.TI);
+      expect(linea.hasError('required')).toBe(true);
+      linea.setValue('Ingeniería de software');
+      expect(linea.valid).toBe(true);
+
+      linea.setValue('');
+      service.form.get('modality')?.setValue(Modality.PP);
+      expect(linea.valid).toBe(true);
+    });
+
+    it('exige al menos un objetivo específico con texto', () => {
+      service.initForCreate();
+      const especificos = service.specificObjectives;
+      expect(especificos.hasError('objetivosEspecificos')).toBe(true);
+      service.addSpecificObjective('   ');
+      expect(especificos.hasError('objetivosEspecificos')).toBe(true);
+      especificos.at(1).setValue('Diseñar el módulo de reportes');
+      expect(especificos.valid).toBe(true);
+    });
+
     it('debería hacer obligatorio el campo advisor si la modalidad es "Practica profesional"', () => {
       const advisorControl = service.form.get('advisor');
       service.form.get('modality')?.setValue(Modality.PP);
