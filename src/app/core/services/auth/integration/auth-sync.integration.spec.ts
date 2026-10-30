@@ -113,6 +113,8 @@ describe('Integración [Auth]: sesión con el backend (Core ➔ Users)', () => {
     iniciarSesion();
     auth.logout();
 
+    // El backend también cierra la sesión del token
+    http.expectOne(`${API}/auth/logout`).flush(null, { status: 204, statusText: 'No Content' });
     expect(userService.currentUser()).toBeNull();
     expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
   });

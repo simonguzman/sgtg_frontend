@@ -10,6 +10,8 @@ import { mapUsuarioToUser } from '../../mappers/usuario.mapper';
 
 /** Mensaje cuando el backend rechaza las credenciales sin dar uno propio. */
 export const CREDENCIALES_INVALIDAS = 'Correo o contraseña incorrectos.';
+/** Mensaje cuando se superó el límite de intentos de inicio de sesión desde el mismo equipo. */
+export const DEMASIADOS_INTENTOS = 'Demasiados intentos de inicio de sesión. Espera un minuto e intenta de nuevo.';
 
 /**
  * Llamadas al backend de autenticación: login (`POST /auth/login` y luego
@@ -23,9 +25,9 @@ export class AuthApiService {
   private readonly apiUrl  = environment.apiUrl;
 
   /**
-   * Inicia sesión. Las credenciales rechazadas (401) y los datos inválidos (400)
-   * se devuelven como `{ success: false, message }`; los errores de conexión o
-   * del servidor se propagan como error.
+   * Inicia sesión. Las credenciales rechazadas (401), los datos inválidos (400)
+   * y el exceso de intentos (429) se devuelven como `{ success: false, message }`;
+   * los errores de conexión o del servidor se propagan como error.
    */
   login(credentials: { email: string; password: string }): Observable<{ success: boolean; message?: string }> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, credentials).pipe(
@@ -37,6 +39,10 @@ export class AuthApiService {
       catchError((error: HttpErrorResponse) => {
         if (error.status === 401 || error.status === 400) {
           return of({ success: false, message: this.mensajeDeError(error, CREDENCIALES_INVALIDAS) });
+        }
+        // Límite de intentos por dirección IP (Nginx)
+        if (error.status === 429) {
+          return of({ success: false, message: DEMASIADOS_INTENTOS });
         }
         return throwError(() => error);
       })
@@ -51,7 +57,21 @@ export class AuthApiService {
     );
   }
 
-  logout(): void {
+  /**
+   * Cierra la sesión: avisa al backend para que el token deje de servir (y
+   * quede en la auditoría) y limpia la sesión sin esperar la respuesta.
+   *
+   * @param motivo motivo del cierre (ej. `inactividad`), queda en la auditoría
+   */
+  logout(motivo?: string): void {
+    const token = this.storage.token();
+    if (token) {
+      // El token se envía explícito: la sesión local se limpia antes de que salga la petición
+      this.http.post<void>(`${this.apiUrl}/auth/logout`, null, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: motivo ? { motivo } : {}
+      }).subscribe({ error: () => undefined });
+    }
     this.storage.clearUser();
     this.router.navigate(['/auth/login']);
   }

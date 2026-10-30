@@ -5,6 +5,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
 import { AuthStorageService } from './auth-storage.service';
 import { AuthApiService } from './auth-api.service';
+import { SessionInactivityService } from './session-inactivity.service';
 import { User } from '../../../modules/users/interfaces/user.interface';
 import { UserRoleType } from '../../enums/user-role-type.enum';
 import { UserState } from '../../../modules/users/enum/user-state.enum';
@@ -22,7 +23,7 @@ interface MockAuthStorageService {
 
 interface MockAuthApiService {
   login: jest.Mock<Observable<{ success: boolean; message?: string }>, [{ email: string; password: string }]>;
-  logout: jest.Mock<void, []>;
+  logout: jest.Mock<void, [string?]>;
   changePassword: jest.Mock<Observable<ChangePasswordResponse>, [string, string]>;
   refreshCurrentUser: jest.Mock<Observable<void>, []>;
 }
@@ -47,6 +48,7 @@ describe('AuthService (Facade)', () => {
   let api: MockAuthApiService;
   let router: { navigate: jest.Mock };
   let notification: { security: jest.Mock };
+  let inactividad: { iniciar: jest.Mock<void, [() => void]>; detener: jest.Mock };
 
   /** Crea el servicio con un token que vence en los segundos indicados (null = sin sesión). */
   const crearServicio = (segundosParaVencer: number | null = 3600) => {
@@ -69,6 +71,7 @@ describe('AuthService (Facade)', () => {
     };
     router = { navigate: jest.fn() };
     notification = { security: jest.fn() };
+    inactividad = { iniciar: jest.fn(), detener: jest.fn() };
 
     TestBed.configureTestingModule({
       providers: [
@@ -76,7 +79,8 @@ describe('AuthService (Facade)', () => {
         { provide: AuthStorageService, useValue: storage },
         { provide: AuthApiService, useValue: api },
         { provide: Router, useValue: router },
-        { provide: NotificationService, useValue: notification }
+        { provide: NotificationService, useValue: notification },
+        { provide: SessionInactivityService, useValue: inactividad }
       ]
     });
     service = TestBed.inject(AuthService);
@@ -169,5 +173,34 @@ describe('AuthService (Facade)', () => {
       expect(storage.clearUser).toHaveBeenCalled();
       expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
     }));
+  });
+
+  describe('inactividad', () => {
+    it('vigila la sesión mientras hay sesión y deja de hacerlo al cerrarla', () => {
+      crearServicio();
+      TestBed.tick();
+      expect(inactividad.iniciar).toHaveBeenCalledTimes(1);
+
+      storage.clearUser();
+      TestBed.tick();
+      expect(inactividad.detener).toHaveBeenCalled();
+    });
+
+    it('sin sesión no vigila', () => {
+      crearServicio(null);
+      TestBed.tick();
+      expect(inactividad.iniciar).not.toHaveBeenCalled();
+    });
+
+    it('al quedar inactiva cierra la sesión en el backend con el motivo y avisa', () => {
+      crearServicio();
+      TestBed.tick();
+      const alInactivar = inactividad.iniciar.mock.calls[0][0];
+
+      alInactivar();
+
+      expect(api.logout).toHaveBeenCalledWith('inactividad');
+      expect(notification.security).toHaveBeenCalledWith('Sesión cerrada por inactividad', expect.any(String));
+    });
   });
 });

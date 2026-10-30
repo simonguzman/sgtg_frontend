@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, Observable, of } from 'rxjs';
 import { AuthStorageService } from './auth-storage.service';
 import { AuthApiService } from './auth-api.service';
+import { MINUTOS_INACTIVIDAD, SessionInactivityService } from './session-inactivity.service';
 import { ChangePasswordResponse } from '../../interfaces/change-password-response.interface';
 import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
 import { jwtExpiration } from '../../utils/jwt-utils';
@@ -14,6 +15,7 @@ export class AuthService {
   private readonly api          = inject(AuthApiService);
   private readonly router       = inject(Router);
   private readonly notification = inject(NotificationService);
+  private readonly inactividad  = inject(SessionInactivityService);
 
   // ── Estado reactivo ────────────────────────────────────────────────────────
   // La misma API pública que antes: cualquier componente o servicio que usaba
@@ -31,6 +33,12 @@ export class AuthService {
       if (vencimiento === null) return;
       const temporizador = setTimeout(() => this.expireSession(), Math.max(vencimiento - Date.now(), 0));
       onCleanup(() => clearTimeout(temporizador));
+    });
+
+    // Cierra la sesión tras un tiempo sin actividad del usuario
+    effect(() => {
+      if (this.storage.isAuthenticated()) this.inactividad.iniciar(() => this.cerrarPorInactividad());
+      else this.inactividad.detener();
     });
   }
 
@@ -72,6 +80,14 @@ export class AuthService {
     this.storage.clearUser();
     this.notification.security('Sesión finalizada', 'Tu sesión expiró. Inicia sesión de nuevo para continuar.');
     this.router.navigate(['/auth/login']);
+  }
+
+  /** Cierra la sesión (también en el backend, con el motivo) y avisa por qué. */
+  private cerrarPorInactividad(): void {
+    if (!this.storage.isAuthenticated()) return;
+    this.api.logout('inactividad');
+    this.notification.security('Sesión cerrada por inactividad',
+      `Tu sesión se cerró tras ${MINUTOS_INACTIVIDAD} minutos sin actividad. Inicia sesión de nuevo para continuar.`);
   }
 
   // ── Utilidad de roles ──────────────────────────────────────────────────────

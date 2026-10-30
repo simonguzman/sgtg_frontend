@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
-import { AuthApiService, CREDENCIALES_INVALIDAS } from './auth-api.service';
+import { AuthApiService, CREDENCIALES_INVALIDAS, DEMASIADOS_INTENTOS } from './auth-api.service';
 import { AuthStorageService } from './auth-storage.service';
 import { UsuarioResponse } from '../../interfaces/api/auth-api.interface';
 import { UserRoleType } from '../../enums/user-role-type.enum';
@@ -104,6 +104,16 @@ describe('AuthApiService', () => {
       expect(respuesta).toEqual({ success: false, message: CREDENCIALES_INVALIDAS });
     });
 
+    it('con demasiados intentos (429) avisa que espere', () => {
+      let respuesta: { success: boolean; message?: string } | undefined;
+      service.login(credenciales).subscribe(r => respuesta = r);
+
+      http.expectOne(`${API}/auth/login`).flush('<html>429 Too Many Requests</html>',
+        { status: 429, statusText: 'Too Many Requests' });
+
+      expect(respuesta).toEqual({ success: false, message: DEMASIADOS_INTENTOS });
+    });
+
     it('propaga los errores de conexión o del servidor', () => {
       let error: unknown;
       service.login(credenciales).subscribe({ error: e => error = e });
@@ -125,11 +135,31 @@ describe('AuthApiService', () => {
     expect(storage.currentUser()?.state).toBe(UserState.inactive);
   });
 
-  it('logout limpia la sesión y navega al login', () => {
-    storage.setSession(token, { id: '7', roles: [] } as never);
-    service.logout();
-    expect(storage.isAuthenticated()).toBe(false);
-    expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
+  describe('logout', () => {
+    it('cierra la sesión en el backend con el token, limpia la sesión y navega al login', () => {
+      storage.setSession(token, { id: '7', roles: [] } as never);
+      service.logout();
+
+      const cierre = http.expectOne(`${API}/auth/logout`);
+      expect(cierre.request.method).toBe('POST');
+      expect(cierre.request.headers.get('Authorization')).toBe(`Bearer ${token}`);
+      expect(storage.isAuthenticated()).toBe(false);
+      expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
+      // Si el backend falla, la sesión local ya quedó cerrada
+      cierre.flush(null, { status: 500, statusText: 'Server Error' });
+    });
+
+    it('envía el motivo del cierre', () => {
+      storage.setSession(token, { id: '7', roles: [] } as never);
+      service.logout('inactividad');
+      http.expectOne(`${API}/auth/logout?motivo=inactividad`).flush(null, { status: 204, statusText: 'No Content' });
+    });
+
+    it('sin sesión no llama al backend', () => {
+      service.logout();
+      http.expectNone(`${API}/auth/logout`);
+      expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
+    });
   });
 
   describe('changePassword', () => {

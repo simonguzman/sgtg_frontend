@@ -562,3 +562,18 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     director agenda o reprograma (fecha y hora, lugar o enlace) y registra la reunión como realizada con observaciones;
     los demás ven los detalles. Las notificaciones de reuniones llevan a esta vista. Calendario y reglas en el backend
     (§6 de `ajustes-2026-10-29.md`); `ThesisWorkMeetingService`, `MeetingsFacadeService`, `Meeting` en `ThesisWork`.
+46. **Seguridad de la sesión (2026-10-30):**
+    - **Cierre por inactividad:** la sesión se cierra tras 30 minutos sin actividad. `SessionInactivityService` mira el
+      mouse, el teclado y el desplazamiento, y guarda la última actividad en localStorage: se comparte entre pestañas y
+      cuenta el tiempo con el navegador cerrado.
+    - **Cierre de sesión en el backend:** el logout llama a `POST /auth/logout`, con `?motivo=inactividad` cuando aplica.
+      El token deja de servir aunque no haya vencido y el cierre queda en la auditoría.
+    - **Mensajes del login:** muestra el bloqueo por intentos que envía el backend (401) y el límite por IP de Nginx (429).
+    - **Nginx:**
+      - Cabeceras de seguridad (`nginx-cabeceras-seguridad.conf`): Content-Security-Policy, X-Frame-Options,
+        X-Content-Type-Options, Referrer-Policy y Permissions-Policy.
+      - `server_tokens off`.
+      - Límite de 20 inicios de sesión por minuto por IP.
+    - **Build de producción:** usa `inlineCritical: false`. Así el `index.html` no lleva el `onload` en línea y la política
+      de contenido no tiene que permitir scripts en línea.
+    - Detalle del backend en `sgtg_backend/docs/ajustes-2026-10-30.md`.

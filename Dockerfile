@@ -31,6 +31,7 @@ COPY --from=build /app/dist/sgtg-prueba/browser/ /usr/share/nginx/html/
 
 # Copia de la configuración de enrutado y proxy inverso
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
+COPY ./nginx-cabeceras-seguridad.conf /etc/nginx/cabeceras-seguridad.conf
 
 EXPOSE 80
 
