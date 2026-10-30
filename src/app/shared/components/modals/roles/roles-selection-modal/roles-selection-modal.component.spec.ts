@@ -89,6 +89,12 @@ describe('RolesSelectionModalComponent', () => {
       component.toggleRole(role);
       expect(role.assigned).toBeFalsy();
     });
+
+    it('un rol bloqueado (lo asigna el administrador o el sistema) no cambia', () => {
+      const role = createMockUserRole({ type: UserRoleType.COMITE, assigned: true, locked: true });
+      component.toggleRole(role);
+      expect(role.assigned).toBe(true);
+    });
   });
 
   describe('Renderizado del DOM e Interacción UI', () => {

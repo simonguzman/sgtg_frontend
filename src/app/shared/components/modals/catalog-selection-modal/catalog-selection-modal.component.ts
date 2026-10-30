@@ -37,6 +37,8 @@ export class CatalogSelectionModalComponent implements OnChanges {
   @Input() parentItems: CatalogItem[] = [];
   /** Elemento elegido de ese catálogo para el nuevo (`[(parentId)]`) */
   @Input() parentId: number | null = null;
+  /** false si quien edita no puede crear elementos del catálogo (solo el administrador los crea) */
+  @Input() allowCreate = true;
 
   @Output() isOpenChange = new EventEmitter<boolean>();
   @Output() parentIdChange = new EventEmitter<number | null>();

@@ -88,6 +88,12 @@ describe('Integración [Users]: administración de usuarios contra el backend', 
     http.expectOne(API).flush(lista);
   };
 
+  /** La página de usuarios carga los que gestiona el usuario de la sesión, con si los puede modificar. */
+  const cargarGestion = (lista: UsuarioResponse[], modificable = true) => {
+    usersFacade.loadUsers();
+    http.expectOne(`${API}/gestion`).flush(lista.map(usuario => ({ usuario, modificable })));
+  };
+
   it('al iniciar sesión carga la lista y al cerrarla la vacía', () => {
     iniciarSesionConLista([usuarioApi(1, { roles: ['ADMINISTRADOR'] }), usuarioApi(2)]);
     expect(userService.users().map(user => user.id)).toEqual(['1', '2']);
@@ -115,7 +121,8 @@ describe('Integración [Users]: administración de usuarios contra el backend', 
 
     expect(exito).toBe(true);
     expect(router.navigate).toHaveBeenCalledWith(['/users']);
-    expect(usersFacade.usersTableData().map(row => row.originalData.id)).toContain('9');
+    // La lista de usuarios ya lo tiene; la tabla lo trae al volver a la página (recarga la gestión)
+    expect(storage.getUsersSnapshot().map(user => user.id)).toContain('9');
   });
 
   it('si el backend rechaza el registro, muestra su mensaje y no navega', () => {
@@ -134,6 +141,7 @@ describe('Integración [Users]: administración de usuarios contra el backend', 
 
   it('la tabla recalcula estado y acciones al deshabilitar un usuario', () => {
     iniciarSesionConLista([usuarioApi(2)]);
+    cargarGestion([usuarioApi(2)]);
     expect(usersFacade.usersTableData()[0].allowedActions).toContain('eliminar');
 
     let exito = false;
@@ -141,6 +149,7 @@ describe('Integración [Users]: administración de usuarios contra el backend', 
     const req = http.expectOne(`${API}/2/estado`);
     expect(req.request.body).toEqual({ activo: false });
     req.flush(usuarioApi(2, { activo: false }));
+    http.expectOne(`${API}/gestion`).flush([{ usuario: usuarioApi(2, { activo: false }), modificable: true }]);
 
     expect(exito).toBe(true);
     const fila = usersFacade.usersTableData()[0];
@@ -151,13 +160,23 @@ describe('Integración [Users]: administración de usuarios contra el backend', 
 
   it('el cambio de roles reemplaza el arreglo completo', () => {
     iniciarSesionConLista([usuarioApi(2, { roles: ['DOCENTE', 'EVALUADOR'] })]);
+    cargarGestion([usuarioApi(2, { roles: ['DOCENTE', 'EVALUADOR'] })]);
 
     usersFacade.updateRoles('2', [UserRoleType.JURADO], () => undefined);
     const req = http.expectOne(`${API}/2/roles`);
     expect(req.request.body).toEqual({ roles: ['JURADO'] });
     req.flush(usuarioApi(2, { roles: ['JURADO'] }));
+    http.expectOne(`${API}/gestion`).flush([{ usuario: usuarioApi(2, { roles: ['JURADO'] }), modificable: true }]);
 
     expect(storage.getUsersSnapshot()[0].roles).toEqual([UserRoleType.JURADO]);
+    expect(usersFacade.usersTableData()[0].originalData.roles).toEqual([UserRoleType.JURADO]);
+  });
+
+  it('a los usuarios con roles administrativos el gestor solo los consulta', () => {
+    iniciarSesionConLista([]);
+    cargarGestion([usuarioApi(50, { roles: ['COMITE', 'DOCENTE'] })], false);
+
+    expect(usersFacade.usersTableData()[0].allowedActions).toEqual(['ver roles asignados', 'ver']);
   });
 
   it('al editar su propio perfil se actualiza también la sesión; al editar a otro, no', () => {

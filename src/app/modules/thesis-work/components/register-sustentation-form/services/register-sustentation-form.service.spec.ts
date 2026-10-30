@@ -157,7 +157,8 @@ describe('RegisterSustentationFormService', () => {
       createMockUser({ id: 'evaluator1', roles: [UserRoleType.DOCENTE] }),
       createMockUser({ id: 'student1', roles: [UserRoleType.ESTUDIANTE] }),
       createMockUser({ id: 'student2', roles: [UserRoleType.DOCENTE] }),
-      createMockUser({ id: 'conflict1', roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] }),
+      createMockUser({ id: 'jefe1', roles: [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP] }),
+      createMockUser({ id: 'decanatura1', roles: [UserRoleType.DOCENTE, UserRoleType.DECANATURA] }),
       createMockUser({ id: 'comite1', roles: [UserRoleType.DOCENTE, UserRoleType.COMITE] }),
       createMockUser({ id: 'otroDepto', roles: [UserRoleType.DOCENTE], department: { id: 2, name: 'Telemática' } })
     ];
@@ -191,8 +192,8 @@ describe('RegisterSustentationFormService', () => {
 
       const result = service.getEligibleJurors(thesisWithConflicts);
 
-      expect(result).toHaveLength(2);
-      expect(result.map(u => u.id)).toEqual(['valid1', 'valid2']);
+      // El jefe de departamento puede ser jurado; Comité y Decanatura no
+      expect(result.map(u => u.id)).toEqual(['valid1', 'valid2', 'jefe1']);
     });
 
     it('acepta jurados con rol EVALUADOR, JURADO o JURADO_COORDINADOR y excluye a los evaluadores del anteproyecto', () => {

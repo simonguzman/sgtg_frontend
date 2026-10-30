@@ -9,11 +9,16 @@
     @for (role of editableRoles; track role.type) {
       <div class="flex justify-between items-center py-1">
         <span class="text-gray-700">• {{ role.type }}</span>
-        <app-button-component
-          [label]="role.assigned ? 'Deshabilitar rol' : 'Asignar rol'"
-          [variant]="role.assigned ? 'secondary' : 'primary'"
-          (onClick)="toggleRole(role)"
-        ></app-button-component>
+        @if (role.locked) {
+          <!-- Lo asigna el administrador o el sistema -->
+          <span class="text-size-role-footer text-text-body">{{ role.assigned ? 'Asignado' : 'No asignado' }}</span>
+        } @else {
+          <app-button-component
+            [label]="role.assigned ? 'Deshabilitar rol' : 'Asignar rol'"
+            [variant]="role.assigned ? 'secondary' : 'primary'"
+            (onClick)="toggleRole(role)"
+          ></app-button-component>
+        }
       </div>
     }
 

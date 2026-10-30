@@ -15,6 +15,8 @@ export class RolesViewModalComponent {
   @Input() isOpen: boolean = false;
   @Input() username: string = '';
   @Input() roles: UserRole[] = [];
+  /** false si solo se consultan los roles */
+  @Input() canManage = true;
 
   @Output() isOpenChange = new EventEmitter<boolean>();
   @Output() onManage = new EventEmitter<void>();

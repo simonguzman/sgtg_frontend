@@ -1,5 +1,6 @@
 import { UserRoleType } from '../../../../enums/user-role-type.enum';
 import { STATISTICS_ROLES } from '../../../../../modules/statistics/models/statistics-options.model';
+import { ROLES_GESTORES_DE_USUARIOS } from '../../../../../modules/users/helpers/user-management.helper';
 
 export interface SidebarMenuItem {
   label: string;
@@ -18,7 +19,8 @@ export const SIDEBAR_MENU_ITEMS: SidebarMenuItem[] = [
     label: 'Usuarios',
     routerLink: '/users',
     icon: 'group',
-    roles: [UserRoleType.ADMINISTRADOR]
+    // Cada gestor ve los usuarios de su alcance
+    roles: [...ROLES_GESTORES_DE_USUARIOS]
   },
   {
     label: 'Propuesta',

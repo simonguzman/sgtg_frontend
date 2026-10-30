@@ -13,6 +13,7 @@ import { IdentificationType } from '../../enum/identification-type.enum';
 import { TableComponent } from '../../../../shared/components/table-component/table-component.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { RolesModalComponent } from '../../../../shared/components/modals/roles/roles-modal/roles-modal.component';
+import { AuthStorageService } from '../../../../core/services/auth/auth-storage.service';
 
 @Component({ selector: 'app-table-component', standalone: true, template: '' })
 class MockTableComponent {
@@ -31,6 +32,7 @@ class MockRolesModalComponent {
   @Output() isOpenChange = new EventEmitter<boolean>();
   @Input() username = '';
   @Input() roles: UserRole[] = [];
+  @Input() canManage = true;
   @Output() onSaved = new EventEmitter<UserRole[]>();
 }
 
@@ -166,6 +168,19 @@ describe('Component: UsersPageComponent', () => {
   });
 
   describe('Flujo de Asignación de Roles', () => {
+    it('un gestor que no es el administrador solo cambia Estudiante y Docente, y no gestiona los roles de quien solo consulta', () => {
+      const storage = TestBed.inject(AuthStorageService);
+      storage.setUser({ id: 'jefe', roles: [UserRoleType.JEFE_DEP, UserRoleType.DOCENTE] } as User);
+
+      component.handleTableAction({ action: 'ver roles asignados',
+        row: createMockUserTableRow({ allowedActions: ['ver roles asignados', 'ver'] }) });
+
+      expect(component.canManageRoles).toBe(false);
+      expect(component.rolesUser.filter(role => !role.locked).map(role => role.type))
+        .toEqual([UserRoleType.DOCENTE, UserRoleType.ESTUDIANTE]);
+      storage.clearUser();
+    });
+
     it('debería preparar el modal de roles al emitir "ver roles asignados"', () => {
       component.handleTableAction({ action: 'ver roles asignados', row: createMockUserTableRow() });
       expect(component.idUserForRoles).toBe('123');

@@ -39,6 +39,7 @@ export class RolesSelectionModalComponent implements OnChanges {
   }
 
   toggleRole(role: UserRole) {
+    if (role.locked) return;
     role.assigned = !role.assigned;
   }
 

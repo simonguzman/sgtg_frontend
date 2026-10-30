@@ -5,6 +5,7 @@ import { UserEditPageComponent } from './pages/user-edit-page/user-edit-page.com
 import { UserDetailsPageComponent } from './pages/user-details-page/user-details-page.component';
 import { roleGuard } from '../../core/guards/role.guard';
 import { UserRoleType } from '../../core/enums/user-role-type.enum';
+import { ROLES_GESTORES_DE_USUARIOS } from './helpers/user-management.helper';
 
 export const usersRoutes: Routes = [
   {
@@ -41,7 +42,7 @@ export const usersRoutes: Routes = [
         title: 'Gestión de usuarios',
         data: {
           breadcrumb: null,
-          roles: [UserRoleType.ADMINISTRADOR]
+          roles: [...ROLES_GESTORES_DE_USUARIOS]
         }
       },
       {
@@ -51,7 +52,7 @@ export const usersRoutes: Routes = [
         title: 'Crear nuevo usuario',
         data: {
           breadcrumb: 'Crear usuario',
-          roles: [UserRoleType.ADMINISTRADOR]
+          roles: [...ROLES_GESTORES_DE_USUARIOS]
         }
       },
       {
@@ -61,7 +62,7 @@ export const usersRoutes: Routes = [
         title: 'Editar usuario',
         data: {
           breadcrumb: 'Editar usuario',
-          roles: [UserRoleType.ADMINISTRADOR]
+          roles: [...ROLES_GESTORES_DE_USUARIOS]
         }
       },
       {
@@ -71,7 +72,7 @@ export const usersRoutes: Routes = [
         title: 'Información del usuario',
         data: {
           breadcrumb: 'Información del usuario',
-          roles: [UserRoleType.ADMINISTRADOR]
+          roles: [...ROLES_GESTORES_DE_USUARIOS]
         }
       }
     ]

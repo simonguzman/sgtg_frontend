@@ -16,6 +16,7 @@ import { ButtonComponent } from '../../../../shared/components/button-component/
 import { RolesSelectionModalComponent } from '../../../../shared/components/modals/roles/roles-selection-modal/roles-selection-modal.component';
 import { CatalogSelectionModalComponent } from '../../../../shared/components/modals/catalog-selection-modal/catalog-selection-modal.component';
 import { CatalogItem } from '../../interfaces/catalog-item.interface';
+import { AuthStorageService } from '../../../../core/services/auth/auth-storage.service';
 
 @Component({ selector: 'app-button-component', standalone: true, template: '' })
 class MockButtonComponent {
@@ -40,6 +41,7 @@ class MockCatalogSelectionModalComponent {
   @Input() items!: CatalogItem[];
   @Input() selectedId!: number | null;
   @Input() isCreating!: boolean;
+  @Input() allowCreate!: boolean;
   @Output() isOpenChange = new EventEmitter<boolean>();
   @Output() onSaved = new EventEmitter<number>();
   @Output() onCreate = new EventEmitter<string>();
@@ -395,6 +397,34 @@ describe('UserFormComponent', () => {
       expect(component.userForm.get('roles')?.value).toEqual([UserRoleType.ADMINISTRADOR]);
     });
   });
+  describe('Gestión por el jefe de departamento', () => {
+    beforeEach(() => {
+      TestBed.inject(AuthStorageService).setUser(createMockUser({
+        id: 'jefe', roles: [UserRoleType.JEFE_DEP, UserRoleType.DOCENTE], department: SISTEMAS
+      }));
+      component.departments.set([SISTEMAS, { id: 2, name: 'Telemática' }]);
+      component.programs.set([{ ...ING_SISTEMAS, parentId: 1 }, { id: 9, name: 'Ingeniería Telemática', parentId: 2 }]);
+    });
+
+    afterEach(() => TestBed.inject(AuthStorageService).clearUser());
+
+    it('solo elige su departamento y los programas de ese departamento, y no crea catálogos', () => {
+      expect(component.availableDepartments().map(department => department.id)).toEqual([1]);
+      expect(component.availablePrograms().map(program => program.id)).toEqual([7]);
+      expect(component.canCreateCatalogItems()).toBe(false);
+    });
+
+    it('solo asigna o quita Estudiante y Docente; los demás roles quedan bloqueados', () => {
+      component.userForm.controls.roles.setValue([UserRoleType.DOCENTE, UserRoleType.DIRECTOR]);
+      component.openRolesModal();
+      const asignables = component.currentRolesForModal.filter(role => !role.locked).map(role => role.type);
+      expect(asignables).toEqual([UserRoleType.DOCENTE, UserRoleType.ESTUDIANTE]);
+      // El rol que ya tiene se conserva aunque no lo pueda quitar
+      expect(component.currentRolesForModal.find(role => role.type === UserRoleType.DIRECTOR))
+        .toEqual({ type: UserRoleType.DIRECTOR, assigned: true, locked: true });
+    });
+  });
+
   it('el ojo del campo de contraseña la muestra u oculta', () => {
     const campo = () => fixture.nativeElement.querySelector('#password') as HTMLInputElement;
     expect(campo().type).toBe('password');

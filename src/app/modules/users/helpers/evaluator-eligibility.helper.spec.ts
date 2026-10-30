@@ -14,8 +14,12 @@ describe('canEvaluateWork', () => {
       .forEach(rol => expect(canEvaluateWork(usuario('1', [rol]), SISTEMAS.id, ninguno)).toBe(true));
   });
 
-  it('rechaza al jefe de departamento y a los miembros del Comité o del Consejo', () => {
-    [UserRoleType.JEFE_DEP, UserRoleType.COMITE, UserRoleType.CONSEJO].forEach(rol =>
+  it('acepta al jefe de departamento', () => {
+    expect(canEvaluateWork(usuario('1', [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP]), SISTEMAS.id, ninguno)).toBe(true);
+  });
+
+  it('rechaza a los miembros del Comité, del Consejo y de Decanatura', () => {
+    [UserRoleType.COMITE, UserRoleType.CONSEJO, UserRoleType.DECANATURA].forEach(rol =>
       expect(canEvaluateWork(usuario('1', [UserRoleType.DOCENTE, rol]), SISTEMAS.id, ninguno)).toBe(false));
   });
 

@@ -49,12 +49,13 @@ describe('Service: UsersFacadeService', () => {
 
   let mockUserService: {
     users: WritableSignal<User[]>;
+    loadManagedUsers: jest.Mock;
     updateUserRoles: jest.Mock<Observable<void>, [string, UserRoleType[]]>;
     softDeleteUser: jest.Mock<Observable<void>, [string]>;
   };
 
   let mockMapper: {
-    mapUserToTable: jest.Mock<UserTableRow, [User]>;
+    mapUserToTable: jest.Mock<UserTableRow, [User, boolean]>;
   };
 
   let mockNotificationService: {
@@ -71,6 +72,7 @@ describe('Service: UsersFacadeService', () => {
 
     mockUserService = {
       users: signal([mockUser]),
+      loadManagedUsers: jest.fn().mockReturnValue(of([{ user: mockUser, editable: true }])),
       updateUserRoles: jest.fn(),
       softDeleteUser: jest.fn()
     };
@@ -93,6 +95,8 @@ describe('Service: UsersFacadeService', () => {
     });
 
     service = TestBed.inject(UsersFacadeService);
+    // La tabla muestra los usuarios que gestiona el usuario de la sesión
+    service.loadUsers();
   });
 
   afterEach(() => {
@@ -105,13 +109,14 @@ describe('Service: UsersFacadeService', () => {
   });
 
   describe('Señal Computada: usersTableData', () => {
-    it('debería mapear los usuarios del UserService usando el MapperService', () => {
+    it('debería mapear los usuarios gestionados usando el MapperService', () => {
       const tableData = service.usersTableData();
-      expect(mockMapper.mapUserToTable).toHaveBeenCalledWith(mockUser);
+      expect(mockUserService.loadManagedUsers).toHaveBeenCalled();
+      expect(mockMapper.mapUserToTable).toHaveBeenCalledWith(mockUser, true);
       expect(tableData).toEqual([createMockUserTableRow()]);
     });
 
-    it('debería actualizarse reactivamente cuando la señal users cambie', () => {
+    it('debería actualizarse al volver a cargar los usuarios gestionados', () => {
       const mockMappedTableData = createMockUserTableRow({
         identificacion: '111',
         nombre: 'Reactivo',
@@ -121,10 +126,12 @@ describe('Service: UsersFacadeService', () => {
         originalData: mockUser
       });
       mockMapper.mapUserToTable.mockReturnValue(mockMappedTableData);
-      mockUserService.users.set([createMockUser({ id: '999', firstName: 'Reactivo' })]);
+      const otro = createMockUser({ id: '999', firstName: 'Reactivo' });
+      mockUserService.loadManagedUsers.mockReturnValue(of([{ user: otro, editable: false }]));
+      service.loadUsers();
       const tableData = service.usersTableData();
       expect(tableData).toEqual([mockMappedTableData]);
-      expect(mockMapper.mapUserToTable).toHaveBeenCalledTimes(1);
+      expect(mockMapper.mapUserToTable).toHaveBeenCalledWith(otro, false);
     });
   });
 
@@ -149,6 +156,8 @@ describe('Service: UsersFacadeService', () => {
       expect(mockNotificationService.show).toHaveBeenNthCalledWith(2, expect.objectContaining({ type: NotificationType.CONFIRMATION }));
       expect(mockUserService.updateUserRoles).toHaveBeenCalledWith('123', [UserRoleType.ADMINISTRADOR]);
       expect(onSuccessSpy).toHaveBeenCalled();
+      // La tabla se recarga con los roles nuevos
+      expect(mockUserService.loadManagedUsers).toHaveBeenCalledTimes(2);
     });
 
     it('debería ejecutar el flujo de error: notificar error, loguear y no ejecutar callback', () => {

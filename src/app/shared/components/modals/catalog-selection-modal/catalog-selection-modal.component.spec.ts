@@ -60,6 +60,15 @@ describe('CatalogSelectionModalComponent', () => {
     expect(texto).toContain('Telemática');
   });
 
+  it('sin permiso para crear no muestra el campo para agregar', () => {
+    fixture.componentRef.setInput('allowCreate', false);
+    abrir([], null);
+    const texto = document.body.textContent ?? '';
+    expect(texto).toContain('No hay departamentos registrados');
+    expect(texto).not.toContain('Agregar departamento');
+    expect(texto).not.toContain('Agregue uno');
+  });
+
   it('sin elementos invita a agregar uno', () => {
     abrir([], null);
     expect(document.body.textContent).toContain('No hay departamentos registrados');

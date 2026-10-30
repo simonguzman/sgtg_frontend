@@ -16,6 +16,8 @@ export class RolesModalComponent {
   @Input() isOpen: boolean = false;
   @Input() username: string = '';
   @Input() roles: UserRole[] = [];
+  /** false si solo se consultan los roles (no se muestra "Gestionar roles") */
+  @Input() canManage = true;
 
   @Output() isOpenChange = new EventEmitter<boolean>();
   @Output() onSaved = new EventEmitter<UserRole[]>();

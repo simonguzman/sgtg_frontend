@@ -6,7 +6,8 @@ import { User } from '../interfaces/user.interface';
 import { UserState } from '../enum/user-state.enum';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { UserStorageService } from './user-storage.service';
-import { UsuarioResponse } from '../../../core/interfaces/api/auth-api.interface';
+import { UsuarioGestionadoResponse, UsuarioResponse } from '../../../core/interfaces/api/auth-api.interface';
+import { ManagedUser } from '../helpers/user-management.helper';
 import { aClaveDeRol, mapUserToUsuarioRequest, mapUsuarioToUser } from '../../../core/mappers/usuario.mapper';
 
 /**
@@ -34,7 +35,17 @@ export class UserApiService {
     );
   }
 
-  /** Consulta un usuario (solo administrador); undefined si no existe. */
+  /**
+   * Usuarios que gestiona el usuario de la sesión (administrador, Comité, jefe
+   * de departamento, Consejo o Decanatura), con su documento y si los puede modificar.
+   */
+  loadManagedUsers(): Observable<ManagedUser[]> {
+    return this.http.get<UsuarioGestionadoResponse[]>(`${this.apiUrl}/gestion`).pipe(
+      map(lista => lista.map(({ usuario, modificable }) => ({ user: mapUsuarioToUser(usuario), editable: modificable })))
+    );
+  }
+
+  /** Consulta un usuario del alcance del gestor; undefined si no existe. */
   getUserById(id: string): Observable<User | undefined> {
     return this.http.get<UsuarioResponse>(`${this.apiUrl}/${id}`).pipe(
       map(mapUsuarioToUser),

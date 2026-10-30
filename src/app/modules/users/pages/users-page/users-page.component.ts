@@ -9,6 +9,8 @@ import { TableButton, TableComponent } from "../../../../shared/components/table
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { RolesModalComponent } from '../../../../shared/components/modals/roles/roles-modal/roles-modal.component';
 import { UsersFacadeService } from './services/users-facade.service';
+import { AuthStorageService } from '../../../../core/services/auth/auth-storage.service';
+import { puedeAsignarRol } from '../../helpers/user-management.helper';
 import { USER_COLUMNS, USER_FILTER_FIELDS, USER_HEADER_BUTTONS, UserTableRow } from './models/users-page.model';
 
 @Component({
@@ -24,6 +26,7 @@ import { USER_COLUMNS, USER_FILTER_FIELDS, USER_HEADER_BUTTONS, UserTableRow } f
 })
 export class UsersPageComponent implements OnInit {
   private readonly router = inject(Router);
+  private readonly authStorage = inject(AuthStorageService);
   protected readonly facade = inject(UsersFacadeService);
 
   protected columns = USER_COLUMNS;
@@ -36,6 +39,8 @@ export class UsersPageComponent implements OnInit {
   idUserForRoles: string | null = null;
   selectedUser = '';
   rolesUser: UserRole[] = [];
+  /** false si el gestor solo consulta los roles del usuario */
+  canManageRoles = true;
   private pendingRoles: UserRole[] = [];
 
   showDisabledConfirmation = false;
@@ -79,10 +84,14 @@ export class UsersPageComponent implements OnInit {
     this.selectedUser = `${row.nombre} ${row.apellidos}`;
     const userRolesType = user.roles || [];
 
+    // Quien no es el administrador solo asigna o quita Estudiante y Docente
+    const gestor = this.authStorage.currentUser();
     this.rolesUser = Object.values(UserRoleType).map(type => ({
       type,
-      assigned: userRolesType.includes(type)
+      assigned: userRolesType.includes(type),
+      locked: !puedeAsignarRol(gestor, type)
     }));
+    this.canManageRoles = row.allowedActions.includes('editar');
     this.showRolesModal = true;
   }
 

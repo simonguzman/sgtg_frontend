@@ -6,11 +6,16 @@ import { UserState } from '../../../enum/user-state.enum';
 @Injectable({ providedIn: 'root' })
 export class UsersMapperService {
 
-  public mapUserToTable(user: User): UserTableRow {
+  /**
+   * @param editable false si el gestor solo lo consulta (tiene roles
+   *        administrativos y no es el administrador quien gestiona)
+   */
+  public mapUserToTable(user: User, editable = true): UserTableRow {
     const isInactive = user.state === UserState.inactive;
-    const allowed = isInactive
+    let allowed = isInactive
       ? ['activar']
       : ['ver roles asignados', 'ver', 'editar', 'eliminar'];
+    if (!editable) allowed = ['ver roles asignados', 'ver'];
 
     return {
       identificacion: user.idNumber?.toString() || '',

@@ -110,7 +110,7 @@ describe('AssignEvaluatorsFormFacadeService', () => {
       expect(facade.evaluator1Options()).toEqual([]);
     });
 
-    it('debería filtrar participantes, no-docentes, jefe, Comité y docentes de otro departamento', () => {
+    it('debería filtrar participantes, no-docentes, Comité y docentes de otro departamento (el jefe sí evalúa)', () => {
       const mockDraft = createMockPreliminaryDraft({
         proposalData: createMockProposal({
           director: createMockUser({ id: 'u4' }),
@@ -124,8 +124,8 @@ describe('AssignEvaluatorsFormFacadeService', () => {
 
       const ev1Options = facade.evaluator1Options();
 
-      expect(ev1Options).toHaveLength(2);
-      expect(ev1Options.map(opt => opt.id)).toEqual(['u1', 'u2']);
+      expect(ev1Options).toHaveLength(3);
+      expect(ev1Options.map(opt => opt.id)).toEqual(['u1', 'u2', 'u3']);
     });
 
     it('evaluator2Options no debería incluir al usuario seleccionado en evaluator1', () => {

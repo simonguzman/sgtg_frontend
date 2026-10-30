@@ -1,4 +1,4 @@
-import { Component, DestroyRef, effect, EventEmitter, inject, input, Output, signal } from '@angular/core';
+import { Component, computed, DestroyRef, effect, EventEmitter, inject, input, Output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -17,6 +17,8 @@ import { NotificationType } from '../../../../shared/components/notifications/mo
 import { CatalogApiService } from '../../../../core/services/catalog/catalog-api.service';
 import { requiresProgram, requiresTeacherProfile } from '../../../../core/mappers/usuario.mapper';
 import { apiErrorMessage } from '../../../../core/utils/api-error.utils';
+import { AuthStorageService } from '../../../../core/services/auth/auth-storage.service';
+import { departamentoDelGestor, esAdministrador, puedeAsignarRol } from '../../helpers/user-management.helper';
 
 /** Longitud mínima de la contraseña (igual que en el backend). */
 export const MIN_PASSWORD_LENGTH = 8;
@@ -42,6 +44,20 @@ export class UserFormComponent  {
   /** Catálogos del backend para el perfil académico */
   readonly departments = signal<CatalogItem[]>([]);
   readonly programs = signal<CatalogItem[]>([]);
+
+  /** Quien crea o edita: el Comité y el jefe solo eligen su departamento y sus programas */
+  private readonly gestor = inject(AuthStorageService).currentUser;
+  private readonly scopeDepartmentId = computed(() => departamentoDelGestor(this.gestor()));
+  readonly availableDepartments = computed(() => {
+    const id = this.scopeDepartmentId();
+    return id === null ? this.departments() : this.departments().filter(department => department.id === id);
+  });
+  readonly availablePrograms = computed(() => {
+    const id = this.scopeDepartmentId();
+    return id === null ? this.programs() : this.programs().filter(program => program.parentId === id);
+  });
+  /** Solo el administrador crea departamentos y programas */
+  readonly canCreateCatalogItems = computed(() => esAdministrador(this.gestor()));
 
   isRolesModalOpen = false;
   currentRolesForModal: UserRole[] = [];
@@ -272,9 +288,11 @@ export class UserFormComponent  {
   openRolesModal() {
     const currentSelected = this.userForm.controls.roles.value;
 
+    // Quien no es el administrador solo asigna o quita Estudiante y Docente
     this.currentRolesForModal = Object.values(UserRoleType).map(type => ({
       type: type,
-      assigned: currentSelected.includes(type)
+      assigned: currentSelected.includes(type),
+      locked: !puedeAsignarRol(this.gestor(), type)
     }));
 
     this.isRolesModalOpen = true;

@@ -6,6 +6,7 @@ import { UserApiService } from './user-api.service';
 import { UserFormatterService } from './user-formatter.service';
 
 import { User } from '../interfaces/user.interface';
+import { ManagedUser } from '../helpers/user-management.helper';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { AuthStorageService } from '../../../core/services/auth/auth-storage.service';
 
@@ -86,6 +87,11 @@ export class UserService {
 
   public getUserById(id: string): Observable<User | undefined> {
     return this.api.getUserById(id);
+  }
+
+  /** Usuarios que gestiona el usuario de la sesión, con si los puede modificar. */
+  public loadManagedUsers(): Observable<ManagedUser[]> {
+    return this.api.loadManagedUsers();
   }
 
   public getUsersByRole(role: UserRoleType): Observable<User[]> {

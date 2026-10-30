@@ -13,6 +13,13 @@ export interface LoginResponse {
 export type TipoDocumentoApi = 'CC' | 'CE' | 'PASAPORTE';
 
 /** Respuesta de `GET /usuarios/me` y de las operaciones sobre usuarios (`UsuarioDTOResponse`). */
+/** Usuario de la gestión de usuarios (`GET /usuarios/gestion`): `UsuarioGestionadoDTOResponse`. */
+export interface UsuarioGestionadoResponse {
+  usuario: UsuarioResponse;
+  /** false si solo lo modifica el administrador (tiene roles administrativos) */
+  modificable: boolean;
+}
+
 export interface UsuarioResponse {
   id: number;
   codigo: string;

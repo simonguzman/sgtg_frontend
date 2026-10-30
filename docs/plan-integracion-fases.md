@@ -541,3 +541,13 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     / `NO_APROBADO` (§1 de `ajustes-2026-10-29.md`). En estadísticas cuentan como aprobado / no aprobado. Al registrar
     el anteproyecto solo se ofrecen las propuestas pertinentes del director (antes también se aceptaba "Aprobado con
     observaciones", que la propuesta no tiene) y el backend lo valida.
+42. **Evaluadores y jurados:** el jefe de departamento ya se puede elegir como evaluador o jurado; los miembros del
+    Comité, del Consejo y de Decanatura no (`ROLES_DECISORES`, igual que el backend, §3 de `ajustes-2026-10-29.md`).
+43. **Gestión de usuarios para los roles administrativos:** el menú y las páginas de usuarios quedan para el
+    administrador, el Comité, el jefe de departamento, el Consejo y Decanatura (`ROLES_GESTORES_DE_USUARIOS`). La tabla
+    muestra los usuarios de `GET /usuarios/gestion`: todos para el administrador, el Consejo y Decanatura; los docentes
+    del departamento y los estudiantes de sus programas para el Comité y el jefe. A los usuarios con roles
+    administrativos (salvo para el administrador) solo se les ven los datos y los roles. Quien no es el administrador
+    solo asigna o quita Estudiante y Docente (los demás roles aparecen bloqueados en los modales, `UserRole.locked`), el
+    Comité y el jefe solo eligen su departamento y sus programas, y solo el administrador crea departamentos y programas
+    (`allowCreate` del modal de catálogo). El backend valida todo (§4 de `ajustes-2026-10-29.md`).

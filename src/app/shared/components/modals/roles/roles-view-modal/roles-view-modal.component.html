@@ -14,8 +14,10 @@
         </li>
       }
     </ul>
-    <div class="flex justify-end gap-2">
-      <app-button-component label="Gestionar roles" variant="primary" (onClick)="onManage.emit()"></app-button-component>
-    </div>
+    @if (canManage) {
+      <div class="flex justify-end gap-2">
+        <app-button-component label="Gestionar roles" variant="primary" (onClick)="onManage.emit()"></app-button-component>
+      </div>
+    }
   </div>
 </p-dialog>

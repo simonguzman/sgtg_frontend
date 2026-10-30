@@ -1,4 +1,4 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { UserService } from '../../../services/user.service';
 import { UsersMapperService } from './users-mapper.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
@@ -6,22 +6,29 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { User } from '../../../interfaces/user.interface';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
+import { ManagedUser } from '../../../helpers/user-management.helper';
 
 @Injectable({ providedIn: 'root' })
 export class UsersFacadeService {
   private readonly userService = inject(UserService);
   private readonly mapper = inject(UsersMapperService);
   private readonly notificationService = inject(NotificationService);
-  public readonly usersTableData = computed(() => {
-    return this.userService.users().map(user => this.mapper.mapUserToTable(user));
-  });
+  /** Usuarios del alcance del gestor (todos para el administrador, Consejo y Decanatura) */
+  private readonly managedUsers = signal<ManagedUser[]>([]);
+
+  public readonly usersTableData = computed(() =>
+    this.managedUsers().map(({ user, editable }) => this.mapper.mapUserToTable(user, editable))
+  );
 
   public loadUsers(): void {
-    this.userService.loadUsers();
+    this.userService.loadManagedUsers().subscribe({
+      next: users => this.managedUsers.set(users),
+      error: error => console.warn('No se pudo cargar la gestión de usuarios', error?.status)
+    });
   }
 
   public findUserById(id: string): User | undefined {
-    return this.userService.users().find(user => user.id === id);
+    return this.managedUsers().find(({ user }) => user.id === id)?.user;
   }
 
   public updateRoles(userId: string, finalRoles: UserRoleType[], onSuccess: () => void): void {
@@ -30,6 +37,7 @@ export class UsersFacadeService {
     this.userService.updateUserRoles(userId, finalRoles).subscribe({
       next: () => {
         this.showNotification('¡Roles actualizados!', 'Los permisos del usuario se han modificado correctamente.', NotificationType.CONFIRMATION);
+        this.loadUsers();
         onSuccess();
       },
       error: (err) => {
@@ -50,6 +58,7 @@ export class UsersFacadeService {
           ? 'El usuario ha sido habilitado correctamente.'
           : 'El usuario ha sido deshabilitado correctamente.';
         this.showNotification(successTitle, successMsg, NotificationType.CONFIRMATION);
+        this.loadUsers();
         onSuccess();
       },
       error: (err) => {

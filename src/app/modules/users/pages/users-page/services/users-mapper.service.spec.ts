@@ -40,6 +40,18 @@ describe('Service: UsersMapperService', () => {
   it('debería crearse correctamente', () => {
     expect(service).toBeTruthy();
   });
+  describe('Usuarios que el gestor solo consulta', () => {
+    it('a un usuario con roles administrativos solo se le ven los roles y los datos', () => {
+      const fila = service.mapUserToTable(createMockUser({ roles: [UserRoleType.COMITE] }), false);
+      expect(fila.allowedActions).toEqual(['ver roles asignados', 'ver']);
+    });
+
+    it('a los demás se les pueden ver, editar, cambiar los roles e inactivar', () => {
+      expect(service.mapUserToTable(createMockUser(), true).allowedActions)
+        .toEqual(['ver roles asignados', 'ver', 'editar', 'eliminar']);
+    });
+  });
+
   describe('Búsqueda por rol', () => {
     it('la fila lleva los roles del usuario para la búsqueda', () => {
       const fila = service.mapUserToTable(createMockUser({ roles: [UserRoleType.COMITE, UserRoleType.CONSEJO] }));
