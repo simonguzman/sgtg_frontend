@@ -24,6 +24,8 @@ export class AuthService {
   readonly currentUser     = this.storage.currentUser;
   readonly isAuthenticated = this.storage.isAuthenticated;
   readonly userRoles       = this.storage.userRoles;
+  /** Debe cambiar la contraseña que le asignó un administrador antes de usar el sistema */
+  readonly debeCambiarPassword = this.storage.debeCambiarPassword;
 
   constructor() {
     // Cierra la sesión cuando vence el token, aunque el usuario no haga peticiones
@@ -80,6 +82,14 @@ export class AuthService {
     this.storage.clearUser();
     this.notification.security('Sesión finalizada', 'Tu sesión expiró. Inicia sesión de nuevo para continuar.');
     this.router.navigate(['/auth/login']);
+  }
+
+  /**
+   * El backend rechazó una operación porque el usuario debe cambiar primero la
+   * contraseña que le asignaron: lo lleva a cambiarla.
+   */
+  requirePasswordChange(): void {
+    this.router.navigate(['/auth/cambiar-password']);
   }
 
   /** Cierra la sesión (también en el backend, con el motivo) y avisa por qué. */

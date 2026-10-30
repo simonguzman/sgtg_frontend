@@ -40,7 +40,8 @@ describe('ChangePasswordModalComponent', () => {
 
   // Tipado estricto utilizando las verdaderas firmas que usa el componente
   let authServiceMock: {
-    changePassword: jest.Mock<Observable<any>, [string, string]>
+    changePassword: jest.Mock<Observable<any>, [string, string]>,
+    currentUser: jest.Mock
   };
 
 
@@ -51,7 +52,8 @@ describe('ChangePasswordModalComponent', () => {
 
     // Inicializamos el mock con funciones de Jest
     authServiceMock = {
-      changePassword: jest.fn()
+      changePassword: jest.fn(),
+      currentUser: jest.fn(() => ({ email: 'ana.perez@unicauca.edu.co', idNumber: 1061234567 }))
     };
 
     await TestBed.configureTestingModule({
@@ -95,14 +97,36 @@ describe('ChangePasswordModalComponent', () => {
   });
 
   describe('Validaciones del Formulario', () => {
-    it('debería marcar la contraseña nueva como inválida si tiene menos de 8 caracteres', () => {
+    it('debería exigir la política de contraseñas del backend', () => {
       const newPwdControl = component.passwordForm.get('newPassword');
 
-      newPwdControl?.setValue('1234567');
-      expect(newPwdControl?.hasError('minlength')).toBeTruthy();
+      newPwdControl?.setValue('Cort1*');
+      expect(newPwdControl?.hasError('passwordPolicy')).toBeTruthy();
+      newPwdControl?.setValue('sinmayuscula1*');
+      expect(newPwdControl?.hasError('passwordPolicy')).toBeTruthy();
 
-      newPwdControl?.setValue('12345678');
-      expect(newPwdControl?.hasError('minlength')).toBeFalsy();
+      newPwdControl?.setValue('Clave123*');
+      expect(newPwdControl?.valid).toBeTruthy();
+    });
+
+    it('debería rechazar una contraseña con el correo o el documento del usuario', () => {
+      const newPwdControl = component.passwordForm.get('newPassword');
+
+      newPwdControl?.setValue('Ana.Perez1*');
+      expect(newPwdControl?.hasError('passwordPredecible')).toBeTruthy();
+      newPwdControl?.setValue('Doc1061234567*');
+      expect(newPwdControl?.hasError('passwordPredecible')).toBeTruthy();
+    });
+
+    it('debería mostrar los requisitos que ya cumple la contraseña escrita', () => {
+      component.isOpen = true;
+      component.passwordForm.get('newPassword')?.setValue('abc');
+      fixture.detectChanges();
+
+      const requisitos = Array.from(document.querySelectorAll('app-password-requirements li'))
+        .map(li => li.textContent?.trim().replace(/\s+/g, ' '));
+      expect(requisitos).toContain('check_circle Una letra minúscula(cumple)');
+      expect(requisitos).toContain('radio_button_unchecked Una letra mayúscula(falta)');
     });
 
     it('debería detectar cuando las contraseñas no coinciden mediante passwordMatchValidator', () => {
@@ -119,8 +143,8 @@ describe('ChangePasswordModalComponent', () => {
     it('debería ser válido cuando las contraseñas coinciden y cumplen todos los requisitos', () => {
       component.passwordForm.patchValue({
         currentPassword: 'current_password_123',
-        newPassword: 'new_password_8',
-        confirmPassword: 'new_password_8'
+        newPassword: 'Nueva_clave_8',
+        confirmPassword: 'Nueva_clave_8'
       });
       component.passwordForm.updateValueAndValidity();
 
@@ -146,8 +170,8 @@ describe('ChangePasswordModalComponent', () => {
     it('debería abrir el modal de confirmación al intentar guardar con datos válidos', () => {
       component.passwordForm.patchValue({
         currentPassword: 'valid_password',
-        newPassword: 'valid_password',
-        confirmPassword: 'valid_password'
+        newPassword: 'Valid_clave1',
+        confirmPassword: 'Valid_clave1'
       });
 
       component.onAttemptSave();

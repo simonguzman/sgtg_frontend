@@ -6,6 +6,8 @@ import { ButtonComponent } from '../../button-component/button-component.compone
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { ConfirmationActionModalComponent } from "../confirmation-action-modal/confirmation-action-modal.component";
 import { NotificationService } from '../../notifications/services/notification.service';
+import { PasswordRequirementsComponent } from '../../password-requirements/password-requirements.component';
+import { PASSWORD_PREDECIBLE, passwordPolicyValidator } from '../../../../core/utils/password-policy';
 
 export const passwordMatchValidator = (control: AbstractControl): ValidationErrors | null => {
   const newPassword = control.get('newPassword');
@@ -19,7 +21,8 @@ export const passwordMatchValidator = (control: AbstractControl): ValidationErro
 
 @Component({
   selector: 'app-change-password-modal',
-  imports: [DialogModule, CommonModule, ReactiveFormsModule, ButtonComponent, ConfirmationActionModalComponent],
+  imports: [DialogModule, CommonModule, ReactiveFormsModule, ButtonComponent, ConfirmationActionModalComponent,
+    PasswordRequirementsComponent],
   templateUrl: './change-password-modal.component.html',
   styleUrls: ['./change-password-modal.component.css']
 })
@@ -32,6 +35,7 @@ export class ChangePasswordModalComponent {
   private readonly authService = inject(AuthService);
   private readonly notificationService = inject(NotificationService);
 
+  readonly mensajePredecible = PASSWORD_PREDECIBLE;
   isLoading = false;
   isConfirmActionOpen = false;
   showCurrentPassword = false;
@@ -40,9 +44,15 @@ export class ChangePasswordModalComponent {
 
   passwordForm: FormGroup = this.fb.group({
     currentPassword: ['', [Validators.required]],
-    newPassword: ['', [Validators.required, Validators.minLength(8)]],
+    newPassword: ['', [Validators.required, passwordPolicyValidator(() => this.datosDelUsuario())]],
     confirmPassword: ['', [Validators.required]]
   }, { validators: passwordMatchValidator });
+
+  /** Correo y documento del usuario: la contraseña nueva no puede contenerlos */
+  private datosDelUsuario(): (string | null | undefined)[] {
+    const usuario = this.authService.currentUser();
+    return [usuario?.email, usuario?.idNumber?.toString()];
+  }
 
   closeModal() {
     this.passwordForm.reset();

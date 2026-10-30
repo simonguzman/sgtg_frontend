@@ -1,6 +1,6 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { User } from '../../../modules/users/interfaces/user.interface';
-import { isJwtVigente } from '../../utils/jwt-utils';
+import { isJwtVigente, jwtDebeCambiarPassword } from '../../utils/jwt-utils';
 
 /**
  * Sesión del usuario autenticado: el token JWT del backend y los datos del
@@ -22,6 +22,11 @@ export class AuthStorageService {
   // no hay lógica de negocio, solo derivación reactiva del estado almacenado.
   public readonly isAuthenticated = computed(() => !!this._currentUser() && !!this._token());
   public readonly userRoles       = computed(() => this._currentUser()?.roles ?? []);
+  /** El usuario debe cambiar la contraseña que le asignó un administrador antes de usar el sistema */
+  public readonly debeCambiarPassword = computed(() => {
+    const token = this._token();
+    return !!token && jwtDebeCambiarPassword(token);
+  });
 
   constructor() {
     this.restoreSession();
@@ -32,6 +37,12 @@ export class AuthStorageService {
     this._token.set(token);
     localStorage.setItem(this.TOKEN_KEY, token);
     this.setUser(user);
+  }
+
+  /** Reemplaza el token de la sesión (el backend emite uno nuevo al cambiar la contraseña). */
+  public setToken(token: string): void {
+    this._token.set(token);
+    localStorage.setItem(this.TOKEN_KEY, token);
   }
 
   public setUser(user: User): void {

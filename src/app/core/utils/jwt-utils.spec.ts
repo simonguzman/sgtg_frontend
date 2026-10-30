@@ -1,4 +1,4 @@
-import { isJwtVigente, jwtExpiration } from './jwt-utils';
+import { isJwtVigente, jwtDebeCambiarPassword, jwtExpiration } from './jwt-utils';
 import { crearJwtDePrueba } from '../../testing/jwt-de-prueba';
 
 describe('jwt-utils', () => {
@@ -20,6 +20,13 @@ describe('jwt-utils', () => {
       expect(jwtExpiration(token)).toBeNull();
       expect(isJwtVigente(token)).toBe(false);
     });
+
+  it('indica si el usuario debe cambiar la contraseña asignada (claim cambioPassword)', () => {
+    expect(jwtDebeCambiarPassword(crearJwtDePrueba(60, { cambioPassword: true }))).toBe(true);
+    expect(jwtDebeCambiarPassword(crearJwtDePrueba(60))).toBe(false);
+    expect(jwtDebeCambiarPassword(crearJwtDePrueba(60, { cambioPassword: 'true' }))).toBe(false);
+    expect(jwtDebeCambiarPassword('no-es-jwt')).toBe(false);
+  });
 
   it('isJwtVigente distingue tokens vigentes y vencidos', () => {
     expect(isJwtVigente(crearJwtDePrueba(60))).toBe(true);

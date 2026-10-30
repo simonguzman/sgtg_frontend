@@ -1,7 +1,7 @@
 import { Component, computed, DestroyRef, effect, EventEmitter, inject, input, Output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
-import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { User } from '../../interfaces/user.interface';
 import { CatalogItem } from '../../interfaces/catalog-item.interface';
 import { UserRole } from '../../../../core/models/user-role';
@@ -19,14 +19,13 @@ import { requiresProgram, requiresTeacherProfile } from '../../../../core/mapper
 import { apiErrorMessage } from '../../../../core/utils/api-error.utils';
 import { AuthStorageService } from '../../../../core/services/auth/auth-storage.service';
 import { departamentoDelGestor, esAdministrador, puedeAsignarRol } from '../../helpers/user-management.helper';
-
-/** Longitud mínima de la contraseña (igual que en el backend). */
-export const MIN_PASSWORD_LENGTH = 8;
+import { PASSWORD_PREDECIBLE, passwordPolicyValidator } from '../../../../core/utils/password-policy';
+import { PasswordRequirementsComponent } from '../../../../shared/components/password-requirements/password-requirements.component';
 
 @Component({
   selector: 'app-user-form',
   imports: [ReactiveFormsModule, ButtonComponent, RolesSelectionModalComponent, CatalogSelectionModalComponent,
-    InlineNoticeComponent],
+    InlineNoticeComponent, PasswordRequirementsComponent],
   templateUrl: './user-form.component.html',
   styleUrls: ['./user-form.component.css']
 })
@@ -39,7 +38,7 @@ export class UserFormComponent  {
   readonly identificationTypes = Object.values(IdentificationType);
   /** Vinculaciones del negocio (`TipoVinculacion`) */
   readonly contractTypes = Object.values(ContractType).map(value => ({ value, label: CONTRACT_TYPE_LABELS[value] }));
-  readonly minPasswordLength = MIN_PASSWORD_LENGTH;
+  readonly mensajePredecible = PASSWORD_PREDECIBLE;
 
   /** Catálogos del backend para el perfil académico */
   readonly departments = signal<CatalogItem[]>([]);
@@ -90,11 +89,17 @@ export class UserFormComponent  {
       validators: [Validators.required, Validators.minLength(1)]
     }),
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.minLength(MIN_PASSWORD_LENGTH)]],
+    password: ['', [this.politicaPassword()]],
     contractType: [null as ContractType | null],
     departmentId: [null as number | null],
     programId: [null as number | null]
   })
+
+  /** Política de contraseñas con el correo y el documento escritos en el formulario */
+  private politicaPassword(): ValidatorFn {
+    return passwordPolicyValidator(() => [this.userForm?.controls.email.value,
+      this.userForm?.controls.idNumber.value?.toString()]);
+  }
 
   isFieldInvalid(fieldName: string): boolean {
     const field = this.userForm.get(fieldName);
@@ -134,7 +139,7 @@ export class UserFormComponent  {
           departmentId: userData.department?.id ?? null,
           programId: userData.program?.id ?? null
         });
-        passwordControl?.setValidators([Validators.minLength(MIN_PASSWORD_LENGTH)]);
+        passwordControl?.setValidators([this.politicaPassword()]);
       } else {
         this.userForm.reset({
         idType: '',
@@ -147,7 +152,7 @@ export class UserFormComponent  {
         departmentId: null,
         programId: null
       });
-        passwordControl?.setValidators([Validators.required, Validators.minLength(MIN_PASSWORD_LENGTH)]);
+        passwordControl?.setValidators([Validators.required, this.politicaPassword()]);
       }
       passwordControl?.updateValueAndValidity();
       this.updateProfileValidators();

@@ -195,12 +195,18 @@
               <span class="material-symbols-outlined select-none">{{ showPassword() ? 'visibility' : 'visibility_off' }}</span>
             </button>
           </div>
-          @if (isFieldInvalid('password')) {
-            <span class="text-textbox-alert">Mínimo {{ minPasswordLength }} caracteres</span>
+          @if (userForm.get('password')?.value) {
+            <app-password-requirements class="mt-2" [password]="userForm.get('password')?.value"></app-password-requirements>
           }
-          @if (isEditMode) {
-            <span class="text-size-body text-text-body">Déjela vacía para conservar la contraseña actual</span>
+          @if (userForm.get('password')?.hasError('passwordPredecible')) {
+            <span class="text-textbox-alert">{{ mensajePredecible }}</span>
+          } @else if (isFieldInvalid('password') && userForm.get('password')?.hasError('required')) {
+            <span class="text-textbox-alert">La contraseña es obligatoria</span>
           }
+          <span class="text-size-body text-text-body">
+            @if (isEditMode) {Déjela vacía para conservar la contraseña actual. }
+            El usuario deberá cambiarla en su siguiente ingreso.
+          </span>
         </div>
       </div>
     </section>

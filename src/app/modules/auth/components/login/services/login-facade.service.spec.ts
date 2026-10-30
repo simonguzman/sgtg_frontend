@@ -10,6 +10,7 @@ describe('LoginFacadeService', () => {
   let service: LoginFacadeService;
   let authServiceMock: {
     isAuthenticated: jest.Mock<boolean, []>;
+    debeCambiarPassword: jest.Mock<boolean, []>;
     login: jest.Mock<Observable<{ success: boolean; message?: string }>, [{ email: string; password: string }]>;
   };
 
@@ -26,6 +27,7 @@ describe('LoginFacadeService', () => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     authServiceMock = {
       isAuthenticated: jest.fn(),
+      debeCambiarPassword: jest.fn(() => false),
       login: jest.fn()
     };
 
@@ -76,6 +78,14 @@ describe('LoginFacadeService', () => {
     beforeEach(() => {
       onStartMock = jest.fn();
       onCompleteMock = jest.fn();
+    });
+
+    it('con una contraseña asignada por un administrador lleva a cambiarla, sin dar la bienvenida', () => {
+      authServiceMock.login.mockReturnValue(of({ success: true }));
+      authServiceMock.debeCambiarPassword.mockReturnValue(true);
+      service.login(mockCredentials, onStartMock, onCompleteMock);
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/cambiar-password']);
+      expect(notificationServiceMock.show).not.toHaveBeenCalled();
     });
 
     it('debe ejecutar flujo exitoso: notificar y redirigir', () => {

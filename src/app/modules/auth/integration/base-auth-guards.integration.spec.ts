@@ -28,9 +28,9 @@ const buildRoute = (roles?: UserRoleType[]): ActivatedRouteSnapshot => {
   return mockRoute as ActivatedRouteSnapshot;
 };
 
-const buildRouterState = (): RouterStateSnapshot => {
+const buildRouterState = (url = '/dummy-url'): RouterStateSnapshot => {
   const mockState: Partial<RouterStateSnapshot> = {
-    url: '/dummy-url'
+    url
   };
   return mockState as RouterStateSnapshot;
 };
@@ -66,9 +66,19 @@ describe('Integración [Core]: Guards base de autenticación y roles', () => {
   describe('authGuard', () => {
     it('permite el paso a un usuario autenticado y activo', () => {
       const activeUser = createMockUser({ id: 'u1', state: UserState.active });
-      setup({ isAuthenticated: signal(true), currentUser: signal(activeUser), logout: jest.fn() });
+      setup({ isAuthenticated: signal(true), currentUser: signal(activeUser), debeCambiarPassword: signal(false),
+        logout: jest.fn() });
       const result = runInInjectionContext(injector, () => authGuard(buildRoute(), buildRouterState()));
       expect(result).toBe(true);
+    });
+
+    it('lleva a cambiar la contraseña si la asignó un administrador', () => {
+      const activeUser = createMockUser({ id: 'u1', state: UserState.active });
+      setup({ isAuthenticated: signal(true), currentUser: signal(activeUser), debeCambiarPassword: signal(true),
+        logout: jest.fn() });
+      const result = runInInjectionContext(injector, () => authGuard(buildRoute(), buildRouterState()));
+      expect(result).toBe(false);
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/cambiar-password']);
     });
 
     it('cierra la sesión (no solo bloquea) si el usuario está inhabilitado', () => {
@@ -91,7 +101,7 @@ describe('Integración [Core]: Guards base de autenticación y roles', () => {
 
   describe('publicGuard', () => {
     it('bloquea /auth/login si ya hay sesión activa, y redirige a notifications', () => {
-      setup({ isAuthenticated: signal(true) });
+      setup({ isAuthenticated: signal(true), debeCambiarPassword: signal(false) });
       const result = runInInjectionContext(injector, () => publicGuard(buildRoute(), buildRouterState()));
       expect(result).toBe(false);
       expect(routerMock.navigate).toHaveBeenCalledWith(['/notifications']);
@@ -102,6 +112,24 @@ describe('Integración [Core]: Guards base de autenticación y roles', () => {
       const result = runInInjectionContext(injector, () => publicGuard(buildRoute(), buildRouterState()));
       expect(result).toBe(true);
       expect(routerMock.navigate).not.toHaveBeenCalled();
+    });
+
+    it('la pantalla de cambio obligatorio solo es para quien debe cambiar la contraseña', () => {
+      const cambio = buildRouterState('/auth/cambiar-password');
+      setup({ isAuthenticated: signal(true), debeCambiarPassword: signal(true) });
+      expect(runInInjectionContext(injector, () => publicGuard(buildRoute(), cambio))).toBe(true);
+      // Desde el login lo lleva a cambiarla
+      expect(runInInjectionContext(injector, () => publicGuard(buildRoute(), buildRouterState('/auth/login'))))
+        .toBe(false);
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/cambiar-password']);
+    });
+
+    it('sin sesión, la pantalla de cambio obligatorio lleva al login', () => {
+      setup({ isAuthenticated: signal(false) });
+      const result = runInInjectionContext(injector, () =>
+        publicGuard(buildRoute(), buildRouterState('/auth/cambiar-password')));
+      expect(result).toBe(false);
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/login']);
     });
   });
 

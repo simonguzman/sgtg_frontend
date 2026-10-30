@@ -138,12 +138,21 @@ describe('UserFormComponent', () => {
       expect(emailControl?.hasError('required')).toBeTruthy();
     });
 
-    it('debería validar la longitud mínima de la contraseña (8, como el backend)', () => {
+    it('debería exigir la política de contraseñas del backend', () => {
       const passwordControl = component.userForm.get('password');
-      passwordControl?.setValue('1234567');
-      expect(passwordControl?.hasError('minlength')).toBeTruthy();
       passwordControl?.setValue('12345678');
-      expect(passwordControl?.hasError('minlength')).toBeFalsy();
+      expect(passwordControl?.hasError('passwordPolicy')).toBeTruthy();
+      passwordControl?.setValue('Clave123*');
+      expect(passwordControl?.valid).toBeTruthy();
+    });
+
+    it('debería rechazar una contraseña con el correo o el documento escritos en el formulario', () => {
+      component.userForm.patchValue({ email: 'ana.gomez@unicauca.edu.co', idNumber: 1061234567 });
+      const passwordControl = component.userForm.get('password');
+      passwordControl?.setValue('Ana.Gomez1*');
+      expect(passwordControl?.hasError('passwordPredecible')).toBeTruthy();
+      passwordControl?.setValue('Doc1061234567*');
+      expect(passwordControl?.hasError('passwordPredecible')).toBeTruthy();
     });
 
     it('debería cargar los departamentos y programas del backend', () => {
@@ -216,7 +225,7 @@ describe('UserFormComponent', () => {
         codeNumber: 9876,
         roles: [UserRoleType.ESTUDIANTE],
         email: 'ana@universidad.edu.co',
-        password: 'password123',
+        password: 'Clave123*',
         programId: 7
       })
       component.submit();

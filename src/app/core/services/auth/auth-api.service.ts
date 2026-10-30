@@ -77,12 +77,15 @@ export class AuthApiService {
   }
 
   /**
-   * Cambia la contraseña del usuario autenticado. Si el backend la rechaza
-   * (contraseña actual incorrecta, nueva inválida) el error trae su mensaje.
+   * Cambia la contraseña del usuario autenticado. El backend cierra las demás
+   * sesiones del usuario y devuelve un token nuevo para seguir en esta. Si la
+   * rechaza (contraseña actual incorrecta, nueva inválida o reciente) el error
+   * trae su mensaje.
    */
   changePassword(currentPassword: string, newPassword: string): Observable<ChangePasswordResponse> {
     const cuerpo: CambiarPasswordRequest = { passwordActual: currentPassword, passwordNueva: newPassword };
-    return this.http.put<void>(`${this.apiUrl}/usuarios/me/password`, cuerpo).pipe(
+    return this.http.put<LoginResponse>(`${this.apiUrl}/usuarios/me/password`, cuerpo).pipe(
+      tap(({ token }) => this.storage.setToken(token)),
       map(() => ({ success: true, message: 'Contraseña actualizada exitosamente.' })),
       catchError((error: HttpErrorResponse) => throwError(() =>
         new Error(this.mensajeDeError(error, 'No se pudo cambiar la contraseña. Intenta de nuevo.'))))

@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
+import { CAMBIO_PASSWORD_URL } from '../../../../../core/guards/public.guard';
 
 @Injectable({ providedIn: 'root' })
 export class LoginFacadeService {
@@ -35,7 +36,10 @@ export class LoginFacadeService {
     this.authService.login(credentials).subscribe({
       next: (response) => {
         onComplete();
-        if (response.success) {
+        if (response.success && this.authService.debeCambiarPassword()) {
+          // La contraseña la asignó un administrador: primero debe cambiarla
+          this.router.navigate([CAMBIO_PASSWORD_URL]);
+        } else if (response.success) {
           this.showNotification('¡Bienvenido!', 'Sesión iniciada correctamente.', NotificationType.CONFIRMATION);
           this.router.navigate(['/notifications']);
         } else {

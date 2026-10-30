@@ -18,6 +18,7 @@ describe('Integración [Auth Module]: Flujo de Login (Componente + Fachada)', ()
   let facade: LoginFacadeService;
   let authServiceMock: {
     isAuthenticated: jest.Mock<boolean, []>;
+    debeCambiarPassword: jest.Mock<boolean, []>;
     login: jest.Mock<Observable<{ success: boolean; message?: string }>, [Record<string, string>]>
   };
   let routerMock: { navigate: jest.Mock<Promise<boolean>, [string[]]> };
@@ -36,6 +37,7 @@ describe('Integración [Auth Module]: Flujo de Login (Componente + Fachada)', ()
     jest.clearAllMocks();
     authServiceMock = {
       isAuthenticated: jest.fn(),
+      debeCambiarPassword: jest.fn(() => false),
       login: jest.fn()
     };
     routerMock = { navigate: jest.fn().mockResolvedValue(true) };

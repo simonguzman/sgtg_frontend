@@ -577,3 +577,21 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     - **Build de producción:** usa `inlineCritical: false`. Así el `index.html` no lleva el `onload` en línea y la política
       de contenido no tiene que permitir scripts en línea.
     - Detalle del backend en `sgtg_backend/docs/ajustes-2026-10-30.md`.
+47. **Credenciales y contraseñas (2026-10-30):**
+    - **Política de contraseñas** (`core/utils/password-policy.ts`, la misma del backend):
+      - entre 8 y 64 caracteres, sin espacios al borde;
+      - minúscula, mayúscula, número y símbolo;
+      - sin el correo, el documento ni palabras comunes.
+      Se usa al crear o editar un usuario, en el modal "Cambiar contraseña" y en el cambio obligatorio.
+      `PasswordRequirementsComponent` marca los requisitos que ya cumple lo escrito. Que no repita las últimas 5 lo
+      revisa solo el backend.
+    - **Cambio obligatorio:**
+      - La contraseña que asigna un administrador (al crear el usuario o al editarlo) se debe cambiar en el
+        siguiente ingreso.
+      - El token trae `cambioPassword` (`jwtDebeCambiarPassword`, `AuthStorageService.debeCambiarPassword`).
+      - El login, `authGuard` y `publicGuard` llevan a `/auth/cambiar-password` (`RequiredPasswordChangeComponent`)
+        y no dejan entrar a otras pantallas; desde ahí solo se puede cambiar la contraseña o cerrar sesión.
+      - Si el backend responde 403 `GC-0012`, el interceptor también lleva a esa pantalla.
+    - **Token nuevo al cambiar la contraseña:** `PUT /usuarios/me/password` devuelve `{ token }` y `changePassword` lo
+      guarda. Las demás sesiones del usuario se cierran.
+    - Detalle del backend en `sgtg_backend/docs/ajustes-2026-10-30.md` (§10 a §12).

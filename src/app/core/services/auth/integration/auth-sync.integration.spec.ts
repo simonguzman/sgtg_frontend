@@ -109,6 +109,28 @@ describe('Integración [Auth]: sesión con el backend (Core ➔ Users)', () => {
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
+  it('un 403 porque falta cambiar la contraseña asignada lleva a cambiarla sin cerrar la sesión', () => {
+    iniciarSesion();
+
+    httpClient.get(`${API}/trabajos-grado/mis-trabajos`).subscribe({ error: () => undefined });
+    http.expectOne(`${API}/trabajos-grado/mis-trabajos`).flush(
+      { errorCode: 'GC-0012', message: 'Debes cambiar la contraseña que te asignaron antes de continuar.' },
+      { status: 403, statusText: 'Forbidden' });
+
+    expect(router.navigate).toHaveBeenCalledWith(['/auth/cambiar-password']);
+    expect(storage.isAuthenticated()).toBe(true);
+  });
+
+  it('un 403 por falta de permisos no cambia de pantalla', () => {
+    iniciarSesion();
+
+    httpClient.get(`${API}/usuarios/gestion`).subscribe({ error: () => undefined });
+    http.expectOne(`${API}/usuarios/gestion`).flush(
+      { errorCode: 'GC-0008', message: 'ERROR, NO ACCESS' }, { status: 403, statusText: 'Forbidden' });
+
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
   it('logout cierra la sesión para todos los módulos', () => {
     iniciarSesion();
     auth.logout();

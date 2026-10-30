@@ -163,16 +163,22 @@ describe('AuthApiService', () => {
   });
 
   describe('changePassword', () => {
-    it('envía la contraseña actual y la nueva', () => {
+    it('envía la contraseña actual y la nueva, y sigue la sesión con el token nuevo', () => {
+      storage.setSession(crearJwtDePrueba(3600, { cambioPassword: true }), { id: '7', roles: [] } as never);
+      expect(storage.debeCambiarPassword()).toBe(true);
       let respuesta: { success: boolean; message: string } | undefined;
       service.changePassword('Actual123', 'Nueva1234').subscribe(r => respuesta = r);
 
       const req = http.expectOne(`${API}/usuarios/me/password`);
       expect(req.request.method).toBe('PUT');
       expect(req.request.body).toEqual({ passwordActual: 'Actual123', passwordNueva: 'Nueva1234' });
-      req.flush(null, { status: 204, statusText: 'No Content' });
+      // El backend cierra las demás sesiones y devuelve un token nuevo para esta
+      req.flush({ token });
 
       expect(respuesta?.success).toBe(true);
+      expect(storage.token()).toBe(token);
+      expect(localStorage.getItem('sgtg_token')).toBe(token);
+      expect(storage.debeCambiarPassword()).toBe(false);
     });
 
     it('si el backend la rechaza, el error trae su mensaje', () => {
