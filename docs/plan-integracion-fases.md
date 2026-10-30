@@ -555,3 +555,10 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     de la propuesta exige al menos un objetivo específico con texto (validador del `FormArray`; los campos vacíos no se
     envían) y, en un trabajo de investigación, la línea de investigación (en práctica profesional sigue opcional). El
     backend lo valida igual (§5 de `ajustes-2026-10-29.md`).
+45. **Reuniones de seguimiento:** en la pestaña de informes mensuales, el botón "Reuniones de seguimiento" (lo ven todos
+    los participantes, también en el historial) abre `details/:id/meetings`: una fila por cada mes del plazo con la
+    fecha sugerida, la fecha y hora agendadas, el lugar o enlace, si ya se radicó el informe de ese mes y el estado
+    (Pendiente, Agendada, Realizada, Vencida o En suspensión), más un resumen (reuniones, realizadas, con informe). El
+    director agenda o reprograma (fecha y hora, lugar o enlace) y registra la reunión como realizada con observaciones;
+    los demás ven los detalles. Las notificaciones de reuniones llevan a esta vista. Calendario y reglas en el backend
+    (§6 de `ajustes-2026-10-29.md`); `ThesisWorkMeetingService`, `MeetingsFacadeService`, `Meeting` en `ThesisWork`.

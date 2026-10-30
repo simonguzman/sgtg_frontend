@@ -21,6 +21,7 @@ import { RegisterSpecialRequestPageComponent } from './pages/register-special-re
 import { EvaluateSpecialRequestPageComponent } from './pages/evaluate-special-request-page/evaluate-special-request-page.component';
 import { DownloadableFormatsPageComponent } from '../../shared/pages/downloadable-formats-page/downloadable-formats-page.component';
 import { thesisWorkOwnershipGuard } from '../../core/guards/thesis-work-ownership.guard';
+import { MeetingsPageComponent } from './pages/meetings-page/meetings-page.component';
 
 export const thesisWorkRoutes: Routes = [
   {
@@ -79,6 +80,20 @@ export const thesisWorkRoutes: Routes = [
             title: 'Documentos cargados',
             data: {
               breadcrumb: 'Documentos cargados',
+              roles: [
+                UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR,
+                UserRoleType.ASESOR, UserRoleType.ESTUDIANTE, UserRoleType.DECANATURA,
+                UserRoleType.CONSEJO, UserRoleType.JURADO
+              ]
+            }
+          },
+          {
+            path: 'meetings',
+            component: MeetingsPageComponent,
+            canActivate: [roleGuard],
+            title: 'Reuniones de seguimiento',
+            data: {
+              breadcrumb: 'Reuniones de seguimiento',
               roles: [
                 UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR,
                 UserRoleType.ASESOR, UserRoleType.ESTUDIANTE, UserRoleType.DECANATURA,

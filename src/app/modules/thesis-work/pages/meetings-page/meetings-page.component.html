@@ -1,0 +1,136 @@
+<div class="w-full min-h-screen bg-[#F8F9FA] p-4 md:p-8">
+
+  <div class="flex justify-between items-center mb-6">
+    <button (click)="goBack()" class="flex items-center gap-2 text-primary transition-colors font-bold group">
+      <span class="material-symbols-outlined text-primary text-size-sidebar-title group-hover:-translate-x-1 transition-transform">
+        arrow_back
+      </span>
+      <span class="return-arrow-option">Regresar</span>
+    </button>
+  </div>
+
+  <div class="p-6 bg-white rounded-lg w-full flex flex-col gap-6">
+    <app-info-banner title="Reuniones de seguimiento" icon="event">
+      Hay una reunión por cada mes del plazo de ejecución; la prórroga suma sus meses y, si el trabajo se suspende,
+      las reuniones que quedaban se corren los días que dure la suspensión. En cada reunión se revisa el informe
+      mensual de ese mes. El director agenda la reunión y, después de realizarla, la registra como realizada.
+    </app-info-banner>
+
+    @if (facade.thesisWork(); as thesis) {
+      <section class="flex flex-col gap-4">
+        <h3 class="text-primary font-display font-semibold text-size-header-title border-b pb-2 m-0">
+          {{ thesis.preliminaryDraftData.proposalData.title }}
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="meeting-summary">
+            <span class="meeting-summary-value">{{ facade.summary().total }}</span>
+            <span class="meeting-summary-label">Reuniones del plazo</span>
+          </div>
+          <div class="meeting-summary">
+            <span class="meeting-summary-value">{{ facade.summary().held }} de {{ facade.summary().total }}</span>
+            <span class="meeting-summary-label">Realizadas</span>
+          </div>
+          <div class="meeting-summary">
+            <span class="meeting-summary-value">{{ facade.summary().withReport }} de {{ facade.summary().total }}</span>
+            <span class="meeting-summary-label">Con su informe mensual</span>
+          </div>
+        </div>
+      </section>
+    }
+
+    <app-table-component
+      [value]="facade.rows()"
+      [columns]="columns"
+      [paginator]="true"
+      [rows]="6"
+      emptyMessage="El trabajo aún no tiene plazo de ejecución: las reuniones se calculan cuando el Consejo aprueba el anteproyecto."
+      (actionClick)="handleTableAction($any($event))"
+    ></app-table-component>
+  </div>
+</div>
+
+<!-- Agendar o reprogramar -->
+<p-dialog [visible]="!!scheduleTarget()" (visibleChange)="!$event && scheduleTarget.set(null)" [modal]="true"
+          [draggable]="false" [resizable]="false" [style]="{ width: '500px' }" styleClass="custom-modal">
+  <ng-template pTemplate="header">
+    <h2 class="text-primary font-bold font-display text-size-sidebar-title m-0">
+      {{ scheduleTarget()?.scheduledAt ? 'Reprogramar' : 'Agendar' }} la reunión {{ scheduleTarget()?.number }}
+    </h2>
+  </ng-template>
+  <div class="flex flex-col gap-4 py-2">
+    @if (scheduleTarget()?.suggestedDate; as sugerida) {
+      <p class="text-size-body text-text-body m-0">Fecha sugerida: <strong>{{ formatThesisDate(sugerida) }}</strong></p>
+    }
+    <div class="flex flex-col gap-1">
+      <label for="meetingDate" class="title-textbox">Fecha y hora <span class="text-alert">*</span></label>
+      <p-datepicker inputId="meetingDate" [(ngModel)]="scheduleDate" [showTime]="true" hourFormat="12"
+                    appendTo="body" placeholder="Seleccione fecha y hora" styleClass="w-full"
+                    inputStyleClass="text-size-body p-2 border border-gray-200 rounded-md w-full bg-white"></p-datepicker>
+    </div>
+    <div class="flex flex-col gap-1">
+      <label for="meetingPlace" class="title-textbox">Lugar o enlace <span class="text-alert">*</span></label>
+      <input id="meetingPlace" type="text" [(ngModel)]="schedulePlace" maxlength="500"
+             placeholder="Ej: Sala de reuniones 2 o https://meet.google.com/..."
+             class="font-sans text-size-body text-textbox p-2 border border-gray-200 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary">
+    </div>
+    <div class="flex justify-end gap-2 mt-2">
+      <app-button-component label="Cancelar" variant="secondary" (onClick)="scheduleTarget.set(null)"></app-button-component>
+      <app-button-component label="Guardar" variant="primary" [disabled]="!canSaveSchedule" (onClick)="confirmSchedule()"></app-button-component>
+    </div>
+  </div>
+</p-dialog>
+
+<!-- Registrar como realizada -->
+<p-dialog [visible]="!!heldTarget()" (visibleChange)="!$event && heldTarget.set(null)" [modal]="true"
+          [draggable]="false" [resizable]="false" [style]="{ width: '500px' }" styleClass="custom-modal">
+  <ng-template pTemplate="header">
+    <h2 class="text-primary font-bold font-display text-size-sidebar-title m-0">
+      Registrar la reunión {{ heldTarget()?.number }} como realizada
+    </h2>
+  </ng-template>
+  <div class="flex flex-col gap-4 py-2">
+    @if (heldTarget()?.scheduledAt; as agendada) {
+      <p class="text-size-body text-text-body m-0">Agendada para el <strong>{{ formatMeetingDateTime(agendada) }}</strong>
+        ({{ heldTarget()?.place }}).</p>
+    }
+    <div class="flex flex-col gap-1">
+      <label for="meetingObservations" class="title-textbox">Observaciones de la reunión</label>
+      <textarea id="meetingObservations" rows="4" [(ngModel)]="heldObservations" maxlength="2000"
+                placeholder="Temas tratados, compromisos... (opcional)"
+                class="font-sans text-size-body text-textbox p-2 border border-gray-200 rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"></textarea>
+    </div>
+    <div class="flex justify-end gap-2 mt-2">
+      <app-button-component label="Cancelar" variant="secondary" (onClick)="heldTarget.set(null)"></app-button-component>
+      <app-button-component label="Registrar" variant="primary" [disabled]="facade.isSubmitting()" (onClick)="confirmHeld()"></app-button-component>
+    </div>
+  </div>
+</p-dialog>
+
+<!-- Detalles -->
+<p-dialog [visible]="!!detailTarget()" (visibleChange)="!$event && detailTarget.set(null)" [modal]="true"
+          [draggable]="false" [resizable]="false" [style]="{ width: '500px' }" styleClass="custom-modal">
+  <ng-template pTemplate="header">
+    <h2 class="text-primary font-bold font-display text-size-sidebar-title m-0">Reunión {{ detailTarget()?.number }}</h2>
+  </ng-template>
+  @if (detailTarget(); as reunion) {
+    <dl class="meeting-details">
+      <dt>Fecha sugerida</dt>
+      <dd>{{ reunion.suggestedDate ? formatThesisDate(reunion.suggestedDate) : 'Se conocerá al reanudar el trabajo' }}</dd>
+      <dt>Agendada para</dt>
+      <dd>{{ reunion.scheduledAt ? formatMeetingDateTime(reunion.scheduledAt) : 'Sin agendar' }}</dd>
+      <dt>Lugar o enlace</dt>
+      <dd>{{ reunion.place ?? '—' }}</dd>
+      <dt>Informe mensual {{ reunion.number }}</dt>
+      <dd>{{ reunion.hasReport ? 'Radicado' : 'Pendiente' }}</dd>
+      <dt>Estado</dt>
+      <dd>{{ reunion.status }}</dd>
+      @if (reunion.observations) {
+        <dt>Observaciones</dt>
+        <dd class="whitespace-pre-line">{{ reunion.observations }}</dd>
+      }
+    </dl>
+  }
+  <div class="flex justify-end mt-4">
+    <app-button-component label="Salir" variant="secondary" (onClick)="detailTarget.set(null)"></app-button-component>
+  </div>
+</p-dialog>

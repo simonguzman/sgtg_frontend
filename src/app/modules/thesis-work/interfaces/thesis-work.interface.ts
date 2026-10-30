@@ -46,6 +46,22 @@ export interface SustentationProcess {
   requestNotApproved?: boolean;
 }
 
+/** Reunión de seguimiento de un mes del plazo de ejecución (Art. 45), asociada al informe mensual de ese mes. */
+export interface Meeting {
+  number: number;
+  /** Fecha que le corresponde; null mientras el trabajo está suspendido */
+  suggestedDate: Date | null;
+  /** Fecha y hora agendadas por el director, null si no se ha agendado */
+  scheduledAt: Date | null;
+  /** Salón o enlace */
+  place: string | null;
+  held: boolean;
+  observations: string | null;
+  /** true si ya se radicó el informe mensual del mismo número */
+  hasReport: boolean;
+  status: stateList;
+}
+
 export interface ThesisWork extends Archivable {
   thesisWorkId: string;
   preliminaryDraftId: string;
@@ -65,4 +81,6 @@ export interface ThesisWork extends Archivable {
   deadlines?: ThesisWorkDeadlines;
   /** Sustentación, null hasta que el director la solicita */
   sustentation?: SustentationProcess | null;
+  /** Reuniones de seguimiento del plazo (vacío si el backend no las envía) */
+  meetings?: Meeting[];
 }

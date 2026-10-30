@@ -95,9 +95,13 @@ export const AdvancesTabConfig: TabConfiguration<AdvanceTableRow> = {
   },
 
   getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
-    if (context.isArchived || !context['canUploadReport']) return [];
+    // Las reuniones de seguimiento (una por mes del plazo) las consultan todos los participantes
+    const buttons: TableButton[] = (context.thesisWork?.meetings?.length ?? 0) > 0
+      ? [{ action: 'meetings', label: 'Reuniones de seguimiento', variant: 'secondary', disabled: false }]
+      : [];
+    if (context.isArchived || !context['canUploadReport']) return buttons;
     const acceptsReports = !!context['acceptsReports'];
-    return [{
+    return [...buttons, {
       action: 'upload_advance',
       label: acceptsReports ? 'Cargar informe mensual' : 'Informes no disponibles en esta etapa',
       variant: 'primary',

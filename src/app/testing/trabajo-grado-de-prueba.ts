@@ -1,4 +1,4 @@
-import {
+import { ReunionApi,
   EjecucionApi, InformeMensualApi, MotivoCierreApi, ProcesoApi, ResultadoConceptoApi, RevisionInformeApi, SustentacionApi,
   TrabajoGradoResponse
 } from '../core/interfaces/api/trabajo-grado-api.interface';
@@ -146,6 +146,21 @@ export function informeDePrueba(numero: number, overrides: Partial<InformeMensua
     radicadoPor: '1010',
     observaciones: null,
     revisiones: [],
+    ...overrides
+  };
+}
+
+/** Reunión de seguimiento del backend: la del mes indicado, pendiente (sin agendar). */
+export function reunionDePrueba(numero: number, overrides: Partial<ReunionApi> = {}): ReunionApi {
+  return {
+    numero,
+    fechaSugerida: `2026-${String(3 + numero).padStart(2, '0')}-20`,
+    fechaHora: null,
+    lugar: null,
+    realizada: false,
+    observaciones: null,
+    conInforme: false,
+    estado: 'PENDIENTE',
     ...overrides
   };
 }

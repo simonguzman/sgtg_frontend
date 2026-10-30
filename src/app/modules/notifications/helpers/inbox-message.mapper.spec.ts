@@ -44,6 +44,10 @@ describe('inbox-message.mapper', () => {
   it('los hechos de la sustentación llevan a su pestaña, al detalle de la sesión o a los documentos corregidos', () => {
     expect(rutaDeNotificacion(15, 'EN_CURSO', 'INFORME_RADICADO')).toBe('/thesis-work/details/15/loaded_documents?tab=AVANCES');
     expect(rutaDeNotificacion(15, 'PRORROGA', 'INFORME_REVISADO')).toBe('/thesis-work/details/15/evaluations_performed');
+    // Las reuniones de seguimiento llevan a su tabla
+    for (const evento of ['REUNION_AGENDADA', 'REUNION_PROXIMA', 'REUNION_SIN_INFORME']) {
+      expect(rutaDeNotificacion(15, 'EN_CURSO', evento)).toBe('/thesis-work/details/15/meetings');
+    }
     // Solicitudes especiales: la solicitud en su pestaña; la decisión del Consejo, en las evaluaciones realizadas
     expect(rutaDeNotificacion(15, 'EN_CURSO', 'SUSPENSION_SOLICITADA')).toBe('/thesis-work/details/15/loaded_documents?tab=SOLICITUDES');
     expect(rutaDeNotificacion(15, 'EN_CURSO', 'CAMBIO_OBJETIVOS_SOLICITADO')).toBe('/thesis-work/details/15/loaded_documents?tab=SOLICITUDES');

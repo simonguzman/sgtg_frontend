@@ -1,5 +1,6 @@
 import {
-  CalificacionApi, DecisionApi, DocumentoApi, EstadoApi, EstadoSustentacionApi, InformeMensualApi, VersionDocumentoApi,
+  CalificacionApi, DecisionApi, DocumentoApi, EstadoApi, EstadoReunionApi, EstadoSustentacionApi, InformeMensualApi,
+  ReunionApi, VersionDocumentoApi,
   ETAPAS_FINALES, ProcesoApi, ResultadoConceptoApi, SolicitudSustentacionApi, TrabajoGradoResponse
 } from '../interfaces/api/trabajo-grado-api.interface';
 import { stateList } from '../enums/state.enum';
@@ -14,7 +15,7 @@ import { UserState } from '../../modules/users/enum/user-state.enum';
 import { Modality } from '../../modules/proposal/enums/modality.enum';
 import { Proposal } from '../../modules/proposal/interfaces/proposal.interface';
 import { PreliminaryDraft } from '../../modules/preliminary-draft/interfaces/preliminary-draft.interface';
-import { SustentationProcess, ThesisWork } from '../../modules/thesis-work/interfaces/thesis-work.interface';
+import { Meeting, SustentationProcess, ThesisWork } from '../../modules/thesis-work/interfaces/thesis-work.interface';
 import { Advance } from '../../modules/thesis-work/interfaces/advance.interface';
 import { SpecialRequest } from '../../modules/thesis-work/interfaces/special-request.interface';
 import { SpecialRequestType } from '../../modules/thesis-work/enums/special-request-type.enum';
@@ -165,6 +166,7 @@ export function aTrabajoDeGrado(trabajo: TrabajoGradoResponse, ctx: ContextoMape
     preliminaryDraftData: anteproyecto,
     documents: documentosDeCierre(trabajo, ctx),
     advances: informes.map(informe => aInforme(trabajo, informe, ctx)).reverse(),
+    meetings: (ejecucion.reuniones ?? []).map(aReunion),
     finalDeliveries: entregasFinales(trabajo, ctx),
     pazYSalvos: pazYSalvos(trabajo, ctx),
     correctedDeliveries: entregasCorregidas(trabajo, ctx),
@@ -200,6 +202,28 @@ function aInforme(trabajo: TrabajoGradoResponse, informe: InformeMensualApi, ctx
     uploadedBy: radicador?.nombreCompleto,
     status: informe.revisiones.length > 0 ? stateList.EVALUADO : stateList.EN_REVISION,
     documents: [aDocumentoDeRuta(trabajo.id, informe.rutaArchivo, informe.fecha, ctx, DocumentType.AVANCE)]
+  };
+}
+
+/** Estado de una reunión de seguimiento para la tabla. */
+const ESTADOS_REUNION: Record<EstadoReunionApi, stateList> = {
+  PENDIENTE: stateList.PENDIENTE,
+  AGENDADA: stateList.AGENDADA,
+  REALIZADA: stateList.REALIZADA,
+  VENCIDA: stateList.VENCIDA,
+  EN_SUSPENSION: stateList.EN_SUSPENSION
+};
+
+function aReunion(reunion: ReunionApi): Meeting {
+  return {
+    number: reunion.numero,
+    suggestedDate: aFecha(reunion.fechaSugerida),
+    scheduledAt: aFecha(reunion.fechaHora),
+    place: reunion.lugar,
+    held: reunion.realizada,
+    observations: reunion.observaciones,
+    hasReport: reunion.conInforme,
+    status: ESTADOS_REUNION[reunion.estado]
   };
 }
 

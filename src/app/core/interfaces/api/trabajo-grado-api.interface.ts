@@ -205,6 +205,26 @@ export interface EjecucionApi {
   informesMensuales: InformeMensualApi[];
   prorroga: ProrrogaApi | null;
   suspensiones: SuspensionApi[];
+  /** Calendario de reuniones de seguimiento: una por cada mes del plazo */
+  reuniones?: ReunionApi[];
+}
+
+/** Estado de una reunión de seguimiento en la fecha de la consulta (lo calcula el backend). */
+export type EstadoReunionApi = 'PENDIENTE' | 'AGENDADA' | 'REALIZADA' | 'VENCIDA' | 'EN_SUSPENSION';
+
+/** Reunión de seguimiento de un mes del plazo: `ReunionDTO`. */
+export interface ReunionApi {
+  numero: number;
+  /** Fecha que le corresponde; null mientras el trabajo está suspendido */
+  fechaSugerida: string | null;
+  /** Fecha y hora agendadas por el director, null si no se ha agendado */
+  fechaHora: string | null;
+  lugar: string | null;
+  realizada: boolean;
+  observaciones: string | null;
+  /** true si ya se radicó el informe mensual del mismo número */
+  conInforme: boolean;
+  estado: EstadoReunionApi;
 }
 
 /** Sesión de sustentación: el primer jurado es el coordinador (califica y registra las decisiones). */

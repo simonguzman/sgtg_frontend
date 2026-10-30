@@ -184,8 +184,9 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     TAB_MODAL_SUBTITLES[this.activeTab()] ?? 'Información del documento cargado'
   );
 
-  handleHeaderButton(_button: TableButton): void {
-    const routePath = this.currentStrategy().headerActionRoute;
+  handleHeaderButton(button: TableButton): void {
+    // Cada botón lleva su ruta (ej. las reuniones de seguimiento en la pestaña de informes)
+    const routePath = button.action || this.currentStrategy().headerActionRoute;
     if (routePath) this.router.navigate([routePath], { relativeTo: this.route.parent });
   }
 

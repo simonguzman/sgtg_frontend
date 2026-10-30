@@ -336,10 +336,12 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
       fixture.detectChanges();
 
       setTimeout(() => {
-        const button: TableButton = { label: 'Ir', action: 'go', variant: 'primary' };
-        component.handleHeaderButton(button);
-
+        // Sin acción propia, la ruta de la pestaña; con acción, la del botón (ej. las reuniones de seguimiento)
+        component.handleHeaderButton({ label: 'Ir', variant: 'primary' } as TableButton);
         expect(routerSpy.navigate).toHaveBeenCalledWith(['upload_advance'], { relativeTo: routeMock.parent });
+
+        component.handleHeaderButton({ label: 'Reuniones', action: 'meetings', variant: 'secondary' });
+        expect(routerSpy.navigate).toHaveBeenCalledWith(['meetings'], { relativeTo: routeMock.parent });
         done();
       }, 10);
     });

@@ -11,6 +11,7 @@ import { ThesisWorkDetailsPageComponent } from '../thesis-work/pages/thesis-work
 import { LoadedDocumentsThesisWorkPageComponent } from '../thesis-work/pages/loaded-documents-thesis-work-page/loaded-documents-thesis-work-page.component';
 import { SustentationDetailsPageComponent } from '../thesis-work/pages/sustentation-details-page/sustentation-details-page.component';
 import { CorrectedDocumentsPageComponent } from '../thesis-work/pages/corrected-documents-page/corrected-documents-page.component';
+import { MeetingsPageComponent } from '../thesis-work/pages/meetings-page/meetings-page.component';
 import { archivedWorkGuard } from '../../core/guards/archived-work.guard';
 
 /** Participantes y roles de consulta general; los evaluadores y jurados no acceden al historial. */
@@ -179,6 +180,13 @@ export const historyRoutes: Routes = [
                 canActivate: [roleGuard],
                 title: 'Documentos corregidos',
                 data: { breadcrumb: 'Documentos corregidos', roles: ALL_ROLES }
+              },
+              {
+                path: 'meetings',
+                component: MeetingsPageComponent,
+                canActivate: [roleGuard],
+                title: 'Reuniones de seguimiento',
+                data: { breadcrumb: 'Reuniones de seguimiento', roles: ALL_ROLES }
               }
             ]
           }

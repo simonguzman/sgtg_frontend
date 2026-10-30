@@ -5,7 +5,7 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 import { thesisWorkDePrueba } from '../../../../../testing/vista-de-prueba';
 import {
-  crearTrabajoEnCurso, crearTrabajoEnCursoCon, informeDePrueba, revisionDePrueba
+  crearTrabajoEnCurso, crearTrabajoEnCursoCon, informeDePrueba, reunionDePrueba, revisionDePrueba
 } from '../../../../../testing/trabajo-grado-de-prueba';
 
 const usuario = (id: string) => ({ id }) as User;
@@ -86,6 +86,18 @@ describe('AdvancesTabConfig (informes mensuales)', () => {
           expect.objectContaining({ label: 'Informes no disponibles en esta etapa', disabled: true })
         ]);
       }
+    });
+
+    it('con reuniones en el plazo todos ven el botón de reuniones de seguimiento, también en un trabajo cerrado', () => {
+      const conReuniones = (etapa: 'EN_CURSO' | 'FINALIZADO') => thesisWorkDePrueba(crearTrabajoEnCursoCon(
+        { reuniones: [reunionDePrueba(1)] }, { etapa }));
+      expect(AdvancesTabConfig.getHeaderButtons(contexto(conReuniones('EN_CURSO'), { isJuror: true }))).toEqual([
+        expect.objectContaining({ action: 'meetings', label: 'Reuniones de seguimiento', variant: 'secondary' })
+      ]);
+      expect(AdvancesTabConfig.getHeaderButtons(contexto(conReuniones('EN_CURSO'), { isStudent: true }))
+        .map(button => button.action)).toEqual(['meetings', 'upload_advance']);
+      expect(AdvancesTabConfig.getHeaderButtons(contexto(conReuniones('FINALIZADO'), { isStudent: true }))
+        .map(button => button.action)).toEqual(['meetings']);
     });
 
     it('un trabajo cerrado no muestra el botón', () => {

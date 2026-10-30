@@ -17,6 +17,8 @@ const documentosDelTrabajo = (trabajoId: number, pestana: string) =>
 
 const evaluacionesDelTrabajo = (trabajoId: number) => `/thesis-work/details/${trabajoId}/evaluations_performed`;
 
+const reunionesDelTrabajo = (trabajoId: number) => `/thesis-work/details/${trabajoId}/meetings`;
+
 /** Detalle de la sesión de sustentación; sin sesión (notificaciones anteriores), la pestaña de sustentación. */
 const detalleDeSesion = (trabajoId: number, sesion?: number | null) => sesion
   ? `/thesis-work/details/${trabajoId}/view_sustentation_details/sesion-${sesion}`
@@ -46,6 +48,9 @@ const RUTAS_POR_EVENTO: Record<string, (trabajoId: number, sesion?: number | nul
   // evaluaciones realizadas del trabajo
   INFORME_RADICADO: trabajoId => documentosDelTrabajo(trabajoId, 'AVANCES'),
   INFORME_REVISADO: evaluacionesDelTrabajo,
+  REUNION_AGENDADA: reunionesDelTrabajo,
+  REUNION_PROXIMA: reunionesDelTrabajo,
+  REUNION_SIN_INFORME: reunionesDelTrabajo,
   // Las solicitudes especiales (y la reanudación), en su pestaña de documentos cargados, donde el Consejo las
   // resuelve; la decisión del Consejo, en las evaluaciones realizadas del trabajo
   CAMBIO_OBJETIVOS_SOLICITADO: trabajoId => documentosDelTrabajo(trabajoId, 'SOLICITUDES'),
