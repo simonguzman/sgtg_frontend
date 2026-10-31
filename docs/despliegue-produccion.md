@@ -108,3 +108,5 @@ archivos son de root. Una sola vez, antes de arrancar con la imagen nueva:
 docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm --no-deps --user root \
   --entrypoint chown backend -R 10001:10001 /app/archivos
 ```
+En Git Bash (Windows) hay que anteponer `MSYS_NO_PATHCONV=1`: si no, Git Bash convierte `/app/archivos` en una ruta
+de Windows y el `chown` no cambia nada.
