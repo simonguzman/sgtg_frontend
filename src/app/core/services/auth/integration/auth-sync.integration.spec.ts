@@ -88,15 +88,38 @@ describe('Integración [Auth]: sesión con el backend (Core ➔ Users)', () => {
     req.flush('');
   });
 
-  it('un 401 del backend cierra la sesión y lleva al login', () => {
+  it('si el token de acceso venció, renueva la sesión y repite la petición con el token nuevo', () => {
+    iniciarSesion();
+    const nuevo = crearJwtDePrueba(900, { renovado: true });
+    let trabajos: unknown;
+    httpClient.get(`${API}/trabajos-grado/mis-trabajos`).subscribe(r => trabajos = r);
+
+    http.expectOne(`${API}/trabajos-grado/mis-trabajos`).flush(null, { status: 401, statusText: 'Unauthorized' });
+    http.expectOne(`${API}/auth/renovar`).flush({ token: nuevo });
+    const repetida = http.expectOne(`${API}/trabajos-grado/mis-trabajos`);
+    expect(repetida.request.headers.get('Authorization')).toBe(`Bearer ${nuevo}`);
+    repetida.flush([]);
+
+    expect(trabajos).toEqual([]);
+    expect(storage.isAuthenticated()).toBe(true);
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('si la sesión ya no se puede renovar, la cierra y lleva al login', () => {
     iniciarSesion();
 
-    httpClient.get(`${API}/usuarios/me`).subscribe({ error: () => undefined });
-    http.expectOne(`${API}/usuarios/me`).flush(null, { status: 401, statusText: 'Unauthorized' });
+    httpClient.get(`${API}/trabajos-grado/mis-trabajos`).subscribe({ error: () => undefined });
+    http.expectOne(`${API}/trabajos-grado/mis-trabajos`).flush(null, { status: 401, statusText: 'Unauthorized' });
+    http.expectOne(`${API}/auth/renovar`).flush(null, { status: 401, statusText: 'Unauthorized' });
 
     expect(storage.isAuthenticated()).toBe(false);
-    expect(localStorage.getItem('sgtg_token')).toBeNull();
+    expect(storage.haySesionGuardada()).toBe(false);
     expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
+  });
+
+  it('el token de acceso nunca queda en localStorage', () => {
+    iniciarSesion();
+    expect(JSON.stringify(localStorage)).not.toContain(token);
   });
 
   it('un 401 del login es un login fallido, no cierra ninguna sesión ni navega', () => {

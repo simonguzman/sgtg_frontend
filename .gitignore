@@ -40,3 +40,8 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Despliegue de producción: secretos, certificados y desafíos de Let's Encrypt
+.env.prod
+/certificados
+/acme

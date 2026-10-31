@@ -1,7 +1,7 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
 import { AuthStorageService } from './auth-storage.service';
 import { AuthApiService } from './auth-api.service';
@@ -19,6 +19,7 @@ interface MockAuthStorageService {
   userRoles: WritableSignal<UserRoleType[]>;
   token: WritableSignal<string | null>;
   clearUser: jest.Mock<void, []>;
+  haySesionGuardada: jest.Mock<boolean, []>;
 }
 
 interface MockAuthApiService {
@@ -26,6 +27,7 @@ interface MockAuthApiService {
   logout: jest.Mock<void, [string?]>;
   changePassword: jest.Mock<Observable<ChangePasswordResponse>, [string, string]>;
   refreshCurrentUser: jest.Mock<Observable<void>, []>;
+  renovar: jest.Mock<Observable<'renovada' | 'vencida'>, []>;
 }
 
 const mockUser: User = {
@@ -61,13 +63,15 @@ describe('AuthService (Facade)', () => {
         storage.currentUser.set(null);
         storage.isAuthenticated.set(false);
         storage.token.set(null);
-      })
+      }),
+      haySesionGuardada: jest.fn(() => false)
     };
     api = {
       login: jest.fn(),
       logout: jest.fn(),
       changePassword: jest.fn(),
-      refreshCurrentUser: jest.fn(() => of(undefined))
+      refreshCurrentUser: jest.fn(() => of(undefined)),
+      renovar: jest.fn(() => of<'renovada' | 'vencida'>('renovada'))
     };
     router = { navigate: jest.fn() };
     notification = { security: jest.fn() };
@@ -131,6 +135,24 @@ describe('AuthService (Facade)', () => {
       crearServicio(null);
       service.initialize().subscribe();
       expect(api.refreshCurrentUser).not.toHaveBeenCalled();
+      expect(api.renovar).not.toHaveBeenCalled();
+    });
+
+    it('al recargar la página recupera la sesión con el token de renovación', () => {
+      crearServicio(null);
+      storage.haySesionGuardada.mockReturnValue(true);
+      service.initialize().subscribe();
+      expect(api.renovar).toHaveBeenCalledTimes(1);
+      expect(storage.clearUser).not.toHaveBeenCalled();
+    });
+
+    it('si la sesión guardada ya venció, queda cerrada sin avisos', () => {
+      crearServicio(null);
+      storage.haySesionGuardada.mockReturnValue(true);
+      api.renovar.mockReturnValue(of('vencida'));
+      service.initialize().subscribe();
+      expect(storage.clearUser).toHaveBeenCalled();
+      expect(notification.security).not.toHaveBeenCalled();
     });
 
     it('con sesión refresca el usuario', () => {
@@ -164,15 +186,53 @@ describe('AuthService (Facade)', () => {
       expect(notification.security).not.toHaveBeenCalled();
     });
 
-    it('se ejecuta sola cuando vence el token', fakeAsync(() => {
-      crearServicio(5);
+    it('si la sesión ya no se puede renovar cuando vence el token, se cierra', fakeAsync(() => {
+      crearServicio(30);
+      api.renovar.mockReturnValue(of('vencida'));
       TestBed.tick();
-      tick(4000);
-      expect(storage.clearUser).not.toHaveBeenCalled();
-      tick(1500);
+      tick(0);
       expect(storage.clearUser).toHaveBeenCalled();
       expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
     }));
+  });
+
+  describe('renovación de la sesión', () => {
+    it('se renueva un minuto antes de que venza el token de acceso', fakeAsync(() => {
+      crearServicio(120);
+      TestBed.tick();
+      tick(59_000);
+      expect(api.renovar).not.toHaveBeenCalled();
+      tick(1_500);
+      expect(api.renovar).toHaveBeenCalledTimes(1);
+      expect(storage.clearUser).not.toHaveBeenCalled();
+    }));
+
+    it('sin conexión no cierra la sesión', fakeAsync(() => {
+      crearServicio(30);
+      api.renovar.mockReturnValue(throwError(() => ({ status: 0 })));
+      TestBed.tick();
+      tick(0);
+      expect(storage.clearUser).not.toHaveBeenCalled();
+    }));
+
+    it('las peticiones que la piden a la vez comparten una sola renovación', () => {
+      crearServicio();
+      const respuesta = new Subject<'renovada' | 'vencida'>();
+      api.renovar.mockReturnValue(respuesta);
+      const resultados: string[] = [];
+
+      service.renovarSesion().subscribe(r => resultados.push(r));
+      service.renovarSesion().subscribe(r => resultados.push(r));
+      respuesta.next('renovada');
+      respuesta.complete();
+
+      expect(api.renovar).toHaveBeenCalledTimes(1);
+      expect(resultados).toEqual(['renovada', 'renovada']);
+      // Terminada, la siguiente es una renovación nueva
+      api.renovar.mockReturnValue(of('renovada'));
+      service.renovarSesion().subscribe();
+      expect(api.renovar).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('inactividad', () => {

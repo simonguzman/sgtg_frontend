@@ -5,6 +5,7 @@ import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { IdentificationType } from '../enum/identification-type.enum';
 import { UserState } from '../enum/user-state.enum';
 import { crearJwtDePrueba } from '../../../testing/jwt-de-prueba';
+import { AuthStorageService } from '../../../core/services/auth/auth-storage.service';
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'default-id',
@@ -61,9 +62,8 @@ describe('UserStorageService', () => {
 
   describe('Inicialización y LocalStorage', () => {
     it('debería iniciar sin usuarios (vienen del backend) y tomar la sesión del login (AuthStorageService)', () => {
-      localStorageStore['sgtg_token'] = crearJwtDePrueba();
-      localStorageStore['sgtg_session'] = JSON.stringify(mockTeacher);
       TestBed.configureTestingModule({ providers: [UserStorageService] });
+      TestBed.inject(AuthStorageService).setSession(crearJwtDePrueba(), mockTeacher);
       service = TestBed.inject(UserStorageService);
       expect(service.getUsersSnapshot()).toEqual([]);
       expect(service.currentUser()).toEqual(mockTeacher);
@@ -119,16 +119,15 @@ describe('UserStorageService', () => {
     it('updateCurrentUser() debería actualizar el usuario de la sesión única', () => {
       service.updateCurrentUser(() => mockTeacher);
       expect(service.currentUser()).toEqual(mockTeacher);
-      expect(Storage.prototype.setItem).toHaveBeenCalledWith('sgtg_session', JSON.stringify(mockTeacher));
     });
 
     it('setCurrentUser() debería actualizar la sesión única y con null cerrarla', () => {
       service.setCurrentUser(mockStudent);
       expect(service.currentUser()).toEqual(mockStudent);
-      expect(Storage.prototype.setItem).toHaveBeenCalledWith('sgtg_session', JSON.stringify(mockStudent));
       service.setCurrentUser(null);
       expect(service.currentUser()).toBeNull();
-      expect(Storage.prototype.removeItem).toHaveBeenCalledWith('sgtg_session');
+      // Cerrar la sesión borra la marca de sesión abierta
+      expect(Storage.prototype.removeItem).toHaveBeenCalledWith('sgtg_hay_sesion');
     });
   });
 

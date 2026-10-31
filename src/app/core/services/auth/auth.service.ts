@@ -1,13 +1,16 @@
 import { effect, inject, Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { catchError, Observable, of } from 'rxjs';
+import { catchError, finalize, Observable, of, shareReplay, tap } from 'rxjs';
 import { AuthStorageService } from './auth-storage.service';
-import { AuthApiService } from './auth-api.service';
+import { AuthApiService, ResultadoRenovacion } from './auth-api.service';
 import { MINUTOS_INACTIVIDAD, SessionInactivityService } from './session-inactivity.service';
 import { ChangePasswordResponse } from '../../interfaces/change-password-response.interface';
 import { NotificationService } from '../../../shared/components/notifications/services/notification.service';
 import { jwtExpiration } from '../../utils/jwt-utils';
+
+/** Cuánto antes de que venza el token de acceso se renueva la sesión. */
+export const RENOVAR_ANTES_MS = 60_000;
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -27,13 +30,21 @@ export class AuthService {
   /** Debe cambiar la contraseña que le asignó un administrador antes de usar el sistema */
   readonly debeCambiarPassword = this.storage.debeCambiarPassword;
 
+  /** Renovación en curso: las peticiones que la piden a la vez esperan la misma */
+  private renovacion?: Observable<ResultadoRenovacion>;
+
   constructor() {
-    // Cierra la sesión cuando vence el token, aunque el usuario no haga peticiones
+    // El token de acceso dura poco: la sesión se renueva un poco antes de que venza. Mientras la
+    // pestaña esté abierta sigue viva; tras un tiempo sin actividad la cierra el control de inactividad
     effect(onCleanup => {
       const token = this.storage.token();
       const vencimiento = token ? jwtExpiration(token) : null;
       if (vencimiento === null) return;
-      const temporizador = setTimeout(() => this.expireSession(), Math.max(vencimiento - Date.now(), 0));
+      const temporizador = setTimeout(() => this.renovarSesion().subscribe({
+        next: resultado => { if (resultado === 'vencida') this.expireSession(); },
+        // Sin conexión: la próxima petición vuelve a intentarlo
+        error: () => undefined
+      }), Math.max(vencimiento - RENOVAR_ANTES_MS - Date.now(), 0));
       onCleanup(() => clearTimeout(temporizador));
     });
 
@@ -58,19 +69,43 @@ export class AuthService {
   }
 
   /**
-   * Al arrancar la aplicación: si hay una sesión guardada, refresca el usuario
-   * desde el backend (sus roles o su estado pudieron cambiar). Si el backend
-   * responde 401, el interceptor ya cerró la sesión; ante un error de conexión
-   * se conserva la sesión guardada.
+   * Al arrancar la aplicación: si en este navegador había una sesión abierta,
+   * la recupera con el token de renovación de la cookie (token de acceso nuevo
+   * y el usuario con sus roles y estado al día). Si ya venció, la sesión queda
+   * cerrada; ante un error de conexión se intenta en la siguiente petición.
    */
   initialize(): Observable<unknown> {
-    if (!this.storage.isAuthenticated()) return of(undefined);
-    return this.api.refreshCurrentUser().pipe(
+    if (this.storage.isAuthenticated()) {
+      return this.api.refreshCurrentUser().pipe(
+        catchError((error: HttpErrorResponse) => {
+          console.warn('No se pudo refrescar el usuario de la sesión', error.status);
+          return of(undefined);
+        })
+      );
+    }
+    if (!this.storage.haySesionGuardada()) return of(undefined);
+    return this.renovarSesion().pipe(
+      tap(resultado => { if (resultado === 'vencida') this.storage.clearUser(); }),
       catchError((error: HttpErrorResponse) => {
-        console.warn('No se pudo refrescar el usuario de la sesión', error.status);
+        console.warn('No se pudo recuperar la sesión', error.status);
         return of(undefined);
       })
     );
+  }
+
+  /**
+   * Renueva la sesión con el token de renovación (cookie HttpOnly). Si varias
+   * peticiones la piden a la vez, comparten la misma renovación: el backend
+   * rota el token en cada uso.
+   */
+  renovarSesion(): Observable<ResultadoRenovacion> {
+    if (!this.renovacion) {
+      this.renovacion = this.api.renovar().pipe(
+        finalize(() => this.renovacion = undefined),
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    }
+    return this.renovacion;
   }
 
   /**

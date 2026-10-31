@@ -155,10 +155,65 @@ describe('AuthApiService', () => {
       http.expectOne(`${API}/auth/logout?motivo=inactividad`).flush(null, { status: 204, statusText: 'No Content' });
     });
 
+    it('con el token de acceso vencido (o tras recargar) cierra la sesión con la cookie', () => {
+      localStorage.setItem('sgtg_hay_sesion', '1');
+      service.logout();
+      const cierre = http.expectOne(`${API}/auth/logout`);
+      expect(cierre.request.headers.has('Authorization')).toBe(false);
+      cierre.flush(null, { status: 204, statusText: 'No Content' });
+      expect(storage.haySesionGuardada()).toBe(false);
+    });
+
     it('sin sesión no llama al backend', () => {
       service.logout();
       http.expectNone(`${API}/auth/logout`);
       expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
+    });
+  });
+
+  describe('renovar', () => {
+    const usuarioApi = {
+      id: 7, codigo: '2001', tipoDocumento: 'CC', numeroDocumento: '1061', email: 'a@unicauca.edu.co',
+      primerNombre: 'Ana', segundoNombre: null, primerApellido: 'Mora', segundoApellido: null,
+      roles: ['DOCENTE'], activo: true
+    };
+
+    it('al recargar la página recupera el token y el usuario con la cookie de renovación', () => {
+      let resultado: string | undefined;
+      service.renovar().subscribe(r => resultado = r);
+
+      const renovacion = http.expectOne(`${API}/auth/renovar`);
+      expect(renovacion.request.method).toBe('POST');
+      // El backend exige la cabecera: un sitio ajeno no puede enviarla
+      expect(renovacion.request.headers.get('X-Requested-With')).toBe('XMLHttpRequest');
+      renovacion.flush({ token });
+      const usuario = http.expectOne(`${API}/usuarios/me`);
+      expect(usuario.request.headers.get('Authorization')).toBe(`Bearer ${token}`);
+      usuario.flush(usuarioApi);
+
+      expect(resultado).toBe('renovada');
+      expect(storage.isAuthenticated()).toBe(true);
+      expect(storage.haySesionGuardada()).toBe(true);
+    });
+
+    it('con la sesión en curso solo reemplaza el token', () => {
+      storage.setSession(crearJwtDePrueba(30), { id: '7', roles: [] } as never);
+      service.renovar().subscribe();
+      http.expectOne(`${API}/auth/renovar`).flush({ token });
+      http.expectNone(`${API}/usuarios/me`);
+      expect(storage.token()).toBe(token);
+    });
+
+    it('un 401 es una sesión vencida y un error de conexión se propaga', () => {
+      let resultado: string | undefined;
+      service.renovar().subscribe(r => resultado = r);
+      http.expectOne(`${API}/auth/renovar`).flush(null, { status: 401, statusText: 'Unauthorized' });
+      expect(resultado).toBe('vencida');
+
+      let error: unknown;
+      service.renovar().subscribe({ error: e => error = e });
+      http.expectOne(`${API}/auth/renovar`).error(new ProgressEvent('error'), { status: 0 });
+      expect(error).toBeDefined();
     });
   });
 
@@ -177,7 +232,6 @@ describe('AuthApiService', () => {
 
       expect(respuesta?.success).toBe(true);
       expect(storage.token()).toBe(token);
-      expect(localStorage.getItem('sgtg_token')).toBe(token);
       expect(storage.debeCambiarPassword()).toBe(false);
     });
 

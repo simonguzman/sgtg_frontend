@@ -1,0 +1,107 @@
+# Despliegue de producción de SGTG (guía completa en docs/despliegue-produccion.md).
+#
+# Diferencias con docker-compose.yml (desarrollo):
+#   - Solo Nginx publica puertos (80 y 443, con HTTPS). MySQL y el backend quedan en la red interna.
+#   - Los secretos van en .env.prod (no se sube al repositorio; ver .env.prod.example), nunca en este archivo.
+#   - La aplicación se conecta a MySQL con un usuario sin permisos de esquema (sgtg_app) y por TLS, con
+#     ddl-auto=validate. El esquema lo crea o ajusta el paso de migración, con el usuario administrador.
+#   - Sin reloj ajustable ni registro de SQL.
+#
+# Primera vez y en cada actualización (desde sgtg_frontend):
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod build
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm migracion
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+name: sgtg-prod
+
+x-registro: &registro
+  # Los logs no crecen sin límite
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "10"
+
+x-backend: &backend
+  build: ../sgtg_backend
+  logging: *registro
+  volumes:
+    - archivos_data:/app/archivos
+  depends_on:
+    mysql:
+      condition: service_healthy
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    logging: *registro
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Falta MYSQL_ROOT_PASSWORD en .env.prod}
+      MYSQL_DATABASE: sgtg
+      # La lee mysql-init/01-usuario-app.sh al crear la base
+      SGTG_DB_PASSWORD: ${SGTG_DB_PASSWORD:?Falta SGTG_DB_PASSWORD en .env.prod}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Solo se ejecuta la primera vez, con la base vacía: crea el usuario de la aplicación
+      - ./mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # Paso de migración: crea o ajusta el esquema y termina. No arranca con "up": se ejecuta con "run --rm migracion"
+  migracion:
+    <<: *backend
+    profiles: ["migracion"]
+    restart: "no"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/sgtg?sslMode=REQUIRED&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_MAIN_WEB_APPLICATION_TYPE: none
+      SGTG_SOLO_MIGRAR: "true"
+      JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET en .env.prod}
+      SGTG_AUDITORIA_CLAVE: ${SGTG_AUDITORIA_CLAVE:?Falta SGTG_AUDITORIA_CLAVE en .env.prod}
+      SGTG_ADMIN_EMAIL: ${SGTG_ADMIN_EMAIL:-}
+      SGTG_ADMIN_PASSWORD: ${SGTG_ADMIN_PASSWORD:-}
+      SGTG_ADMIN_DOCUMENTO: ${SGTG_ADMIN_DOCUMENTO:-1000000000}
+      SGTG_ARCHIVOS_DIRECTORIO: /app/archivos
+
+  backend:
+    <<: *backend
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/sgtg?sslMode=REQUIRED&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: sgtg_app
+      SPRING_DATASOURCE_PASSWORD: ${SGTG_DB_PASSWORD}
+      # El esquema no lo cambia la aplicación: si no coincide con las entidades, no arranca
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      JWT_SECRET: ${JWT_SECRET}
+      SGTG_AUDITORIA_CLAVE: ${SGTG_AUDITORIA_CLAVE}
+      SGTG_ARCHIVOS_DIRECTORIO: /app/archivos
+      SGTG_RELOJ_AJUSTABLE: "false"
+      SGTG_COOKIE_SEGURA: "true"
+      SPRING_JPA_SHOW_SQL: "false"
+    # Sin puertos publicados: solo lo alcanza Nginx por la red interna
+
+  web:
+    build: .
+    restart: unless-stopped
+    logging: *registro
+    ports:
+      - "${SGTG_PUERTO_HTTP:-80}:80"
+      - "${SGTG_PUERTO_HTTPS:-443}:443"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      # fullchain.pem y privkey.pem del dominio (ver docs/despliegue-produccion.md)
+      - ${SGTG_CERTIFICADOS:-./certificados}:/etc/nginx/certificados:ro
+      # Desafíos de Let's Encrypt (certbot --webroot)
+      - ${SGTG_ACME:-./acme}:/var/www/acme:ro
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+  archivos_data:

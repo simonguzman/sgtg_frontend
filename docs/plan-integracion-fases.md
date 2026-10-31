@@ -602,3 +602,17 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     - Las alertas de seguridad llegan al buzón de los administradores como notificaciones de error sin trabajo, que
       el buzón ya muestra sin enlace.
     - Detalle en `sgtg_backend/docs/ajustes-2026-10-30.md` (§13 a §17).
+49. **Sesión con renovación y despliegue de producción (2026-10-31):**
+    - **El token de acceso** dura 15 minutos y vive solo en memoria (`AuthStorageService`). En `localStorage` solo
+      queda la marca `sgtg_hay_sesion`; las claves anteriores `sgtg_token` y `sgtg_session` se borran al arrancar.
+    - **Al recargar la página**, `AuthService.initialize` recupera la sesión con `POST /auth/renovar`: el backend
+      usa la cookie HttpOnly del token de renovación, y el front envía la cabecera `X-Requested-With`.
+    - **La sesión se renueva** un minuto antes de que venza el token. Si una petición recibe 401, el interceptor
+      renueva una vez y la repite; si ya no se puede renovar, cierra la sesión. Una caída de la conexión no cierra
+      la sesión.
+    - **Una sola renovación a la vez:** varias peticiones que la piden juntas comparten la misma
+      (`renovarSesion`), porque el backend rota el token en cada uso.
+    - **El logout** cierra la sesión también con la cookie, cuando el token de acceso ya venció.
+    - **Producción:** `docker-compose.prod.yml`, `nginx.prod.conf` (HTTPS con HSTS), `mysql-init/` (usuario
+      `sgtg_app`), `.env.prod.example` y `scripts/certificado-local.sh`. Guía en `docs/despliegue-produccion.md`.
+    - Detalle del backend en `sgtg_backend/docs/ajustes-2026-10-31.md`.

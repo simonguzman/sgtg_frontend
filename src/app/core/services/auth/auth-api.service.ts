@@ -13,9 +13,17 @@ export const CREDENCIALES_INVALIDAS = 'Correo o contraseña incorrectos.';
 /** Mensaje cuando se superó el límite de intentos de inicio de sesión desde el mismo equipo. */
 export const DEMASIADOS_INTENTOS = 'Demasiados intentos de inicio de sesión. Espera un minuto e intenta de nuevo.';
 
+/** Resultado de renovar la sesión: con un token nuevo, o vencida (hay que volver a iniciar sesión). */
+export type ResultadoRenovacion = 'renovada' | 'vencida';
+
 /**
  * Llamadas al backend de autenticación: login (`POST /auth/login` y luego
- * `GET /usuarios/me`), consulta del usuario autenticado y cambio de contraseña.
+ * `GET /usuarios/me`), renovación de la sesión, consulta del usuario
+ * autenticado y cambio de contraseña.
+ *
+ * El token de renovación lo maneja el navegador: el backend lo deja en una
+ * cookie HttpOnly que solo viaja a `/auth/...` (mismo origen, así que no hace
+ * falta `withCredentials`).
  */
 @Injectable({ providedIn: 'root' })
 export class AuthApiService {
@@ -49,6 +57,29 @@ export class AuthApiService {
     );
   }
 
+  /**
+   * Pide un token de acceso nuevo con el token de renovación de la cookie. Si
+   * todavía no hay usuario en la sesión (la página se recargó), también lo
+   * consulta. Un 401 o 403 es una sesión vencida; los errores de conexión se
+   * propagan, para no cerrar la sesión por una caída momentánea.
+   */
+  renovar(): Observable<ResultadoRenovacion> {
+    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/renovar`, null, {
+      // El backend la exige: un sitio ajeno no puede enviarla
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    }).pipe(
+      switchMap(({ token }) => this.storage.currentUser()
+        ? of(this.storage.setToken(token))
+        : this.http.get<UsuarioResponse>(`${this.apiUrl}/usuarios/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }).pipe(map(usuario => this.storage.setSession(token, mapUsuarioToUser(usuario))))),
+      map((): ResultadoRenovacion => 'renovada'),
+      catchError((error: HttpErrorResponse) => error.status === 401 || error.status === 403
+        ? of<ResultadoRenovacion>('vencida')
+        : throwError(() => error))
+    );
+  }
+
   /** Vuelve a consultar el usuario autenticado (roles o estado pudieron cambiar). */
   refreshCurrentUser(): Observable<void> {
     return this.http.get<UsuarioResponse>(`${this.apiUrl}/usuarios/me`).pipe(
@@ -58,17 +89,19 @@ export class AuthApiService {
   }
 
   /**
-   * Cierra la sesión: avisa al backend para que el token deje de servir (y
-   * quede en la auditoría) y limpia la sesión sin esperar la respuesta.
+   * Cierra la sesión: avisa al backend para que la sesión deje de servir (y
+   * quede en la auditoría) y borre la cookie de renovación, y limpia la sesión
+   * sin esperar la respuesta. Si el token de acceso ya venció, el backend la
+   * cierra con la cookie.
    *
    * @param motivo motivo del cierre (ej. `inactividad`), queda en la auditoría
    */
   logout(motivo?: string): void {
     const token = this.storage.token();
-    if (token) {
+    if (token || this.storage.haySesionGuardada()) {
       // El token se envía explícito: la sesión local se limpia antes de que salga la petición
       this.http.post<void>(`${this.apiUrl}/auth/logout`, null, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         params: motivo ? { motivo } : {}
       }).subscribe({ error: () => undefined });
     }

@@ -2,16 +2,24 @@ import { computed, Injectable, signal } from '@angular/core';
 import { User } from '../../../modules/users/interfaces/user.interface';
 import { isJwtVigente, jwtDebeCambiarPassword } from '../../utils/jwt-utils';
 
+/** Marca de que hay una sesión abierta en este navegador, para intentar recuperarla al recargar. */
+export const CLAVE_HAY_SESION = 'sgtg_hay_sesion';
+/** Claves con que se guardaba la sesión antes (el token en localStorage): se borran al arrancar. */
+const CLAVES_ANTERIORES = ['sgtg_token', 'sgtg_session'];
+
 /**
- * Sesión del usuario autenticado: el token JWT del backend y los datos del
- * usuario (de `GET /usuarios/me`), guardados en localStorage. Es la única
- * fuente de la sesión en la aplicación.
+ * Sesión del usuario autenticado: el token de acceso del backend y los datos
+ * del usuario (de `GET /usuarios/me`). Es la única fuente de la sesión en la
+ * aplicación.
+ *
+ * El token de acceso dura poco y vive solo en memoria: ningún script puede
+ * leerlo de localStorage. Al recargar la página la sesión se recupera con el
+ * token de renovación, que el backend guarda en una cookie HttpOnly (ver
+ * `AuthApiService.renovar`); en localStorage solo queda la marca de que hay
+ * una sesión que recuperar.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthStorageService {
-  private readonly AUTH_KEY = 'sgtg_session';
-  private readonly TOKEN_KEY = 'sgtg_token';
-
   private readonly _token = signal<string | null>(null);
   private readonly _currentUser = signal<User | null>(null);
 
@@ -29,25 +37,23 @@ export class AuthStorageService {
   });
 
   constructor() {
-    this.restoreSession();
+    CLAVES_ANTERIORES.forEach(clave => localStorage.removeItem(clave));
   }
 
   /** Inicia la sesión con el token del login y el usuario autenticado. */
   public setSession(token: string, user: User): void {
     this._token.set(token);
-    localStorage.setItem(this.TOKEN_KEY, token);
-    this.setUser(user);
+    this._currentUser.set(user);
+    localStorage.setItem(CLAVE_HAY_SESION, '1');
   }
 
-  /** Reemplaza el token de la sesión (el backend emite uno nuevo al cambiar la contraseña). */
+  /** Reemplaza el token de acceso (al renovar la sesión o al cambiar la contraseña). */
   public setToken(token: string): void {
     this._token.set(token);
-    localStorage.setItem(this.TOKEN_KEY, token);
   }
 
   public setUser(user: User): void {
     this._currentUser.set(user);
-    localStorage.setItem(this.AUTH_KEY, JSON.stringify(user));
   }
 
   public updateUser(updatedUser: User): void {
@@ -58,8 +64,7 @@ export class AuthStorageService {
   public clearUser(): void {
     this._token.set(null);
     this._currentUser.set(null);
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.AUTH_KEY);
+    localStorage.removeItem(CLAVE_HAY_SESION);
   }
 
   /** @returns true si hay token y todavía no ha vencido */
@@ -68,30 +73,8 @@ export class AuthStorageService {
     return !!token && isJwtVigente(token);
   }
 
-  /**
-   * Recupera la sesión guardada solo si el token sigue vigente. Una sesión sin
-   * token (formato anterior, simulado) o vencida se descarta.
-   */
-  private restoreSession(): void {
-    const token = localStorage.getItem(this.TOKEN_KEY);
-    const user = this.getStoredUser();
-    if (!token || !user || !isJwtVigente(token)) {
-      this.clearUser();
-      return;
-    }
-    this._token.set(token);
-    this._currentUser.set(user);
-  }
-
-  private getStoredUser(): User | null {
-    const stored = localStorage.getItem(this.AUTH_KEY);
-    if (!stored) return null;
-    try {
-      return JSON.parse(stored) as User;
-    } catch {
-      // S2486: Se elimina el binding del error porque no se usa ni se relanza.
-      // La sesión corrupta se limpia del storage para evitar bucles de error.
-      return null;
-    }
+  /** @returns true si en este navegador hay una sesión abierta que recuperar con el token de renovación */
+  public haySesionGuardada(): boolean {
+    return localStorage.getItem(CLAVE_HAY_SESION) === '1';
   }
 }

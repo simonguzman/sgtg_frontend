@@ -1,6 +1,6 @@
-import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, throwError } from 'rxjs';
+import { catchError, of, switchMap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthStorageService } from '../services/auth/auth-storage.service';
 import { AuthService } from '../services/auth/auth.service';
@@ -9,28 +9,38 @@ import { AuthService } from '../services/auth/auth.service';
 export const CAMBIO_PASSWORD_PENDIENTE = 'GC-0012';
 
 /**
- * Agrega el token de la sesión a las peticiones al backend y, si el backend
- * responde 401 (token vencido, sesión cerrada o usuario inactivado), cierra la
- * sesión. La petición de login se excluye en ambos casos: su 401 es un login
- * fallido. Un 403 porque falta cambiar la contraseña asignada lleva a
- * cambiarla.
+ * Agrega el token de la sesión a las peticiones al backend. Si el backend
+ * responde 401 (el token de acceso venció, la sesión se cerró o el usuario se
+ * inactivó), intenta renovar la sesión una vez y repite la petición; si no se
+ * puede renovar, cierra la sesión. Las peticiones de `/auth/...` (login,
+ * renovación, cierre) y las que ya traen su propio token se excluyen: sus 401
+ * los atiende quien las hizo. Un 403 porque falta cambiar la contraseña
+ * asignada lleva a cambiarla.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const storage = inject(AuthStorageService);
   const authService = inject(AuthService);
 
   const esApi = req.url.startsWith(environment.apiUrl);
-  const esLogin = req.url === `${environment.apiUrl}/auth/login`;
-  const token = storage.token();
+  const esAutenticacion = req.url.startsWith(`${environment.apiUrl}/auth/`);
+  const tokenPropio = req.headers.has('Authorization');
+  const conToken = (peticion: HttpRequest<unknown>, token: string | null) =>
+    esApi && !esAutenticacion && token && !tokenPropio
+      ? peticion.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
+      : peticion;
 
-  const peticion = esApi && !esLogin && token && !req.headers.has('Authorization')
-    ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
-    : req;
-
-  return next(peticion).pipe(
+  return next(conToken(req, storage.token())).pipe(
     catchError((error: unknown) => {
-      if (esApi && !esLogin && error instanceof HttpErrorResponse && error.status === 401) {
-        authService.expireSession();
+      if (esApi && !esAutenticacion && !tokenPropio && error instanceof HttpErrorResponse && error.status === 401) {
+        return authService.renovarSesion().pipe(
+          // Sin conexión con el backend la sesión no se cierra: se informa el error original
+          catchError(() => of('sin-conexion' as const)),
+          switchMap(resultado => {
+            if (resultado === 'renovada') return next(conToken(req, storage.token()));
+            if (resultado === 'vencida') authService.expireSession();
+            return throwError(() => error);
+          })
+        );
       }
       if (esApi && error instanceof HttpErrorResponse && error.status === 403
         && (error.error as { errorCode?: unknown } | null)?.errorCode === CAMBIO_PASSWORD_PENDIENTE) {

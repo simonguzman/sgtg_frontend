@@ -5,3 +5,7 @@ dist
 .vscode
 coverage
 *.log
+# Secretos y certificados: nunca dentro de la imagen
+.env*
+certificados
+acme
