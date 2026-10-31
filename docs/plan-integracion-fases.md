@@ -595,3 +595,10 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     - **Token nuevo al cambiar la contraseña:** `PUT /usuarios/me/password` devuelve `{ token }` y `changePassword` lo
       guarda. Las demás sesiones del usuario se cierran.
     - Detalle del backend en `sgtg_backend/docs/ajustes-2026-10-30.md` (§10 a §12).
+48. **Auditoría avanzada (2026-10-30):** casi todo es del backend; en el front solo cambió Nginx (`nginx.conf`):
+    - Genera un `X-Request-Id` por petición (`$request_id`) y se lo pasa al backend, que lo devuelve en la respuesta
+      y lo guarda en la auditoría y en su log.
+    - Lo escribe también en su log de accesos (`solicitud=…`), incluidos los 429 del límite de inicios de sesión.
+    - Las alertas de seguridad llegan al buzón de los administradores como notificaciones de error sin trabajo, que
+      el buzón ya muestra sin enlace.
+    - Detalle en `sgtg_backend/docs/ajustes-2026-10-30.md` (§13 a §17).
