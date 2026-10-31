@@ -616,3 +616,12 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     - **Producción:** `docker-compose.prod.yml`, `nginx.prod.conf` (HTTPS con HSTS), `mysql-init/` (usuario
       `sgtg_app`), `.env.prod.example` y `scripts/certificado-local.sh`. Guía en `docs/despliegue-produccion.md`.
     - Detalle del backend en `sgtg_backend/docs/ajustes-2026-10-31.md`.
+50. **Dependencias sin vulnerabilidades (2026-10-31):**
+    - Angular sube de 20.3.18 a 20.3.34, y su CLI y build a 20.3.42. También se declaró `@angular/animations`, que
+      pide PrimeNG.
+    - El `package-lock.json` se regeneró, así que también suben `dompurify` (aviso crítico), `postcss`, `nanoid` y
+      `source-map-js`.
+    - `npm audit --omit=dev` (lo que va al navegador) queda en 0. Quedan 35 avisos moderados y bajos en las
+      herramientas de desarrollo (Jest y el CLI de Angular), que no se despliegan; para esos npm solo propone
+      bajar a versiones muy viejas.
+    - Detalle del backend en `sgtg_backend/docs/ajustes-2026-10-31.md` (§5 y §6).

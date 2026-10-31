@@ -100,3 +100,11 @@ Se respaldan tres cosas:
 
 La verificación nocturna de la auditoría escribe en el log el último sello. Conservar ese log fuera del servidor
 permite demostrar, más adelante, que no se borraron registros.
+
+## Volúmenes creados antes de que el backend corriera sin root
+Desde el 2026-10-31 el backend corre con el usuario `sgtg` (uid 10001). Si el volumen de archivos ya existía, sus
+archivos son de root. Una sola vez, antes de arrancar con la imagen nueva:
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm --no-deps --user root \
+  --entrypoint chown backend -R 10001:10001 /app/archivos
+```
