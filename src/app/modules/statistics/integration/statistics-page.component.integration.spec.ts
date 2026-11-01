@@ -1,3 +1,4 @@
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { By } from '@angular/platform-browser';
@@ -18,7 +19,7 @@ describe('StatisticsPageComponent - Integración UI', () => {
   let mockFacade: Partial<StatisticsPageFacadeService> & {
     updateFilters: jest.Mock;
     clearFilters: jest.Mock;
-    downloadPdfReport: jest.Mock;
+    downloadReport: jest.Mock;
   };
   beforeAll(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -47,12 +48,14 @@ describe('StatisticsPageComponent - Integración UI', () => {
       stageChartData: signal({ labels: [], datasets: [] }),
       updateFilters: jest.fn(),
       clearFilters: jest.fn(),
-      downloadPdfReport: jest.fn()
+      downloadReport: jest.fn(() => Promise.resolve()),
+      reportRows: signal(150)
     };
     await TestBed.configureTestingModule({
       imports: [StatisticsPageComponent],
       providers: [
-        { provide: StatisticsPageFacadeService, useValue: mockFacade }
+        { provide: StatisticsPageFacadeService, useValue: mockFacade },
+        provideNoopAnimations()
       ]
     }).compileComponents();
     fixture = TestBed.createComponent(StatisticsPageComponent);
@@ -86,8 +89,19 @@ describe('StatisticsPageComponent - Integración UI', () => {
     clearButtonDebug.triggerEventHandler('onClick', null);
     expect(mockFacade.clearFilters).toHaveBeenCalled();
   });
-  it('debe invocar la generación del reporte PDF', () => {
+  it('el botón abre el modal con los trabajos del reporte y cada formato descarga el suyo', async () => {
     component.handleDownloadReport();
-    expect(mockFacade.downloadPdfReport).toHaveBeenCalled();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const modal = document.querySelector('.p-dialog') as HTMLElement;
+    expect(modal.textContent).toContain('los 150 trabajos');
+    const botones = Array.from(modal.querySelectorAll<HTMLButtonElement>('button[aria-label^="Descargar"]'));
+    expect(botones.map(b => b.getAttribute('aria-label'))).toEqual(
+      ['Descargar el reporte en PDF', 'Descargar el reporte en Excel', 'Descargar el reporte en CSV']);
+
+    botones[2].click();
+    await fixture.whenStable();
+    expect(mockFacade.downloadReport).toHaveBeenCalledWith('csv');
   });
 });

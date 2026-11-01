@@ -1,3 +1,5 @@
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal, WritableSignal, Component, Input, Output, EventEmitter, forwardRef } from '@angular/core';
 import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
@@ -66,7 +68,8 @@ describe('StatisticsPageComponent', () => {
   let fixture: ComponentFixture<StatisticsPageComponent>;
   let mockFacadeService: {
     updateFilters: jest.Mock<void, [Partial<StatisticsFilters>]>;
-    downloadPdfReport: jest.Mock<void, []>;
+    downloadReport: jest.Mock<Promise<void>, [string]>;
+    reportRows: WritableSignal<number>;
     clearFilters: jest.Mock<void, []>;
     currentFilters: WritableSignal<StatisticsFilters>;
     stagesOptions: MockOption[];
@@ -90,7 +93,8 @@ describe('StatisticsPageComponent', () => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     mockFacadeService = {
       updateFilters: jest.fn(),
-      downloadPdfReport: jest.fn(),
+      downloadReport: jest.fn(() => Promise.resolve()),
+      reportRows: signal(3),
       clearFilters: jest.fn(),
       currentFilters: signal<StatisticsFilters>(initialFilters),
       stagesOptions: [],
@@ -112,6 +116,7 @@ describe('StatisticsPageComponent', () => {
       imports: [StatisticsPageComponent],
       providers: [
         { provide: StatisticsPageFacadeService, useValue: mockFacadeService },
+        provideNoopAnimations(),
       ],
     })
     .overrideComponent(StatisticsPageComponent, {
@@ -195,9 +200,23 @@ describe('StatisticsPageComponent', () => {
     });
   });
   describe('Acciones', () => {
-    it('debería delegar la descarga del reporte PDF al Facade', () => {
+    it('al generar el reporte abre el modal para elegir el formato, sin descargar todavía', () => {
       component.handleDownloadReport();
-      expect(mockFacadeService.downloadPdfReport).toHaveBeenCalledTimes(1);
+      fixture.detectChanges();
+      expect(component['isReportModalOpen']()).toBe(true);
+      expect(mockFacadeService.downloadReport).not.toHaveBeenCalled();
+    });
+
+    it('descarga el reporte en el formato elegido en el modal', async () => {
+      await component.onReportFormatSelected('excel');
+      expect(mockFacadeService.downloadReport).toHaveBeenCalledWith('excel');
+    });
+
+    it('si no se puede generar el archivo, lo avisa', async () => {
+      const error = jest.spyOn(TestBed.inject(NotificationService), 'error').mockImplementation(() => {});
+      mockFacadeService.downloadReport.mockRejectedValue(new Error('sin librería'));
+      await component.onReportFormatSelected('excel');
+      expect(error).toHaveBeenCalledWith('No se generó el reporte', expect.any(String));
     });
   });
 });

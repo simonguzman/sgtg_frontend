@@ -63,6 +63,8 @@ describe('StatisticsPageFacadeService', () => {
   };
   let mockReportService: {
     downloadPdfReport: jest.Mock<void, [StatisticsFilters, RawProjectData[], StatisticsReportKpis, StatisticsReportContext]>;
+    downloadExcelReport: jest.Mock<Promise<void>, [StatisticsFilters, RawProjectData[], StatisticsReportKpis, StatisticsReportContext]>;
+    downloadCsvReport: jest.Mock<void, [StatisticsFilters, RawProjectData[], StatisticsReportKpis, StatisticsReportContext]>;
   };
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -93,6 +95,8 @@ describe('StatisticsPageFacadeService', () => {
     };
     mockReportService = {
       downloadPdfReport: jest.fn(),
+      downloadExcelReport: jest.fn(() => Promise.resolve()),
+      downloadCsvReport: jest.fn(),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -139,8 +143,8 @@ describe('StatisticsPageFacadeService', () => {
       expect(mockStateService.clearFilters).toHaveBeenCalledTimes(1);
     });
   });
-  describe('Orquestación de Reportes PDF (downloadPdfReport)', () => {
-    it('debería recolectar filtros, datos y KPIs para generar el reporte', () => {
+  describe('Orquestación de Reportes (downloadReport)', () => {
+    it('debería recolectar filtros, datos y KPIs para generar el reporte', async () => {
       const currentFilters: StatisticsFilters = {
         ...DEFAULT_STATISTICS_FILTERS,
         stage: ProjectStage.ANTEPROYECTO,
@@ -156,7 +160,7 @@ describe('StatisticsPageFacadeService', () => {
       mockMetricsService.totalApproved.set(10);
       mockMetricsService.totalInProgress.set(5);
       mockMetricsService.totalNotApproved.set(5);
-      facadeService.downloadPdfReport();
+      await facadeService.downloadReport('pdf');
       const expectedKpis: StatisticsReportKpis = {
         loaded: 20,
         approved: 10,
@@ -170,6 +174,25 @@ describe('StatisticsPageFacadeService', () => {
         expectedKpis,
         { scope: 'Todos los trabajos de grado de la facultad.', directorName: 'Director 1' }
       );
+      expect(mockReportService.downloadExcelReport).not.toHaveBeenCalled();
+      expect(mockReportService.downloadCsvReport).not.toHaveBeenCalled();
+    });
+
+    it('genera el reporte en el formato elegido, con los mismos datos', async () => {
+      mockStateService.filteredData.set([createMockRawProjectData({ id: '1' })]);
+
+      await facadeService.downloadReport('excel');
+      await facadeService.downloadReport('csv');
+
+      expect(mockReportService.downloadExcelReport).toHaveBeenCalledTimes(1);
+      expect(mockReportService.downloadCsvReport).toHaveBeenCalledTimes(1);
+      expect(mockReportService.downloadCsvReport.mock.calls[0]).toEqual(mockReportService.downloadExcelReport.mock.calls[0]);
+      expect(mockReportService.downloadPdfReport).not.toHaveBeenCalled();
+    });
+
+    it('cuenta los trabajos que lleva el reporte', () => {
+      mockStateService.filteredData.set([createMockRawProjectData({ id: '1' }), createMockRawProjectData({ id: '2' })]);
+      expect(facadeService.reportRows()).toBe(2);
     });
   });
 });

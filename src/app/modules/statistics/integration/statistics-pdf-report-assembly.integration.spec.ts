@@ -45,12 +45,12 @@ describe('Integración [Estadísticas]: Ensamblado real de KPIs para el reporte 
 
   afterEach(() => jest.restoreAllMocks());
 
-  it('pasa al reporte los KPIs calculados de los trabajos del backend', () => {
+  it('pasa al reporte los KPIs calculados de los trabajos del backend', async () => {
     iniciarSesionConTrabajos(comite, [
       propuesta(1, 'APROBADO'), propuesta(2, 'EN_REVISION'), propuesta(3, 'NO_APROBADO')
     ]);
 
-    facade.downloadPdfReport();
+    await facade.downloadReport('pdf');
 
     expect(report.downloadPdfReport).toHaveBeenCalledWith(
       state.currentFilters(),
@@ -60,11 +60,11 @@ describe('Integración [Estadísticas]: Ensamblado real de KPIs para el reporte 
     );
   });
 
-  it('refleja los filtros activos al generar el reporte', () => {
+  it('refleja los filtros activos al generar el reporte', async () => {
     iniciarSesionConTrabajos(comite, [propuesta(1, 'APROBADO', '2026-05-01'), propuesta(2, 'APROBADO', '2027-02-01')]);
     state.updateFilters({ period: '2026-1' });
 
-    facade.downloadPdfReport();
+    await facade.downloadReport('pdf');
 
     const [, datos] = report.downloadPdfReport.mock.calls[0];
     expect(datos.map((dato: { id: string }) => dato.id)).toEqual(['1']);

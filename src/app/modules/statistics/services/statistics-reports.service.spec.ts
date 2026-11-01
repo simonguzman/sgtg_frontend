@@ -12,6 +12,9 @@ import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadlin
 // Hacemos mock de las librerías externas para evitar renderizados reales
 jest.mock('jspdf');
 jest.mock('jspdf-autotable');
+// La librería de Excel se reemplaza: la prueba revisa las hojas que recibe
+const mockWriteXlsxFile = jest.fn();
+jest.mock('write-excel-file/browser', () => ({ __esModule: true, default: (...args: unknown[]) => mockWriteXlsxFile(...args) }));
 
 const createMockRawProjectData = (overrides: Partial<RawProjectData> = {}): RawProjectData => ({
   id: 'proj-123',
@@ -165,6 +168,81 @@ describe('StatisticsReportService', () => {
         ['1', 'Proyecto de Prueba', 'Práctica profesional', 'Ingeniería Electrónica', 'Propuesta',
           'En desarrollo', 'Juan Pérez', '2026-1']
       ]);
+    });
+  });
+
+  describe('Excel y CSV', () => {
+    const kpis: StatisticsReportKpis = { loaded: 2, approved: 1, inProgress: 1, rejected: 0 };
+    const datos: RawProjectData[] = [
+      createMockRawProjectData({ title: 'Sistema; de "gestión"', directorName: 'Ana Gómez', period: '2026-1' }),
+      createMockRawProjectData({ title: '=HIPERVINCULO("x")', directorName: 'Luis Mora', period: '2026-2' })
+    ];
+    let descargas: { nombre: string; blob: Blob }[];
+
+    beforeEach(() => {
+      descargas = [];
+      let ultimo: Blob | undefined;
+      // jsdom no implementa las URL de objetos: se guarda el archivo que se iba a descargar
+      URL.createObjectURL = jest.fn((blob: Blob) => { ultimo = blob; return 'blob:prueba'; });
+      URL.revokeObjectURL = jest.fn();
+      jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+        descargas.push({ nombre: this.download, blob: ultimo! });
+      });
+      mockWriteXlsxFile.mockReset();
+      mockWriteXlsxFile.mockReturnValue({ toBlob: () => Promise.resolve(new Blob(['xlsx'])) });
+    });
+
+    const leer = (blob: Blob) => new Promise<string>(resolve => {
+      const lector = new FileReader();
+      lector.onload = () => resolve(lector.result as string);
+      lector.readAsText(blob, 'utf-8');
+    });
+
+    const bytes = (blob: Blob) => new Promise<Uint8Array>(resolve => {
+      const lector = new FileReader();
+      lector.onload = () => resolve(new Uint8Array(lector.result as ArrayBuffer));
+      lector.readAsArrayBuffer(blob);
+    });
+
+    it('el Excel lleva la hoja de trabajos con encabezado fijo y la de resumen con filtros y métricas', async () => {
+      await service.downloadExcelReport({ ...DEFAULT_STATISTICS_FILTERS, period: '2026-1' }, datos, kpis, context);
+
+      const [hojas] = mockWriteXlsxFile.mock.calls[0];
+      const [trabajos, resumen] = hojas;
+      expect(trabajos.sheet).toBe('Trabajos');
+      expect(trabajos.stickyRowsCount).toBe(1);
+      expect(trabajos.data[0].map((celda: { value: string }) => celda.value)).toEqual(
+        ['#', 'Título del trabajo', 'Modalidad', 'Programa', 'Etapa', 'Estado', 'Director', 'Periodo']);
+      // El número de fila va como número, para poder ordenar y filtrar en Excel
+      expect(trabajos.data[1][0]).toBe(1);
+      expect(trabajos.data[1][1]).toBe('Sistema; de "gestión"');
+      expect(trabajos.data).toHaveLength(3);
+
+      expect(resumen.sheet).toBe('Resumen');
+      const textos = resumen.data.flat().map((celda: unknown) =>
+        celda && typeof celda === 'object' ? (celda as { value: unknown }).value : celda);
+      expect(textos).toEqual(expect.arrayContaining(['Alcance', context.scope, 'Periodo', '2026-1',
+        'Trabajos registrados', 2, 'Aprobados', 1]));
+
+      expect(descargas).toHaveLength(1);
+      expect(descargas[0].nombre).toMatch(/^Reporte_Academico_\d+\.xlsx$/);
+      expect(descargas[0].blob.type).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    });
+
+    it('el CSV lleva la tabla con BOM, punto y coma y los textos especiales escapados', async () => {
+      service.downloadCsvReport({ ...DEFAULT_STATISTICS_FILTERS }, datos, kpis, context);
+
+      expect(descargas[0].nombre).toMatch(/^Reporte_Academico_\d+\.csv$/);
+      // BOM UTF-8: Excel lee bien las tildes
+      expect(Array.from((await bytes(descargas[0].blob)).slice(0, 3))).toEqual([0xEF, 0xBB, 0xBF]);
+      const lineas = (await leer(descargas[0].blob)).replace(/^﻿/, '').split('\r\n');
+      expect(lineas[0]).toBe('#;Título del trabajo;Modalidad;Programa;Etapa;Estado;Director;Periodo');
+      // Con el separador o comillas: entre comillas y con las comillas dobladas
+      expect(lineas[1]).toBe('1;"Sistema; de ""gestión""";Trabajo de investigación;Ingeniería de Sistemas;'
+        + 'Propuesta;En desarrollo;Ana Gómez;2026-1');
+      // Lo que Excel tomaría como fórmula queda como texto
+      expect(lineas[2].split(';')[1]).toBe('"\'=HIPERVINCULO(""x"")"');
+      expect(lineas[3]).toBe('');
     });
   });
 });

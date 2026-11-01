@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ChartModule } from 'primeng/chart';
 import { SelectModule } from 'primeng/select';
@@ -8,16 +8,22 @@ import { ProjectStage } from '../../enum/projectStage.enum';
 import { DOUGHNUT_CHART_OPTIONS, BAR_CHART_OPTIONS } from './models/statistics-chart-options.model';
 import { ARCHIVE_STATUS_OPTIONS } from './models/statistics-page.model';
 import { DEADLINE_FILTER_OPTIONS, DeadlineFilterValue } from '../../interfaces/statisticsFilters.interface';
+import { ReportFormatModalComponent } from '../../components/report-format-modal/report-format-modal.component';
+import { StatisticsReportFormat } from '../../services/statistics-reports.service';
+import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 
 @Component({
   selector: 'app-statistics-page',
   standalone: true,
-  imports: [FormsModule, ChartModule, SelectModule, ButtonComponent],
+  imports: [FormsModule, ChartModule, SelectModule, ButtonComponent, ReportFormatModalComponent],
   templateUrl: './statistics-page.component.html',
   styleUrl: './statistics-page.component.css',
 })
 export class StatisticsPageComponent {
   protected readonly facade = inject(StatisticsPageFacadeService);
+  private readonly notification = inject(NotificationService);
+  /** Modal para elegir el formato del reporte */
+  protected readonly isReportModalOpen = signal(false);
   protected readonly doughnutOptions = DOUGHNUT_CHART_OPTIONS;
   protected readonly barOptions = BAR_CHART_OPTIONS;
   protected readonly archiveOptions = ARCHIVE_STATUS_OPTIONS;
@@ -52,6 +58,15 @@ export class StatisticsPageComponent {
   }
 
   handleDownloadReport(): void {
-    this.facade.downloadPdfReport();
+    this.isReportModalOpen.set(true);
+  }
+
+  async onReportFormatSelected(format: StatisticsReportFormat): Promise<void> {
+    try {
+      await this.facade.downloadReport(format);
+    } catch (error) {
+      console.error('No se pudo generar el reporte', error);
+      this.notification.error('No se generó el reporte', 'Ocurrió un error al generar el archivo. Intenta de nuevo.');
+    }
   }
 }

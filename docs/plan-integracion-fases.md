@@ -625,3 +625,17 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
       herramientas de desarrollo (Jest y el CLI de Angular), que no se despliegan; para esos npm solo propone
       bajar a versiones muy viejas.
     - Detalle del backend en `sgtg_backend/docs/ajustes-2026-10-31.md` (§5 y §6).
+51. **Reporte de estadísticas en PDF, Excel o CSV (2026-10-31):**
+    - **"Generar reporte"** abre un modal (`ReportFormatModalComponent`). El modal dice cuántos trabajos lleva el
+      reporte, explica qué trae cada formato y tiene un botón por formato: PDF, Excel y CSV.
+    - **Los tres formatos** llevan los mismos trabajos (los que dejan los filtros) con las mismas columnas. Los
+      filtros, las métricas y las filas se arman en un solo lugar (`StatisticsReportService`).
+      - **PDF:** el mismo de antes.
+      - **Excel (.xlsx):** hoja "Trabajos" con el encabezado fijo y el número de fila como número, y hoja "Resumen"
+        con el alcance, los filtros y las métricas. Usa `write-excel-file`, que solo se carga al exportar.
+      - **CSV:** solo la tabla, en UTF-8 con BOM para que Excel lea bien las tildes. El separador es punto y coma,
+        el que espera Excel en Colombia.
+    - **Seguridad del CSV:** los valores que empiezan con `=`, `+`, `-` o `@` se guardan como texto (con un
+      apóstrofo delante), para que Excel no los ejecute como fórmulas.
+    - **Errores:** si falla la generación, se avisa con una notificación.
+    - **Fachada:** `downloadReport(formato)` reemplaza a `downloadPdfReport()`.

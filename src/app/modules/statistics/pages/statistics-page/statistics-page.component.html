@@ -14,12 +14,19 @@
     </div>
     <div>
       <app-button-component
-        label="Generar Reporte PDF"
+        label="Generar reporte"
+        icon="download"
         variant="primary"
         (onClick)="handleDownloadReport()">
       </app-button-component>
     </div>
   </div>
+  <app-report-format-modal
+    [isOpen]="isReportModalOpen()"
+    [rows]="facade.reportRows()"
+    (onClose)="isReportModalOpen.set(false)"
+    (selectFormat)="onReportFormatSelected($event)"
+  ></app-report-format-modal>
   <div class="bg-blue-50/50 p-6 rounded-xl border border-blue-100 shadow-sm flex flex-col gap-4">
     <h3 class="font-display font-semibold text-primary text-size-section mb-2 flex items-center gap-2">
       <span class="material-symbols-outlined text-size-sidebar-title">filter_alt</span> Filtros de Búsqueda

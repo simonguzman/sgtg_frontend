@@ -1,8 +1,8 @@
-import { inject, Injectable } from '@angular/core';
+import { computed, inject, Injectable } from '@angular/core';
 import { StatisticsStateService } from '../../../services/statistics-state.service';
 import { StatisticsMetricsService } from '../../../services/statistics-metrics.service';
 import { StatisticsChartDataService } from '../../../services/statistics-chart-data.service';
-import { StatisticsReportService } from '../../../services/statistics-reports.service';
+import { StatisticsReportFormat, StatisticsReportService } from '../../../services/statistics-reports.service';
 import { StatisticsFilters } from '../../../interfaces/statisticsFilters.interface';
 import { StatisticsReportKpis } from '../../../interfaces/statisticsReportKpis.interface';
 
@@ -37,7 +37,14 @@ export class StatisticsPageFacadeService {
     this.state.clearFilters();
   }
 
-  downloadPdfReport(): void {
+  /** Cantidad de trabajos que lleva el reporte (los que dejan los filtros) */
+  readonly reportRows = computed(() => this.state.filteredData().length);
+
+  /**
+   * Descarga el reporte con los trabajos y filtros actuales en el formato
+   * elegido. Termina cuando el archivo ya se generó (el Excel se arma aparte).
+   */
+  async downloadReport(format: StatisticsReportFormat): Promise<void> {
     const filters = this.state.currentFilters();
     const data = this.state.filteredData();
     const kpis: StatisticsReportKpis = {
@@ -47,6 +54,9 @@ export class StatisticsPageFacadeService {
       rejected: this.metrics.totalNotApproved()
     };
     const directorName = this.state.directorsOptions().find(director => director.id === filters.directorId)?.name ?? null;
-    this.reportService.downloadPdfReport(filters, data, kpis, { scope: this.state.scope(), directorName });
+    const context = { scope: this.state.scope(), directorName };
+    if (format === 'excel') await this.reportService.downloadExcelReport(filters, data, kpis, context);
+    else if (format === 'csv') this.reportService.downloadCsvReport(filters, data, kpis, context);
+    else this.reportService.downloadPdfReport(filters, data, kpis, context);
   }
 }
