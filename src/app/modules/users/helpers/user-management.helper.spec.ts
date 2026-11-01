@@ -13,14 +13,17 @@ describe('user-management.helper', () => {
       .forEach(rol => expect(departamentoDelGestor(gestor([rol]))).toBeNull());
   });
 
-  it('el administrador asigna cualquier rol; los demás gestores solo Estudiante y Docente', () => {
+  it('el administrador asigna cualquier rol; los demás gestores solo Estudiante, Docente, Director y Asesor', () => {
     expect(esAdministrador(gestor([UserRoleType.ADMINISTRADOR]))).toBe(true);
     expect(puedeAsignarRol(gestor([UserRoleType.ADMINISTRADOR]), UserRoleType.COMITE)).toBe(true);
 
     const jefe = gestor([UserRoleType.JEFE_DEP]);
     expect(puedeAsignarRol(jefe, UserRoleType.ESTUDIANTE)).toBe(true);
     expect(puedeAsignarRol(jefe, UserRoleType.DOCENTE)).toBe(true);
-    [UserRoleType.ADMINISTRADOR, UserRoleType.COMITE, UserRoleType.DIRECTOR, UserRoleType.EVALUADOR]
+    expect(puedeAsignarRol(jefe, UserRoleType.DIRECTOR)).toBe(true);
+    expect(puedeAsignarRol(jefe, UserRoleType.ASESOR)).toBe(true);
+    // El Comité se cambia con su propia opción, y codirector, evaluador y jurado los da el trámite
+    [UserRoleType.ADMINISTRADOR, UserRoleType.COMITE, UserRoleType.CODIRECTOR, UserRoleType.EVALUADOR]
       .forEach(rol => expect(puedeAsignarRol(jefe, rol)).toBe(false));
     expect(puedeAsignarRol(null, UserRoleType.DOCENTE)).toBe(true);
   });

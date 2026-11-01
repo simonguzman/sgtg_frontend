@@ -423,14 +423,14 @@ describe('UserFormComponent', () => {
       expect(component.canCreateCatalogItems()).toBe(false);
     });
 
-    it('solo asigna o quita Estudiante y Docente; los demás roles quedan bloqueados', () => {
-      component.userForm.controls.roles.setValue([UserRoleType.DOCENTE, UserRoleType.DIRECTOR]);
+    it('solo asigna o quita Estudiante, Docente, Director y Asesor; los demás roles quedan bloqueados', () => {
+      component.userForm.controls.roles.setValue([UserRoleType.DOCENTE, UserRoleType.CODIRECTOR]);
       component.openRolesModal();
       const asignables = component.currentRolesForModal.filter(role => !role.locked).map(role => role.type);
-      expect(asignables).toEqual([UserRoleType.DOCENTE, UserRoleType.ESTUDIANTE]);
+      expect([...asignables].sort()).toEqual([...[UserRoleType.ESTUDIANTE, UserRoleType.DOCENTE, UserRoleType.DIRECTOR, UserRoleType.ASESOR]].sort());
       // El rol que ya tiene se conserva aunque no lo pueda quitar
-      expect(component.currentRolesForModal.find(role => role.type === UserRoleType.DIRECTOR))
-        .toEqual({ type: UserRoleType.DIRECTOR, assigned: true, locked: true });
+      expect(component.currentRolesForModal.find(role => role.type === UserRoleType.CODIRECTOR))
+        .toEqual({ type: UserRoleType.CODIRECTOR, assigned: true, locked: true });
     });
   });
 

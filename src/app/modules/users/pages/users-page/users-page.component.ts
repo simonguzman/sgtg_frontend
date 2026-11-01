@@ -11,7 +11,8 @@ import { RolesModalComponent } from '../../../../shared/components/modals/roles/
 import { UsersFacadeService } from './services/users-facade.service';
 import { AuthStorageService } from '../../../../core/services/auth/auth-storage.service';
 import { puedeAsignarRol } from '../../helpers/user-management.helper';
-import { USER_COLUMNS, USER_FILTER_FIELDS, USER_HEADER_BUTTONS, UserTableRow } from './models/users-page.model';
+import { CHANGE_COMMITTEE_ACTION, USER_COLUMNS, USER_FILTER_FIELDS, USER_HEADER_BUTTONS, UserTableRow } from './models/users-page.model';
+import { ChangeCommitteeModalComponent } from '../../components/change-committee-modal/change-committee-modal.component';
 
 @Component({
   selector: 'app-users-page',
@@ -19,7 +20,8 @@ import { USER_COLUMNS, USER_FILTER_FIELDS, USER_HEADER_BUTTONS, UserTableRow } f
   imports: [
     TableComponent,
     RolesModalComponent,
-    ConfirmationActionModalComponent
+    ConfirmationActionModalComponent,
+    ChangeCommitteeModalComponent
   ],
   templateUrl: './users-page.component.html',
   styleUrl: './users-page.component.css',
@@ -31,7 +33,13 @@ export class UsersPageComponent implements OnInit {
 
   protected columns = USER_COLUMNS;
   protected readonly filterFields = USER_FILTER_FIELDS;
-  protected headerButtons = USER_HEADER_BUTTONS;
+  /** Crear usuarios y cambiar el Comité (el Comité lo cede); todos los gestores pueden hacer las dos cosas */
+  protected headerButtons: TableButton[] = [...USER_HEADER_BUTTONS, {
+    action: CHANGE_COMMITTEE_ACTION,
+    label: this.authStorage.userRoles().includes(UserRoleType.COMITE) ? 'Ceder rol de Comité' : 'Cambiar Comité',
+    variant: 'secondary'
+  }];
+  showCommitteeModal = false;
   protected readonly stateList = stateList;
 
   showRolesModal = false;
@@ -53,6 +61,10 @@ export class UsersPageComponent implements OnInit {
   confirmationMessage = ' ';
 
   handleHeaderButton(button: TableButton): void {
+    if (button.action === CHANGE_COMMITTEE_ACTION) {
+      this.showCommitteeModal = true;
+      return;
+    }
     if (button.label === 'Crear usuarios') {
       this.router.navigate(['/users/create']);
     }

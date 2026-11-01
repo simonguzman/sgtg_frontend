@@ -55,3 +55,6 @@ export const USER_FILTER_FIELDS = ['identificacion', 'nombre', 'apellidos', 'est
 export const USER_HEADER_BUTTONS: TableButton[] = [
   { label: 'Crear usuarios', variant: 'primary' }
 ];
+
+/** Acción del botón para cambiar el Comité de programa de un departamento */
+export const CHANGE_COMMITTEE_ACTION = 'change-committee';

@@ -1,3 +1,5 @@
+import { ChangeCommitteeModalComponent } from '../../components/change-committee-modal/change-committee-modal.component';
+import { CHANGE_COMMITTEE_ACTION } from './models/users-page.model';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { Component, EventEmitter, Input, Output, signal, WritableSignal } from '@angular/core';
@@ -34,6 +36,12 @@ class MockRolesModalComponent {
   @Input() roles: UserRole[] = [];
   @Input() canManage = true;
   @Output() onSaved = new EventEmitter<UserRole[]>();
+}
+
+@Component({ selector: 'app-change-committee-modal', standalone: true, template: '' })
+class MockChangeCommitteeModalComponent {
+  @Input() isOpen = false;
+  @Output() onClose = new EventEmitter<void>();
 }
 
 @Component({ selector: 'app-confirmation-action-modal', standalone: true, template: '' })
@@ -116,10 +124,11 @@ describe('Component: UsersPageComponent', () => {
     })
     .overrideComponent(UsersPageComponent, {
       remove: {
-        imports: [TableComponent, RolesModalComponent, ConfirmationActionModalComponent]
+        imports: [TableComponent, RolesModalComponent, ConfirmationActionModalComponent, ChangeCommitteeModalComponent]
       },
       add: {
-        imports: [MockTableComponent, MockRolesModalComponent, MockConfirmationActionModalComponent]
+        imports: [MockTableComponent, MockRolesModalComponent, MockConfirmationActionModalComponent,
+          MockChangeCommitteeModalComponent]
       }
     })
     .compileComponents();
@@ -149,6 +158,14 @@ describe('Component: UsersPageComponent', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/users/create']);
     });
 
+    it('el botón de cambiar el Comité abre su modal', () => {
+      const boton = component['headerButtons'].find(b => b.action === CHANGE_COMMITTEE_ACTION)!;
+      expect(boton.label).toBe('Cambiar Comité');
+      component.handleHeaderButton(boton);
+      expect(component.showCommitteeModal).toBe(true);
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
+
     it('no debería hacer nada si la fila no tiene un id de usuario válido', () => {
       const invalidUser = createMockUser({ id: undefined });
       const invalidRow = createMockUserTableRow({ originalData: invalidUser });
@@ -168,7 +185,7 @@ describe('Component: UsersPageComponent', () => {
   });
 
   describe('Flujo de Asignación de Roles', () => {
-    it('un gestor que no es el administrador solo cambia Estudiante y Docente, y no gestiona los roles de quien solo consulta', () => {
+    it('un gestor que no es el administrador solo cambia Estudiante, Docente, Director y Asesor, y no gestiona los roles de quien solo consulta', () => {
       const storage = TestBed.inject(AuthStorageService);
       storage.setUser({ id: 'jefe', roles: [UserRoleType.JEFE_DEP, UserRoleType.DOCENTE] } as User);
 
@@ -176,8 +193,8 @@ describe('Component: UsersPageComponent', () => {
         row: createMockUserTableRow({ allowedActions: ['ver roles asignados', 'ver'] }) });
 
       expect(component.canManageRoles).toBe(false);
-      expect(component.rolesUser.filter(role => !role.locked).map(role => role.type))
-        .toEqual([UserRoleType.DOCENTE, UserRoleType.ESTUDIANTE]);
+      expect(component.rolesUser.filter(role => !role.locked).map(role => role.type).sort())
+        .toEqual([...[UserRoleType.ESTUDIANTE, UserRoleType.DOCENTE, UserRoleType.DIRECTOR, UserRoleType.ASESOR]].sort());
       storage.clearUser();
     });
 

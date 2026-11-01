@@ -1,6 +1,8 @@
+import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { TestBed } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
 import { Observable, of, throwError } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 import { UsersFacadeService } from './users-facade.service';
 import { UserService } from '../../../services/user.service';
 import { UsersMapperService } from './users-mapper.service';
@@ -43,6 +45,10 @@ const createMockUserTableRow = (overrides: Partial<UserTableRow> = {}): UserTabl
   fullName: 'Juan Pérez',
   ...overrides
 });
+
+/** Sesión simulada: el id del usuario que gestiona */
+const sesion = signal<{ id: string } | null>({ id: '99' });
+const mockAuthService = { currentUser: sesion, logout: jest.fn() };
 
 describe('Service: UsersFacadeService', () => {
   let service: UsersFacadeService;
@@ -90,7 +96,8 @@ describe('Service: UsersFacadeService', () => {
         UsersFacadeService,
         { provide: UserService, useValue: mockUserService },
         { provide: UsersMapperService, useValue: mockMapper },
-        { provide: NotificationService, useValue: mockNotificationService }
+        { provide: NotificationService, useValue: mockNotificationService },
+        { provide: AuthService, useValue: mockAuthService }
       ]
     });
 
@@ -218,6 +225,82 @@ describe('Service: UsersFacadeService', () => {
       });
       expect(onSuccessSpy).not.toHaveBeenCalled();
       expect(console.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('Cambio del Comité', () => {
+    const SISTEMAS = { id: 1, name: 'Departamento de Sistemas' };
+    const TELEMATICA = { id: 2, name: 'Departamento de Telemática' };
+    let changeCommittee: jest.Mock;
+
+    /** Gestiona: el Comité de Sistemas (99), dos docentes de Sistemas (uno inactivo), uno de Telemática y un estudiante */
+    const cargar = () => {
+      mockUserService.loadManagedUsers.mockReturnValue(of([
+        { user: createMockUser({ id: '99', roles: [UserRoleType.COMITE, UserRoleType.DOCENTE], department: SISTEMAS }), editable: false },
+        { user: createMockUser({ id: '5', firstName: 'Ana', lastName: 'Mora', department: SISTEMAS }), editable: true },
+        { user: createMockUser({ id: '6', department: SISTEMAS, state: UserState.inactive }), editable: true },
+        { user: createMockUser({ id: '7', department: TELEMATICA }), editable: true },
+        { user: createMockUser({ id: '8', roles: [UserRoleType.ESTUDIANTE] }), editable: true }
+      ]));
+      service.loadUsers();
+    };
+
+    beforeEach(() => {
+      changeCommittee = jest.fn();
+      Object.assign(mockUserService, { changeCommittee });
+      mockAuthService.logout.mockClear();
+      sesion.set({ id: '1' });
+    });
+
+    it('ofrece los departamentos de los docentes que gestiona, su Comité actual y los docentes activos que pueden recibirlo', () => {
+      cargar();
+
+      expect(service.committeeDepartments()).toEqual([SISTEMAS, TELEMATICA]);
+      expect(service.committeeOf(1)?.id).toBe('99');
+      expect(service.committeeOf(2)).toBeUndefined();
+      expect(service.committeeCandidates(1).map(user => user.id)).toEqual(['5']);
+    });
+
+    it('al nombrar otro Comité avisa y recarga la lista', () => {
+      cargar();
+      changeCommittee.mockReturnValue(of(createMockUser({ id: '5', firstName: 'Ana', lastName: 'Mora' })));
+      const alTerminar = jest.fn();
+
+      service.changeCommittee('5', alTerminar);
+
+      expect(changeCommittee).toHaveBeenCalledWith('5');
+      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'Comité actualizado', type: NotificationType.CONFIRMATION
+      }));
+      expect(alTerminar).toHaveBeenCalled();
+      expect(mockAuthService.logout).not.toHaveBeenCalled();
+    });
+
+    it('si el Comité cede el suyo, cierra su sesión', () => {
+      sesion.set({ id: '99' });
+      cargar();
+      changeCommittee.mockReturnValue(of(createMockUser({ id: '5', firstName: 'Ana', lastName: 'Mora' })));
+
+      service.changeCommittee('5', jest.fn());
+
+      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Rol de Comité cedido' }));
+      expect(mockAuthService.logout).toHaveBeenCalled();
+    });
+
+    it('si el backend lo rechaza muestra su mensaje y libera el modal', () => {
+      cargar();
+      changeCommittee.mockReturnValue(throwError(() => new HttpErrorResponse({
+        status: 400, error: { message: 'Ese docente codirige un trabajo de grado en curso de este departamento.' }
+      })));
+      const alFallar = jest.fn();
+
+      service.changeCommittee('5', jest.fn(), alFallar);
+
+      expect(mockNotificationService.show).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'No se cambió el Comité',
+        message: 'Ese docente codirige un trabajo de grado en curso de este departamento.'
+      }));
+      expect(alFallar).toHaveBeenCalled();
     });
   });
 });

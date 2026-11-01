@@ -639,3 +639,14 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
       apóstrofo delante), para que Excel no los ejecute como fórmulas.
     - **Errores:** si falla la generación, se avisa con una notificación.
     - **Fachada:** `downloadReport(formato)` reemplaza a `downloadPdfReport()`.
+52. **Roles que asignan los gestores y cambio del Comité (2026-11-01):**
+    - **Roles asignables:** `ROLES_ASIGNABLES_POR_GESTORES` suma Director y Asesor. En el modal de roles y en el
+      formulario quedan desbloqueados para el Comité, el jefe, el Consejo y Decanatura. Un asesor externo (solo el
+      rol Asesor) se crea sin perfil académico.
+    - **Cambiar el Comité:** en Usuarios, el botón "Cambiar Comité" (para el Comité, "Ceder rol de Comité") abre
+      `ChangeCommitteeModalComponent`.
+      - El modal muestra el departamento (el Consejo, Decanatura y el administrador lo eligen), el Comité actual y
+        los docentes activos de ese departamento.
+      - Al ceder el propio, advierte que se cerrará la sesión; después de cederlo, la cierra.
+      - Usa `PUT /usuarios/comite` (`UserApiService.changeCommittee`); las reglas las valida el backend.
+    - Detalle del backend en `sgtg_backend/docs/ajustes-2026-11-01.md`.

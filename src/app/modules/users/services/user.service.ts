@@ -118,6 +118,11 @@ export class UserService {
     return this.api.updateUserRoles(userId, newRoles);
   }
 
+  /** Cambia el Comité del departamento del docente indicado. */
+  public changeCommittee(userId: string): Observable<User> {
+    return this.api.changeCommittee(userId);
+  }
+
   // ==========================================
   // FORMATO
   // ==========================================

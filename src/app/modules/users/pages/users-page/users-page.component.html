@@ -24,6 +24,11 @@
   (confirm)="confirmChanges()"
 ></app-confirmation-action-modal>
 
+<app-change-committee-modal
+  [isOpen]="showCommitteeModal"
+  (onClose)="showCommitteeModal = false"
+></app-change-committee-modal>
+
 <app-confirmation-action-modal
   [isOpen]="showDisabledConfirmation"
   [description]="confirmationMessage"

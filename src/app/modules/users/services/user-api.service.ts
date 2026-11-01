@@ -100,6 +100,17 @@ export class UserApiService {
     );
   }
 
+  /**
+   * Cambia el Comité del departamento del docente: él recibe el rol y quien lo
+   * tenía lo pierde (`PUT /usuarios/comite`). Devuelve el nuevo Comité.
+   */
+  changeCommittee(userId: string): Observable<User> {
+    return this.http.put<UsuarioResponse>(`${this.apiUrl}/comite`, { usuarioId: Number(userId) }).pipe(
+      map(mapUsuarioToUser),
+      tap(saved => this.replaceInList(saved))
+    );
+  }
+
   /** Reemplaza el usuario en la lista y, si es el de la sesión, también en la sesión. */
   private replaceInList(saved: User): void {
     this.storage.updateUsersList(users => users.some(user => user.id === saved.id)
