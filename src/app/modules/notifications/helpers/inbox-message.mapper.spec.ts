@@ -45,7 +45,8 @@ describe('inbox-message.mapper', () => {
     expect(rutaDeNotificacion(15, 'EN_CURSO', 'INFORME_RADICADO')).toBe('/thesis-work/details/15/loaded_documents?tab=AVANCES');
     expect(rutaDeNotificacion(15, 'PRORROGA', 'INFORME_REVISADO')).toBe('/thesis-work/details/15/evaluations_performed');
     // Las reuniones de seguimiento llevan a su tabla
-    for (const evento of ['REUNION_AGENDADA', 'REUNION_PROXIMA', 'REUNION_SIN_INFORME']) {
+    for (const evento of ['REUNION_AGENDADA', 'REUNION_PROXIMA', 'REUNION_SIN_INFORME', 'REUNION_POR_VENCER',
+      'REUNION_VENCIDA']) {
       expect(rutaDeNotificacion(15, 'EN_CURSO', evento)).toBe('/thesis-work/details/15/meetings');
     }
     // Solicitudes especiales: la solicitud en su pestaña; la decisión del Consejo, en las evaluaciones realizadas
@@ -74,6 +75,26 @@ describe('inbox-message.mapper', () => {
       id: 1, tipo: 'CONFIRMACION', titulo: 'Concepto del Comité de Programa', mensaje: 'M', trabajoId: 15,
       etapa: 'ANTEPROYECTO', evento: 'DECISION_COMITE', fecha: '2026-03-02T10:30:00', leida: false
     }, '10').actionUrl).toBe('/proposal/details/15/evaluations_performed');
+  });
+
+  it('los avisos de plazos llevan a donde se cumple el plazo', () => {
+    for (const evento of ['PLAZO_CORRECCIONES_POR_VENCER', 'PLAZO_CORRECCIONES_VENCIDO']) {
+      expect(rutaDeNotificacion(15, 'ANTEPROYECTO', evento))
+        .toBe('/preliminary-draft/details/15/loaded_documents?tab=ANTEPROYECTOS');
+    }
+    for (const evento of ['SUSTENTACION_HABILITADA', 'PLAZO_TRABAJO_POR_VENCER', 'PLAZO_TRABAJO_ULTIMO_AVISO']) {
+      expect(rutaDeNotificacion(15, 'EN_CURSO', evento)).toBe('/thesis-work/details/15/loaded_documents?tab=ENTREGA_FINAL');
+    }
+    for (const evento of ['PLAZO_CAMBIO_OBJETIVOS_POR_VENCER', 'PLAZO_CAMBIO_OBJETIVOS_VENCIDO',
+      'PLAZO_PRORROGA_POR_VENCER', 'PLAZO_PRORROGA_VENCIDO']) {
+      expect(rutaDeNotificacion(15, 'EN_CURSO', evento)).toBe('/thesis-work/details/15/loaded_documents?tab=SOLICITUDES');
+    }
+    expect(rutaDeNotificacion(15, 'SUSTENTACION', 'PLAZO_AJUSTES_POR_VENCER')).toBe('/thesis-work/details/15/corrected_documents');
+    expect(rutaDeNotificacion(15, 'APLAZADO', 'PLAZO_SEGUNDA_SESION_POR_VENCER'))
+      .toBe('/thesis-work/details/15/loaded_documents?tab=SUSTENTACION');
+    // Los del Comité y los evaluadores siguen la etapa
+    expect(rutaDeNotificacion(15, 'PROPUESTA', 'PLAZO_PROPUESTA_VENCIDO')).toBe('/proposal/details/15');
+    expect(rutaDeNotificacion(15, 'EVALUACION', 'PLAZO_EVALUACION_VENCIDO')).toBe('/preliminary-draft/details/15');
   });
 
   it('convierte el tipo, la fecha y el estado de lectura', () => {

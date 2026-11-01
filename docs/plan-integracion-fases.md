@@ -650,3 +650,14 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
       - Al ceder el propio, advierte que se cerrará la sesión; después de cederlo, la cierra.
       - Usa `PUT /usuarios/comite` (`UserApiService.changeCommittee`); las reglas las valida el backend.
     - Detalle del backend en `sgtg_backend/docs/ajustes-2026-11-01.md`.
+53. **Avisos de plazos en el buzón (2026-11-01):**
+    - El backend envía avisos nuevos de plazos (por vencer y vencidos) de la propuesta, el anteproyecto, la
+      ejecución, las reuniones y la sustentación. Cada uno se envía una sola vez por persona.
+    - **A dónde lleva cada aviso** (`RUTAS_POR_EVENTO` en `inbox-message.mapper.ts`): a donde se cumple el plazo.
+      - Correcciones del anteproyecto: documentos cargados del anteproyecto (pestaña Anteproyectos).
+      - "Ya se puede solicitar la sustentación" y el fin del plazo de ejecución: la entrega final.
+      - Cambio de título u objetivos y prórroga: la pestaña de solicitudes.
+      - Reunión sin agendar o vencida: la tabla de reuniones.
+      - Ajustes de la sustentación: documentos corregidos. Segunda sesión: la pestaña de sustentación.
+      - Los del Comité y los evaluadores siguen la etapa, como antes.
+    - Detalle del backend en `sgtg_backend/docs/ajustes-2026-11-01.md` (§4).
