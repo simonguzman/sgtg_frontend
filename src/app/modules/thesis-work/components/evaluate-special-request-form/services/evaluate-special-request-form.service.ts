@@ -30,6 +30,14 @@ export class EvaluateSpecialRequestFormService {
     });
   }
 
+  notifyMissingObservations(): void {
+    this.notificationService.show({
+      title: 'Observaciones requeridas',
+      message: 'Si el Comité no avala el cambio de título y objetivos, las observaciones son obligatorias.',
+      type: NotificationType.ERROR
+    });
+  }
+
   notifyMissingResolution(): void {
     this.notificationService.show({
       title: 'Resolución requerida',

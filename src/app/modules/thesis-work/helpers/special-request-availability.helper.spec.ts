@@ -47,7 +47,7 @@ describe('availableRequestTypes', () => {
 
   it('el cambio de objetivos no se ofrece con uno pendiente ni después de aprobado', () => {
     const cambio = { tituloAnterior: 'A', objetivosAnteriores: [], tituloPropuesto: 'B', objetivosPropuestos: ['G'],
-      justificacion: 'J', fechaSolicitud: '2026-05-01' };
+      justificacion: 'J', fechaSolicitud: '2026-05-01', avalComite: null };
     const pendiente = thesisWorkDePrueba(crearTrabajoEnCursoCon({ cambiosObjetivos: [{ ...cambio, decision: null }] }));
     const aprobadoAntes = thesisWorkDePrueba(crearTrabajoEnCursoCon({ cambiosObjetivos: [{ ...cambio, decision: aprobado }] }));
     const negado = thesisWorkDePrueba(crearTrabajoEnCursoCon({
@@ -56,6 +56,18 @@ describe('availableRequestTypes', () => {
     expect(availableRequestTypes(pendiente)).not.toContain(SpecialRequestType.CAMBIO_TITULO);
     expect(availableRequestTypes(aprobadoAntes)).not.toContain(SpecialRequestType.CAMBIO_TITULO);
     expect(availableRequestTypes(negado)).toContain(SpecialRequestType.CAMBIO_TITULO);
+  });
+
+  it('el cambio no avalado por el Comité no bloquea otro; el avalado y pendiente del Consejo sí', () => {
+    const aval = { organo: 'COMITE_PROGRAMA' as const, acta: null, rutaArchivo: null, fecha: '2026-05-04' };
+    const cambio = { tituloAnterior: 'A', objetivosAnteriores: [], tituloPropuesto: 'B', objetivosPropuestos: ['G'],
+      justificacion: 'J', fechaSolicitud: '2026-05-01', decision: null };
+    const noAvalado = thesisWorkDePrueba(crearTrabajoEnCursoCon({ cambiosObjetivos: [
+      { ...cambio, avalComite: { ...aval, resultado: 'NO_APROBADO', observaciones: 'No procede' } }] }));
+    const avalado = thesisWorkDePrueba(crearTrabajoEnCursoCon({ cambiosObjetivos: [
+      { ...cambio, avalComite: { ...aval, resultado: 'APROBADO', observaciones: null } }] }));
+    expect(availableRequestTypes(noAvalado)).toContain(SpecialRequestType.CAMBIO_TITULO);
+    expect(availableRequestTypes(avalado)).not.toContain(SpecialRequestType.CAMBIO_TITULO);
   });
 
   it('la suspensión no se ofrece con una pendiente ni después de aprobada', () => {

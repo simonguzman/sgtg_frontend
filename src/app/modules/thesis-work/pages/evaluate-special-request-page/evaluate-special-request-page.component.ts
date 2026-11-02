@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { SpecialRequest } from '../../interfaces/special-request.interface';
@@ -8,6 +8,7 @@ import { EvaluateSpecialRequestFacadeService } from './services/evaluate-special
 import { EvaluateSpecialRequestFormComponent } from '../../components/evaluate-special-request-form/evaluate-special-request-form.component';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
+import { stateList } from '../../../../core/enums/state.enum';
 
 @Component({
   selector: 'app-evaluate-special-request-page',
@@ -26,6 +27,17 @@ export class EvaluateSpecialRequestPageComponent implements OnInit {
   readonly isConfirmModalOpen = signal(false);
   readonly isSubmitting = signal(false);
   readonly pendingData = signal<SpecialRequestDecision | null>(null);
+  /** Lo que se confirma depende de quién decide: el aval del Comité o la decisión del Consejo */
+  readonly confirmationMessage = computed(() => {
+    if (this.specialRequestState()?.pendingWith !== 'COMITE') {
+      return '¿Está seguro de registrar la decisión del Consejo sobre esta solicitud? Se notificará a los '
+        + 'participantes y se actualizará el trabajo de grado.';
+    }
+    return this.pendingData()?.status === stateList.APROBADO
+      ? '¿Está seguro de avalar el cambio de título y objetivos? La solicitud pasará al Consejo de Facultad para su decisión.'
+      : '¿Está seguro de no avalar el cambio de título y objetivos? La solicitud quedará no aprobada y se notificará '
+        + 'al director y a los estudiantes con sus observaciones.';
+  });
 
   ngOnInit(): void {
     const requestId = this.route.snapshot.paramMap.get('requestId');

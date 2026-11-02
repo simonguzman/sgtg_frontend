@@ -19,11 +19,16 @@ export type SpecialRequestSubmission =
   | { requestType: SpecialRequestType.CANCELACION; document: File }
   | { requestType: SpecialRequestType.NUEVA_SUSTENTACION; document: File };
 
-/** Decisión del Consejo de Facultad sobre una solicitud, con la resolución (obligatoria). */
+/**
+ * Decisión sobre una solicitud: la del Consejo de Facultad, con la resolución
+ * (obligatoria), o el aval del Comité al cambio de título y objetivos, con el
+ * acta opcional.
+ */
 export interface SpecialRequestDecision {
   status: stateList.APROBADO | stateList.NO_APROBADO;
   resolutionDetails: string;
-  resolution: File;
+  /** Resolución del Consejo o, en el aval del Comité, el acta (opcional) */
+  resolution: File | null;
   /** Nueva fecha de sustentación: fecha y hora aprobadas (ej. `2026-07-21T09:00:00`) */
   newDateTime?: string;
   /** Nueva fecha de sustentación: salón, si cambia */
@@ -40,8 +45,9 @@ const OPERACIONES: Partial<Record<SpecialRequestType, string>> = {
 };
 
 /**
- * Solicitudes del director durante el trabajo en curso y decisiones del
- * Consejo de Facultad, contra el backend. Las reglas (plazos, una sola vez,
+ * Solicitudes del director durante el trabajo en curso, el aval del Comité al
+ * cambio de título y objetivos y las decisiones del Consejo de Facultad, contra
+ * el backend. Las reglas (plazos, una sola vez,
  * etapa) las valida el backend y sus mensajes se muestran al usuario.
  */
 @Injectable({ providedIn: 'root' })
@@ -58,18 +64,22 @@ export class ThesisWorkSpecialRequestService {
     );
   }
 
-  /** Decisión del Consejo sobre una solicitud pendiente, con la resolución en PDF. */
+  /**
+   * Decisión sobre una solicitud pendiente: el aval del Comité si el cambio de
+   * título y objetivos lo espera, o la decisión del Consejo con la resolución en PDF.
+   */
   evaluateSpecialRequest(thesisWorkId: string, request: SpecialRequest,
     decision: SpecialRequestDecision): Observable<ThesisWork> {
     const operacion = OPERACIONES[request.requestType];
     if (!operacion) throw new Error(`La solicitud de tipo ${request.requestType} no la decide el Consejo.`);
     const resultado = decision.status === stateList.APROBADO ? 'APROBADO' : 'NO_APROBADO';
     const datos: Record<string, unknown> = { resultado, observaciones: decision.resolutionDetails.trim() || null };
+    const organo = request.pendingWith === 'COMITE' ? 'decisiones-comite' : 'decisiones-consejo';
     if (request.requestType === SpecialRequestType.NUEVA_SUSTENTACION && decision.status === stateList.APROBADO) {
       datos['fechaHora'] = decision.newDateTime;
       datos['salon'] = decision.newLocation?.trim() || null;
     }
-    return this.api.enviarArchivos(thesisWorkId, `${operacion}/decisiones-consejo`, datos,
+    return this.api.enviarArchivos(thesisWorkId, `${operacion}/${organo}`, datos,
       { archivo: decision.resolution }).pipe(
       tap(trabajo => this.store.upsert(trabajo)),
       map(trabajo => this.vista(trabajo))

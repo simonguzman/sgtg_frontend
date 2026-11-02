@@ -64,6 +64,14 @@ describe('ThesisWorkStorageService', () => {
     expect(service.canUserViewThesisWork(service.allThesisWorks().find(w => w.thesisWorkId === '16')!, '1')).toBe(false);
   });
 
+  it('el Comité ve los trabajos que le entrega el backend (los de los programas de su departamento)', () => {
+    iniciarSesionConTrabajos(usuario('50', [UserRoleType.DOCENTE, UserRoleType.COMITE]), [crearTrabajoEnCurso(), ajeno]);
+
+    expect(service.hasPrivilegedAccess()).toBe(false);
+    expect(service.thesisWorks().map(w => w.thesisWorkId).sort()).toEqual(['15', '16']);
+    expect(service.canUserViewThesisWork(service.allThesisWorks().find(w => w.thesisWorkId === '16')!, '50')).toBe(true);
+  });
+
   it('los trabajos cerrados quedan fuera de la lista activa', () => {
     iniciarSesionConTrabajos(usuario('1', [UserRoleType.DOCENTE, UserRoleType.DIRECTOR]),
       [crearTrabajoEnCurso({ etapa: 'CANCELADO' })]);

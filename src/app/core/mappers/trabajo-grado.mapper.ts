@@ -1,5 +1,5 @@
 import {
-  CalificacionApi, DecisionApi, DocumentoApi, EstadoApi, EstadoReunionApi, EstadoSustentacionApi, InformeMensualApi,
+  CalificacionApi, CambioObjetivosApi, DecisionApi, DocumentoApi, EstadoApi, EstadoReunionApi, EstadoSustentacionApi, InformeMensualApi,
   ReunionApi, VersionDocumentoApi,
   ETAPAS_FINALES, ProcesoApi, ResultadoConceptoApi, SolicitudSustentacionApi, TrabajoGradoResponse
 } from '../interfaces/api/trabajo-grado-api.interface';
@@ -17,7 +17,7 @@ import { Proposal } from '../../modules/proposal/interfaces/proposal.interface';
 import { PreliminaryDraft } from '../../modules/preliminary-draft/interfaces/preliminary-draft.interface';
 import { Meeting, SustentationProcess, ThesisWork } from '../../modules/thesis-work/interfaces/thesis-work.interface';
 import { Advance } from '../../modules/thesis-work/interfaces/advance.interface';
-import { SpecialRequest } from '../../modules/thesis-work/interfaces/special-request.interface';
+import { CommitteeEndorsement, SpecialRequest } from '../../modules/thesis-work/interfaces/special-request.interface';
 import { SpecialRequestType } from '../../modules/thesis-work/enums/special-request-type.enum';
 import { SustentationRegistry } from '../../modules/thesis-work/interfaces/sustentation-registry.interface';
 import { JurorVerdict } from '../../modules/thesis-work/interfaces/juror-verdict.interface';
@@ -270,6 +270,32 @@ function decisionDeSolicitud(trabajo: TrabajoGradoResponse, decision: DecisionAp
 }
 
 /**
+ * Estado del cambio de título y objetivos: pendiente del Comité, avalado y
+ * pendiente del Consejo, no avalado (no aprobado) o decidido por el Consejo.
+ */
+function estadoCambioObjetivos(cambio: CambioObjetivosApi): Pick<SpecialRequest, 'status' | 'pendingWith'> {
+  if (cambio.decision) return { status: estadoSolicitud(cambio.decision) };
+  if (!cambio.avalComite) return { status: stateList.EN_REVISION, pendingWith: 'COMITE' };
+  return cambio.avalComite.resultado === 'APROBADO'
+    ? { status: stateList.EN_REVISION, pendingWith: 'CONSEJO' }
+    : { status: stateList.NO_APROBADO };
+}
+
+/** Aval del Comité del programa sobre el cambio de título y objetivos. */
+function avalDelComite(trabajo: TrabajoGradoResponse, aval: DecisionApi | null,
+  ctx: ContextoMapeo): CommitteeEndorsement | undefined {
+  if (!aval) return undefined;
+  return {
+    endorsed: aval.resultado === 'APROBADO',
+    observations: aval.observaciones ?? undefined,
+    date: aFecha(aval.fecha) ?? undefined,
+    document: aval.rutaArchivo
+      ? aDocumentoDeRuta(trabajo.id, aval.rutaArchivo, aval.fecha, ctx, DocumentType.FORMATO)
+      : undefined
+  };
+}
+
+/**
  * Solicitudes del director, de la más reciente a la más antigua. El id indica
  * el tipo y su posición en el backend (ej. `suspension-0`).
  */
@@ -285,7 +311,8 @@ export function solicitudesEspeciales(trabajo: TrabajoGradoResponse, ctx: Contex
     requestType: SpecialRequestType.CAMBIO_TITULO,
     requestDate: aFecha(cambio.fechaSolicitud) ?? new Date(),
     description: cambio.justificacion,
-    status: estadoSolicitud(cambio.decision),
+    ...estadoCambioObjetivos(cambio),
+    committeeEndorsement: avalDelComite(trabajo, cambio.avalComite, ctx),
     documents: [],
     previousTitle: cambio.tituloAnterior,
     previousObjectives: [...cambio.objetivosAnteriores],
@@ -777,19 +804,21 @@ const ETIQUETAS_POR_CARPETA: Record<string, string> = {
   REVISION_INFORME: 'Notas de revisión',
   SOLICITUD_NUEVA_FECHA: 'Solicitud de nueva fecha',
   AJUSTES_SUSTENTACION: 'Ajustes de la sustentación',
-  SOLICITUD_CANCELACION: 'Solicitud de cancelación'
+  SOLICITUD_CANCELACION: 'Solicitud de cancelación',
+  AVAL_CAMBIO_OBJETIVOS: 'Aval del Comité al cambio de título y objetivos'
 };
 
 /**
  * Carpetas en las que el número no es la versión de un mismo documento sino el
  * consecutivo de los archivos de ese tipo: un formato B y unas anotaciones por
  * evaluador, un formato C por remisión, una resolución por cada decisión del
- * Consejo (de cualquier trámite), un informe mensual por mes y unas notas por
- * revisión. Su nombre no lleva "versión N" (el formato B del segundo evaluador
- * no es la "versión 2").
+ * Consejo (de cualquier trámite), un informe mensual por mes, unas notas por
+ * revisión y un aval del Comité por solicitud de cambio de objetivos. Su
+ * nombre no lleva "versión N" (el formato B del segundo evaluador no es la
+ * "versión 2").
  */
 const CARPETAS_SIN_VERSION = new Set(['B', 'C', 'D', 'ANOTACIONES_EVALUACION', 'RESOLUCION', 'INFORME_MENSUAL',
-  'REVISION_INFORME']);
+  'REVISION_INFORME', 'AVAL_CAMBIO_OBJETIVOS']);
 
 /**
  * Nombre que se muestra para un archivo según lo que es (no según el nombre

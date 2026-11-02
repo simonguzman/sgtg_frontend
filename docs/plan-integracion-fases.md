@@ -685,3 +685,20 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
       formato C?", la misma de la configuración de la pestaña.
     - **Editar anteproyecto:** el aviso de datos incompletos ya no pide seleccionar una propuesta, que en edición ya
       está elegida.
+57. **El Comité avala el cambio de título y objetivos (2026-11-01):**
+    - **Flujo:** la solicitud del director la evalúa primero el Comité del programa. Si no la avala, queda no
+      aprobada sin pasar al Consejo (y el director puede solicitar otra). Si la avala, la decide el Consejo como antes.
+    - **Modelo:** `CambioObjetivosApi.avalComite`. El mapper calcula el estado y `SpecialRequest.pendingWith`
+      (`'COMITE'` o `'CONSEJO'`) y deja el aval en `committeeEndorsement` (con el acta, carpeta
+      `AVAL_CAMBIO_OBJETIVOS`).
+    - **Pestaña de solicitudes:** "Evaluar solicitud" aparece para el Comité mientras el cambio espera su aval, y para
+      el Consejo cuando ya está avalado (`ThesisEvaluationContext.isComite`). El detalle muestra el aval.
+    - **Formulario:** con el aval pendiente es el del Comité: "Avalar" / "No avalar", el acta opcional y las
+      observaciones obligatorias si no avala. El Consejo ve el aval y sus observaciones antes de decidir. La
+      confirmación y el mensaje final dicen si se avaló o no.
+    - **Envío:** `evaluateSpecialRequest` usa `cambio-objetivos/decisiones-comite` para el aval y
+      `.../decisiones-consejo` para la decisión.
+    - **Acceso del Comité:** ve "Trabajo de grado" en la barra lateral, con los trabajos de los programas de su
+      departamento (los filtra el backend), y consulta su detalle, documentos, evaluaciones, reuniones y sustentación.
+    - **Buzón:** `CAMBIO_OBJETIVOS_AVALADO` y `CAMBIO_OBJETIVOS_NO_AVALADO` llevan a la pestaña de solicitudes.
+    - Detalle del backend en `sgtg_backend/docs/ajustes-2026-11-01.md` (§5).

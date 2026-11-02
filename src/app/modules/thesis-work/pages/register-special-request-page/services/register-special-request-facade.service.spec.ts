@@ -65,6 +65,15 @@ describe('RegisterSpecialRequestFacadeService', () => {
       }));
     });
 
+    it('el cambio de título y objetivos avisa que irá al Comité del programa', () => {
+      thesisWorkService.createSpecialRequest.mockReturnValue(of(thesisWorkDePrueba()));
+      facade.processSaveRequest('15', { requestType: SpecialRequestType.CAMBIO_TITULO, title: 'Nuevo',
+        objectives: ['G'], justification: 'J' }, jest.fn(), jest.fn());
+      expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'La solicitud quedó registrada y se notificó al Comité del programa, que debe avalarla.'
+      }));
+    });
+
     it('la reanudación confirma que el trabajo se reanudó', () => {
       thesisWorkService.createSpecialRequest.mockReturnValue(of(thesisWorkDePrueba()));
       facade.processSaveRequest('15', { requestType: SpecialRequestType.REANUDACION, document: pdf('r.pdf') },

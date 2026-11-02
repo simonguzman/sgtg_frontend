@@ -51,7 +51,9 @@ export class RegisterSpecialRequestFacadeService {
         next: () => {
           const message = data.requestType === SpecialRequestType.REANUDACION
             ? 'El trabajo de grado se reanudó correctamente.'
-            : 'La solicitud quedó registrada y se notificó al Consejo de Facultad.';
+            : data.requestType === SpecialRequestType.CAMBIO_TITULO
+              ? 'La solicitud quedó registrada y se notificó al Comité del programa, que debe avalarla.'
+              : 'La solicitud quedó registrada y se notificó al Consejo de Facultad.';
           this.showNotification('Solicitud registrada', message, NotificationType.CONFIRMATION);
           onSuccess();
         },

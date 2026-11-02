@@ -151,6 +151,9 @@ export interface CambioObjetivosApi {
   objetivosPropuestos: string[];
   justificacion: string;
   fechaSolicitud: string;
+  /** Aval del Comité del programa; null mientras esté pendiente (o en solicitudes anteriores a este paso) */
+  avalComite: DecisionApi | null;
+  /** Decisión del Consejo; null mientras esté pendiente o si el Comité no la avaló */
   decision: DecisionApi | null;
 }
 

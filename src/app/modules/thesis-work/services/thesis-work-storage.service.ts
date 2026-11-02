@@ -55,6 +55,8 @@ export class ThesisWorkStorageService {
   }
 
   private canUserAccessThesisWork(work: ThesisWork, userId: string): boolean {
+    // El backend ya entrega al Comité solo los trabajos de los programas de su departamento
+    if (this.authService.hasAnyRole([UserRoleType.COMITE])) return true;
     const proposal = work.preliminaryDraftData?.proposalData;
     if (!proposal) return false;
     const isDirector = proposal.director?.id === userId;

@@ -221,12 +221,34 @@ describe('trabajo-grado.mapper', () => {
       })]);
     });
 
+    it('el cambio de título y objetivos espera el aval del Comité y, avalado, la decisión del Consejo', () => {
+      const cambio = { tituloAnterior: 'A', objetivosAnteriores: ['G'], tituloPropuesto: 'B', objetivosPropuestos: ['G2'],
+        justificacion: 'J', fechaSolicitud: '2026-05-01', decision: null };
+      const aval = (resultado: 'APROBADO' | 'NO_APROBADO') => ({ organo: 'COMITE_PROGRAMA' as const, resultado,
+        acta: null, rutaArchivo: null, observaciones: resultado === 'APROBADO' ? null : 'No procede',
+        fecha: '2026-05-04' });
+      const solicitudes = aTrabajoDeGrado(crearTrabajoEnCursoCon({
+        cambiosObjetivos: [{ ...cambio, avalComite: aval('NO_APROBADO') }, { ...cambio, avalComite: aval('APROBADO') },
+          { ...cambio, avalComite: null }]
+      }), ctx)!.specialRequests;
+      const porId = (id: string) => solicitudes.find(s => s.id === id)!;
+
+      expect(porId('cambio-objetivos-0')).toEqual(expect.objectContaining({ status: stateList.NO_APROBADO,
+        committeeEndorsement: expect.objectContaining({ endorsed: false, observations: 'No procede' }) }));
+      expect(porId('cambio-objetivos-0').pendingWith).toBeUndefined();
+      expect(porId('cambio-objetivos-1')).toEqual(expect.objectContaining({ status: stateList.EN_REVISION,
+        pendingWith: 'CONSEJO', committeeEndorsement: expect.objectContaining({ endorsed: true }) }));
+      expect(porId('cambio-objetivos-2')).toEqual(expect.objectContaining({ status: stateList.EN_REVISION,
+        pendingWith: 'COMITE', committeeEndorsement: undefined }));
+    });
+
     it('las solicitudes del director son sus solicitudes especiales, con la decisión del Consejo', () => {
       const decision = { organo: 'CONSEJO_FACULTAD' as const, resultado: 'APROBADO' as const, acta: null,
         rutaArchivo: '15/RESOLUCION/v2/resolucion.pdf', observaciones: 'Procede', fecha: '2026-05-10' };
       const trabajo = aTrabajoDeGrado(crearTrabajoEnCursoCon({
         cambiosObjetivos: [{ tituloAnterior: 'Sistema de gestión', objetivosAnteriores: ['G'], tituloPropuesto: 'Nuevo',
-          objetivosPropuestos: ['G2', 'E2'], justificacion: 'Cambio de alcance', fechaSolicitud: '2026-05-01', decision }],
+          objetivosPropuestos: ['G2', 'E2'], justificacion: 'Cambio de alcance', fechaSolicitud: '2026-05-01',
+          avalComite: null, decision }],
         prorroga: { meses: 2, rutaSolicitud: '15/SOLICITUD_PRORROGA/v1/prorroga.pdf', fechaSolicitud: '2026-11-01',
           decision: null },
         suspensiones: [{ rutaSolicitud: '15/SOLICITUD_SUSPENSION/v1/s.pdf', fechaSolicitud: '2026-06-01',

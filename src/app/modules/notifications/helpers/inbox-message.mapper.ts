@@ -61,8 +61,11 @@ const RUTAS_POR_EVENTO: Record<string, (trabajoId: number, sesion?: number | nul
   REUNION_POR_VENCER: reunionesDelTrabajo,
   REUNION_VENCIDA: reunionesDelTrabajo,
   // Las solicitudes especiales (y la reanudación), en su pestaña de documentos cargados, donde el Consejo las
-  // resuelve; la decisión del Consejo, en las evaluaciones realizadas del trabajo
+  // resuelve (el cambio de título u objetivos lo avala antes el Comité); la decisión del Consejo, en las
+  // evaluaciones realizadas del trabajo
   CAMBIO_OBJETIVOS_SOLICITADO: trabajoId => documentosDelTrabajo(trabajoId, 'SOLICITUDES'),
+  CAMBIO_OBJETIVOS_AVALADO: trabajoId => documentosDelTrabajo(trabajoId, 'SOLICITUDES'),
+  CAMBIO_OBJETIVOS_NO_AVALADO: trabajoId => documentosDelTrabajo(trabajoId, 'SOLICITUDES'),
   PRORROGA_SOLICITADA: trabajoId => documentosDelTrabajo(trabajoId, 'SOLICITUDES'),
   SUSPENSION_SOLICITADA: trabajoId => documentosDelTrabajo(trabajoId, 'SOLICITUDES'),
   CANCELACION_SOLICITADA: trabajoId => documentosDelTrabajo(trabajoId, 'SOLICITUDES'),

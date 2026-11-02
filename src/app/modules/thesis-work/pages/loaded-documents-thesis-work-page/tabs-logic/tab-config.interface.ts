@@ -17,6 +17,8 @@ export interface ThesisEvaluationContext {
   /** Jurado coordinador de la sesión actual: califica y registra las decisiones */
   isCoordinator?: boolean;
   isConsejo: boolean;
+  /** Comité del programa: avala el cambio de título y objetivos antes del Consejo */
+  isComite?: boolean;
   latestAdvanceId: string | null;
   isLatestAdvancePending: boolean;
   isArchived?: boolean;

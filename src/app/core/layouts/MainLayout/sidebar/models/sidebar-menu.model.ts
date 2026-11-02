@@ -46,7 +46,8 @@ export const SIDEBAR_MENU_ITEMS: SidebarMenuItem[] = [
     icon: 'school',
     roles: [
       UserRoleType.ESTUDIANTE, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR, UserRoleType.ASESOR,
-      UserRoleType.DECANATURA, UserRoleType.JURADO, UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO
+      UserRoleType.DECANATURA, UserRoleType.JURADO, UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO,
+      UserRoleType.COMITE
     ]
   },
   {

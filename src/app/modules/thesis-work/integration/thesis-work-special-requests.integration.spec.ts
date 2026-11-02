@@ -60,16 +60,28 @@ describe('Integración [Trabajo de Grado]: Solicitudes del director y decisiones
       tituloPropuesto: 'Nuevo título', objetivosPropuestos: ['G', 'E'], justificacion: 'Cambio de alcance',
       fechaSolicitud: '2026-05-01' };
     http.expectOne(`${API}/15/cambio-objetivos`)
-      .flush(crearTrabajoEnCursoCon({ cambiosObjetivos: [{ ...cambio, decision: null }] }));
+      .flush(crearTrabajoEnCursoCon({ cambiosObjetivos: [{ ...cambio, avalComite: null, decision: null }] }));
 
     expect(solicitud('cambio-objetivos-0').status).toBe(stateList.EN_REVISION);
+    expect(solicitud('cambio-objetivos-0').pendingWith).toBe('COMITE');
     expect(availableRequestTypes(trabajo())).not.toContain(SpecialRequestType.CAMBIO_TITULO);
+
+    // El Comité lo avala (el acta es opcional) y pasa al Consejo
+    service.evaluateSpecialRequest('15', solicitud('cambio-objetivos-0'), {
+      status: stateList.APROBADO, resolutionDetails: '', resolution: null
+    }).subscribe();
+    const avalComite = { organo: 'COMITE_PROGRAMA' as const, resultado: 'APROBADO' as const, acta: null,
+      rutaArchivo: null, observaciones: null, fecha: '2026-05-04' };
+    const peticionAval = http.expectOne(`${API}/15/cambio-objetivos/decisiones-comite`);
+    expect((peticionAval.request.body as FormData).has('archivo')).toBe(false);
+    peticionAval.flush(crearTrabajoEnCursoCon({ cambiosObjetivos: [{ ...cambio, avalComite, decision: null }] }));
+    expect(solicitud('cambio-objetivos-0').pendingWith).toBe('CONSEJO');
 
     service.evaluateSpecialRequest('15', solicitud('cambio-objetivos-0'), {
       status: stateList.APROBADO, resolutionDetails: '', resolution: pdf('resolucion.pdf')
     }).subscribe();
     http.expectOne(`${API}/15/cambio-objetivos/decisiones-consejo`).flush(crearTrabajoEnCursoCon(
-      { cambiosObjetivos: [{ ...cambio, decision: decision('APROBADO', '2026-05-10') }] },
+      { cambiosObjetivos: [{ ...cambio, avalComite, decision: decision('APROBADO', '2026-05-10') }] },
       { titulo: 'Nuevo título', objetivos: ['G', 'E'] }));
 
     expect(solicitud('cambio-objetivos-0').status).toBe(stateList.APROBADO);

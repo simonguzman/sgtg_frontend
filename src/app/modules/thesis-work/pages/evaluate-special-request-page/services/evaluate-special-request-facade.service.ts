@@ -9,6 +9,7 @@ import { SpecialRequest } from '../../../interfaces/special-request.interface';
 import { SpecialRequestDecision } from '../../../services/thesis-work-special-request.service';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
+import { stateList } from '../../../../../core/enums/state.enum';
 
 @Injectable({ providedIn: 'root' })
 export class EvaluateSpecialRequestFacadeService {
@@ -56,11 +57,19 @@ export class EvaluateSpecialRequestFacadeService {
       .pipe(first())
       .subscribe({
         next: () => {
-          this.notificationService.show({
-            title: 'Decisión registrada',
-            message: 'La decisión del Consejo sobre la solicitud quedó registrada.',
-            type: NotificationType.CONFIRMATION
-          });
+          this.notificationService.show(request.pendingWith === 'COMITE'
+            ? {
+              title: 'Aval registrado',
+              message: decision.status === stateList.APROBADO
+                ? 'El Comité avaló el cambio de título y objetivos; ahora lo decide el Consejo de Facultad.'
+                : 'El Comité no avaló el cambio de título y objetivos; la solicitud quedó no aprobada.',
+              type: NotificationType.CONFIRMATION
+            }
+            : {
+              title: 'Decisión registrada',
+              message: 'La decisión del Consejo sobre la solicitud quedó registrada.',
+              type: NotificationType.CONFIRMATION
+            });
           onSuccess();
         },
         error: (error: unknown) => {

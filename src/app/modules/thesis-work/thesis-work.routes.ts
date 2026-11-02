@@ -55,7 +55,7 @@ export const thesisWorkRoutes: Routes = [
               roles: [
                 UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR,
                 UserRoleType.ASESOR, UserRoleType.ESTUDIANTE, UserRoleType.DECANATURA,
-                UserRoleType.CONSEJO, UserRoleType.JURADO
+                UserRoleType.CONSEJO, UserRoleType.JURADO, UserRoleType.COMITE
               ]
             }
           },
@@ -69,7 +69,7 @@ export const thesisWorkRoutes: Routes = [
               roles: [
                 UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR,
                 UserRoleType.ASESOR, UserRoleType.ESTUDIANTE, UserRoleType.DECANATURA,
-                UserRoleType.CONSEJO, UserRoleType.JURADO
+                UserRoleType.CONSEJO, UserRoleType.JURADO, UserRoleType.COMITE
               ]
             }
           },
@@ -83,7 +83,7 @@ export const thesisWorkRoutes: Routes = [
               roles: [
                 UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR,
                 UserRoleType.ASESOR, UserRoleType.ESTUDIANTE, UserRoleType.DECANATURA,
-                UserRoleType.CONSEJO, UserRoleType.JURADO
+                UserRoleType.CONSEJO, UserRoleType.JURADO, UserRoleType.COMITE
               ]
             }
           },
@@ -97,7 +97,7 @@ export const thesisWorkRoutes: Routes = [
               roles: [
                 UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR,
                 UserRoleType.ASESOR, UserRoleType.ESTUDIANTE, UserRoleType.DECANATURA,
-                UserRoleType.CONSEJO, UserRoleType.JURADO
+                UserRoleType.CONSEJO, UserRoleType.JURADO, UserRoleType.COMITE
               ]
             }
           },
@@ -162,7 +162,7 @@ export const thesisWorkRoutes: Routes = [
               roles: [
                 UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR,
                 UserRoleType.ASESOR, UserRoleType.ESTUDIANTE, UserRoleType.DECANATURA,
-                UserRoleType.CONSEJO, UserRoleType.JURADO
+                UserRoleType.CONSEJO, UserRoleType.JURADO, UserRoleType.COMITE
               ]
             }
           },
@@ -204,7 +204,7 @@ export const thesisWorkRoutes: Routes = [
             title: 'Evaluar solicitud especial',
             data: {
               breadcrumb: 'Evaluar solicitud especial',
-              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO]
+              roles: [UserRoleType.ADMINISTRADOR, UserRoleType.CONSEJO, UserRoleType.COMITE]
             }
           },
           {
@@ -217,7 +217,7 @@ export const thesisWorkRoutes: Routes = [
               roles: [
                 UserRoleType.ADMINISTRADOR, UserRoleType.DIRECTOR, UserRoleType.CODIRECTOR,
                 UserRoleType.ASESOR, UserRoleType.ESTUDIANTE, UserRoleType.DECANATURA,
-                UserRoleType.CONSEJO, UserRoleType.JURADO
+                UserRoleType.CONSEJO, UserRoleType.JURADO, UserRoleType.COMITE
               ]
             }
           },

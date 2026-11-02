@@ -48,7 +48,7 @@ describe('ThesisWorkSpecialRequestService', () => {
   afterEach(() => http.verify());
 
   describe('createSpecialRequest', () => {
-    it('el cambio de título y objetivos se envía como JSON y notifica al Consejo', () => {
+    it('el cambio de título y objetivos se envía como JSON y queda pendiente del aval del Comité', () => {
       let resultado: ThesisWork | undefined;
       service.createSpecialRequest('15', {
         requestType: SpecialRequestType.CAMBIO_TITULO, title: 'Nuevo', objectives: ['G', 'E'], justification: 'Alcance'
@@ -58,9 +58,10 @@ describe('ThesisWorkSpecialRequestService', () => {
       expect(req.request.body).toEqual({ titulo: 'Nuevo', objetivos: ['G', 'E'], justificacion: 'Alcance' });
       req.flush(crearTrabajoEnCursoCon({ cambiosObjetivos: [{ tituloAnterior: 'Sistema de gestión',
         objetivosAnteriores: [], tituloPropuesto: 'Nuevo', objetivosPropuestos: ['G', 'E'], justificacion: 'Alcance',
-        fechaSolicitud: '2026-05-01', decision: null }] }));
+        fechaSolicitud: '2026-05-01', avalComite: null, decision: null }] }));
 
       expect(resultado?.specialRequests[0].requestType).toBe(SpecialRequestType.CAMBIO_TITULO);
+      expect(resultado?.specialRequests[0].pendingWith).toBe('COMITE');
       expect(TestBed.inject(TrabajoGradoStoreService).porId().get('15')).toBeTruthy();
     });
 

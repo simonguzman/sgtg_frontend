@@ -1,7 +1,12 @@
 <div class="p-6 bg-white rounded-lg w-full">
   <app-info-banner title="Evaluación de solicitud" class="mb-6 block">
-    Revise la solicitud radicada por el director y registre la decisión del Consejo de Facultad con su resolución en PDF.
-    Las fechas que resulten (nuevo plazo de entrega o reanudación) las calcula el sistema según el reglamento.
+    @if (isCommitteeStep) {
+      Revise el cambio de título y objetivos solicitado por el director y registre el aval del Comité del programa.
+      Si lo avala, pasa al Consejo de Facultad; si no lo avala, la solicitud queda no aprobada.
+    } @else {
+      Revise la solicitud radicada por el director y registre la decisión del Consejo de Facultad con su resolución en PDF.
+      Las fechas que resulten (nuevo plazo de entrega o reanudación) las calcula el sistema según el reglamento.
+    }
   </app-info-banner>
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
@@ -43,6 +48,24 @@
           </ol>
         </div>
         <app-readonly-field label="Justificación" [value]="specialRequest.description"></app-readonly-field>
+        @if (specialRequest.committeeEndorsement; as aval) {
+          <app-readonly-field label="Aval del Comité del programa" [value]="endorsementSummary(aval)"></app-readonly-field>
+          @if (aval.observations) {
+            <app-readonly-field label="Observaciones del Comité" [value]="aval.observations"></app-readonly-field>
+          }
+          @if (aval.document; as acta) {
+            <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
+              <div class="flex items-center gap-3 overflow-hidden">
+                <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
+                <div class="flex flex-col overflow-hidden">
+                  <span class="text-size-body font-bold text-primary truncate">{{ acta.name }}</span>
+                  <span class="text-size-role-footer text-text-body">Acta o concepto del Comité del programa</span>
+                </div>
+              </div>
+              <app-button-component label="Descargar" variant="primary" (onClick)="onDownloadDocument.emit(acta)"></app-button-component>
+            </div>
+          }
+        }
       } @else {
         <app-readonly-field label="Descripción" [value]="specialRequest.description"></app-readonly-field>
       }
@@ -63,20 +86,22 @@
   </section>
 
   <section>
-    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Decisión del Consejo de Facultad</h3>
+    <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">
+      {{ isCommitteeStep ? 'Aval del Comité del programa' : 'Decisión del Consejo de Facultad' }}
+    </h3>
 
     <div class="pl-4 flex flex-col gap-6">
       <div class="flex flex-col sm:flex-row gap-8 justify-center">
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="verdictSelected() === states.APROBADO" (change)="verdictSelected.set(states.APROBADO)">
-          <span class="text-size-body font-medium text-text-body">Aprobar</span>
+          <span class="text-size-body font-medium text-text-body">{{ isCommitteeStep ? 'Avalar' : 'Aprobar' }}</span>
         </label>
 
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="verdictSelected() === states.NO_APROBADO" (change)="verdictSelected.set(states.NO_APROBADO)">
-          <span class="text-size-body font-medium text-text-body">No aprobar</span>
+          <span class="text-size-body font-medium text-text-body">{{ isCommitteeStep ? 'No avalar' : 'No aprobar' }}</span>
         </label>
       </div>
 
@@ -109,31 +134,45 @@
       }
 
       <div class="flex flex-col gap-2">
-        <span class="font-display font-semibold text-primary text-size-section">Resolución (PDF) <span class="text-alert">*</span></span>
+        @if (isCommitteeStep) {
+          <span class="font-display font-semibold text-primary text-size-section">Acta o concepto del Comité (PDF, opcional)</span>
+        } @else {
+          <span class="font-display font-semibold text-primary text-size-section">Resolución (PDF) <span class="text-alert">*</span></span>
+        }
         @if (resolution(); as item) {
           <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
             <div class="flex items-center gap-3 overflow-hidden">
               <span class="material-symbols-outlined text-primary text-file shrink-0">description</span>
               <span class="text-size-body font-bold text-primary truncate">{{ item.fileName }}</span>
             </div>
-            <button type="button" (click)="resolution.set(null)" class="text-text-body hover:text-danger transition-colors shrink-0" aria-label="Quitar resolución">
+            <button type="button" (click)="resolution.set(null)" class="text-text-body hover:text-danger transition-colors shrink-0" [attr.aria-label]="isCommitteeStep ? 'Quitar acta' : 'Quitar resolución'">
               <span class="material-symbols-outlined">delete</span>
             </button>
           </div>
         } @else {
           <div class="information-block flex items-center justify-between gap-3 p-4 bg-white rounded-xl shadow-sm"
-               [class.border-alert]="isSubmitAttempted()" [class.border-gray-200]="!isSubmitAttempted()">
-            <span class="text-size-body text-text-body font-sans">Adjunte la resolución del Consejo de Facultad.</span>
-            <app-button-component label="Cargar resolución" variant="secondary" type="button" (onClick)="isUploadModalOpen.set(true)"></app-button-component>
+               [class.border-alert]="isSubmitAttempted() && !isCommitteeStep" [class.border-gray-200]="!isSubmitAttempted() || isCommitteeStep">
+            <span class="text-size-body text-text-body font-sans">
+              {{ isCommitteeStep ? 'Si lo considera necesario, adjunte el acta o concepto del Comité.' : 'Adjunte la resolución del Consejo de Facultad.' }}
+            </span>
+            <app-button-component [label]="isCommitteeStep ? 'Cargar acta' : 'Cargar resolución'" variant="secondary" type="button" (onClick)="isUploadModalOpen.set(true)"></app-button-component>
           </div>
         }
       </div>
 
       <div class="flex flex-col gap-1">
-        <label for="evalComments" class="font-display font-semibold text-primary text-size-section">Observaciones (opcional)</label>
-        <textarea id="evalComments" rows="4" class="p-3 border border-gray-300 rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body font-sans resize-none"
-                  placeholder="Ingrese las observaciones sobre la decisión si lo considera necesario"
+        <label for="evalComments" class="font-display font-semibold text-primary text-size-section">
+          Observaciones
+          @if (requiresObservations) { <span class="text-alert">*</span> } @else { (opcional) }
+        </label>
+        <textarea id="evalComments" rows="4" class="p-3 border rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body font-sans resize-none"
+                  [class.border-alert]="isSubmitAttempted() && requiresObservations && !observations().trim()"
+                  [class.border-gray-300]="!(isSubmitAttempted() && requiresObservations && !observations().trim())"
+                  [placeholder]="isCommitteeStep ? 'Indique por qué el Comité no avala el cambio (obligatorio si no lo avala)' : 'Ingrese las observaciones sobre la decisión si lo considera necesario'"
                   (input)="onObservationsChange($event)"></textarea>
+        @if (isSubmitAttempted() && requiresObservations && !observations().trim()) {
+          <span class="text-size-role-footer text-textbox-alert">Si no avala el cambio, las observaciones son obligatorias</span>
+        }
       </div>
 
       <div class="flex justify-end">
@@ -146,7 +185,7 @@
 
 <app-file-upload-modal
   [isOpen]="isUploadModalOpen()"
-  description="Subir la resolución del Consejo de Facultad (PDF)"
+  [description]="isCommitteeStep ? 'Subir el acta o concepto del Comité del programa (PDF)' : 'Subir la resolución del Consejo de Facultad (PDF)'"
   (onFileUploaded)="handleResolutionUploaded($event)"
   (onClose)="isUploadModalOpen.set(false)">
 </app-file-upload-modal>

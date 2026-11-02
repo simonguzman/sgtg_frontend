@@ -123,6 +123,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
       isAdmin,
       isDecanatura: this.authService.hasAnyRole([UserRoleType.DECANATURA]),
       isConsejo: this.authService.hasAnyRole([UserRoleType.CONSEJO]),
+      isComite: this.authService.hasAnyRole([UserRoleType.COMITE]),
       isStudent: thesis?.preliminaryDraftData?.proposalData?.authors?.some(
         (author: { id?: string } | string) =>
           (typeof author === 'string' ? author : author.id) === user?.id

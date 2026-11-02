@@ -6,7 +6,8 @@ import { SpecialRequestType } from "../enums/special-request-type.enum";
  * Solicitud del director durante el trabajo en curso (cambio de título y
  * objetivos, prórroga, suspensión, reanudación o cancelación). La decide el
  * Consejo de Facultad con una resolución, salvo la reanudación, que solo se
- * registra.
+ * registra. El cambio de título y objetivos lo avala antes el Comité del
+ * programa: si no lo avala, queda no aprobado sin pasar al Consejo.
  */
 export interface SpecialRequest {
   id: string;
@@ -31,4 +32,17 @@ export interface SpecialRequest {
   previousObjectives?: string[];
   proposedTitle?: string;
   proposedObjectives?: string[];
+  /** Quién debe decidir la solicitud pendiente (el Comité solo en el cambio de título y objetivos) */
+  pendingWith?: 'COMITE' | 'CONSEJO';
+  /** Cambio de título y objetivos: aval del Comité del programa, si ya lo dio */
+  committeeEndorsement?: CommitteeEndorsement;
+}
+
+/** Aval del Comité del programa sobre el cambio de título y objetivos. */
+export interface CommitteeEndorsement {
+  endorsed: boolean;
+  observations?: string;
+  date?: Date;
+  /** Acta o concepto del Comité, opcional */
+  document?: FileDocument;
 }

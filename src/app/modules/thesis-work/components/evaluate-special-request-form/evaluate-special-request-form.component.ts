@@ -5,7 +5,8 @@ import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-f
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
 import { EvaluateSpecialRequestFormService } from './services/evaluate-special-request-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
-import { SpecialRequest } from '../../interfaces/special-request.interface';
+import { CommitteeEndorsement, SpecialRequest } from '../../interfaces/special-request.interface';
+import { formatThesisDate } from '../../helpers/thesis-date.helper';
 import { SpecialRequestType } from '../../enums/special-request-type.enum';
 import { SpecialRequestDecision } from '../../services/thesis-work-special-request.service';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
@@ -18,6 +19,10 @@ type SpecialRequestVerdict = stateList.APROBADO | stateList.NO_APROBADO;
  * Decisión del Consejo de Facultad sobre una solicitud del director: aprueba o
  * no aprueba, con la resolución en PDF (obligatoria) y observaciones opcionales.
  * Las fechas resultantes (nuevo plazo, reanudación) las calcula el backend.
+ *
+ * Si el cambio de título y objetivos espera el aval del Comité del programa,
+ * el formulario es el del Comité: avala o no avala, con el acta opcional y
+ * observaciones obligatorias si no lo avala.
  */
 @Component({
   selector: 'app-evaluate-special-request-form',
@@ -54,6 +59,21 @@ export class EvaluateSpecialRequestFormComponent {
 
   get states(): typeof stateList { return stateList; }
 
+  /** La solicitud espera el aval del Comité (no la decisión del Consejo) */
+  get isCommitteeStep(): boolean {
+    return this.specialRequest.pendingWith === 'COMITE';
+  }
+
+  /** El Comité debe explicar por qué no avala el cambio */
+  get requiresObservations(): boolean {
+    return this.isCommitteeStep && this.verdictSelected() === stateList.NO_APROBADO;
+  }
+
+  endorsementSummary(aval: CommitteeEndorsement): string {
+    const fecha = aval.date ? ` el ${formatThesisDate(aval.date)}` : '';
+    return `${aval.endorsed ? 'Avalado' : 'No avalado'}${fecha}`;
+  }
+
   getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }
   getDirectorName(): string { return this.formService.getDirectorName(this.thesisWork); }
   getCodirectorName(): string { return this.formService.getCodirectorName(this.thesisWork); }
@@ -87,8 +107,12 @@ export class EvaluateSpecialRequestFormComponent {
       this.formService.notifyMissingVerdict();
       return;
     }
-    const resolution = this.resolution()?.file;
-    if (!resolution) {
+    if (this.requiresObservations && !this.observations().trim()) {
+      this.formService.notifyMissingObservations();
+      return;
+    }
+    const resolution = this.resolution()?.file ?? null;
+    if (!resolution && !this.isCommitteeStep) {
       this.formService.notifyMissingResolution();
       return;
     }
