@@ -49,9 +49,10 @@
   </div>
 </div>
 
-<!-- Agendar o reprogramar -->
+<!-- Agendar o reprogramar. Sin foco al abrir: si no, el calendario de la fecha se despliega solo y tapa el lugar -->
 <p-dialog [visible]="!!scheduleTarget()" (visibleChange)="!$event && scheduleTarget.set(null)" [modal]="true"
-          [draggable]="false" [resizable]="false" [style]="{ width: '500px' }" styleClass="custom-modal">
+          [draggable]="false" [resizable]="false" [focusOnShow]="false" [style]="{ width: '500px' }"
+          styleClass="custom-modal">
   <ng-template pTemplate="header">
     <h2 class="text-primary font-bold font-display text-size-sidebar-title m-0">
       {{ scheduleTarget()?.scheduledAt ? 'Reprogramar' : 'Agendar' }} la reunión {{ scheduleTarget()?.number }}
