@@ -661,3 +661,10 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
       - Ajustes de la sustentación: documentos corregidos. Segunda sesión: la pestaña de sustentación.
       - Los del Comité y los evaluadores siguen la etapa, como antes.
     - Detalle del backend en `sgtg_backend/docs/ajustes-2026-11-01.md` (§4).
+54. **Confirmación en las reuniones de seguimiento (2026-11-01):**
+    - Al guardar la agenda (o la reprogramación) y al registrar una reunión como realizada, se pide confirmar con
+      `ConfirmationActionModalComponent`, como en el resto de formularios. Los mensajes son "¿Está seguro de agendar
+      (o reprogramar) la reunión N? Se notificará a los participantes del trabajo de grado." y "¿Está seguro de
+      registrar la reunión N como realizada? Una vez registrada no se podrá reprogramar.".
+    - Al cancelar la confirmación se vuelve a la ventana de la reunión con lo diligenciado.
+    - `MeetingsPageComponent.pendingConfirmation` guarda la acción que espera confirmación; `onConfirmed()` la envía.

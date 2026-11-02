@@ -95,6 +95,47 @@ describe('MeetingsPageComponent', () => {
     expect(facade.registerHeld).toHaveBeenCalledWith(agendada, 'Temas tratados', expect.any(Function));
   });
 
+  it('al guardar la agenda pide confirmación y solo agenda al aceptar', () => {
+    const pendiente = reunion();
+    component.handleTableAction({ action: 'schedule', row: fila(pendiente, ['view-details', 'schedule']) });
+    component.schedulePlace = 'Sala 2';
+
+    component.requestScheduleConfirmation();
+    expect(component.pendingConfirmation()).toBe('schedule');
+    expect(component.confirmationMessage()).toBe(
+      '¿Está seguro de agendar la reunión 3? Se notificará a los participantes del trabajo de grado.');
+    expect(facade.schedule).not.toHaveBeenCalled();
+
+    component.onConfirmed();
+    expect(facade.schedule).toHaveBeenCalledWith(pendiente, new Date(2026, 5, 20, 10, 0), 'Sala 2', expect.any(Function));
+  });
+
+  it('al reprogramar la confirmación lo dice', () => {
+    const agendada = reunion({ scheduledAt: new Date(2026, 5, 21, 15, 30), place: 'Sala 4', status: stateList.AGENDADA });
+    component.handleTableAction({ action: 'schedule', row: fila(agendada, ['view-details', 'schedule']) });
+    component.requestScheduleConfirmation();
+    expect(component.confirmationMessage()).toContain('reprogramar la reunión 3');
+  });
+
+  it('sin fecha o lugar no pide la confirmación de la agenda', () => {
+    component.handleTableAction({ action: 'schedule', row: fila(reunion(), ['view-details', 'schedule']) });
+    component.requestScheduleConfirmation();
+    expect(component.pendingConfirmation()).toBeNull();
+  });
+
+  it('al registrar como realizada pide confirmación; al cancelar no registra', () => {
+    const agendada = reunion({ scheduledAt: new Date(2026, 5, 21, 15, 30), status: stateList.AGENDADA });
+    component.handleTableAction({ action: 'register-held', row: fila(agendada, ['view-details', 'register-held']) });
+
+    component.requestHeldConfirmation();
+    expect(component.confirmationMessage()).toBe(
+      '¿Está seguro de registrar la reunión 3 como realizada? Una vez registrada no se podrá reprogramar.');
+
+    component.pendingConfirmation.set(null);
+    expect(facade.registerHeld).not.toHaveBeenCalled();
+    expect(component.heldTarget()).toBe(agendada);
+  });
+
   it('ignora una acción que la fila no permite', () => {
     component.handleTableAction({ action: 'schedule', row: fila(reunion(), ['view-details']) });
     expect(component.scheduleTarget()).toBeNull();

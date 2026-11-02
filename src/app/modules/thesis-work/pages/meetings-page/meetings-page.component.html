@@ -75,7 +75,7 @@
     </div>
     <div class="flex justify-end gap-2 mt-2">
       <app-button-component label="Cancelar" variant="secondary" (onClick)="scheduleTarget.set(null)"></app-button-component>
-      <app-button-component label="Guardar" variant="primary" [disabled]="!canSaveSchedule" (onClick)="confirmSchedule()"></app-button-component>
+      <app-button-component label="Guardar" variant="primary" [disabled]="!canSaveSchedule" (onClick)="requestScheduleConfirmation()"></app-button-component>
     </div>
   </div>
 </p-dialog>
@@ -101,10 +101,18 @@
     </div>
     <div class="flex justify-end gap-2 mt-2">
       <app-button-component label="Cancelar" variant="secondary" (onClick)="heldTarget.set(null)"></app-button-component>
-      <app-button-component label="Registrar" variant="primary" [disabled]="facade.isSubmitting()" (onClick)="confirmHeld()"></app-button-component>
+      <app-button-component label="Registrar" variant="primary" [disabled]="facade.isSubmitting()" (onClick)="requestHeldConfirmation()"></app-button-component>
     </div>
   </div>
 </p-dialog>
+
+<!-- Confirmación de agendar, reprogramar o registrar como realizada -->
+<app-confirmation-action-modal
+  [isOpen]="!!pendingConfirmation()"
+  [description]="confirmationMessage()"
+  (onClose)="pendingConfirmation.set(null)"
+  (confirm)="onConfirmed()">
+</app-confirmation-action-modal>
 
 <!-- Detalles -->
 <p-dialog [visible]="!!detailTarget()" (visibleChange)="!$event && detailTarget.set(null)" [modal]="true"

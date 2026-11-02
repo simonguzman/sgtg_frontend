@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, ActivatedRouteSnapshot, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
@@ -7,6 +7,7 @@ import { NavigationHistoryService } from '../../../../core/services/navigation/n
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
 import { Column, TableComponent } from '../../../../shared/components/table-component/table-component.component';
+import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { Meeting } from '../../interfaces/thesis-work.interface';
 import { formatThesisDate } from '../../helpers/thesis-date.helper';
 import { formatMeetingDateTime, MeetingsFacadeService, MeetingTableRow } from './services/meetings-facade.service';
@@ -36,7 +37,8 @@ const COLUMNS: Column[] = [
 @Component({
   selector: 'app-meetings-page',
   standalone: true,
-  imports: [TableComponent, InfoBannerComponent, ButtonComponent, DialogModule, DatePicker, FormsModule],
+  imports: [TableComponent, InfoBannerComponent, ButtonComponent, DialogModule, DatePicker, FormsModule,
+    ConfirmationActionModalComponent],
   providers: [MeetingsFacadeService],
   templateUrl: './meetings-page.component.html',
   styleUrls: ['./meetings-page.component.css']
@@ -55,6 +57,18 @@ export class MeetingsPageComponent implements OnInit {
   readonly scheduleTarget = signal<Meeting | null>(null);
   readonly heldTarget = signal<Meeting | null>(null);
   readonly detailTarget = signal<Meeting | null>(null);
+
+  /** Acción que espera la confirmación del director; al cancelar se vuelve a su ventana */
+  readonly pendingConfirmation = signal<'schedule' | 'held' | null>(null);
+  readonly confirmationMessage = computed(() => {
+    if (this.pendingConfirmation() === 'held') {
+      return `¿Está seguro de registrar la reunión ${this.heldTarget()?.number} como realizada? `
+        + 'Una vez registrada no se podrá reprogramar.';
+    }
+    const meeting = this.scheduleTarget();
+    return `¿Está seguro de ${meeting?.scheduledAt ? 'reprogramar' : 'agendar'} la reunión ${meeting?.number}? `
+      + 'Se notificará a los participantes del trabajo de grado.';
+  });
 
   scheduleDate: Date | null = null;
   schedulePlace = '';
@@ -102,6 +116,19 @@ export class MeetingsPageComponent implements OnInit {
 
   get canSaveSchedule(): boolean {
     return !!this.scheduleDate && !!this.schedulePlace.trim() && !this.facade.isSubmitting();
+  }
+
+  requestScheduleConfirmation(): void {
+    if (this.canSaveSchedule) this.pendingConfirmation.set('schedule');
+  }
+
+  requestHeldConfirmation(): void {
+    if (!this.facade.isSubmitting()) this.pendingConfirmation.set('held');
+  }
+
+  onConfirmed(): void {
+    if (this.pendingConfirmation() === 'held') this.confirmHeld();
+    else this.confirmSchedule();
   }
 
   confirmSchedule(): void {
