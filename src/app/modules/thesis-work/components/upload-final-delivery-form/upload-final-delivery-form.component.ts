@@ -22,7 +22,7 @@ interface SlotConfig {
 
 /**
  * Solicitud de sustentación del director (entrega final): monografía,
- * formato E y paz y salvo obligatorios; en práctica profesional también el
+ * y formato E obligatorios; en práctica profesional también el
  * concepto favorable del asesor; anexos opcionales. Todos en PDF.
  */
 @Component({

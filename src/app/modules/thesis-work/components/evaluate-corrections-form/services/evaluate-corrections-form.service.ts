@@ -72,13 +72,6 @@ export class EvaluateCorrectionsFormService {
     }
   }
 
-  notifyFileAttached(): void {
-    this.notificationService.show({
-      title: 'Acta Adjunta',
-      message: 'El Formato_G se ha vinculado correctamente a la evaluación.',
-      type: NotificationType.INFO
-    });
-  }
   notifyMissingVerdict(): void {
     this.notificationService.show({
       title: 'Dictamen requerido',
@@ -89,14 +82,7 @@ export class EvaluateCorrectionsFormService {
   notifyInvalidObservations(): void {
     this.notificationService.show({
       title: 'Observaciones vacías',
-      message: `Debe ingresar una justificación técnica detallada (mínimo ${MIN_OBSERVATIONS_LENGTH} caracteres).`,
-      type: NotificationType.ERROR
-    });
-  }
-  notifyMissingFormatG(): void {
-    this.notificationService.show({
-      title: 'Formato_G Faltante',
-      message: 'Es obligatorio cargar el Formato_G firmado para continuar.',
+      message: `Si los ajustes no cumplen, debe ingresar una justificación detallada (mínimo ${MIN_OBSERVATIONS_LENGTH} caracteres).`,
       type: NotificationType.ERROR
     });
   }

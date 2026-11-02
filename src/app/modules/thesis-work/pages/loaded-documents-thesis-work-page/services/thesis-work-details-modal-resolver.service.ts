@@ -56,7 +56,7 @@ export class ThesisWorkDetailsModalResolverService {
     return {
       id: delivery.id,
       title: 'Solicitud de sustentación',
-      comments: 'Monografía, formato E y paz y salvo (y, en práctica profesional, el concepto del asesor) '
+      comments: 'Monografía, formato E, anexos (si los hay) y, en práctica profesional, el concepto del asesor, '
         + 'que adjuntó el director al solicitar la sustentación.',
       uploadDate: delivery.uploadDate,
       studentId: '',
@@ -69,7 +69,7 @@ export class ThesisWorkDetailsModalResolverService {
     const pyS = thesis.pazYSalvos?.find(p => p.document.id === rowId);
     if (!pyS) return null;
 
-    const comments = 'Paz y salvo (formato F) que adjuntó el director a la solicitud de sustentación.';
+    const comments = 'Paz y salvo (formato F) que cargó Decanatura al revisar la solicitud de sustentación.';
 
     return {
       id: pyS.id,

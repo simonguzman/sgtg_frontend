@@ -20,7 +20,7 @@ const ETAPAS_DE_SOLICITUD = ['EN_CURSO', 'PRORROGA'];
 
 /**
  * Entrega final = solicitud de sustentación del director: monografía, formato
- * E, paz y salvo, concepto del asesor (práctica profesional) y anexos. Si
+ * E, concepto del asesor (práctica profesional) y anexos. Si
  * Decanatura no aprueba el paz y salvo, la solicitud queda NO APROBADA y el
  * director radica una nueva.
  */
@@ -53,7 +53,7 @@ export const FinalDeliveryTabConfig: TabConfiguration<FinalDeliveryTableRow> = {
   getTableData: (_documents: FileDocument[], context: ThesisEvaluationContext): FinalDeliveryTableRow[] =>
     (context.thesisWork?.finalDeliveries ?? []).map((delivery: FinalDelivery): FinalDeliveryTableRow => ({
       id: delivery.id,
-      name: 'Solicitud de sustentación (monografía, formato E y paz y salvo)',
+      name: 'Solicitud de sustentación (monografía y formato E)',
       uploadDate: typeof delivery.uploadDate === 'string' ? delivery.uploadDate : formatThesisDate(delivery.uploadDate),
       status: delivery.status,
       url: '',

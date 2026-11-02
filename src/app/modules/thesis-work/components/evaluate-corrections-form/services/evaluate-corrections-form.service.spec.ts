@@ -275,15 +275,6 @@ describe('EvaluateCorrectionsFormService', () => {
   });
 
   describe('Notificaciones', () => {
-    it('debería ejecutar notifyFileAttached con la información correcta', () => {
-      service.notifyFileAttached();
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Acta Adjunta',
-        message: 'El Formato_G se ha vinculado correctamente a la evaluación.',
-        type: NotificationType.INFO
-      });
-    });
-
     it('debería ejecutar notifyMissingVerdict con el error correcto', () => {
       service.notifyMissingVerdict();
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
@@ -297,16 +288,7 @@ describe('EvaluateCorrectionsFormService', () => {
       service.notifyInvalidObservations();
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
         title: 'Observaciones vacías',
-        message: 'Debe ingresar una justificación técnica detallada (mínimo 10 caracteres).',
-        type: NotificationType.ERROR
-      });
-    });
-
-    it('debería ejecutar notifyMissingFormatG con el error correcto', () => {
-      service.notifyMissingFormatG();
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Formato_G Faltante',
-        message: 'Es obligatorio cargar el Formato_G firmado para continuar.',
+        message: 'Si los ajustes no cumplen, debe ingresar una justificación detallada (mínimo 10 caracteres).',
         type: NotificationType.ERROR
       });
     });

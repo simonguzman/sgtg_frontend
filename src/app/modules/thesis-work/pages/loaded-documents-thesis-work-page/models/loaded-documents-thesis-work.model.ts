@@ -20,7 +20,7 @@ export const TAB_MODAL_HEADERS: Record<string, string> = {
 export const TAB_MODAL_SUBTITLES: Record<string, string> = {
   'AVANCES':         'Información del informe mensual radicado',
   'ENTREGA FINAL':   'Documentos de la entrega final',
-  'PAZ Y SALVO':     'Paz y salvo adjunto a la solicitud de sustentación',
+  'PAZ Y SALVO':     'Paz y salvo (formato F) cargado por Decanatura',
   'CORRESPONDENCIA': 'Versión definitiva (formato H) del trabajo de grado',
   'SOLICITUDES':     'Información de la solicitud especial',
 };

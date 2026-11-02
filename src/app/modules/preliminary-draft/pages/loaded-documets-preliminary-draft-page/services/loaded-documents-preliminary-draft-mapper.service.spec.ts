@@ -36,7 +36,7 @@ describe('LoadedDocumentsPreliminaryDraftMapperService', () => {
       expect(service.getEmptyMessage(tab)).toBe('No hay presentaciones registradas para este anteproyecto');
       expect(service.getUploadModalDescription(tab)).toBe('Seleccione el archivo PDF de la presentación');
       expect(service.getUploadModalUserRole(tab)).toBe('Jefe de Departamento');
-      expect(service.getConfirmModalDescription(tab)).toBe('¿Está seguro de cargar esta presentación al consejo?');
+      expect(service.getConfirmModalDescription(tab)).toBe('¿Está seguro de remitir el anteproyecto al Consejo de Facultad con este formato C?');
     });
 
     it('debería devolver la configuración por defecto (presentaciones) si se pasa un tab desconocido', () => {

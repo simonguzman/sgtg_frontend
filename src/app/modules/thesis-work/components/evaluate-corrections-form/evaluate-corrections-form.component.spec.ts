@@ -47,10 +47,8 @@ interface MockEvaluateCorrectionsFormService {
   isObservationsValid: jest.Mock<boolean, [string]>;
   buildEvaluationPayload: jest.Mock<Omit<Evaluation, 'id' | 'date'>, [ThesisWork, stateList, string, CorrectedDelivery[]]>;
   downloadDocument: jest.Mock<Promise<void>, [FileDocument]>;
-  notifyFileAttached: jest.Mock<void, []>;
   notifyMissingVerdict: jest.Mock<void, []>;
   notifyInvalidObservations: jest.Mock<void, []>;
-  notifyMissingFormatG: jest.Mock<void, []>;
 }
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
@@ -153,10 +151,8 @@ describe('EvaluateCorrectionsFormComponent', () => {
       isObservationsValid: jest.fn(),
       buildEvaluationPayload: jest.fn(),
       downloadDocument: jest.fn().mockResolvedValue(undefined),
-      notifyFileAttached: jest.fn(),
       notifyMissingVerdict: jest.fn(),
       notifyInvalidObservations: jest.fn(),
-      notifyMissingFormatG: jest.fn(),
     };
 
     await TestBed.configureTestingModule({

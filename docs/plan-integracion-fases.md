@@ -673,3 +673,15 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
       backend (`SesionSustentacion`).
     - En la segunda sesión, después de un aplazamiento, tampoco deja pasar la fecha límite
       (`SustentationProcess.secondSessionDeadline`, 60 días desde el aplazamiento).
+56. **Textos de mensajes que no coincidían con lo desarrollado (2026-11-01):**
+    - **Paz y salvo:** lo carga Decanatura, no el director. Ya no aparece entre los documentos de la solicitud de
+      sustentación: ni en el aviso de documentos faltantes, ni en el nombre de la fila de "Entrega final", ni en su
+      detalle. El detalle de una revisión y el subtítulo de la pestaña dicen que lo cargó Decanatura.
+    - **Programar sustentación:** el "Formato de presentación" de los archivos adjuntos es el formato E del director.
+    - **Ajustes:** el aviso de documentos faltantes solo pide la monografía corregida (los anexos son opcionales).
+    - **Verificación de ajustes:** la justificación solo se exige si no cumplen. Se quitaron los avisos del formato G,
+      que esta verificación no pide.
+    - **Formato C:** la confirmación es "¿Está seguro de remitir el anteproyecto al Consejo de Facultad con este
+      formato C?", la misma de la configuración de la pestaña.
+    - **Editar anteproyecto:** el aviso de datos incompletos ya no pide seleccionar una propuesta, que en edición ya
+      está elegida.

@@ -22,6 +22,6 @@ export class LoadedDocumentsPreliminaryDraftMapperService {
   getConfirmModalDescription(activeTab: string): string {
     return activeTab === LoadedDocumentsTabType.ANTEPROYECTOS
       ? "¿Está seguro de cargar este anteproyecto? El estado cambiará a 'En revisión'."
-      : '¿Está seguro de cargar esta presentación al consejo?';
+      : '¿Está seguro de remitir el anteproyecto al Consejo de Facultad con este formato C?';
   }
 }

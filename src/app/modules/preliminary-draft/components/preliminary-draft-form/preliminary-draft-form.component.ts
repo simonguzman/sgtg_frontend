@@ -111,7 +111,11 @@ export class PreliminaryDraftFormComponent {
   submit(): void {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
-      this.notificationService.show({ title: 'Datos incompletos', message: 'Por favor, asegúrese de seleccionar una propuesta y adjuntar el anteproyecto.', type: NotificationType.ERROR });
+      // En edición la propuesta ya está elegida: solo se revisan los campos
+      const message = this.isEditMode
+        ? 'Por favor, diligencie correctamente los campos obligatorios del anteproyecto.'
+        : 'Por favor, asegúrese de seleccionar una propuesta y adjuntar el anteproyecto.';
+      this.notificationService.show({ title: 'Datos incompletos', message, type: NotificationType.ERROR });
       return;
     }
 

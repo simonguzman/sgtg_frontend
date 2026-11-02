@@ -148,7 +148,7 @@ describe('RegisterCorrectedDocumentFormService', () => {
 
       expect(notificationServiceMock.show).toHaveBeenCalledWith({
         title: 'Documentos faltantes',
-        message: 'Debe adjuntar obligatoriamente la Monografía corregida y los Anexos para continuar.',
+        message: 'Debe adjuntar obligatoriamente la monografía corregida para continuar.',
         type: NotificationType.ERROR
       });
     });

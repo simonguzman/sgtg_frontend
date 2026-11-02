@@ -25,7 +25,7 @@ export class RegisterCorrectedDocumentFormService {
   notifyMissingDocuments(): void {
     this.notificationService.show({
       title: 'Documentos faltantes',
-      message: 'Debe adjuntar obligatoriamente la Monografía corregida y los Anexos para continuar.',
+      message: 'Debe adjuntar obligatoriamente la monografía corregida para continuar.',
       type:NotificationType.ERROR
     });
   }
