@@ -47,6 +47,22 @@ export class RegisterSustentationFormComponent implements OnInit {
     return fileData ? fileData.fileName : 'Formato_E - Sustentación';
   });
 
+  /** El backend no acepta una sesión antes del día en que se programa */
+  readonly minDate = (() => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    return hoy;
+  })();
+
+  /** La segunda sesión (tras un aplazamiento) tiene fecha límite */
+  readonly maxDate = computed<Date | null>(() => {
+    const sustentation = this.thesisWork().sustentation;
+    if (sustentation?.state !== 'APLAZADA' || !sustentation.secondSessionDeadline) return null;
+    const limite = new Date(sustentation.secondSessionDeadline);
+    limite.setHours(23, 59, 59, 999);
+    return limite;
+  });
+
   get form() { return this.formService.form; }
 
   readonly availableJurors = computed<User[]>(() =>

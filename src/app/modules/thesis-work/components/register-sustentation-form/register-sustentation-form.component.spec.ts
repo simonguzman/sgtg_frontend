@@ -246,6 +246,21 @@ describe('RegisterSustentationFormComponent', () => {
       component.uploadedFormatE.set({ fileName: 'formato_e_firmado.pdf', file });
       expect(component.uploadedFileName()).toBe('formato_e_firmado.pdf');
     });
+
+    it('no deja elegir una fecha anterior a hoy y, en la primera sesión, no tiene fecha máxima', () => {
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      expect(component.minDate).toEqual(hoy);
+      expect(component.maxDate()).toBeNull();
+    });
+
+    it('en la segunda sesión la fecha máxima es el límite tras el aplazamiento', () => {
+      fixture.componentRef.setInput('thesisWork', {
+        ...mockThesisWork,
+        sustentation: { state: 'APLAZADA', secondSessionDeadline: new Date(2026, 11, 20) }
+      } as typeof mockThesisWork);
+      expect(component.maxDate()).toEqual(new Date(2026, 11, 20, 23, 59, 59, 999));
+    });
   });
 
   describe('Delegaciones al Servicio (UI Helpers)', () => {

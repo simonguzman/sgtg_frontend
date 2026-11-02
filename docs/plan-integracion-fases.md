@@ -668,3 +668,8 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
       registrar la reunión N como realizada? Una vez registrada no se podrá reprogramar.".
     - Al cancelar la confirmación se vuelve a la ventana de la reunión con lo diligenciado.
     - `MeetingsPageComponent.pendingConfirmation` guarda la acción que espera confirmación; `onConfirmed()` la envía.
+55. **Fecha de la sustentación (2026-11-01):**
+    - Al programar una sesión, el calendario no deja elegir días anteriores a hoy (`minDate`), como ya lo valida el
+      backend (`SesionSustentacion`).
+    - En la segunda sesión, después de un aplazamiento, tampoco deja pasar la fecha límite
+      (`SustentationProcess.secondSessionDeadline`, 60 días desde el aplazamiento).

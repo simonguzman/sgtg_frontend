@@ -51,6 +51,8 @@
               formControlName="sustentationDate"
               [showTime]="true"
               hourFormat="12"
+              [minDate]="minDate"
+              [maxDate]="maxDate()"
               placeholder="Seleccione fecha y hora"
               styleClass="w-full"
               [inputStyleClass]="'text-size-body p-2 border rounded-md w-full bg-white focus:outline-none focus:ring-1 focus:ring-primary ' + (isFieldInvalid('sustentationDate') ? 'border-alert' : 'border-gray-200')">
