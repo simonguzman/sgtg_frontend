@@ -3,6 +3,7 @@ import { ActivatedRoute, ActivatedRouteSnapshot, Router } from '@angular/router'
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { DatePicker } from 'primeng/datepicker';
+import { InputText } from 'primeng/inputtext';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { InfoBannerComponent } from '../../../../shared/components/info-banner/info-banner.component';
@@ -13,14 +14,15 @@ import { formatThesisDate } from '../../helpers/thesis-date.helper';
 import { formatMeetingDateTime, MeetingsFacadeService, MeetingTableRow } from './services/meetings-facade.service';
 
 const COLUMNS: Column[] = [
-  { field: 'meeting', header: 'Reunión', type: 'text', width: '12%' },
-  { field: 'suggestedDate', header: 'Fecha sugerida', type: 'text', width: '14%' },
-  { field: 'scheduled', header: 'Agendada para', type: 'text', width: '18%' },
-  { field: 'place', header: 'Lugar o enlace', type: 'text', width: '18%' },
-  { field: 'report', header: 'Informe del mes', type: 'text', width: '14%' },
-  { field: 'status', header: 'Estado', type: 'state', width: '12%' },
+  { field: 'meeting', header: 'Reunión', type: 'text', width: '8%' },
+  { field: 'suggestedDate', header: 'Fecha sugerida', type: 'text', width: '10%' },
+  { field: 'scheduled', header: 'Agendada para', type: 'text', width: '13%' },
+  { field: 'place', header: 'Lugar o enlace', type: 'text', width: '12%' },
+  { field: 'report', header: 'Informe del mes', type: 'text', width: '10%' },
+  { field: 'status', header: 'Estado', type: 'state', width: '11%' },
   {
-    field: 'acciones', header: 'Acciones', type: 'actions', width: '12%',
+    // Tres botones: la columna necesita espacio propio para no tapar el estado
+    field: 'acciones', header: 'Acciones', type: 'actions', width: '36%',
     actions: [
       { action: 'view-details', label: 'Ver detalles', icon: 'visibility', variant: 'primary', disabled: false },
       { action: 'schedule', label: 'Agendar reunión', icon: 'event', variant: 'primary', disabled: false },
@@ -37,7 +39,7 @@ const COLUMNS: Column[] = [
 @Component({
   selector: 'app-meetings-page',
   standalone: true,
-  imports: [TableComponent, InfoBannerComponent, ButtonComponent, DialogModule, DatePicker, FormsModule,
+  imports: [TableComponent, InfoBannerComponent, ButtonComponent, DialogModule, DatePicker, InputText, FormsModule,
     ConfirmationActionModalComponent],
   providers: [MeetingsFacadeService],
   templateUrl: './meetings-page.component.html',

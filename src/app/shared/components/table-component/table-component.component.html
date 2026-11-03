@@ -6,7 +6,7 @@
     [rows]="rows"
     [paginator]="paginator"
     [globalFilterFields]="getFilterFields"
-    [tableStyle]="{'table-layout': 'fixed'}"
+    [tableStyle]="{'table-layout': 'fixed', 'min-width': minWidth ?? 'auto'}"
   >
     <ng-template #caption>
       <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-gray-100 mb-4">

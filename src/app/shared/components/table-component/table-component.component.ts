@@ -65,6 +65,8 @@ export class TableComponent<T extends TableRow = TableRow> {
   @Input() paginator = false;
   @Input() headerButtons?: TableButton[];
   @Input() emptyMessage = 'No hay datos registrados en el sistema';
+  /** Ancho mínimo de la tabla (p. ej. '1400px'); por debajo se desplaza horizontalmente */
+  @Input() minWidth?: string;
   @Input() filterFields: string[] = [];
 
   @Output() actionClick = new EventEmitter<{ action: string; row: T }>();
