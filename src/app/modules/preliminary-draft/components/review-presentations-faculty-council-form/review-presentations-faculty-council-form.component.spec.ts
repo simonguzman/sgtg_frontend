@@ -44,12 +44,12 @@ interface MockFacadeService {
   uploadedSignedFile: WritableSignal<{ fileName: string; file: File } | null>;
   isUploadModalOpen: WritableSignal<boolean>;
   isReadOnly: WritableSignal<boolean>;
-  executionMonthOptions: WritableSignal<Array<{ months: number; deadline: string }>>;
+  executionMonthOptions: WritableSignal<{ months: number; deadline: string }[]>;
   signedProposalDocument: WritableSignal<FormattedDocument | undefined>;
   acceptanceLetter: WritableSignal<FormattedDocument | undefined>;
   approvedPreliminaryDraftDocument: WritableSignal<FormattedDocument | undefined>;
   presentationDocument: WritableSignal<FormattedDocument | undefined>;
-  evaluationFiles: WritableSignal<Array<FormattedDocument & { evaluator?: string }>>;
+  evaluationFiles: WritableSignal<(FormattedDocument & { evaluator?: string })[]>;
   documentUploadDate: WritableSignal<string>;
   evaluationForm: FormGroup;
   initFormEffects: jest.Mock<void, []>;
@@ -129,7 +129,7 @@ describe('ReviewPresentationsFacultyCouncilFormComponent', () => {
       acceptanceLetter: signal<FormattedDocument | undefined>(undefined),
       approvedPreliminaryDraftDocument: signal<FormattedDocument | undefined>(undefined),
       presentationDocument: signal<FormattedDocument | undefined>(undefined),
-      evaluationFiles: signal<Array<FormattedDocument & { evaluator?: string }>>([]),
+      evaluationFiles: signal<(FormattedDocument & { evaluator?: string })[]>([]),
       documentUploadDate: signal<string>('23/07/2026'),
 
       evaluationForm: new FormGroup({

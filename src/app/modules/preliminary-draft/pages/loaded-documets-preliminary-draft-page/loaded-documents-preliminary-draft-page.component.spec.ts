@@ -13,7 +13,7 @@ import { FileDocument } from '../../../../core/interfaces/file-document.interfac
 
 @Component({ selector: 'app-tabs', standalone: true, template: '<div>Mock Tabs</div>' })
 class MockTabsComponent {
-  @Input() tabs: Array<{ id: string; label: string }> = [];
+  @Input() tabs: { id: string; label: string }[] = [];
   @Input() activeTab = '';
   @Output() tabChange = new EventEmitter<string>();
 }
@@ -50,7 +50,7 @@ interface MockFacade {
   init: jest.Mock;
   destroy: jest.Mock;
   goBack: jest.Mock;
-  tabs: Array<{ id: string; label: string }>;
+  tabs: { id: string; label: string }[];
   currentTableData: WritableSignal<FileDocument[]>;
   currentColumns: WritableSignal<Column[]>;
   currentHeaderButtons: WritableSignal<TableButton[]>;

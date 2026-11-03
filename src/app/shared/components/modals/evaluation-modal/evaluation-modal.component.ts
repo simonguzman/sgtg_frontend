@@ -16,12 +16,12 @@ export class EvaluationModalComponent{
 
   protected stateList = stateList;
 
-  @Input() isOpen: boolean = false;
-  @Input() name: string = '';
-  @Input() role: string = '';
+  @Input() isOpen = false;
+  @Input() name = '';
+  @Input() role = '';
   @Input() evaluationDate: Date = new Date;
   @Input() state?:stateList;
-  @Input() comments: string = '';
+  @Input() comments = '';
   @Input() documents: FormattedDocument[] = [];
 
   @Output() onClose = new EventEmitter<void>()

@@ -41,15 +41,15 @@ describe('EvaluationsFacadeService', () => {
   };
 
   let mockProposalService: {
-    allProposals: jest.Mock<Array<{ id: string }>, []>;
+    allProposals: jest.Mock<{ id: string }[], []>;
   };
 
   let mockPreliminaryDraftService: {
-    allPreliminaryDrafts: jest.Mock<Array<{ preliminaryDraftId: string }>, []>;
+    allPreliminaryDrafts: jest.Mock<{ preliminaryDraftId: string }[], []>;
   };
 
   let mockThesisWorkService: {
-    allThesisWorks: jest.Mock<Array<{ thesisWorkId: string }>, []>;
+    allThesisWorks: jest.Mock<{ thesisWorkId: string }[], []>;
   };
 
   let mockDownloadService: {

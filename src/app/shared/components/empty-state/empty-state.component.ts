@@ -9,6 +9,6 @@ import { CardModule } from 'primeng/card';
 })
 export class EmptyStateComponent {
 
-  @Input() message: string = '';
+  @Input() message = '';
 
 }

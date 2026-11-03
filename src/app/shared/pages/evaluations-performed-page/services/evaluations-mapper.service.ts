@@ -141,7 +141,7 @@ export class EvaluationsMapperService {
       }
       const evaluatorName = realName || (isCouncil ? 'Representante del Consejo' : 'Evaluador');
 
-      let rawRole = evaluation.evaluatorRole || (isCouncil ? 'Consejo' : 'Evaluador');
+      const rawRole = evaluation.evaluatorRole || (isCouncil ? 'Consejo' : 'Evaluador');
       const evaluatorRole = rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase();
 
       let docName = evaluation.documentTargetName || targetDocument?.name;

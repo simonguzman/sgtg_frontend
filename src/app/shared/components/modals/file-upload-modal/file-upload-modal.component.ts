@@ -33,9 +33,9 @@ const FILE_TYPE_CONFIGS: Record<AcceptedFileTypes, FileTypeConfig> = {
 export class FileUploadModalComponent {
   private readonly notificationService = inject(NotificationService);
 
-  @Input() isOpen: boolean = false;
-  @Input() description: string = '';
-  @Input() uploadedBy: string = '';
+  @Input() isOpen = false;
+  @Input() description = '';
+  @Input() uploadedBy = '';
   @Input() acceptedTypes: AcceptedFileTypes = 'pdf';
 
   @Output() onFileUploaded = new EventEmitter<{ fileName: string, file: File }>();

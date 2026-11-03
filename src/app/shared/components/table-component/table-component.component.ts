@@ -33,10 +33,10 @@ export interface Column{
   filterable?: boolean;
 }
 
-export type TableRow = {
+export interface TableRow {
   [key: string]: any;
   allowedActions?: string[];
-};
+}
 
 @Component({
   selector: 'app-table-component',
@@ -58,10 +58,10 @@ export class TableComponent<T extends TableRow = TableRow> {
 
   @Input() value: T[] = [];
   @Input() columns: Column[] = [];
-  @Input() rows: number = 5;
-  @Input() paginator: boolean = false;
+  @Input() rows = 5;
+  @Input() paginator = false;
   @Input() headerButtons?: TableButton[];
-  @Input() emptyMessage: string = 'No hay datos registrados en el sistema';
+  @Input() emptyMessage = 'No hay datos registrados en el sistema';
   @Input() filterFields: string[] = [];
 
   @Output() actionClick = new EventEmitter<{ action: string; row: T }>();

@@ -13,8 +13,8 @@ import { RolesViewModalComponent } from '../roles-view-modal/roles-view-modal.co
 })
 export class RolesModalComponent {
 
-  @Input() isOpen: boolean = false;
-  @Input() username: string = '';
+  @Input() isOpen = false;
+  @Input() username = '';
   @Input() roles: UserRole[] = [];
   /** false si solo se consultan los roles (no se muestra "Gestionar roles") */
   @Input() canManage = true;
@@ -22,7 +22,7 @@ export class RolesModalComponent {
   @Output() isOpenChange = new EventEmitter<boolean>();
   @Output() onSaved = new EventEmitter<UserRole[]>();
 
-  isEditing: boolean = false;
+  isEditing = false;
 
   toggleEditing(value: boolean) {
     this.isEditing = value;

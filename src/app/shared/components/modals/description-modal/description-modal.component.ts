@@ -9,9 +9,9 @@ import { DialogModule } from 'primeng/dialog';
 })
 export class DescriptionModalComponent {
 
-  @Input() isOpen: boolean = false
-  @Input() titleDescription: string = ''
-  @Input() description: string = ''
+  @Input() isOpen = false
+  @Input() titleDescription = ''
+  @Input() description = ''
 
   @Output() onClose = new EventEmitter<void>;
 

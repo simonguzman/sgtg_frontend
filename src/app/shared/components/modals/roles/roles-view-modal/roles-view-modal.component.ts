@@ -12,8 +12,8 @@ import { UserRole } from '../../../../../core/models/user-role';
 })
 export class RolesViewModalComponent {
 
-  @Input() isOpen: boolean = false;
-  @Input() username: string = '';
+  @Input() isOpen = false;
+  @Input() username = '';
   @Input() roles: UserRole[] = [];
   /** false si solo se consultan los roles */
   @Input() canManage = true;

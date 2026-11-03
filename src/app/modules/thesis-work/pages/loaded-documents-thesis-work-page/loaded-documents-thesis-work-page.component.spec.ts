@@ -59,11 +59,11 @@ class MockRegisterInformationModalComponent {
   @Output() onDownloadFile = new EventEmitter<string>();
 }
 
-type DeepPartialActivatedRoute = {
+interface DeepPartialActivatedRoute {
   snapshot: { paramMap: ParamMap };
   firstChild?: DeepPartialActivatedRoute | null;
   parent?: DeepPartialActivatedRoute | null;
-};
+}
 
 interface MockLoadedDocumentsFacade {
   downloadDocument: jest.Mock;

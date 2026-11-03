@@ -19,7 +19,7 @@ export class UserFormFacadeService {
     return this.userService.getUserById(id);
   }
 
-  public handleNotFound(message: string = 'Usuario no encontrado'): void {
+  public handleNotFound(message = 'Usuario no encontrado'): void {
     this.showNotification('Atención', message, NotificationType.ERROR);
     this.router.navigate(['/users']);
   }

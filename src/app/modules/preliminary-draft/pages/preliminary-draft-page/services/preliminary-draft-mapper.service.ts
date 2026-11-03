@@ -72,7 +72,7 @@ export class PreliminaryDraftMapperService {
     const isOwnerOrAdmin = isAdmin || isDirector;
     const isApproved = preliminaryDraft.state === stateList.APROBADO;
 
-    let allowed: string[] = ['ver descripción'];
+    const allowed: string[] = ['ver descripción'];
 
     if (hasViewPermission) allowed.push('ver');
     if (isOwnerOrAdmin && !isApproved) allowed.push('editar');

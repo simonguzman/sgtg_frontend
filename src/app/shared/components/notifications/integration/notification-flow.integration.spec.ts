@@ -38,8 +38,8 @@ describe('Integración [Shared]: Flujo E2E de Notificaciones (Servicio ➔ Conte
   it('FLUJO AUTOMÁTICO: debe renderizar la notificación en el DOM y desaparecerla tras 5 segundos', fakeAsync(() => {
     service.info('Sincronización', 'Datos actualizados');
     fixture.detectChanges();
-    let notificationEl = fixture.debugElement.query(By.css('.notification'));
-    let titleEl = fixture.debugElement.query(By.css('.notification__title'));
+    const notificationEl = fixture.debugElement.query(By.css('.notification'));
+    const titleEl = fixture.debugElement.query(By.css('.notification__title'));
 
     expect(notificationEl).toBeTruthy();
     expect(notificationEl.nativeElement.classList.contains('notification--info')).toBe(true);

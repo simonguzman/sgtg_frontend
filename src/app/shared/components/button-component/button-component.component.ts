@@ -11,7 +11,7 @@ export class ButtonComponent {
   @Input() label?: string;
   @Input() icon?: string;
   @Input() type: 'button' | 'submit' = 'button';
-  @Input() disabled: boolean = false;
+  @Input() disabled = false;
   @Input() variant: 'primary' | 'secondary' = 'primary';
   /** Nombre accesible; necesario en los botones que solo tienen icono */
   @Input() ariaLabel?: string;

@@ -10,8 +10,8 @@ import { ButtonComponent } from '../../button-component/button-component.compone
 })
 export class ConfirmationActionModalComponent implements OnChanges {
 
-  @Input() isOpen: boolean = false;
-  @Input() description: string = '';
+  @Input() isOpen = false;
+  @Input() description = '';
 
   @Output() onClose = new EventEmitter<void>()
   @Output() confirm = new EventEmitter<void>()

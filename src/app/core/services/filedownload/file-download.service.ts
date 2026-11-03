@@ -23,7 +23,7 @@ export class FileDownloadService {
    * Descarga un archivo. Los del backend (`environment.apiUrl`) se piden
    * siempre como blob por HttpClient, para que el interceptor envíe el token.
    */
-  async download(url: string, fileName: string, useBlob: boolean = false): Promise<void> {
+  async download(url: string, fileName: string, useBlob = false): Promise<void> {
     const esDelBackend = url.startsWith(environment.apiUrl);
     if (!useBlob && !esDelBackend) {
       this.directDownload(url, fileName);

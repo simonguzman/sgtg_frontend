@@ -10,7 +10,7 @@ import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-f
 import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
 export type FileSlot = 'MONOGRAPH' | 'FORMAT_E' | 'ADVISOR_CONCEPT' | 'ANNEXES';
-export type UploadedFile = { fileName: string; file: File };
+export interface UploadedFile { fileName: string; file: File }
 
 /** Documento que se adjunta a la solicitud de sustentación. */
 interface SlotConfig {

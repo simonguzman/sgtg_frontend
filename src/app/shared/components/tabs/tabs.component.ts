@@ -14,7 +14,7 @@ export interface TabItem{
 })
 export class TabsComponent {
   @Input({ required: true }) tabs: TabItem[] = [];
-  @Input({ required: true }) activeTab: string = '';
+  @Input({ required: true }) activeTab = '';
   @Output() tabChange = new EventEmitter<string>();
 
   selectTab(value: string){

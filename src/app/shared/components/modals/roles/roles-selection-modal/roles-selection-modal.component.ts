@@ -13,7 +13,7 @@ import { ButtonComponent } from '../../../button-component/button-component.comp
 })
 export class RolesSelectionModalComponent implements OnChanges {
 
-  @Input() isOpen: boolean = false;
+  @Input() isOpen = false;
   @Input() roles: UserRole[] = [];
 
   @Output() isOpenChange = new EventEmitter<boolean>();

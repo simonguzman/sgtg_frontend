@@ -28,7 +28,7 @@ export const passwordMatchValidator = (control: AbstractControl): ValidationErro
 })
 export class ChangePasswordModalComponent {
 
-  @Input() isOpen: boolean = false;
+  @Input() isOpen = false;
   @Output() onClose = new EventEmitter<void>();
 
   private readonly fb = inject(FormBuilder);

@@ -22,16 +22,16 @@ export interface RegisterDetailField {
 export class RegisterInformationModalComponent  {
   protected stateList = stateList;
 
-  @Input() modalHeader: string = 'Detalles de la entrega';
-  @Input() subTitle: string = 'Información del trabajo de grado';
-  @Input() isOpen: boolean = false;
-  @Input() title: string = '';
-  @Input() comments: string = '';
+  @Input() modalHeader = 'Detalles de la entrega';
+  @Input() subTitle = 'Información del trabajo de grado';
+  @Input() isOpen = false;
+  @Input() title = '';
+  @Input() comments = '';
   /** Datos del registro, cada uno con su etiqueta; si se indican, reemplazan la descripción */
   @Input() fields: RegisterDetailField[] | null = null;
-  @Input() modality: string = '';
-  @Input() student: string = '';
-  @Input() director: string = '';
+  @Input() modality = '';
+  @Input() student = '';
+  @Input() director = '';
   @Input() codirector?: string;
   @Input() adviser?: string;
   @Input() chargeDate: Date = new Date;
