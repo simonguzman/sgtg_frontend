@@ -62,7 +62,7 @@ describe('StatisticsPageFacadeService', () => {
     programChartData: WritableSignal<MockChartData>;
   };
   let mockReportService: {
-    downloadPdfReport: jest.Mock<void, [StatisticsFilters, RawProjectData[], StatisticsReportKpis, StatisticsReportContext]>;
+    downloadPdfReport: jest.Mock<Promise<void>, [StatisticsFilters, RawProjectData[], StatisticsReportKpis, StatisticsReportContext]>;
     downloadExcelReport: jest.Mock<Promise<void>, [StatisticsFilters, RawProjectData[], StatisticsReportKpis, StatisticsReportContext]>;
     downloadCsvReport: jest.Mock<void, [StatisticsFilters, RawProjectData[], StatisticsReportKpis, StatisticsReportContext]>;
   };

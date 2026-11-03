@@ -1,41 +1,43 @@
-<p-dialog
-  [visible]="isOpen"
-  (visibleChange)="isOpen = $event"
-  (onHide)="closeModal()"
-  [modal]="true"
-  styleClass="custom-modal"
-  [draggable]="false"
-  [resizable]="false"
-  [style]="{ width: '560px' }"
->
-  <ng-template pTemplate="header">
-    <h2 class="text-primary font-bold font-display text-size-sidebar-title w-full text-justify m-0">
-      Generar reporte
-    </h2>
-  </ng-template>
-  <div class="flex flex-col gap-6 py-4 px-2">
-    <p class="text-gray-700 font-sans text-size-section text-justify leading-relaxed m-0">
-      {{ description }}
-    </p>
-    <ul class="flex flex-col gap-2 m-0 p-0 list-none">
-      @for (option of options; track option.format) {
-        <li class="flex items-start gap-2 text-size-body text-text-body">
-          <span class="font-semibold text-primary min-w-12">{{ option.label }}</span>
-          <span>{{ option.description }}</span>
-        </li>
-      }
-    </ul>
-    <div class="flex flex-wrap justify-end gap-2">
-      @for (option of options; track option.format) {
-        <app-button-component
-          [label]="option.label"
-          [icon]="option.icon"
-          [ariaLabel]="'Descargar el reporte en ' + option.label"
-          variant="primary"
-          [disabled]="selected"
-          (onClick)="choose(option.format)"
-        ></app-button-component>
-      }
+@if (yaSeAbrio) {
+  <p-dialog
+    [visible]="isOpen"
+    (visibleChange)="isOpen = $event"
+    (onHide)="closeModal()"
+    [modal]="true"
+    styleClass="custom-modal"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '560px' }"
+  >
+    <ng-template pTemplate="header">
+      <h2 class="text-primary font-bold font-display text-size-sidebar-title w-full text-justify m-0">
+        Generar reporte
+      </h2>
+    </ng-template>
+    <div class="flex flex-col gap-6 py-4 px-2">
+      <p class="text-gray-700 font-sans text-size-section text-justify leading-relaxed m-0">
+        {{ description }}
+      </p>
+      <ul class="flex flex-col gap-2 m-0 p-0 list-none">
+        @for (option of options; track option.format) {
+          <li class="flex items-start gap-2 text-size-body text-text-body">
+            <span class="font-semibold text-primary min-w-12">{{ option.label }}</span>
+            <span>{{ option.description }}</span>
+          </li>
+        }
+      </ul>
+      <div class="flex flex-wrap justify-end gap-2">
+        @for (option of options; track option.format) {
+          <app-button-component
+            [label]="option.label"
+            [icon]="option.icon"
+            [ariaLabel]="'Descargar el reporte en ' + option.label"
+            variant="primary"
+            [disabled]="selected"
+            (onClick)="choose(option.format)"
+          ></app-button-component>
+        }
+      </div>
     </div>
-  </div>
-</p-dialog>
+  </p-dialog>
+}

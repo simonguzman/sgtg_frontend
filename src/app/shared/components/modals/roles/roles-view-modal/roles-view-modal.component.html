@@ -1,23 +1,25 @@
-<p-dialog [(visible)]="isOpen" (onHide)="close()" [modal]="true" [style]="{ width: '450px' }" styleClass="custom-modal">
-  <ng-template pTemplate="header">
-    <div class="w-full text-center">
-      <h2 class="text-primary font-bold text-size-sidebar-title m-0">Roles asignados a {{ username }}</h2>
-    </div>
-  </ng-template>
-
-  <div class="flex flex-col gap-4 py-4">
-    <ul class="list-none p-0 m-0">
-      @for (role of activeRoles; track role.type) {
-        <li class="flex justify-between items-center py-2 px-4">
-          <span class="text-gray-700">• {{ role.type }}</span>
-          <span class="bg-primary text-text-white px-6 py-1 rounded-pill text-size-body">Activo</span>
-        </li>
-      }
-    </ul>
-    @if (canManage) {
-      <div class="flex justify-end gap-2">
-        <app-button-component label="Gestionar roles" variant="primary" (onClick)="onManage.emit()"></app-button-component>
+@if (yaSeAbrio) {
+  <p-dialog [(visible)]="isOpen" (onHide)="close()" [modal]="true" [style]="{ width: '450px' }" styleClass="custom-modal">
+    <ng-template pTemplate="header">
+      <div class="w-full text-center">
+        <h2 class="text-primary font-bold text-size-sidebar-title m-0">Roles asignados a {{ username }}</h2>
       </div>
-    }
-  </div>
-</p-dialog>
+    </ng-template>
+
+    <div class="flex flex-col gap-4 py-4">
+      <ul class="list-none p-0 m-0">
+        @for (role of activeRoles; track role.type) {
+          <li class="flex justify-between items-center py-2 px-4">
+            <span class="text-gray-700">• {{ role.type }}</span>
+            <span class="bg-primary text-text-white px-6 py-1 rounded-pill text-size-body">Activo</span>
+          </li>
+        }
+      </ul>
+      @if (canManage) {
+        <div class="flex justify-end gap-2">
+          <app-button-component label="Gestionar roles" variant="primary" (onClick)="onManage.emit()"></app-button-component>
+        </div>
+      }
+    </div>
+  </p-dialog>
+}

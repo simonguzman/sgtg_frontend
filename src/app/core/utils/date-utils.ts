@@ -1,3 +1,6 @@
+/** Un solo formateador: toLocaleDateString crea uno nuevo en cada llamada, y las tablas formatean muchas fechas. */
+const FORMATO_FECHA = new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
 /**
  * Formatea una fecha al estilo 'DD - MM - YYYY' para visualización en la UI.
  *
@@ -5,9 +8,7 @@
  * @returns Cadena de texto con la fecha formateada.
  */
 export function formatDisplayDate(date: Date = new Date()): string {
-  return date
-    .toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    .replaceAll('/', ' - ');
+  return FORMATO_FECHA.format(date).replaceAll('/', ' - ');
 }
 
 /**

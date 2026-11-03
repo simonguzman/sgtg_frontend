@@ -189,13 +189,19 @@
       No hay trabajos de grado con los filtros seleccionados.
     </div>
   } @else {
+  <!-- Cada gráfico se dibuja al llegar a la pantalla: en el celular quedan debajo de los filtros y
+       dibujarlos al cargar era la mayor parte del trabajo de la página. El espacio ya está reservado (h-80). -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <div class="bg-white p-6 border border-gray-200 rounded-xl shadow-sm flex flex-col gap-4">
       <h3 class="font-display font-semibold text-primary text-size-section">
         Estado de los trabajos
       </h3>
       <div class="h-80 w-full relative">
-        <p-chart type="doughnut" [data]="facade.statusChartData()" [options]="doughnutOptions"></p-chart>
+        @defer (on viewport) {
+          <p-chart type="doughnut" [data]="facade.statusChartData()" [options]="doughnutOptions"></p-chart>
+        } @placeholder {
+          <div class="h-full w-full"></div>
+        }
       </div>
     </div>
     <div class="bg-white p-6 border border-gray-200 rounded-xl shadow-sm flex flex-col gap-4">
@@ -203,7 +209,11 @@
         Trabajos por etapa alcanzada
       </h3>
       <div class="h-80 w-full relative">
-        <p-chart type="bar" [data]="facade.stageChartData()" [options]="barOptions"></p-chart>
+        @defer (on viewport) {
+          <p-chart type="bar" [data]="facade.stageChartData()" [options]="barOptions"></p-chart>
+        } @placeholder {
+          <div class="h-full w-full"></div>
+        }
       </div>
     </div>
     <div class="bg-white p-6 border border-gray-200 rounded-xl shadow-sm flex flex-col gap-4">
@@ -211,7 +221,11 @@
         Trabajos por modalidad
       </h3>
       <div class="h-80 w-full relative">
-        <p-chart type="doughnut" [data]="facade.modalityChartData()" [options]="doughnutOptions"></p-chart>
+        @defer (on viewport) {
+          <p-chart type="doughnut" [data]="facade.modalityChartData()" [options]="doughnutOptions"></p-chart>
+        } @placeholder {
+          <div class="h-full w-full"></div>
+        }
       </div>
     </div>
     <div class="bg-white p-6 border border-gray-200 rounded-xl shadow-sm flex flex-col gap-4">
@@ -219,7 +233,11 @@
         Trabajos por programa
       </h3>
       <div class="h-80 w-full relative">
-        <p-chart type="bar" [data]="facade.programChartData()" [options]="barOptions"></p-chart>
+        @defer (on viewport) {
+          <p-chart type="bar" [data]="facade.programChartData()" [options]="barOptions"></p-chart>
+        } @placeholder {
+          <div class="h-full w-full"></div>
+        }
       </div>
     </div>
   </div>

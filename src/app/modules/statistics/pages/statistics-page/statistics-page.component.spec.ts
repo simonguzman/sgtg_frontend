@@ -1,6 +1,6 @@
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, DeferBlockBehavior, DeferBlockState, TestBed } from '@angular/core/testing';
 import { signal, WritableSignal, Component, Input, Output, EventEmitter, forwardRef } from '@angular/core';
 import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 import { StatisticsPageComponent } from './statistics-page.component';
@@ -114,6 +114,8 @@ describe('StatisticsPageComponent', () => {
     };
     await TestBed.configureTestingModule({
       imports: [StatisticsPageComponent],
+      // Las gráficas van en @defer (on viewport): cada prueba decide cuándo se dibujan
+      deferBlockBehavior: DeferBlockBehavior.Manual,
       providers: [
         { provide: StatisticsPageFacadeService, useValue: mockFacadeService },
         provideNoopAnimations(),
@@ -137,7 +139,7 @@ describe('StatisticsPageComponent', () => {
       expect(component).toBeTruthy();
     });
 
-    it('muestra qué trabajos cuentan y, sin trabajos, un aviso en lugar de las gráficas', () => {
+    it('muestra qué trabajos cuentan y, sin trabajos, un aviso en lugar de las gráficas', async () => {
       const texto = () => fixture.nativeElement.textContent as string;
       expect(texto()).toContain('Todos los trabajos de grado de la facultad.');
       expect(texto()).toContain('No hay trabajos de grado con los filtros seleccionados.');
@@ -145,6 +147,11 @@ describe('StatisticsPageComponent', () => {
 
       mockFacadeService.totalLoaded.set(5);
       fixture.detectChanges();
+      // Hasta llegar a la pantalla, cada gráfica es solo su espacio reservado
+      expect(fixture.nativeElement.querySelectorAll('p-chart').length).toBe(0);
+      const bloques = await fixture.getDeferBlocks();
+      expect(bloques.length).toBe(4);
+      for (const bloque of bloques) await bloque.render(DeferBlockState.Complete);
       expect(fixture.nativeElement.querySelectorAll('p-chart').length).toBe(4);
     });
 

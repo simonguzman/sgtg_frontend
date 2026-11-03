@@ -57,6 +57,6 @@ export class StatisticsPageFacadeService {
     const context = { scope: this.state.scope(), directorName };
     if (format === 'excel') await this.reportService.downloadExcelReport(filters, data, kpis, context);
     else if (format === 'csv') this.reportService.downloadCsvReport(filters, data, kpis, context);
-    else this.reportService.downloadPdfReport(filters, data, kpis, context);
+    else await this.reportService.downloadPdfReport(filters, data, kpis, context);
   }
 }

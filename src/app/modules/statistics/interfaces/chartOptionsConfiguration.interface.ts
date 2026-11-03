@@ -24,4 +24,6 @@ export interface ChartOptionsConfiguration {
   }>;
   maintainAspectRatio?: boolean;
   aspectRatio?: number;
+  /** false: el gráfico se dibuja una vez, sin animar la entrada ni cada cambio de los filtros */
+  animation?: false;
 }

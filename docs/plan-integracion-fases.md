@@ -716,3 +716,39 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     - Pendiente (no se hizo): en móvil queda ~1,3 s de bloqueo por ejecutar JavaScript (Lighthouse simula una CPU 4
       veces más lenta). Es el costo general de Angular y PrimeNG al dibujar la página; bajarlo pediría cambios de
       arquitectura (por ejemplo, detección de cambios sin zone.js).
+59. **Rendimiento en el celular: al menos 80 en las páginas principales (2026-11-03):**
+    - Lighthouse móvil (celular simulado, 4G y CPU 4 veces más lenta), mediana de 3 corridas con sesión iniciada:
+
+      | Página | Antes | Después |
+      |---|---|---|
+      | Bandeja (`/`) | 54 | 85 |
+      | Usuarios | 61 | 86 |
+      | Propuesta | 68 | 86 |
+      | Anteproyecto | 69 | 87 |
+      | Trabajo de grado | 78 | 92 |
+      | Estadísticas | 69 | 88 |
+      | Historial | 76 | 83 |
+      | Notificaciones | 75 | 89 |
+
+      En escritorio quedan entre 94 y 99. Lo que más bajaba la nota era el tiempo de bloqueo (JavaScript ocupando el
+      procesador): pasó de 700–1.700 ms a 200–500 ms.
+    - **Sin zone.js** (`provideZonelessChangeDetection()` y `polyfills: []` en la compilación; las pruebas siguen con
+      zone.js): Angular redibuja cuando cambia un signal, con los eventos de la plantilla y con las entradas de los
+      componentes. Todo el estado visible ya estaba en signals; el único campo normal que cambiaba dentro de una
+      respuesta del backend (`isLoading` de la ventana de cambio de contraseña) pasó a signal. Regla desde ahora: lo
+      que la plantilla muestra y cambia dentro de un `subscribe`, `then`, `await` o `setTimeout` debe ser un signal.
+    - **Ventanas creadas al abrirse:** las 12 ventanas con `@Input() isOpen` crean su `p-dialog` la primera vez que se
+      abren (`isOpen` es un setter que marca `yaSeAbrio`) y lo conservan después, para la animación de cierre. Antes
+      cada página creaba todas sus ventanas al cargar aunque no se abrieran.
+    - **Estadísticas:** los gráficos no se animan (`animation: false`) y cada uno se dibuja al llegar a la pantalla
+      (`@defer (on viewport)`, con su alto ya reservado). La librería del PDF (jsPDF) se carga al descargar el reporte,
+      como ya hacía la del Excel.
+    - **Fuente de íconos:** `index.html` pide solo los íconos que usa la aplicación (`icon_names=...`): de 316 KB a unos
+      6 KB. Al usar un ícono nuevo hay que agregarlo a esa lista en orden alfabético; si falta, se ve su nombre en texto.
+    - **Fechas:** `formatDisplayDate` (y `formatThesisDate`, que ahora la usa) y la fecha de la tabla de trabajos usan un
+      `Intl.DateTimeFormat` creado una vez; `toLocaleDateString` creaba uno en cada llamada.
+    - Se probó en el navegador sin zone.js: inicio de sesión fallido y correcto, búsqueda y ventanas de usuarios,
+      propuestas e historial, filtros y gráficos de estadísticas, pestañas del trabajo, cambio de contraseña con la
+      clave actual equivocada y la ventana de reuniones.
+    - Se descartó: cambiar `p-button` por un botón propio (sus estilos dependen de PrimeNG y se usa en 168 lugares) y
+      devolver el usuario en `/auth/renovar` (tocaba la sesión y ganaba 1 o 2 puntos).

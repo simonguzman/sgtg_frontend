@@ -99,16 +99,16 @@ describe('StatisticsReportService', () => {
       })
     ];
 
-    it('debería inicializar jsPDF y guardar el documento con la fecha actual', () => {
-      service.downloadPdfReport({ ...DEFAULT_STATISTICS_FILTERS }, mockData, mockKpis, context);
+    it('debería inicializar jsPDF y guardar el documento con la fecha actual', async () => {
+      await service.downloadPdfReport({ ...DEFAULT_STATISTICS_FILTERS }, mockData, mockKpis, context);
 
       expect(jsPDF).toHaveBeenCalledWith('p', 'mm', 'a4');
       expect(mockJsPdfInstance.save).toHaveBeenCalledWith(expect.stringContaining('Reporte_Academico_'));
       expect(mockJsPdfInstance.save).toHaveBeenCalledWith(expect.stringContaining('.pdf'));
     });
 
-    it('imprime el encabezado con el alcance y los KPIs', () => {
-      service.downloadPdfReport({ ...DEFAULT_STATISTICS_FILTERS }, mockData, mockKpis, context);
+    it('imprime el encabezado con el alcance y los KPIs', async () => {
+      await service.downloadPdfReport({ ...DEFAULT_STATISTICS_FILTERS }, mockData, mockKpis, context);
 
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('Reporte de Control Académico', 14, 20);
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith(expect.stringContaining('Generado el:'), 14, 28);
@@ -121,7 +121,7 @@ describe('StatisticsReportService', () => {
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• No aprobados o cancelados: 3', 110, 72);
     });
 
-    it('escribe los filtros con textos legibles (etapa, director, modalidad, programa, estado y plazo)', () => {
+    it('escribe los filtros con textos legibles (etapa, director, modalidad, programa, estado y plazo)', async () => {
       const filtros: StatisticsFilters = {
         stage: ProjectStage.TRABAJO_GRADO,
         period: '2025-2',
@@ -132,7 +132,7 @@ describe('StatisticsReportService', () => {
         deadlineFilter: EvaluationDeadlineStatus.DELAYED
       };
 
-      service.downloadPdfReport(filtros, mockData, mockKpis, { ...context, directorName: 'Ana Gómez' });
+      await service.downloadPdfReport(filtros, mockData, mockKpis, { ...context, directorName: 'Ana Gómez' });
 
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('Filtros Aplicados:', 14, 46);
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Etapa: Trabajo de Grado', 14, 54);
@@ -144,8 +144,8 @@ describe('StatisticsReportService', () => {
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Plazo: Evaluado con retraso', 14, 90);
     });
 
-    it('usa textos por defecto cuando no hay filtros aplicados', () => {
-      service.downloadPdfReport({ ...DEFAULT_STATISTICS_FILTERS }, mockData, mockKpis, context);
+    it('usa textos por defecto cuando no hay filtros aplicados', async () => {
+      await service.downloadPdfReport({ ...DEFAULT_STATISTICS_FILTERS }, mockData, mockKpis, context);
 
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Etapa: Todas las etapas', 14, 54);
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Periodo: Todos los periodos', 14, 60);
@@ -156,8 +156,8 @@ describe('StatisticsReportService', () => {
       expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Plazo: Todos los plazos', 14, 90);
     });
 
-    it('arma la tabla con la modalidad, el programa y la etapa y el estado legibles', () => {
-      service.downloadPdfReport({ ...DEFAULT_STATISTICS_FILTERS }, mockData, mockKpis, context);
+    it('arma la tabla con la modalidad, el programa y la etapa y el estado legibles', async () => {
+      await service.downloadPdfReport({ ...DEFAULT_STATISTICS_FILTERS }, mockData, mockKpis, context);
 
       expect(autoTable).toHaveBeenCalled();
       const [documento, tabla] = (autoTable as unknown as jest.Mock).mock.calls[0];

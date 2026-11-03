@@ -1,41 +1,43 @@
-<p-dialog
-  [visible]="isOpen"
-  (visibleChange)="isOpen = $event"
-  (onHide)="closeModal()"
-  [modal]="true"
-  styleClass="custom-modal"
-  [draggable]="false"
-  [resizable]="false"
->
-  <input type="file" #fileInput [accept]="acceptAttribute" class="hidden" (change)="onFileSelected($event)" />
+@if (yaSeAbrio) {
+  <p-dialog
+    [visible]="isOpen"
+    (visibleChange)="isOpen = $event"
+    (onHide)="closeModal()"
+    [modal]="true"
+    styleClass="custom-modal"
+    [draggable]="false"
+    [resizable]="false"
+  >
+    <input type="file" #fileInput [accept]="acceptAttribute" class="hidden" (change)="onFileSelected($event)" />
 
-  @if (!uploadedFile) {
-    <div class="text-center flex flex-col items-center justify-center p-4">
-      <span class="material-symbols-outlined upload-icon text-primary mb-4">upload</span>
-      <div class="text-center cursor-pointer" (click)="fileInput.click()">
-        <h3 class="font-display text-size-section font-semibold text-primary mb-2">
-          {{ description }}
-        </h3>
-        <p class="font-sans font-normal text-size-body opacity-80 max-w-sm mx-auto">
-          Sus datos personales y archivos están protegidos por nuestra Política de Protección de Datos Personales y Transparencia de la Información
-        </p>
-      </div>
-    </div>
-  }
-
-  @if (uploadedFile) {
-    <div class="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 mt-2">
-      <div class="flex items-center gap-3">
-        <span class="material-symbols-outlined text-danger">{{ uploadedFileIcon }}</span>
-        <div>
-          <p class="font-semibold text-size-body">{{ uploadedFile.name }}</p>
-          <p class="text-size-role-footer opacity-70">Subido por: {{ uploadedBy }}</p>
+    @if (!uploadedFile) {
+      <div class="text-center flex flex-col items-center justify-center p-4">
+        <span class="material-symbols-outlined upload-icon text-primary mb-4">upload</span>
+        <div class="text-center cursor-pointer" (click)="fileInput.click()">
+          <h3 class="font-display text-size-section font-semibold text-primary mb-2">
+            {{ description }}
+          </h3>
+          <p class="font-sans font-normal text-size-body opacity-80 max-w-sm mx-auto">
+            Sus datos personales y archivos están protegidos por nuestra Política de Protección de Datos Personales y Transparencia de la Información
+          </p>
         </div>
       </div>
+    }
 
-      <button (click)="removeFile()" class="text-gray-400 hover:text-danger transition-colors">
-        <span class="material-symbols-outlined">close</span>
-      </button>
-    </div>
-  }
-</p-dialog>
+    @if (uploadedFile) {
+      <div class="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 mt-2">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-danger">{{ uploadedFileIcon }}</span>
+          <div>
+            <p class="font-semibold text-size-body">{{ uploadedFile.name }}</p>
+            <p class="text-size-role-footer opacity-70">Subido por: {{ uploadedBy }}</p>
+          </div>
+        </div>
+
+        <button (click)="removeFile()" class="text-gray-400 hover:text-danger transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    }
+  </p-dialog>
+}

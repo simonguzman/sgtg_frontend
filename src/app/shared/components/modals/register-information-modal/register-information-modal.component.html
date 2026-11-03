@@ -1,104 +1,106 @@
-<p-dialog
-  [visible]="isOpen"
-  (visibleChange)="isOpen = $event"
-  (onHide)="closeModal()"
-  [modal]="true"
-  styleClass="custom-modal"
-  [draggable]="false"
-  [resizable]="false"
-  [style]="{ width: '500px' }"
->
-  <ng-template pTemplate="header">
-    <h2 class="text-primary font-semibold font-display text-size-modal-title">
-      {{ modalHeader }}
-    </h2>
-  </ng-template>
-  <div class="flex flex-col gap-6 pt-2">
-    <section>
-      <h3 class="text-primary font-semibold font-display text-size-header-title mb-4">
-        {{ subTitle }}
-      </h3>
-      <div class="grid grid-cols-[150px_1fr] gap-x-3 gap-y-4 items-start font-sans text-size-body">
-        <p class="font-bold text-primary m-0">Título:</p>
-        <p class="m-0 text-gray-700 wrap-break-word">{{ title }}</p>
-        @if (fields) {
-          @for (field of fields; track field.label) {
-            <p class="font-bold text-primary m-0">{{ field.label }}:</p>
-            @if (field.values) {
-              <ul class="m-0 pl-5 list-disc flex flex-col gap-1 text-gray-700 wrap-break-word">
-                @for (value of field.values; track $index) {
-                  <li>{{ value }}</li>
-                }
-              </ul>
-            } @else {
-              <p class="m-0 text-gray-700 whitespace-pre-line wrap-break-word">{{ field.value }}</p>
+@if (yaSeAbrio) {
+  <p-dialog
+    [visible]="isOpen"
+    (visibleChange)="isOpen = $event"
+    (onHide)="closeModal()"
+    [modal]="true"
+    styleClass="custom-modal"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '500px' }"
+  >
+    <ng-template pTemplate="header">
+      <h2 class="text-primary font-semibold font-display text-size-modal-title">
+        {{ modalHeader }}
+      </h2>
+    </ng-template>
+    <div class="flex flex-col gap-6 pt-2">
+      <section>
+        <h3 class="text-primary font-semibold font-display text-size-header-title mb-4">
+          {{ subTitle }}
+        </h3>
+        <div class="grid grid-cols-[150px_1fr] gap-x-3 gap-y-4 items-start font-sans text-size-body">
+          <p class="font-bold text-primary m-0">Título:</p>
+          <p class="m-0 text-gray-700 wrap-break-word">{{ title }}</p>
+          @if (fields) {
+            @for (field of fields; track field.label) {
+              <p class="font-bold text-primary m-0">{{ field.label }}:</p>
+              @if (field.values) {
+                <ul class="m-0 pl-5 list-disc flex flex-col gap-1 text-gray-700 wrap-break-word">
+                  @for (value of field.values; track $index) {
+                    <li>{{ value }}</li>
+                  }
+                </ul>
+              } @else {
+                <p class="m-0 text-gray-700 whitespace-pre-line wrap-break-word">{{ field.value }}</p>
+              }
             }
+          } @else {
+            <p class="font-bold text-primary m-0">Descripción:</p>
+            <p class="m-0 text-gray-700 whitespace-pre-line wrap-break-word">{{ comments || 'Sin descripción registrada' }}</p>
           }
-        } @else {
-          <p class="font-bold text-primary m-0">Descripción:</p>
-          <p class="m-0 text-gray-700 whitespace-pre-line wrap-break-word">{{ comments || 'Sin descripción registrada' }}</p>
-        }
-        <p class="font-bold text-primary m-0">Modalidad:</p>
-        <p class="m-0 text-gray-700">{{ modality }}</p>
-        <p class="font-bold text-primary m-0">Estudiante:</p>
-        <p class="m-0 text-gray-700">{{ student }}</p>
-        <p class="font-bold text-primary m-0">Director:</p>
-        <p class="m-0 text-gray-700">{{ director }}</p>
-        @if (codirector) {
-          <p class="font-bold text-primary m-0">Codirector:</p>
-          <p class="m-0 text-gray-700">{{ codirector }}</p>
-        }
-        @if (adviser) {
-          <p class="font-bold text-primary m-0">Asesor:</p>
-          <p class="m-0 text-gray-700">{{ adviser }}</p>
-        }
-        <p class="font-bold text-primary m-0">Fecha de carga:</p>
-        <p class="m-0 text-gray-700">{{ chargeDate | date: 'dd - MM - yyyy' }}</p>
-        <p class="font-bold text-primary m-0">Estado:</p>
-        <div>
-          @if (state) {
-            <app-state [state]="state" [label]="state"></app-state>
+          <p class="font-bold text-primary m-0">Modalidad:</p>
+          <p class="m-0 text-gray-700">{{ modality }}</p>
+          <p class="font-bold text-primary m-0">Estudiante:</p>
+          <p class="m-0 text-gray-700">{{ student }}</p>
+          <p class="font-bold text-primary m-0">Director:</p>
+          <p class="m-0 text-gray-700">{{ director }}</p>
+          @if (codirector) {
+            <p class="font-bold text-primary m-0">Codirector:</p>
+            <p class="m-0 text-gray-700">{{ codirector }}</p>
+          }
+          @if (adviser) {
+            <p class="font-bold text-primary m-0">Asesor:</p>
+            <p class="m-0 text-gray-700">{{ adviser }}</p>
+          }
+          <p class="font-bold text-primary m-0">Fecha de carga:</p>
+          <p class="m-0 text-gray-700">{{ chargeDate | date: 'dd - MM - yyyy' }}</p>
+          <p class="font-bold text-primary m-0">Estado:</p>
+          <div>
+            @if (state) {
+              <app-state [state]="state" [label]="state"></app-state>
+            }
+          </div>
+        </div>
+      </section>
+
+    <section>
+      <h3 class="text-primary font-semibold font-display text-size-header-title mb-2">
+        Archivos adjuntos
+      </h3>
+      @if (documents && documents.length > 0) {
+        <div class="flex flex-col gap-3"> @for (doc of documents; track doc) {
+
+            <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border border-gray-100 shadow-sm transition-hover hover:bg-gray-50/50">
+
+              <div class="flex items-center gap-3 pr-4 overflow-hidden">
+                <span class="material-symbols-outlined text-danger text-3xl shrink-0">
+                  picture_as_pdf </span>
+
+                <div class="grow overflow-hidden">
+                  <p class="font-sans text-size-body text-gray-700 m-0 truncate" [pTooltip]="doc">
+                    {{ doc }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="shrink-0">
+                <app-button-component
+                  [label]="'Descargar'"
+                  [variant]="'primary'"
+                  (onClick)="downloadFile(doc)"
+                ></app-button-component>
+              </div>
+
+            </div>
           }
         </div>
-      </div>
+      } @else {
+        <p class="font-sans text-size-body text-gray-700 m-0">
+          No han sido cargados archivos a la evaluación.
+        </p>
+      }
     </section>
-
-  <section>
-    <h3 class="text-primary font-semibold font-display text-size-header-title mb-2">
-      Archivos adjuntos
-    </h3>
-    @if (documents && documents.length > 0) {
-      <div class="flex flex-col gap-3"> @for (doc of documents; track doc) {
-
-          <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border border-gray-100 shadow-sm transition-hover hover:bg-gray-50/50">
-
-            <div class="flex items-center gap-3 pr-4 overflow-hidden">
-              <span class="material-symbols-outlined text-danger text-3xl shrink-0">
-                picture_as_pdf </span>
-
-              <div class="grow overflow-hidden">
-                <p class="font-sans text-size-body text-gray-700 m-0 truncate" [pTooltip]="doc">
-                  {{ doc }}
-                </p>
-              </div>
-            </div>
-
-            <div class="shrink-0">
-              <app-button-component
-                [label]="'Descargar'"
-                [variant]="'primary'"
-                (onClick)="downloadFile(doc)"
-              ></app-button-component>
-            </div>
-
-          </div>
-        }
-      </div>
-    } @else {
-      <p class="font-sans text-size-body text-gray-700 m-0">
-        No han sido cargados archivos a la evaluación.
-      </p>
-    }
-  </section>
-  </div>
-</p-dialog>
+    </div>
+  </p-dialog>
+}
