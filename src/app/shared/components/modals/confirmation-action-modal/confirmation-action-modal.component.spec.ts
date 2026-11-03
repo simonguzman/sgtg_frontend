@@ -58,6 +58,24 @@ describe('ConfirmationActionModalComponent', () => {
     });
   });
 
+  describe('Creación del diálogo', () => {
+    it('no crea el p-dialog hasta que la ventana se abre y lo conserva al cerrarse', () => {
+      const dialogo = () => fixture.nativeElement.querySelector('p-dialog');
+      fixture.detectChanges();
+      expect(dialogo()).toBeNull();
+
+      fixture.componentRef.setInput('isOpen', true);
+      fixture.detectChanges();
+      expect(dialogo()).not.toBeNull();
+
+      // Al cerrarse se conserva, para que la animación de cierre termine
+      fixture.componentRef.setInput('isOpen', false);
+      fixture.detectChanges();
+      expect(dialogo()).not.toBeNull();
+      expect(component.yaSeAbrio).toBe(true);
+    });
+  });
+
   describe('Interacciones y Emisión de Eventos (Outputs)', () => {
     it('debería emitir onClose al presionar el botón Cancelar en el DOM', () => {
       const cancelSpy = jest.spyOn(component.onClose, 'emit');

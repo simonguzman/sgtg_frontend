@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonComponent } from '../../button-component/button-component.component';
@@ -28,7 +28,20 @@ export const passwordMatchValidator = (control: AbstractControl): ValidationErro
 })
 export class ChangePasswordModalComponent {
 
-  @Input() isOpen = false;
+  /**
+   * Si la ventana está abierta. El p-dialog se crea la primera vez que se abre ({@link yaSeAbrio}): las
+   * páginas tienen varias ventanas que casi nunca se abren y crearlas todas al cargar hacía más lenta la página.
+   */
+  @Input() set isOpen(valor: boolean) {
+    this._isOpen = valor;
+    if (valor) this.yaSeAbrio = true;
+  }
+  get isOpen(): boolean {
+    return this._isOpen;
+  }
+  private _isOpen = false;
+  /** Se abrió al menos una vez: desde entonces el p-dialog existe (y se conserva para la animación de cierre). */
+  yaSeAbrio = false;
   @Output() onClose = new EventEmitter<void>();
 
   private readonly fb = inject(FormBuilder);
@@ -36,7 +49,8 @@ export class ChangePasswordModalComponent {
   private readonly notificationService = inject(NotificationService);
 
   readonly mensajePredecible = PASSWORD_PREDECIBLE;
-  isLoading = false;
+  // Signal: se apaga dentro de la respuesta del backend y la vista debe enterarse (sin zone.js)
+  readonly isLoading = signal(false);
   isConfirmActionOpen = false;
   showCurrentPassword = false;
   showNewPassword = false;
@@ -73,19 +87,19 @@ export class ChangePasswordModalComponent {
 
   confirmChange() {
     this.isConfirmActionOpen = false;
-    this.isLoading = true;
+    this.isLoading.set(true);
 
     const { currentPassword, newPassword } = this.passwordForm.value;
 
     this.authService.changePassword(currentPassword, newPassword).subscribe({
       next: (response) => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.notificationService.success('Contraseña actualizada', response.message);
         this.closeModal();
       },
       error: (err: Error) => {
         // El modal sigue abierto para que el usuario corrija los datos
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.notificationService.error('No se cambió la contraseña', err.message);
       }
     });

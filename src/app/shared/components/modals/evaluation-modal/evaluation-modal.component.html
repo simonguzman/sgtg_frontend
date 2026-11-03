@@ -1,83 +1,85 @@
-<p-dialog
-  [visible]="isOpen"
-  (visibleChange)="isOpen = $event"
-  (onHide)="closeModal()"
-  [modal]="true"
-  styleClass="custom-modal"
-  [draggable]="false"
-  [resizable]="false"
-  [style]="{ width: '500px' }"
->
-  <ng-template pTemplate="header">
-    <h2 class="text-primary font-semibold font-display text-size-modal-title">
-      Detalles de la evaluación
-    </h2>
-  </ng-template>
-  <div class="flex flex-col gap-6 pt-2"> <section>
-    <h3 class="text-primary font-semibold font-display text-size-header-title mb-4">
-      Información del {{role}}
-    </h3>
-    <div class="grid grid-cols-[150px_1fr] gap-y-4 items-center font-sans text-size-body">
-      <p class="font-bold text-primary m-0">Nombre:</p>
-      <p class="m-0 text-gray-700">{{ name }}</p>
-      <p class="font-bold text-primary m-0">Rol:</p>
-      <p class="m-0 text-gray-700">{{ role }}</p>
-      <p class="font-bold text-primary m-0">Fecha de evaluación:</p>
-      <p class="m-0 text-gray-700">{{ evaluationDate | date: 'dd - MM - yyyy' }}</p>
-      <p class="font-bold text-primary m-0">Resultado</p>
-      <div>
-        @if (state) {
-          <app-state [state]="state" [label]="state"></app-state>
-        }
+@if (yaSeAbrio) {
+  <p-dialog
+    [visible]="isOpen"
+    (visibleChange)="isOpen = $event"
+    (onHide)="closeModal()"
+    [modal]="true"
+    styleClass="custom-modal"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '500px' }"
+  >
+    <ng-template pTemplate="header">
+      <h2 class="text-primary font-semibold font-display text-size-modal-title">
+        Detalles de la evaluación
+      </h2>
+    </ng-template>
+    <div class="flex flex-col gap-6 pt-2"> <section>
+      <h3 class="text-primary font-semibold font-display text-size-header-title mb-4">
+        Información del {{role}}
+      </h3>
+      <div class="grid grid-cols-[150px_1fr] gap-y-4 items-center font-sans text-size-body">
+        <p class="font-bold text-primary m-0">Nombre:</p>
+        <p class="m-0 text-gray-700">{{ name }}</p>
+        <p class="font-bold text-primary m-0">Rol:</p>
+        <p class="m-0 text-gray-700">{{ role }}</p>
+        <p class="font-bold text-primary m-0">Fecha de evaluación:</p>
+        <p class="m-0 text-gray-700">{{ evaluationDate | date: 'dd - MM - yyyy' }}</p>
+        <p class="font-bold text-primary m-0">Resultado</p>
+        <div>
+          @if (state) {
+            <app-state [state]="state" [label]="state"></app-state>
+          }
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section>
-    <h3 class="text-primary font-semibold font-display text-size-header-title mb-2">
-      Comentarios de la evaluación
-    </h3>
-    <p class="font-sans text-size-body text-gray-700 leading-relaxed text-justify m-0">
-      {{ comments || 'No hay comentarios registrados' }}
-    </p>
-  </section>
-
-  <section>
-    <h3 class="text-primary font-semibold font-display text-size-header-title mb-2">
-      Archivos adjuntos
-    </h3>
-    @if (documents && documents.length > 0) {
-      <div class="flex flex-col gap-3"> @for (doc of documents; track doc) {
-
-          <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border border-gray-100 shadow-sm transition-hover hover:bg-gray-50/50">
-
-            <div class="flex items-center gap-3 pr-4 overflow-hidden">
-              <span class="material-symbols-outlined text-danger text-3xl shrink-0">
-                picture_as_pdf </span>
-
-              <div class="grow overflow-hidden">
-                <p class="font-sans text-size-body text-text-body m-0 truncate" [pTooltip]="doc.name">
-                  {{ doc.name }}
-                </p>
-              </div>
-            </div>
-
-            <div class="shrink-0">
-              <app-button-component
-                [label]="'Descargar'"
-                [variant]="'primary'"
-                (onClick)="downloadFile(doc)"
-              ></app-button-component>
-            </div>
-
-          </div>
-        }
-      </div>
-    } @else {
-      <p class="font-sans text-size-body text-gray-700 m-0">
-        No han sido cargados archivos a la evaluación.
+    <section>
+      <h3 class="text-primary font-semibold font-display text-size-header-title mb-2">
+        Comentarios de la evaluación
+      </h3>
+      <p class="font-sans text-size-body text-gray-700 leading-relaxed text-justify m-0">
+        {{ comments || 'No hay comentarios registrados' }}
       </p>
-    }
-  </section>
-  </div>
-</p-dialog>
+    </section>
+
+    <section>
+      <h3 class="text-primary font-semibold font-display text-size-header-title mb-2">
+        Archivos adjuntos
+      </h3>
+      @if (documents && documents.length > 0) {
+        <div class="flex flex-col gap-3"> @for (doc of documents; track doc) {
+
+            <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border border-gray-100 shadow-sm transition-hover hover:bg-gray-50/50">
+
+              <div class="flex items-center gap-3 pr-4 overflow-hidden">
+                <span class="material-symbols-outlined text-danger text-3xl shrink-0">
+                  picture_as_pdf </span>
+
+                <div class="grow overflow-hidden">
+                  <p class="font-sans text-size-body text-text-body m-0 truncate" [pTooltip]="doc.name">
+                    {{ doc.name }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="shrink-0">
+                <app-button-component
+                  [label]="'Descargar'"
+                  [variant]="'primary'"
+                  (onClick)="downloadFile(doc)"
+                ></app-button-component>
+              </div>
+
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="font-sans text-size-body text-gray-700 m-0">
+          No han sido cargados archivos a la evaluación.
+        </p>
+      }
+    </section>
+    </div>
+  </p-dialog>
+}

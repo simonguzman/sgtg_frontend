@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import type { jsPDF } from 'jspdf';
+import type autoTableFn from 'jspdf-autotable';
 import { DEADLINE_FILTER_OPTIONS, StatisticsFilters } from '../interfaces/statisticsFilters.interface';
 import { RawProjectData } from '../interfaces/rawProjectData.interface';
 import { StatisticsReportKpis } from '../interfaces/statisticsReportKpis.interface';
@@ -46,18 +46,20 @@ const stageLabel = (stage: string) => STAGE_OPTIONS.find(option => option.value 
 @Injectable({ providedIn: 'root' })
 export class StatisticsReportService {
 
-  public downloadPdfReport(
+  /** Las librerías del PDF se cargan solo al exportar, como la del Excel. */
+  public async downloadPdfReport(
     filters: StatisticsFilters,
     data: RawProjectData[],
     kpis: StatisticsReportKpis,
     context: StatisticsReportContext
-  ): void {
+  ): Promise<void> {
+    const [{ jsPDF }, { default: autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
     const doc = new jsPDF('p', 'mm', 'a4');
 
     this.addHeader(doc, context.scope);
     this.addFiltersSection(doc, filters, context.directorName);
     this.addKpiSection(doc, kpis);
-    this.addDataTable(doc, data);
+    this.addDataTable(doc, data, autoTable);
 
     doc.save(`${this.fileName()}.pdf`);
   }
@@ -203,7 +205,7 @@ export class StatisticsReportService {
     this.kpiLines(kpis).forEach(([label, value], i) => doc.text(`• ${label}: ${value}`, 110, 54 + i * 6));
   }
 
-  private addDataTable(doc: jsPDF, data: RawProjectData[]): void {
+  private addDataTable(doc: jsPDF, data: RawProjectData[], autoTable: typeof autoTableFn): void {
     autoTable(doc, {
       startY: 98,
       head: [TABLE_HEADERS],

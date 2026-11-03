@@ -1,21 +1,23 @@
-<p-dialog
-  [visible]="isOpen"
-  (visibleChange)="isOpen = $event"
-  (onHide)="closeModal()"
-  [modal]="true"
-  styleClass="custom-modal"
-  [draggable]="false"
-  [resizable]="false"
-  [style]="{ width: '500px' }"
->
-  <ng-template pTemplate="header">
-    <h2 class="text-primary font-bold font-display text-size-sidebar-title m-0">
-      {{ titleDescription }}
-    </h2>
-  </ng-template>
-  <div class="flex flex-col py-4 px-1">
-    <p class="text-gray-700 font-sans text-size-section text-justify leading-relaxed m-0">
-      {{ description }}
-    </p>
-  </div>
-</p-dialog>
+@if (yaSeAbrio) {
+  <p-dialog
+    [visible]="isOpen"
+    (visibleChange)="isOpen = $event"
+    (onHide)="closeModal()"
+    [modal]="true"
+    styleClass="custom-modal"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '500px' }"
+  >
+    <ng-template pTemplate="header">
+      <h2 class="text-primary font-bold font-display text-size-sidebar-title m-0">
+        {{ titleDescription }}
+      </h2>
+    </ng-template>
+    <div class="flex flex-col py-4 px-1">
+      <p class="text-gray-700 font-sans text-size-section text-justify leading-relaxed m-0">
+        {{ description }}
+      </p>
+    </div>
+  </p-dialog>
+}

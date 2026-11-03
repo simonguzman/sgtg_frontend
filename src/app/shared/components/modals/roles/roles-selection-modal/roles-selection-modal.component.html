@@ -1,30 +1,32 @@
-<p-dialog [(visible)]="isOpen" (onHide)="close()" [modal]="true" [style]="{ width: '450px' }">
-  <ng-template pTemplate="header">
-    <div class="w-full text-center">
-      <h2 class="text-primary font-bold text-size-sidebar-title m-0">Asignar roles</h2>
-    </div>
-  </ng-template>
-
-  <div class="flex flex-col gap-3 py-4">
-    @for (role of editableRoles; track role.type) {
-      <div class="flex justify-between items-center py-1">
-        <span class="text-gray-700">• {{ role.type }}</span>
-        @if (role.locked) {
-          <!-- Lo asigna el administrador o el sistema -->
-          <span class="text-size-role-footer text-text-body">{{ role.assigned ? 'Asignado' : 'No asignado' }}</span>
-        } @else {
-          <app-button-component
-            [label]="role.assigned ? 'Deshabilitar rol' : 'Asignar rol'"
-            [variant]="role.assigned ? 'secondary' : 'primary'"
-            (onClick)="toggleRole(role)"
-          ></app-button-component>
-        }
+@if (yaSeAbrio) {
+  <p-dialog [(visible)]="isOpen" (onHide)="close()" [modal]="true" [style]="{ width: '450px' }">
+    <ng-template pTemplate="header">
+      <div class="w-full text-center">
+        <h2 class="text-primary font-bold text-size-sidebar-title m-0">Asignar roles</h2>
       </div>
-    }
+    </ng-template>
 
-    <div class="flex justify-end gap-2">
-      <app-button-component label="Salir" variant="secondary" (onClick)="close()"></app-button-component>
-      <app-button-component label="Guardar" variant="primary" (onClick)="save()"></app-button-component>
+    <div class="flex flex-col gap-3 py-4">
+      @for (role of editableRoles; track role.type) {
+        <div class="flex justify-between items-center py-1">
+          <span class="text-gray-700">• {{ role.type }}</span>
+          @if (role.locked) {
+            <!-- Lo asigna el administrador o el sistema -->
+            <span class="text-size-role-footer text-text-body">{{ role.assigned ? 'Asignado' : 'No asignado' }}</span>
+          } @else {
+            <app-button-component
+              [label]="role.assigned ? 'Deshabilitar rol' : 'Asignar rol'"
+              [variant]="role.assigned ? 'secondary' : 'primary'"
+              (onClick)="toggleRole(role)"
+            ></app-button-component>
+          }
+        </div>
+      }
+
+      <div class="flex justify-end gap-2">
+        <app-button-component label="Salir" variant="secondary" (onClick)="close()"></app-button-component>
+        <app-button-component label="Guardar" variant="primary" (onClick)="save()"></app-button-component>
+      </div>
     </div>
-  </div>
-</p-dialog>
+  </p-dialog>
+}

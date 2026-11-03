@@ -211,7 +211,7 @@ describe('ChangePasswordModalComponent', () => {
       component.confirmChange();
 
       expect(component.isConfirmActionOpen).toBeFalsy();
-      expect(component.isLoading).toBeFalsy();
+      expect(component.isLoading()).toBeFalsy();
       expect(authServiceMock.changePassword).toHaveBeenCalledWith('old_password', 'new_password_long');
       expect(authServiceMock.changePassword).toHaveBeenCalledTimes(1);
       expect(closeSpy).toHaveBeenCalledTimes(1);
@@ -234,7 +234,7 @@ describe('ChangePasswordModalComponent', () => {
       component.confirmChange();
 
       expect(component.isConfirmActionOpen).toBeFalsy();
-      expect(component.isLoading).toBeFalsy();
+      expect(component.isLoading()).toBeFalsy();
       expect(authServiceMock.changePassword).toHaveBeenCalledTimes(1);
       expect(closeSpy).not.toHaveBeenCalled(); // No debe cerrarse el modal si hay error
 

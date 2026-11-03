@@ -5,6 +5,9 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 import { UserService } from '../../../../users/services/user.service';
 
+/** Mismo texto que toLocaleDateString('es-ES'), con un solo formateador para toda la tabla */
+const FECHA_CORTA = new Intl.DateTimeFormat('es-ES');
+
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkPageMapperService {
   private readonly userService = inject(UserService);
@@ -32,7 +35,7 @@ export class ThesisWorkPageMapperService {
   private formatMaxDeliveryDate(rawDate?: Date | string): string {
     if (!rawDate) return 'No asignada';
     const dateObj = new Date(rawDate);
-    return Number.isNaN(dateObj.getTime()) ? 'No asignada' : dateObj.toLocaleDateString('es-ES');
+    return Number.isNaN(dateObj.getTime()) ? 'No asignada' : FECHA_CORTA.format(dateObj);
   }
 
   private buildHiddenParticipants(thesisWork: ThesisWork): string {

@@ -1,34 +1,36 @@
-<p-dialog
-  [visible]="isOpen"
-  (visibleChange)="isOpen = $event"
-  (onHide)="closeModal()"
-  [modal]="true"
-  styleClass="custom-modal"
-  [draggable]="false"
-  [resizable]="false"
-  [style]="{ width: '500px' }"
->
-  <ng-template pTemplate="header">
-    <h2 class="text-primary font-bold font-display text-size-sidebar-title w-full text-justify m-0">
-      Estimad@ usuario
-    </h2>
-  </ng-template>
-  <div class="flex flex-col gap-8 py-4 px-2 text-center">
-    <p class="text-gray-700 font-sans text-size-section text-justify leading-relaxed m-0">
-      {{ description }}
-    </p>
-    <div class="flex justify-end gap-2">
-      <app-button-component
-        label="Cancelar"
-        variant="secondary"
-        (onClick)="closeModal()"
-      ></app-button-component>
-      <app-button-component
-        label="Aceptar"
-        variant="primary"
-        [disabled]="confirmed"
-        (onClick)="confirmAction()"
-      ></app-button-component>
+@if (yaSeAbrio) {
+  <p-dialog
+    [visible]="isOpen"
+    (visibleChange)="isOpen = $event"
+    (onHide)="closeModal()"
+    [modal]="true"
+    styleClass="custom-modal"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: '500px' }"
+  >
+    <ng-template pTemplate="header">
+      <h2 class="text-primary font-bold font-display text-size-sidebar-title w-full text-justify m-0">
+        Estimad@ usuario
+      </h2>
+    </ng-template>
+    <div class="flex flex-col gap-8 py-4 px-2 text-center">
+      <p class="text-gray-700 font-sans text-size-section text-justify leading-relaxed m-0">
+        {{ description }}
+      </p>
+      <div class="flex justify-end gap-2">
+        <app-button-component
+          label="Cancelar"
+          variant="secondary"
+          (onClick)="closeModal()"
+        ></app-button-component>
+        <app-button-component
+          label="Aceptar"
+          variant="primary"
+          [disabled]="confirmed"
+          (onClick)="confirmAction()"
+        ></app-button-component>
+      </div>
     </div>
-  </div>
-</p-dialog>
+  </p-dialog>
+}
