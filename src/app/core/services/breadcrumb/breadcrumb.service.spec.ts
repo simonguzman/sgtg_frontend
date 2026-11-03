@@ -8,7 +8,7 @@ import {
   NavigationStart
 } from '@angular/router';
 import { Title } from '@angular/platform-browser';
-import { Observable, Subject } from 'rxjs';
+import { Subject } from 'rxjs';
 import { BreadcrumbService } from './breadcrumb.service';
 import { buildBreadcrumbTrail } from './helpers/breadcrumb-builder.helper';
 import { BreadcrumbItem } from '../../interfaces/breadcrumb-item.interface';

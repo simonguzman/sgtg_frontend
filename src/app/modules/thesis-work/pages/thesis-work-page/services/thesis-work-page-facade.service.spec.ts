@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal, WritableSignal } from '@angular/core';
-import { of, throwError, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { ThesisWorkPageFacadeService } from './thesis-work-page-facade.service';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';

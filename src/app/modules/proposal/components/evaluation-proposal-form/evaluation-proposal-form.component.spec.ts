@@ -83,8 +83,12 @@ describe('EvaluationProposalFormComponent', () => {
       expect(component).toBeTruthy();
     });
     it('debería consultar el documento original y actual a través del servicio', () => {
-      const orig = component.originalDocument;
-      const curr = component.currentDocument;
+      const original = { name: 'original.pdf' };
+      const actual = { name: 'actual.pdf' };
+      formServiceMock.resolveOriginalDocument.mockReturnValue(original);
+      formServiceMock.resolveCurrentDocument.mockReturnValue(actual);
+      expect(component.originalDocument).toBe(original);
+      expect(component.currentDocument).toBe(actual);
       expect(formServiceMock.resolveOriginalDocument).toHaveBeenCalledWith(mockProposal);
       expect(formServiceMock.resolveCurrentDocument).toHaveBeenCalledWith(mockProposal);
     });

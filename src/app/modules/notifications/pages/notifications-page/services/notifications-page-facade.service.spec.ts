@@ -3,7 +3,7 @@ import { signal, WritableSignal } from '@angular/core';
 import { NotificationsPageFacadeService } from './notifications-page-facade.service';
 import { InboxService } from '../../../services/inbox.service';
 import { NotificationsPageMapperService } from './notifications-page-mapper.service';
-import { InboxMessage, InboxStatus } from '../../../interfaces/inbox-message.interface';
+import { InboxMessage } from '../../../interfaces/inbox-message.interface';
 import { InboxMessageTableRow } from '../../../models/notifications-page.model';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 

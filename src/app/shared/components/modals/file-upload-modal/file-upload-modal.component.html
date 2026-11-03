@@ -13,7 +13,7 @@
     @if (!uploadedFile) {
       <div class="text-center flex flex-col items-center justify-center p-4">
         <span class="material-symbols-outlined upload-icon text-primary mb-4">upload</span>
-        <div class="text-center cursor-pointer" (click)="fileInput.click()">
+        <div class="text-center cursor-pointer" (click)="fileInput.click()" role="button" tabindex="0" (keydown.enter)="fileInput.click()" (keydown.space)="$event.preventDefault(); fileInput.click()">
           <h3 class="font-display text-size-section font-semibold text-primary mb-2">
             {{ description }}
           </h3>

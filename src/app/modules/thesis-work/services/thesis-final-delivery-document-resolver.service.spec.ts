@@ -1,8 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import {
-  ThesisFinalDeliveryDocumentResolverService,
-  FinalDeliveryDocType
-} from './thesis-final-delivery-document-resolver.service';
+import { ThesisFinalDeliveryDocumentResolverService } from './thesis-final-delivery-document-resolver.service';
 import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
 import { DocumentType } from '../../../core/enums/document-type.enum';

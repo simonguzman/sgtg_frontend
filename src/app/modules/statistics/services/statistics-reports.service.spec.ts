@@ -235,7 +235,7 @@ describe('StatisticsReportService', () => {
       expect(descargas[0].nombre).toMatch(/^Reporte_Academico_\d+\.csv$/);
       // BOM UTF-8: Excel lee bien las tildes
       expect(Array.from((await bytes(descargas[0].blob)).slice(0, 3))).toEqual([0xEF, 0xBB, 0xBF]);
-      const lineas = (await leer(descargas[0].blob)).replace(/^﻿/, '').split('\r\n');
+      const lineas = (await leer(descargas[0].blob)).replace(/^\uFEFF/, '').split('\r\n');
       expect(lineas[0]).toBe('#;Título del trabajo;Modalidad;Programa;Etapa;Estado;Director;Periodo');
       // Con el separador o comillas: entre comillas y con las comillas dobladas
       expect(lineas[1]).toBe('1;"Sistema; de ""gestión""";Trabajo de investigación;Ingeniería de Sistemas;'

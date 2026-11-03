@@ -86,7 +86,8 @@ export class EvaluateAdvanceFormComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['alreadyEvaluated']) {
-      this.isReadOnly ? this.evaluationForm.disable() : this.evaluationForm.enable();
+      if (this.isReadOnly) this.evaluationForm.disable();
+      else this.evaluationForm.enable();
     }
   }
 }

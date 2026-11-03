@@ -258,7 +258,7 @@ describe('RegisterSustentationPageComponent', () => {
       component.pendingData.set({ payload: createMockPayload(), file: new File([''], '') });
       const goBackSpy = jest.spyOn(component, 'goBack');
 
-      facadeMock.processSustentation.mockImplementation((id, p, f, onSuccess, onError) => {
+      facadeMock.processSustentation.mockImplementation((id, p, f, onSuccess, _onError) => {
         onSuccess();
       });
 

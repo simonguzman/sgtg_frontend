@@ -60,7 +60,7 @@ export class EvaluateAdvancePageComponent implements OnInit {
     this.facade.loadThesisWork(
       thesisId,
       (thesisWork) => this.thesisWorkState.set(thesisWork),
-      () => { }
+      () => { /* El facade ya mostró el aviso; la página queda sin trabajo cargado */ }
     );
   }
 

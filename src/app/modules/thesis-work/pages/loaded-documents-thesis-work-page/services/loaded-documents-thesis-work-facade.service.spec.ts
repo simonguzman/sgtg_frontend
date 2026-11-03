@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { of, throwError, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { LoadedDocumentsThesisWorkFacadeService } from './loaded-documents-thesis-work-facade.service';
 import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
@@ -9,17 +9,10 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Advance } from '../../../interfaces/advance.interface';
-import { ThesisWork } from '../../../interfaces/thesis-work.interface';
-import { User } from '../../../../users/interfaces/user.interface';
-import { IdentificationType } from '../../../../users/enum/identification-type.enum';
-import { UserState } from '../../../../users/enum/user-state.enum';
-import { Modality } from '../../../../proposal/enums/modality.enum';
-import { formatThesisDate } from '../../../helpers/thesis-date.helper';
 
 jest.mock('../../../../../core/utils/file-reader.utils', () => ({
   readFileAsDataUrl: jest.fn()
 }));
-import { readFileAsDataUrl } from '../../../../../core/utils/file-reader.utils';
 
 jest.mock('../../../helpers/thesis-date.helper', () => ({
   formatThesisDate: jest.fn().mockReturnValue('10 - 10 - 2026')
@@ -36,22 +29,6 @@ interface MockFileDownloadService {
 interface MockNotificationService {
   show: jest.Mock<void, [{ title: string; message: string; type: NotificationType }]>;
 }
-
-const createMockUser = (overrides: Partial<User> = {}): User => ({
-  id: 'u-1',
-  idType: IdentificationType.CC,
-  idNumber: 123456789,
-  firstName: 'Juan',
-  secondName: '',
-  lastName: 'Perez',
-  secondLastName: '',
-  codeNumber: 1234567890,
-  email: 'juan@test.com',
-  password: 'hash',
-  state: UserState.active,
-  roles: [],
-  ...overrides
-});
 
 const createMockFileDocument = (overrides: Partial<FileDocument> = {}): FileDocument => ({
   id: 'doc-1',
@@ -73,47 +50,6 @@ const createMockAdvance = (overrides: Partial<Advance> = {}): Advance => ({
   documents: [],
   ...overrides
 });
-
-const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork => {
-  const baseUser = createMockUser();
-  const baseThesis: Partial<ThesisWork> = {
-    thesisWorkId: 'tw-123',
-    preliminaryDraftId: 'draft-1',
-    documents: [],
-    evaluations: [],
-    specialRequests: [],
-    correctedDeliveries: [],
-    sustentations: [],
-    advances: [],
-    finalDeliveries: [],
-    pazYSalvos: [],
-    state: stateList.EN_DESARROLLO,
-    createdDate: new Date(),
-    isArchived: false,
-    preliminaryDraftData: {
-      preliminaryDraftId: 'draft-1',
-      proposalId: 'prop-1',
-      state: stateList.APROBADO,
-      createdData: new Date(),
-      evaluators: [],
-      evaluations: [],
-      documents: [],
-      proposalData: {
-        id: 'prop-1',
-        title: 'Título Mock',
-        description: 'Desc',
-        modality: Modality.TI,
-        authors: [baseUser],
-        director: baseUser,
-        state: stateList.APROBADO,
-        createdAt: new Date(),
-        documents: [],
-        evaluations: []
-      } as NonNullable<ThesisWork['preliminaryDraftData']>['proposalData']
-    } as NonNullable<ThesisWork['preliminaryDraftData']>
-  };
-  return { ...baseThesis, ...overrides } as ThesisWork;
-};
 
 describe('LoadedDocumentsThesisWorkFacadeService', () => {
   let service: LoadedDocumentsThesisWorkFacadeService;

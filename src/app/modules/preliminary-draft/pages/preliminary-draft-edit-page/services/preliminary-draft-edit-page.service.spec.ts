@@ -8,7 +8,6 @@ import { PreliminaryDraftService } from '../../../services/preliminary-draft.ser
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
-import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { User } from '../../../../users/interfaces/user.interface';
 import { stateList } from '../../../../../core/enums/state.enum';

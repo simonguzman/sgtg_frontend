@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, forwardRef, input, signal, computed, effect } from '@angular/core';
+import { Component, ElementRef, HostListener, forwardRef, input, signal, computed, effect, inject } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
@@ -33,8 +33,8 @@ export class SearchableSelectComponent implements ControlValueAccessor {
   searchTerm = signal<string>('');
   isDisabled = signal<boolean>(false);
 
-  onChange: (value: string) => void = () => {};
-  onTouched: () => void = () => {};
+  onChange: (value: string) => void = () => { /* lo reemplaza registerOnChange */ };
+  onTouched: () => void = () => { /* lo reemplaza registerOnTouched */ };
 
   filteredOptions = computed(() => {
     const term = this.searchTerm().toLowerCase();
@@ -47,7 +47,9 @@ export class SearchableSelectComponent implements ControlValueAccessor {
     return this.options().filter(option => option.label.toLowerCase().includes(term));
   });
 
-  constructor(private readonly eRef: ElementRef) {
+  private readonly eRef = inject(ElementRef);
+
+  constructor() {
     effect(() => {
       this.options();
       this.restoreLabel();

@@ -28,7 +28,8 @@ export class PreliminaryDraftEditPageService {
 
   init(): void {
     const preliminaryDraftId = this.route.snapshot.paramMap.get('id');
-    preliminaryDraftId ? this.loadPreliminaryDraftData(preliminaryDraftId) : this.router.navigate(['/preliminary-draft']);
+    if (preliminaryDraftId) this.loadPreliminaryDraftData(preliminaryDraftId);
+    else this.router.navigate(['/preliminary-draft']);
   }
 
   private loadPreliminaryDraftData(id: string): void {

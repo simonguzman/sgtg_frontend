@@ -44,9 +44,9 @@ class MockSearchableSelectComponent implements ControlValueAccessor {
   @Input() hasError = false;
   @Input() isValid = false;
 
-  writeValue(obj: unknown): void {}
-  registerOnChange(fn: unknown): void {}
-  registerOnTouched(fn: unknown): void {}
+  writeValue(_obj: unknown): void {}
+  registerOnChange(_fn: unknown): void {}
+  registerOnTouched(_fn: unknown): void {}
 }
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({

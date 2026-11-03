@@ -8,7 +8,7 @@ import { BreadcrumbService } from '../../../../core/services/breadcrumb/breadcru
 import { stateList } from '../../../../core/enums/state.enum';
 import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
-import { CorrectedDeliveryTableRow, CORRECTED_DOCUMENTS_COLUMNS } from './models/corrected-documents-page.model';
+import { CorrectedDeliveryTableRow } from './models/corrected-documents-page.model';
 import { CorrectedDelivery } from '../../interfaces/corrected-delivery.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { TableComponent, Column } from '../../../../shared/components/table-component/table-component.component';

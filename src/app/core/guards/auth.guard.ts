@@ -4,7 +4,7 @@ import { AuthService } from '../services/auth/auth.service';
 import { UserState } from '../../modules/users/enum/user-state.enum';
 import { CAMBIO_PASSWORD_URL } from './public.guard';
 
-export const authGuard: CanActivateFn = ( route, state ) => {
+export const authGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
   const user = authService.currentUser();

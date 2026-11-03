@@ -113,7 +113,7 @@ describe('EvaluationProposalPageComponent', () => {
 
     it('debería asignar la propuesta al Signal si la carga es exitosa', () => {
       (mockActivatedRoute.snapshot.paramMap.get as jest.Mock).mockReturnValue('123');
-      mockFacade.load.mockImplementation((id, onSuccess, onNotFound) => {
+      mockFacade.load.mockImplementation((id, onSuccess, _onNotFound) => {
         onSuccess(mockProposal);
       });
       fixture.detectChanges();

@@ -37,10 +37,13 @@ module.exports = tseslint.config(
     },
   },
   {
-    // En las pruebas, las funciones vacías se usan como mocks
+    // En las pruebas, las funciones vacías se usan como mocks; los mocks y espías se tipan con any, y los
+    // componentes falsos usan el selector del componente de PrimeNG que reemplazan (p-chart, p-select...)
     files: ["**/*.spec.ts"],
     rules: {
       "@typescript-eslint/no-empty-function": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "@angular-eslint/component-selector": "off",
     },
   },
   {

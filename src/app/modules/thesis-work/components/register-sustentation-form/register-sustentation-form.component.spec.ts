@@ -3,7 +3,7 @@ import { Component, Input, Output, EventEmitter, forwardRef } from '@angular/cor
 import { FormBuilder, Validators, FormGroup, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DatePicker } from 'primeng/datepicker';
-import { RegisterSustentationFormComponent, SustentationFormPayload } from './register-sustentation-form.component';
+import { RegisterSustentationFormComponent } from './register-sustentation-form.component';
 import { RegisterSustentationFormService } from './services/register-sustentation-form.service';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { User } from '../../../users/interfaces/user.interface';
@@ -53,9 +53,9 @@ class MockSearchableSelectComponent {
   @Input() placeholder = '';
   @Input() hasError = false;
   @Input() isValid = false;
-  writeValue(obj: any): void {}
-  registerOnChange(fn: any): void {}
-  registerOnTouched(fn: any): void {}
+  writeValue(_obj: any): void {}
+  registerOnChange(_fn: any): void {}
+  registerOnTouched(_fn: any): void {}
 }
 
 @Component({
@@ -70,9 +70,9 @@ class MockDatePickerComponent {
   @Input() placeholder = '';
   @Input() styleClass = '';
   @Input() inputStyleClass = '';
-  writeValue(obj: any): void {}
-  registerOnChange(fn: any): void {}
-  registerOnTouched(fn: any): void {}
+  writeValue(_obj: any): void {}
+  registerOnChange(_fn: any): void {}
+  registerOnTouched(_fn: any): void {}
 }
 
 interface MockRegisterSustentationFormService {

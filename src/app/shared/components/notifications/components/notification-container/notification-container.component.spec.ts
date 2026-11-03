@@ -23,7 +23,6 @@ const createMockNotification = (overrides: Partial<Notification> = {}): Notifica
 });
 
 describe('NotificationContainerComponent', () => {
-  let component: NotificationContainerComponent;
   let fixture: ComponentFixture<NotificationContainerComponent>;
   let notificationsMockSignal: WritableSignal<Notification[]>;
   let dismissMock: jest.Mock<void, [string]>;
@@ -57,7 +56,6 @@ describe('NotificationContainerComponent', () => {
     .compileComponents();
 
     fixture = TestBed.createComponent(NotificationContainerComponent);
-    component = fixture.componentInstance;
     fixture.detectChanges();
   });
 

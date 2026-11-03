@@ -2,10 +2,8 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { By } from '@angular/platform-browser';
 import { NotificationContainerComponent } from '../components/notification-container/notification-container.component';
 import { NotificationService } from '../services/notification.service';
-import { NotificationType } from '../models/notification.model';
 
 describe('Integración [Shared]: Flujo E2E de Notificaciones (Servicio ➔ Contenedor ➔ Ítem)', () => {
-  let component: NotificationContainerComponent;
   let fixture: ComponentFixture<NotificationContainerComponent>;
   let service: NotificationService;
 
@@ -26,7 +24,6 @@ describe('Integración [Shared]: Flujo E2E de Notificaciones (Servicio ➔ Conte
     }).compileComponents();
 
     fixture = TestBed.createComponent(NotificationContainerComponent);
-    component = fixture.componentInstance;
     service = TestBed.inject(NotificationService);
     fixture.detectChanges();
   });

@@ -20,7 +20,8 @@
   @if (isClearable() && value() && !isDisabled()) {
     <span
       class="material-symbols-outlined absolute right-3 cursor-pointer text-text-body hover:text-danger transition-colors z-10"
-      (click)="clearSelection($event)"
+      (click)="clearSelection($event)" role="button" tabindex="0" aria-label="Limpiar selección"
+      (keydown.enter)="clearSelection($event)" (keydown.space)="$event.preventDefault(); clearSelection($event)"
       title="Limpiar selección">
       close
     </span>

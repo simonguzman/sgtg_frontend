@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { signal, WritableSignal, Component, Input, Output, EventEmitter } from '@angular/core';
 import { NotificationsPageComponent } from './notifications-page.component';
 import { NotificationsPageFacadeService } from './services/notifications-page-facade.service';
-import { InboxMessageTableRow, ModalActionType } from './../../models/notifications-page.model';
+import { InboxMessageTableRow } from './../../models/notifications-page.model';
 import { TableButton } from '../../../../shared/components/table-component/table-component.component';
 import { NotificationType } from '../../../../shared/components/notifications/models/notification.model';
 import { TableComponent } from '../../../../shared/components/table-component/table-component.component';

@@ -43,9 +43,9 @@ class MockPSelectComponent implements ControlValueAccessor {
   @Input() placeholder!: string;
   @Input() showClear!: boolean;
   @Input() styleClass!: string;
-  writeValue(value: unknown): void {}
-  registerOnChange(fn: unknown): void {}
-  registerOnTouched(fn: unknown): void {}
+  writeValue(_value: unknown): void {}
+  registerOnChange(_fn: unknown): void {}
+  registerOnTouched(_fn: unknown): void {}
 }
 
 @Component({ selector: 'p-chart', standalone: true, template: '' })

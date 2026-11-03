@@ -12,7 +12,6 @@ import { ThesisWorkDetailsModalResolverService } from './services/thesis-work-de
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { User } from '../../../users/interfaces/user.interface';
 import { Advance } from '../../interfaces/advance.interface';
-import { DocumentType } from '../../../../core/enums/document-type.enum';
 import { TabConfiguration } from './tabs-logic/tab-config.interface';
 import { stateList } from '../../../../core/enums/state.enum';
 import { IdentificationType } from '../../../users/enum/identification-type.enum';

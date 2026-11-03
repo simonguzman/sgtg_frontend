@@ -34,6 +34,9 @@ export interface Column{
 }
 
 export interface TableRow {
+  // any a propósito: las páginas pasan sus filas tipadas (ProposalTableRow, InboxMessageTableRow...) y las
+  // reciben de vuelta en actionClick; con unknown ninguna interfaz concreta encaja sin volver genérica la tabla
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
   allowedActions?: string[];
 }

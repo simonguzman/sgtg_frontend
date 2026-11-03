@@ -1,6 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-import { signal } from '@angular/core';
 import { LoadedProposalsPageComponent } from './loaded-proposals-page.component';
 import { LoadedProposalsFacadeService } from './services/loaded-proposals-facade.service';
 import { DocumentTableRow } from './models/loaded-proposals-page.model';
@@ -159,7 +158,7 @@ describe('LoadedProposalsPageComponent', () => {
     it('confirmUpload debería llamar al facade y manejar el callback onSuccess correctamente', () => {
       component.uploadState.set(mockFileData);
       component.confirmModalOpen.set(true);
-      mockFacade.upload.mockImplementation((id, fileData, onSuccess, onError) => {
+      mockFacade.upload.mockImplementation((id, fileData, onSuccess, _onError) => {
         onSuccess();
         return Promise.resolve();
       });

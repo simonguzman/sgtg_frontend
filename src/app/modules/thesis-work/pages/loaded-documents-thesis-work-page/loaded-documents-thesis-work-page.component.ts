@@ -17,7 +17,6 @@ import { ThesisParticipantsFormatterService } from '../../services/thesis-partic
 import { TabsComponent } from '../../../../shared/components/tabs/tabs.component';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { RegisterInformationModalComponent } from '../../../../shared/components/modals/register-information-modal/register-information-modal.component';
-import { User } from '../../../users/interfaces/user.interface';
 import { LoadedDocumentsThesisWorkFacadeService } from './services/loaded-documents-thesis-work-facade.service';
 import { RegisterDetail, ThesisWorkDetailsModalResolverService } from './services/thesis-work-details-modal-resolver.service';
 import { ensureDate } from '../../helpers/thesis-date.helper';
@@ -52,7 +51,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
 
   protected readonly tabsConfig = THESIS_TABS_CONFIG;
 
-  private readonly tabStrategies: Record<string, TabConfiguration<any>> = {
+  private readonly tabStrategies: Record<string, TabConfiguration<unknown>> = {
     'AVANCES':         AdvancesTabConfig,
     'ENTREGA FINAL':   FinalDeliveryTabConfig,
     'PAZ Y SALVO':     PazYSalvoTabConfig,
@@ -108,7 +107,7 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
     return id ? this.thesisWorkService.allThesisWorks().find(thesisWork => thesisWork.thesisWorkId === id) : null;
   });
 
-  readonly currentStrategy = computed<TabConfiguration<any>>(() =>
+  readonly currentStrategy = computed<TabConfiguration<unknown>>(() =>
     this.tabStrategies[this.activeTab()] ?? AdvancesTabConfig
   );
 
