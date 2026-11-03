@@ -704,3 +704,15 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
       departamento (los filtra el backend), y consulta su detalle, documentos, evaluaciones, reuniones y sustentación.
     - **Buzón:** `CAMBIO_OBJETIVOS_AVALADO` y `CAMBIO_OBJETIVOS_NO_AVALADO` llevan a la pestaña de solicitudes.
     - Detalle del backend en `sgtg_backend/docs/ajustes-2026-11-01.md` (§5).
+58. **Rendimiento (2026-11-02):**
+    - Lighthouse en `/users` daba 35 (móvil) y 55 (escritorio). La causa principal eran los listados del backend
+      (`/usuarios` y `/usuarios/gestion` tardaban 5 s dentro de la página); se corrigió allá
+      (`sgtg_backend/docs/ajustes-2026-11-02.md`).
+    - **Caché de los archivos con código en el nombre:** `nginx.conf` y `nginx.prod.conf` sirven los `.js` y `.css` con
+      `Cache-Control: public, max-age=31536000, immutable` (los nombres cambian con cada versión por `outputHashing`).
+      `index.html` sigue sin caché. Un archivo con ese formato que no existe responde 404, no `index.html`.
+    - **Logo de la barra lateral:** con `width`/`height` (248×110) para que el navegador reserve su espacio.
+    - Resultado: escritorio 88 y móvil 53; las consultas de la página quedaron por debajo de 230 ms.
+    - Pendiente (no se hizo): en móvil queda ~1,3 s de bloqueo por ejecutar JavaScript (Lighthouse simula una CPU 4
+      veces más lenta). Es el costo general de Angular y PrimeNG al dibujar la página; bajarlo pediría cambios de
+      arquitectura (por ejemplo, detección de cambios sin zone.js).
