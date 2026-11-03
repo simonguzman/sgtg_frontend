@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { UploadAdvancePayload } from '../../interfaces/advance-playload.interface';
@@ -23,6 +23,13 @@ export class UploadAdvancePageComponent implements OnInit {
   readonly isConfirmModalOpen = signal(false);
   readonly isSaving = signal(false);
   readonly pendingAdvanceData = signal<UploadAdvancePayload | null>(null);
+
+  /** El informe es de la reunión agendada que lo recibe (la indica el backend) */
+  readonly confirmDescription = computed(() => {
+    const meeting = this.thesisWorkState()?.meetings?.find(reunion => reunion.acceptsReport);
+    const deLaReunion = meeting ? ` Quedará asociado a la reunión de seguimiento ${meeting.number}.` : '';
+    return `¿Está seguro de radicar este informe mensual?${deLaReunion} Se notificará al director para su revisión.`;
+  });
 
   ngOnInit(): void {
     let currentRoute: ActivatedRoute | null = this.route;

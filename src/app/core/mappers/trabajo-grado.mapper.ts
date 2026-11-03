@@ -223,6 +223,7 @@ function aReunion(reunion: ReunionApi): Meeting {
     held: reunion.realizada,
     observations: reunion.observaciones,
     hasReport: reunion.conInforme,
+    acceptsReport: reunion.recibeInforme ?? false,
     status: ESTADOS_REUNION[reunion.estado]
   };
 }

@@ -10,7 +10,7 @@ import { Meeting } from '../../interfaces/thesis-work.interface';
 
 const reunion = (overrides: Partial<Meeting> = {}): Meeting => ({
   number: 3, suggestedDate: new Date(2026, 5, 20), scheduledAt: null, place: null, held: false,
-  observations: null, hasReport: false, status: stateList.PENDIENTE, ...overrides
+  observations: null, hasReport: false, acceptsReport: false, status: stateList.PENDIENTE, ...overrides
 });
 
 const fila = (meeting: Meeting, allowedActions: string[]): MeetingTableRow => ({

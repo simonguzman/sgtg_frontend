@@ -160,6 +160,7 @@ export function reunionDePrueba(numero: number, overrides: Partial<ReunionApi> =
     realizada: false,
     observaciones: null,
     conInforme: false,
+    recibeInforme: false,
     estado: 'PENDIENTE',
     ...overrides
   };

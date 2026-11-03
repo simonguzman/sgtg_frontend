@@ -17,13 +17,14 @@ const usuario = (id: string, roles: UserRoleType[]): User => ({
   secondLastName: '', codeNumber: Number(id), email: `u${id}@unicauca.edu.co`, state: UserState.active, roles
 });
 
-/** Trabajo 15 en curso: reunión 1 realizada con su informe, 2 agendada, 3 pendiente. */
+/** Trabajo 15 en curso: reunión 1 realizada con su informe, 2 agendada recibiendo el informe, 3 pendiente. */
 const trabajo = (overrides: Partial<TrabajoGradoResponse> = {}) => crearTrabajoEnCursoCon({
   informesMensuales: [informeDePrueba(1)],
   reuniones: [
     reunionDePrueba(1, { fechaHora: '2026-04-20T10:00:00', lugar: 'Sala 2', realizada: true,
       observaciones: 'Avance', conInforme: true, estado: 'REALIZADA' }),
-    reunionDePrueba(2, { fechaHora: '2026-05-20T15:00:00', lugar: 'https://meet.google.com/x', estado: 'AGENDADA' }),
+    reunionDePrueba(2, { fechaHora: '2026-05-20T15:00:00', lugar: 'https://meet.google.com/x', estado: 'AGENDADA',
+      recibeInforme: true }),
     reunionDePrueba(3)
   ]
 }, overrides);
@@ -58,9 +59,23 @@ describe('MeetingsFacadeService', () => {
       status: stateList.REALIZADA
     }));
     expect(agendada.scheduled).toContain('20 - 05 - 2026');
-    expect(agendada.report).toBe('Pendiente');
-    expect(pendiente).toEqual(expect.objectContaining({ scheduled: 'Sin agendar', status: stateList.PENDIENTE }));
+    expect(agendada.report).toBe('Recibiendo el informe');
+    expect(pendiente).toEqual(expect.objectContaining({ scheduled: 'Sin agendar', status: stateList.PENDIENTE,
+      report: 'Pendiente' }));
     expect(facade.summary()).toEqual({ total: 3, held: 1, withReport: 1 });
+  });
+
+  it('la reunión que pasó o se realizó sin informe queda "Sin informe"', () => {
+    iniciar(usuario('10', [UserRoleType.ESTUDIANTE]), [crearTrabajoEnCursoCon({
+      reuniones: [
+        reunionDePrueba(1, { fechaHora: '2026-04-20T10:00:00', lugar: 'Sala', realizada: true, estado: 'REALIZADA' }),
+        // Agendada para hoy y su hora ya llegó: el backend ya no la ofrece para el informe
+        reunionDePrueba(2, { fechaHora: '2026-05-20T08:00:00', lugar: 'Sala', estado: 'AGENDADA' }),
+        reunionDePrueba(3, { estado: 'VENCIDA' })
+      ]
+    })]);
+
+    expect(facade.rows().map(row => row.report)).toEqual(['Sin informe', 'Sin informe', 'Sin informe']);
   });
 
   it('los participantes que no son el director solo ven los detalles', () => {

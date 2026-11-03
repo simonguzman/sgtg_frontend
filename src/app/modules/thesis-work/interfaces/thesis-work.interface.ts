@@ -46,7 +46,10 @@ export interface SustentationProcess {
   requestNotApproved?: boolean;
 }
 
-/** Reunión de seguimiento de un mes del plazo de ejecución (Art. 45), asociada al informe mensual de ese mes. */
+/**
+ * Reunión de seguimiento de un mes del plazo de ejecución (Art. 45). Recibe un
+ * solo informe mensual, que se radica con la reunión agendada y antes de su hora.
+ */
 export interface Meeting {
   number: number;
   /** Fecha que le corresponde; null mientras el trabajo está suspendido */
@@ -57,8 +60,10 @@ export interface Meeting {
   place: string | null;
   held: boolean;
   observations: string | null;
-  /** true si ya se radicó el informe mensual del mismo número */
+  /** true si ya se radicó el informe mensual de esta reunión */
   hasReport: boolean;
+  /** true si el informe que se radique ahora es de esta reunión */
+  acceptsReport: boolean;
   status: stateList;
 }
 

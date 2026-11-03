@@ -12,11 +12,19 @@ import { IdentificationType } from '../../users/enum/identification-type.enum';
 import { UserState } from '../../users/enum/user-state.enum';
 import { iniciarSesionConTrabajos } from '../../../testing/sesion-de-prueba';
 import {
-  crearTrabajoEnCurso, crearTrabajoEnCursoCon, informeDePrueba, revisionDePrueba
+  crearTrabajoEnCurso, crearTrabajoEnCursoCon, informeDePrueba, reunionDePrueba, revisionDePrueba
 } from '../../../testing/trabajo-grado-de-prueba';
+import { TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado-api.interface';
 
 const API = '/api/v1/sgtg/trabajos-grado';
 const pdf = (nombre: string) => new File(['%PDF'], nombre, { type: 'application/pdf' });
+
+/** Reunión 1 agendada y por venir: recibe el informe que se radique ahora. */
+const reunionAbierta = (extra: Parameters<typeof reunionDePrueba>[1] = {}) => reunionDePrueba(1, {
+  fechaHora: '2026-04-20T10:00:00', lugar: 'Sala 2', estado: 'AGENDADA', recibeInforme: true, ...extra
+});
+const conReunionAbierta = (overrides: Partial<TrabajoGradoResponse> = {}) =>
+  crearTrabajoEnCursoCon({ reuniones: [reunionAbierta()] }, overrides);
 
 const usuario = (id: string, roles: UserRoleType[]): User => ({
   id, idType: IdentificationType.CC, idNumber: 123456789, firstName: 'Nombre', lastName: 'Apellido',
@@ -50,15 +58,19 @@ describe('Integración [Trabajo de Grado]: Informes mensuales contra el backend'
 
   it('la estudiante radica el informe y la directora lo revisa con sus notas, sin cambiar la etapa', () => {
     const estudiante = usuario('10', [UserRoleType.ESTUDIANTE]);
-    iniciarSesionConTrabajos(estudiante, [crearTrabajoEnCurso()]);
-
-    // La estudiante puede cargar el informe en investigación
-    expect(AdvancesTabConfig.getHeaderButtons(contexto(trabajo(), estudiante, { isStudent: true }))[0].disabled)
-      .toBe(false);
+    // Con la reunión 1 agendada y por venir, la estudiante carga su informe
+    iniciarSesionConTrabajos(estudiante, [conReunionAbierta()]);
+    expect(AdvancesTabConfig.getHeaderButtons(contexto(trabajo(), estudiante, { isStudent: true }))
+      .find(boton => boton.action === 'upload_advance'))
+      .toEqual(expect.objectContaining({ label: 'Cargar informe de la reunión 1', disabled: false }));
 
     service.radicarInforme('15', pdf('informe.pdf'), 'Primer mes').subscribe();
     http.expectOne(`${API}/15/informes-mensuales`)
-      .flush(crearTrabajoEnCursoCon({ informesMensuales: [informeDePrueba(1, { observaciones: 'Primer mes' })] }));
+      .flush(crearTrabajoEnCursoCon({
+        informesMensuales: [informeDePrueba(1, { observaciones: 'Primer mes' })],
+        reuniones: [reunionAbierta({ conInforme: true, recibeInforme: false })]
+      }));
+    expect(trabajo().meetings?.[0]).toEqual(expect.objectContaining({ hasReport: true, acceptsReport: false }));
 
     expect(trabajo().advances?.map(a => [a.title, a.status, a.uploadedBy])).toEqual([
       ['Informe mensual 1', stateList.EN_REVISION, 'Eva Estudiante']
@@ -86,14 +98,13 @@ describe('Integración [Trabajo de Grado]: Informes mensuales contra el backend'
       .toEqual(['view-details']);
   });
 
-  it('en práctica profesional la directora también radica informes', () => {
-    const directora = usuario('1', [UserRoleType.DOCENTE, UserRoleType.DIRECTOR]);
-    iniciarSesionConTrabajos(directora, [crearTrabajoEnCurso({ modalidad: 'PRACTICA_PROFESIONAL' })]);
-
-    expect(AdvancesTabConfig.getHeaderButtons(contexto(trabajo(), directora, { isDirector: true }))).toEqual([
-      expect.objectContaining({ action: 'upload_advance', disabled: false })
-    ]);
-  });
+  it.each(['TRABAJO_DE_INVESTIGACION', 'PRACTICA_PROFESIONAL'] as const)(
+    'la directora también radica informes (%s)', modalidad => {
+      const directora = usuario('1', [UserRoleType.DOCENTE, UserRoleType.DIRECTOR]);
+      iniciarSesionConTrabajos(directora, [conReunionAbierta({ modalidad })]);
+      expect(AdvancesTabConfig.getHeaderButtons(contexto(trabajo(), directora, { isDirector: true }))
+        .find(boton => boton.action === 'upload_advance')).toEqual(expect.objectContaining({ disabled: false }));
+    });
 
   it('si el backend rechaza la radicación, el trabajo no cambia', () => {
     iniciarSesionConTrabajos(usuario('1', [UserRoleType.DOCENTE, UserRoleType.DIRECTOR]), [crearTrabajoEnCurso()]);
@@ -101,8 +112,8 @@ describe('Integración [Trabajo de Grado]: Informes mensuales contra el backend'
     let error: unknown;
     service.radicarInforme('15', pdf('informe.pdf'), '').subscribe({ error: e => error = e });
     http.expectOne(`${API}/15/informes-mensuales`).flush(
-      { message: 'Los informes mensuales los radican los estudiantes del trabajo' },
-      { status: 406, statusText: 'Not Acceptable' });
+      { message: 'El informe mensual se radica para una reunión de seguimiento: el director debe agendarla y el informe se carga antes de su fecha y hora.' },
+      { status: 400, statusText: 'Bad Request' });
 
     expect(error).toBeTruthy();
     expect(trabajo().advances).toEqual([]);

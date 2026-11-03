@@ -225,8 +225,10 @@ export interface ReunionApi {
   lugar: string | null;
   realizada: boolean;
   observaciones: string | null;
-  /** true si ya se radicó el informe mensual del mismo número */
+  /** true si ya se radicó el informe mensual de esta reunión */
   conInforme: boolean;
+  /** true si el informe que se radique ahora es de esta reunión (agendada y su hora aún no llega) */
+  recibeInforme: boolean;
   estado: EstadoReunionApi;
 }
 

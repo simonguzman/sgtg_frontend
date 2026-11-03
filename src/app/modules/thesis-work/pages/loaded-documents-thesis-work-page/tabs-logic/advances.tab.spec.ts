@@ -60,23 +60,36 @@ describe('AdvancesTabConfig (informes mensuales)', () => {
   });
 
   describe('getHeaderButtons', () => {
-    it('el estudiante carga informes en ambas modalidades', () => {
+    /** Trabajo con la reunión 2 agendada y recibiendo el informe */
+    const recibiendo = (etapa: 'EN_CURSO' | 'PRORROGA' = 'EN_CURSO', modalidad?: 'PRACTICA_PROFESIONAL') =>
+      thesisWorkDePrueba(crearTrabajoEnCursoCon({
+        reuniones: [reunionDePrueba(1, { realizada: true, estado: 'REALIZADA' }),
+          reunionDePrueba(2, { fechaHora: '2026-05-20T10:00:00', lugar: 'Sala', estado: 'AGENDADA', recibeInforme: true })]
+      }, { etapa, ...(modalidad ? { modalidad } : {}) }));
+    const carga = (botones: ReturnType<typeof AdvancesTabConfig.getHeaderButtons>) =>
+      botones.find(boton => boton.action === 'upload_advance');
+
+    it('el estudiante carga el informe de la reunión que lo recibe', () => {
+      expect(carga(AdvancesTabConfig.getHeaderButtons(contexto(recibiendo(), { isStudent: true }))))
+        .toEqual(expect.objectContaining({ label: 'Cargar informe de la reunión 2', disabled: false }));
+    });
+
+    it('sin una reunión que reciba el informe el botón queda deshabilitado', () => {
       expect(AdvancesTabConfig.getHeaderButtons(contexto(thesisWorkDePrueba(), { isStudent: true }))).toEqual([
-        expect.objectContaining({ action: 'upload_advance', label: 'Cargar informe mensual', disabled: false })
+        expect.objectContaining({ label: 'Sin reunión agendada para recibir el informe', disabled: true })
       ]);
     });
 
-    it('en investigación el director no carga informes; en práctica profesional sí', () => {
-      expect(AdvancesTabConfig.getHeaderButtons(contexto(thesisWorkDePrueba(), { isDirector: true }))).toEqual([]);
-      const practica = thesisWorkDePrueba(crearTrabajoEnCurso({ modalidad: 'PRACTICA_PROFESIONAL' }));
-      expect(AdvancesTabConfig.getHeaderButtons(contexto(practica, { isDirector: true }))).toEqual([
-        expect.objectContaining({ disabled: false })
-      ]);
+    it('el director también carga informes, en ambas modalidades', () => {
+      expect(carga(AdvancesTabConfig.getHeaderButtons(contexto(recibiendo(), { isDirector: true })))?.disabled)
+        .toBe(false);
+      const practica = recibiendo('EN_CURSO', 'PRACTICA_PROFESIONAL');
+      expect(carga(AdvancesTabConfig.getHeaderButtons(contexto(practica, { isDirector: true })))?.disabled).toBe(false);
     });
 
     it('en prórroga también se cargan informes', () => {
-      const prorroga = thesisWorkDePrueba(crearTrabajoEnCurso({ etapa: 'PRORROGA' }));
-      expect(AdvancesTabConfig.getHeaderButtons(contexto(prorroga, { isStudent: true }))[0].disabled).toBe(false);
+      expect(carga(AdvancesTabConfig.getHeaderButtons(contexto(recibiendo('PRORROGA'), { isStudent: true })))
+        ?.disabled).toBe(false);
     });
 
     it('suspendido o en sustentación el botón queda deshabilitado', () => {

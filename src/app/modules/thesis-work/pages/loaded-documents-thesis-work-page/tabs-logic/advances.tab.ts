@@ -6,7 +6,6 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { Advance } from '../../../interfaces/advance.interface';
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
 import { formatThesisDate } from '../../../helpers/thesis-date.helper';
-import { Modality } from '../../../../proposal/enums/modality.enum';
 
 export interface AdvanceTableRow {
   id: string;
@@ -23,9 +22,11 @@ export interface AdvanceTableRow {
 const ETAPAS_CON_INFORMES = ['EN_CURSO', 'PRORROGA'];
 
 /**
- * Informes mensuales de avance. Los radica un estudiante (en práctica
- * profesional también el director) mientras el trabajo está en curso o en
- * prórroga; los revisan el director, el codirector o el asesor, una vez cada uno.
+ * Informes mensuales de avance. Los radica un estudiante o el director mientras
+ * el trabajo está en curso o en prórroga, y cada uno es de una reunión de
+ * seguimiento: se radica con la reunión agendada y antes de su hora (si la
+ * reunión pasa sin informe, el siguiente es de la reunión siguiente). Los
+ * revisan el director, el codirector o el asesor, una vez cada uno.
  */
 export const AdvancesTabConfig: TabConfiguration<AdvanceTableRow> = {
   tabValue: 'AVANCES',
@@ -49,14 +50,16 @@ export const AdvancesTabConfig: TabConfiguration<AdvanceTableRow> = {
 
     const advances: Advance[] = thesis.advances || [];
     const latestAdvance = advances.length > 0 ? advances[0] : null;
-    const isPracticaProfesional = thesis.preliminaryDraftData?.proposalData?.modality === Modality.PP;
+    // Reunión a la que irá el informe que se radique ahora (la calcula el backend)
+    const reportMeeting = thesis.meetings?.find(meeting => meeting.acceptsReport) ?? null;
 
     return {
       ...baseContext,
       latestAdvanceId: latestAdvance?.id || null,
       isLatestAdvancePending: latestAdvance?.status === stateList.EN_REVISION,
-      canUploadReport: baseContext.isStudent || (baseContext.isDirector && isPracticaProfesional),
-      acceptsReports: ETAPAS_CON_INFORMES.includes(thesis.stage ?? 'EN_CURSO')
+      canUploadReport: baseContext.isStudent || baseContext.isDirector,
+      acceptsReports: ETAPAS_CON_INFORMES.includes(thesis.stage ?? 'EN_CURSO'),
+      reportMeetingNumber: reportMeeting?.number ?? null
     };
   },
 
@@ -101,11 +104,18 @@ export const AdvancesTabConfig: TabConfiguration<AdvanceTableRow> = {
       : [];
     if (context.isArchived || !context['canUploadReport']) return buttons;
     const acceptsReports = !!context['acceptsReports'];
+    const meetingNumber = context['reportMeetingNumber'] as number | null;
+    let label = 'Informes no disponibles en esta etapa';
+    if (acceptsReports) {
+      label = meetingNumber
+        ? `Cargar informe de la reunión ${meetingNumber}`
+        : 'Sin reunión agendada para recibir el informe';
+    }
     return [...buttons, {
       action: 'upload_advance',
-      label: acceptsReports ? 'Cargar informe mensual' : 'Informes no disponibles en esta etapa',
+      label,
       variant: 'primary',
-      disabled: !acceptsReports
+      disabled: !acceptsReports || !meetingNumber
     }];
   },
 

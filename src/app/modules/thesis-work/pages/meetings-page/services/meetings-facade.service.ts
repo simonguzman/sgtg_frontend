@@ -32,6 +32,23 @@ export function formatMeetingDateTime(fecha: Date): string {
 }
 
 /**
+ * Informe de la reunión: radicado; recibiéndose (la reunión está agendada y su
+ * hora no ha llegado); "Sin informe" si la reunión ya pasó o se realizó sin él
+ * (el siguiente informe es de la reunión siguiente); o pendiente. Lo decide con
+ * lo que calcula el backend (su reloj), no con la hora del navegador.
+ *
+ * @param openNumber reunión que recibe el informe ahora, null si ninguna
+ */
+export function reportLabel(meeting: Meeting, openNumber: number | null): string {
+  if (meeting.hasReport) return `Informe ${meeting.number} radicado`;
+  if (meeting.acceptsReport) return 'Recibiendo el informe';
+  if (meeting.held || meeting.status === stateList.VENCIDA) return 'Sin informe';
+  // Agendada y sin recibir: su hora ya llegó, salvo que espere a que pase una anterior
+  const horaPasada = !!meeting.scheduledAt && (openNumber === null || openNumber > meeting.number);
+  return horaPasada ? 'Sin informe' : 'Pendiente';
+}
+
+/**
  * Reuniones de seguimiento del trabajo (una por cada mes del plazo). Las ven
  * todos los participantes; el director las agenda mientras el trabajo está en
  * curso o en prórroga y registra que se realizaron. La tabla se actualiza con
@@ -88,7 +105,7 @@ export class MeetingsFacadeService {
       suggestedDate: meeting.suggestedDate ? formatThesisDate(meeting.suggestedDate) : 'Al reanudar el trabajo',
       scheduled: meeting.scheduledAt ? formatMeetingDateTime(meeting.scheduledAt) : 'Sin agendar',
       place: meeting.place ?? '—',
-      report: meeting.hasReport ? `Informe ${meeting.number} radicado` : 'Pendiente',
+      report: reportLabel(meeting, this.meetings().find(reunion => reunion.acceptsReport)?.number ?? null),
       status: meeting.status,
       allowedActions,
       original: meeting

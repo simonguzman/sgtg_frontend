@@ -108,7 +108,7 @@ export const thesisWorkRoutes: Routes = [
             title: 'Cargar informe mensual',
             data: {
               breadcrumb: 'Cargar informe mensual',
-              // En práctica profesional el director también radica los informes
+              // Los estudiantes o el director radican los informes
               roles: [UserRoleType.ADMINISTRADOR, UserRoleType.ESTUDIANTE, UserRoleType.DIRECTOR]
             }
           },

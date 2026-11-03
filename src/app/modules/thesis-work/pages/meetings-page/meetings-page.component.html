@@ -12,8 +12,10 @@
   <div class="p-6 bg-white rounded-lg w-full flex flex-col gap-6">
     <app-info-banner title="Reuniones de seguimiento" icon="event">
       Hay una reunión por cada mes del plazo de ejecución; la prórroga suma sus meses y, si el trabajo se suspende,
-      las reuniones que quedaban se corren los días que dure la suspensión. En cada reunión se revisa el informe
-      mensual de ese mes. El director agenda la reunión y, después de realizarla, la registra como realizada.
+      las reuniones que quedaban se corren los días que dure la suspensión. Cada reunión recibe un informe mensual:
+      los estudiantes o el director lo radican cuando la reunión está agendada y antes de su fecha y hora. Si la
+      reunión pasa sin informe, queda "Sin informe" y el siguiente informe es de la reunión siguiente. El director
+      agenda la reunión y, después de realizarla, la registra como realizada.
     </app-info-banner>
 
     @if (facade.thesisWork(); as thesis) {
