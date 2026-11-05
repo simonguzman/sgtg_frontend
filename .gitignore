@@ -48,3 +48,8 @@ Thumbs.db
 
 # Informe generado por ESLint
 /lint-report.json
+
+# Pruebas de seguridad: claves de la copia aislada y resultados de cada corrida
+/scripts/pruebas-seguridad/.env.pruebas
+/scripts/pruebas-seguridad/resultados/
+/scripts/pruebas-seguridad/__pycache__/

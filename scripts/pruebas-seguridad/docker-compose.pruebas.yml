@@ -1,0 +1,52 @@
+# Copia aislada de SGTG para las pruebas de seguridad (Anexo 8, RNF-02).
+#
+# Tiene su propia base de datos y sus propios puertos (web 4220, backend 8095), así que los bloqueos,
+# los límites por IP y las alertas que provocan las pruebas no tocan el entorno de desarrollo.
+# La levanta seguridad.py con las claves de .env.pruebas, que se generan al azar la primera vez.
+#
+# Requiere los dos repositorios como carpetas hermanas (sgtg_backend y sgtg_frontend).
+name: sgtgpruebas
+
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${PRUEBAS_MYSQL_PASSWORD:?generada por seguridad.py}
+      MYSQL_DATABASE: sgtg
+      MYSQL_TCP_PORT: 3307
+    command: --port=3307 --bind-address=0.0.0.0
+    volumes: [mysql_data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -P 3307 -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  backend:
+    build: ../../../sgtg_backend
+    environment:
+      JWT_SECRET: ${PRUEBAS_JWT_SECRET:?generada por seguridad.py}
+      SGTG_AUDITORIA_CLAVE: ${PRUEBAS_AUDITORIA_CLAVE:?generada por seguridad.py}
+      SGTG_ADMIN_EMAIL: admin.pruebas@unicauca.edu.co
+      SGTG_ADMIN_PASSWORD: ${PRUEBAS_ADMIN_PASSWORD:?generada por seguridad.py}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3307/sgtg?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${PRUEBAS_MYSQL_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SGTG_ARCHIVOS_DIRECTORIO: /app/archivos
+      # Las alertas se revisan cada 15 s (en la aplicación, cada 5 min) para no esperar en la prueba SEG-19
+      SGTG_ALERTAS_CRON: "*/15 * * * * *"
+    ports: ["8095:8080"]
+    volumes: [archivos_data:/app/archivos]
+    depends_on:
+      mysql: {condition: service_healthy}
+
+  web:
+    build: ../..
+    ports: ["4220:80"]
+    depends_on: [backend]
+
+volumes:
+  mysql_data:
+  archivos_data:

@@ -9,3 +9,5 @@ coverage
 .env*
 certificados
 acme
+# Resultados de las pruebas de seguridad (imágenes y transcripciones)
+scripts/pruebas-seguridad/resultados
