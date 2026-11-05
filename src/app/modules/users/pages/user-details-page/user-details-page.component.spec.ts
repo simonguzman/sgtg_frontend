@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
-import { Component, EventEmitter, Input, Output, Pipe, PipeTransform, WritableSignal, signal } from '@angular/core';
+import { Pipe, PipeTransform, WritableSignal, signal } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { UserDetailsPageComponent } from './user-details-page.component';
 import { UserDetailsFacadeService } from './services/user-details-facade.service';
@@ -10,21 +10,12 @@ import { IdentificationType } from '../../enum/identification-type.enum';
 import { UserState } from '../../enum/user-state.enum';
 import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { ContractType } from '../../enum/contract-type.enum';
-import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 
 @Pipe({ name: 'documentType', standalone: true })
 class MockDocumentTypePipe implements PipeTransform {
   transform(value: IdentificationType | string | undefined): string {
     return value ? `DOC_${value}` : '';
   }
-}
-
-@Component({ selector: 'app-button-component', standalone: true, template: '' })
-class MockButtonComponent {
-  @Input() label!: string;
-  @Input() variant!: string;
-  @Input() type!: string;
-  @Output() onClick = new EventEmitter<void>();
 }
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
@@ -91,11 +82,11 @@ describe('Component: UserDetailsPageComponent', () => {
     })
     .overrideComponent(UserDetailsPageComponent, {
       remove: {
-        imports: [DocumentTypePipe, ButtonComponent],
+        imports: [DocumentTypePipe],
         providers: [UserDetailsFacadeService]
       },
       add: {
-        imports: [MockDocumentTypePipe, MockButtonComponent],
+        imports: [MockDocumentTypePipe],
         providers: [{ provide: UserDetailsFacadeService, useValue: mockFacade }]
       }
     })
@@ -214,13 +205,13 @@ describe('Component: UserDetailsPageComponent', () => {
       expect(mockFacade.goBack).toHaveBeenCalled();
     });
 
-    it('debería llamar a facade.goBack() al emitir (onClick) del app-button-component (Inferior)', () => {
+    it('no muestra el botón Salir: solo se regresa con la flecha de arriba', () => {
       mockFacade.isLoading.set(false);
       mockFacade.user.set(createMockUser());
       fixture.detectChanges();
-      const appButton = fixture.debugElement.query(By.directive(MockButtonComponent));
-      appButton.componentInstance.onClick.emit();
-      expect(mockFacade.goBack).toHaveBeenCalled();
+      const textos = fixture.debugElement.queryAll(By.css('button')).map(b => b.nativeElement.textContent.trim());
+      expect(textos.some(t => t.includes('Salir'))).toBe(false);
+      expect(textos.some(t => t.includes('Regresar'))).toBe(true);
     });
   });
 });

@@ -1,6 +1,5 @@
 import { Component, computed, inject, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { UserDetailsFacadeService } from './services/user-details-facade.service';
 import { DocumentTypePipe } from '../../pipes/document-type.pipe';
 import { CONTRACT_TYPE_LABELS } from '../../enum/contract-type.enum';
@@ -14,7 +13,7 @@ import { UserState } from '../../enum/user-state.enum';
 @Component({
   selector: 'app-user-details-page',
   standalone: true,
-  imports: [ButtonComponent, DocumentTypePipe],
+  imports: [DocumentTypePipe],
   providers: [UserDetailsFacadeService],
   templateUrl: './user-details-page.component.html',
   styleUrls: ['./user-details-page.component.css']
