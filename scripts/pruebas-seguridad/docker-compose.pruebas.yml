@@ -37,6 +37,9 @@ services:
       SGTG_ARCHIVOS_DIRECTORIO: /app/archivos
       # Las alertas se revisan cada 15 s (en la aplicación, cada 5 min) para no esperar en la prueba SEG-19
       SGTG_ALERTAS_CRON: "*/15 * * * * *"
+      # La cadena de la auditoría se verifica cada 20 s (en la aplicación, al arrancar y a las 03:30): al
+      # arrancar la copia está vacía, así que SEG-18 espera una verificación con los registros de las pruebas
+      SGTG_INTEGRIDAD_CRON: "*/20 * * * * *"
     ports: ["8095:8080"]
     volumes: [archivos_data:/app/archivos]
     depends_on:
