@@ -20,10 +20,12 @@ export class ThesisWorkPageFacadeService {
     const currentUser = this.authService.currentUser();
     const isAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
     const isConsejo = this.authService.hasAnyRole([UserRoleType.CONSEJO]);
+    // El backend ya entrega al Comité solo los trabajos de su programa; los ve para avalar solicitudes
     const hasFullAccessRole = this.authService.hasAnyRole([
       UserRoleType.ADMINISTRADOR,
       UserRoleType.DECANATURA,
-      UserRoleType.CONSEJO
+      UserRoleType.CONSEJO,
+      UserRoleType.COMITE
     ]);
     const activeThesisWorks = this.thesisWorkService.thesisWorks().filter(work => !work.isArchived);
     return activeThesisWorks.map(thesisWork =>

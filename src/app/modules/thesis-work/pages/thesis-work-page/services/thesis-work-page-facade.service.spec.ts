@@ -157,6 +157,18 @@ describe('ThesisWorkPageFacadeService', () => {
         'user-123'
       );
     });
+
+    it('debe dar acceso de consulta al Comité para que llegue a las solicitudes que debe avalar', () => {
+      const mockWork = createMockThesisWork();
+      thesisWorkMock.thesisWorks.set([mockWork]);
+      authMock.hasAnyRole.mockImplementation((roles: UserRoleType[]) =>
+        roles.length > 1 && roles.includes(UserRoleType.COMITE));
+      mapperMock.mapThesisWorkToTable.mockReturnValue(createMockTableRow());
+
+      service.tableData();
+
+      expect(mapperMock.mapThesisWorkToTable).toHaveBeenCalledWith(mockWork, true, false, false, 'user-123');
+    });
   });
 
   describe('Notificaciones Utilitarias', () => {
