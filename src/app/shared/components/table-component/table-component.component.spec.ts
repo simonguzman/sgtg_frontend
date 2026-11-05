@@ -157,6 +157,13 @@ describe('TableComponent', () => {
       const tooltip = firstCell.injector.get(Tooltip);
       expect(tooltip.content).toBe(ROWS[0]['nombre']);
     });
+
+    it('debería mostrar en tooltip el título completo de la columna, por si se corta', async () => {
+      const { fixture } = await mountTable(COLUMNS_TEXT);
+      const header = fixture.debugElement.query(By.css('th span.truncate'));
+      const tooltip = header.injector.get(Tooltip);
+      expect(tooltip.content).toBe(COLUMNS_TEXT[0].header);
+    });
   });
 
   describe('Botones de acción con icono', () => {

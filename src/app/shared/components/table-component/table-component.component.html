@@ -52,7 +52,7 @@
             <div class="flex items-center"
                  [ngClass]="col.type === 'state' || col.type === 'actions' ? 'justify-center' : 'justify-between'">
 
-              <span class="truncate">{{ col.header }}</span>
+              <span class="truncate" [pTooltip]="col.header" tooltipPosition="top">{{ col.header }}</span>
 
               @if (col.filterable) {
                 <span class="inline-flex ml-2" [pTooltip]="'Buscar por ' + col.header.toLowerCase()" tooltipPosition="top">
