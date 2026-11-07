@@ -3,26 +3,16 @@ import { DialogModule } from 'primeng/dialog';
 import { NotificationService } from '../../notifications/services/notification.service';
 import { NotificationType } from '../../notifications/models/notification.model';
 
-type AcceptedFileTypes = 'pdf' | 'pdf-zip';
+/**
+ * Tamaño máximo de cada archivo, en MB. Es el mismo del backend (`spring.servlet.multipart.max-file-size`,
+ * variable SGTG_ARCHIVOS_TAMANO_MAXIMO): el documento más pesado es la monografía, que con unas 200 páginas
+ * con tablas, imágenes y gráficos queda por debajo de este límite.
+ */
+export const TAMANO_MAXIMO_ARCHIVO_MB = 20;
+const TAMANO_MAXIMO_ARCHIVO_BYTES = TAMANO_MAXIMO_ARCHIVO_MB * 1024 * 1024;
 
-interface FileTypeConfig {
-  accept: string;
-  extensions: string[];
-  errorMessage: string;
-}
-
-const FILE_TYPE_CONFIGS: Record<AcceptedFileTypes, FileTypeConfig> = {
-  pdf: {
-    accept: '.pdf',
-    extensions: ['.pdf'],
-    errorMessage: 'Solo se permiten archivos en formato PDF.'
-  },
-  'pdf-zip': {
-    accept: '.pdf,.zip',
-    extensions: ['.pdf', '.zip'],
-    errorMessage: 'Solo se permiten archivos en formato PDF o ZIP.'
-  }
-};
+/** Lo que se le indica al usuario en todas las ventanas de carga */
+export const REQUISITOS_ARCHIVO = `Solo se permite un archivo en formato PDF de máximo ${TAMANO_MAXIMO_ARCHIVO_MB} MB.`;
 
 @Component({
   selector: 'app-file-upload-modal',
@@ -49,7 +39,7 @@ export class FileUploadModalComponent {
   yaSeAbrio = false;
   @Input() description = '';
   @Input() uploadedBy = '';
-  @Input() acceptedTypes: AcceptedFileTypes = 'pdf';
+  protected readonly requisitos = REQUISITOS_ARCHIVO;
 
   @Output() onFileUploaded = new EventEmitter<{ fileName: string, file: File }>();
   @Output() onClose = new EventEmitter<void>();
@@ -58,27 +48,21 @@ export class FileUploadModalComponent {
 
   uploadedFile: File | null = null;
 
-  get acceptAttribute(): string {
-    return FILE_TYPE_CONFIGS[this.acceptedTypes].accept;
-  }
-
-  get uploadedFileIcon(): string {
-    return this.uploadedFile?.name.toLowerCase().endsWith('.zip') ? 'folder_zip' : 'picture_as_pdf';
-  }
+  /** Los documentos del sistema son siempre PDF: el backend rechaza cualquier otro formato */
+  readonly acceptAttribute = '.pdf,application/pdf';
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (file) {
-      const config = FILE_TYPE_CONFIGS[this.acceptedTypes];
-      const fileName = file.name.toLowerCase();
-      const hasValidExtension = config.extensions.some(ext => fileName.endsWith(ext));
-      if (!hasValidExtension) {
-        this.notificationService.show({
-          title: 'Archivo no válido',
-          message: config.errorMessage,
-          type: NotificationType.ERROR
-        });
+      const error = !file.name.toLowerCase().endsWith('.pdf')
+        ? 'Solo se permiten archivos en formato PDF.'
+        : file.size > TAMANO_MAXIMO_ARCHIVO_BYTES
+          ? `El archivo pesa ${(file.size / (1024 * 1024)).toFixed(1).replace('.', ',')} MB y el máximo permitido es de `
+            + `${TAMANO_MAXIMO_ARCHIVO_MB} MB. Reduzca su tamaño (por ejemplo, comprimiendo las imágenes al exportar el PDF).`
+          : null;
+      if (error) {
+        this.notificationService.show({ title: 'Archivo no válido', message: error, type: NotificationType.ERROR });
         input.value = '';
         return;
       }

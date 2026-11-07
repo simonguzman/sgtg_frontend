@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { FileUploadModalComponent } from './file-upload-modal.component';
+import { FileUploadModalComponent, REQUISITOS_ARCHIVO, TAMANO_MAXIMO_ARCHIVO_MB } from './file-upload-modal.component';
 import { NotificationService } from '../../notifications/services/notification.service';
 import { NotificationType } from '../../notifications/models/notification.model';
 
@@ -47,6 +47,15 @@ describe('FileUploadModalComponent', () => {
       const text = fixture.nativeElement.textContent;
       expect(text).toContain('Sube tu archivo PDF de tesis');
       expect(text).toContain('Sus datos personales y archivos están protegidos');
+    });
+
+    it('siempre indica que solo se acepta un PDF y su tamaño máximo', () => {
+      fixture.componentRef.setInput('description', 'Subir el informe mensual de avance');
+      fixture.componentRef.setInput('isOpen', true);
+      fixture.detectChanges();
+      expect(REQUISITOS_ARCHIVO).toBe('Solo se permite un archivo en formato PDF de máximo 20 MB.');
+      expect(fixture.nativeElement.textContent).toContain(REQUISITOS_ARCHIVO);
+      expect(component.acceptAttribute).toBe('.pdf,application/pdf');
     });
 
     it('debería mostrar la información del archivo y el usuario cuando el archivo existe', () => {
@@ -96,6 +105,47 @@ describe('FileUploadModalComponent', () => {
       expect(inputElement.value).toBe('');
       expect(component.uploadedFile).toBeNull();
       expect(spyEmit).not.toHaveBeenCalled();
+    });
+
+    const seleccionar = (archivo: File) => {
+      const inputElement = document.createElement('input');
+      inputElement.type = 'file';
+      Object.defineProperty(inputElement, 'files', { value: [archivo] });
+      const evento = new Event('change');
+      Object.defineProperty(evento, 'target', { writable: false, value: inputElement });
+      component.onFileSelected(evento);
+      return inputElement;
+    };
+
+    it('rechaza un PDF de más de 20 MB e indica su tamaño y el máximo', () => {
+      const spyEmit = jest.spyOn(component.onFileUploaded, 'emit');
+      const grande = new File(['%PDF-'], 'monografia.pdf', { type: 'application/pdf' });
+      Object.defineProperty(grande, 'size', { value: (TAMANO_MAXIMO_ARCHIVO_MB + 5) * 1024 * 1024 });
+      const input = seleccionar(grande);
+      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
+        title: 'Archivo no válido',
+        message: expect.stringContaining('pesa 25,0 MB y el máximo permitido es de 20 MB'),
+        type: NotificationType.ERROR
+      }));
+      expect(input.value).toBe('');
+      expect(spyEmit).not.toHaveBeenCalled();
+    });
+
+    it('acepta un PDF de exactamente 20 MB', () => {
+      const spyEmit = jest.spyOn(component.onFileUploaded, 'emit');
+      const limite = new File(['%PDF-'], 'monografia.pdf', { type: 'application/pdf' });
+      Object.defineProperty(limite, 'size', { value: TAMANO_MAXIMO_ARCHIVO_MB * 1024 * 1024 });
+      seleccionar(limite);
+      expect(spyEmit).toHaveBeenCalledTimes(1);
+      expect(notificationServiceMock.show).not.toHaveBeenCalled();
+    });
+
+    it('rechaza un ZIP: los anexos también deben ser PDF', () => {
+      seleccionar(new File(['PK'], 'anexos.zip', { type: 'application/zip' }));
+      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Solo se permiten archivos en formato PDF.'
+      }));
+      expect(component.uploadedFile).toBeNull();
     });
   });
 

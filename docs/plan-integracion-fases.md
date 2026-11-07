@@ -765,3 +765,15 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     - El API no cambia: siguen `avalComite`, `cambio-objetivos/decisiones-comite` y los eventos
       `CAMBIO_OBJETIVOS_AVALADO`/`NO_AVALADO` (el backend cambió solo los textos; ver
       `sgtg_backend/docs/ajustes-2026-11-07.md`).
+61. **Carga de archivos: solo PDF y máximo 20 MB (2026-11-07):**
+    - **Mensaje explícito:** el modal de carga (`file-upload-modal`) muestra siempre, debajo del título, "Solo se permite
+      un archivo en formato PDF de máximo 20 MB." (`REQUISITOS_ARCHIVO`). Se quitaron de los títulos los "(PDF)" y
+      "en PDF" sueltos, que no eran uniformes.
+    - **Tamaño máximo:** 20 MB por archivo (`TAMANO_MAXIMO_ARCHIVO_MB`), el mismo del backend
+      (`spring.servlet.multipart.max-file-size`, `SGTG_ARCHIVOS_TAMANO_MAXIMO`). Se calculó para la monografía, el
+      documento más pesado: unas 200 páginas con tablas, imágenes y gráficos quedan por debajo. Si se cambia en el
+      backend, hay que cambiar también la constante del front.
+    - **Validación en el navegador:** un archivo de más de 20 MB se rechaza al seleccionarlo, con su tamaño y el máximo
+      ("El archivo pesa 25,0 MB y el máximo permitido es de 20 MB…"), sin intentar subirlo.
+    - **Sin ZIP:** los anexos de los documentos corregidos aceptaban "PDF o ZIP" en el modal, pero el backend siempre
+      exigió PDF (`validarPdf`), así que un ZIP fallaba al enviar. Se quitó la opción `pdf-zip`: todo es PDF.

@@ -43,7 +43,7 @@
 
 <app-file-upload-modal
   [isOpen]="fileModalOpen()"
-  description="Seleccione el archivo PDF de la propuesta corregida (Formato A)"
+  description="Seleccione la propuesta corregida (Formato A)"
   uploadedBy="Cargado por el director"
   (onFileUploaded)="onFileSelected($event)"
   (onClose)="fileModalOpen.set(false)"
@@ -51,7 +51,7 @@
 
 <app-file-upload-modal
   [isOpen]="letterModalOpen()"
-  description="Seleccione la nueva carta de aceptación de la organización (PDF)"
+  description="Seleccione la nueva carta de aceptación de la organización"
   uploadedBy="Cargado por el director"
   (onFileUploaded)="onLetterSelected($event)"
   (onClose)="closeLetterModal()"

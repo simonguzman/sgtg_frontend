@@ -184,7 +184,7 @@
 
 <app-file-upload-modal
   [isOpen]="isUploadModalOpen()"
-  [description]="isCommitteeStep ? 'Subir el acta o concepto del Comité del programa (PDF)' : 'Subir la resolución del Consejo de Facultad (PDF)'"
+  [description]="isCommitteeStep ? 'Subir el acta o concepto del Comité del programa' : 'Subir la resolución del Consejo de Facultad'"
   (onFileUploaded)="handleResolutionUploaded($event)"
   (onClose)="isUploadModalOpen.set(false)">
 </app-file-upload-modal>

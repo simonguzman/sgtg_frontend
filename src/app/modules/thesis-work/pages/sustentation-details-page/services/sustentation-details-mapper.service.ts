@@ -89,7 +89,7 @@ export class SustentationDetailsMapperService {
     if (!document) return null;
 
     return {
-      name: document.name || (type === 'MONOGRAFIA' ? 'Monografía.pdf' : 'Anexos.zip'),
+      name: document.name || (type === 'MONOGRAFIA' ? 'Monografía.pdf' : 'Anexos.pdf'),
       url: document.url,
       description: type === 'MONOGRAFIA' ? 'Monografía • Cargado en entrega final' : 'Anexos • Cargado en entrega final'
     };

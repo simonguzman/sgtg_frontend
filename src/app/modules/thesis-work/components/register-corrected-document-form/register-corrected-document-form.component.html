@@ -111,7 +111,7 @@
           <span class="material-symbols-outlined text-file"
                 [class.text-state-approved]="uploadedAnnexes()"
                 [class.text-text-body]="!uploadedAnnexes()">
-            {{ uploadedAnnexes() ? 'folder_zip' : 'folder_open' }}
+            {{ uploadedAnnexes() ? 'picture_as_pdf' : 'folder_open' }}
           </span>
           <div class="flex flex-col">
             <span class="text-size-body font-bold"
@@ -142,15 +142,14 @@
 
 <app-file-upload-modal
   [isOpen]="activeModal() === 'MONOGRAPH'"
-  description="Subir documento de la Monografía Corregida (PDF)"
+  description="Subir documento de la Monografía Corregida"
   (onFileUploaded)="handleFileUploaded($event)"
   (onClose)="closeModal()">
 </app-file-upload-modal>
 
 <app-file-upload-modal
   [isOpen]="activeModal() === 'ANNEXES'"
-  description="Subir archivos anexos (PDF o ZIP)"
-  acceptedTypes="pdf-zip"
+  description="Subir archivos anexos"
   (onFileUploaded)="handleFileUploaded($event)"
   (onClose)="closeModal()">
 </app-file-upload-modal>
