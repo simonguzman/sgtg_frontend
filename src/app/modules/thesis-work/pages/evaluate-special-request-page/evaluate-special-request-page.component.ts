@@ -27,15 +27,15 @@ export class EvaluateSpecialRequestPageComponent implements OnInit {
   readonly isConfirmModalOpen = signal(false);
   readonly isSubmitting = signal(false);
   readonly pendingData = signal<SpecialRequestDecision | null>(null);
-  /** Lo que se confirma depende de quién decide: el aval del Comité o la decisión del Consejo */
+  /** Lo que se confirma depende de quién decide: el concepto de pertinencia del Comité o la decisión del Consejo */
   readonly confirmationMessage = computed(() => {
     if (this.specialRequestState()?.pendingWith !== 'COMITE') {
       return '¿Está seguro de registrar la decisión del Consejo sobre esta solicitud? Se notificará a los '
         + 'participantes y se actualizará el trabajo de grado.';
     }
     return this.pendingData()?.status === stateList.APROBADO
-      ? '¿Está seguro de avalar el cambio de título y objetivos? La solicitud pasará al Consejo de Facultad para su decisión.'
-      : '¿Está seguro de no avalar el cambio de título y objetivos? La solicitud quedará no aprobada y se notificará '
+      ? '¿Está seguro de registrar el cambio de título y objetivos como pertinente? La solicitud pasará al Consejo de Facultad para su decisión.'
+      : '¿Está seguro de registrar el cambio de título y objetivos como no pertinente? La solicitud se cerrará y se notificará '
         + 'al director y a los estudiantes con sus observaciones.';
   });
 

@@ -6,8 +6,9 @@ import { SpecialRequestType } from "../enums/special-request-type.enum";
  * Solicitud del director durante el trabajo en curso (cambio de título y
  * objetivos, prórroga, suspensión, reanudación o cancelación). La decide el
  * Consejo de Facultad con una resolución, salvo la reanudación, que solo se
- * registra. El cambio de título y objetivos lo avala antes el Comité del
- * programa: si no lo avala, queda no aprobado sin pasar al Consejo.
+ * registra. El cambio de título y objetivos pasa antes por el concepto de
+ * pertinencia del Comité del programa: si no es pertinente, se cierra como no
+ * pertinente sin pasar al Consejo.
  */
 export interface SpecialRequest {
   id: string;
@@ -15,7 +16,7 @@ export interface SpecialRequest {
   requestType: SpecialRequestType;
   requestDate: Date;
   description: string;
-  status: stateList.EN_REVISION | stateList.APROBADO | stateList.NO_APROBADO;
+  status: stateList.EN_REVISION | stateList.APROBADO | stateList.NO_APROBADO | stateList.NO_PERTINENTE;
   resolutionDetails?: string;
   grantedDeadline?: Date | string;
   evaluatorId?: string;

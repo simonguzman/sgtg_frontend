@@ -90,26 +90,33 @@ describe('EvaluateSpecialRequestFormComponent', () => {
     expect(emitted).toEqual([{ status: stateList.NO_APROBADO, resolutionDetails: 'No procede', resolution: resolucion }]);
   });
 
-  describe('aval del Comité al cambio de título y objetivos', () => {
-    it('si espera el aval, el formulario es el del Comité', () => {
+  describe('concepto de pertinencia del Comité sobre el cambio de título y objetivos', () => {
+    it('si espera el concepto del Comité, el formulario es el de pertinencia', () => {
       crear(solicitud('cambio-objetivos-0'));
       const texto = fixture.nativeElement.textContent as string;
       expect(component.isCommitteeStep).toBe(true);
-      expect(texto).toContain('Aval del Comité del programa');
-      expect(texto).toContain('Avalar');
-      expect(texto).toContain('No avalar');
+      expect(texto).toContain('Concepto de pertinencia');
+      expect(texto).toContain('Pertinente');
+      expect(texto).toContain('No pertinente');
+      expect(texto).not.toContain('Avalar');
+      // los objetivos propuestos se muestran como los demás campos (como en las vistas de detalle)
+      const etiquetas = Array.from(fixture.nativeElement.querySelectorAll('app-readonly-field'))
+        .map(campo => (campo as HTMLElement).getAttribute('label') ?? (campo as HTMLElement).textContent ?? '');
+      expect(etiquetas.join('|')).toContain('Objetivo general propuesto');
+      expect(etiquetas.join('|')).toContain('Objetivos específicos propuestos');
+      expect(fixture.nativeElement.querySelector('ol.list-decimal')).toBeNull();
       expect(texto).toContain('Acta o concepto del Comité (PDF, opcional)');
       expect(texto).not.toContain('Decisión del Consejo de Facultad');
     });
 
-    it('avala sin acta: el acta es opcional', () => {
+    it('pertinente sin acta: el acta es opcional', () => {
       crear(solicitud('cambio-objetivos-0'));
       component.verdictSelected.set(stateList.APROBADO);
       component.submit();
       expect(emitted).toEqual([{ status: stateList.APROBADO, resolutionDetails: '', resolution: null }]);
     });
 
-    it('si no avala, exige las observaciones', () => {
+    it('si no es pertinente, exige las observaciones', () => {
       crear(solicitud('cambio-objetivos-0'));
       component.verdictSelected.set(stateList.NO_APROBADO);
       component.submit();
@@ -123,7 +130,7 @@ describe('EvaluateSpecialRequestFormComponent', () => {
       ]);
     });
 
-    it('el Consejo ve el aval del Comité y debe adjuntar la resolución', () => {
+    it('el Consejo ve el concepto de pertinencia del Comité y debe adjuntar la resolución', () => {
       const avalado = thesisWorkDePrueba(crearTrabajoEnCursoCon({
         cambiosObjetivos: [{ tituloAnterior: 'Sistema de gestión', objetivosAnteriores: ['G'],
           tituloPropuesto: 'Nuevo título', objetivosPropuestos: ['General nuevo'], justificacion: 'Cambio de alcance',
@@ -135,9 +142,9 @@ describe('EvaluateSpecialRequestFormComponent', () => {
       const texto = fixture.nativeElement.textContent as string;
       expect(component.isCommitteeStep).toBe(false);
       expect(texto).toContain('Decisión del Consejo de Facultad');
-      expect(texto).toContain('Avalado el 04 - 05 - 2026');
+      expect(texto).toContain('Pertinente el 04 - 05 - 2026');
       expect(texto).toContain('Pertinente');
-      expect(texto).toContain('Aval del Comité al cambio de título y objetivos');
+      expect(texto).toContain('Concepto de pertinencia del Comité sobre el cambio de título y objetivos');
 
       component.verdictSelected.set(stateList.APROBADO);
       component.submit();

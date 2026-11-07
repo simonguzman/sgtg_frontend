@@ -59,10 +59,10 @@ export class EvaluateSpecialRequestFacadeService {
         next: () => {
           this.notificationService.show(request.pendingWith === 'COMITE'
             ? {
-              title: 'Aval registrado',
+              title: 'Concepto registrado',
               message: decision.status === stateList.APROBADO
-                ? 'El Comité avaló el cambio de título y objetivos; ahora lo decide el Consejo de Facultad.'
-                : 'El Comité no avaló el cambio de título y objetivos; la solicitud quedó no aprobada.',
+                ? 'El Comité consideró pertinente el cambio de título y objetivos; ahora lo decide el Consejo de Facultad.'
+                : 'El Comité consideró no pertinente el cambio de título y objetivos; la solicitud quedó cerrada.',
               type: NotificationType.CONFIRMATION
             }
             : {

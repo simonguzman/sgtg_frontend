@@ -1,8 +1,9 @@
 <div class="p-6 bg-white rounded-lg w-full">
   <app-info-banner title="Evaluación de solicitud" class="mb-6 block">
     @if (isCommitteeStep) {
-      Revise el cambio de título y objetivos solicitado por el director y registre el aval del Comité del programa.
-      Si lo avala, pasa al Consejo de Facultad; si no lo avala, la solicitud queda no aprobada.
+      Revise el cambio de título y objetivos solicitado por el director y registre el concepto de pertinencia del
+      Comité del programa. Si es pertinente, pasa al Consejo de Facultad para su decisión; si no es pertinente, la
+      solicitud se cierra como no pertinente.
     } @else {
       Revise la solicitud radicada por el director y registre la decisión del Consejo de Facultad con su resolución en PDF.
       Las fechas que resulten (nuevo plazo de entrega o reanudación) las calcula el sistema según el reglamento.
@@ -39,17 +40,15 @@
       @if (getRequestType() === types.CAMBIO_TITULO) {
         <app-readonly-field label="Título vigente" [value]="specialRequest.previousTitle ?? ''"></app-readonly-field>
         <app-readonly-field label="Título propuesto" [value]="specialRequest.proposedTitle ?? ''"></app-readonly-field>
-        <div class="flex flex-col gap-2">
-          <span class="font-display font-semibold text-primary text-size-section">Objetivos propuestos</span>
-          <ol class="list-decimal pl-6 font-sans text-size-body text-text-body flex flex-col gap-1">
-            @for (objective of specialRequest.proposedObjectives ?? []; track $index) {
-              <li><span class="font-semibold">{{ $index === 0 ? 'General' : 'Específico' }}:</span> {{ objective }}</li>
-            }
-          </ol>
-        </div>
+        @if (proposedGeneralObjective) {
+          <app-readonly-field label="Objetivo general propuesto" [value]="proposedGeneralObjective"></app-readonly-field>
+        }
+        @if (proposedSpecificObjectives.length > 0) {
+          <app-readonly-field label="Objetivos específicos propuestos" [values]="proposedSpecificObjectives"></app-readonly-field>
+        }
         <app-readonly-field label="Justificación" [value]="specialRequest.description"></app-readonly-field>
         @if (specialRequest.committeeEndorsement; as aval) {
-          <app-readonly-field label="Aval del Comité del programa" [value]="endorsementSummary(aval)"></app-readonly-field>
+          <app-readonly-field label="Concepto de pertinencia del Comité" [value]="endorsementSummary(aval)"></app-readonly-field>
           @if (aval.observations) {
             <app-readonly-field label="Observaciones del Comité" [value]="aval.observations"></app-readonly-field>
           }
@@ -87,7 +86,7 @@
 
   <section>
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">
-      {{ isCommitteeStep ? 'Aval del Comité del programa' : 'Decisión del Consejo de Facultad' }}
+      {{ isCommitteeStep ? 'Concepto de pertinencia' : 'Decisión del Consejo de Facultad' }}
     </h3>
 
     <div class="pl-4 flex flex-col gap-6">
@@ -95,13 +94,13 @@
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="verdictSelected() === states.APROBADO" (change)="verdictSelected.set(states.APROBADO)">
-          <span class="text-size-body font-medium text-text-body">{{ isCommitteeStep ? 'Avalar' : 'Aprobar' }}</span>
+          <span class="text-size-body font-medium text-text-body">{{ isCommitteeStep ? 'Pertinente' : 'Aprobar' }}</span>
         </label>
 
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="radio" name="verdict" class="w-4 h-4 text-primary focus:ring-primary"
                  [checked]="verdictSelected() === states.NO_APROBADO" (change)="verdictSelected.set(states.NO_APROBADO)">
-          <span class="text-size-body font-medium text-text-body">{{ isCommitteeStep ? 'No avalar' : 'No aprobar' }}</span>
+          <span class="text-size-body font-medium text-text-body">{{ isCommitteeStep ? 'No pertinente' : 'No aprobar' }}</span>
         </label>
       </div>
 
@@ -168,10 +167,10 @@
         <textarea id="evalComments" rows="4" class="p-3 border rounded-md w-full focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-size-body font-sans resize-none"
                   [class.border-alert]="isSubmitAttempted() && requiresObservations && !observations().trim()"
                   [class.border-gray-300]="!(isSubmitAttempted() && requiresObservations && !observations().trim())"
-                  [placeholder]="isCommitteeStep ? 'Indique por qué el Comité no avala el cambio (obligatorio si no lo avala)' : 'Ingrese las observaciones sobre la decisión si lo considera necesario'"
+                  [placeholder]="isCommitteeStep ? 'Indique por qué el cambio no es pertinente (obligatorio si no es pertinente)' : 'Ingrese las observaciones sobre la decisión si lo considera necesario'"
                   (input)="onObservationsChange($event)"></textarea>
         @if (isSubmitAttempted() && requiresObservations && !observations().trim()) {
-          <span class="text-size-role-footer text-textbox-alert">Si no avala el cambio, las observaciones son obligatorias</span>
+          <span class="text-size-role-footer text-textbox-alert">Si el cambio no es pertinente, las observaciones son obligatorias</span>
         }
       </div>
 

@@ -221,7 +221,7 @@ describe('trabajo-grado.mapper', () => {
       })]);
     });
 
-    it('el cambio de título y objetivos espera el aval del Comité y, avalado, la decisión del Consejo', () => {
+    it('el cambio de título y objetivos espera el concepto del Comité: no pertinente se cierra y pertinente pasa al Consejo', () => {
       const cambio = { tituloAnterior: 'A', objetivosAnteriores: ['G'], tituloPropuesto: 'B', objetivosPropuestos: ['G2'],
         justificacion: 'J', fechaSolicitud: '2026-05-01', decision: null };
       const aval = (resultado: 'APROBADO' | 'NO_APROBADO') => ({ organo: 'COMITE_PROGRAMA' as const, resultado,
@@ -233,7 +233,7 @@ describe('trabajo-grado.mapper', () => {
       }), ctx)!.specialRequests;
       const porId = (id: string) => solicitudes.find(s => s.id === id)!;
 
-      expect(porId('cambio-objetivos-0')).toEqual(expect.objectContaining({ status: stateList.NO_APROBADO,
+      expect(porId('cambio-objetivos-0')).toEqual(expect.objectContaining({ status: stateList.NO_PERTINENTE,
         committeeEndorsement: expect.objectContaining({ endorsed: false, observations: 'No procede' }) }));
       expect(porId('cambio-objetivos-0').pendingWith).toBeUndefined();
       expect(porId('cambio-objetivos-1')).toEqual(expect.objectContaining({ status: stateList.EN_REVISION,

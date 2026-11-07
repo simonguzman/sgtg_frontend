@@ -271,18 +271,18 @@ function decisionDeSolicitud(trabajo: TrabajoGradoResponse, decision: DecisionAp
 }
 
 /**
- * Estado del cambio de título y objetivos: pendiente del Comité, avalado y
- * pendiente del Consejo, no avalado (no aprobado) o decidido por el Consejo.
+ * Estado del cambio de título y objetivos: pendiente del Comité, pertinente y
+ * pendiente del Consejo, no pertinente (cerrada) o decidido por el Consejo.
  */
 function estadoCambioObjetivos(cambio: CambioObjetivosApi): Pick<SpecialRequest, 'status' | 'pendingWith'> {
   if (cambio.decision) return { status: estadoSolicitud(cambio.decision) };
   if (!cambio.avalComite) return { status: stateList.EN_REVISION, pendingWith: 'COMITE' };
   return cambio.avalComite.resultado === 'APROBADO'
     ? { status: stateList.EN_REVISION, pendingWith: 'CONSEJO' }
-    : { status: stateList.NO_APROBADO };
+    : { status: stateList.NO_PERTINENTE };
 }
 
-/** Aval del Comité del programa sobre el cambio de título y objetivos. */
+/** Concepto de pertinencia del Comité del programa sobre el cambio de título y objetivos. */
 function avalDelComite(trabajo: TrabajoGradoResponse, aval: DecisionApi | null,
   ctx: ContextoMapeo): CommitteeEndorsement | undefined {
   if (!aval) return undefined;
@@ -806,7 +806,7 @@ const ETIQUETAS_POR_CARPETA: Record<string, string> = {
   SOLICITUD_NUEVA_FECHA: 'Solicitud de nueva fecha',
   AJUSTES_SUSTENTACION: 'Ajustes de la sustentación',
   SOLICITUD_CANCELACION: 'Solicitud de cancelación',
-  AVAL_CAMBIO_OBJETIVOS: 'Aval del Comité al cambio de título y objetivos'
+  AVAL_CAMBIO_OBJETIVOS: 'Concepto de pertinencia del Comité sobre el cambio de título y objetivos'
 };
 
 /**

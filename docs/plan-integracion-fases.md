@@ -752,3 +752,16 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
       clave actual equivocada y la ventana de reuniones.
     - Se descartó: cambiar `p-button` por un botón propio (sus estilos dependen de PrimeNG y se usa en 168 lugares) y
       devolver el usuario en `/auth/renovar` (tocaba la sesión y ganaba 1 o 2 puntos).
+60. **Concepto de pertinencia del Comité sobre el cambio de título y objetivos (2026-11-07):**
+    - El Comité ya no "avala": emite un **concepto de pertinencia**, como con la propuesta. En el formulario
+      (`evaluate-special-request-form`) la sección se llama "Concepto de pertinencia" y las opciones son "Pertinente" y
+      "No pertinente". El flujo no cambia: si es pertinente pasa al Consejo de Facultad; si no, la solicitud se cierra.
+    - La solicitud no pertinente queda con el estado `stateList.NO_PERTINENTE` ("No pertinente"), no "No aprobado"
+      (`estadoCambioObjetivos` en el mapper; se amplió el tipo de `SpecialRequest.status`).
+    - Los objetivos propuestos se muestran con `app-readonly-field`, como en las vistas de detalle: "Objetivo general
+      propuesto" y "Objetivos específicos propuestos" (antes era una lista suelta, sin recuadro).
+    - Textos cambiados también en la confirmación, el mensaje de éxito, la ventana de detalle de la solicitud y el
+      nombre del acta ("Concepto de pertinencia del Comité sobre el cambio de título y objetivos").
+    - El API no cambia: siguen `avalComite`, `cambio-objetivos/decisiones-comite` y los eventos
+      `CAMBIO_OBJETIVOS_AVALADO`/`NO_AVALADO` (el backend cambió solo los textos; ver
+      `sgtg_backend/docs/ajustes-2026-11-07.md`).
