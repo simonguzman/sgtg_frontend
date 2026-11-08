@@ -20,8 +20,11 @@ export class UsersFacadeService {
   /** Usuarios del alcance del gestor (todos para el administrador, Consejo y Decanatura) */
   private readonly managedUsers = signal<ManagedUser[]>([]);
 
+  /** Del usuario más reciente al más antiguo: el que se acaba de crear queda arriba */
   public readonly usersTableData = computed(() =>
-    this.managedUsers().map(({ user, editable }) => this.mapper.mapUserToTable(user, editable))
+    [...this.managedUsers()]
+      .sort((a, b) => Number(b.user.id) - Number(a.user.id))
+      .map(({ user, editable }) => this.mapper.mapUserToTable(user, editable))
   );
 
   public loadUsers(): void {
