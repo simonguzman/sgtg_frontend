@@ -49,7 +49,15 @@ describe('StatisticsPageComponent - Integración UI', () => {
       updateFilters: jest.fn(),
       clearFilters: jest.fn(),
       downloadReport: jest.fn(() => Promise.resolve()),
-      reportRows: signal(150)
+      reportRows: signal(150),
+      totalDueSoon: signal(0),
+      dueSoonProjects: signal([]),
+      canRemind: signal(false),
+      canOpenDetails: signal(false),
+      sendingReminder: signal(new Set<string>()),
+      remindedToday: signal(new Set<string>()),
+      remind: jest.fn(),
+      remindAll: jest.fn()
     };
     await TestBed.configureTestingModule({
       imports: [StatisticsPageComponent],
@@ -65,7 +73,8 @@ describe('StatisticsPageComponent - Integración UI', () => {
   it('debe renderizar los KPIs consumidos desde las señales de la fachada', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const cards = compiled.querySelectorAll('.text-3xl.font-bold');
-    expect(cards).toHaveLength(4);
+    // Las cuatro de resumen y la de próximos a vencer
+    expect(cards).toHaveLength(5);
     expect(cards[0].textContent?.trim()).toBe('150');
     expect(cards[1].textContent?.trim()).toBe('100');
     expect(cards[2].textContent?.trim()).toBe('30');

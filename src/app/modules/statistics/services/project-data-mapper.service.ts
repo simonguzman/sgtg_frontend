@@ -75,7 +75,12 @@ export class ProjectDataMapperService {
       // Sin plazo de evaluación: los informes mensuales del trabajo en curso
       // se revisan sin plazo (a diferencia de la propuesta y el anteproyecto),
       // así que estos registros se muestran como "Sin evaluar".
-      deadlineStatus: null
+      deadlineStatus: null,
+      // Próximo a vencer: lo calcula el backend con su reloj (el del sistema puede estar ajustado)
+      dueSoon: !!thesis.deadlines?.dueSoon,
+      deliveryDate: thesis.deadlines?.maximumDeliveryDate ?? null,
+      daysUntilDelivery: thesis.deadlines?.daysUntilDelivery ?? null,
+      studentNames: this.userService.getAuthorsNames(thesis.preliminaryDraftData?.proposalData?.authors)
     };
   }
 

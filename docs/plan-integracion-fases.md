@@ -804,3 +804,21 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     - Ya tenían buscador: estudiantes, codirector y asesor de la propuesta, evaluadores, jurados y el registro del
       anteproyecto. Siguen como lista simple (`<select>`) las listas cortas y fijas: tipo de documento, tipo de
       vinculación, tipo de solicitud, meses de prórroga y departamento en el cambio de Comité.
+65. **Trabajos próximos a vencer en estadísticas (2026-11-09, pedido del decano):**
+    - **Tarjeta de alerta:** quinta tarjeta, roja con degradado y un ícono que parpadea (sin animación si el usuario
+      pide menos movimiento), con el número de trabajos de grado en curso o en prórroga a 30 días o menos de su fecha
+      máxima de entrega. Respeta los filtros, como las demás. Sin trabajos en esa condición se ve en verde ("Ninguna
+      entrega en los próximos 30 días") y sin ojo.
+    - **Ojo:** abre y cierra, debajo de las tarjetas, la tabla "Trabajos de grado próximos a vencer" (las gráficas
+      siguen debajo): trabajo y estudiantes, director, programa, fecha máxima de entrega y días que quedan (en rojo los
+      de 7 días o menos), del más urgente al menos urgente.
+    - **Acciones:** el ojo de cada fila lleva al detalle del trabajo (solo a los roles que tienen esa ruta; el jefe no).
+      La campana envía el recordatorio y "Recordar a todos" lo envía a los que faltan (de a tres) con un resumen; los
+      recordados quedan como "Recordado hoy". Los ven Decanatura, Consejo, administrador, Comité y jefe
+      (`StatisticsRemindersService`); el backend valida el departamento del Comité y del jefe.
+    - **Datos:** el backend decide qué está próximo a vencer y cuántos días quedan (`ejecucion.proximoAVencer` y
+      `diasParaEntrega`, con su reloj): el front no usa la fecha del navegador.
+    - **Bandeja:** la notificación `RECORDATORIO_ENTREGA` lleva a la pestaña "Entrega final" del trabajo, donde se
+      solicita la sustentación.
+    - Íconos nuevos en `index.html`: `alarm`, `event_available`, `notifications_active` y `warning`.
+    - Detalle del backend: `sgtg_backend/docs/ajustes-2026-11-09.md`.

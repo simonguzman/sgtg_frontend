@@ -50,6 +50,8 @@ const RUTAS_POR_EVENTO: Record<string, (trabajoId: number, sesion?: number | nul
   SUSTENTACION_HABILITADA: trabajoId => `/thesis-work/details/${trabajoId}/loaded_documents?tab=ENTREGA_FINAL`,
   PLAZO_TRABAJO_POR_VENCER: trabajoId => `/thesis-work/details/${trabajoId}/loaded_documents?tab=ENTREGA_FINAL`,
   PLAZO_TRABAJO_ULTIMO_AVISO: trabajoId => `/thesis-work/details/${trabajoId}/loaded_documents?tab=ENTREGA_FINAL`,
+  // Recordatorio manual de la entrega (desde estadísticas): lleva a solicitar la sustentación
+  RECORDATORIO_ENTREGA: trabajoId => `/thesis-work/details/${trabajoId}/loaded_documents?tab=ENTREGA_FINAL`,
   PAZ_Y_SALVO_APROBADO: trabajoId => `/thesis-work/details/${trabajoId}/loaded_documents?tab=PAZ_Y_SALVO`,
   // El informe mensual radicado, en la pestaña de informes mensuales (ahí se revisa); su revisión, en las
   // evaluaciones realizadas del trabajo

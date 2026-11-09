@@ -5,6 +5,8 @@ import { StatisticsChartDataService } from '../../../services/statistics-chart-d
 import { StatisticsReportFormat, StatisticsReportService } from '../../../services/statistics-reports.service';
 import { StatisticsFilters } from '../../../interfaces/statisticsFilters.interface';
 import { StatisticsReportKpis } from '../../../interfaces/statisticsReportKpis.interface';
+import { StatisticsRemindersService } from '../../../services/statistics-reminders.service';
+import { RawProjectData } from '../../../interfaces/rawProjectData.interface';
 
 @Injectable({ providedIn: 'root' })
 export class StatisticsPageFacadeService {
@@ -12,6 +14,7 @@ export class StatisticsPageFacadeService {
   private readonly metrics = inject(StatisticsMetricsService);
   private readonly chartData = inject(StatisticsChartDataService);
   private readonly reportService = inject(StatisticsReportService);
+  private readonly reminders = inject(StatisticsRemindersService);
 
   readonly currentFilters = this.state.currentFilters;
   readonly stagesOptions = this.state.stagesOptions;
@@ -24,6 +27,14 @@ export class StatisticsPageFacadeService {
   readonly totalApproved = this.metrics.totalApproved;
   readonly totalInProgress = this.metrics.totalInProgress;
   readonly totalNotApproved = this.metrics.totalNotApproved;
+  /** Trabajos de grado próximos a vencer (a 30 días o menos de la fecha máxima de entrega), del más urgente */
+  readonly dueSoonProjects = this.metrics.dueSoonProjects;
+  readonly totalDueSoon = this.metrics.totalDueSoon;
+  /** Quién recuerda la entrega y quién abre el detalle del trabajo */
+  readonly canRemind = this.reminders.canRemind;
+  readonly canOpenDetails = this.reminders.canOpenDetails;
+  readonly sendingReminder = this.reminders.sending;
+  readonly remindedToday = this.reminders.reminded;
   readonly statusChartData = this.chartData.statusChartData;
   readonly stageChartData = this.chartData.stageChartData;
   readonly modalityChartData = this.chartData.modalityChartData;
@@ -35,6 +46,16 @@ export class StatisticsPageFacadeService {
 
   clearFilters(): void {
     this.state.clearFilters();
+  }
+
+  /** Notifica a los estudiantes y a la dirección del trabajo que se acerca su fecha de entrega. */
+  remind(project: RawProjectData): void {
+    this.reminders.remind(project);
+  }
+
+  /** Recordatorio a todos los trabajos próximos a vencer de la lista (los que aún no se recordaron hoy). */
+  remindAll(): void {
+    this.reminders.remindAll(this.dueSoonProjects());
   }
 
   /** Cantidad de trabajos que lleva el reporte (los que dejan los filtros) */

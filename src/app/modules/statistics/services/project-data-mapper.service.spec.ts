@@ -94,7 +94,7 @@ describe('ProjectDataMapperService', () => {
   let service: ProjectDataMapperService;
 
   // 🔹 REFACTOR: Tipado estricto para el mock
-  let mockUserService: { formatFullName: jest.Mock<string, [User]> };
+  let mockUserService: { formatFullName: jest.Mock<string, [User]>; getAuthorsNames: jest.Mock<string, [unknown]> };
 
   let resolveAcademicPeriodSpy: jest.SpyInstance;
   let mapStateToProjectStatusSpy: jest.SpyInstance;
@@ -117,6 +117,7 @@ describe('ProjectDataMapperService', () => {
 
     mockUserService = {
       formatFullName: jest.fn((user: User) => `${user.firstName} ${user.lastName}`),
+      getAuthorsNames: jest.fn(() => 'Ana Mora, Luis Paz'),
     };
 
     resolveAcademicPeriodSpy = jest.spyOn(academicPeriodHelper, 'resolveAcademicPeriod')
@@ -311,6 +312,22 @@ describe('ProjectDataMapperService', () => {
       expect(result.directorName).toBe('Sin Asignar');
       expect(result.registrationDate).toEqual(FIXED_SYSTEM_DATE);
       expect(result.deadlineStatus).toBeNull();
+      expect(result.dueSoon).toBe(false);
+      expect(result.daysUntilDelivery).toBeNull();
+    });
+
+    it('lleva la fecha máxima de entrega, los días que quedan y si está próximo a vencer (del backend)', () => {
+      const entrega = new Date('2027-08-20T00:00:00');
+      const result = service.mapThesisWork(createMockThesisWork({
+        thesisWorkId: 'thesis-1',
+        deadlines: { startDate: null, maximumDeliveryDate: entrega, minimumSustentationDate: null,
+          objectivesChangeDeadline: null, extensionRequestDeadline: null, daysUntilDelivery: 12, dueSoon: true }
+      }));
+
+      expect(result.dueSoon).toBe(true);
+      expect(result.daysUntilDelivery).toBe(12);
+      expect(result.deliveryDate).toBe(entrega);
+      expect(result.studentNames).toBe('Ana Mora, Luis Paz');
     });
   });
 });

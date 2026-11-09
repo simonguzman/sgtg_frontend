@@ -181,7 +181,9 @@ export function aTrabajoDeGrado(trabajo: TrabajoGradoResponse, ctx: ContextoMape
       maximumDeliveryDate: aFecha(ejecucion.fechaFin),
       minimumSustentationDate: aFecha(ejecucion.fechaMinimaSustentacion),
       objectivesChangeDeadline: aFecha(ejecucion.fechaLimiteCambioObjetivos),
-      extensionRequestDeadline: aFecha(ejecucion.fechaLimiteSolicitudProrroga)
+      extensionRequestDeadline: aFecha(ejecucion.fechaLimiteSolicitudProrroga),
+      daysUntilDelivery: ejecucion.diasParaEntrega ?? null,
+      dueSoon: !!ejecucion.proximoAVencer
     },
     sustentation: procesoDeSustentacion(trabajo),
     isArchived: estaCerrado(trabajo)

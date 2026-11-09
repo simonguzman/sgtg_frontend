@@ -1,5 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ChartModule } from 'primeng/chart';
 import { SearchableSelectComponent, SelectOption } from '../../../../shared/components/searchable-select/searchable-select.component';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
@@ -18,7 +20,8 @@ const comoOpciones = (valores: string[]): SelectOption[] => valores.map(valor =>
 @Component({
   selector: 'app-statistics-page',
   standalone: true,
-  imports: [FormsModule, ChartModule, SearchableSelectComponent, ButtonComponent, ReportFormatModalComponent],
+  imports: [FormsModule, DatePipe, RouterLink, ChartModule, SearchableSelectComponent, ButtonComponent,
+    ReportFormatModalComponent],
   templateUrl: './statistics-page.component.html',
   styleUrl: './statistics-page.component.css',
 })
@@ -31,6 +34,9 @@ export class StatisticsPageComponent {
   protected readonly barOptions = BAR_CHART_OPTIONS;
   protected readonly archiveOptions = ARCHIVE_STATUS_OPTIONS;
   protected readonly deadlineFilterOptions = DEADLINE_FILTER_OPTIONS;
+  /** La tabla de trabajos próximos a vencer se abre con el ojo de su tarjeta */
+  protected readonly isDueSoonOpen = signal(false);
+  private readonly dueSoonSection = viewChild<ElementRef<HTMLElement>>('dueSoonSection');
 
   // Opciones de los filtros para el buscador (app-searchable-select): se puede escribir para filtrar la lista
   protected readonly stageSelectOptions: SelectOption[] = this.facade.stagesOptions
@@ -73,6 +79,19 @@ export class StatisticsPageComponent {
 
   onDeadlineFilterChange(deadlineFilter: DeadlineFilterValue | string): void {
     if (deadlineFilter) this.facade.updateFilters({ deadlineFilter: deadlineFilter as DeadlineFilterValue });
+  }
+
+  toggleDueSoon(): void {
+    this.isDueSoonOpen.update(abierta => !abierta);
+    // Al abrirla, la tabla queda a la vista (está debajo de las tarjetas)
+    if (this.isDueSoonOpen()) setTimeout(() => this.dueSoonSection()?.nativeElement.scrollIntoView?.(
+      { behavior: 'smooth', block: 'start' }));
+  }
+
+  /** "Vence hoy", "1 día" o "N días" */
+  protected daysLabel(days: number | null | undefined): string {
+    if (!days) return 'Vence hoy';
+    return days === 1 ? '1 día' : `${days} días`;
   }
 
   handleDownloadReport(): void {

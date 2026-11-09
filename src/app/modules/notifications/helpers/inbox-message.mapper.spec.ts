@@ -82,7 +82,8 @@ describe('inbox-message.mapper', () => {
       expect(rutaDeNotificacion(15, 'ANTEPROYECTO', evento))
         .toBe('/preliminary-draft/details/15/loaded_documents?tab=ANTEPROYECTOS');
     }
-    for (const evento of ['SUSTENTACION_HABILITADA', 'PLAZO_TRABAJO_POR_VENCER', 'PLAZO_TRABAJO_ULTIMO_AVISO']) {
+    for (const evento of ['SUSTENTACION_HABILITADA', 'PLAZO_TRABAJO_POR_VENCER', 'PLAZO_TRABAJO_ULTIMO_AVISO',
+      'RECORDATORIO_ENTREGA']) {
       expect(rutaDeNotificacion(15, 'EN_CURSO', evento)).toBe('/thesis-work/details/15/loaded_documents?tab=ENTREGA_FINAL');
     }
     for (const evento of ['PLAZO_CAMBIO_OBJETIVOS_POR_VENCER', 'PLAZO_CAMBIO_OBJETIVOS_VENCIDO',

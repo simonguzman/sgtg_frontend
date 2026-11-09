@@ -133,7 +133,7 @@
       </div>
     </div>
   </div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
     <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm flex items-center justify-between">
       <div class="flex flex-col gap-1">
         <span class="text-size-role-footer text-text-body font-medium">Trabajos registrados</span>
@@ -170,7 +170,121 @@
         <span class="material-symbols-outlined text-size-modal-title">cancel</span>
       </div>
     </div>
+    <!-- Alerta: trabajos de grado a 30 días o menos de su fecha máxima de entrega -->
+    @if (facade.totalDueSoon() > 0) {
+      <div class="due-soon-card p-5 rounded-xl shadow-md flex items-center justify-between gap-3" role="status">
+        <div class="flex flex-col gap-1">
+          <span class="text-size-role-footer font-semibold flex items-center gap-1">
+            <span class="material-symbols-outlined due-soon-pulse text-size-section">warning</span>
+            Próximos a vencer
+          </span>
+          <span class="text-3xl font-display font-bold">{{ facade.totalDueSoon() }}</span>
+          <span class="text-size-role-footer opacity-90">Entrega en 30 días o menos</span>
+        </div>
+        <button type="button" class="due-soon-eye" (click)="toggleDueSoon()"
+                [attr.aria-expanded]="isDueSoonOpen()" aria-controls="dueSoonSection"
+                [attr.aria-label]="isDueSoonOpen() ? 'Ocultar los trabajos próximos a vencer' : 'Ver los trabajos próximos a vencer'"
+                [title]="isDueSoonOpen() ? 'Ocultar' : 'Ver los trabajos'">
+          <span class="material-symbols-outlined">{{ isDueSoonOpen() ? 'visibility_off' : 'visibility' }}</span>
+        </button>
+      </div>
+    } @else {
+      <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-[#2e7d32] rounded-xl shadow-sm flex items-center justify-between">
+        <div class="flex flex-col gap-1">
+          <span class="text-size-role-footer text-text-body font-medium">Próximos a vencer</span>
+          <span class="text-3xl font-display font-bold text-[#2e7d32]">0</span>
+          <span class="text-size-role-footer text-text-body">Ninguna entrega en los próximos 30 días</span>
+        </div>
+        <div class="p-3 bg-green-50 text-[#2e7d32] rounded-lg flex items-center justify-center">
+          <span class="material-symbols-outlined text-size-modal-title">event_available</span>
+        </div>
+      </div>
+    }
   </div>
+
+  @if (isDueSoonOpen() && facade.totalDueSoon() > 0) {
+    <section #dueSoonSection id="dueSoonSection" class="due-soon-section bg-white rounded-xl shadow-sm p-5 flex flex-col gap-4">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="flex flex-col gap-1">
+          <h3 class="font-display font-semibold text-danger text-size-section flex items-center gap-2 m-0">
+            <span class="material-symbols-outlined">alarm</span>
+            Trabajos de grado próximos a vencer
+          </h3>
+          <p class="text-size-role-footer text-text-body m-0">
+            En curso o en prórroga, a 30 días o menos de su fecha máxima de entrega y sin la sustentación solicitada.
+            @if (facade.canRemind()) {
+              El recordatorio llega a la bandeja de los estudiantes y de la dirección del trabajo (una vez al día).
+            }
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          @if (facade.canRemind()) {
+            <app-button-component label="Recordar a todos" variant="primary" icon="notifications_active"
+              (onClick)="facade.remindAll()"></app-button-component>
+          }
+          <button type="button" class="due-soon-close" (click)="toggleDueSoon()" aria-label="Cerrar la lista" title="Cerrar">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="due-soon-table w-full text-size-body">
+          <thead>
+            <tr>
+              <th scope="col">Trabajo de grado</th>
+              <th scope="col">Director</th>
+              <th scope="col">Programa</th>
+              <th scope="col">Fecha máxima de entrega</th>
+              <th scope="col">Quedan</th>
+              <th scope="col" class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (project of facade.dueSoonProjects(); track project.id) {
+              <tr>
+                <td>
+                  <span class="block font-semibold text-primary">{{ project.title }}</span>
+                  <span class="block text-size-role-footer text-text-body">{{ project.studentNames }}</span>
+                </td>
+                <td>{{ project.directorName }}</td>
+                <td>{{ project.program }}</td>
+                <td class="whitespace-nowrap">{{ project.deliveryDate | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  <span class="due-soon-badge" [class.due-soon-badge--critical]="(project.daysUntilDelivery ?? 0) <= 7">
+                    {{ daysLabel(project.daysUntilDelivery) }}
+                  </span>
+                </td>
+                <td>
+                  <div class="flex items-center justify-center gap-2">
+                    @if (facade.canOpenDetails()) {
+                      <a class="due-soon-action" [routerLink]="['/thesis-work/details', project.id]"
+                         [attr.aria-label]="'Ver el trabajo ' + project.title" title="Ver el trabajo de grado">
+                        <span class="material-symbols-outlined">visibility</span>
+                      </a>
+                    }
+                    @if (facade.canRemind()) {
+                      @if (facade.remindedToday().has(project.id)) {
+                        <span class="due-soon-reminded" title="Ya se recordó hoy">
+                          <span class="material-symbols-outlined">check_circle</span> Recordado hoy
+                        </span>
+                      } @else {
+                        <button type="button" class="due-soon-action due-soon-action--remind"
+                                [disabled]="facade.sendingReminder().has(project.id)" (click)="facade.remind(project)"
+                                [attr.aria-label]="'Enviar recordatorio de entrega a ' + project.title"
+                                title="Enviar recordatorio a estudiantes y dirección">
+                          <span class="material-symbols-outlined">notifications_active</span>
+                        </button>
+                      }
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
   @if (facade.totalLoaded() === 0) {
     <div class="information-block p-6 rounded-xl text-size-body text-text-body text-center">
       No hay trabajos de grado con los filtros seleccionados.

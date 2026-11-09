@@ -210,6 +210,10 @@ export interface EjecucionApi {
   suspensiones: SuspensionApi[];
   /** Calendario de reuniones de seguimiento: una por cada mes del plazo */
   reuniones?: ReunionApi[];
+  /** Días calendario hasta el fin del plazo con el reloj del backend (negativo si ya pasó) */
+  diasParaEntrega?: number;
+  /** En curso o en prórroga y a 30 días o menos del fin del plazo (lo decide el backend) */
+  proximoAVencer?: boolean;
 }
 
 /** Estado de una reunión de seguimiento en la fecha de la consulta (lo calcula el backend). */

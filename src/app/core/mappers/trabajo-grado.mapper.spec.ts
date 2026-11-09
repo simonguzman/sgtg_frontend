@@ -193,8 +193,16 @@ describe('trabajo-grado.mapper', () => {
         maximumDeliveryDate: new Date(2026, 11, 20),
         minimumSustentationDate: new Date(2026, 5, 20),
         objectivesChangeDeadline: new Date(2026, 8, 20),
-        extensionRequestDeadline: new Date(2026, 11, 5)
+        extensionRequestDeadline: new Date(2026, 11, 5),
+        daysUntilDelivery: null,
+        dueSoon: false
       });
+    });
+
+    it('lleva los días para la entrega y si está próximo a vencer, como los calcula el backend', () => {
+      const trabajo = aTrabajoDeGrado(crearTrabajoEnCursoCon({ diasParaEntrega: 12, proximoAVencer: true }), ctx)!;
+      expect(trabajo.deadlines?.daysUntilDelivery).toBe(12);
+      expect(trabajo.deadlines?.dueSoon).toBe(true);
     });
 
     it('los informes mensuales son sus avances (el más reciente primero) y sus revisiones, las evaluaciones', () => {

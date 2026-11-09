@@ -116,4 +116,24 @@ describe('StatisticsMetricsService', () => {
       expect(service.totalLoaded()).toBe(1); // Se mantiene el total general
     });
   });
+
+  describe('Próximos a vencer', () => {
+    it('cuenta solo los trabajos próximos a vencer en proceso, del más urgente al menos urgente', () => {
+      mockFilteredDataSignal.set([
+        createMockRawProjectData({ id: 'a', dueSoon: true, daysUntilDelivery: 20 }),
+        createMockRawProjectData({ id: 'b', dueSoon: true, daysUntilDelivery: 3 }),
+        createMockRawProjectData({ id: 'c', dueSoon: false, daysUntilDelivery: 90 }),
+        createMockRawProjectData({ id: 'd', dueSoon: true, daysUntilDelivery: 1, isArchived: true }),
+        createMockRawProjectData({ id: 'e' })
+      ]);
+
+      expect(service.totalDueSoon()).toBe(2);
+      expect(service.dueSoonProjects().map(p => p.id)).toEqual(['b', 'a']);
+    });
+
+    it('sin trabajos próximos a vencer el total es 0', () => {
+      mockFilteredDataSignal.set([createMockRawProjectData()]);
+      expect(service.totalDueSoon()).toBe(0);
+    });
+  });
 });

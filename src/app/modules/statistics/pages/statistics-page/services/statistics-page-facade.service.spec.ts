@@ -9,6 +9,7 @@ import { DEFAULT_STATISTICS_FILTERS, StatisticsFilters } from '../../../interfac
 import { StatisticsReportKpis } from '../../../interfaces/statisticsReportKpis.interface';
 import { RawProjectData } from '../../../interfaces/rawProjectData.interface';
 import { ProjectStage } from '../../../enum/projectStage.enum';
+import { StatisticsRemindersService } from '../../../services/statistics-reminders.service';
 
 interface MockChartData {
   labels: string[];
@@ -54,12 +55,22 @@ describe('StatisticsPageFacadeService', () => {
     totalApproved: WritableSignal<number>;
     totalInProgress: WritableSignal<number>;
     totalNotApproved: WritableSignal<number>;
+    dueSoonProjects: WritableSignal<RawProjectData[]>;
+    totalDueSoon: WritableSignal<number>;
   };
   let mockChartDataService: {
     statusChartData: WritableSignal<MockChartData>;
     stageChartData: WritableSignal<MockChartData>;
     modalityChartData: WritableSignal<MockChartData>;
     programChartData: WritableSignal<MockChartData>;
+  };
+  let mockReminders: {
+    canRemind: WritableSignal<boolean>;
+    canOpenDetails: WritableSignal<boolean>;
+    sending: WritableSignal<ReadonlySet<string>>;
+    reminded: WritableSignal<ReadonlySet<string>>;
+    remind: jest.Mock<void, [RawProjectData]>;
+    remindAll: jest.Mock<void, [RawProjectData[]]>;
   };
   let mockReportService: {
     downloadPdfReport: jest.Mock<Promise<void>, [StatisticsFilters, RawProjectData[], StatisticsReportKpis, StatisticsReportContext]>;
@@ -86,6 +97,16 @@ describe('StatisticsPageFacadeService', () => {
       totalApproved: signal<number>(5),
       totalInProgress: signal<number>(3),
       totalNotApproved: signal<number>(2),
+      dueSoonProjects: signal<RawProjectData[]>([]),
+      totalDueSoon: signal<number>(0),
+    };
+    mockReminders = {
+      canRemind: signal(true),
+      canOpenDetails: signal(true),
+      sending: signal<ReadonlySet<string>>(new Set()),
+      reminded: signal<ReadonlySet<string>>(new Set()),
+      remind: jest.fn(),
+      remindAll: jest.fn(),
     };
     mockChartDataService = {
       statusChartData: signal<MockChartData>({ labels: [], datasets: [] }),
@@ -105,6 +126,7 @@ describe('StatisticsPageFacadeService', () => {
         { provide: StatisticsMetricsService, useValue: mockMetricsService },
         { provide: StatisticsChartDataService, useValue: mockChartDataService },
         { provide: StatisticsReportService, useValue: mockReportService },
+        { provide: StatisticsRemindersService, useValue: mockReminders },
       ],
     });
     facadeService = TestBed.inject(StatisticsPageFacadeService);
@@ -193,6 +215,22 @@ describe('StatisticsPageFacadeService', () => {
     it('cuenta los trabajos que lleva el reporte', () => {
       mockStateService.filteredData.set([createMockRawProjectData({ id: '1' }), createMockRawProjectData({ id: '2' })]);
       expect(facadeService.reportRows()).toBe(2);
+    });
+  });
+
+  describe('Próximos a vencer', () => {
+    it('re-expone los trabajos próximos a vencer y delega el recordatorio, uno o todos los de la lista', () => {
+      const urgente = createMockRawProjectData({ id: '7', dueSoon: true, daysUntilDelivery: 4 });
+      mockMetricsService.dueSoonProjects.set([urgente]);
+      mockMetricsService.totalDueSoon.set(1);
+
+      expect(facadeService.totalDueSoon()).toBe(1);
+      expect(facadeService.canRemind()).toBe(true);
+      facadeService.remind(urgente);
+      facadeService.remindAll();
+
+      expect(mockReminders.remind).toHaveBeenCalledWith(urgente);
+      expect(mockReminders.remindAll).toHaveBeenCalledWith([urgente]);
     });
   });
 });
