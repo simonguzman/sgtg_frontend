@@ -8,6 +8,10 @@ export enum stateList{
   EN_REVISION = 'En revisión',
   CANCELADO = 'Cancelado',
   SUSPENDIDO = 'Suspendido',
+  // Evaluación del anteproyecto: concepto de un evaluador que pide correcciones (CON_CORRECCIONES en el
+  // backend) y resultado de la versión cuando ninguno lo rechaza pero alguno pide correcciones
+  CON_CORRECCIONES = 'Con correcciones',
+  EVALUADO_CON_OBSERVACIONES = 'Evaluado con observaciones',
   // Concepto del Comité de Programa sobre la propuesta (en el backend, APROBADO / NO_APROBADO)
   PERTINENTE = 'Pertinente',
   NO_PERTINENTE = 'No pertinente',

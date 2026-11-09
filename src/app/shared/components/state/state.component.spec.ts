@@ -56,6 +56,14 @@ describe('StateComponent', () => {
       expect(component.getState()).toBe('state-revision');
       expect(badgeElement.nativeElement.className).toContain('state-revision');
     });
+
+    it('el evaluado con observaciones y el concepto con correcciones usan el color del aprobado con observaciones', () => {
+      for (const estado of [stateList.EVALUADO_CON_OBSERVACIONES, stateList.CON_CORRECCIONES]) {
+        fixture.componentRef.setInput('state', estado);
+        fixture.detectChanges();
+        expect(component.getState()).toBe('state-aprobado-observaciones');
+      }
+    });
   });
 
   describe('Casos Borde y Manejo de Errores', () => {

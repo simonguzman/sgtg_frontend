@@ -99,7 +99,8 @@ export class PreliminaryDraftMapperService {
     const currentRoundEvaluations = preliminaryDraft.evaluations?.filter(evaluation => currentDocument && evaluation.documentId === currentDocument.id) || [];
     const statusLabel = this.getEvaluationsStatusLabel(currentRoundEvaluations);
 
-    const isFinalized = [stateList.APROBADO, stateList.APROBADO_CON_OBSERVACIONES, stateList.NO_APROBADO].includes(preliminaryDraft.state as stateList);
+    const isFinalized = [stateList.APROBADO, stateList.APROBADO_CON_OBSERVACIONES, stateList.EVALUADO_CON_OBSERVACIONES,
+      stateList.NO_APROBADO].includes(preliminaryDraft.state as stateList);
 
     if (isFinalized) return statusLabel ? `Resolución emitida (${statusLabel})` : 'Resolución emitida';
     if (!preliminaryDraft.evaluationDeadline) return 'Sin límite (Consejo)';

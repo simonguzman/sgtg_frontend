@@ -59,17 +59,17 @@ describe('Integración [Anteproyectos]: Ciclo de asignación, evaluación, corre
     http.expectOne(`${API}/15/anteproyecto/evaluadores`).flush(crearTrabajoEnEvaluacion());
     expect(vigente().evaluators?.map(e => e.id)).toEqual(['20', '21']);
 
-    // Un evaluador pide correcciones: la versión 1 queda con correcciones
+    // Un evaluador pide correcciones: la versión 1 queda evaluada con observaciones
     service.registerEvaluatorConcept('15', 'CON_CORRECCIONES', 'Ajustar', pdf('formato-b.pdf')).subscribe();
     http.expectOne(`${API}/15/anteproyecto/conceptos`)
       .flush(conVersiones(crearTrabajoEnEvaluacion(), 'ANTEPROYECTO', version(1, 'CON_CORRECCIONES')));
-    expect(estados()).toEqual([stateList.NO_APROBADO]);
+    expect(estados()).toEqual([stateList.EVALUADO_CON_OBSERVACIONES]);
 
     // El director radica la versión 2: vuelve a revisión
     service.uploadCorrection('15', pdf('anteproyecto-v2.pdf')).subscribe();
     http.expectOne(`${API}/15/anteproyecto`)
       .flush(conVersiones(crearTrabajoEnEvaluacion(), 'EVALUACION', version(1, 'CON_CORRECCIONES'), version(2, 'EN_REVISION')));
-    expect(estados()).toEqual([stateList.NO_APROBADO, stateList.EN_REVISION]);
+    expect(estados()).toEqual([stateList.EVALUADO_CON_OBSERVACIONES, stateList.EN_REVISION]);
     expect(vigente().state).toBe(stateList.EN_REVISION);
 
     // Ambos aprueban: queda en el Departamento hasta que el Jefe lo remita

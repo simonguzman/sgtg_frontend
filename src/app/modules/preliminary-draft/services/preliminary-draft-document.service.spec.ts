@@ -130,5 +130,17 @@ describe('PreliminaryDraftDocumentService', () => {
       expect(service.calculateDocumentStatus('d1',
         [evaluacion('d1', stateList.APROBADO), evaluacion('d1', stateList.NO_APROBADO)], 2)).toBe(stateList.NO_APROBADO);
     });
+
+    it('evaluado con observaciones si alguno pide correcciones y ninguno lo rechaza; el no aprobado prevalece', () => {
+      expect(service.calculateDocumentStatus('d1',
+        [evaluacion('d1', stateList.APROBADO), evaluacion('d1', stateList.CON_CORRECCIONES)], 2))
+        .toBe(stateList.EVALUADO_CON_OBSERVACIONES);
+      expect(service.calculateDocumentStatus('d1',
+        [evaluacion('d1', stateList.CON_CORRECCIONES), evaluacion('d1', stateList.CON_CORRECCIONES)], 2))
+        .toBe(stateList.EVALUADO_CON_OBSERVACIONES);
+      expect(service.calculateDocumentStatus('d1',
+        [evaluacion('d1', stateList.CON_CORRECCIONES), evaluacion('d1', stateList.NO_APROBADO)], 2))
+        .toBe(stateList.NO_APROBADO);
+    });
   });
 });

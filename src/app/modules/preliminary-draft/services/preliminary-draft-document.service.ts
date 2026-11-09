@@ -9,8 +9,8 @@ import { TrabajoGradoVistasService } from '../../../core/services/trabajo-grado/
 import { aAnteproyecto } from '../../../core/mappers/trabajo-grado.mapper';
 import { TrabajoGradoResponse } from '../../../core/interfaces/api/trabajo-grado-api.interface';
 
-/** Resultado del concepto de un evaluador en el backend. */
-export type ResultadoConceptoEvaluador = 'APROBADO' | 'CON_CORRECCIONES';
+/** Resultado del concepto de un evaluador en el backend (formato B). */
+export type ResultadoConceptoEvaluador = 'APROBADO' | 'CON_CORRECCIONES' | 'NO_APROBADO';
 
 /**
  * Documentos y decisiones del anteproyecto contra el backend: conceptos de los
@@ -25,7 +25,8 @@ export class PreliminaryDraftDocumentService {
 
   /**
    * Concepto de un evaluador sobre la versión en revisión. Cuando ambos
-   * conceptan, la versión queda APROBADO (pasa al Consejo) o CON_CORRECCIONES.
+   * conceptan, la versión queda APROBADO (pasa al Consejo), NO_APROBADO (alguno
+   * no la aprobó) o CON_CORRECCIONES (evaluada con observaciones).
    *
    * @param formatoB    formato B diligenciado y firmado por el evaluador (obligatorio)
    * @param anotaciones documento opcional con las anotaciones del evaluador
@@ -86,7 +87,11 @@ export class PreliminaryDraftDocumentService {
 
     const documentEvaluations = evaluations?.filter(e => e.documentId === documentId) ?? [];
     if (documentEvaluations.length < totalEvaluators) return stateList.EN_REVISION;
+    // Misma regla del backend: alguno no aprueba → no aprobado; alguno pide correcciones → evaluado con observaciones
     if (documentEvaluations.some(evaluation => evaluation.veredict === stateList.NO_APROBADO)) return stateList.NO_APROBADO;
+    if (documentEvaluations.some(evaluation => evaluation.veredict === stateList.CON_CORRECCIONES)) {
+      return stateList.EVALUADO_CON_OBSERVACIONES;
+    }
     return stateList.APROBADO;
   }
 

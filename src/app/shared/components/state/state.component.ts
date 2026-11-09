@@ -25,6 +25,9 @@ export class StateComponent {
     [stateList.APLAZADO]: 'state-aplazado',
     [stateList.CANCELADO]: 'state-cancelado',
     [stateList.SUSPENDIDO]: 'state-suspendido',
+    // Mismo color que el aprobado con observaciones: va bien, pero falta la versión corregida
+    [stateList.CON_CORRECCIONES]: 'state-aprobado-observaciones',
+    [stateList.EVALUADO_CON_OBSERVACIONES]: 'state-aprobado-observaciones',
     [stateList.PERTINENTE]: 'state-aprobado',
     [stateList.NO_PERTINENTE]: 'state-no-aprobado',
     [stateList.PENDIENTE]: 'state-revision',

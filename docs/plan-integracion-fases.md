@@ -777,3 +777,20 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
       ("El archivo pesa 25,0 MB y el máximo permitido es de 20 MB…"), sin intentar subirlo.
     - **Sin ZIP:** los anexos de los documentos corregidos aceptaban "PDF o ZIP" en el modal, pero el backend siempre
       exigió PDF (`validarPdf`), así que un ZIP fallaba al enviar. Se quitó la opción `pdf-zip`: todo es PDF.
+62. **El Consejo ve el Formato A firmado por el Comité (2026-11-09):**
+    - En "Evaluar presentación" (`review-presentations-faculty-council-form`) no aparecía el Formato A firmado: la vista
+      buscaba el concepto del Comité como "Aprobado", pero desde la decisión de pertinencia el mapper lo entrega como
+      "Pertinente". Ahora usa `resolveApprovedEvaluationDocument`, como las demás vistas.
+    - La vista muestra y deja descargar: Formato A firmado, carta de aceptación (solo práctica profesional), los dos
+      Formatos B aprobatorios, la versión vigente del anteproyecto y el Formato C.
+63. **Tres conceptos del evaluador y "Evaluado con observaciones" (2026-11-09):**
+    - El formulario del evaluador (`review-preliminary-draft-form`) ofrece **Aprobado**, **Con correcciones** y **No
+      aprobado**; se envían como `APROBADO`, `CON_CORRECCIONES` y `NO_APROBADO`.
+    - Con los dos conceptos (regla del backend): ambos aprueban → **Aprobado**; alguno no aprueba → **No aprobado**; en
+      otro caso → **Evaluado con observaciones** (`stateList.EVALUADO_CON_OBSERVACIONES`, el `CON_CORRECCIONES` de la
+      versión). Antes ese caso se mostraba como "No aprobado".
+    - El concepto individual con correcciones se muestra como **"Con correcciones"** (`stateList.CON_CORRECCIONES`) en
+      "Evaluaciones realizadas". Los dos usan el color del "aprobado con observaciones".
+    - El director radica la versión corregida con "Evaluado con observaciones" o "No aprobado"
+      (`anteproyectoCorregible`). En las estadísticas el evaluado con observaciones cuenta como en revisión.
+    - Detalle del backend: `sgtg_backend/docs/ajustes-2026-11-09.md`.

@@ -38,6 +38,7 @@ export function getEvaluatorsDeadlineLabel(input: EvaluatorsDeadlineInput): stri
   const isFinalized = [
     stateList.APROBADO,
     stateList.APROBADO_CON_OBSERVACIONES,
+    stateList.EVALUADO_CON_OBSERVACIONES,
     stateList.NO_APROBADO
   ].includes(input.state);
 

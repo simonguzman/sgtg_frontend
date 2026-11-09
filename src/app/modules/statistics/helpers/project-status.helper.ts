@@ -9,6 +9,8 @@ const STATE_TO_STATUS_MAP: Partial<Record<stateList, ProjectStatus>> = {
   [stateList.PERTINENTE]: ProjectStatus.APROBADO,
   [stateList.NO_PERTINENTE]: ProjectStatus.NO_APROBADO,
   [stateList.EN_REVISION]: ProjectStatus.EN_REVISION,
+  // El anteproyecto evaluado con observaciones sigue en proceso: falta la versión corregida
+  [stateList.EVALUADO_CON_OBSERVACIONES]: ProjectStatus.EN_REVISION,
   [stateList.EN_DESARROLLO]: ProjectStatus.EN_DESARROLLO,
   [stateList.APLAZADO]: ProjectStatus.APLAZADO,
   [stateList.SUSPENDIDO]: ProjectStatus.SUSPENDIDO,

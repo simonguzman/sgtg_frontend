@@ -217,7 +217,7 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
         type: NotificationType.CONFIRMATION,
         title: 'Evaluación Registrada',
-        message: 'El veredicto positivo ha sido guardado exitosamente.'
+        message: 'Su concepto aprobatorio quedó registrado.'
       }));
       expect(service.isConfirmModalOpen()).toBe(false);
       expect(routerMock.navigate).toHaveBeenCalledWith(['../'], expect.any(Object));
@@ -226,7 +226,7 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
     it('si pide correcciones envía CON_CORRECCIONES con el formato B y las anotaciones', async () => {
       service.preliminaryDraftState.set(createMockDraft());
       service.pendingReviewData.set({
-        formValues: { result: stateList.APROBADO_CON_OBSERVACIONES, comments: 'Requiere ajustes' },
+        formValues: { result: stateList.CON_CORRECCIONES, comments: 'Requiere ajustes' },
         file: mockFile,
         annotatedFile: mockAnnotatedFile
       });
@@ -238,8 +238,38 @@ describe('ReviewPreliminaryDraftPageFacadeService', () => {
         .toHaveBeenCalledWith('draft-1', 'CON_CORRECCIONES', 'Requiere ajustes', mockFile, mockAnnotatedFile);
       expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
         type: NotificationType.CONFIRMATION,
-        message: 'Se ha registrado el veredicto negativo y se solicitarán correcciones.'
+        message: expect.stringContaining('evaluado con observaciones')
       }));
+    });
+
+    it('si no lo aprueba envía NO_APROBADO con el formato B', async () => {
+      service.preliminaryDraftState.set(createMockDraft());
+      service.pendingReviewData.set({
+        formValues: { result: stateList.NO_APROBADO, comments: 'No cumple los objetivos' },
+        file: mockFile
+      });
+      preliminaryDraftServiceMock.registerEvaluatorConcept.mockReturnValue(of(createMockDraft()));
+
+      await service.processEvaluation();
+
+      expect(preliminaryDraftServiceMock.registerEvaluatorConcept)
+        .toHaveBeenCalledWith('draft-1', 'NO_APROBADO', 'No cumple los objetivos', mockFile, null);
+      expect(notificationServiceMock.show).toHaveBeenCalledWith(expect.objectContaining({
+        message: expect.stringContaining('quedará no aprobado')
+      }));
+    });
+
+    it('un veredicto que no es del evaluador no se envía', async () => {
+      service.preliminaryDraftState.set(createMockDraft());
+      service.pendingReviewData.set({
+        formValues: { result: stateList.APROBADO_CON_OBSERVACIONES, comments: 'x' },
+        file: mockFile
+      });
+
+      await service.processEvaluation();
+
+      expect(preliminaryDraftServiceMock.registerEvaluatorConcept).not.toHaveBeenCalled();
+      expect(service.isSubmitting()).toBe(false);
     });
 
     it('mientras se guarda el concepto no se envía otro; si falla, se puede reintentar', async () => {

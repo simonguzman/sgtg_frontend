@@ -12,8 +12,24 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { PendingReviewData, ReviewEvaluationFormValues } from '../../../interfaces/review-preliminary-draft-payload.interface';
 import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
+import { ResultadoConceptoEvaluador } from '../../../services/preliminary-draft-document.service';
 
 export type { ReviewEvaluationFormValues, PendingReviewData };
+
+/** Veredicto del formulario → concepto del evaluador en el backend */
+const RESULTADO_BACKEND: Partial<Record<stateList, ResultadoConceptoEvaluador>> = {
+  [stateList.APROBADO]: 'APROBADO',
+  [stateList.CON_CORRECCIONES]: 'CON_CORRECCIONES',
+  [stateList.NO_APROBADO]: 'NO_APROBADO'
+};
+
+const MENSAJE_CONCEPTO: Record<ResultadoConceptoEvaluador, string> = {
+  APROBADO: 'Su concepto aprobatorio quedó registrado.',
+  CON_CORRECCIONES: 'Su concepto con correcciones quedó registrado. Si el otro evaluador no lo rechaza, el anteproyecto '
+    + 'quedará evaluado con observaciones y el director radicará la versión corregida.',
+  NO_APROBADO: 'Su concepto de no aprobado quedó registrado. Con los dos conceptos, el anteproyecto quedará no aprobado '
+    + 'y el director deberá radicar una nueva versión.'
+};
 
 @Injectable()
 export class ReviewPreliminaryDraftPageFacadeService {
@@ -86,16 +102,20 @@ export class ReviewPreliminaryDraftPageFacadeService {
       return;
     }
 
+    const resultado = RESULTADO_BACKEND[data.formValues.result];
+    if (!resultado) {
+      this.showValidationErrorNotification();
+      return;
+    }
     this.isSubmitting.set(true);
-    const isApproved = data.formValues.result === stateList.APROBADO;
     // Formato B firmado (obligatorio) y, si lo adjuntó, el documento con sus anotaciones
     this.preliminaryDraftService.registerEvaluatorConcept(preliminaryDraft.preliminaryDraftId,
-      isApproved ? 'APROBADO' : 'CON_CORRECCIONES', data.formValues.comments, data.file, data.annotatedFile ?? null)
+      resultado, data.formValues.comments, data.file, data.annotatedFile ?? null)
       .pipe(first())
       .subscribe({
         next: () => {
           this.isSubmitting.set(false);
-          this.showEvaluationSuccessNotification(isApproved);
+          this.showEvaluationSuccessNotification(resultado);
           this.isConfirmModalOpen.set(false);
           this.goBack();
         },
@@ -124,12 +144,10 @@ export class ReviewPreliminaryDraftPageFacadeService {
     this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route }));
   }
 
-  private showEvaluationSuccessNotification(isApproved: boolean): void {
+  private showEvaluationSuccessNotification(resultado: ResultadoConceptoEvaluador): void {
     this.notification.show({
       title: 'Evaluación Registrada',
-      message: isApproved
-        ? 'El veredicto positivo ha sido guardado exitosamente.'
-        : 'Se ha registrado el veredicto negativo y se solicitarán correcciones.',
+      message: MENSAJE_CONCEPTO[resultado],
       type: NotificationType.CONFIRMATION
     });
   }

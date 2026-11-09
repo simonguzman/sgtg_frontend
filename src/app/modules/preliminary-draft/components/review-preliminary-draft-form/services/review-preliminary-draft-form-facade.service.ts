@@ -8,11 +8,14 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { PendingReviewData } from '../../../interfaces/review-preliminary-draft-payload.interface';
 
 /**
- * El evaluador aprueba el anteproyecto o no lo aprueba; si no, el director lo
- * corrige y radica una nueva versión (no se rechaza: Art. 13).
+ * El evaluador aprueba el anteproyecto, lo devuelve con correcciones o no lo
+ * aprueba (formato B). Con los dos conceptos el anteproyecto queda aprobado,
+ * evaluado con observaciones (alguno pidió correcciones) o no aprobado (alguno
+ * no lo aprobó); en los dos últimos casos el director radica una nueva versión.
  */
 const RESULT_TO_STATE: Record<string, stateList> = {
   'Aprobado': stateList.APROBADO,
+  'Con correcciones': stateList.CON_CORRECCIONES,
   'No aprobado': stateList.NO_APROBADO
 };
 
