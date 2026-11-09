@@ -13,6 +13,7 @@ import { SaveEvaluationPayload } from '../models/council-evaluation.model';
 import { formatDisplayDate } from '../../../../../core/utils/date-utils';
 import { versionVigente } from '../../../services/preliminary-draft-rules';
 import { cartaDeAceptacion } from '../../../../proposal/services/proposal-rules.service';
+import { resolveApprovedEvaluationDocument } from '../../../../../core/utils/evaluation-utils';
 
 const RESULT_TO_STATE: Record<string, stateList> = {
   'Aprobado': stateList.APROBADO,
@@ -55,18 +56,14 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
       deadline: formatDisplayDate(option.deadline)
     })));
 
-  readonly signedProposalDocument = computed<FormattedDocument | undefined>(() => {
-    const proposal = this.preliminaryDraft()?.proposalData;
-    if (!proposal?.evaluations?.length) return undefined;
-    const approvedEvaluation = [...proposal.evaluations]
-      .reverse()
-      .find(
-        (evaluation) =>
-          evaluation.veredict === stateList.APROBADO ||
-          evaluation.veredict === stateList.APROBADO_CON_OBSERVACIONES
-      );
-    return approvedEvaluation?.signedDocuments?.[0];
-  });
+  /**
+   * Formato A firmado por el Comité: el del concepto pertinente más reciente. El
+   * concepto del Comité llega como Pertinente (no como Aprobado), igual que en
+   * las demás vistas.
+   */
+  readonly signedProposalDocument = computed<FormattedDocument | undefined>(() =>
+    resolveApprovedEvaluationDocument(this.preliminaryDraft()?.proposalData?.evaluations) ?? undefined
+  );
 
   /** Carta de aceptación de la organización (solo práctica profesional), la versión vigente */
   readonly acceptanceLetter = computed<FileDocument | undefined>(() =>

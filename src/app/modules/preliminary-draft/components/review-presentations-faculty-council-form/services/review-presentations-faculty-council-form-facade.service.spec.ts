@@ -49,7 +49,11 @@ const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
   title: 'Mock Proposal',
   authors: [createMockUser({ id: 'user-1' }), createMockUser({ id: 'user-2' })],
   director: createMockUser({ id: 'dir-1' }),
-  evaluations: [createMockEvaluation()],
+  // El concepto del Comité llega del mapper como Pertinente, con el Formato A firmado
+  evaluations: [createMockEvaluation({
+    evaluatorName: 'Comité de Programa', veredict: stateList.PERTINENTE,
+    signedDocuments: [{ name: 'Formato A firmado', url: '/api/v1/sgtg/trabajos-grado/15/archivos/acta-comite/v1' }]
+  })],
   ...overrides
 } as Proposal);
 
@@ -170,11 +174,26 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
       expect(evalFiles[0].evaluator).toBe('Docente Evaluador');
     });
 
-    it('signedProposalDocument debería construir un FormattedDocument si existe evaluación aprobada', () => {
+    it('signedProposalDocument muestra el Formato A firmado del concepto pertinente del Comité, para descargarlo', () => {
       const signedDoc = facade.signedProposalDocument();
-      expect(signedDoc).toBeTruthy();
-      expect(signedDoc?.name).toBe('evaluacion_firmada.pdf');
-      expect(signedDoc?.url).toBe('http://mock-url.com');
+      expect(signedDoc?.name).toBe('Formato A firmado');
+      expect(signedDoc?.url).toBe('/api/v1/sgtg/trabajos-grado/15/archivos/acta-comite/v1');
+    });
+
+    it('signedProposalDocument toma el concepto pertinente aunque antes hubo uno no pertinente', () => {
+      const noPertinente = createMockEvaluation({
+        veredict: stateList.NO_PERTINENTE, signedDocuments: [{ name: 'Formato A v1', url: '/v1' }]
+      });
+      const pertinente = createMockEvaluation({
+        veredict: stateList.PERTINENTE, signedDocuments: [{ name: 'Formato A v2', url: '/v2' }]
+      });
+      facade.preliminaryDraft.set(createMockDraft({ proposalData: createMockProposal({ evaluations: [noPertinente, pertinente] }) }));
+      expect(facade.signedProposalDocument()?.url).toBe('/v2');
+    });
+
+    it('signedProposalDocument no muestra nada si el Comité no ha emitido un concepto pertinente', () => {
+      facade.preliminaryDraft.set(createMockDraft({ proposalData: createMockProposal({ evaluations: [] }) }));
+      expect(facade.signedProposalDocument()).toBeUndefined();
     });
 
     it('documentUploadDate debería formatear correctamente la fecha del primer documento', () => {
