@@ -822,3 +822,7 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
       solicita la sustentación.
     - Íconos nuevos en `index.html`: `alarm`, `event_available`, `notifications_active` y `warning`.
     - Detalle del backend: `sgtg_backend/docs/ajustes-2026-11-09.md`.
+    - **Botones (2026-11-09):** el ojo de la tarjeta, el de cada fila, la campana y el de cerrar usan
+      `app-button-component` con solo ícono, para tener el mismo hover y clic de los botones de toda la aplicación.
+      `app-button-component` tiene dos variantes nuevas: `danger` (rojo, `--color-danger` con `--color-danger-hover` y
+      `--color-danger-active`) y `light` (blanco con ícono rojo, sobre fondos de color).

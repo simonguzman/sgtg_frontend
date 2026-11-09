@@ -169,23 +169,6 @@
 @media (prefers-reduced-motion: reduce) {
   .due-soon-pulse { animation: none; }
 }
-.due-soon-eye {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
-  border-radius: 9999px;
-  background: #ffffff;
-  color: #c62828;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  transition: transform 0.15s ease;
-}
-.due-soon-eye:hover { transform: scale(1.08); }
-.due-soon-eye:focus-visible { outline: 3px solid #ffffff; outline-offset: 2px; }
 .due-soon-section {
   border: 1px solid #f5c2c2;
   border-left: 4px solid #c62828;
@@ -218,21 +201,6 @@
   background: #c62828;
   color: #ffffff;
 }
-.due-soon-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 9999px;
-  background: var(--color-primary);
-  color: #ffffff;
-  border: none;
-  cursor: pointer;
-}
-.due-soon-action--remind { background: #c62828; }
-.due-soon-action:disabled { opacity: 0.5; cursor: wait; }
-.due-soon-action:focus-visible, .due-soon-close:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
 .due-soon-reminded {
   display: inline-flex;
   align-items: center;
@@ -240,16 +208,4 @@
   color: #2e7d32;
   font-weight: 600;
   white-space: nowrap;
-}
-.due-soon-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 9999px;
-  background: transparent;
-  color: #6b7280;
-  border: 1px solid #e5e7eb;
-  cursor: pointer;
 }

@@ -1,7 +1,7 @@
 import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { ChartModule } from 'primeng/chart';
 import { SearchableSelectComponent, SelectOption } from '../../../../shared/components/searchable-select/searchable-select.component';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
@@ -20,7 +20,7 @@ const comoOpciones = (valores: string[]): SelectOption[] => valores.map(valor =>
 @Component({
   selector: 'app-statistics-page',
   standalone: true,
-  imports: [FormsModule, DatePipe, RouterLink, ChartModule, SearchableSelectComponent, ButtonComponent,
+  imports: [FormsModule, DatePipe, ChartModule, SearchableSelectComponent, ButtonComponent,
     ReportFormatModalComponent],
   templateUrl: './statistics-page.component.html',
   styleUrl: './statistics-page.component.css',
@@ -28,6 +28,7 @@ const comoOpciones = (valores: string[]): SelectOption[] => valores.map(valor =>
 export class StatisticsPageComponent {
   protected readonly facade = inject(StatisticsPageFacadeService);
   private readonly notification = inject(NotificationService);
+  private readonly router = inject(Router);
   /** Modal para elegir el formato del reporte */
   protected readonly isReportModalOpen = signal(false);
   protected readonly doughnutOptions = DOUGHNUT_CHART_OPTIONS;
@@ -86,6 +87,11 @@ export class StatisticsPageComponent {
     // Al abrirla, la tabla queda a la vista (está debajo de las tarjetas)
     if (this.isDueSoonOpen()) setTimeout(() => this.dueSoonSection()?.nativeElement.scrollIntoView?.(
       { behavior: 'smooth', block: 'start' }));
+  }
+
+  /** Detalle del trabajo de grado (el ojo de cada fila de próximos a vencer) */
+  openThesisWork(id: string): void {
+    this.router.navigate(['/thesis-work/details', id]);
   }
 
   /** "Vence hoy", "1 día" o "N días" */

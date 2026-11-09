@@ -53,6 +53,14 @@ describe('ButtonComponent', () => {
       expect(component.buttonClass).toContain('btn-secondary');
     });
 
+    it('aplica las variantes danger (alerta, rojo) y light (claro sobre fondos de color)', () => {
+      fixture.componentRef.setInput('variant', 'danger');
+      expect(component.buttonClass).toContain('btn-danger');
+      fixture.componentRef.setInput('variant', 'light');
+      expect(component.buttonClass).toContain('btn-light');
+      expect(component.buttonClass).not.toContain('btn-primary');
+    });
+
     it('debería aplicar la clase btn-icon cuando solo hay icono y NO hay label', () => {
       fixture.componentRef.setInput('icon', 'add');
       fixture.componentRef.setInput('label', undefined);

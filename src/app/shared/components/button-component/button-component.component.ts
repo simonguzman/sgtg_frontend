@@ -12,7 +12,8 @@ export class ButtonComponent {
   @Input() icon?: string;
   @Input() type: 'button' | 'submit' = 'button';
   @Input() disabled = false;
-  @Input() variant: 'primary' | 'secondary' = 'primary';
+  /** primary y secondary en toda la aplicación; danger (rojo) para alertas y light (blanco) sobre fondos de color */
+  @Input() variant: 'primary' | 'secondary' | 'danger' | 'light' = 'primary';
   /** Nombre accesible; necesario en los botones que solo tienen icono */
   @Input() ariaLabel?: string;
 
@@ -20,7 +21,7 @@ export class ButtonComponent {
 
   get buttonClass() : string {
     const base = 'custom-btn';
-    const variantClass = this.variant === 'primary' ? 'btn-primary' : 'btn-secondary';
+    const variantClass = `btn-${this.variant}`;
     const iconClass = (this.icon && !this.label) ? 'btn-icon' : '';
     return `${base} ${variantClass} ${iconClass}`
   }

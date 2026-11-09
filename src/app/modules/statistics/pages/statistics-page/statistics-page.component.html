@@ -181,12 +181,11 @@
           <span class="text-3xl font-display font-bold">{{ facade.totalDueSoon() }}</span>
           <span class="text-size-role-footer opacity-90">Entrega en 30 días o menos</span>
         </div>
-        <button type="button" class="due-soon-eye" (click)="toggleDueSoon()"
-                [attr.aria-expanded]="isDueSoonOpen()" aria-controls="dueSoonSection"
-                [attr.aria-label]="isDueSoonOpen() ? 'Ocultar los trabajos próximos a vencer' : 'Ver los trabajos próximos a vencer'"
-                [title]="isDueSoonOpen() ? 'Ocultar' : 'Ver los trabajos'">
-          <span class="material-symbols-outlined">{{ isDueSoonOpen() ? 'visibility_off' : 'visibility' }}</span>
-        </button>
+        <app-button-component class="due-soon-eye" variant="light" (onClick)="toggleDueSoon()"
+          [icon]="isDueSoonOpen() ? 'visibility_off' : 'visibility'"
+          [ariaLabel]="isDueSoonOpen() ? 'Ocultar los trabajos próximos a vencer' : 'Ver los trabajos próximos a vencer'"
+          [title]="isDueSoonOpen() ? 'Ocultar' : 'Ver los trabajos'">
+        </app-button-component>
       </div>
     } @else {
       <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-[#2e7d32] rounded-xl shadow-sm flex items-center justify-between">
@@ -222,9 +221,8 @@
             <app-button-component label="Recordar a todos" variant="primary" icon="notifications_active"
               (onClick)="facade.remindAll()"></app-button-component>
           }
-          <button type="button" class="due-soon-close" (click)="toggleDueSoon()" aria-label="Cerrar la lista" title="Cerrar">
-            <span class="material-symbols-outlined">close</span>
-          </button>
+          <app-button-component class="due-soon-close" variant="secondary" icon="close" ariaLabel="Cerrar la lista"
+            title="Cerrar" (onClick)="toggleDueSoon()"></app-button-component>
         </div>
       </div>
       <div class="overflow-x-auto">
@@ -257,10 +255,9 @@
                 <td>
                   <div class="flex items-center justify-center gap-2">
                     @if (facade.canOpenDetails()) {
-                      <a class="due-soon-action" [routerLink]="['/thesis-work/details', project.id]"
-                         [attr.aria-label]="'Ver el trabajo ' + project.title" title="Ver el trabajo de grado">
-                        <span class="material-symbols-outlined">visibility</span>
-                      </a>
+                      <app-button-component class="due-soon-view" icon="visibility" title="Ver el trabajo de grado"
+                        [ariaLabel]="'Ver el trabajo ' + project.title" (onClick)="openThesisWork(project.id)">
+                      </app-button-component>
                     }
                     @if (facade.canRemind()) {
                       @if (facade.remindedToday().has(project.id)) {
@@ -268,12 +265,11 @@
                           <span class="material-symbols-outlined">check_circle</span> Recordado hoy
                         </span>
                       } @else {
-                        <button type="button" class="due-soon-action due-soon-action--remind"
-                                [disabled]="facade.sendingReminder().has(project.id)" (click)="facade.remind(project)"
-                                [attr.aria-label]="'Enviar recordatorio de entrega a ' + project.title"
-                                title="Enviar recordatorio a estudiantes y dirección">
-                          <span class="material-symbols-outlined">notifications_active</span>
-                        </button>
+                        <app-button-component class="due-soon-remind" variant="danger" icon="notifications_active"
+                          [disabled]="facade.sendingReminder().has(project.id)" (onClick)="facade.remind(project)"
+                          [ariaLabel]="'Enviar recordatorio de entrega a ' + project.title"
+                          title="Enviar recordatorio a estudiantes y dirección">
+                        </app-button-component>
                       }
                     }
                   </div>

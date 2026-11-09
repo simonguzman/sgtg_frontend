@@ -12,7 +12,7 @@ import { ChartModule } from 'primeng/chart';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { RawProjectData } from '../../interfaces/rawProjectData.interface';
 import { ProjectStatus } from '../../enum/projectStatus.enum';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 
 interface MockChartData {
   labels: string[];
@@ -37,6 +37,8 @@ class MockButtonComponent {
   @Input() label!: string;
   @Input() variant!: string;
   @Input() icon!: string;
+  @Input() ariaLabel?: string;
+  @Input() disabled = false;
   @Output() onClick = new EventEmitter<void>();
 }
 
@@ -257,7 +259,14 @@ describe('StatisticsPageComponent', () => {
       dueSoon: true, daysUntilDelivery: dias, deliveryDate: new Date(2027, 7, 20), studentNames: 'Ana Mora'
     } as RawProjectData);
     const texto = () => fixture.nativeElement.textContent as string;
-    const ojo = () => fixture.nativeElement.querySelector('.due-soon-eye') as HTMLButtonElement | null;
+    const ojo = () => fixture.nativeElement.querySelector('.due-soon-eye') as HTMLElement | null;
+    /** Pulsa un app-button-component (simulado) por su clase */
+    const pulsar = (selector: string, dentro: HTMLElement | null = null) => {
+      const elemento = (dentro ?? fixture.nativeElement).querySelector(selector) as HTMLElement;
+      fixture.debugElement.queryAll(By.css(selector)).find(d => d.nativeElement === elemento)!
+        .componentInstance.onClick.emit();
+      fixture.detectChanges();
+    };
 
     it('sin trabajos próximos a vencer la tarjeta lo dice, sin alerta ni ojo', () => {
       expect(texto()).toContain('Ninguna entrega en los próximos 30 días');
@@ -274,8 +283,7 @@ describe('StatisticsPageComponent', () => {
       expect(tarjeta.textContent).toContain('2');
       expect(fixture.nativeElement.querySelector('#dueSoonSection')).toBeNull();
 
-      ojo()!.click();
-      fixture.detectChanges();
+      pulsar('.due-soon-eye');
       const filas = Array.from(fixture.nativeElement.querySelectorAll('.due-soon-table tbody tr')) as HTMLElement[];
       expect(filas).toHaveLength(2);
       expect(filas[0].textContent).toContain('Trabajo 7');
@@ -283,11 +291,11 @@ describe('StatisticsPageComponent', () => {
       expect(filas[0].querySelector('.due-soon-badge--critical')?.textContent?.trim()).toBe('4 días');
       expect(filas[1].querySelector('.due-soon-badge--critical')).toBeNull();
       // Sin permisos: ni recordar ni ver el detalle
-      expect(fixture.nativeElement.querySelector('.due-soon-action')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.due-soon-view')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.due-soon-remind')).toBeNull();
       expect(texto()).not.toContain('Recordar a todos');
 
-      ojo()!.click();
-      fixture.detectChanges();
+      pulsar('.due-soon-eye');
       expect(fixture.nativeElement.querySelector('#dueSoonSection')).toBeNull();
     });
 
@@ -298,16 +306,17 @@ describe('StatisticsPageComponent', () => {
       mockFacadeService.canOpenDetails.set(true);
       mockFacadeService.remindedToday.set(new Set(['8']));
       fixture.detectChanges();
-      ojo()!.click();
-      fixture.detectChanges();
+      pulsar('.due-soon-eye');
 
       const filas = Array.from(fixture.nativeElement.querySelectorAll('.due-soon-table tbody tr')) as HTMLElement[];
       expect(filas[0].textContent).toContain('Vence hoy');
-      expect(filas[0].querySelector('a.due-soon-action')?.getAttribute('href')).toBe('/thesis-work/details/7');
-      (filas[0].querySelector('.due-soon-action--remind') as HTMLButtonElement).click();
+      const navegar = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      pulsar('.due-soon-view', filas[0]);
+      expect(navegar).toHaveBeenCalledWith(['/thesis-work/details', '7']);
+      pulsar('.due-soon-remind', filas[0]);
       expect(mockFacadeService.remind).toHaveBeenCalledWith(mockFacadeService.dueSoonProjects()[0]);
       expect(filas[1].textContent).toContain('Recordado hoy');
-      expect(filas[1].querySelector('.due-soon-action--remind')).toBeNull();
+      expect(filas[1].querySelector('.due-soon-remind')).toBeNull();
 
       const todos = fixture.debugElement.queryAll(By.css('app-button-component'))
         .find(boton => boton.componentInstance.label === 'Recordar a todos');
