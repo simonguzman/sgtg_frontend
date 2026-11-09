@@ -1,15 +1,13 @@
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { ComponentFixture, DeferBlockBehavior, DeferBlockState, TestBed } from '@angular/core/testing';
-import { signal, WritableSignal, Component, Input, Output, EventEmitter, forwardRef } from '@angular/core';
-import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
+import { signal, WritableSignal, Component, Input, Output, EventEmitter } from '@angular/core';
 import { StatisticsPageComponent } from './statistics-page.component';
 import { StatisticsPageFacadeService } from './services/statistics-page-facade.service';
 import { ProjectStage } from '../../enum/projectStage.enum';
 import { DEFAULT_STATISTICS_FILTERS, DeadlineFilterValue, StatisticsFilters } from '../../interfaces/statisticsFilters.interface';
 import { EvaluationDeadlineStatus } from '../../../../core/enums/evaluation-deadline-status.enum';
 import { ChartModule } from 'primeng/chart';
-import { SelectModule } from 'primeng/select';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 
 interface MockChartData {
@@ -22,31 +20,6 @@ interface MockOption {
   value: string | null;
 }
 
-
-@Component({
-  selector: 'p-select',
-  standalone: true,
-  template: '',
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => MockPSelectComponent),
-      multi: true,
-    },
-  ],
-})
-
-class MockPSelectComponent implements ControlValueAccessor {
-  @Input() options!: unknown[];
-  @Input() optionLabel!: string;
-  @Input() optionValue!: string;
-  @Input() placeholder!: string;
-  @Input() showClear!: boolean;
-  @Input() styleClass!: string;
-  writeValue(_value: unknown): void {}
-  registerOnChange(_fn: unknown): void {}
-  registerOnTouched(_fn: unknown): void {}
-}
 
 @Component({ selector: 'p-chart', standalone: true, template: '' })
 class MockPChartComponent {
@@ -122,8 +95,8 @@ describe('StatisticsPageComponent', () => {
       ],
     })
     .overrideComponent(StatisticsPageComponent, {
-      remove: { imports: [ChartModule, SelectModule, ButtonComponent] },
-      add: { imports: [MockPChartComponent, MockPSelectComponent, MockButtonComponent] }
+      remove: { imports: [ChartModule, ButtonComponent] },
+      add: { imports: [MockPChartComponent, MockButtonComponent] }
     })
     .compileComponents();
     fixture = TestBed.createComponent(StatisticsPageComponent);
@@ -204,6 +177,55 @@ describe('StatisticsPageComponent', () => {
       expect(mockFacadeService.updateFilters).toHaveBeenCalledWith({
         deadlineFilter: deadlineValue,
       });
+    });
+  });
+  describe('Filtros con buscador', () => {
+    const escribir = (id: string, texto: string): HTMLElement[] => {
+      const input = fixture.nativeElement.querySelector(`#${id}`) as HTMLInputElement;
+      input.click();
+      input.value = texto;
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      return Array.from(input.closest('app-searchable-select')!.querySelectorAll('li')) as HTMLElement[];
+    };
+
+    it('el director se busca escribiendo parte del nombre y al elegirlo filtra', () => {
+      mockFacadeService.directorsOptions.set([
+        { id: 'd1', name: 'Javier Burbano Morales' }, { id: 'd2', name: 'Cristian Rodríguez Ramírez' },
+        { id: 'd3', name: 'Luis Narváez Díaz' }
+      ]);
+      fixture.detectChanges();
+
+      const opciones = escribir('directorFilter', 'rodr');
+      expect(opciones.map(o => o.textContent?.trim())).toEqual(['Cristian Rodríguez Ramírez']);
+      opciones[0].click();
+      expect(mockFacadeService.updateFilters).toHaveBeenCalledWith({ directorId: 'd2' });
+    });
+
+    it('todos los filtros se pueden escribir: programa, periodo, modalidad, etapa, estado y plazo', () => {
+      mockFacadeService.programOptions.set(['Ingeniería de Sistemas', 'Ingeniería en Automática Industrial']);
+      mockFacadeService.periodsOptions.set(['2027-1', '2026-2']);
+      mockFacadeService.modalityOptions.set(['Práctica profesional', 'Trabajo de investigación']);
+      mockFacadeService.stagesOptions = [];
+      fixture.detectChanges();
+
+      expect(escribir('programFilter', 'autom').map(o => o.textContent?.trim())).toEqual(['Ingeniería en Automática Industrial']);
+      expect(escribir('periodFilter', '2026').map(o => o.textContent?.trim())).toEqual(['2026-2']);
+      expect(escribir('modalityFilter', 'práct').map(o => o.textContent?.trim())).toEqual(['Práctica profesional']);
+      expect(escribir('archiveFilter', 'histor').map(o => o.textContent?.trim())).toEqual(['Cerrados (historial)']);
+      expect(escribir('deadlineFilter', 'retraso').map(o => o.textContent?.trim())).toEqual(['Evaluado con retraso']);
+    });
+
+    it('limpiar un filtro lo quita (null); el estado y el plazo no se pueden dejar vacíos', () => {
+      component.onDirectorChange('');
+      component.onStageChange('');
+      expect(mockFacadeService.updateFilters).toHaveBeenCalledWith({ directorId: null });
+      expect(mockFacadeService.updateFilters).toHaveBeenCalledWith({ stage: null });
+
+      mockFacadeService.updateFilters.mockClear();
+      component.onArchiveStatusChange('');
+      component.onDeadlineFilterChange('');
+      expect(mockFacadeService.updateFilters).not.toHaveBeenCalled();
     });
   });
   describe('Acciones', () => {

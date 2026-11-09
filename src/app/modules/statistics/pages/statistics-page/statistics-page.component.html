@@ -36,105 +36,92 @@
         <label for="stageFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Etapa del Proceso
         </label>
-        <p-select
-          id="stageFilter"
-          [options]="facade.stagesOptions"
-          [ngModel]="facade.currentFilters().stage"
+        <app-searchable-select
+          inputId="stageFilter"
+          [options]="stageSelectOptions"
+          [ngModel]="facade.currentFilters().stage ?? ''"
           (ngModelChange)="onStageChange($event)"
-          optionLabel="label"
-          optionValue="value"
           placeholder="Todas las etapas"
-          [showClear]="true"
-          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
-        </p-select>
+          [isClearable]="true">
+        </app-searchable-select>
       </div>
       <div class="flex flex-col gap-1">
         <label for="periodFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Periodo Académico
         </label>
-        <p-select
-          id="periodFilter"
-          [options]="facade.periodsOptions()"
-          [ngModel]="facade.currentFilters().period"
+        <app-searchable-select
+          inputId="periodFilter"
+          [options]="periodSelectOptions()"
+          [ngModel]="facade.currentFilters().period ?? ''"
           (ngModelChange)="onPeriodChange($event)"
           placeholder="Todos los periodos"
-          [showClear]="true"
-          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
-        </p-select>
+          [isClearable]="true">
+        </app-searchable-select>
       </div>
       <div class="flex flex-col gap-1">
         <label for="directorFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Director Asignado
         </label>
-        <p-select
-          id="directorFilter"
-          [options]="facade.directorsOptions()"
-          [ngModel]="facade.currentFilters().directorId"
+        <app-searchable-select
+          inputId="directorFilter"
+          [options]="directorSelectOptions()"
+          [ngModel]="facade.currentFilters().directorId ?? ''"
           (ngModelChange)="onDirectorChange($event)"
-          optionLabel="name"
-          optionValue="id"
           placeholder="Todos los directores"
-          [showClear]="true"
-          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
-        </p-select>
+          [isClearable]="true">
+        </app-searchable-select>
       </div>
       <div class="flex flex-col gap-1">
         <label for="modalityFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Modalidad
         </label>
-        <p-select
-          id="modalityFilter"
-          [options]="facade.modalityOptions()"
-          [ngModel]="facade.currentFilters().modality"
+        <app-searchable-select
+          inputId="modalityFilter"
+          [options]="modalitySelectOptions()"
+          [ngModel]="facade.currentFilters().modality ?? ''"
           (ngModelChange)="onModalityChange($event)"
           placeholder="Todas las modalidades"
-          [showClear]="true"
-          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
-        </p-select>
+          [isClearable]="true">
+        </app-searchable-select>
       </div>
       <div class="flex flex-col gap-1">
         <label for="programFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Programa
         </label>
-        <p-select
-          id="programFilter"
-          [options]="facade.programOptions()"
-          [ngModel]="facade.currentFilters().program"
+        <app-searchable-select
+          inputId="programFilter"
+          [options]="programSelectOptions()"
+          [ngModel]="facade.currentFilters().program ?? ''"
           (ngModelChange)="onProgramChange($event)"
           placeholder="Todos los programas"
-          [showClear]="true"
-          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
-        </p-select>
+          [isClearable]="true">
+        </app-searchable-select>
       </div>
       <div class="flex flex-col gap-1">
         <label for="archiveFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Estado del trabajo
         </label>
-        <p-select
-          id="archiveFilter"
-          [options]="archiveOptions"
-          [ngModel]="facade.currentFilters().archiveStatus"
+        <app-searchable-select
+          inputId="archiveFilter"
+          [options]="archiveSelectOptions"
+          [ngModel]="facade.currentFilters().archiveStatus ?? ''"
           (ngModelChange)="onArchiveStatusChange($event)"
-          optionLabel="label"
-          optionValue="value"
-          [showClear]="false"
-          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
-        </p-select>
+          placeholder="Estado del trabajo"
+          [isClearable]="false">
+        </app-searchable-select>
       </div>
       <div class="flex flex-col gap-1">
         <label for="deadlineFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Plazo de Evaluación
         </label>
-        <p-select
-          id="deadlineFilter"
-          [options]="deadlineFilterOptions"
-          [ngModel]="facade.currentFilters().deadlineFilter"
+        <app-searchable-select
+          inputId="deadlineFilter"
+          [options]="deadlineSelectOptions"
+          [ngModel]="facade.currentFilters().deadlineFilter ?? ''"
           (ngModelChange)="onDeadlineFilterChange($event)"
-          optionLabel="label"
-          optionValue="value"
-          [showClear]="false"
-          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
-        </p-select>
+          placeholder="Plazo de evaluación"
+          [isClearable]="false">
+        </app-searchable-select>
       </div>
       <div class="flex justify-start md:justify-end">
         <app-button-component

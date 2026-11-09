@@ -794,3 +794,13 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     - El director radica la versión corregida con "Evaluado con observaciones" o "No aprobado"
       (`anteproyectoCorregible`). En las estadísticas el evaluado con observaciones cuenta como en revisión.
     - Detalle del backend: `sgtg_backend/docs/ajustes-2026-11-09.md`.
+64. **Listas con buscador (2026-11-09):**
+    - Los **filtros de estadísticas** (etapa, periodo, director, modalidad, programa, estado y plazo) usan
+      `app-searchable-select` en lugar del `p-select` de PrimeNG: se puede escribir para filtrar las opciones, como en
+      los formularios. Etapa, periodo, director, modalidad y programa se limpian con la "x"; estado y plazo siempre
+      tienen un valor ("Todos" por defecto).
+    - El **cambio de Comité** (`change-committee-modal`) busca el docente con `app-searchable-select`: la lista son
+      todos los docentes activos del departamento.
+    - Ya tenían buscador: estudiantes, codirector y asesor de la propuesta, evaluadores, jurados y el registro del
+      anteproyecto. Siguen como lista simple (`<select>`) las listas cortas y fijas: tipo de documento, tipo de
+      vinculación, tipo de solicitud, meses de prórroga y departamento en el cambio de Comité.

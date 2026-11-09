@@ -1,6 +1,8 @@
 import { Component, computed, EventEmitter, inject, Input, OnChanges, Output, signal, SimpleChanges } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { SearchableSelectComponent, SelectOption } from '../../../../shared/components/searchable-select/searchable-select.component';
 import { UsersFacadeService } from '../../pages/users-page/services/users-facade.service';
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
@@ -14,7 +16,7 @@ import { User } from '../../interfaces/user.interface';
  */
 @Component({
   selector: 'app-change-committee-modal',
-  imports: [DialogModule, ButtonComponent],
+  imports: [DialogModule, FormsModule, ButtonComponent, SearchableSelectComponent],
   templateUrl: './change-committee-modal.component.html'
 })
 export class ChangeCommitteeModalComponent implements OnChanges {
@@ -46,6 +48,9 @@ export class ChangeCommitteeModalComponent implements OnChanges {
   readonly cedes = computed(() => this.authService.hasAnyRole([UserRoleType.COMITE]));
   readonly current = computed(() => this.facade.committeeOf(this.departmentId()));
   readonly candidates = computed(() => this.facade.committeeCandidates(this.departmentId()));
+  /** Docentes del departamento para el buscador: se escribe el nombre en lugar de recorrer la lista */
+  readonly candidateOptions = computed<SelectOption[]>(() =>
+    this.candidates().map(candidate => ({ id: candidate.id, label: this.fullName(candidate) })));
   readonly selfIsCurrent = computed(() => !!this.current() && this.current()?.id === this.authService.currentUser()?.id);
 
   ngOnChanges(changes: SimpleChanges): void {

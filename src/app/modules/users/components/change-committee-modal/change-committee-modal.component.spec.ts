@@ -59,8 +59,23 @@ describe('ChangeCommitteeModalComponent', () => {
     expect(texto()).toContain('Departamento de Sistemas');
     expect(texto()).toContain('Comité actual: Carlos Mora');
     expect(texto()).toContain('se cerrará tu sesión');
-    const opciones = Array.from(document.querySelectorAll('#committeeCandidate option')).map(o => o.textContent?.trim());
-    expect(opciones).toEqual(['Seleccione el docente', 'Ana Mora']);
+    expect(component.candidateOptions()).toEqual([{ id: '5', label: 'Ana Mora' }]);
+  });
+
+  it('el docente se busca escribiendo su nombre y al elegirlo queda como candidato', () => {
+    facade.committeeCandidates.mockImplementation(() => [usuario('5', 'Ana'), usuario('6', 'Bruno'), usuario('7', 'Camila')]);
+    abrir();
+    const buscador = document.querySelector('#committeeCandidate') as HTMLInputElement;
+    buscador.click();
+    buscador.value = 'bru';
+    buscador.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const opciones = Array.from(document.querySelectorAll('app-searchable-select li')) as HTMLElement[];
+    expect(opciones.map(o => o.textContent?.trim())).toEqual(['Bruno Mora']);
+    opciones[0].click();
+    fixture.detectChanges();
+    expect(component.candidateId()).toBe('6');
   });
 
   it('no deja confirmar sin elegir docente y luego cambia el Comité al elegido', () => {
