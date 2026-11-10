@@ -76,6 +76,7 @@ describe('StatisticsPageFacadeService', () => {
     downloadPdfReport: jest.Mock<Promise<void>, [StatisticsFilters, RawProjectData[], StatisticsReportKpis, StatisticsReportContext]>;
     downloadExcelReport: jest.Mock<Promise<void>, [StatisticsFilters, RawProjectData[], StatisticsReportKpis, StatisticsReportContext]>;
     downloadCsvReport: jest.Mock<void, [StatisticsFilters, RawProjectData[], StatisticsReportKpis, StatisticsReportContext]>;
+    downloadDueSoonReport: jest.Mock<Promise<void>, [string, StatisticsFilters, RawProjectData[], StatisticsReportContext]>;
   };
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -118,6 +119,7 @@ describe('StatisticsPageFacadeService', () => {
       downloadPdfReport: jest.fn(),
       downloadExcelReport: jest.fn(() => Promise.resolve()),
       downloadCsvReport: jest.fn(),
+      downloadDueSoonReport: jest.fn(() => Promise.resolve()),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -231,6 +233,20 @@ describe('StatisticsPageFacadeService', () => {
 
       expect(mockReminders.remind).toHaveBeenCalledWith(urgente);
       expect(mockReminders.remindAll).toHaveBeenCalledWith([urgente]);
+    });
+
+    it('el reporte de próximos a vencer lleva solo esos trabajos, con los filtros y el alcance actuales', async () => {
+      const urgente = createMockRawProjectData({ id: '7', dueSoon: true, daysUntilDelivery: 4 });
+      const filtros: StatisticsFilters = { ...DEFAULT_STATISTICS_FILTERS, directorId: 'd1' };
+      mockStateService.currentFilters.set(filtros);
+      mockStateService.filteredData.set([urgente, createMockRawProjectData({ id: '8' })]);
+      mockMetricsService.dueSoonProjects.set([urgente]);
+
+      await facadeService.downloadDueSoonReport('excel');
+
+      expect(mockReportService.downloadDueSoonReport).toHaveBeenCalledWith('excel', filtros, [urgente],
+        { scope: 'Todos los trabajos de grado de la facultad.', directorName: 'Director 1' });
+      expect(mockReportService.downloadExcelReport).not.toHaveBeenCalled();
     });
   });
 });

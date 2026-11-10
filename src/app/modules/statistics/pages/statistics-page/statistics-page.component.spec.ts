@@ -48,6 +48,7 @@ describe('StatisticsPageComponent', () => {
   let mockFacadeService: {
     updateFilters: jest.Mock<void, [Partial<StatisticsFilters>]>;
     downloadReport: jest.Mock<Promise<void>, [string]>;
+    downloadDueSoonReport: jest.Mock<Promise<void>, [string]>;
     reportRows: WritableSignal<number>;
     clearFilters: jest.Mock<void, []>;
     currentFilters: WritableSignal<StatisticsFilters>;
@@ -81,6 +82,7 @@ describe('StatisticsPageComponent', () => {
     mockFacadeService = {
       updateFilters: jest.fn(),
       downloadReport: jest.fn(() => Promise.resolve()),
+      downloadDueSoonReport: jest.fn(() => Promise.resolve()),
       reportRows: signal(3),
       clearFilters: jest.fn(),
       currentFilters: signal<StatisticsFilters>(initialFilters),
@@ -322,6 +324,24 @@ describe('StatisticsPageComponent', () => {
         .find(boton => boton.componentInstance.label === 'Recordar a todos');
       todos!.componentInstance.onClick.emit();
       expect(mockFacadeService.remindAll).toHaveBeenCalled();
+    });
+
+    it('"Generar reporte" de la tabla abre su modal y descarga solo los próximos a vencer', async () => {
+      mockFacadeService.dueSoonProjects.set([trabajo('7', 4)]);
+      mockFacadeService.totalDueSoon.set(1);
+      fixture.detectChanges();
+      pulsar('.due-soon-eye');
+
+      pulsar('.due-soon-report');
+      expect(component['isDueSoonReportModalOpen']()).toBe(true);
+      expect(component['isReportModalOpen']()).toBe(false);
+      const modal = fixture.debugElement.queryAll(By.css('app-report-format-modal'))
+        .find(m => m.componentInstance.kind === 'dueSoon')!;
+      expect(modal.componentInstance.rows).toBe(1);
+
+      await component.onDueSoonReportFormatSelected('pdf');
+      expect(mockFacadeService.downloadDueSoonReport).toHaveBeenCalledWith('pdf');
+      expect(mockFacadeService.downloadReport).not.toHaveBeenCalled();
     });
   });
   describe('Acciones', () => {

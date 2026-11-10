@@ -27,6 +27,13 @@
     (onClose)="isReportModalOpen.set(false)"
     (selectFormat)="onReportFormatSelected($event)"
   ></app-report-format-modal>
+  <app-report-format-modal
+    kind="dueSoon"
+    [isOpen]="isDueSoonReportModalOpen()"
+    [rows]="facade.totalDueSoon()"
+    (onClose)="isDueSoonReportModalOpen.set(false)"
+    (selectFormat)="onDueSoonReportFormatSelected($event)"
+  ></app-report-format-modal>
   <div class="bg-blue-50/50 p-6 rounded-xl border border-blue-100 shadow-sm flex flex-col gap-4">
     <h3 class="font-display font-semibold text-primary text-size-section mb-2 flex items-center gap-2">
       <span class="material-symbols-outlined text-size-sidebar-title">filter_alt</span> Filtros de Búsqueda
@@ -216,7 +223,9 @@
             }
           </p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <app-button-component class="due-soon-report" label="Generar reporte" variant="secondary" icon="download"
+            (onClick)="isDueSoonReportModalOpen.set(true)"></app-button-component>
           @if (facade.canRemind()) {
             <app-button-component label="Recordar a todos" variant="primary" icon="notifications_active"
               (onClick)="facade.remindAll()"></app-button-component>

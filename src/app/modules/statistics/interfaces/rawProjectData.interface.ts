@@ -25,6 +25,8 @@ export interface RawProjectData {
   deliveryDate?: Date | null;
   /** Días calendario que faltan para la fecha máxima de entrega */
   daysUntilDelivery?: number | null;
+  /** El trabajo de grado está en prórroga (si no, en curso), para el reporte de próximos a vencer */
+  inExtension?: boolean;
   /** Estudiantes del trabajo, para la tabla de próximos a vencer */
   studentNames?: string;
 }

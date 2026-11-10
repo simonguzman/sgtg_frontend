@@ -80,6 +80,7 @@ export class ProjectDataMapperService {
       dueSoon: !!thesis.deadlines?.dueSoon,
       deliveryDate: thesis.deadlines?.maximumDeliveryDate ?? null,
       daysUntilDelivery: thesis.deadlines?.daysUntilDelivery ?? null,
+      inExtension: thesis.stage === 'PRORROGA',
       studentNames: this.userService.getAuthorsNames(thesis.preliminaryDraftData?.proposalData?.authors)
     };
   }

@@ -80,4 +80,12 @@ export class StatisticsPageFacadeService {
     else if (format === 'csv') this.reportService.downloadCsvReport(filters, data, kpis, context);
     else await this.reportService.downloadPdfReport(filters, data, kpis, context);
   }
+
+  /** Descarga el reporte de los trabajos próximos a vencer (los de la tabla, con los filtros actuales). */
+  async downloadDueSoonReport(format: StatisticsReportFormat): Promise<void> {
+    const filters = this.state.currentFilters();
+    const directorName = this.state.directorsOptions().find(director => director.id === filters.directorId)?.name ?? null;
+    await this.reportService.downloadDueSoonReport(format, filters, this.dueSoonProjects(),
+      { scope: this.state.scope(), directorName });
+  }
 }

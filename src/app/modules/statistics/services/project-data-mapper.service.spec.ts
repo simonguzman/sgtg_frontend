@@ -328,6 +328,12 @@ describe('ProjectDataMapperService', () => {
       expect(result.daysUntilDelivery).toBe(12);
       expect(result.deliveryDate).toBe(entrega);
       expect(result.studentNames).toBe('Ana Mora, Luis Paz');
+      expect(result.inExtension).toBe(false);
+    });
+
+    it('indica si el trabajo está en prórroga (para el reporte de próximos a vencer)', () => {
+      expect(service.mapThesisWork(createMockThesisWork({ stage: 'PRORROGA' })).inExtension).toBe(true);
+      expect(service.mapThesisWork(createMockThesisWork({ stage: 'EN_CURSO' })).inExtension).toBe(false);
     });
   });
 });

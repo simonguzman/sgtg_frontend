@@ -31,6 +31,8 @@ export class StatisticsPageComponent {
   private readonly router = inject(Router);
   /** Modal para elegir el formato del reporte */
   protected readonly isReportModalOpen = signal(false);
+  /** Modal del reporte de los trabajos próximos a vencer */
+  protected readonly isDueSoonReportModalOpen = signal(false);
   protected readonly doughnutOptions = DOUGHNUT_CHART_OPTIONS;
   protected readonly barOptions = BAR_CHART_OPTIONS;
   protected readonly archiveOptions = ARCHIVE_STATUS_OPTIONS;
@@ -105,8 +107,16 @@ export class StatisticsPageComponent {
   }
 
   async onReportFormatSelected(format: StatisticsReportFormat): Promise<void> {
+    await this.generateReport(() => this.facade.downloadReport(format));
+  }
+
+  async onDueSoonReportFormatSelected(format: StatisticsReportFormat): Promise<void> {
+    await this.generateReport(() => this.facade.downloadDueSoonReport(format));
+  }
+
+  private async generateReport(download: () => Promise<void>): Promise<void> {
     try {
-      await this.facade.downloadReport(format);
+      await download();
     } catch (error) {
       console.error('No se pudo generar el reporte', error);
       this.notification.error('No se generó el reporte', 'Ocurrió un error al generar el archivo. Intenta de nuevo.');

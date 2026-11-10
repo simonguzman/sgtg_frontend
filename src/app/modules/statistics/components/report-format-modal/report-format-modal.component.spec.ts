@@ -25,6 +25,18 @@ describe('ReportFormatModalComponent', () => {
     expect(component.description).toContain('no hay trabajos');
   });
 
+  it('para los próximos a vencer cambia el título, el texto y la descripción de los formatos', () => {
+    expect(component.title).toBe('Generar reporte');
+    component.kind = 'dueSoon';
+    component.rows = 3;
+    expect(component.title).toBe('Generar reporte de próximos a vencer');
+    expect(component.description).toContain('los 3 trabajos de grado próximos a vencer');
+    component.rows = 1;
+    expect(component.description).toContain('el trabajo de grado próximo a vencer');
+    expect(component.options.map(option => option.format)).toEqual(['pdf', 'excel', 'csv']);
+    expect(component.options[1].description).toContain('Próximos a vencer');
+  });
+
   it('al elegir un formato lo emite una sola vez y se cierra', () => {
     const elegidos: StatisticsReportFormat[] = [];
     let cierres = 0;

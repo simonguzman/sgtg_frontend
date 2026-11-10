@@ -839,3 +839,15 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
     - **Calendarios en español:** `providePrimeNG` traduce días, meses y "Hoy", y la semana empieza el lunes (afecta
       también al calendario de la sustentación).
     - Detalle del backend: `sgtg_backend/docs/ajustes-2026-11-09.md`.
+67. **Reporte de los trabajos próximos a vencer (2026-11-10, pedido del decano):**
+    - La tabla de próximos a vencer tiene un botón "Generar reporte" (junto a "Recordar a todos"; lo ve todo el que ve
+      la tabla). Abre el mismo modal de formato del reporte general (`app-report-format-modal` con `kind="dueSoon"`, que
+      cambia el título, el texto y la descripción de cada formato) y descarga en PDF, Excel o CSV solo los trabajos de
+      la tabla, con los filtros actuales.
+    - Columnas: #, título, estudiantes, director, programa, modalidad, estado (En curso o En prórroga, de
+      `RawProjectData.inExtension` = etapa `PRORROGA`), fecha máxima de entrega y días restantes.
+    - El PDF va en horizontal, con encabezado rojo, el criterio, los filtros y un resumen (total, vencen en 7 días o
+      menos, en curso, en prórroga). El Excel lleva la hoja "Próximos a vencer" (la fecha como fecha y los días como
+      número, para ordenar y filtrar) y la hoja "Resumen". El CSV, solo la tabla.
+    - `StatisticsReportService.downloadDueSoonReport`; archivos `Reporte_Proximos_a_Vencer_<marca>.<ext>`. Solo front:
+      usa los datos que ya trae el backend.
