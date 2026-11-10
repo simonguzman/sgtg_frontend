@@ -121,9 +121,19 @@ export interface ConceptoEvaluacionApi {
 }
 
 /** Plazo que puede fijar el Consejo al aprobar, con la fecha máxima de entrega que resultaría hoy. */
-export interface OpcionPlazoApi {
-  meses: number;
-  fechaFin: string;
+/**
+ * Fechas entre las que el Consejo fija el plazo al aprobar el anteproyecto: la
+ * fecha de su reunión (entre la remisión con el formato C y hoy) y la fecha
+ * máxima de entrega (entre 3 y 9 meses después de esa reunión).
+ */
+export interface PlazoConsejoApi {
+  fechaInicioMinima: string | null;
+  fechaInicioMaxima: string;
+  mesesMinimos: number;
+  mesesMaximos: number;
+  /** Entrega más cercana y más lejana si la reunión fue hoy */
+  fechaFinMinima: string;
+  fechaFinMaxima: string;
 }
 
 /** Anteproyecto: su estado es el de la última versión radicada (sin versiones no hay estado). */
@@ -141,7 +151,8 @@ export interface AnteproyectoApi {
   /** Formatos C con los que el Jefe de departamento remitió al Consejo cada versión aprobada (`version` = versión remitida) */
   remisiones: DocumentoApi[];
   /** Plazos que puede fijar el Consejo; vacía fuera de la aprobación del Consejo */
-  opcionesPlazo?: OpcionPlazoApi[];
+  /** Solo en la aprobación del Consejo */
+  plazoConsejo?: PlazoConsejoApi | null;
 }
 
 export interface CambioObjetivosApi {

@@ -72,7 +72,18 @@ export const appConfig: ApplicationConfig = {
         notEquals: 'Diferente a',
         noFilter: 'Sin filtro',
         emptyMessage: 'No hay datos registrados en el sistema',
-        emptyFilterMessage: 'No se encontraron resultados'
+        emptyFilterMessage: 'No se encontraron resultados',
+        // Calendarios (p-datepicker): días, meses y la semana empieza el lunes
+        firstDayOfWeek: 1,
+        dayNames: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
+        dayNamesShort: ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'],
+        dayNamesMin: ['D', 'L', 'M', 'X', 'J', 'V', 'S'],
+        monthNames: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre',
+          'octubre', 'noviembre', 'diciembre'],
+        monthNamesShort: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
+        today: 'Hoy',
+        weekHeader: 'Sem',
+        dateFormat: 'dd/mm/yy'
       }
     })
   ]

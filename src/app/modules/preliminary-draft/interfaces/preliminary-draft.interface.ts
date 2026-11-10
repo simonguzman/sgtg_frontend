@@ -6,9 +6,16 @@ import { Proposal } from "../../proposal/interfaces/proposal.interface";
 import { User } from "../../users/interfaces/user.interface";
 
 /** Plazo de ejecución que puede fijar el Consejo y la fecha máxima de entrega que resultaría hoy. */
-export interface ExecutionOption {
-  months: number;
-  deadline: Date;
+/**
+ * Fechas entre las que el Consejo fija el plazo al aprobar: su reunión (desde
+ * la remisión con el formato C hasta hoy) y la fecha máxima de entrega (de
+ * `minMonths` a `maxMonths` meses después de la reunión).
+ */
+export interface CouncilTerm {
+  startMin: Date | null;
+  startMax: Date;
+  minMonths: number;
+  maxMonths: number;
 }
 
 export interface PreliminaryDraft extends Archivable {
@@ -24,7 +31,8 @@ export interface PreliminaryDraft extends Archivable {
   /** Días hábiles que les quedan a los evaluadores (negativo si venció); los calcula el backend */
   evaluationRemainingDays?: number | null;
   /** Plazos que puede fijar el Consejo al aprobar y la fecha de entrega de cada uno (los calcula el backend) */
-  executionOptions?: ExecutionOption[];
+  /** Solo en la aprobación del Consejo */
+  councilTerm?: CouncilTerm | null;
   maximumDeliveryDate?: Date | string;
   /** Documento del anteproyecto elegido en el formulario (aún no enviado al backend) */
   attachment?: File | null;

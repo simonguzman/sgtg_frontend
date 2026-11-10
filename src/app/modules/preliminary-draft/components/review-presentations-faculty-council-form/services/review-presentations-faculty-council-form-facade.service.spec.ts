@@ -208,22 +208,29 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
       facade.initFormEffects();
     });
 
-    it('debería requerir el plazo de ejecución si el result es "Aprobado"', () => {
+    it('al aprobar exige la fecha de la reunión y la de entrega; la de entrega se habilita al elegir la reunión', () => {
       facade.evaluationForm.patchValue({ result: 'Aprobado' });
+      const inicio = facade.evaluationForm.controls.startDate;
+      const entrega = facade.evaluationForm.controls.endDate;
+      expect(inicio.valid).toBe(false);
+      expect(entrega.disabled).toBe(true);
 
-      const monthsControl = facade.evaluationForm.get('executionMonths');
-      expect(monthsControl?.valid).toBeFalsy();
-      monthsControl?.setValue(9);
-      expect(monthsControl?.valid).toBeTruthy();
+      inicio.setValue(new Date(2027, 6, 23));
+      expect(entrega.enabled).toBe(true);
+      expect(entrega.valid).toBe(false);
+      entrega.setValue(new Date(2028, 0, 23));
+      expect(facade.evaluationForm.valid).toBe(false); // faltan las observaciones
+      expect(inicio.valid && entrega.valid).toBe(true);
     });
 
-    it('NO debería requerir el plazo de ejecución si el result NO es "Aprobado"', () => {
+    it('si no aprueba no pide fechas y limpia las elegidas', () => {
       facade.evaluationForm.patchValue({ result: 'Aprobado' });
+      facade.evaluationForm.controls.startDate.setValue(new Date(2027, 6, 23));
       facade.evaluationForm.patchValue({ result: 'No aprobado' });
 
-      const monthsControl = facade.evaluationForm.get('executionMonths');
-      expect(monthsControl?.valid).toBeTruthy();
-      expect(monthsControl?.value).toBeNull();
+      expect(facade.evaluationForm.controls.startDate.value).toBeNull();
+      expect(facade.evaluationForm.controls.startDate.valid).toBe(true);
+      expect(facade.evaluationForm.controls.endDate.value).toBeNull();
     });
 
     it('debería deshabilitar el formulario si isReadOnly es true', () => {
@@ -300,24 +307,67 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
   });
 
   describe('Plazo de ejecución que fija el Consejo', () => {
-    it('lista las opciones que calcula el backend, con la fecha en que vence cada una', () => {
-      facade.preliminaryDraft.set(createMockDraft({
-        executionOptions: [
-          { months: 6, deadline: new Date(2027, 3, 18) },
-          { months: 9, deadline: new Date(2027, 6, 18) },
-          { months: 12, deadline: new Date(2027, 9, 18) }
-        ]
-      }));
-      expect(facade.executionMonthOptions()).toEqual([
-        { months: 6, deadline: '18 - 04 - 2027' },
-        { months: 9, deadline: '18 - 07 - 2027' },
-        { months: 12, deadline: '18 - 10 - 2027' }
-      ]);
+    // Hoy (backend): 28-jul-2027; remisión con el formato C: 20-jul-2027
+    const term = { startMin: new Date(2027, 6, 20), startMax: new Date(2027, 6, 28), minMonths: 3, maxMonths: 9 };
+
+    beforeEach(() => {
+      facade.preliminaryDraft.set(createMockDraft({ councilTerm: term }));
+      facade.initFormEffects();
+      facade.evaluationForm.patchValue({ result: 'Aprobado' });
     });
 
-    it('sin opciones del backend (fuera de la aprobación del Consejo) no ofrece plazos', () => {
-      facade.preliminaryDraft.set(createMockDraft());
-      expect(facade.executionMonthOptions()).toEqual([]);
+    it('la reunión va de la remisión a hoy y la entrega de 3 a 9 meses después de la reunión elegida', () => {
+      expect(facade.startDateMin()).toEqual(new Date(2027, 6, 20));
+      expect(facade.startDateMax()).toEqual(new Date(2027, 6, 28));
+      expect(facade.endDateMin()).toBeNull();
+      expect(facade.endDateHint()).toBe('Primero elija la fecha de la reunión del Consejo.');
+
+      facade.evaluationForm.controls.startDate.setValue(new Date(2027, 6, 23));
+      expect(facade.endDateMin()).toEqual(new Date(2027, 9, 23));
+      expect(facade.endDateMax()).toEqual(new Date(2028, 3, 23));
+      expect(facade.endDateHint()).toBe('Entre el 23 - 10 - 2027 y el 23 - 04 - 2028 (de 3 a 9 meses).');
+    });
+
+    it('rechaza una reunión fuera del rango y una entrega de menos de 3 o más de 9 meses', () => {
+      const inicio = facade.evaluationForm.controls.startDate;
+      inicio.setValue(new Date(2027, 6, 29));
+      expect(inicio.hasError('inicioFueraDeRango')).toBe(true);
+      inicio.setValue(new Date(2027, 6, 19));
+      expect(inicio.hasError('inicioFueraDeRango')).toBe(true);
+      inicio.setValue(new Date(2027, 6, 23));
+      expect(inicio.valid).toBe(true);
+
+      const entrega = facade.evaluationForm.controls.endDate;
+      entrega.setValue(new Date(2027, 9, 22));
+      expect(entrega.hasError('entregaFueraDeRango')).toBe(true);
+      entrega.setValue(new Date(2028, 3, 24));
+      expect(entrega.hasError('entregaFueraDeRango')).toBe(true);
+      entrega.setValue(new Date(2028, 3, 23));
+      expect(entrega.valid).toBe(true);
+    });
+
+    it('muestra la duración del plazo y, si la reunión cambia y la entrega ya no cabe, la limpia', () => {
+      facade.evaluationForm.controls.startDate.setValue(new Date(2027, 6, 23));
+      facade.evaluationForm.controls.endDate.setValue(new Date(2028, 0, 23));
+      expect(facade.termLength()).toBe('6 meses');
+      facade.evaluationForm.controls.endDate.setValue(new Date(2028, 1, 2));
+      expect(facade.termLength()).toBe('6 meses y 10 días');
+
+      // Con la reunión el 20-jul la entrega máxima es el 20-abr: el 23-abr ya no cabe y se limpia
+      facade.evaluationForm.controls.endDate.setValue(new Date(2028, 3, 23));
+      facade.evaluationForm.controls.startDate.setValue(new Date(2027, 6, 20));
+      expect(facade.evaluationForm.controls.endDate.value).toBeNull();
+    });
+
+    it('envía las dos fechas elegidas', () => {
+      facade.evaluationForm.patchValue({ comments: 'Aprobado en sesión del jueves' });
+      facade.evaluationForm.controls.startDate.setValue(new Date(2027, 6, 23));
+      facade.evaluationForm.controls.endDate.setValue(new Date(2028, 0, 23));
+      facade.handleFileUploaded({ fileName: 'resolucion.pdf', file: new File(['%PDF'], 'resolucion.pdf') });
+
+      const payload = facade.validateAndGetPayload();
+      expect(payload?.formValues.startDate).toEqual(new Date(2027, 6, 23));
+      expect(payload?.formValues.endDate).toEqual(new Date(2028, 0, 23));
     });
   });
 });

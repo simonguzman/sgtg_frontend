@@ -1,5 +1,5 @@
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ValidationErrors, Validators } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PreliminaryDraft } from '../../../interfaces/preliminary-draft.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
@@ -10,7 +10,7 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { UserService } from '../../../../users/services/user.service';
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { SaveEvaluationPayload } from '../models/council-evaluation.model';
-import { formatDisplayDate } from '../../../../../core/utils/date-utils';
+import { formatDisplayDate, sumarMeses } from '../../../../../core/utils/date-utils';
 import { versionVigente } from '../../../services/preliminary-draft-rules';
 import { cartaDeAceptacion } from '../../../../proposal/services/proposal-rules.service';
 import { resolveApprovedEvaluationDocument } from '../../../../../core/utils/evaluation-utils';
@@ -38,23 +38,41 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
   readonly evaluationForm = this.fb.group({
     result: ['', Validators.required],
     comments: ['', Validators.required],
-    executionMonths: [null as number | null],
+    /** Al aprobar: fecha de la reunión del Consejo, desde la que corre el plazo */
+    startDate: [null as Date | null],
+    /** Al aprobar: fecha máxima de entrega, entre 3 y 9 meses después de la reunión */
+    endDate: [null as Date | null],
     document: [null]
   });
+
+  /** Fecha de la reunión elegida (para el rango de la fecha máxima de entrega) */
+  private readonly startDateValue = signal<Date | null>(null);
 
   readonly isReadOnly = computed(() => this.preliminaryDraft()?.state === stateList.APROBADO);
 
   /**
-   * Plazos de ejecución que puede fijar el Consejo (6 o 9 meses en trabajo de
-   * investigación; 6, 9 o 12 en práctica profesional) con la fecha máxima de
-   * entrega de cada uno. Los calcula el backend con su reloj y la misma regla
-   * con la que registra la decisión, contados desde hoy.
+   * Fechas que puede fijar el Consejo (las calcula el backend con su reloj): su
+   * reunión va desde la remisión con el formato C hasta hoy, y la fecha máxima de
+   * entrega queda entre 3 y 9 meses después de la reunión.
    */
-  readonly executionMonthOptions = computed(() =>
-    (this.preliminaryDraft()?.executionOptions ?? []).map(option => ({
-      months: option.months,
-      deadline: formatDisplayDate(option.deadline)
-    })));
+  readonly councilTerm = computed(() => this.preliminaryDraft()?.councilTerm ?? null);
+  readonly startDateMin = computed(() => this.councilTerm()?.startMin ?? null);
+  /** Hoy según el backend (su reloj puede estar adelantado): el calendario abre en ese mes */
+  readonly startDateMax = computed(() => this.councilTerm()?.startMax ?? null);
+  readonly endDateMin = computed(() => this.limiteDeEntrega('minMonths'));
+  readonly endDateMax = computed(() => this.limiteDeEntrega('maxMonths'));
+
+  /** Texto de ayuda con el rango de la fecha máxima de entrega para la reunión elegida */
+  readonly endDateHint = computed(() => {
+    const min = this.endDateMin();
+    const max = this.endDateMax();
+    const term = this.councilTerm();
+    if (!min || !max || !term) return 'Primero elija la fecha de la reunión del Consejo.';
+    return `Entre el ${formatDisplayDate(min)} y el ${formatDisplayDate(max)} (de ${term.minMonths} a ${term.maxMonths} meses).`;
+  });
+
+  /** Duración del plazo elegido, p. ej. "6 meses" o "6 meses y 10 días" */
+  readonly termLength = signal<string | null>(null);
 
   /**
    * Formato A firmado por el Comité: el del concepto pertinente más reciente. El
@@ -107,18 +125,66 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
       this.evaluationForm.disable({ emitEvent: false });
       return;
     }
+    const startControl = this.evaluationForm.controls.startDate;
+    const endControl = this.evaluationForm.controls.endDate;
     this.evaluationForm.get('result')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((value) => {
-        const dateControl = this.evaluationForm.get('executionMonths');
         if (value === 'Aprobado') {
-          dateControl?.setValidators([Validators.required]);
+          startControl.setValidators([Validators.required, control => this.dentroDe(control, this.startDateMin(),
+            this.startDateMax(), 'inicioFueraDeRango')]);
+          endControl.setValidators([Validators.required, control => this.dentroDe(control, this.endDateMin(),
+            this.endDateMax(), 'entregaFueraDeRango')]);
         } else {
-          dateControl?.clearValidators();
-          dateControl?.setValue(null, { onlySelf: true, emitEvent: false });
+          startControl.clearValidators();
+          endControl.clearValidators();
+          startControl.setValue(null, { emitEvent: false });
+          endControl.setValue(null, { emitEvent: false });
+          this.startDateValue.set(null);
+          this.termLength.set(null);
         }
-        dateControl?.updateValueAndValidity({ onlySelf: true, emitEvent: false });
+        startControl.updateValueAndValidity({ emitEvent: false });
+        // La fecha de entrega se elige después de la reunión (su rango depende de ella)
+        if (value === 'Aprobado' && !startControl.value) endControl.disable({ emitEvent: false });
+        endControl.updateValueAndValidity({ emitEvent: false });
       });
+    startControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(start => {
+      this.startDateValue.set(start ?? null);
+      if (start) endControl.enable({ emitEvent: false });
+      else endControl.disable({ emitEvent: false });
+      // Si la fecha de entrega ya no cabe en el rango de la nueva reunión, se vuelve a elegir
+      endControl.updateValueAndValidity();
+      if (endControl.hasError('entregaFueraDeRango')) endControl.setValue(null);
+      this.termLength.set(this.duracion(start, endControl.value));
+    });
+    endControl.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(end => this.termLength.set(this.duracion(startControl.value, end)));
+  }
+
+  /** Fecha más cercana o más lejana de entrega para la reunión elegida; null sin reunión */
+  private limiteDeEntrega(limite: 'minMonths' | 'maxMonths'): Date | null {
+    const start = this.startDateValue();
+    const term = this.councilTerm();
+    return start && term ? sumarMeses(start, term[limite]) : null;
+  }
+
+  /** El valor (una fecha) debe estar entre min y max, ambos incluidos (por día) */
+  private dentroDe(control: AbstractControl, min: Date | null, max: Date | null, error: string): ValidationErrors | null {
+    const valor = control.value as Date | null;
+    if (!valor) return null;
+    const dia = (fecha: Date) => new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()).getTime();
+    const fuera = (min && dia(valor) < dia(min)) || (max && dia(valor) > dia(max));
+    return fuera ? { [error]: true } : null;
+  }
+
+  /** Meses y días entre la reunión y la fecha de entrega, como los cuenta el backend */
+  private duracion(start: Date | null, end: Date | null): string | null {
+    if (!start || !end) return null;
+    let meses = 0;
+    while (sumarMeses(start, meses + 1) <= end) meses++;
+    const dias = Math.round((end.getTime() - sumarMeses(start, meses).getTime()) / 86_400_000);
+    const textoMeses = `${meses} ${meses === 1 ? 'mes' : 'meses'}`;
+    return dias ? `${textoMeses} y ${dias} ${dias === 1 ? 'día' : 'días'}` : textoMeses;
   }
 
   isFieldInvalid(fieldName: string): boolean {
@@ -150,7 +216,8 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
       formValues: {
         result: mappedResult,
         comments: raw.comments ?? '',
-        executionMonths: raw.executionMonths ?? null,
+        startDate: raw.startDate ?? null,
+        endDate: raw.endDate ?? null,
         document: null
       },
       file: fileData.file

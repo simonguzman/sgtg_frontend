@@ -30,3 +30,25 @@ export function parseDisplayDate(value: Date | string | undefined | null): Date 
   }
   return new Date(value);
 }
+
+/** Fecha local como 'YYYY-MM-DD' (la que espera el backend en un LocalDate), sin pasar por UTC. */
+export function fechaLocalIso(date: Date): string {
+  const dos = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${dos(date.getMonth() + 1)}-${dos(date.getDate())}`;
+}
+
+/**
+ * Suma meses como `LocalDate.plusMonths` del backend: si el día no existe en el
+ * mes de llegada, queda en el último día de ese mes (31-ene + 1 mes = 28-feb).
+ */
+export function sumarMeses(date: Date, meses: number): Date {
+  const destino = new Date(date.getFullYear(), date.getMonth() + meses, 1);
+  const ultimoDia = new Date(destino.getFullYear(), destino.getMonth() + 1, 0).getDate();
+  return new Date(destino.getFullYear(), destino.getMonth(), Math.min(date.getDate(), ultimoDia));
+}
+
+/** 'YYYY-MM-DD' del backend como fecha local (sin el corrimiento de zona de `new Date('YYYY-MM-DD')`). */
+export function desdeFechaIso(valor: string | null | undefined): Date | null {
+  const partes = /^(\d{4})-(\d{2})-(\d{2})/.exec(valor ?? '');
+  return partes ? new Date(Number(partes[1]), Number(partes[2]) - 1, Number(partes[3])) : null;
+}

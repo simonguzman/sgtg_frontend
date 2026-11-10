@@ -556,18 +556,20 @@ describe('plazos calculados por el backend', () => {
     expect(aAnteproyecto(conConcepto, ctx)!.evaluations[0].deadlineStatus).toBe(EvaluationDeadlineStatus.ON_TIME);
   });
 
-  it('el anteproyecto lleva los días restantes de los evaluadores y las opciones de plazo del Consejo', () => {
+  it('el anteproyecto lleva los días restantes de los evaluadores y las fechas entre las que el Consejo fija el plazo', () => {
     const base = crearTrabajoEnEvaluacion();
     const trabajo = crearTrabajoEnEvaluacion({
       anteproyecto: {
         ...base.anteproyecto, diasHabilesRestantesEvaluacion: -2,
-        opcionesPlazo: [{ meses: 6, fechaFin: '2027-04-18' }, { meses: 9, fechaFin: '2027-07-18' }]
+        plazoConsejo: { fechaInicioMinima: '2027-07-20', fechaInicioMaxima: '2027-07-28', mesesMinimos: 3,
+          mesesMaximos: 9, fechaFinMinima: '2027-10-28', fechaFinMaxima: '2028-04-28' }
       }
     });
     const anteproyecto = aAnteproyecto(trabajo, ctx)!;
     expect(anteproyecto.evaluationRemainingDays).toBe(-2);
-    expect(anteproyecto.executionOptions?.map(opcion => opcion.months)).toEqual([6, 9]);
-    expect(anteproyecto.executionOptions?.[1].deadline).toEqual(aFecha('2027-07-18'));
-    expect(aAnteproyecto(base, ctx)!.executionOptions).toEqual([]);
+    // Fechas locales (sin el corrimiento de zona de new Date('YYYY-MM-DD'))
+    expect(anteproyecto.councilTerm).toEqual({ startMin: new Date(2027, 6, 20), startMax: new Date(2027, 6, 28),
+      minMonths: 3, maxMonths: 9 });
+    expect(aAnteproyecto(base, ctx)!.councilTerm).toBeNull();
   });
 });

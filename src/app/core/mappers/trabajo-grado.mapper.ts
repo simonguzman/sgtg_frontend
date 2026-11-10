@@ -1,7 +1,7 @@
 import {
   CalificacionApi, CambioObjetivosApi, DecisionApi, DocumentoApi, EstadoApi, EstadoReunionApi, EstadoSustentacionApi, InformeMensualApi,
   ReunionApi, VersionDocumentoApi,
-  ETAPAS_FINALES, ProcesoApi, ResultadoConceptoApi, SolicitudSustentacionApi, TrabajoGradoResponse
+  ETAPAS_FINALES, ProcesoApi, ResultadoConceptoApi, SolicitudSustentacionApi, TrabajoGradoResponse, PlazoConsejoApi
 } from '../interfaces/api/trabajo-grado-api.interface';
 import { stateList } from '../enums/state.enum';
 import { DocumentType } from '../enums/document-type.enum';
@@ -14,7 +14,8 @@ import { User } from '../../modules/users/interfaces/user.interface';
 import { UserState } from '../../modules/users/enum/user-state.enum';
 import { Modality } from '../../modules/proposal/enums/modality.enum';
 import { Proposal } from '../../modules/proposal/interfaces/proposal.interface';
-import { PreliminaryDraft } from '../../modules/preliminary-draft/interfaces/preliminary-draft.interface';
+import { CouncilTerm, PreliminaryDraft } from '../../modules/preliminary-draft/interfaces/preliminary-draft.interface';
+import { desdeFechaIso } from '../utils/date-utils';
 import { Meeting, SustentationProcess, ThesisWork } from '../../modules/thesis-work/interfaces/thesis-work.interface';
 import { Advance } from '../../modules/thesis-work/interfaces/advance.interface';
 import { CommitteeEndorsement, SpecialRequest } from '../../modules/thesis-work/interfaces/special-request.interface';
@@ -138,10 +139,7 @@ export function aAnteproyecto(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo)
     createdData: aFecha(anteproyecto.versiones[0]?.fechaCarga ?? fechaDeEntrada(trabajo, 'ANTEPROYECTO')) ?? new Date(),
     evaluationDeadline: aFecha(anteproyecto.fechaLimiteEvaluacion) ?? undefined,
     evaluationRemainingDays: anteproyecto.diasHabilesRestantesEvaluacion ?? null,
-    executionOptions: (anteproyecto.opcionesPlazo ?? []).map(opcion => ({
-      months: opcion.meses,
-      deadline: aFecha(opcion.fechaFin) ?? new Date()
-    })),
+    councilTerm: plazoDelConsejo(anteproyecto.plazoConsejo),
     maximumDeliveryDate: aFecha(trabajo.ejecucion?.fechaFin) ?? undefined,
     isArchived: estaCerrado(trabajo)
   };
@@ -573,6 +571,18 @@ export function estadoActualPropuesta(trabajo: TrabajoGradoResponse): EstadoApi 
 /** Estado de la última versión radicada, null si no hay ninguna. */
 function ultimoEstado(versiones: VersionDocumentoApi[]): EstadoApi | null {
   return versiones.length > 0 ? versiones[versiones.length - 1].estado : null;
+}
+
+/** Fechas entre las que el Consejo fija el plazo (las calcula el backend con su reloj); null fuera de esa etapa. */
+function plazoDelConsejo(plazo: PlazoConsejoApi | null | undefined): CouncilTerm | null {
+  const hoy = desdeFechaIso(plazo?.fechaInicioMaxima);
+  if (!plazo || !hoy) return null;
+  return {
+    startMin: desdeFechaIso(plazo.fechaInicioMinima),
+    startMax: hoy,
+    minMonths: plazo.mesesMinimos,
+    maxMonths: plazo.mesesMaximos
+  };
 }
 
 /**

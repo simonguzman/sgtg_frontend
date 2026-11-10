@@ -1,5 +1,6 @@
 import { Component, effect, inject, input, output, OnInit } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
+import { DatePicker } from 'primeng/datepicker';
 import { ReviewPresentationsFacultyCouncilFormFacadeService } from './services/review-presentations-faculty-council-form-facade.service';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
@@ -13,7 +14,7 @@ import { ProposalContentFieldsComponent } from '../../../../shared/components/pr
 @Component({
   selector: 'app-review-presentations-faculty-council-form',
   standalone: true,
-  imports: [ProposalContentFieldsComponent, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],
+  imports: [ProposalContentFieldsComponent, ReactiveFormsModule, DatePicker, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],
   providers: [ReviewPresentationsFacultyCouncilFormFacadeService],
   templateUrl: './review-presentations-faculty-council-form.component.html',
   styleUrls: ['./review-presentations-faculty-council-form.component.css']

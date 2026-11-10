@@ -826,3 +826,16 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
       `app-button-component` con solo ícono, para tener el mismo hover y clic de los botones de toda la aplicación.
       `app-button-component` tiene dos variantes nuevas: `danger` (rojo, `--color-danger` con `--color-danger-hover` y
       `--color-danger-active`) y `light` (blanco con ícono rojo, sobre fondos de color).
+66. **El Consejo fija la fecha de su reunión y la fecha máxima de entrega (2026-11-09):**
+    - En "Evaluar presentación", al aprobar, el Consejo elige con calendarios (`p-datepicker`, como la sustentación) la
+      **fecha de la reunión** en que aprobó (desde la remisión con el Formato C hasta hoy) y la **fecha máxima de
+      entrega** (entre 3 y 9 meses después de la reunión, en las dos modalidades). La de entrega se habilita al elegir la
+      reunión; el formulario muestra su rango y la duración ("Plazo de ejecución: 6 meses" o "6 meses y 10 días"). Si
+      la reunión cambia y la entrega ya no cabe, se limpia.
+    - Los rangos salen de `anteproyecto.plazoConsejo` (mapeado a `PreliminaryDraft.councilTerm`), calculados con el
+      reloj del backend; los calendarios abren en ese mes (`defaultDate`), no en el del navegador.
+    - Se envían `fechaInicio` y `fechaFin` como fechas locales (`fechaLocalIso`); `sumarMeses` replica
+      `LocalDate.plusMonths` y `desdeFechaIso` lee los `LocalDate` sin corrimiento de zona (`core/utils/date-utils.ts`).
+    - **Calendarios en español:** `providePrimeNG` traduce días, meses y "Hoy", y la semana empieza el lunes (afecta
+      también al calendario de la sustentación).
+    - Detalle del backend: `sgtg_backend/docs/ajustes-2026-11-09.md`.
