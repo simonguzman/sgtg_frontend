@@ -68,7 +68,6 @@ describe('ConfirmationActionModalComponent', () => {
       fixture.detectChanges();
       expect(dialogo()).not.toBeNull();
 
-      // Al cerrarse se conserva, para que la animación de cierre termine
       fixture.componentRef.setInput('isOpen', false);
       fixture.detectChanges();
       expect(dialogo()).not.toBeNull();

@@ -11,7 +11,6 @@ import { Title } from '@angular/platform-browser';
 import { Subject } from 'rxjs';
 import { BreadcrumbService } from './breadcrumb.service';
 import { buildBreadcrumbTrail } from './helpers/breadcrumb-builder.helper';
-import { BreadcrumbItem } from '../../interfaces/breadcrumb-item.interface';
 
 jest.mock('./helpers/breadcrumb-builder.helper', () => ({
   buildBreadcrumbTrail: jest.fn()
@@ -137,20 +136,6 @@ describe('BreadcrumbService', () => {
   });
 
   describe('Métodos de Fachada (setPageContext y clearPageContext)', () => {
-    it('setPageContext debería actualizar el breadcrumb dinámico y el título', () => {
-      service.setPageContext('Mi Breadcrumb', 'Mi Título');
-      expect(service.breadcrumbs()[2]).toEqual({ label: 'Mi Breadcrumb', url: '/ruta-actual' });
-      expect(service.dynamicTitle()).toBe('Mi Título');
-      expect(mockTitleService.setTitle).toHaveBeenCalledWith('Mi Título');
-    });
-
-    it('clearPageContext debería limpiar tanto el breadcrumb como el título', () => {
-      service.setPageContext('Mi Breadcrumb', 'Mi Título');
-      service.clearPageContext();
-      expect(service.breadcrumbs()).toHaveLength(2);
-      expect(service.dynamicTitle()).toBeNull();
-    });
-
     it('clearDynamicBreadcrumb debería remover solo el breadcrumb dinámico', () => {
       service.setDynamicBreadcrumb('Algo dinámico');
       service.clearDynamicBreadcrumb();
@@ -185,36 +170,6 @@ describe('BreadcrumbService', () => {
       TestBed.flushEffects();
       service.breadcrumbs();
       expect(buildBreadcrumbTrailMock).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Retrocompatibilidad (toObservable)', () => {
-    it('debería emitir valores a través de dynamicTitle$ cuando el signal cambia', () => {
-      const emittedTitles: (string | null)[] = [];
-      const sub = service.dynamicTitle$.subscribe((title) => {
-        emittedTitles.push(title);
-      });
-      TestBed.flushEffects();
-      service.setDynamicTitle('Observable Test');
-      TestBed.flushEffects();
-      expect(emittedTitles).toEqual([null, 'Observable Test']);
-      sub.unsubscribe();
-    });
-
-    it('debería emitir valores a través de breadcrumbs$ cuando los breadcrumbs cambian', () => {
-      const emittedBreadcrumbs: BreadcrumbItem[][] = [];
-      const sub = service.breadcrumbs$.subscribe((items) => {
-        emittedBreadcrumbs.push(items);
-      });
-      TestBed.flushEffects();
-      service.setDynamicBreadcrumb('Página Dinámica');
-      TestBed.flushEffects();
-      expect(emittedBreadcrumbs).toHaveLength(2);
-      expect(emittedBreadcrumbs[1]).toContainEqual({
-        label: 'Página Dinámica',
-        url: '/ruta-actual'
-      });
-      sub.unsubscribe();
     });
   });
 });

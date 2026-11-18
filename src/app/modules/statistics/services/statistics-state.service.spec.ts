@@ -33,6 +33,8 @@ const raw = (overrides: Partial<RawProjectData> = {}): RawProjectData => ({
   status: ProjectStatus.EN_REVISION,
   originalState: stateList.EN_REVISION,
   period: '2026-1',
+  modality: 'Trabajo de investigación',
+  program: 'Ingeniería de Sistemas',
   directorId: 'usr-1',
   directorName: 'Director',
   registrationDate: new Date(),
@@ -70,7 +72,6 @@ describe('StatisticsStateService', () => {
       const porId = new Map(service.rawData().map(dato => [dato.id, dato]));
       expect(service.rawData()).toHaveLength(5);
       expect(porId.get('1')?.stage).toBe(ProjectStage.PROPUESTA);
-      // Propuesta aprobada sin anteproyecto radicado: cuenta como propuesta aprobada
       expect(porId.get('2')).toEqual(expect.objectContaining({
         stage: ProjectStage.PROPUESTA, status: ProjectStatus.APROBADO }));
       expect(porId.get('5')?.stage).toBe(ProjectStage.ANTEPROYECTO);
@@ -94,7 +95,6 @@ describe('StatisticsStateService', () => {
         stage: ProjectStage.TRABAJO_GRADO, isArchived: true, status: ProjectStatus.NO_APROBADO }));
       expect(porId.get('3')).toEqual(expect.objectContaining({
         stage: ProjectStage.TRABAJO_GRADO, isArchived: true, status: ProjectStatus.APROBADO }));
-      // Por defecto se cuentan todos, en proceso y cerrados
       expect(service.filteredData()).toHaveLength(3);
     });
 

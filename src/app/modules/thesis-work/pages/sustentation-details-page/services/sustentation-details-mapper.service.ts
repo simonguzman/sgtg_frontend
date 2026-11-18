@@ -16,12 +16,14 @@ import {
   SpecialRequestView
 } from '../models/sustentation-details.model';
 
+/** Arma el detalle de una sesión de sustentación a partir del trabajo. */
 @Injectable({ providedIn: 'root' })
 export class SustentationDetailsMapperService {
   private readonly userService = inject(UserService);
   private readonly participants = inject(ThesisParticipantsFormatterService);
   private readonly documentResolver = inject(ThesisFinalDeliveryDocumentResolverService);
 
+  /** Detalle de la sesión indicada, o null si no existe. */
   public mapToView(thesisWork: ThesisWork, sustentationId: string): SustentationDetailsView | null {
     const sustentation = thesisWork.sustentations?.find((s: SustentationRegistry) => s.id === sustentationId);
     if (!sustentation) return null;

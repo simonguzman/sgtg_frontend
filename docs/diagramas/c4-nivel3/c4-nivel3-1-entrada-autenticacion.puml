@@ -1,0 +1,44 @@
+@startuml c4-nivel3-1-entrada-autenticacion
+' C4 nivel 3 (componentes) de la API de SGTG. Generado por generar.py: no editar a mano.
+!include <C4/C4_Component>
+LAYOUT_TOP_DOWN()
+skinparam dpi 110
+UpdateElementStyle("component", $bgColor="#1E5A8E", $fontColor="#FFFFFF", $borderColor="#0B3D66")
+UpdateElementStyle("container", $bgColor="#438DD5", $fontColor="#FFFFFF", $borderColor="#2E6295")
+AddRelTag("p", $lineStyle=DashedLine())
+
+title SGTG API — C4 nivel 3: Entrada a la API, autenticación y sesión
+
+Container(spa, "Aplicación de página única", "Angular", "Interfaz de los usuarios; consume la API.")
+ContainerDb(db, "Base de datos", "MySQL", "Usuarios, trabajos de grado, notificaciones, sesiones y auditoría.")
+Container_Boundary(api, "API de la aplicación (Java y Spring Boot)") {
+  Boundary(filtros, "Filtros de entrada") {
+    Component(fCorr, "Filtro de correlación", "Servlet filter · CorrelacionFilter", "Asigna a cada petición un identificador que se conserva en el log y en la auditoría.")
+    Component(fJwt, "Filtro de autenticación JWT", "Spring Security · JwtAuthenticationFilter", "Valida el token de acceso y registra al usuario y sus roles.")
+    Component(fAud, "Filtro de auditoría", "Servlet filter · AuditoriaFilter", "Registra las operaciones que modifican datos, las descargas y los inicios de sesión.")
+  }
+  Boundary(controladores, "Controladores REST") {
+    Component(cAuth, "Controlador de autenticación", "REST · AuthController", "Inicio de sesión, renovación de la sesión y cierre de sesión.")
+  }
+  Boundary(casos, "Casos de uso (dominio)") {
+    Component(uAuth, "Casos de uso de autenticación", "ManageAuthCUImplAdapter", "Credenciales, sesiones y bloqueo por intentos fallidos.")
+  }
+  Boundary(salida, "Adaptadores de salida") {
+    Component(gAuth, "Servicios de sesión y tokens", "AuthService · JwtService · SesionService", "Verifican credenciales, emiten tokens y guardan las sesiones.")
+    Component(gAcc, "Adaptador de intentos de acceso", "ManageIntentosAccesoGatewayImplAdapter", "Registra los intentos fallidos de inicio de sesión.")
+    Component(gAud, "Adaptador de auditoría", "ManageAuditoriaGatewayImplAdapter · JPA", "Auditoría encadenada con el estado antes y después de cada operación.")
+  }
+}
+Rel(spa, fCorr, "Hace llamados a la API", "JSON/HTTPS, REST", $tags="p")
+Rel(fCorr, fJwt, "Pasa la petición", "", $tags="p")
+Rel(fJwt, fAud, "Pasa la petición autenticada", "", $tags="p")
+Rel(fJwt, gAuth, "Valida el token", "", $tags="p")
+Rel(fAud, gAud, "Registra la operación", "", $tags="p")
+Rel(fAud, cAuth, "Entrega la petición", "", $tags="p")
+Rel(cAuth, uAuth, "Usa", "", $tags="p")
+Rel(uAuth, gAuth, "Valida credenciales y sesiones", "", $tags="p")
+Rel(uAuth, gAcc, "Registra intentos fallidos", "", $tags="p")
+Rel(gAuth, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gAcc, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gAud, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+@enduml

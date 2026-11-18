@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 
+/** Botón de la aplicación con sus variantes de color, icono opcional y nombre accesible. */
 @Component({
   selector: 'app-button-component',
   imports: [ButtonModule],

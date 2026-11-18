@@ -77,7 +77,6 @@ describe('Integración [Historial]: anulación y archivo de trabajos de grado', 
 
   it('Decanatura consulta todo el archivo', async () => {
     const cancelado = cerrarTrabajo(crearTrabajoEnEvaluacion(), 'CANCELADO', 'ANULACION_DIRECTOR');
-    // Decanatura carga todos los trabajos (`GET /trabajos-grado`)
     iniciarSesionConTrabajos(usuario('80', [UserRoleType.DECANATURA]), [cancelado]);
 
     expect(TestBed.inject(ArchivedWorksService).tableData().map(f => f['id'])).toEqual(['15']);
@@ -91,17 +90,14 @@ describe('Integración [Historial]: anulación y archivo de trabajos de grado', 
     expect(anteproyectos.preliminaryDrafts().map(a => a.preliminaryDraftId)).toEqual(['15']);
     expect(historial.tableData()).toEqual([]);
 
-    // Emite su concepto: lo sigue viendo (revisa también las versiones corregidas)
     const store = TestBed.inject(TrabajoGradoStoreService);
     store.upsert(conConceptoDe(crearTrabajoEnEvaluacion({ id: 15 }), 20));
     expect(anteproyectos.preliminaryDrafts().map(a => a.preliminaryDraftId)).toEqual(['15']);
     expect(historial.tableData()).toEqual([]);
 
-    // El Consejo aprueba el anteproyecto: sale de la lista y entra al historial
     store.upsert(crearTrabajoEnCurso({ id: 15 }));
     expect(anteproyectos.preliminaryDrafts()).toEqual([]);
     expect(historial.tableData().map(f => f['id'])).toEqual(['15']);
-    // El detalle del anteproyecto sigue disponible; el de la propuesta no
     expect(await entrar('15', 'preliminary-draft-details/:id')).toBe(true);
     expect(await entrar('15', 'proposal-details/:id')).toBeInstanceOf(UrlTree);
     expect(anteproyectos.canUserViewPreliminaryDraft(anteproyectos.allPreliminaryDrafts()[0], '20')).toBe(true);

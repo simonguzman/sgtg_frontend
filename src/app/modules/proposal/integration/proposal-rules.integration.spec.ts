@@ -36,7 +36,6 @@ describe('Integración [Proposal]: Reglas de Negocio y Límite de Estudiantes', 
   });
 
   it('debe bloquear el registro si un estudiante ya tiene 2 trabajos de grado en el backend', () => {
-    // La estudiante 10 (Eva) participa en los trabajos 15 y 16
     iniciarSesionConTrabajos(usuario({ id: '99', roles: [UserRoleType.COMITE] }),
       [crearTrabajoDePrueba(), crearTrabajoDePrueba({ id: 16 })]);
     TestBed.inject(UserStorageService).updateUsersList(() => [usuario({ id: '10', firstName: 'Eva', lastName: 'Estudiante' })]);

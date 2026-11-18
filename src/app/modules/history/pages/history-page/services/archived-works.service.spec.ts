@@ -74,7 +74,6 @@ describe('ArchivedWorksService', () => {
 
   it('el evaluador solo ve los trabajos que evaluó, y solo su anteproyecto', () => {
     const service = iniciar(usuario('20', [UserRoleType.DOCENTE, UserRoleType.EVALUADOR]));
-    // El 3 (archivado) y el 4 (en curso), cuyos anteproyectos evaluó; no los cancelados que no evaluó
     const soloAnteproyecto = [ARCHIVED_WORK_ACTIONS.DESCRIPCION, ARCHIVED_WORK_ACTIONS.ANTEPROYECTO];
     expect(service.tableData()).toEqual([
       expect.objectContaining({ id: '3', allowedActions: soloAnteproyecto }),
@@ -87,9 +86,7 @@ describe('ArchivedWorksService', () => {
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     const service = TestBed.inject(ArchivedWorksService);
     iniciarSesionConTrabajos(usuario('20', [UserRoleType.DOCENTE, UserRoleType.EVALUADOR]), [
-      // El Consejo ya aprobó el anteproyecto que evaluó: pasa al historial
       crearTrabajoEnCurso({ id: 5 }),
-      // Aún en evaluación (con su concepto o pendiente): sigue en su tabla de anteproyectos
       conConceptoDe(crearTrabajoEnEvaluacion({ id: 6 }), 20, 'CON_CORRECCIONES', '2026-03-20'),
       conConceptoDe(crearTrabajoEnEvaluacion({ id: 7 }), 21)
     ]);

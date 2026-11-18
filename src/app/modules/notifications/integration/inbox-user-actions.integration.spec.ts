@@ -80,7 +80,6 @@ describe('Integración [Notifications]: el buzón del backend en la bandeja de e
     const navegar = jest.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
     fixture.componentInstance.handleTableAction({ action: 'ver_detalle',
       row: fixture.componentInstance['facade'].tableData()[1] });
-    // Ya estaba leída: no se vuelve a marcar
     http.expectNone(`${API}/1/leida`);
     expect(navegar).toHaveBeenCalledWith('/history');
   });

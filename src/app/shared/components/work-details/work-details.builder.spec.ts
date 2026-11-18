@@ -62,7 +62,6 @@ describe('buildWorkDetailsView', () => {
     });
 
     expect(view.participants.at(-1)).toEqual({ label: 'Evaluadores', value: 'Vera y Walter' });
-    // Las fechas sin hora se leen en hora local (no se corren un día)
     expect(view.dates).toEqual([{ label: 'Fecha de registro', date: new Date(2026, 2, 2), hint: undefined }]);
     expect(view.documents).toEqual([{ name: 'Formato A', description: 'Vigente', url: '/a' }]);
   });

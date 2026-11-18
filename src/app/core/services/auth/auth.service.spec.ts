@@ -228,7 +228,6 @@ describe('AuthService (Facade)', () => {
 
       expect(api.renovar).toHaveBeenCalledTimes(1);
       expect(resultados).toEqual(['renovada', 'renovada']);
-      // Terminada, la siguiente es una renovación nueva
       api.renovar.mockReturnValue(of('renovada'));
       service.renovarSesion().subscribe();
       expect(api.renovar).toHaveBeenCalledTimes(2);

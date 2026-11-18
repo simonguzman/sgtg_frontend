@@ -8,6 +8,10 @@ import { StatisticsReportKpis } from '../../../interfaces/statisticsReportKpis.i
 import { StatisticsRemindersService } from '../../../services/statistics-reminders.service';
 import { RawProjectData } from '../../../interfaces/rawProjectData.interface';
 
+/**
+ * Fachada de la página de estadísticas: reúne los filtros, las métricas, los datos de los gráficos, los
+ * recordatorios y los reportes.
+ */
 @Injectable({ providedIn: 'root' })
 export class StatisticsPageFacadeService {
   private readonly state = inject(StatisticsStateService);
@@ -16,34 +20,55 @@ export class StatisticsPageFacadeService {
   private readonly reportService = inject(StatisticsReportService);
   private readonly reminders = inject(StatisticsRemindersService);
 
+  /** Filtros aplicados. */
   readonly currentFilters = this.state.currentFilters;
+  /** Opciones del filtro de etapa. */
   readonly stagesOptions = this.state.stagesOptions;
+  /** Periodos académicos con trabajos. */
   readonly periodsOptions = this.state.periodsOptions;
+  /** Directores con trabajos. */
   readonly directorsOptions = this.state.directorsOptions;
+  /** Modalidades con trabajos. */
   readonly modalityOptions = this.state.modalityOptions;
+  /** Programas con trabajos. */
   readonly programOptions = this.state.programOptions;
+  /** Alcance de las estadísticas según los roles del usuario. */
   readonly scope = this.state.scope;
+  /** Trabajos que cumplen los filtros. */
   readonly totalLoaded = this.metrics.totalLoaded;
+  /** Trabajos aprobados. */
   readonly totalApproved = this.metrics.totalApproved;
+  /** Trabajos en proceso. */
   readonly totalInProgress = this.metrics.totalInProgress;
+  /** Trabajos no aprobados o cancelados. */
   readonly totalNotApproved = this.metrics.totalNotApproved;
   /** Trabajos de grado próximos a vencer (a 30 días o menos de la fecha máxima de entrega), del más urgente */
   readonly dueSoonProjects = this.metrics.dueSoonProjects;
+  /** Cantidad de trabajos próximos a vencer. */
   readonly totalDueSoon = this.metrics.totalDueSoon;
   /** Quién recuerda la entrega y quién abre el detalle del trabajo */
   readonly canRemind = this.reminders.canRemind;
+  /** true si el usuario abre el detalle de los trabajos. */
   readonly canOpenDetails = this.reminders.canOpenDetails;
+  /** Trabajos cuyo recordatorio se está enviando. */
   readonly sendingReminder = this.reminders.sending;
+  /** Trabajos a los que ya se les envió el recordatorio hoy. */
   readonly remindedToday = this.reminders.reminded;
+  /** Datos del gráfico por estado. */
   readonly statusChartData = this.chartData.statusChartData;
+  /** Datos del gráfico por etapa. */
   readonly stageChartData = this.chartData.stageChartData;
+  /** Datos del gráfico por modalidad. */
   readonly modalityChartData = this.chartData.modalityChartData;
+  /** Datos del gráfico por programa. */
   readonly programChartData = this.chartData.programChartData;
 
+  /** Aplica los filtros indicados sobre los actuales. */
   updateFilters(newFilters: Partial<StatisticsFilters>): void {
     this.state.updateFilters(newFilters);
   }
 
+  /** Vuelve a los filtros por defecto. */
   clearFilters(): void {
     this.state.clearFilters();
   }

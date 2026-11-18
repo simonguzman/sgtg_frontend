@@ -58,7 +58,7 @@ describe('availableRequestTypes', () => {
     expect(availableRequestTypes(negado)).toContain(SpecialRequestType.CAMBIO_TITULO);
   });
 
-  it('el cambio no avalado por el Comité no bloquea otro; el avalado y pendiente del Consejo sí', () => {
+  it('el cambio no pertinente para el Comité no bloquea otro; el pertinente y pendiente del Consejo sí', () => {
     const aval = { organo: 'COMITE_PROGRAMA' as const, acta: null, rutaArchivo: null, fecha: '2026-05-04' };
     const cambio = { tituloAnterior: 'A', objetivosAnteriores: [], tituloPropuesto: 'B', objetivosPropuestos: ['G'],
       justificacion: 'J', fechaSolicitud: '2026-05-01', decision: null };

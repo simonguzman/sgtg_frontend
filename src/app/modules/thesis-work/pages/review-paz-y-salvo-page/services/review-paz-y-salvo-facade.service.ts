@@ -9,12 +9,14 @@ import { PazYSalvoReviewPayload } from '../../../interfaces/paz-y-salvo-review.i
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
+/** Fachada de la revisión del paz y salvo por Decanatura. */
 @Injectable({ providedIn: 'root' })
 export class ReviewPazYSalvoFacadeService {
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Carga el trabajo de grado de la ruta; si no existe, avisa y llama a `onError`. */
   public loadThesisWork(id: string, onSuccess: (work: ThesisWork) => void, onError: () => void): void {
     this.thesisWorkService.getThesisWorkById(id).pipe(first()).subscribe({
       next: work => {
@@ -61,6 +63,7 @@ export class ReviewPazYSalvoFacadeService {
       });
   }
 
+  /** Descarga un documento de la solicitud de sustentación. */
   public async downloadDocument(document: FileDocument): Promise<void> {
     if (!document?.url) {
       this.showNotification('Error de descarga', 'No existe una URL válida vinculada a este archivo.', NotificationType.ERROR);
@@ -74,6 +77,7 @@ export class ReviewPazYSalvoFacadeService {
     }
   }
 
+  /** Muestra el aviso «Error de navegación». */
   public showNavigationError(): void {
     this.showNotification('Error de navegación', 'No se encontró el identificador del trabajo de grado.', NotificationType.ERROR);
   }

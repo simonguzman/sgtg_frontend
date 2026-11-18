@@ -27,7 +27,6 @@ describe('PazYSalvoTabConfig (revisión de Decanatura)', () => {
         { rutaDocumento: '15/TI-F/v1/f.pdf', aprobado: false, observaciones: 'Deuda en biblioteca', fecha: '2026-07-02' }
       ] }));
     expect(boton(pendiente)).toEqual(expect.objectContaining({ label: 'Revisar paz y salvo', disabled: false }));
-    // No aprobado: la solicitud no sigue y se espera la nueva del director
     const noAprobada = thesisWorkDePrueba(crearTrabajoEnSustentacion({ estado: 'SOLICITADA', sesiones: [],
       rutaPazYSalvo: null, solicitudNoAprobada: true, revisionesPazYSalvo: [
         { rutaDocumento: '15/TI-F/v1/f.pdf', aprobado: false, observaciones: 'Deuda en biblioteca', fecha: '2026-07-02' }
@@ -41,7 +40,6 @@ describe('PazYSalvoTabConfig (revisión de Decanatura)', () => {
       label: 'Paz y salvo aprobado', disabled: true }));
     expect(boton(thesisWorkDePrueba())).toEqual(expect.objectContaining({
       label: 'Esperando la solicitud de sustentación', disabled: true }));
-    // Los demás solo consultan
     expect(PazYSalvoTabConfig.getHeaderButtons(contextoDePestana(pendiente, { isDirector: true }))).toEqual([]);
   });
 });

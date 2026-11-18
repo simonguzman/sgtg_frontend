@@ -1,0 +1,54 @@
+@startuml c4-nivel3-2-usuarios-configuracion
+' C4 nivel 3 (componentes) de la API de SGTG. Generado por generar.py: no editar a mano.
+!include <C4/C4_Component>
+LAYOUT_TOP_DOWN()
+skinparam dpi 110
+UpdateElementStyle("component", $bgColor="#1E5A8E", $fontColor="#FFFFFF", $borderColor="#0B3D66")
+UpdateElementStyle("container", $bgColor="#438DD5", $fontColor="#FFFFFF", $borderColor="#2E6295")
+AddRelTag("p", $lineStyle=DashedLine())
+
+title SGTG API — C4 nivel 3: Usuarios, perfiles y configuración
+
+Container(spa, "Aplicación de página única", "Angular", "Interfaz de los usuarios; consume la API.")
+ContainerDb(db, "Base de datos", "MySQL", "Usuarios, trabajos de grado, notificaciones, sesiones y auditoría.")
+Container_Boundary(api, "API de la aplicación (Java y Spring Boot)") {
+  Boundary(controladores, "Controladores REST") {
+    Component(cUsr, "Controlador de usuarios", "REST · UsuarioController", "Creación, edición, roles, activación, cambio del Comité y de contraseña.")
+    Component(cPerf, "Controlador de perfiles académicos", "REST · PerfilController", "Vinculación y departamento del docente; programa del estudiante.")
+    Component(cCat, "Controlador de catálogos", "REST · CatalogoController", "Departamentos y programas académicos.")
+    Component(cCal, "Controlador del calendario", "REST · CalendarioController", "Festivos de ley y días no hábiles institucionales.")
+  }
+  Boundary(casos, "Casos de uso (dominio)") {
+    Component(uUsr, "Casos de uso de usuarios", "ManageUsuarioCUImplAdapter", "Gestión de usuarios según el alcance de cada gestor.")
+    Component(uPerf, "Casos de uso de perfiles", "ManagePerfilCUImplAdapter", "Registro y consulta de perfiles académicos.")
+    Component(uCat, "Casos de uso de catálogos", "ManageCatalogoCUImplAdapter", "Registro y consulta de departamentos y programas.")
+    Component(uCal, "Casos de uso del calendario", "ManageCalendarioCUImplAdapter", "Registro y consulta de días no hábiles.")
+  }
+  Boundary(salida, "Adaptadores de salida") {
+    Component(gAuth, "Servicios de sesión y tokens", "AuthService · JwtService · SesionService", "Verifican credenciales, emiten tokens y guardan las sesiones.")
+    Component(gUsr, "Adaptador de usuarios", "ManageUserGatewayImplAdapter · JPA", "Usuarios y roles.")
+    Component(gPerf, "Adaptador de perfiles", "ManagePerfilGatewayImplAdapter · JPA", "Perfiles de docentes y estudiantes.")
+    Component(gCat, "Adaptador de catálogos", "ManageCatalogoGatewayImplAdapter · JPA", "Departamentos y programas.")
+    Component(gCal, "Calendario hábil", "CalendarioHabilImplAdapter · JPA", "Días hábiles: sin fines de semana, festivos de Colombia ni días no hábiles.")
+  }
+}
+Rel(spa, cUsr, "Hace llamados a la API", "JSON/HTTPS, REST", $tags="p")
+Rel(spa, cPerf, "Hace llamados a la API", "JSON/HTTPS, REST", $tags="p")
+Rel(spa, cCat, "Hace llamados a la API", "JSON/HTTPS, REST", $tags="p")
+Rel(spa, cCal, "Hace llamados a la API", "JSON/HTTPS, REST", $tags="p")
+Rel(cUsr, uUsr, "Usa", "", $tags="p")
+Rel(uUsr, gUsr, "Lee y guarda", "", $tags="p")
+Rel(uUsr, gPerf, "Guarda el perfil", "", $tags="p")
+Rel(uUsr, gAuth, "Cambia contraseñas y cierra sesiones", "", $tags="p")
+Rel(cPerf, uPerf, "Usa", "", $tags="p")
+Rel(uPerf, gPerf, "Lee y guarda", "", $tags="p")
+Rel(cCat, uCat, "Usa", "", $tags="p")
+Rel(uCat, gCat, "Lee y guarda", "", $tags="p")
+Rel(cCal, uCal, "Usa", "", $tags="p")
+Rel(uCal, gCal, "Lee y guarda", "", $tags="p")
+Rel(gAuth, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gUsr, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gPerf, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gCat, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gCal, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+@enduml

@@ -8,7 +8,6 @@
   line-height: 1;
 }
 
-/* Filtro aplicado en la columna */
 .column-filter-icon--active {
   background-color: var(--color-primary);
   color: var(--color-text-white);

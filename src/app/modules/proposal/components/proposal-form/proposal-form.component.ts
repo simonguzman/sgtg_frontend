@@ -20,6 +20,10 @@ interface AttachedFile {
 
 const SIN_ARCHIVO: AttachedFile = { hasFile: false, name: null, file: null };
 
+/**
+ * Formulario para registrar o corregir una propuesta. Al corregirla, la versión vigente ya está radicada: el
+ * formato A (y, en práctica profesional, la carta de aceptación) solo se cargan si hay una nueva versión.
+ */
 @Component({
   selector: 'app-proposal-form',
   standalone: true,
@@ -57,10 +61,8 @@ export class ProposalFormComponent {
       const currentProposal = this.proposal();
       if (currentProposal) {
         this.formService.initForEdit(currentProposal);
-        // La versión vigente ya está radicada; solo se carga un archivo si hay una nueva versión
         const vigente = currentProposal.documents[0];
         this.attachedFile = { hasFile: !!vigente, name: vigente?.name ?? null, file: null };
-        // Igual con la carta de aceptación: una nueva se carga como nueva versión
         const carta = cartaDeAceptacion(currentProposal);
         this.acceptanceLetter = { hasFile: !!carta, name: carta?.name ?? null, file: null };
       } else {

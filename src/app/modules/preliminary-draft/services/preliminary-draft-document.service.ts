@@ -1,6 +1,5 @@
 import { inject, Injectable } from '@angular/core';
 import { map, Observable, tap } from 'rxjs';
-import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { TrabajoGradoApiService } from '../../../core/services/trabajo-grado/trabajo-grado-api.service';
@@ -78,23 +77,6 @@ export class PreliminaryDraftDocumentService {
       tap(trabajo => this.store.upsert(trabajo)),
       map(trabajo => this.vista(trabajo))
     );
-  }
-
-  public calculateDocumentStatus(
-    documentId: string,
-    evaluations: Evaluation[],
-    totalEvaluators: number
-  ): stateList {
-    if (totalEvaluators === 0) return stateList.EN_REVISION;
-
-    const documentEvaluations = evaluations?.filter(e => e.documentId === documentId) ?? [];
-    if (documentEvaluations.length < totalEvaluators) return stateList.EN_REVISION;
-    // Misma regla del backend: alguno no aprueba → no aprobado; alguno pide correcciones → evaluado con observaciones
-    if (documentEvaluations.some(evaluation => evaluation.veredict === stateList.NO_APROBADO)) return stateList.NO_APROBADO;
-    if (documentEvaluations.some(evaluation => evaluation.veredict === stateList.CON_CORRECCIONES)) {
-      return stateList.EVALUADO_CON_OBSERVACIONES;
-    }
-    return stateList.APROBADO;
   }
 
   private vista(trabajo: TrabajoGradoResponse): PreliminaryDraft {

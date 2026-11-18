@@ -12,6 +12,11 @@ import { jwtExpiration } from '../../utils/jwt-utils';
 /** Cuánto antes de que venza el token de acceso se renueva la sesión. */
 export const RENOVAR_ANTES_MS = 60_000;
 
+/**
+ * Fachada de la sesión para los componentes, guards e interceptor: expone el usuario autenticado y sus roles,
+ * inicia y cierra la sesión, la renueva antes de que venza el token de acceso y la cierra tras el tiempo de
+ * inactividad.
+ */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly storage      = inject(AuthStorageService);
@@ -20,50 +25,52 @@ export class AuthService {
   private readonly notification = inject(NotificationService);
   private readonly inactividad  = inject(SessionInactivityService);
 
-  // ── Estado reactivo ────────────────────────────────────────────────────────
-  // La misma API pública que antes: cualquier componente o servicio que usaba
-  // authService.currentUser(), authService.isAuthenticated(), etc. sigue
-  // funcionando sin cambios.
+  /** Usuario autenticado, o null sin sesión. */
   readonly currentUser     = this.storage.currentUser;
+  /** true si hay usuario y token de acceso. */
   readonly isAuthenticated = this.storage.isAuthenticated;
-  readonly userRoles       = this.storage.userRoles;
   /** Debe cambiar la contraseña que le asignó un administrador antes de usar el sistema */
   readonly debeCambiarPassword = this.storage.debeCambiarPassword;
 
   /** Renovación en curso: las peticiones que la piden a la vez esperan la misma */
   private renovacion?: Observable<ResultadoRenovacion>;
 
+  /**
+   * Programa la renovación de la sesión {@link RENOVAR_ANTES_MS} antes de que venza cada token de acceso
+   * y activa el cierre por inactividad mientras haya sesión.
+   */
   constructor() {
-    // El token de acceso dura poco: la sesión se renueva un poco antes de que venza. Mientras la
-    // pestaña esté abierta sigue viva; tras un tiempo sin actividad la cierra el control de inactividad
     effect(onCleanup => {
       const token = this.storage.token();
       const vencimiento = token ? jwtExpiration(token) : null;
       if (vencimiento === null) return;
       const temporizador = setTimeout(() => this.renovarSesion().subscribe({
         next: resultado => { if (resultado === 'vencida') this.expireSession(); },
-        // Sin conexión: la próxima petición vuelve a intentarlo
         error: () => undefined
       }), Math.max(vencimiento - RENOVAR_ANTES_MS - Date.now(), 0));
       onCleanup(() => clearTimeout(temporizador));
     });
 
-    // Cierra la sesión tras un tiempo sin actividad del usuario
     effect(() => {
       if (this.storage.isAuthenticated()) this.inactividad.iniciar(() => this.cerrarPorInactividad());
       else this.inactividad.detener();
     });
   }
 
-  // ── Operaciones de autenticación ───────────────────────────────────────────
+  /**
+   * Inicia sesión con el correo y la contraseña.
+   * @returns el resultado del inicio de sesión y, si falló, el mensaje para el usuario
+   */
   login(credentials: { email: string; password: string }): Observable<{ success: boolean; message?: string }> {
     return this.api.login(credentials);
   }
 
+  /** Cierra la sesión en el backend y en el navegador y vuelve al inicio de sesión. */
   logout(): void {
     this.api.logout();
   }
 
+  /** Cambia la contraseña del usuario autenticado; el backend cierra sus demás sesiones. */
   changePassword(currentPassword: string, newPassword: string): Observable<ChangePasswordResponse> {
     return this.api.changePassword(currentPassword, newPassword);
   }
@@ -135,9 +142,7 @@ export class AuthService {
       `Tu sesión se cerró tras ${MINUTOS_INACTIVIDAD} minutos sin actividad. Inicia sesión de nuevo para continuar.`);
   }
 
-  // ── Utilidad de roles ──────────────────────────────────────────────────────
-  // Queda en el facade porque es una consulta derivada del estado de sesión
-  // que los guards y componentes llaman directamente sobre AuthService.
+  /** @returns true si el usuario autenticado tiene alguno de los roles indicados */
   hasAnyRole(requiredRoles: string[]): boolean {
     return this.storage.currentUser()?.roles.some(role => requiredRoles.includes(role)) ?? false;
   }

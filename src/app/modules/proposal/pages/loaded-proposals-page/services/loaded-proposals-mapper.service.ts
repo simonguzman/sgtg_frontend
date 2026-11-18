@@ -4,9 +4,11 @@ import { DocumentTableRow } from '../models/loaded-proposals-page.model';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { formatDisplayDate } from '../../../../../core/utils/date-utils';
 
+/**
+ * Convierte los documentos de la propuesta en filas de la tabla, con la fecha de carga como «DD - MM - AAAA».
+ */
 @Injectable({ providedIn: 'root' })
 export class LoadedProposalsMapperService {
-
   /**
    * Fila de un registro: la versión del formato A (con su número y el estado de
    * su revisión) y los documentos radicados con ella. Siempre se pueden ver los
@@ -29,7 +31,6 @@ export class LoadedProposalsMapperService {
     return {
       id: principal.id,
       name: [principal.name, ...adjuntos.map(adjunto => minusculaInicial(adjunto.name))].join(' y '),
-      // La tabla muestra el texto tal cual: la fecha se formatea (DD - MM - AAAA)
       uploadDate: principal.uploadDate instanceof Date ? formatDisplayDate(principal.uploadDate) : principal.uploadDate,
       version: esVersion ? principal.version : undefined,
       status: esVersion ? principal.status : undefined,

@@ -73,6 +73,8 @@ const createMockUserTableRow = (overrides: Partial<UserTableRow> = {}): UserTabl
   nombre: 'Juan',
   apellidos: 'Pérez',
   estado: 'Activo',
+  hiddenRoles: 'Docente',
+  hiddenProfile: 'Departamento de Sistemas',
   allowedActions: ['ver', 'editar'],
   originalData: createMockUser(),
   ...overrides
@@ -229,7 +231,7 @@ describe('Component: UsersPageComponent', () => {
       component.handleSaveRoles(updatedRoles);
       component.confirmChanges();
       const updateCall = mockFacade.updateRoles.mock.calls[0];
-      expect(updateCall[0]).toBe('123'); // ID del usuario
+      expect(updateCall[0]).toBe('123');
       expect(updateCall[1]).toEqual([UserRoleType.DOCENTE]);
       const successCallback = updateCall[2];
       successCallback();

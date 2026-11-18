@@ -1,5 +1,6 @@
 import { stateList } from "../../../../../core/enums/state.enum";
 
+/** Decisión del Consejo sobre el anteproyecto remitido. */
 export interface CouncilEvaluationFormValues {
   result: stateList;
   comments: string;
@@ -10,6 +11,7 @@ export interface CouncilEvaluationFormValues {
   document: File | null;
 }
 
+/** Decisión del Consejo con la resolución firmada. */
 export interface SaveEvaluationPayload {
   formValues: CouncilEvaluationFormValues;
   file: File;

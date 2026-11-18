@@ -10,7 +10,7 @@ import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { User } from '../../users/interfaces/user.interface';
 
 /**
- * Anteproyectos del usuario en sesión. Ya no se guardan en el navegador: son la
+ * Anteproyectos del usuario en sesión: son la
  * vista "anteproyecto" de los trabajos de grado del backend
  * (`TrabajoGradoVistasService`), con el id del trabajo. Un trabajo tiene
  * anteproyecto desde que se radica su primera versión.
@@ -33,10 +33,12 @@ export class PreliminaryDraftStorageService {
     UserRoleType.CONSEJO
   ];
 
+  /** @returns true si el usuario ve todos los anteproyectos por su rol */
   public hasPrivilegedAccess(): boolean {
     return this.authService.hasAnyRole(this.PRIVILEGED_ROLES);
   }
 
+  /** @returns true si el usuario puede consultar el anteproyecto */
   public canUserViewPreliminaryDraft(preliminaryDraft: PreliminaryDraft, userId: string): boolean {
     return this.hasPrivilegedAccess() || this.canUserAccessPreliminaryDraft(preliminaryDraft, userId);
   }

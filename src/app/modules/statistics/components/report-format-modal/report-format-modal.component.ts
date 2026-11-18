@@ -11,6 +11,7 @@ interface ReportFormatOption {
   description: string;
 }
 
+/** Formatos del reporte que ofrece el modal, con su descripción. */
 export const REPORT_FORMAT_OPTIONS: readonly ReportFormatOption[] = [
   { format: 'pdf', label: 'PDF', icon: 'picture_as_pdf',
     description: 'Para imprimir o compartir: alcance, filtros, métricas y la tabla de trabajos.' },

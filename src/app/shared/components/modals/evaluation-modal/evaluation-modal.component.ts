@@ -6,6 +6,10 @@ import { ButtonComponent } from '../../button-component/button-component.compone
 import { TooltipModule } from 'primeng/tooltip';
 import { stateList } from '../../../../core/enums/state.enum';
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
+/**
+ * Modal con el detalle de una evaluación: quién la hizo, su rol, la fecha, el resultado, las observaciones y
+ * los documentos firmados para descargar.
+ */
 @Component({
   selector: 'app-evaluation-modal',
   imports: [DialogModule, CommonModule, StateComponent, ButtonComponent, TooltipModule],
@@ -13,9 +17,6 @@ import { FormattedDocument } from '../../../../core/interfaces/formatted-documen
   styleUrls: ['./evaluation-modal.component.css']
 })
 export class EvaluationModalComponent{
-
-  protected stateList = stateList;
-
   /**
    * Si la ventana está abierta. El p-dialog se crea la primera vez que se abre ({@link yaSeAbrio}): las
    * páginas tienen varias ventanas que casi nunca se abren y crearlas todas al cargar hacía más lenta la página.

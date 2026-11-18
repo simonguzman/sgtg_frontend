@@ -11,6 +11,9 @@ import {
 } from './models/downloadable-formats-page.model';
 import { NavigationHistoryService } from '../../../core/services/navigation/navigation-history.service';
 
+/**
+ * Página de formatos descargables, separados por modalidad (trabajo de investigación y práctica profesional).
+ */
 @Component({
   selector: 'app-downloadable-formats-page',
   imports: [TabsComponent, TableComponent],

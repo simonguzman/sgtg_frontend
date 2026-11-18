@@ -2,6 +2,10 @@ import { NgClass } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import { stateList } from '../../../core/enums/state.enum';
 
+/**
+ * Etiqueta de color de un estado. Los estados que piden correcciones usan el color del aprobado con
+ * observaciones.
+ */
 @Component({
   selector: 'app-state',
   imports: [NgClass],
@@ -9,9 +13,6 @@ import { stateList } from '../../../core/enums/state.enum';
   styleUrls: ['./state.component.css']
 })
 export class StateComponent {
-
-  protected stateList = stateList
-
   @Input() label?: string;
   @Input() state?: stateList;
 
@@ -25,7 +26,6 @@ export class StateComponent {
     [stateList.APLAZADO]: 'state-aplazado',
     [stateList.CANCELADO]: 'state-cancelado',
     [stateList.SUSPENDIDO]: 'state-suspendido',
-    // Mismo color que el aprobado con observaciones: va bien, pero falta la versión corregida
     [stateList.CON_CORRECCIONES]: 'state-aprobado-observaciones',
     [stateList.EVALUADO_CON_OBSERVACIONES]: 'state-aprobado-observaciones',
     [stateList.PERTINENTE]: 'state-aprobado',

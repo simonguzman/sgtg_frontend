@@ -14,6 +14,7 @@ const TAMANO_MAXIMO_ARCHIVO_BYTES = TAMANO_MAXIMO_ARCHIVO_MB * 1024 * 1024;
 /** Lo que se le indica al usuario en todas las ventanas de carga */
 export const REQUISITOS_ARCHIVO = `Solo se permite un archivo en formato PDF de máximo ${TAMANO_MAXIMO_ARCHIVO_MB} MB.`;
 
+/** Modal para elegir y cargar un PDF; emite el archivo elegido. */
 @Component({
   selector: 'app-file-upload-modal',
   imports: [DialogModule],

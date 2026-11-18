@@ -8,12 +8,14 @@ import { cartaDeAceptacion, versionActual, versionEnRevision } from '../../../se
 import { Proposal } from '../../../interfaces/proposal.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 
+/** Estado y avisos del formulario de evaluación de la propuesta. */
 @Injectable()
 export class EvaluationProposalFormService {
   private readonly fb = inject(FormBuilder);
   private readonly userService = inject(UserService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Concepto del Comité y sus observaciones, ambos obligatorios. */
   readonly evaluationForm = this.fb.group({
     result:   ['', Validators.required],
     comments: ['', Validators.required]
@@ -34,6 +36,7 @@ export class EvaluationProposalFormService {
     return versionActual(proposal);
   }
 
+  /** Fecha de carga de un documento para mostrar. */
   formatUploadDate(document: FileDocument | null): string {
     if (!document?.uploadDate) return 'Fecha no disponible';
     return document.uploadDate instanceof Date
@@ -41,14 +44,17 @@ export class EvaluationProposalFormService {
       : String(document.uploadDate);
   }
 
+  /** Nombres de los estudiantes de la propuesta. */
   getStudentNames(authors: User[] | undefined): string {
     return this.userService.getAuthorsNames(authors);
   }
 
+  /** Nombre completo de un participante por su id. */
   getMemberName(userId: string | undefined): string {
     return this.userService.getUserFullName(userId);
   }
 
+  /** Avisa que se adjuntó el formato A firmado. */
   notifyFileUploaded(): void {
     this.notificationService.show({
       title: 'Documento de respuesta adjuntado',
@@ -57,6 +63,7 @@ export class EvaluationProposalFormService {
     });
   }
 
+  /** Avisa que se quitó el formato A firmado, que es obligatorio. */
   notifyFileRemoved(): void {
     this.notificationService.show({
       title: 'Documento removido',
@@ -65,6 +72,7 @@ export class EvaluationProposalFormService {
     });
   }
 
+  /** Avisa que falta el concepto o las observaciones. */
   notifyInvalidForm(): void {
     this.notificationService.show({
       title: 'Formulario incompleto',
@@ -73,6 +81,7 @@ export class EvaluationProposalFormService {
     });
   }
 
+  /** Avisa que falta cargar el formato A firmado por el Comité. */
   notifyMissingFile(): void {
     this.notificationService.show({
       title: 'Documento requerido',

@@ -16,7 +16,6 @@
     [class.cursor-not-allowed]="isDisabled()"
   />
 
-  <!-- Un solo ícono a la derecha: limpiar (acción), válido o la flecha del desplegable -->
   @if (isClearable() && value() && !isDisabled()) {
     <span
       class="material-symbols-outlined absolute right-3 cursor-pointer text-text-body hover:text-danger transition-colors z-10"

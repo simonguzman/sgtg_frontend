@@ -58,6 +58,7 @@ export class TrabajoGradoStoreService {
   readonly trabajos = this._trabajos.asReadonly();
   /** true cuando terminó la primera carga desde el backend. */
   readonly cargado = this._cargado.asReadonly();
+  /** Índice de los trabajos por id. */
   readonly porId = computed(() => new Map(this._trabajos().map(trabajo => [String(trabajo.id), trabajo])));
 
   constructor() {

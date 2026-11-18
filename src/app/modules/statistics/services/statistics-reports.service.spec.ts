@@ -9,10 +9,8 @@ import { ProjectStage } from '../enum/projectStage.enum';
 import { ProjectStatus } from '../enum/projectStatus.enum';
 import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
 
-// Hacemos mock de las librerías externas para evitar renderizados reales
 jest.mock('jspdf');
 jest.mock('jspdf-autotable');
-// La librería de Excel se reemplaza: la prueba revisa las hojas que recibe
 const mockWriteXlsxFile = jest.fn();
 jest.mock('write-excel-file/browser', () => ({ __esModule: true, default: (...args: unknown[]) => mockWriteXlsxFile(...args) }));
 
@@ -38,7 +36,6 @@ const context: StatisticsReportContext = { scope: 'Todos los trabajos de grado d
 describe('StatisticsReportService', () => {
   let service: StatisticsReportService;
 
-  // Objeto espía tipado para interceptar los llamados internos de jsPDF
   let mockJsPdfInstance: {
     setFontSize: jest.Mock;
     setTextColor: jest.Mock;
@@ -59,7 +56,6 @@ describe('StatisticsReportService', () => {
       save: jest.fn(),
     };
 
-    // El tipo de 'jsPDF' no se superpone con el de una función espía de Jest
     (jsPDF as unknown as jest.Mock).mockImplementation(() => mockJsPdfInstance);
     (autoTable as unknown as jest.Mock).mockClear();
 
@@ -182,7 +178,6 @@ describe('StatisticsReportService', () => {
     beforeEach(() => {
       descargas = [];
       let ultimo: Blob | undefined;
-      // jsdom no implementa las URL de objetos: se guarda el archivo que se iba a descargar
       URL.createObjectURL = jest.fn((blob: Blob) => { ultimo = blob; return 'blob:prueba'; });
       URL.revokeObjectURL = jest.fn();
       jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
@@ -213,7 +208,6 @@ describe('StatisticsReportService', () => {
       expect(trabajos.stickyRowsCount).toBe(1);
       expect(trabajos.data[0].map((celda: { value: string }) => celda.value)).toEqual(
         ['#', 'Título del trabajo', 'Modalidad', 'Programa', 'Etapa', 'Estado', 'Director', 'Periodo']);
-      // El número de fila va como número, para poder ordenar y filtrar en Excel
       expect(trabajos.data[1][0]).toBe(1);
       expect(trabajos.data[1][1]).toBe('Sistema; de "gestión"');
       expect(trabajos.data).toHaveLength(3);
@@ -233,14 +227,11 @@ describe('StatisticsReportService', () => {
       service.downloadCsvReport({ ...DEFAULT_STATISTICS_FILTERS }, datos, kpis, context);
 
       expect(descargas[0].nombre).toMatch(/^Reporte_Academico_\d+\.csv$/);
-      // BOM UTF-8: Excel lee bien las tildes
       expect(Array.from((await bytes(descargas[0].blob)).slice(0, 3))).toEqual([0xEF, 0xBB, 0xBF]);
       const lineas = (await leer(descargas[0].blob)).replace(/^\uFEFF/, '').split('\r\n');
       expect(lineas[0]).toBe('#;Título del trabajo;Modalidad;Programa;Etapa;Estado;Director;Periodo');
-      // Con el separador o comillas: entre comillas y con las comillas dobladas
       expect(lineas[1]).toBe('1;"Sistema; de ""gestión""";Trabajo de investigación;Ingeniería de Sistemas;'
         + 'Propuesta;En desarrollo;Ana Gómez;2026-1');
-      // Lo que Excel tomaría como fórmula queda como texto
       expect(lineas[2].split(';')[1]).toBe('"\'=HIPERVINCULO(""x"")"');
       expect(lineas[3]).toBe('');
     });

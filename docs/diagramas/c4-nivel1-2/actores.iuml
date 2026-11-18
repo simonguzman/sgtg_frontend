@@ -1,0 +1,15 @@
+' Actores comunes a los niveles 1 y 2 del modelo C4 de SGTG
+UpdateElementStyle("person", $bgColor="#08427B", $fontColor="#FFFFFF", $borderColor="#052E56")
+AddRelTag("p", $lineStyle=DashedLine())
+
+Person(admin, "Administrador", "Usuario encargado de gestionar los diversos roles y actividades que realizarán los usuarios.")
+Person(evaluadores, "Evaluadores académicos", "Usuario encargado de realizar la evaluación dentro del sistema.\n* Evaluadores: evaluar los anteproyectos registrados por los directores y registrar el resultado.\n* Jurados: evaluar la sustentación de un trabajo de grado, registrar la calificación y evaluar las correcciones realizadas en caso de ser necesario.", $type="Usuario - jurados, evaluadores")
+Person(estudiante, "Estudiante", "Usuario encargado de realizar el seguimiento del proceso y cargar los informes mensuales del desarrollo del trabajo de grado.")
+Person(equipo, "Equipo académico", "Usuario encargado de realizar el seguimiento del proceso y revisar los informes mensuales cargados por el estudiante.\n* Director: además, realiza los registros oficiales en el sistema (propuesta, anteproyecto, entrega final, correcciones, solicitudes especiales) y agenda las reuniones de seguimiento.\n* Codirector y asesor: cumplen el rol de acompañamiento, sin registros oficiales.", $type="Usuario - director, codirector, asesor")
+
+Boundary(organos, "Órganos académicos", "Group") {
+  Person(comite, "Comité de programa", "Usuario encargado de evaluar las propuestas de trabajo de grado registradas en el sistema y emitir el concepto de pertinencia sobre los cambios de título y objetivos.")
+  Person(jefe, "Jefe de departamento", "Usuario encargado de asignar evaluadores para un anteproyecto y realizar la presentación del anteproyecto al Consejo de Facultad.")
+  Person(consejo, "Consejo de Facultad", "Usuario encargado de evaluar la presentación de un anteproyecto y emitir la resolución, asignar jurados y la fecha para una sustentación y evaluar las solicitudes especiales registradas en el sistema.")
+  Person(decanatura, "Decanatura", "Usuario encargado de revisar el paz y salvo académico y financiero del estudiante y realizar el registro en el sistema.")
+}

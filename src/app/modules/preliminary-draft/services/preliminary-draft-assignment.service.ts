@@ -5,12 +5,17 @@ import { TrabajoGradoApiService } from '../../../core/services/trabajo-grado/tra
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
 
+/**
+ * Asignación de los evaluadores del anteproyecto. Al asignarlos, los evaluadores ganan el rol de evaluador,
+ * así que se recarga la lista de usuarios.
+ */
 @Injectable({ providedIn: 'root' })
 export class PreliminaryDraftAssignmentService {
   private readonly userService = inject(UserService);
   private readonly api         = inject(TrabajoGradoApiService);
   private readonly store       = inject(TrabajoGradoStoreService);
 
+  /** Revisa que los dos evaluadores sean distintos y que ninguno participe en el trabajo. @returns el mensaje del primer error, o null */
   public validateReviewersRules(
     originalProposal: Proposal,
     evaluator1Id: string,
@@ -51,7 +56,6 @@ export class PreliminaryDraftAssignmentService {
     return this.api.enviarJson(preliminaryDraftId, 'anteproyecto/evaluadores', { evaluador1Id, evaluador2Id }).pipe(
       tap(trabajo => {
         this.store.upsert(trabajo);
-        // Los evaluadores ganaron el rol EVALUADOR: se refresca la lista de usuarios
         this.userService.loadUsers();
       }),
       map(() => undefined)

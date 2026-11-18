@@ -36,7 +36,6 @@ describe('trabajo-grado.mapper', () => {
 
       expect(propuesta.id).toBe('15');
       expect(propuesta.title).toBe('Sistema de gestión');
-      // Sin descripción, se muestra el objetivo general
       expect(propuesta.description).toBe('Objetivo general');
       expect(propuesta.objectives).toEqual(['Objetivo general', 'Objetivo específico']);
       expect(propuesta.modality).toBe(Modality.TI);
@@ -79,7 +78,6 @@ describe('trabajo-grado.mapper', () => {
       const [evaluacion] = aPropuesta(conResponsable, ctx).evaluations;
       expect(evaluacion.evaluatorId).toBe('50');
       expect(evaluacion.documentId).toBe(base.propuesta.versiones[0].ruta);
-      // Sin responsable (decisiones anteriores a este dato) se muestra el órgano
       expect(aPropuesta(base, ctx).evaluations[0].evaluatorId).toBe('');
     });
 
@@ -142,7 +140,6 @@ describe('trabajo-grado.mapper', () => {
       expect(anteproyecto.proposalId).toBe('15');
       expect(anteproyecto.proposalData.id).toBe('15');
       expect(anteproyecto.state).toBe(stateList.EN_REVISION);
-      // Fecha de radicación de la primera versión
       expect(anteproyecto.createdData).toEqual(new Date(2026, 2, 9));
     });
 
@@ -159,7 +156,6 @@ describe('trabajo-grado.mapper', () => {
       expect(anteproyecto.evaluations[2].evaluatorRole).toBe(UserRoleType.CONSEJO);
       expect(anteproyecto.documents.map(d => d.type))
         .toEqual([DocumentType.ANTEPROYECTO, DocumentType.FORMATO_C, DocumentType.RESOLUCION]);
-      // La remisión aprobada por el Consejo
       expect(anteproyecto.documents[1]).toEqual(expect.objectContaining({ version: 1, status: stateList.APROBADO }));
       expect(anteproyecto.maximumDeliveryDate).toEqual(new Date(2026, 11, 20));
     });
@@ -279,7 +275,6 @@ describe('trabajo-grado.mapper', () => {
         description: 'Cambio de alcance', proposedTitle: 'Nuevo', proposedObjectives: ['G2', 'E2'],
         resolutionDetails: 'Procede', resolutionDate: new Date(2026, 4, 10)
       }));
-      // Es la segunda resolución del trabajo, pero no una "versión 2" de la del cambio de objetivos
       expect(cambio.resolution?.name).toBe('Resolución del Consejo');
     });
 
@@ -303,7 +298,6 @@ describe('trabajo-grado.mapper', () => {
       expect(noAprobada.finalDeliveries?.map(entrega => entrega.status)).toEqual([stateList.NO_APROBADO]);
       expect(noAprobada.finalDeliveries?.[0].pazYSalvo?.url).toContain('f-1.pdf');
 
-      // El director radicó una nueva solicitud: queda en revisión y la anterior, no aprobada con su paz y salvo
       const nueva = aTrabajoDeGrado(crearTrabajoEnSustentacion({ estado: 'SOLICITADA', sesiones: [],
         rutaPazYSalvo: null, revisionesPazYSalvo: [rechazo], solicitudNoAprobada: false, fechaSolicitud: '2026-07-05',
         solicitudesAnteriores: [{ rutaMonografia: '15/MONOGRAFIA/v1/m.pdf', rutaDocumentoFinal: '15/TI-E/v1/e.pdf',
@@ -427,10 +421,8 @@ describe('trabajo-grado.mapper', () => {
         decisionesConsejo: [{ ...base.anteproyecto.decisionesConsejo[0], responsableId: 70 }] } });
       const evaluaciones = aAnteproyecto(trabajo, ctx)!.evaluations;
 
-      // Los evaluadores conceptúan una versión del anteproyecto
       expect(evaluaciones[0]).toEqual(expect.objectContaining({
         evaluatorId: '20', documentId: '15/ANTEPROYECTO/v1/anteproyecto.pdf' }));
-      // El Consejo decide sobre la remisión (formato C)
       expect(evaluaciones[2]).toEqual(expect.objectContaining({
         evaluatorId: '70', documentId: '15/TI-C/v1/formato-c.pdf' }));
     });
@@ -453,13 +445,11 @@ describe('trabajo-grado.mapper', () => {
       const conCorrecciones = crearTrabajoEnAnteproyecto({
         anteproyecto: { ...base.anteproyecto, versiones: [{ ...version, estado: 'CON_CORRECCIONES' }] }
       });
-      // Alguno pidió correcciones y ninguno lo rechazó: evaluado con observaciones, el director radica la corregida
       expect(estadoAnteproyecto(conCorrecciones)).toBe(stateList.EVALUADO_CON_OBSERVACIONES);
 
       const noAprobado = crearTrabajoEnAnteproyecto({
         anteproyecto: { ...base.anteproyecto, versiones: [{ ...version, estado: 'NO_APROBADO' }] }
       });
-      // Alguno no lo aprobó: no aprobado
       expect(estadoAnteproyecto(noAprobado)).toBe(stateList.NO_APROBADO);
 
       const enRevision = crearTrabajoEnAnteproyecto({
@@ -475,7 +465,6 @@ describe('trabajo-grado.mapper', () => {
 
     it('veredictos', () => {
       expect(veredicto('APROBADO')).toBe(stateList.APROBADO);
-      // Concepto de un evaluador que pide correcciones
       expect(veredicto('CON_CORRECCIONES')).toBe(stateList.CON_CORRECCIONES);
       expect(veredicto('APROBADO_CON_OBSERVACIONES')).toBe(stateList.APROBADO_CON_OBSERVACIONES);
       expect(veredicto('APLAZADO')).toBe(stateList.APLAZADO);
@@ -521,7 +510,6 @@ describe('etiquetaDeRuta', () => {
   });
 
   it('sin versión cuando el número es el consecutivo de los archivos del tipo, no una versión', () => {
-    // Formato B del segundo evaluador, segunda resolución del Consejo, informe del tercer mes...
     expect(etiquetaDeRuta('15/TI-B/v2/Formato B - v2.pdf')).toBe('Formato B (concepto del evaluador)');
     expect(etiquetaDeRuta('15/PP-C/v2/Formato C - v2.pdf')).toBe('Formato C (remisión al Consejo)');
     expect(etiquetaDeRuta('15/RESOLUCION/v4/Resolucion - v4.pdf')).toBe('Resolución del Consejo');
@@ -548,7 +536,6 @@ describe('plazos calculados por el backend', () => {
     const tardia = { ...enAnteproyecto.propuesta.decisiones[0], fechaLimite: '2026-03-04', aTiempo: false };
     const trabajo = crearTrabajoEnAnteproyecto({ propuesta: { ...enAnteproyecto.propuesta, decisiones: [tardia] } });
     expect(aPropuesta(trabajo, ctx).evaluations[0].deadlineStatus).toBe(EvaluationDeadlineStatus.DELAYED);
-    // Sin plazo (dato anterior o decisión sin plazo) no se marca
     expect(aPropuesta(enAnteproyecto, ctx).evaluations[0].deadlineStatus).toBeUndefined();
 
     const conConcepto = conConceptoDe(crearTrabajoEnEvaluacion(), 20);
@@ -567,7 +554,6 @@ describe('plazos calculados por el backend', () => {
     });
     const anteproyecto = aAnteproyecto(trabajo, ctx)!;
     expect(anteproyecto.evaluationRemainingDays).toBe(-2);
-    // Fechas locales (sin el corrimiento de zona de new Date('YYYY-MM-DD'))
     expect(anteproyecto.councilTerm).toEqual({ startMin: new Date(2027, 6, 20), startMax: new Date(2027, 6, 28),
       minMonths: 3, maxMonths: 9 });
     expect(aAnteproyecto(base, ctx)!.councilTerm).toBeNull();

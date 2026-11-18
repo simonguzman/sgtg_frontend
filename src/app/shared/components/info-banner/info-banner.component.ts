@@ -1,5 +1,6 @@
 import { Component, input } from '@angular/core';
 
+/** Recuadro informativo con título e icono; el contenido se proyecta dentro. */
 @Component({
   selector: 'app-info-banner',
   standalone: true,

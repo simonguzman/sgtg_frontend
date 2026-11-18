@@ -10,6 +10,10 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 import { stateList } from '../../../../core/enums/state.enum';
 
+/**
+ * Página en la que el Consejo decide una solicitud especial, o el Comité da su concepto sobre el cambio de
+ * título y objetivos.
+ */
 @Component({
   selector: 'app-evaluate-special-request-page',
   templateUrl: './evaluate-special-request-page.component.html',

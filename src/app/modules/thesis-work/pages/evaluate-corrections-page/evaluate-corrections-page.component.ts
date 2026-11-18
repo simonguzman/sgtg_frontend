@@ -6,6 +6,7 @@ import { EvaluateCorrectionsFormComponent } from '../../components/evaluate-corr
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/** Página en la que el jurado verifica los ajustes radicados. */
 @Component({
   selector: 'app-evaluate-corrections-page',
   templateUrl: './evaluate-corrections-page.component.html',

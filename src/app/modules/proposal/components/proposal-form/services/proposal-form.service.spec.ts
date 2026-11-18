@@ -123,9 +123,7 @@ describe('ProposalFormService', () => {
         { provide: UserService, useValue: mockUserService },
         { provide: AuthService, useValue: mockAuthService },
         { provide: ProposalService, useValue: mockProposalService },
-        // El backend solo permite elegir a stu-1 y stu-2 (stu-busy ya tiene un trabajo activo)
         { provide: TrabajoGradoApiService, useValue: { estudiantesDisponibles: () => of(['stu-1', 'stu-2'] as unknown as number[]) } },
-        // Ingeniería de Sistemas está adscrita a Sistemas; Ingeniería Electrónica, a Telemática
         { provide: CatalogApiService, useValue: { getPrograms: () => of([
           { ...ING_SISTEMAS, parentId: SISTEMAS.id }, { ...ING_ELECTRONICA, parentId: TELEMATICA.id }
         ]) } }
@@ -195,17 +193,13 @@ describe('ProposalFormService', () => {
       mockUserService.teachers.set([mockDirector, mockTeacher1, comiteSistemas, comiteTelematica]);
       mockUserService.students.set([mockStudent1, mockStudentOtroPrograma]);
 
-      // Sin estudiante aún no se conoce el Comité que evalúa
       expect(ids(service.codirectorOptions())).toEqual(['teacher-1', 'com-sis', 'com-tel']);
 
-      // Estudiante de Ingeniería de Sistemas: evalúa el Comité de Sistemas
       service.form.controls.codirector.setValue('com-sis');
       service.form.controls.student1.setValue('stu-1');
       expect(ids(service.codirectorOptions())).toEqual(['teacher-1', 'com-tel']);
-      // El codirector elegido dejó de ser opción: se quita
       expect(service.form.controls.codirector.value).toBe('');
 
-      // Estudiante de Ingeniería Electrónica (adscrita a Telemática): evalúa el Comité de Telemática
       service.form.controls.student1.setValue('stu-3');
       expect(ids(service.codirectorOptions())).toEqual(['teacher-1', 'com-sis']);
     });
@@ -439,7 +433,6 @@ describe('ProposalFormService', () => {
         advisor: 'advisor-1',
         organization: 'Empresa S.A.'
       });
-      // Un campo vacío no se envía y los objetivos se recortan
       service.addSpecificObjective('');
       service.addSpecificObjective('  Específico 2  ');
       const payload = service.buildProposalPayload(null, { proposal: formatoA });

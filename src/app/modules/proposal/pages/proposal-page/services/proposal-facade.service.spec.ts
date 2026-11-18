@@ -63,7 +63,7 @@ describe('ProposalFacadeService', () => {
 
   describe('Propiedades Computed', () => {
     it('proposalsTableData debe retornar datos mapeados reactivamente', () => {
-      mockAuthService.hasAnyRole.mockReturnValue(true); // isAdmin
+      mockAuthService.hasAnyRole.mockReturnValue(true);
 
       const tableData = service.proposalsTableData();
 

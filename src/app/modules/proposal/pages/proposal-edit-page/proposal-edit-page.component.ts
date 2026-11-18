@@ -9,6 +9,7 @@ import { ProposalFormComponent } from "../../components/proposal-form/proposal-f
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/** Página en la que el director corrige su propuesta. */
 @Component({
   selector: 'app-proposal-edit-page',
   standalone: true,

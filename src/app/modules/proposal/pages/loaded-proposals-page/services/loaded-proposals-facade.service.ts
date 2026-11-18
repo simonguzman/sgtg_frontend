@@ -21,6 +21,7 @@ import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { RegisterDetailField } from '../../../../../shared/components/modals/register-information-modal/register-information-modal.component';
 import { proposalContent } from '../../../../../shared/components/work-details/work-details.builder';
 
+/** Fachada de los documentos cargados de la propuesta. */
 @Injectable({ providedIn: 'root' })
 export class LoadedProposalsFacadeService {
   private readonly proposalService = inject(ProposalService);
@@ -90,6 +91,7 @@ export class LoadedProposalsFacadeService {
     await this.handleDownload(document);
   }
 
+  /** Botón para cargar la propuesta corregida, si el usuario puede hacerlo y la propuesta no está archivada. */
   public buildHeaderButtons(proposalId: string | null): TableButton[] {
     const proposal = this.findProposal(proposalId);
     const user = this.authService.currentUser();
@@ -111,6 +113,7 @@ export class LoadedProposalsFacadeService {
     }];
   }
 
+  /** @returns true si el usuario es el director de la propuesta o el administrador */
   public canUpload(proposalId: string | null): boolean {
     const proposal = this.findProposal(proposalId);
     const user = this.authService.currentUser();
@@ -124,6 +127,7 @@ export class LoadedProposalsFacadeService {
     return true;
   }
 
+  /** Descarga un documento de la propuesta. */
   public async handleDownload(document: Pick<FileDocument, 'url' | 'name'>): Promise<void> {
     if (!document.url?.trim()) {
       this.showNotification('Archivo no disponible', 'Ruta no válida.', NotificationType.ERROR);
@@ -145,6 +149,7 @@ export class LoadedProposalsFacadeService {
     return this.findProposal(proposalId)?.modality === Modality.PP;
   }
 
+  /** Avisa que en práctica profesional la propuesta corregida va con una nueva carta de aceptación. */
   public showAcceptanceLetterRequiredNotification(): void {
     this.showNotification(
       'Carta de aceptación requerida',
@@ -153,6 +158,7 @@ export class LoadedProposalsFacadeService {
     );
   }
 
+  /** Avisa que el usuario no puede hacer la acción. */
   public showRestrictedActionNotification(): void {
     this.showNotification(
       'Acción no permitida',
@@ -161,6 +167,7 @@ export class LoadedProposalsFacadeService {
     );
   }
 
+  /** Radica la propuesta corregida como nueva versión. */
   public async upload(
     proposalId: string,
     fileData: { fileName: string; file: File },
@@ -186,6 +193,7 @@ export class LoadedProposalsFacadeService {
       });
   }
 
+  /** Propuesta por id, o undefined. */
   public findProposal(proposalId: string | null): Proposal | undefined {
     if (!proposalId) return undefined;
     return this.proposalService.allProposals().find(proposal => proposal.id === proposalId);

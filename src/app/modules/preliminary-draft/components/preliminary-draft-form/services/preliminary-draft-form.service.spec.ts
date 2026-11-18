@@ -321,7 +321,6 @@ describe('PreliminaryDraftFormService', () => {
       expect(payload?.preliminaryDraftId).toBe('draft-2');
       expect(payload?.proposalData).toEqual(expect.objectContaining({
         id: 'p-edit', title: 'Título corregido', objectives: ['General', 'Específico'],
-        // Sin descripción, el front la llena con el objetivo general (el backend la guarda vacía)
         description: 'General', lineOfResearch: 'IA'
       }));
       expect(payload?.documents).toEqual(documentos);

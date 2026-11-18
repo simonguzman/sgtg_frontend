@@ -6,6 +6,7 @@ import { RegisterCorrespondenceFormComponent } from '../../components/register-c
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/** Página en la que el jurado carga la versión definitiva del trabajo. */
 @Component({
   selector: 'app-register-correspondence-page',
   templateUrl: './register-correspondence-page.component.html',

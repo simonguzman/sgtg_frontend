@@ -11,6 +11,7 @@ import { buildWorkDetailsView, remainingDaysHint } from '../../../../../shared/c
 import { WorkDetailsDocument, WorkDetailsView } from '../../../../../shared/components/work-details/work-details.model';
 import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
+/** Fachada del detalle de la propuesta. */
 @Injectable({ providedIn: 'root' })
 export class ProposalDetailsFacadeService {
   private readonly proposalService = inject(ProposalService);
@@ -19,6 +20,7 @@ export class ProposalDetailsFacadeService {
   private readonly router = inject(Router);
   private readonly navigation = inject(NavigationHistoryService);
 
+  /** Carga la propuesta y fija la miga y el título de la página. */
   public load(
     id: string,
     onSuccess:  (proposal: Proposal) => void,
@@ -50,6 +52,7 @@ export class ProposalDetailsFacadeService {
     });
   }
 
+  /** Avisa que la URL no trae el id de la propuesta y vuelve atrás. */
   public handleMissingId(onNavigate: () => void): void {
     this.showNotification(
       'Acceso inválido',
@@ -59,6 +62,7 @@ export class ProposalDetailsFacadeService {
     onNavigate();
   }
 
+  /** Vuelve a la página anterior o, si no hay, a la lista de propuestas o al historial. */
   public goBack(): void {
     this.navigation.back(() => {
       const currentUrl = this.router.url;
@@ -90,6 +94,7 @@ export class ProposalDetailsFacadeService {
     });
   }
 
+  /** Descarga un documento de la propuesta. */
   public async downloadDocument(document: WorkDetailsDocument): Promise<void> {
     try {
       await this.downloadService.download(document.url, document.name);

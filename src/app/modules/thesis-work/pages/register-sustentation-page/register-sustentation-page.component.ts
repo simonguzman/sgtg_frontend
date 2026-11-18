@@ -7,6 +7,10 @@ import { RegisterSustentationFormComponent, SustentationFormPayload } from '../.
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/**
+ * Página en la que el Consejo programa la sesión de sustentación; mientras se guarda una programación no se
+ * envía otra.
+ */
 @Component({
   selector: 'app-register-sustentation-page',
   templateUrl: './register-sustentation-page.component.html',
@@ -42,7 +46,6 @@ export class RegisterSustentationPageComponent implements OnInit {
   }
 
   handleRequestConfirmation(data: { payload: SustentationFormPayload; file: File }): void {
-    // Mientras se guarda la programación no se envía otra
     if (this.isSubmitting()) return;
     this.pendingData.set(data);
     this.isConfirmModalOpen.set(true);

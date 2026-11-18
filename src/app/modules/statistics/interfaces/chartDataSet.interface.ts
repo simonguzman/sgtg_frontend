@@ -1,3 +1,4 @@
+/** Serie de un gráfico de Chart.js. */
 export interface ChartDataset {
   label?: string;
   data: number[];

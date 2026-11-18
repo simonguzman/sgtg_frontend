@@ -39,7 +39,6 @@ describe('Integración [Anteproyectos]: Registro contra el backend y notificaci�
       usuario('60', [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP]),
       usuario('61', [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP])
     ]);
-    // Con la propuesta aprobada pero sin versión radicada aún no hay anteproyecto
     expect(service.preliminaryDrafts()).toEqual([]);
 
     let creado: PreliminaryDraft | undefined;

@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 
+/** Encabezado de las pantallas de autenticación. */
 @Component({
   selector: 'app-auth-header',
   imports: [],

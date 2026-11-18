@@ -5,6 +5,10 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { versionVigente } from '../../../services/preliminary-draft-rules';
 import { formatDisplayDate } from '../../../../../core/utils/date-utils';
 
+/**
+ * Pestaña de presentaciones al Consejo: el jefe de departamento remite con el formato C la versión que
+ * aprobaron ambos evaluadores, y el Consejo decide sobre ella.
+ */
 export const PresentacionesTabConfig: PreliminaryDraftTabConfiguration = {
   tabValue: 'PRESENTACIONES',
 

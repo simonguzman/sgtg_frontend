@@ -22,6 +22,7 @@ export const STATUS_LABELS: Record<ProjectStatus, string> = {
   [ProjectStatus.CANCELADO]: 'Cancelado'
 };
 
+/** Estados del gráfico por estado, en el orden en que se muestran. */
 export const STATUS_CHART_ORDER: ProjectStatus[] = [
   ProjectStatus.APROBADO,
   ProjectStatus.NO_APROBADO,
@@ -32,6 +33,7 @@ export const STATUS_CHART_ORDER: ProjectStatus[] = [
   ProjectStatus.CANCELADO
 ];
 
+/** Colores de cada estado del gráfico por estado. */
 export const STATUS_CHART_COLORS = {
   background: [
     '#4ade80', '#f87171', '#94a3b8',
@@ -43,14 +45,17 @@ export const STATUS_CHART_COLORS = {
   ]
 };
 
+/** Etiquetas del gráfico por etapa. */
 export const STAGE_CHART_LABELS: string[] = ['Propuestas', 'Anteproyectos', 'Trabajos de Grado'];
 
+/** Etapas del gráfico por etapa, en el orden de sus etiquetas. */
 export const STAGE_CHART_ORDER: ProjectStage[] = [
   ProjectStage.PROPUESTA,
   ProjectStage.ANTEPROYECTO,
   ProjectStage.TRABAJO_GRADO
 ];
 
+/** Colores de cada etapa. */
 export const STAGE_CHART_COLORS: string[] = ['#3b82f6', '#8b5cf6', '#ec4899'];
 
 /** Colores de las categorías sin orden fijo (modalidades, programas) */

@@ -3,6 +3,7 @@ import { ReviewPreliminaryDraftPageFacadeService } from './services/review-preli
 import { ReviewPreliminaryDraftFormComponent } from "../../components/review-preliminary-draft-form/review-preliminary-draft-form.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 
+/** Página en la que un evaluador conceptúa la versión vigente del anteproyecto. */
 @Component({
   selector: 'app-review-preliminary-draft-page',
   templateUrl: './review-preliminary-draft-page.component.html',

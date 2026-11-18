@@ -81,8 +81,8 @@ describe('StatisticsPageComponent', () => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     mockFacadeService = {
       updateFilters: jest.fn(),
-      downloadReport: jest.fn(() => Promise.resolve()),
-      downloadDueSoonReport: jest.fn(() => Promise.resolve()),
+      downloadReport: jest.fn().mockResolvedValue(undefined),
+      downloadDueSoonReport: jest.fn().mockResolvedValue(undefined),
       reportRows: signal(3),
       clearFilters: jest.fn(),
       currentFilters: signal<StatisticsFilters>(initialFilters),
@@ -111,7 +111,6 @@ describe('StatisticsPageComponent', () => {
     };
     await TestBed.configureTestingModule({
       imports: [StatisticsPageComponent],
-      // Las gráficas van en @defer (on viewport): cada prueba decide cuándo se dibujan
       deferBlockBehavior: DeferBlockBehavior.Manual,
       providers: [
         { provide: StatisticsPageFacadeService, useValue: mockFacadeService },
@@ -145,7 +144,6 @@ describe('StatisticsPageComponent', () => {
 
       mockFacadeService.totalLoaded.set(5);
       fixture.detectChanges();
-      // Hasta llegar a la pantalla, cada gráfica es solo su espacio reservado
       expect(fixture.nativeElement.querySelectorAll('p-chart').length).toBe(0);
       const bloques = await fixture.getDeferBlocks();
       expect(bloques.length).toBe(4);
@@ -292,7 +290,6 @@ describe('StatisticsPageComponent', () => {
       expect(filas[0].textContent).toContain('20/08/2027');
       expect(filas[0].querySelector('.due-soon-badge--critical')?.textContent?.trim()).toBe('4 días');
       expect(filas[1].querySelector('.due-soon-badge--critical')).toBeNull();
-      // Sin permisos: ni recordar ni ver el detalle
       expect(fixture.nativeElement.querySelector('.due-soon-view')).toBeNull();
       expect(fixture.nativeElement.querySelector('.due-soon-remind')).toBeNull();
       expect(texto()).not.toContain('Recordar a todos');

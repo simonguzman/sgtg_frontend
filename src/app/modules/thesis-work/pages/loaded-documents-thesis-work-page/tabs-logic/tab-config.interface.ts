@@ -4,6 +4,7 @@ import { DocumentType } from '../../../../../core/enums/document-type.enum';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { User } from '../../../../users/interfaces/user.interface';
 
+/** Datos con los que cada pestaña decide sus filas y botones: el trabajo y el papel del usuario en él. */
 export interface ThesisEvaluationContext {
   thesisWork: ThesisWork | null;
   currentUser: User | null;
@@ -17,7 +18,7 @@ export interface ThesisEvaluationContext {
   /** Jurado coordinador de la sesión actual: califica y registra las decisiones */
   isCoordinator?: boolean;
   isConsejo: boolean;
-  /** Comité del programa: avala el cambio de título y objetivos antes del Consejo */
+  /** Comité del programa: emite el concepto de pertinencia del cambio de título y objetivos antes del Consejo */
   isComite?: boolean;
   latestAdvanceId: string | null;
   isLatestAdvancePending: boolean;
@@ -36,6 +37,10 @@ export interface ThesisEvaluationContext {
   [key: string]: unknown;
 }
 
+/**
+ * Estrategia de una pestaña de documentos cargados: columnas, filas, botones de cabecera y la ruta de su
+ * acción.
+ */
 export interface TabConfiguration<TRow = Record<string, unknown>> {
   tabValue: string;
   columns: Column[];

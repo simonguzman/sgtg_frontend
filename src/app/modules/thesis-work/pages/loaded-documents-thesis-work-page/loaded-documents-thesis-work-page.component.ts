@@ -27,6 +27,12 @@ import {
 } from './models/loaded-documents-thesis-work.model';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/**
+ * Documentos cargados del trabajo de grado, por pestañas: informes mensuales, solicitudes especiales, entrega
+ * final, paz y salvo y sustentación. Cada pestaña tiene su estrategia (`tabs-logic`); al abrirla se muestra
+ * la pestaña indicada en la URL (ej. `?tab=ENTREGA_FINAL` desde una notificación), y cada botón de cabecera
+ * lleva a su ruta.
+ */
 @Component({
   selector: 'app-loaded-documents-thesis-work-page',
   templateUrl: './loaded-documents-thesis-work-page.component.html',
@@ -86,7 +92,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
 
     if (id) this.thesisWorkId.set(id);
 
-    // Pestaña indicada en la URL (ej. ?tab=ENTREGA_FINAL desde una notificación)
     const tab = this.route.snapshot.queryParamMap?.get('tab')?.replaceAll('_', ' ');
     if (tab && this.tabsConfig.some(item => item.value === tab)) this.activeTab.set(tab);
   }
@@ -185,7 +190,6 @@ export class LoadedDocumentsThesisWorkPageComponent implements OnInit, OnDestroy
   );
 
   handleHeaderButton(button: TableButton): void {
-    // Cada botón lleva su ruta (ej. las reuniones de seguimiento en la pestaña de informes)
     const routePath = button.action || this.currentStrategy().headerActionRoute;
     if (routePath) this.router.navigate([routePath], { relativeTo: this.route.parent });
   }

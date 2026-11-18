@@ -1,3 +1,4 @@
+/** Tipos de solicitud especial del director. */
 export enum SpecialRequestType {
   PRORROGA = 'Prórroga',
   SUSPENSION = 'Suspensión',

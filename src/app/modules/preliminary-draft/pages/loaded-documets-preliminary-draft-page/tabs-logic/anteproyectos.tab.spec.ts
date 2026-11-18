@@ -51,7 +51,6 @@ const createMockContext = (overrides: Partial<PreliminaryDraftEvaluationContext>
 
 describe('AnteproyectosTabConfig', () => {
   let mockContext: PreliminaryDraftEvaluationContext;
-  // La pestaña de anteproyectos usa el estado que envía el backend: no necesita el servicio
   const servicio = {} as PreliminaryDraftService;
 
   const version = (id: string, numero: number, status: stateList): FileDocument => ({

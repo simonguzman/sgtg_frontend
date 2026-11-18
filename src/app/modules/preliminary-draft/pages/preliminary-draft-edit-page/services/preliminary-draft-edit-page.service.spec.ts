@@ -32,7 +32,6 @@ const createMockDraft = (overrides: Partial<PreliminaryDraft> = {}): Preliminary
     preliminaryDraftId: 'draft-123',
     state: stateList.NO_APROBADO,
     proposalData: createMockProposalData({ director: createMockUser({ id: 'user-1' }) }),
-    // Versión vigente con correcciones: el director puede radicar una nueva
     documents: [{ id: 'v1', name: 'anteproyecto', url: '/a', uploadDate: '09 - 03 - 2026',
       type: DocumentType.ANTEPROYECTO, version: 1, status: stateList.NO_APROBADO }],
     ...overrides
@@ -66,7 +65,7 @@ describe('PreliminaryDraftEditPageService', () => {
     };
 
     mockRouter = { navigate: jest.fn() };
-    mockNavigation = { back: jest.fn((respaldo: () => unknown) => respaldo()) }; // sin página anterior: usa la navegación de respaldo
+    mockNavigation = { back: jest.fn((respaldo: () => unknown) => respaldo()) };
 
     mockPreliminaryDraftService = {
       getPreliminaryDraftById: jest.fn(),

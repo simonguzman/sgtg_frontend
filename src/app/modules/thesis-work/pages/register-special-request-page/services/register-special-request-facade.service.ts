@@ -8,11 +8,13 @@ import { SpecialRequestType } from '../../../enums/special-request-type.enum';
 import { SpecialRequestSubmission } from '../../../services/thesis-work-special-request.service';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
+/** Fachada del registro de una solicitud especial. */
 @Injectable({ providedIn: 'root' })
 export class RegisterSpecialRequestFacadeService {
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Carga el trabajo de grado de la ruta; si no existe, avisa y llama a `onError`. */
   public loadThesisWork(
     id: string,
     onSuccess: (thesisWork: ThesisWork) => void,
@@ -52,7 +54,7 @@ export class RegisterSpecialRequestFacadeService {
           const message = data.requestType === SpecialRequestType.REANUDACION
             ? 'El trabajo de grado se reanudó correctamente.'
             : data.requestType === SpecialRequestType.CAMBIO_TITULO
-              ? 'La solicitud quedó registrada y se notificó al Comité del programa, que debe avalarla.'
+              ? 'La solicitud quedó registrada y se notificó al Comité del programa, que debe emitir su concepto de pertinencia.'
               : 'La solicitud quedó registrada y se notificó al Consejo de Facultad.';
           this.showNotification('Solicitud registrada', message, NotificationType.CONFIRMATION);
           onSuccess();

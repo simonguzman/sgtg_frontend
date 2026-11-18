@@ -20,10 +20,12 @@ const RESULT_TO_STATE: Record<string, stateList> = {
   'No aprobado': stateList.NO_APROBADO
 };
 
+/** Formato B firmado de un evaluador, con su nombre. */
 export interface EvaluatorSignedDocumentView extends FormattedDocument {
   evaluator: string;
 }
 
+/** Estado del formulario de la decisión del Consejo sobre el anteproyecto. */
 @Injectable()
 export class ReviewPresentationsFacultyCouncilFormFacadeService {
   private readonly fb = inject(FormBuilder);
@@ -31,10 +33,14 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
   private readonly destroyRef = inject(DestroyRef);
   readonly userService = inject(UserService);
 
+  /** Anteproyecto remitido al Consejo. */
   readonly preliminaryDraft = signal<PreliminaryDraft | null>(null);
+  /** Resolución firmada (obligatoria). */
   readonly uploadedSignedFile = signal<{ fileName: string; file: File } | null>(null);
+  /** true con el modal de carga de la resolución abierto. */
   readonly isUploadModalOpen = signal(false);
 
+  /** Decisión, observaciones y, al aprobar, las fechas del plazo. */
   readonly evaluationForm = this.fb.group({
     result: ['', Validators.required],
     comments: ['', Validators.required],
@@ -48,6 +54,7 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
   /** Fecha de la reunión elegida (para el rango de la fecha máxima de entrega) */
   private readonly startDateValue = signal<Date | null>(null);
 
+  /** true si el anteproyecto ya fue aprobado y solo se consulta. */
   readonly isReadOnly = computed(() => this.preliminaryDraft()?.state === stateList.APROBADO);
 
   /**
@@ -56,10 +63,13 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
    * entrega queda entre 3 y 9 meses después de la reunión.
    */
   readonly councilTerm = computed(() => this.preliminaryDraft()?.councilTerm ?? null);
+  /** Primera fecha posible de la reunión del Consejo (la remisión con el formato C). */
   readonly startDateMin = computed(() => this.councilTerm()?.startMin ?? null);
   /** Hoy según el backend (su reloj puede estar adelantado): el calendario abre en ese mes */
   readonly startDateMax = computed(() => this.councilTerm()?.startMax ?? null);
+  /** Primera fecha máxima de entrega posible: 3 meses después de la reunión. */
   readonly endDateMin = computed(() => this.limiteDeEntrega('minMonths'));
+  /** Última fecha máxima de entrega posible: 9 meses después de la reunión. */
   readonly endDateMax = computed(() => this.limiteDeEntrega('maxMonths'));
 
   /** Texto de ayuda con el rango de la fecha máxima de entrega para la reunión elegida */
@@ -114,12 +124,17 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
       }) || []
   );
 
+  /** Fecha de carga de la versión vigente (la que se remitió), no de la primera. */
   readonly documentUploadDate = computed(() => {
-    // Fecha de la versión vigente (la que se remitió), no de la primera
     const currentVersion = versionVigente(this.preliminaryDraft());
     return this.parseAndFormatDate(currentVersion?.uploadDate);
   });
 
+  /**
+   * Activa las reglas del formulario: al aprobar, la fecha de la reunión y la fecha máxima de entrega son
+   * obligatorias y deben estar en su rango; la fecha de entrega se elige después de la reunión, porque su
+   * rango depende de ella, y si ya no cabe en el rango de una nueva reunión se vuelve a elegir.
+   */
   initFormEffects(): void {
     if (this.isReadOnly()) {
       this.evaluationForm.disable({ emitEvent: false });
@@ -144,7 +159,6 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
           this.termLength.set(null);
         }
         startControl.updateValueAndValidity({ emitEvent: false });
-        // La fecha de entrega se elige después de la reunión (su rango depende de ella)
         if (value === 'Aprobado' && !startControl.value) endControl.disable({ emitEvent: false });
         endControl.updateValueAndValidity({ emitEvent: false });
       });
@@ -152,7 +166,6 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
       this.startDateValue.set(start ?? null);
       if (start) endControl.enable({ emitEvent: false });
       else endControl.disable({ emitEvent: false });
-      // Si la fecha de entrega ya no cabe en el rango de la nueva reunión, se vuelve a elegir
       endControl.updateValueAndValidity();
       if (endControl.hasError('entregaFueraDeRango')) endControl.setValue(null);
       this.termLength.set(this.duracion(start, endControl.value));
@@ -187,16 +200,19 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
     return dias ? `${textoMeses} y ${dias} ${dias === 1 ? 'día' : 'días'}` : textoMeses;
   }
 
+  /** @returns true si el campo fue tocado y no es válido */
   isFieldInvalid(fieldName: string): boolean {
     const control = this.evaluationForm.get(fieldName);
     return !!(control?.invalid && control?.touched);
   }
 
+  /** Guarda la resolución elegida y cierra su modal. */
   handleFileUploaded(event: { fileName: string; file: File }): void {
     this.uploadedSignedFile.set(event);
     this.isUploadModalOpen.set(false);
   }
 
+  /** Valida el formulario y la resolución y devuelve la decisión, o null avisando qué falta. */
   validateAndGetPayload(): SaveEvaluationPayload | null {
     const fileData = this.uploadedSignedFile();
     if (this.evaluationForm.invalid || !fileData) {
@@ -224,18 +240,22 @@ export class ReviewPresentationsFacultyCouncilFormFacadeService {
     };
   }
 
+  /** Nombres de los estudiantes. */
   getStudentNames(): string {
     const authors = this.preliminaryDraft()?.proposalData?.authors;
     return authors ? this.userService.getAuthorsNames(authors) : '';
   }
+  /** Nombre del director. */
   getDirectorName(): string {
     const director = this.preliminaryDraft()?.proposalData?.director;
     return director?.id ? this.userService.getUserFullName(director.id) : '';
   }
+  /** Nombre del codirector, o vacío. */
   getCodirectorName(): string {
     const codirector = this.preliminaryDraft()?.proposalData?.codirector;
     return codirector?.id ? this.userService.getUserFullName(codirector.id) : '';
   }
+  /** Nombre del asesor, o vacío. */
   getAdvisorName(): string {
     const advisor = this.preliminaryDraft()?.proposalData?.advisor;
     return advisor?.id ? this.userService.getUserFullName(advisor.id) : '';

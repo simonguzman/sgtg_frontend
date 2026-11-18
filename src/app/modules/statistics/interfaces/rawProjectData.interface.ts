@@ -3,6 +3,7 @@ import { ProjectStatus } from '../enum/projectStatus.enum';
 import { stateList } from '../../../core/enums/state.enum';
 import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
 
+/** Un trabajo de grado en las estadísticas, en la etapa más avanzada que alcanzó. */
 export interface RawProjectData {
   id: string;
   title: string;

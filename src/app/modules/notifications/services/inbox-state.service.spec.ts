@@ -76,7 +76,6 @@ describe('InboxStateService (buzón del backend)', () => {
 
     expect(state.messagesSignal().map(m => m.id)).toEqual(['2', '1']);
     expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Propuesta radicada' }));
-    // Alguien cambió un trabajo: se recarga la lista
     http.expectOne(req => req.url.endsWith('/trabajos-grado/mis-trabajos')).flush([]);
   });
 
@@ -118,7 +117,6 @@ describe('InboxStateService (buzón del backend)', () => {
     expect(req.request.method).toBe('PATCH');
     req.flush(notificacion(1, { leida: true }));
 
-    // Ya leída: no vuelve a llamar
     state.markAsRead('1');
     http.expectNone(`${API}/1/leida`);
   });

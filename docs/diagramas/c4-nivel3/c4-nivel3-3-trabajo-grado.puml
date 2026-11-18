@@ -1,0 +1,46 @@
+@startuml c4-nivel3-3-trabajo-grado
+' C4 nivel 3 (componentes) de la API de SGTG. Generado por generar.py: no editar a mano.
+!include <C4/C4_Component>
+LAYOUT_TOP_DOWN()
+skinparam dpi 110
+UpdateElementStyle("component", $bgColor="#1E5A8E", $fontColor="#FFFFFF", $borderColor="#0B3D66")
+UpdateElementStyle("container", $bgColor="#438DD5", $fontColor="#FFFFFF", $borderColor="#2E6295")
+AddRelTag("p", $lineStyle=DashedLine())
+
+title SGTG API — C4 nivel 3: Trabajo de grado
+
+Container(spa, "Aplicación de página única", "Angular", "Interfaz de los usuarios; consume la API.")
+ContainerDb(db, "Base de datos", "MySQL", "Usuarios, trabajos de grado, notificaciones, sesiones y auditoría.")
+ContainerDb(fs, "Almacenamiento de archivos", "Sistema de archivos del servidor", "Documentos PDF (máximo 20 MB) de cada trabajo, por tipo y versión.")
+Container_Boundary(api, "API de la aplicación (Java y Spring Boot)") {
+  Boundary(controladores, "Controladores REST") {
+    Component(cTG, "Controlador de trabajos de grado", "REST · TrabajoGradoController", "Operaciones de la propuesta, el anteproyecto, el trabajo en curso, las solicitudes especiales y la sustentación.")
+  }
+  Boundary(casos, "Casos de uso (dominio)") {
+    Component(uTG, "Casos de uso del trabajo de grado", "ManageTrabajoGradoCUImplAdapter", "Valida el puesto del usuario en el trabajo, guarda los archivos y delega las reglas al agregado.")
+    Component(dTG, "Agregado TrabajoGrado", "Modelo de dominio", "Registro único que avanza por etapas y aplica las reglas del reglamento.")
+    Component(notif, "Notificador del trabajo de grado", "NotificadorTrabajoGrado", "Genera las notificaciones de cada hecho y de los plazos.")
+  }
+  Boundary(salida, "Adaptadores de salida") {
+    Component(gUsr, "Adaptador de usuarios", "ManageUserGatewayImplAdapter · JPA", "Usuarios y roles.")
+    Component(gCal, "Calendario hábil", "CalendarioHabilImplAdapter · JPA", "Días hábiles: sin fines de semana, festivos de Colombia ni días no hábiles.")
+    Component(gNot, "Adaptador de notificaciones", "ManageNotificacionGatewayImplAdapter · JPA", "Notificaciones de la bandeja.")
+    Component(gTG, "Adaptador de trabajos de grado", "ManageTrabajoGradoGatewayImplAdapter · JPA", "Guarda el trabajo de grado completo en un solo repositorio.")
+    Component(gArch, "Adaptador de archivos", "ManageArchivoGatewayImplAdapter", "Guarda y entrega los PDF y calcula su huella.")
+  }
+}
+Rel(spa, cTG, "Hace llamados a la API", "JSON/HTTPS, REST", $tags="p")
+Rel(cTG, uTG, "Usa", "", $tags="p")
+Rel(uTG, dTG, "Delega las reglas", "", $tags="p")
+Rel(uTG, gTG, "Lee y guarda", "", $tags="p")
+Rel(uTG, gArch, "Guarda los documentos", "", $tags="p")
+Rel(uTG, gUsr, "Carga los participantes", "", $tags="p")
+Rel(uTG, notif, "Informa los hechos", "", $tags="p")
+Rel(dTG, gCal, "Calcula plazos en días hábiles", "", $tags="p")
+Rel(notif, gNot, "Guarda las notificaciones", "", $tags="p")
+Rel(gUsr, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gCal, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gNot, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gTG, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gArch, fs, "Lee y escribe", "E/S de archivos", $tags="p")
+@enduml

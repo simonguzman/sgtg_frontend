@@ -8,7 +8,6 @@ import { ProposalDocumentService } from './proposal-document.service';
 import { ProposalApiService } from './proposal-api.service';
 import { Proposal } from '../interfaces/proposal.interface';
 import { stateList } from '../../../core/enums/state.enum';
-import { FileDocument } from '../../../core/interfaces/file-document.interface';
 
 describe('ProposalService', () => {
   let service: ProposalService;
@@ -125,29 +124,6 @@ describe('ProposalService', () => {
         expect(mockDocumentService.uploadCorrection).toHaveBeenCalledWith('1', archivo, null);
         done();
       });
-    });
-  });
-  describe('Métodos Propios: getDocumentsByProposalId', () => {
-    it('debería retornar los documentos si la propuesta existe', () => {
-      const mockDocs = [{ id: 'doc-1' }] as FileDocument[];
-      mockStorageService.getProposalsListSnapshot.mockReturnValue([
-        { id: '1', documents: mockDocs } as Proposal
-      ]);
-      const result = service.getDocumentsByProposalId('1');
-      expect(result).toEqual(mockDocs);
-      expect(mockStorageService.getProposalsListSnapshot).toHaveBeenCalled();
-    });
-    it('debería retornar un array vacío si la propuesta no existe', () => {
-      mockStorageService.getProposalsListSnapshot.mockReturnValue([]);
-      const result = service.getDocumentsByProposalId('99');
-      expect(result).toEqual([]);
-    });
-    it('debería retornar un array vacío si la propuesta existe pero no tiene documentos definidos', () => {
-      mockStorageService.getProposalsListSnapshot.mockReturnValue([
-        { id: '1' } as Proposal
-      ]);
-      const result = service.getDocumentsByProposalId('1');
-      expect(result).toEqual([]);
     });
   });
 });

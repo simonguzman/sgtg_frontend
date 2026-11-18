@@ -9,9 +9,9 @@ import { STATUS_LABELS } from '../models/statistics-chart.model';
 import { ARCHIVE_STATUS_OPTIONS } from '../pages/statistics-page/models/statistics-page.model';
 
 const PDF_COLORS = {
-  heading: [15, 23, 42] as [number, number, number],    // slate-900
-  subtle:  [100, 116, 139] as [number, number, number],  // slate-500
-  body:    [71, 85, 105] as [number, number, number],    // slate-600
+  heading: [15, 23, 42] as [number, number, number],
+  subtle:  [100, 116, 139] as [number, number, number],
+  body:    [71, 85, 105] as [number, number, number],
   tableHeader: [14, 165, 233] as [number, number, number],
   /** Rojo de la tarjeta de próximos a vencer */
   dueSoonHeader: [198, 40, 40] as [number, number, number]
@@ -77,7 +77,6 @@ const daysLabel = (days: number | null): string => {
  */
 @Injectable({ providedIn: 'root' })
 export class StatisticsReportService {
-
   /** Las librerías del PDF se cargan solo al exportar, como la del Excel. */
   public async downloadPdfReport(
     filters: StatisticsFilters,
@@ -148,8 +147,6 @@ export class StatisticsReportService {
       `${this.fileName()}.csv`);
   }
 
-  // ── Trabajos próximos a vencer ─────────────────────────────────────────────
-
   /**
    * Reporte de los trabajos de grado próximos a vencer (la tabla de la tarjeta
    * roja), en el formato elegido: cada trabajo con su director, programa,
@@ -206,13 +203,13 @@ export class StatisticsReportService {
     doc.save(`${this.fileName(DUE_SOON_FILE)}.pdf`);
   }
 
+  /** Excel de los próximos a vencer; la fecha y los días van como valores para poder ordenar y filtrar. */
   private async downloadDueSoonExcel(filters: StatisticsFilters, data: RawProjectData[],
     context: StatisticsReportContext): Promise<void> {
     const { default: writeXlsxFile } = await import('write-excel-file/browser');
     const header = DUE_SOON_HEADERS.map(value => ({
       value, fontWeight: 'bold' as const, textColor: '#FFFFFF', backgroundColor: '#C62828'
     }));
-    // La fecha y los días van como valores, para poder ordenar y filtrar en Excel
     const rows = this.dueSoonRows(data).map((row, index) => {
       const deliveryDate = data[index].deliveryDate;
       return [index + 1, ...row.slice(1, DUE_SOON_DATE_COLUMN),
@@ -272,8 +269,6 @@ export class StatisticsReportService {
     ];
   }
 
-  // ── Contenido común a los tres formatos ────────────────────────────────────
-
   private filterLines(filters: StatisticsFilters, directorName: string | null): [string, string][] {
     return [
       ['Etapa', filters.stage ? stageLabel(filters.stage) : 'Todas las etapas'],
@@ -316,18 +311,15 @@ export class StatisticsReportService {
     return `${prefix}_${Date.now()}`;
   }
 
-  /** Descarga el archivo en el navegador. */
+  /** Descarga el archivo en el navegador y libera su URL cuando el navegador ya lo tomó. */
   private save(blob: Blob, fileName: string): void {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
     link.click();
-    // Se libera cuando el navegador ya tomó el archivo
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-
-  // ── PDF ────────────────────────────────────────────────────────────────────
 
   private addHeader(doc: jsPDF, scope: string): void {
     doc.setFontSize(18);

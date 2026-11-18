@@ -42,7 +42,6 @@ describe('Integración [Proposal]: Creación contra el backend y roles de contex
   afterEach(() => jest.restoreAllMocks());
 
   it('crea el trabajo, radica el formato A, refresca los roles asignados por el backend y lo muestra en la lista', () => {
-    // Docente sin el rol de director: el backend se lo asigna al crear el trabajo
     iniciarSesionConTrabajos(usuario({ id: '1', roles: [UserRoleType.DOCENTE] }), []);
 
     let creada: Proposal | undefined;

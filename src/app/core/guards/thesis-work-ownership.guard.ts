@@ -6,6 +6,10 @@ import { NotificationService } from '../../shared/components/notifications/servi
 import { NotificationType } from '../../shared/components/notifications/models/notification.model';
 import { resolveEntityForGuard } from '../helpers/resolve-entity-for-guard.helper';
 
+/**
+ * Detalle de un trabajo de grado: solo para quien tiene relación con él o un rol de consulta general. Si el
+ * trabajo no existe, deja que la página muestre el aviso.
+ */
 export const thesisWorkOwnershipGuard: CanActivateFn = (route) => {
   const router = inject(Router);
   const authService = inject(AuthService);

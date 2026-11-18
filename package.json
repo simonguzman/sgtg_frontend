@@ -1,5 +1,5 @@
 {
-  "name": "sgtg-prueba",
+  "name": "sgtg-frontend",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
@@ -65,6 +65,6 @@
     "jest-transform-stub": "^2.0.0",
     "ts-node": "^10.9.2",
     "typescript": "~5.9.2",
-    "typescript-eslint": "8.46.4"
+    "typescript-eslint": "8.72.1"
   }
 }

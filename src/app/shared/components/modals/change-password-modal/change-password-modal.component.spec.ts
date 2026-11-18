@@ -8,11 +8,8 @@ import { ChangePasswordModalComponent } from './change-password-modal.component'
 import { AuthService } from '../../../../core/services/auth/auth.service';
 import { NotificationService } from '../../notifications/services/notification.service';
 
-// ── Componentes Originales a Remover (Shallow Testing) ───────────────────────
 import { ButtonComponent } from '../../button-component/button-component.component';
 import { ConfirmationActionModalComponent } from "../confirmation-action-modal/confirmation-action-modal.component";
-
-// ── Mocks de Componentes Hijos (Shallow Testing) ─────────────────────────────
 
 @Component({ selector: 'app-button-component', standalone: true, template: '' })
 class MockButtonComponent {
@@ -32,13 +29,10 @@ class MockConfirmationActionModalComponent {
   @Output() confirm = new EventEmitter<void>();
 }
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('ChangePasswordModalComponent', () => {
   let component: ChangePasswordModalComponent;
   let fixture: ComponentFixture<ChangePasswordModalComponent>;
 
-  // Tipado estricto utilizando las verdaderas firmas que usa el componente
   let authServiceMock: {
     changePassword: jest.Mock<Observable<any>, [string, string]>,
     currentUser: jest.Mock
@@ -46,11 +40,9 @@ describe('ChangePasswordModalComponent', () => {
 
 
   beforeEach(async () => {
-    // 🔕 Silenciar consola para mantener terminal limpia ante warnings y errores esperados (ej. HTTP)
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Inicializamos el mock con funciones de Jest
     authServiceMock = {
       changePassword: jest.fn(),
       currentUser: jest.fn(() => ({ email: 'ana.perez@unicauca.edu.co', idNumber: 1061234567 }))
@@ -83,7 +75,7 @@ describe('ChangePasswordModalComponent', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    jest.restoreAllMocks(); // 🧹 Restaurar consola y espías
+    jest.restoreAllMocks();
   });
 
   describe('Inicialización y Renderizado Básico', () => {
@@ -134,7 +126,6 @@ describe('ChangePasswordModalComponent', () => {
         newPassword: 'password123',
         confirmPassword: 'password456'
       });
-      // Actualizamos para forzar la validación a nivel de formGroup
       component.passwordForm.updateValueAndValidity();
 
       expect(component.passwordForm.hasError('passwordMismatch')).toBeTruthy();
@@ -180,7 +171,7 @@ describe('ChangePasswordModalComponent', () => {
     });
 
     it('NO debería abrir el modal de confirmación si el formulario es inválido al intentar guardar', () => {
-      component.onAttemptSave(); // Formulario vacío por defecto (inválido)
+      component.onAttemptSave();
 
       expect(component.isConfirmActionOpen).toBeFalsy();
     });
@@ -219,7 +210,6 @@ describe('ChangePasswordModalComponent', () => {
     });
 
     it('debería manejar errores del servicio, remover el loading y mantener el modal abierto', () => {
-      // Configuramos el mock para simular un error sincrónico
       authServiceMock.changePassword.mockReturnValue(throwError(() => new Error('La contraseña actual es incorrecta.')));
 
       const closeSpy = jest.spyOn(component, 'closeModal');
@@ -236,9 +226,8 @@ describe('ChangePasswordModalComponent', () => {
       expect(component.isConfirmActionOpen).toBeFalsy();
       expect(component.isLoading()).toBeFalsy();
       expect(authServiceMock.changePassword).toHaveBeenCalledTimes(1);
-      expect(closeSpy).not.toHaveBeenCalled(); // No debe cerrarse el modal si hay error
+      expect(closeSpy).not.toHaveBeenCalled();
 
-      // El usuario ve el mensaje del backend
       expect(errorSpy).toHaveBeenCalledWith('No se cambió la contraseña', 'La contraseña actual es incorrecta.');
     });
   });

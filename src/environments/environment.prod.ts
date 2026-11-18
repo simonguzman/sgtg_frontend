@@ -1,4 +1,5 @@
+/** Configuración de producción. `apiUrl` es relativa: Nginx la redirige al backend (nginx.conf). */
 export const environment = {
   production: true,
-  apiUrl: '/api/v1/sgtg' // Ruta relativa que redirige Nginx al backend (nginx.conf)
+  apiUrl: '/api/v1/sgtg'
 };

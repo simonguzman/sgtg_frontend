@@ -71,6 +71,7 @@ export interface Meeting {
   status: stateList;
 }
 
+/** Vista de trabajo de grado (etapa de ejecución) de un trabajo. */
 export interface ThesisWork extends Archivable {
   thesisWorkId: string;
   preliminaryDraftId: string;

@@ -6,6 +6,7 @@ import { RegisterCorrectedDocumentFormComponent } from '../../components/registe
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/** Página en la que el director radica los ajustes pedidos en la sustentación. */
 @Component({
   selector: 'app-register-corrected-documents-page',
   templateUrl: './register-corrected-documents-page.component.html',

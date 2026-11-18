@@ -40,7 +40,6 @@ describe('Integración [Estadísticas]: Casos límite del ProjectDataMapperServi
     jest.clearAllMocks();
     TestBed.configureTestingModule({
       providers: [
-        // UserService (real) consulta el backend: se simula el cliente HTTP
         provideHttpClient(),
         provideHttpClientTesting(),
         ProjectDataMapperService, UserService, UserStorageService, UserApiService, UserFormatterService,

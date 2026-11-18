@@ -9,6 +9,7 @@ import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { first } from 'rxjs';
 import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
+/** Fachada del registro del anteproyecto. */
 @Injectable()
 export class PreliminaryDraftCreatePageService {
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
@@ -17,12 +18,14 @@ export class PreliminaryDraftCreatePageService {
   private readonly router = inject(Router);
   private readonly navigation = inject(NavigationHistoryService);
 
+  /** Estado del modal de confirmación: si está abierto, los datos pendientes y si la operación está en curso. */
   readonly confirmState = signal({
     isOpen: false,
     pendingData: null as PreliminaryDraft | null,
     isProcessing: false
   });
 
+  /** Solo el director y el administrador registran anteproyectos; a los demás los devuelve a la lista con un aviso. */
   checkAccess(): void {
     const hasRequiredRoles = this.authService.hasAnyRole([
       UserRoleType.ADMINISTRADOR,
@@ -34,8 +37,8 @@ export class PreliminaryDraftCreatePageService {
     }
   }
 
+  /** Pide confirmar el registro; mientras se registra uno no se abre otra confirmación, para no enviarlo dos veces. */
   openConfirmation(preliminaryDraft: PreliminaryDraft): void {
-    // Mientras se registra no se abre otra confirmación (se enviaría dos veces)
     if (this.confirmState().isProcessing) return;
     this.confirmState.set({
       isOpen: true,
@@ -44,6 +47,7 @@ export class PreliminaryDraftCreatePageService {
     });
   }
 
+  /** Registra el anteproyecto confirmado y vuelve a la lista. */
   confirmCreation(): void {
     const { pendingData, isProcessing } = this.confirmState();
 
@@ -64,10 +68,12 @@ export class PreliminaryDraftCreatePageService {
       });
   }
 
+  /** Cierra la confirmación sin registrar. */
   cancelCreation(): void {
     this.confirmState.set({ isOpen: false, pendingData: null, isProcessing: false });
   }
 
+  /** Vuelve a la página anterior o, si no hay, a la lista de anteproyectos. */
   goBack(): void {
     this.navigation.back(() => this.router.navigate(['/preliminary-draft']));
   }

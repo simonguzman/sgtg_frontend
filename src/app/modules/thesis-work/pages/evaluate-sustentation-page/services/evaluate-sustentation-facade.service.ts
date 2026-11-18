@@ -27,12 +27,14 @@ const VERDICT_NOTIFICATION_CONFIG: Partial<Record<stateList, { title: string; ty
 };
 const DEFAULT_VERDICT_NOTIFICATION = { title: 'Sustentación Evaluada', type: NotificationType.CONFIRMATION };
 
+/** Fachada de la calificación de la sustentación. */
 @Injectable({ providedIn: 'root' })
 export class EvaluateSustentationFacadeService {
   private readonly thesisWorkService   = inject(ThesisWorkService);
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Carga el trabajo de grado de la ruta; si no existe, avisa y llama a `onError`. */
   public loadThesisWork(
     id: string,
     onSuccess: (thesisWork: ThesisWork) => void,
@@ -86,6 +88,7 @@ export class EvaluateSustentationFacadeService {
       });
   }
 
+  /** Descarga un documento de la sustentación. */
   public async downloadDocument(document: FileDocument): Promise<void> {
     if (!document?.url) {
       this.showNotification('Error de descarga', 'No existe una URL válida vinculada a este archivo.', NotificationType.ERROR);

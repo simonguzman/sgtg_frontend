@@ -55,7 +55,6 @@ export class ChangeCommitteeModalComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['isOpen']?.currentValue) return;
-    // El Comité y el jefe solo tienen su departamento: queda elegido
     const departamentos = this.departments();
     this.departmentId.set(departamentos.length === 1 ? departamentos[0].id : null);
     this.candidateId.set(null);

@@ -8,9 +8,14 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
 import { versionVigente } from '../../../services/preliminary-draft-rules';
 
+/**
+ * Convierte los anteproyectos en filas de la tabla con sus acciones (solo el director anula, antes de la
+ * aprobación del Consejo). El estado de la evaluación es el de la ronda de la versión vigente, y los días
+ * hábiles restantes los calcula el backend con el calendario de la universidad.
+ */
 @Injectable({ providedIn: 'root' })
 export class PreliminaryDraftMapperService {
-
+  /** Fila de un anteproyecto con su estado, su plazo y las acciones del usuario. */
   public mapPreliminaryDraftToTable(
     preliminaryDraft: PreliminaryDraft,
     hasFullAccessRole: boolean,
@@ -76,7 +81,6 @@ export class PreliminaryDraftMapperService {
 
     if (hasViewPermission) allowed.push('ver');
     if (isOwnerOrAdmin && !isApproved) allowed.push('editar');
-    // Solo el director anula, antes de la aprobación del Consejo
     if (isDirector && !isApproved) allowed.push('anular');
 
     return allowed;
@@ -94,7 +98,6 @@ export class PreliminaryDraftMapperService {
 
   private getDeadlineBadge(preliminaryDraft: PreliminaryDraft): string {
     const totalEvaluators = preliminaryDraft.evaluators?.length || 0;
-    // Ronda de la versión vigente (la última radicada), no de la primera
     const currentDocument = versionVigente(preliminaryDraft);
     const currentRoundEvaluations = preliminaryDraft.evaluations?.filter(evaluation => currentDocument && evaluation.documentId === currentDocument.id) || [];
     const statusLabel = this.getEvaluationsStatusLabel(currentRoundEvaluations);
@@ -106,7 +109,6 @@ export class PreliminaryDraftMapperService {
     if (!preliminaryDraft.evaluationDeadline) return 'Sin límite (Consejo)';
     if (totalEvaluators > 0 && currentRoundEvaluations.length >= totalEvaluators) return `Evaluación completada — ${statusLabel} (Esperando Consejo)`;
 
-    // Los días hábiles restantes los calcula el backend con el calendario de la universidad
     return remainingDaysLabel(preliminaryDraft.evaluationRemainingDays);
   }
 }

@@ -1,11 +1,13 @@
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { ProjectStage } from '../enum/projectStage.enum';
 
+/** Opción del filtro de etapa. */
 export interface StageOption {
   label: string;
   value: ProjectStage;
 }
 
+/** Opciones del filtro de etapa. */
 export const STAGE_OPTIONS: StageOption[] = [
   { label: 'Propuesta', value: ProjectStage.PROPUESTA },
   { label: 'Anteproyecto', value: ProjectStage.ANTEPROYECTO },

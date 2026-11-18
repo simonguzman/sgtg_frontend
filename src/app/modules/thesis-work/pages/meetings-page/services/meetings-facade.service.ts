@@ -13,6 +13,7 @@ import { ThesisWorkService } from '../../../services/thesis-work.service';
 /** Etapas en las que el director agenda las reuniones (como los informes mensuales). */
 const ETAPAS_CON_REUNIONES = ['EN_CURSO', 'PRORROGA'];
 
+/** Fila de la tabla de reuniones de seguimiento. */
 export interface MeetingTableRow {
   id: string;
   meeting: string;
@@ -43,7 +44,6 @@ export function reportLabel(meeting: Meeting, openNumber: number | null): string
   if (meeting.hasReport) return `Informe ${meeting.number} radicado`;
   if (meeting.acceptsReport) return 'Recibiendo el informe';
   if (meeting.held || meeting.status === stateList.VENCIDA) return 'Sin informe';
-  // Agendada y sin recibir: su hora ya llegó, salvo que espere a que pase una anterior
   const horaPasada = !!meeting.scheduledAt && (openNumber === null || openNumber > meeting.number);
   return horaPasada ? 'Sin informe' : 'Pendiente';
 }
@@ -61,16 +61,20 @@ export class MeetingsFacadeService {
   private readonly authService = inject(AuthService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Id del trabajo, tomado de la ruta. */
   readonly thesisWorkId = signal<string | null>(null);
   /** Mientras se guarda, no se envía otra operación */
   readonly isSubmitting = signal(false);
 
+  /** Trabajo de las reuniones. */
   readonly thesisWork = computed<ThesisWork | undefined>(() =>
     this.thesisWorkService.allThesisWorks().find(thesis => thesis.thesisWorkId === this.thesisWorkId())
   );
 
+  /** Reuniones de seguimiento, una por mes del plazo de ejecución. */
   readonly meetings = computed<Meeting[]>(() => this.thesisWork()?.meetings ?? []);
 
+  /** true si el usuario es el director, que agenda las reuniones y registra que se realizaron. */
   readonly isDirector = computed(() => {
     const userId = this.authService.currentUser()?.id;
     return !!userId && this.thesisWork()?.preliminaryDraftData?.proposalData?.director?.id === userId;
@@ -80,6 +84,7 @@ export class MeetingsFacadeService {
   readonly canSchedule = computed(() => this.isDirector() && !this.thesisWork()?.isArchived
     && ETAPAS_CON_REUNIONES.includes(this.thesisWork()?.stage ?? ''));
 
+  /** Resumen de las reuniones: total, realizadas y con informe. */
   readonly summary = computed(() => {
     const meetings = this.meetings();
     return {
@@ -89,13 +94,13 @@ export class MeetingsFacadeService {
     };
   });
 
+  /** Reuniones como filas de la tabla, con las acciones del usuario. */
   readonly rows = computed<MeetingTableRow[]>(() => this.meetings().map(meeting => this.toRow(meeting)));
 
   private toRow(meeting: Meeting): MeetingTableRow {
     const allowedActions = ['view-details'];
     const pendiente = !meeting.held && meeting.status !== stateList.EN_SUSPENSION;
     if (this.canSchedule() && pendiente) allowedActions.push('schedule');
-    // Se registra desde el día de la reunión (lo valida el backend con su fecha)
     if (this.isDirector() && !this.thesisWork()?.isArchived && meeting.scheduledAt && !meeting.held) {
       allowedActions.push('register-held');
     }
@@ -112,6 +117,7 @@ export class MeetingsFacadeService {
     };
   }
 
+  /** Agenda o reprograma una reunión con su fecha, hora y lugar. */
   schedule(meeting: Meeting, dateTime: Date, place: string, onSuccess: () => void): void {
     const id = this.thesisWorkId();
     if (!id || this.isSubmitting()) return;
@@ -131,6 +137,7 @@ export class MeetingsFacadeService {
     });
   }
 
+  /** Registra que la reunión se realizó, desde su día (lo valida el backend con su fecha). */
   registerHeld(meeting: Meeting, observations: string, onSuccess: () => void): void {
     const id = this.thesisWorkId();
     if (!id || this.isSubmitting()) return;

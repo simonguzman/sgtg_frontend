@@ -5,11 +5,13 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 import { Advance } from '../../../interfaces/advance.interface';
 
+/** Descargas de la página de documentos cargados del trabajo. */
 @Injectable({ providedIn: 'root' })
 export class LoadedDocumentsThesisWorkFacadeService {
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Descarga un documento. */
   public async downloadDocument(document: FileDocument): Promise<void> {
     if (!document.url) {
       this.showNotification('Error de descarga', 'No existe una URL válida vinculada a este archivo.', NotificationType.ERROR);
@@ -23,11 +25,13 @@ export class LoadedDocumentsThesisWorkFacadeService {
     }
   }
 
+  /** Descarga un documento del informe elegido por su nombre. */
   public async downloadDocumentByName(fileName: string, selectedAdvance: Advance | null): Promise<void> {
     const target = selectedAdvance?.documents?.find(d => d.name === fileName);
     await this.downloadDocument(target ?? { name: fileName, url: '' } as FileDocument);
   }
 
+  /** Muestra el aviso «Acción no permitida». */
   public showRestrictedActionNotification(): void {
     this.showNotification(
       'Acción no permitida',
@@ -36,6 +40,7 @@ export class LoadedDocumentsThesisWorkFacadeService {
     );
   }
 
+  /** Muestra el aviso «Registro no encontrado». */
   public showNotFoundError(): void {
     this.showNotification('Registro no encontrado', 'No fue posible cargar los detalles de este registro.', NotificationType.ERROR);
   }

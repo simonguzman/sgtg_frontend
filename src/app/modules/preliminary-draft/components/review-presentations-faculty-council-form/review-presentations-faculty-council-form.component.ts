@@ -11,6 +11,10 @@ import { FormattedDocument } from '../../../../core/interfaces/formatted-documen
 import { SaveEvaluationPayload } from './models/council-evaluation.model';
 import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
+/**
+ * Formulario del Consejo de Facultad para decidir sobre el anteproyecto remitido con el formato C; al
+ * aprobarlo fija la fecha de su reunión y la fecha máxima de entrega.
+ */
 @Component({
   selector: 'app-review-presentations-faculty-council-form',
   standalone: true,

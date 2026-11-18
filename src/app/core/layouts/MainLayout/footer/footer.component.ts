@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { APP_VERSION, getCurrentYear } from '../../../utils/app-metadata-utils';
 
+/** Pie de página de la aplicación. */
 @Component({
   selector: 'app-footer',
   imports: [],

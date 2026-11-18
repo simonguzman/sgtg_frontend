@@ -257,7 +257,7 @@ describe('ProposalFormComponent', () => {
     });
 
     it('debería detenerse y notificar error si falta el archivo en Modo Creación', async () => {
-      component.attachedFile.hasFile = false; // Estado sin archivo
+      component.attachedFile.hasFile = false;
       await component.submit();
       expect(mockNotificationService.show).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Archivo requerido', type: NotificationType.ERROR })
@@ -331,7 +331,6 @@ describe('ProposalFormComponent', () => {
       expect(component.acceptanceLetter).toEqual({ hasFile: true, name: 'Carta de aceptación', file: null });
       expect(fixture.nativeElement.textContent).toContain('Carta de aceptación');
 
-      // Al quitarla es obligatorio cargar otra
       component.removeAcceptanceLetter();
       await component.submit();
       expect(component.isLetterFieldInvalid).toBe(true);

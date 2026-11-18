@@ -27,7 +27,7 @@ FROM nginx:1.27-alpine AS runtime
 RUN rm -rf /usr/share/nginx/html/*
 
 # Aquí traemos la carpeta generada en la fase 1 (build)
-COPY --from=build /app/dist/sgtg-prueba/browser/ /usr/share/nginx/html/
+COPY --from=build /app/dist/sgtg-frontend/browser/ /usr/share/nginx/html/
 
 # Copia de la configuración de enrutado y proxy inverso
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf

@@ -40,7 +40,6 @@ describe('Integración [Proposal]: Visibilidad por rol — señal proposals() fi
   });
 
   it('un usuario sin rol privilegiado solo ve las propuestas donde tiene relación real', () => {
-    // El Jefe de departamento recibe todos los trabajos, pero la vista de propuestas filtra por participación
     iniciarSesionConTrabajos(usuario('1', [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP]),
       [crearTrabajoDePrueba(), trabajoAjeno]);
 

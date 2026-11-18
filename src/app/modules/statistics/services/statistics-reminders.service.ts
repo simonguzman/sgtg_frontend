@@ -34,7 +34,9 @@ export class StatisticsRemindersService {
   private readonly authStorage = inject(AuthStorageService);
   private readonly notification = inject(NotificationService);
 
+  /** true si el usuario envía recordatorios de entrega. */
   readonly canRemind = computed(() => ROLES_RECORDATORIO.some(rol => this.authStorage.userRoles().includes(rol)));
+  /** true si el usuario abre el detalle de los trabajos. */
   readonly canOpenDetails = computed(() =>
     ROLES_DETALLE_TRABAJO.some(rol => this.authStorage.userRoles().includes(rol)));
 
@@ -43,6 +45,7 @@ export class StatisticsRemindersService {
   /** Trabajos ya recordados hoy en esta sesión */
   readonly reminded = signal<ReadonlySet<string>>(new Set());
 
+  /** Envía el recordatorio de entrega de un trabajo y avisa el resultado; el backend acepta uno por trabajo al día. */
   remind(project: RawProjectData): void {
     if (this.sending().has(project.id)) return;
     this.enviar(project).subscribe(resultado => {

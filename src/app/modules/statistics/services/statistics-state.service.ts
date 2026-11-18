@@ -10,6 +10,10 @@ import { ProjectDataMapperService } from './project-data-mapper.service';
 import { STAGE_OPTIONS, statisticsScope } from '../models/statistics-options.model';
 import { AuthStorageService } from '../../../core/services/auth/auth-storage.service';
 
+/**
+ * Datos y filtros de la página de estadísticas: un registro por trabajo visible y los filtros aplicados sobre
+ * ellos.
+ */
 @Injectable({ providedIn: 'root' })
 export class StatisticsStateService {
   private readonly store = inject(TrabajoGradoStoreService);
@@ -30,7 +34,8 @@ export class StatisticsStateService {
   /**
    * Un registro por trabajo de grado, en la etapa más avanzada que alcanzó
    * (propuesta, anteproyecto o trabajo de grado). Un trabajo cerrado se cuenta
-   * con su resultado final. La modalidad y el programa son los del trabajo.
+   * con su resultado final. La modalidad es la del trabajo y el programa, el del
+ * primer estudiante (el de su Comité, que conceptúa la propuesta).
    */
   public readonly rawData = computed<RawProjectData[]>(() => {
     const propuestas = new Map(this.vistas.propuestas().map(p => [p.id, p]));
@@ -48,7 +53,6 @@ export class StatisticsStateService {
       const delTrabajo: RawProjectData = {
         ...dato,
         modality: trabajo.modalidad === 'PRACTICA_PROFESIONAL' ? 'Práctica profesional' : 'Trabajo de investigación',
-        // El programa del estudiante 1 (el de su Comité, que conceptúa la propuesta)
         program: trabajo.estudiantes[0]?.programa?.nombre ?? 'Sin programa'
       };
       if (!estaCerrado(trabajo)) return [delTrabajo];
@@ -57,11 +61,13 @@ export class StatisticsStateService {
     });
   });
 
+  /** Periodos académicos con trabajos, del más reciente al más antiguo. */
   public readonly periodsOptions = computed<string[]>(() => {
     const periods = new Set(this.rawData().map(d => d.period));
     return Array.from(periods).sort((a, b) => b.localeCompare(a));
   });
 
+  /** Directores con trabajos. */
   public readonly directorsOptions = computed<{ id: string; name: string }[]>(() => {
     const map = new Map<string, string>();
     this.rawData().forEach((d) => {
@@ -72,14 +78,18 @@ export class StatisticsStateService {
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   });
 
+  /** Modalidades con trabajos. */
   public readonly modalityOptions = computed<string[]>(() =>
     Array.from(new Set(this.rawData().map(d => d.modality))).sort((a, b) => a.localeCompare(b)));
 
+  /** Programas con trabajos. */
   public readonly programOptions = computed<string[]>(() =>
     Array.from(new Set(this.rawData().map(d => d.program))).sort((a, b) => a.localeCompare(b)));
 
+  /** Opciones del filtro de etapa. */
   public readonly stagesOptions = STAGE_OPTIONS;
 
+  /** Trabajos que cumplen todos los filtros; el del plazo se combina con el de situación, así que sirve para trabajos en proceso, cerrados o ambos. */
   public readonly filteredData = computed<RawProjectData[]>(() => {
     const data = this.rawData();
     const filters = this.currentFilters();
@@ -92,7 +102,6 @@ export class StatisticsStateService {
       const matchArchive  = filters.archiveStatus === 'ALL' ? true :
                              filters.archiveStatus === 'ARCHIVED' ? project.isArchived :
                              !project.isArchived;
-      // Se combina con matchArchive: sirve para trabajos en proceso, cerrados o ambos
       const matchDeadline = filters.deadlineFilter === 'ALL' ? true :
                              filters.deadlineFilter === 'NOT_EVALUATED' ? project.deadlineStatus === null :
                              project.deadlineStatus === filters.deadlineFilter;
@@ -101,10 +110,12 @@ export class StatisticsStateService {
     });
   });
 
+  /** Aplica los filtros indicados sobre los actuales. */
   public updateFilters(newFilters: Partial<StatisticsFilters>): void {
     this.currentFilters.update(current => ({ ...current, ...newFilters }));
   }
 
+  /** Vuelve a los filtros por defecto. */
   public clearFilters(): void {
     this.currentFilters.set({ ...DEFAULT_STATISTICS_FILTERS });
   }

@@ -5,11 +5,9 @@ const STATE_TO_STATUS_MAP: Partial<Record<stateList, ProjectStatus>> = {
   [stateList.APROBADO]: ProjectStatus.APROBADO,
   [stateList.APROBADO_CON_OBSERVACIONES]: ProjectStatus.APROBADO_OBSERVACIONES,
   [stateList.NO_APROBADO]: ProjectStatus.NO_APROBADO,
-  // El concepto de la propuesta cuenta como aprobado o no aprobado en las estadísticas
   [stateList.PERTINENTE]: ProjectStatus.APROBADO,
   [stateList.NO_PERTINENTE]: ProjectStatus.NO_APROBADO,
   [stateList.EN_REVISION]: ProjectStatus.EN_REVISION,
-  // El anteproyecto evaluado con observaciones sigue en proceso: falta la versión corregida
   [stateList.EVALUADO_CON_OBSERVACIONES]: ProjectStatus.EN_REVISION,
   [stateList.EN_DESARROLLO]: ProjectStatus.EN_DESARROLLO,
   [stateList.APLAZADO]: ProjectStatus.APLAZADO,
@@ -17,6 +15,11 @@ const STATE_TO_STATUS_MAP: Partial<Record<stateList, ProjectStatus>> = {
   [stateList.CANCELADO]: ProjectStatus.CANCELADO
 };
 
+/**
+ * Estado de las estadísticas para un estado del trabajo. El concepto de la propuesta cuenta como aprobado o
+ * no aprobado, y el anteproyecto evaluado con observaciones sigue en revisión porque falta la versión
+ * corregida.
+ */
 export function mapStateToProjectStatus(state: stateList): ProjectStatus {
   return STATE_TO_STATUS_MAP[state] ?? ProjectStatus.EN_REVISION;
 }

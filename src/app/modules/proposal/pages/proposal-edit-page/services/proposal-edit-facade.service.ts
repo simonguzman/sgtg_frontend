@@ -8,12 +8,14 @@ import { Proposal } from '../../../interfaces/proposal.interface';
 import { propuestaEditable } from '../../../services/proposal-rules.service';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
+/** Fachada de la corrección de la propuesta. */
 @Injectable({ providedIn: 'root' })
 export class ProposalEditFacadeService {
   private readonly proposalService = inject(ProposalService);
   private readonly authService = inject(AuthService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Carga la propuesta y comprueba que el usuario sea su director y que el estado permita corregirla. */
   public loadAndAuthorize(
     id: string,
     onAuthorized: (proposal: Proposal) => void,
@@ -50,10 +52,12 @@ export class ProposalEditFacadeService {
       });
   }
 
+  /** @returns el primer error de las reglas de la propuesta, o null si las cumple */
   public validateRules(proposal: Proposal): string | null {
     return this.proposalService.validateProposalRules(proposal);
   }
 
+  /** Guarda la corrección y, si se cargó un formato A nuevo, lo radica como nueva versión. */
   public saveUpdate(
     id: string,
     data: Proposal,
@@ -77,6 +81,7 @@ export class ProposalEditFacadeService {
       });
   }
 
+  /** Muestra un error de validación. */
   public showValidationError(message: string): void {
     this.showNotification('Error de actualización', message, NotificationType.ERROR);
   }

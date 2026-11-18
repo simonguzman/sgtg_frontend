@@ -28,7 +28,6 @@
 
   @if (facade.viewData(); as data) {
 
-    <!-- ── Banner: estado administrativo ─────────────────────────────────── -->
     @if (data.isAdministrativelyPostponed || data.isAdministrativelyCanceled) {
       <div class="notification notification--security mb-6">
         <span class="notification__icon">
@@ -57,7 +56,6 @@
       </div>
     }
 
-    <!-- ── Sección: Información general ──────────────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mb-4">
       Información general
     </h3>
@@ -77,7 +75,6 @@
       }
     </div>
 
-    <!-- ── Sección: Participantes académicos ──────────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
       Participantes académicos
     </h3>
@@ -108,7 +105,6 @@
       </div>
     </div>
 
-    <!-- ── Sección: Programación ──────────────────────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
       Programación de la sustentación
     </h3>
@@ -163,14 +159,12 @@
       </div>
     }
 
-    <!-- ── Sección: Archivos adjuntos ─────────────────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
       Archivos adjuntos
     </h3>
 
     <div class="flex flex-col gap-3 mb-8">
 
-      <!-- Monografía -->
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
         <div class="flex items-center gap-3 overflow-hidden">
           <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
@@ -189,7 +183,6 @@
         </app-button-component>
       </div>
 
-      <!-- Anexos -->
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
         <div class="flex items-center gap-3 overflow-hidden">
           <span class="material-symbols-outlined text-danger text-file shrink-0">folder_open</span>
@@ -208,7 +201,6 @@
         </app-button-component>
       </div>
 
-      <!-- Formato E -->
       @if (data.formatEDocument) {
         <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
           <div class="flex items-center gap-3 overflow-hidden">
@@ -230,7 +222,6 @@
 
     </div>
 
-    <!-- ── Sección: Evaluaciones de los jurados ───────────────────────────── -->
     <h3 class="font-semibold text-size-header-title font-display text-primary mt-8 mb-4">
       Evaluaciones de los jurados
     </h3>

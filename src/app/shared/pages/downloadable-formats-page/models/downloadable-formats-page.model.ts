@@ -1,17 +1,20 @@
 import { TabItem } from '../../../components/tabs/tabs.component';
 import { Column } from '../../../components/table-component/table-component.component';
 
+/** Formato descargable: identificador, título y ruta del PDF en los recursos de la aplicación. */
 export interface DownloadableFormat {
   id: string;
   title: string;
   url: string;
 }
 
+/** Pestañas por modalidad. */
 export const DOWNLOADABLE_FORMATS_TABS: TabItem[] = [
   { label: 'Trabajo de investigación', value: 'TI' },
   { label: 'Práctica profesional',     value: 'PP' }
 ];
 
+/** Columnas de la tabla de formatos. */
 export const DOWNLOADABLE_FORMATS_COLUMNS: Column[] = [
   { field: 'title',    header: 'Título', type: 'text',    width: '80%' },
   {
@@ -20,6 +23,7 @@ export const DOWNLOADABLE_FORMATS_COLUMNS: Column[] = [
   }
 ];
 
+/** Formatos de cada modalidad (TI: trabajo de investigación, PP: práctica profesional). */
 export const DOWNLOADABLE_FORMATS_BY_CATEGORY: Record<string, DownloadableFormat[]> = {
   TI: [
     { id: 'ti-a', title: 'FORMATO TI-A: PRESENTACION DE LA PROPUESTA DE TRABAJO DE GRADO MODALIDAD PRACTICA PROFESIONAL AL COMITÉ DE PROGRAMA DEL ESTUDIANTE', url: 'assets/formats/TI/TI-A.pdf' },

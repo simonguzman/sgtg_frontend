@@ -53,7 +53,6 @@ describe('RequiredPasswordChangeComponent', () => {
     component.onSubmit();
     llenar('Asignada1*', 'MiClave2026*', 'Otra2026*');
     component.onSubmit();
-    // Contiene el documento del usuario
     llenar('Asignada1*', 'Doc1061234567*');
     component.onSubmit();
 

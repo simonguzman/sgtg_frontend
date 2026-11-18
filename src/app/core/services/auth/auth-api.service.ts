@@ -33,13 +33,13 @@ export class AuthApiService {
   private readonly apiUrl  = environment.apiUrl;
 
   /**
-   * Inicia sesión. Las credenciales rechazadas (401), los datos inválidos (400)
-   * y el exceso de intentos (429) se devuelven como `{ success: false, message }`;
-   * los errores de conexión o del servidor se propagan como error.
+   * Inicia sesión y consulta el usuario con el token recién emitido, que todavía no está en la sesión.
+   * Las credenciales rechazadas (401), los datos inválidos (400) y el exceso de intentos desde la misma
+   * dirección IP (429, límite de Nginx) se devuelven como `{ success: false, message }`; los errores de
+   * conexión o del servidor se propagan como error.
    */
   login(credentials: { email: string; password: string }): Observable<{ success: boolean; message?: string }> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, credentials).pipe(
-      // El token todavía no está en la sesión: se envía explícito para consultar el usuario
       switchMap(({ token }) => this.http.get<UsuarioResponse>(`${this.apiUrl}/usuarios/me`, {
         headers: { Authorization: `Bearer ${token}` }
       }).pipe(tap(usuario => this.storage.setSession(token, mapUsuarioToUser(usuario))))),
@@ -48,7 +48,6 @@ export class AuthApiService {
         if (error.status === 401 || error.status === 400) {
           return of({ success: false, message: this.mensajeDeError(error, CREDENCIALES_INVALIDAS) });
         }
-        // Límite de intentos por dirección IP (Nginx)
         if (error.status === 429) {
           return of({ success: false, message: DEMASIADOS_INTENTOS });
         }
@@ -61,11 +60,11 @@ export class AuthApiService {
    * Pide un token de acceso nuevo con el token de renovación de la cookie. Si
    * todavía no hay usuario en la sesión (la página se recargó), también lo
    * consulta. Un 401 o 403 es una sesión vencida; los errores de conexión se
-   * propagan, para no cerrar la sesión por una caída momentánea.
+   * propagan, para no cerrar la sesión por una caída momentánea. Envía la cabecera
+   * `X-Requested-With`, que el backend exige para que un sitio ajeno no pueda usar la cookie.
    */
   renovar(): Observable<ResultadoRenovacion> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/auth/renovar`, null, {
-      // El backend la exige: un sitio ajeno no puede enviarla
       headers: { 'X-Requested-With': 'XMLHttpRequest' }
     }).pipe(
       switchMap(({ token }) => this.storage.currentUser()
@@ -94,12 +93,13 @@ export class AuthApiService {
    * sin esperar la respuesta. Si el token de acceso ya venció, el backend la
    * cierra con la cookie.
    *
+   * El token se envía explícito porque la sesión local se limpia antes de que salga la petición.
+   *
    * @param motivo motivo del cierre (ej. `inactividad`), queda en la auditoría
    */
   logout(motivo?: string): void {
     const token = this.storage.token();
     if (token || this.storage.haySesionGuardada()) {
-      // El token se envía explícito: la sesión local se limpia antes de que salga la petición
       this.http.post<void>(`${this.apiUrl}/auth/logout`, null, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         params: motivo ? { motivo } : {}

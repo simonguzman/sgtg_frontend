@@ -51,7 +51,6 @@ export const SpecialRequestTabConfig: TabConfiguration<SpecialRequestTableRow> =
 
     return thesis.specialRequests.map((request: SpecialRequest): SpecialRequestTableRow => {
       const allowedActions: string[] = ['view-details'];
-      // El cambio de título y objetivos lo avala primero el Comité; lo demás lo decide el Consejo
       const decide = request.pendingWith === 'COMITE' ? !!context.isComite : context.isConsejo;
       if (!isArchived && decide && request.status === stateList.EN_REVISION
         && request.requestType !== SpecialRequestType.REANUDACION) {

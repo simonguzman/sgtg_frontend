@@ -65,7 +65,6 @@ describe('AuthStorageService', () => {
       service.setSession(token, mockUser);
       expect(service.isAuthenticated()).toBe(true);
       expect(service.userRoles()).toEqual(mockUser.roles);
-      expect(service.hasValidToken()).toBe(true);
       expect(Object.keys(localStorage)).toEqual([CLAVE_HAY_SESION]);
       expect(JSON.stringify(localStorage)).not.toContain(token);
     });
@@ -92,12 +91,6 @@ describe('AuthStorageService', () => {
       expect(service.token()).toBeNull();
       expect(service.isAuthenticated()).toBe(false);
       expect(service.haySesionGuardada()).toBe(false);
-    });
-
-    it('un token vencido no es válido', () => {
-      expect(service.hasValidToken()).toBe(false);
-      service.setSession(crearJwtDePrueba(-1), mockUser);
-      expect(service.hasValidToken()).toBe(false);
     });
   });
 });

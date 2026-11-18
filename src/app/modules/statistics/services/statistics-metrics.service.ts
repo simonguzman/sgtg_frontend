@@ -18,10 +18,12 @@ const EN_PROCESO: ProjectStatus[] = [
 export class StatisticsMetricsService {
   private readonly state = inject(StatisticsStateService);
 
+  /** Trabajos que cumplen los filtros. */
   public readonly totalLoaded = computed<number>(() =>
     this.state.filteredData().length
   );
 
+  /** Trabajos aprobados. */
   public readonly totalApproved = computed<number>(() =>
     this.state.filteredData().filter(p => p.status === ProjectStatus.APROBADO).length
   );
@@ -31,6 +33,7 @@ export class StatisticsMetricsService {
     this.state.filteredData().filter(p => EN_PROCESO.includes(p.status)).length
   );
 
+  /** Trabajos no aprobados o cancelados. */
   public readonly totalNotApproved = computed<number>(() =>
     this.state.filteredData().filter(p =>
       p.status === ProjectStatus.NO_APROBADO || p.status === ProjectStatus.CANCELADO
@@ -47,5 +50,6 @@ export class StatisticsMetricsService {
       .filter(p => p.dueSoon && !p.isArchived)
       .sort((a, b) => (a.daysUntilDelivery ?? 0) - (b.daysUntilDelivery ?? 0)));
 
+  /** Cantidad de trabajos próximos a vencer. */
   public readonly totalDueSoon = computed<number>(() => this.dueSoonProjects().length);
 }

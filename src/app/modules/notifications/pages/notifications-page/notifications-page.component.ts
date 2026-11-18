@@ -5,6 +5,10 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 import { NotificationsPageFacadeService } from './services/notifications-page-facade.service';
 import { INBOX_COLUMNS, InboxMessageTableRow, ModalActionType } from './../../models/notifications-page.model';
 
+/**
+ * Bandeja de entrada: lista las notificaciones, las marca como leídas al abrirlas, lleva a la vista de su
+ * evento y permite eliminarlas.
+ */
 @Component({
   selector: 'app-notifications-page',
   standalone: true,

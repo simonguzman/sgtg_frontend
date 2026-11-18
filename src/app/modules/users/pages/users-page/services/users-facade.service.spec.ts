@@ -102,7 +102,6 @@ describe('Service: UsersFacadeService', () => {
     });
 
     service = TestBed.inject(UsersFacadeService);
-    // La tabla muestra los usuarios que gestiona el usuario de la sesión
     service.loadUsers();
   });
 
@@ -175,7 +174,6 @@ describe('Service: UsersFacadeService', () => {
       expect(mockNotificationService.show).toHaveBeenNthCalledWith(2, expect.objectContaining({ type: NotificationType.CONFIRMATION }));
       expect(mockUserService.updateUserRoles).toHaveBeenCalledWith('123', [UserRoleType.ADMINISTRADOR]);
       expect(onSuccessSpy).toHaveBeenCalled();
-      // La tabla se recarga con los roles nuevos
       expect(mockUserService.loadManagedUsers).toHaveBeenCalledTimes(2);
     });
 

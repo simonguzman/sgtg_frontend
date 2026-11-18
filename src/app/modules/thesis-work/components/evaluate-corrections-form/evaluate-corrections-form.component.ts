@@ -9,6 +9,7 @@ import { FileDocument } from '../../../../core/interfaces/file-document.interfac
 import { stateList } from '../../../../core/enums/state.enum';
 import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
+/** Formulario del jurado para verificar los ajustes que el director radicó después de la sustentación. */
 @Component({
   selector: 'app-evaluate-corrections-form',
   templateUrl: './evaluate-corrections-form.component.html',

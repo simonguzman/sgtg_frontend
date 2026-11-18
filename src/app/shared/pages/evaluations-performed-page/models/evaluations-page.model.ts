@@ -4,6 +4,7 @@ import { FileDocument } from '../../../../core/interfaces/file-document.interfac
 import { Evaluation } from '../../../../core/interfaces/evaluation.interface';
 import { Column, TableRow } from '../../../components/table-component/table-component.component';
 
+/** Fila de la tabla de evaluaciones realizadas. */
 export interface EvaluationTableRow extends TableRow {
   id: string;
   evaluatorId: string;
@@ -17,12 +18,14 @@ export interface EvaluationTableRow extends TableRow {
   allowedActions: string[];
 }
 
+/** Evaluación antes de darle formato de fila; sus documentos pueden venir en varias formas. */
 export type RawEvaluationData = Omit<Partial<Evaluation>, 'signedDocuments'> & {
   documentTargetName?: string;
   comments?: string;
   signedDocuments?: (string | FormattedDocument | FileDocument)[];
 };
 
+/** Columnas de la tabla de evaluaciones realizadas. */
 export const EVALUATIONS_COLUMNS: Column[] = [
   { field: 'evaluatorName',      header: 'Nombre',               type: 'text',   width: '20%' },
   { field: 'evaluatorRole',      header: 'Rol',                  type: 'text',   width: '20%' },

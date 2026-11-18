@@ -7,6 +7,9 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
+/**
+ * Fachada de la asignación de evaluadores: carga el anteproyecto, pide confirmación y registra la asignación.
+ */
 @Injectable()
 export class AssignEvaluatorsPageFacadeService {
   private readonly route = inject(ActivatedRoute);
@@ -15,16 +18,21 @@ export class AssignEvaluatorsPageFacadeService {
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Id del anteproyecto, tomado de la ruta. */
   readonly targetPreliminaryDraftId = signal<string | null>(null);
+  /** Anteproyecto al que se asignan los evaluadores. */
   readonly selectedPreliminaryDraft = signal<PreliminaryDraft | null>(null);
+  /** true mientras se carga el anteproyecto. */
   readonly isDataLoading = signal<boolean>(true);
 
+  /** Estado del modal de confirmación: si está abierto, los datos pendientes y si la operación está en curso. */
   readonly confirmState = signal({
     isOpen: false,
     pendingData: null as { ev1: string; ev2: string } | null,
     isProcessing: false
   });
 
+  /** Carga el anteproyecto de la ruta. */
   init(): void {
     const resolvedId = this.route.snapshot.paramMap.get('id') ??
                        this.route.parent?.snapshot.paramMap.get('id') ??
@@ -59,8 +67,8 @@ export class AssignEvaluatorsPageFacadeService {
     });
   }
 
+  /** Pide confirmar la asignación; mientras se guarda una no se abre otra confirmación. */
   handleAssign(evaluators: { ev1: string; ev2: string }): void {
-    // Mientras se guarda la asignación no se abre otra confirmación
     if (this.confirmState().isProcessing) return;
     this.confirmState.set({
       isOpen: true,
@@ -69,6 +77,7 @@ export class AssignEvaluatorsPageFacadeService {
     });
   }
 
+  /** Registra la asignación confirmada y vuelve a los documentos cargados. */
   confirmAssignment(): void {
     const { pendingData, isProcessing } = this.confirmState();
     const preliminaryDraft = this.selectedPreliminaryDraft();
@@ -94,10 +103,12 @@ export class AssignEvaluatorsPageFacadeService {
     });
   }
 
+  /** Cierra la confirmación sin asignar. */
   cancelAssignment(): void {
     this.confirmState.set({ isOpen: false, pendingData: null, isProcessing: false });
   }
 
+  /** Vuelve a la página anterior o, si no hay, a los documentos cargados. */
   goBack(): void {
     this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route }));
   }

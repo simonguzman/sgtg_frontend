@@ -5,6 +5,7 @@ import { DialogModule } from 'primeng/dialog';
 import { CommonModule } from '@angular/common';
 import { ButtonComponent } from '../../../button-component/button-component.component';
 
+/** Modal para marcar los roles de un usuario; los roles bloqueados no se pueden cambiar. */
 @Component({
   selector: 'app-roles-selection-modal',
   imports: [DialogModule, CommonModule, ButtonComponent],

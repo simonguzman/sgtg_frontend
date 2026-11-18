@@ -7,10 +7,13 @@ import { PreliminaryDraftAssignmentService } from './preliminary-draft-assignmen
 import { PreliminaryDraftDocumentService, ResultadoConceptoEvaluador } from './preliminary-draft-document.service';
 
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
-import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
 import { stateList } from '../../../core/enums/state.enum';
 
+/**
+ * Fachada del módulo de anteproyectos: reúne el almacén, las llamadas al backend, la asignación de
+ * evaluadores y los documentos.
+ */
 @Injectable({ providedIn: 'root' })
 export class PreliminaryDraftService {
   private readonly storage = inject(PreliminaryDraftStorageService);
@@ -18,28 +21,32 @@ export class PreliminaryDraftService {
   private readonly assignment = inject(PreliminaryDraftAssignmentService);
   private readonly document = inject(PreliminaryDraftDocumentService);
 
-  // ── Estado reactivo (Signals) ──────────────────────────────────────────────
+  /** Anteproyectos activos visibles para el usuario. */
   readonly preliminaryDrafts = this.storage.preliminaryDrafts;
+  /** Todos los anteproyectos del almacén, también los archivados. */
   readonly allPreliminaryDrafts = this.storage.allPreliminaryDrafts;
 
-  // ── CRUD ───────────────────────────────────────────────────────────────────
+  /** Anteproyecto por id, de memoria o del backend. */
   getPreliminaryDraftById(id: string): Observable<PreliminaryDraft | undefined> {
     return this.api.getPreliminaryDraftById(id);
   }
 
+  /** Registra el anteproyecto con su primera versión. */
   createPreliminaryDraft(preliminaryDraft: PreliminaryDraft): Observable<PreliminaryDraft> {
     return this.api.createPreliminaryDraft(preliminaryDraft);
   }
 
+  /** Corrige el anteproyecto y, si trae un PDF nuevo, radica una nueva versión. */
   updatePreliminaryDraft(id: string, updatedData: PreliminaryDraft): Observable<PreliminaryDraft> {
     return this.api.updatePreliminaryDraft(id, updatedData);
   }
 
+  /** Anula el trabajo del anteproyecto. */
   annulDraft(id: string, justification: string): Observable<void> {
     return this.api.annulDraft(id, justification);
   }
 
-  // ── Asignación ─────────────────────────────────────────────────────────────
+  /** @returns el primer error de la asignación de evaluadores, o null */
   validateReviewersRules(
     originalProposal: Proposal,
     evaluator1Id: string,
@@ -48,6 +55,7 @@ export class PreliminaryDraftService {
     return this.assignment.validateReviewersRules(originalProposal, evaluator1Id, evaluator2Id);
   }
 
+  /** Asigna los dos evaluadores del anteproyecto. */
   assignReviewers(
     preliminaryDraftId: string,
     evaluatorsIds: string[]
@@ -55,7 +63,6 @@ export class PreliminaryDraftService {
     return this.assignment.assignReviewers(preliminaryDraftId, evaluatorsIds);
   }
 
-  // ── Documentos y evaluaciones ──────────────────────────────────────────────
   /** Concepto de un evaluador (APROBADO o CON_CORRECCIONES) con el formato B y anotaciones opcionales. */
   registerEvaluatorConcept(
     preliminaryDraftId: string,
@@ -88,13 +95,5 @@ export class PreliminaryDraftService {
   ): Observable<PreliminaryDraft> {
     return this.document.registerCouncilDecision(preliminaryDraftId, veredict, observaciones, resolucion,
       startDate, endDate);
-  }
-
-  calculateDocumentStatus(
-    documentId: string,
-    evaluations: Evaluation[],
-    totalEvaluators: number
-  ): stateList {
-    return this.document.calculateDocumentStatus(documentId, evaluations, totalEvaluators);
   }
 }

@@ -52,17 +52,14 @@ describe('NavigationHistoryService', () => {
     navegar('/notifications');
     navegar('/thesis-work/details/1/loaded_documents?tab=AVANCES');
 
-    // Regresar: la vista anterior del flujo (detalle del trabajo), no la bandeja
     servicio.back(() => navegar('/thesis-work/details/1'));
     expect(location.back).not.toHaveBeenCalled();
 
-    // Desde el detalle, regresar sigue el flujo (la sección), no vuelve a documentos cargados
     const alListado = jest.fn(() => navegar('/thesis-work'));
     servicio.back(alListado);
     expect(alListado).toHaveBeenCalled();
     expect(location.back).not.toHaveBeenCalled();
 
-    // Dentro del flujo, regresar vuelve a la página anterior
     navegar('/thesis-work/details/1');
     servicio.back(jest.fn());
     expect(location.back).toHaveBeenCalled();

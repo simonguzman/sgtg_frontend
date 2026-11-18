@@ -8,6 +8,7 @@ import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 /** Máximo de caracteres de las observaciones (igual que el backend). */
 export const MAX_ADVANCE_COMMENTS = 2000;
 
+/** Datos y avisos del formulario de carga del informe mensual. */
 @Injectable()
 export class UploadAdvanceFormService {
   private readonly fb = inject(FormBuilder);
@@ -19,11 +20,16 @@ export class UploadAdvanceFormService {
     comments: ['', Validators.maxLength(MAX_ADVANCE_COMMENTS)]
   });
 
+  /** Nombres de los estudiantes del trabajo. */
   getStudentNames(thesisWork: ThesisWork): string { return this.participants.getStudentNames(thesisWork); }
+  /** Nombre del director. */
   getDirectorName(thesisWork: ThesisWork): string { return this.participants.getDirectorName(thesisWork); }
+  /** Nombre del codirector, o vacío si no tiene. */
   getCodirectorName(thesisWork: ThesisWork): string { return this.participants.getCodirectorName(thesisWork); }
+  /** Nombre del asesor, o vacío si no tiene. */
   getAdvisorName(thesisWork: ThesisWork): string { return this.participants.getAdvisorName(thesisWork); }
 
+  /** Muestra el aviso «Formulario incompleto». */
   notifyIncompleteForm(): void {
     this.notificationService.show({
       title: 'Formulario incompleto',
@@ -32,6 +38,7 @@ export class UploadAdvanceFormService {
     });
   }
 
+  /** Muestra el aviso «Archivo requerido». */
   notifyMissingFiles(): void {
     this.notificationService.show({
       title: 'Archivo requerido',

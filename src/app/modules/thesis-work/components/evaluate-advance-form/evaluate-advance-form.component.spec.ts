@@ -91,7 +91,6 @@ describe('EvaluateAdvanceFormComponent', () => {
     const descargas: unknown[] = [];
     component.onDownloadAdvance.subscribe(d => descargas.push(d));
     component.onDownloadNotes.subscribe(d => descargas.push(d));
-    // El informe y las notas de la revisión son tarjetas de documento con su botón Descargar
     const botones = Array.from(fixture.nativeElement.querySelectorAll('app-button-component button')) as HTMLButtonElement[];
     botones.filter(b => b.textContent?.trim() === 'Descargar').forEach(b => b.click());
     expect(descargas).toHaveLength(2);

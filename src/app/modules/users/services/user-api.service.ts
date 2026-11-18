@@ -23,10 +23,6 @@ export class UserApiService {
   private readonly storage = inject(UserStorageService);
   private readonly apiUrl = `${environment.apiUrl}/usuarios`;
 
-  // ==========================================
-  // QUERIES
-  // ==========================================
-
   /** Carga todos los usuarios del backend en la lista en memoria. */
   loadUsers(): Observable<User[]> {
     return this.http.get<UsuarioResponse[]>(this.apiUrl).pipe(
@@ -53,14 +49,6 @@ export class UserApiService {
       catchError((error: HttpErrorResponse) => error.status === 404 ? of(undefined) : throwError(() => error))
     );
   }
-
-  getUsersByRole(role: UserRoleType): Observable<User[]> {
-    return of(this.storage.getUsersSnapshot().filter(u => u.roles.includes(role)));
-  }
-
-  // ==========================================
-  // MUTATIONS
-  // ==========================================
 
   /** Crea el usuario con su perfil (la vinculación se deduce de los roles). */
   createUser(user: User): Observable<User> {
@@ -93,6 +81,7 @@ export class UserApiService {
     );
   }
 
+  /** Reemplaza los roles del usuario y actualiza la lista en memoria. */
   updateUserRoles(userId: string, newRoles: UserRoleType[]): Observable<void> {
     return this.http.put<UsuarioResponse>(`${this.apiUrl}/${userId}/roles`, { roles: newRoles.map(aClaveDeRol) }).pipe(
       tap(saved => this.replaceInList(mapUsuarioToUser(saved))),

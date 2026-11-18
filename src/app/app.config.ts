@@ -12,11 +12,10 @@ import { AuthService } from './core/services/auth/auth.service';
 import { iniciarRefrescoDeTrabajos } from './core/services/trabajo-grado/trabajo-grado-refresco';
 import { NavigationHistoryService } from './core/services/navigation/navigation-history.service';
 
-// Preset personalizado basado en Aura con el color institucional
-// de la Universidad del Cauca como color primario.
-// Al definirlo aquí, TODOS los componentes internos de PrimeNG
-// (incluyendo los botones del overlay de p-columnFilter) heredan
-// el color correcto sin necesidad de overrides CSS adicionales.
+/**
+ * Tema Aura de PrimeNG con el azul institucional de la Universidad del Cauca como color primario,
+ * para que todos los componentes de PrimeNG lo usen sin estilos adicionales.
+ */
 const InstitucionalPreset = definePreset(Aura, {
   semantic: {
     primary: {
@@ -25,9 +24,9 @@ const InstitucionalPreset = definePreset(Aura, {
       200: '{indigo.200}',
       300: '{indigo.300}',
       400: '{indigo.400}',
-      500: '#000066',   // Estado normal (--color-primary)
-      600: '#828AE3',   // HOVER nativo de PrimeNG (--color-primary-hover)
-      700: '#5056AC',   // ACTIVE nativo de PrimeNG (--color-primary-active)
+      500: '#000066',
+      600: '#828AE3',
+      700: '#5056AC',
       800: '#000033',
       900: '#000022',
       950: '#000011'
@@ -35,14 +34,16 @@ const InstitucionalPreset = definePreset(Aura, {
   }
 });
 
+/**
+ * Configuración de la aplicación: cliente HTTP con el interceptor de autenticación, inicializadores
+ * (recuperación de la sesión, refresco de los trabajos de grado e historial de navegación), detección
+ * de cambios sin zone.js, rutas y PrimeNG con el tema institucional y los textos en español.
+ */
 export const appConfig: ApplicationConfig = {
   providers: [
     provideHttpClient(withInterceptors([authInterceptor])),
-    // Refresca el usuario de una sesión guardada antes de mostrar la primera pantalla
     provideAppInitializer(() => inject(AuthService).initialize()),
-    // Recarga los trabajos vencidos en memoria al navegar o al volver a la pestaña
     provideAppInitializer(() => iniciarRefrescoDeTrabajos()),
-    // Registra las páginas visitadas desde la primera, para que "Regresar" vuelva a la anterior
     provideAppInitializer(() => { inject(NavigationHistoryService); }),
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
@@ -73,7 +74,6 @@ export const appConfig: ApplicationConfig = {
         noFilter: 'Sin filtro',
         emptyMessage: 'No hay datos registrados en el sistema',
         emptyFilterMessage: 'No se encontraron resultados',
-        // Calendarios (p-datepicker): días, meses y la semana empieza el lunes
         firstDayOfWeek: 1,
         dayNames: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
         dayNamesShort: ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'],

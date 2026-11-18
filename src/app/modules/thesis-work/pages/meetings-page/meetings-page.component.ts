@@ -21,7 +21,6 @@ const COLUMNS: Column[] = [
   { field: 'report', header: 'Informe del mes', type: 'text', width: '10%' },
   { field: 'status', header: 'Estado', type: 'state', width: '11%' },
   {
-    // Tres botones: la columna necesita espacio propio para no tapar el estado
     field: 'acciones', header: 'Acciones', type: 'actions', width: '36%',
     actions: [
       { action: 'view-details', label: 'Ver detalles', icon: 'visibility', variant: 'primary', disabled: false },
@@ -97,7 +96,6 @@ export class MeetingsPageComponent implements OnInit {
         this.detailTarget.set(meeting);
         break;
       case 'schedule':
-        // Al reprogramar se parte de lo agendado; si no, de la fecha sugerida a las 10:00
         this.scheduleDate = meeting.scheduledAt ? new Date(meeting.scheduledAt) : this.suggestedAtTen(meeting);
         this.schedulePlace = meeting.place ?? '';
         this.scheduleTarget.set(meeting);

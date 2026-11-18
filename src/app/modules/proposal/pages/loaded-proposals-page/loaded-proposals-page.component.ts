@@ -8,6 +8,10 @@ import { LoadedProposalsFacadeService } from './services/loaded-proposals-facade
 import { DOCUMENTS_COLUMNS, DocumentTableRow, ProposalRegistrationDetails } from './models/loaded-proposals-page.model';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/**
+ * Página con los documentos cargados de una propuesta (versiones del formato A y cartas de aceptación); el
+ * director carga desde aquí la propuesta corregida.
+ */
 @Component({
   selector: 'app-loaded-proposals-page',
   imports: [TableComponent, FileUploadModalComponent, ConfirmationActionModalComponent, RegisterInformationModalComponent],
@@ -83,7 +87,6 @@ export class LoadedProposalsPageComponent implements OnInit {
   onFileSelected(event: { fileName: string; file: File }): void {
     this.uploadState.set(event);
     this.fileModalOpen.set(false);
-    // En práctica profesional, después del formato A se pide la nueva carta de aceptación
     if (this.requiresAcceptanceLetter()) this.letterModalOpen.set(true);
     else this.confirmModalOpen.set(true);
   }

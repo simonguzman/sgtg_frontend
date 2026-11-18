@@ -15,11 +15,8 @@ import { User } from '../../users/interfaces/user.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
 
-// Importamos los helpers como módulos para poder espiarlos
 import * as academicPeriodHelper from '../helpers/academic-period.helper';
 import * as projectStatusHelper from '../helpers/project-status.helper';
-
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'usr-default',
@@ -55,7 +52,7 @@ const createMockDocument = (overrides: Partial<FileDocument> = {}): FileDocument
 const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
   id: 'prop-123',
   title: 'Default Title',
-  state: stateList.EN_REVISION, // FIX: Usamos un estado válido del enum
+  state: stateList.EN_REVISION,
   createdAt: new Date('2026-03-01T00:00:00.000Z'),
   director: createMockUser(),
   authors: [],
@@ -88,12 +85,9 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
 } as ThesisWork);
 
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('ProjectDataMapperService', () => {
   let service: ProjectDataMapperService;
 
-  // 🔹 REFACTOR: Tipado estricto para el mock
   let mockUserService: { formatFullName: jest.Mock<string, [User]>; getAuthorsNames: jest.Mock<string, [unknown]> };
 
   let resolveAcademicPeriodSpy: jest.SpyInstance;
@@ -111,13 +105,12 @@ describe('ProjectDataMapperService', () => {
   });
 
   beforeEach(() => {
-    // 🔕 Silenciar consola para mantener terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     mockUserService = {
       formatFullName: jest.fn((user: User) => `${user.firstName} ${user.lastName}`),
-      getAuthorsNames: jest.fn(() => 'Ana Mora, Luis Paz'),
+      getAuthorsNames: jest.fn().mockReturnValue('Ana Mora, Luis Paz'),
     };
 
     resolveAcademicPeriodSpy = jest.spyOn(academicPeriodHelper, 'resolveAcademicPeriod')
@@ -147,7 +140,7 @@ describe('ProjectDataMapperService', () => {
       const mockProposal = createMockProposal({
         id: 'prop-123',
         title: 'Sistema de Gestión',
-        state: stateList.EN_REVISION, // FIX: Usamos un estado real
+        state: stateList.EN_REVISION,
         createdAt: new Date('2026-03-01T00:00:00.000Z'),
         director: mockUser,
         isArchived: false,
@@ -165,7 +158,7 @@ describe('ProjectDataMapperService', () => {
         title: 'Sistema de Gestión',
         stage: ProjectStage.PROPUESTA,
         status: ProjectStatus.EN_DESARROLLO,
-        originalState: stateList.EN_REVISION, // FIX
+        originalState: stateList.EN_REVISION,
         period: '2026-1',
         directorId: 'usr-1',
         directorName: 'Ana Pérez',
@@ -191,7 +184,7 @@ describe('ProjectDataMapperService', () => {
       const mockProposal = createMockProposal({
         id: undefined,
         title: 'Propuesta sin director',
-        state: stateList.EN_DESARROLLO, // FIX: Reemplazo del falso 'BORRADOR'
+        state: stateList.EN_DESARROLLO,
         createdAt: undefined,
         director: undefined,
         isArchived: true,

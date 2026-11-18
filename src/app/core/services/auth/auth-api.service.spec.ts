@@ -145,7 +145,6 @@ describe('AuthApiService', () => {
       expect(cierre.request.headers.get('Authorization')).toBe(`Bearer ${token}`);
       expect(storage.isAuthenticated()).toBe(false);
       expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
-      // Si el backend falla, la sesión local ya quedó cerrada
       cierre.flush(null, { status: 500, statusText: 'Server Error' });
     });
 
@@ -184,7 +183,6 @@ describe('AuthApiService', () => {
 
       const renovacion = http.expectOne(`${API}/auth/renovar`);
       expect(renovacion.request.method).toBe('POST');
-      // El backend exige la cabecera: un sitio ajeno no puede enviarla
       expect(renovacion.request.headers.get('X-Requested-With')).toBe('XMLHttpRequest');
       renovacion.flush({ token });
       const usuario = http.expectOne(`${API}/usuarios/me`);
@@ -227,7 +225,6 @@ describe('AuthApiService', () => {
       const req = http.expectOne(`${API}/usuarios/me/password`);
       expect(req.request.method).toBe('PUT');
       expect(req.request.body).toEqual({ passwordActual: 'Actual123', passwordNueva: 'Nueva1234' });
-      // El backend cierra las demás sesiones y devuelve un token nuevo para esta
       req.flush({ token });
 
       expect(respuesta?.success).toBe(true);

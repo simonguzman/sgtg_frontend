@@ -1,0 +1,43 @@
+@startuml c4-nivel3-4-notificaciones-tareas
+' C4 nivel 3 (componentes) de la API de SGTG. Generado por generar.py: no editar a mano.
+!include <C4/C4_Component>
+LAYOUT_TOP_DOWN()
+skinparam dpi 110
+UpdateElementStyle("component", $bgColor="#1E5A8E", $fontColor="#FFFFFF", $borderColor="#0B3D66")
+UpdateElementStyle("container", $bgColor="#438DD5", $fontColor="#FFFFFF", $borderColor="#2E6295")
+AddRelTag("p", $lineStyle=DashedLine())
+
+title SGTG API — C4 nivel 3: Notificaciones y tareas programadas
+
+Container(spa, "Aplicación de página única", "Angular", "Interfaz de los usuarios; consume la API.")
+ContainerDb(db, "Base de datos", "MySQL", "Usuarios, trabajos de grado, notificaciones, sesiones y auditoría.")
+Container_Boundary(api, "API de la aplicación (Java y Spring Boot)") {
+  Boundary(controladores, "Controladores REST") {
+    Component(cNot, "Controlador de notificaciones", "REST · NotificacionController", "Bandeja de entrada del usuario autenticado.")
+    Component(cRel, "Controlador del reloj", "REST · RelojController", "Solo en desarrollo: adelanta la fecha y ejecuta la revisión diaria.")
+  }
+  Boundary(casos, "Casos de uso (dominio)") {
+    Component(uNot, "Casos de uso de notificaciones", "ManageNotificacionCUImplAdapter", "Cada usuario consulta y marca solo sus notificaciones.")
+    Component(uTG, "Casos de uso del trabajo de grado", "ManageTrabajoGradoCUImplAdapter", "Valida el puesto del usuario en el trabajo, guarda los archivos y delega las reglas al agregado.")
+  }
+  Boundary(salida, "Adaptadores de salida") {
+    Component(gAuth, "Servicios de sesión y tokens", "AuthService · JwtService · SesionService", "Verifican credenciales, emiten tokens y guardan las sesiones.")
+    Component(gAcc, "Adaptador de intentos de acceso", "ManageIntentosAccesoGatewayImplAdapter", "Registra los intentos fallidos de inicio de sesión.")
+    Component(gNot, "Adaptador de notificaciones", "ManageNotificacionGatewayImplAdapter · JPA", "Notificaciones de la bandeja.")
+  }
+  Boundary(tareas, "Tareas programadas") {
+    Component(sVen, "Tarea de vencimientos", "Spring @Scheduled · 00:05", "Recordatorios de plazos, reanudación de suspensiones y cierre por vencimiento.")
+    Component(sLim, "Limpieza de accesos", "Spring @Scheduled · 03:00", "Borra intentos fallidos antiguos y sesiones vencidas.")
+  }
+}
+Rel(spa, cNot, "Hace llamados a la API", "JSON/HTTPS, REST", $tags="p")
+Rel(cNot, uNot, "Usa", "", $tags="p")
+Rel(uNot, gNot, "Lee y marca", "", $tags="p")
+Rel(cRel, sVen, "Ejecuta la revisión diaria", "", $tags="p")
+Rel(sVen, uTG, "Revisa plazos y vencimientos", "", $tags="p")
+Rel(sLim, gAcc, "Borra intentos antiguos", "", $tags="p")
+Rel(sLim, gAuth, "Borra sesiones vencidas", "", $tags="p")
+Rel(gAuth, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gAcc, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gNot, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+@enduml

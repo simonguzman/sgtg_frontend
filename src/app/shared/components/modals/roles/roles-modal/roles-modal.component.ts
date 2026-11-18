@@ -5,6 +5,10 @@ import { RolesSelectionModalComponent } from '../roles-selection-modal/roles-sel
 import { UserRole } from '../../../../../core/models/user-role';
 import { RolesViewModalComponent } from '../roles-view-modal/roles-view-modal.component';
 
+/**
+ * Coordina la consulta y la edición de los roles de un usuario: abre primero la vista de roles y, si se
+ * pueden gestionar, el modal de selección.
+ */
 @Component({
   selector: 'app-roles-modal',
   imports: [CommonModule, RolesViewModalComponent, RolesSelectionModalComponent],

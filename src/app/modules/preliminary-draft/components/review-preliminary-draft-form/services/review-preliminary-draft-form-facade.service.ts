@@ -19,25 +19,34 @@ const RESULT_TO_STATE: Record<string, stateList> = {
   'No aprobado': stateList.NO_APROBADO
 };
 
+/** Estado del formulario de evaluación del anteproyecto. */
 @Injectable()
 export class ReviewPreliminaryDraftFormFacadeService {
   private readonly fb = inject(FormBuilder);
   private readonly notificationService = inject(NotificationService);
   readonly userService = inject(UserService);
 
+  /** Anteproyecto que se evalúa. */
   readonly preliminaryDraft = signal<PreliminaryDraft | null>(null);
+  /** Formato B firmado (obligatorio). */
   readonly uploadedSignedFile = signal<{ fileName: string; file: File } | null>(null);
+  /** Documento con las anotaciones del evaluador (opcional). */
   readonly uploadedAnnotatedFile = signal<{ fileName: string; file: File } | null>(null);
+  /** true con el modal de carga del formato B abierto. */
   readonly isUploadModalOpen = signal(false);
+  /** true con el modal de carga de las anotaciones abierto. */
   readonly isAnnotatedUploadModalOpen = signal(false);
 
+  /** Concepto y observaciones, ambos obligatorios. */
   readonly evaluationForm = this.fb.group({
     result: ['', Validators.required],
     comments: ['', Validators.required]
   });
 
+  /** true si el anteproyecto ya fue aprobado y solo se consulta. */
   readonly isReadOnly = computed(() => this.preliminaryDraft()?.state === stateList.APROBADO);
 
+  /** Documento cargado más reciente del anteproyecto. */
   readonly currentDocument = computed(() => {
     const documents = this.preliminaryDraft()?.documents || [];
     if (documents.length === 0) return null;
@@ -48,33 +57,40 @@ export class ReviewPreliminaryDraftFormFacadeService {
     })[0];
   });
 
+  /** Fecha de carga del documento más reciente, para mostrar. */
   readonly documentUploadDate = computed(() => {
     const uploadDate = this.currentDocument()?.uploadDate;
     const parsedDate = this.parseDate(uploadDate);
     return parsedDate ? parsedDate.toLocaleDateString('es-ES') : 'No disponible';
   });
 
+  /** Nombres de los estudiantes. */
   getStudentNames(): string {
     const proposalData = this.preliminaryDraft()?.proposalData;
     return proposalData ? this.userService.getAuthorsNames(proposalData.authors) : '';
   }
+  /** Nombre del director. */
   getDirectorName(): string {
     const director = this.preliminaryDraft()?.proposalData?.director;
     return director?.id ? this.userService.getUserFullName(director.id) : '';
   }
+  /** Nombre del codirector, o vacío. */
   getCodirectorName(): string {
     const codirector = this.preliminaryDraft()?.proposalData?.codirector;
     return codirector?.id ? this.userService.getUserFullName(codirector.id) : '';
   }
+  /** Nombre del asesor, o vacío. */
   getAdvisorName(): string {
     const advisor = this.preliminaryDraft()?.proposalData?.advisor;
     return advisor?.id ? this.userService.getUserFullName(advisor.id) : '';
   }
 
+  /** Guarda el formato B elegido y cierra su modal. */
   handleFileUploaded(event: { fileName: string; file: File }): void {
     this.uploadedSignedFile.set(event);
     this.isUploadModalOpen.set(false);
   }
+  /** Guarda el documento de anotaciones elegido y cierra su modal. */
   handleAnnotatedFileUploaded(event: { fileName: string; file: File }): void {
     this.uploadedAnnotatedFile.set(event);
     this.isAnnotatedUploadModalOpen.set(false);
@@ -85,11 +101,13 @@ export class ReviewPreliminaryDraftFormFacadeService {
     });
   }
 
+  /** @returns true si el campo fue tocado y no es válido */
   isFieldInvalid(fieldName: string): boolean {
     const control = this.evaluationForm.get(fieldName);
     return !!(control?.invalid && control?.touched);
   }
 
+  /** Valida el formulario y el formato B y devuelve el concepto con sus archivos, o null avisando qué falta. */
   validateAndGetPayload(): PendingReviewData | null {
     const fileData = this.uploadedSignedFile();
     const annotatedData = this.uploadedAnnotatedFile();

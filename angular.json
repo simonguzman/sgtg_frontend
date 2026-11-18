@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "sgtg-prueba": {
+    "sgtg-frontend": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -67,10 +67,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "sgtg-prueba:build:production"
+              "buildTarget": "sgtg-frontend:build:production"
             },
             "development": {
-              "buildTarget": "sgtg-prueba:build:development"
+              "buildTarget": "sgtg-frontend:build:development"
             }
           },
           "defaultConfiguration": "development",

@@ -5,6 +5,7 @@ import { DatePipe, LowerCasePipe } from '@angular/common';
 import { SustentationDetailsFacadeService } from './services/sustentation-details-facade.service';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/** Página de detalle de una sesión de sustentación. */
 @Component({
   selector: 'app-sustentation-details-page',
   standalone: true,

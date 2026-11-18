@@ -36,6 +36,7 @@ export interface ProposalRegistrationDetails {
   documents: FileDocument[];
 }
 
+/** Columnas de la tabla de documentos cargados. */
 export const DOCUMENTS_COLUMNS: Column[] = [
   { field: 'name',       header: 'Documentos',     type: 'text',  width: '30%' },
   { field: 'version',    header: 'Versión',        type: 'text',  width: '10%' },

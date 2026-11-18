@@ -5,7 +5,6 @@
       <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">Datos personales</h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
-        <!-- Tipo de documento -->
         <div class="flex flex-col gap-1">
           <label for="idType" class="title-textbox">Tipo de documento de identidad <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
@@ -32,7 +31,6 @@
           }
         </div>
 
-        <!-- Número de documento -->
         <div class="flex flex-col gap-1">
           <label for="idNumber" class="title-textbox">Número de documento de identidad <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
@@ -49,7 +47,6 @@
           }
         </div>
 
-        <!-- Primer nombre -->
         <div class="flex flex-col gap-1">
           <label for="firstName" class="title-textbox">Primer nombre <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
@@ -66,7 +63,6 @@
           }
         </div>
 
-        <!-- Segundo nombre (Opcional) -->
         <div class="flex flex-col gap-1">
           <label for="secondName" class="title-textbox">Segundo nombre</label>
           <div class="relative flex items-center">
@@ -79,7 +75,6 @@
           </div>
         </div>
 
-        <!-- Primer apellido -->
         <div class="flex flex-col gap-1">
           <label for="lastName" class="title-textbox">Primer apellido <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
@@ -96,7 +91,6 @@
           }
         </div>
 
-        <!-- Segundo apellido -->
         <div class="flex flex-col gap-1">
           <label for="secondLastName" class="title-textbox">Segundo apellido <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
@@ -119,7 +113,6 @@
       <h3 class="text-primary font-display font-semibold text-size-header-title mb-4 border-b pb-2">Datos institucionales</h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
-        <!-- Código -->
         <div class="flex flex-col gap-1">
           <label for="codeNumber" class="title-textbox">Código<span class="text-alert">*</span></label>
           <div class="relative flex items-center">
@@ -136,7 +129,6 @@
           }
         </div>
 
-        <!-- Rol -->
         <div class="flex flex-col gap-1">
           <label for="rolesBtn" id="rolesLabel" class="title-textbox">Rol <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
@@ -164,7 +156,6 @@
           }
         </div>
 
-        <!-- Correo -->
         <div class="flex flex-col gap-1">
           <label for="email" class="title-textbox">Correo institucional <span class="text-alert">*</span></label>
           <div class="relative flex items-center">
@@ -181,7 +172,6 @@
           }
         </div>
 
-        <!-- Contraseña -->
         <div class="flex flex-col gap-1">
           <label for="password" class="title-textbox">Contraseña @if (!isEditMode) {<span class="text-alert">*</span>}</label>
           <div class="relative flex items-center">
@@ -217,7 +207,6 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
           @if (showDepartment) {
-            <!-- Vinculación (roles de perfil docente) -->
             <div class="flex flex-col gap-1">
               <label for="contractType" class="title-textbox">Tipo de vinculación <span class="text-alert">*</span></label>
               <div class="relative flex items-center">
@@ -242,7 +231,6 @@
               }
             </div>
 
-            <!-- Departamento (perfil docente) -->
             <div class="flex flex-col gap-1">
               <label for="departmentBtn" class="title-textbox">Departamento <span class="text-alert">*</span></label>
               <div class="relative flex items-center">
@@ -273,7 +261,6 @@
           }
 
           @if (showProgram) {
-            <!-- Programa (estudiante) -->
             <div class="flex flex-col gap-1">
               <label for="programBtn" class="title-textbox">Programa académico <span class="text-alert">*</span></label>
               <div class="relative flex items-center">

@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { DialogModule } from 'primeng/dialog';
 
+/** Modal que muestra un texto largo (descripción u observaciones) con su título. */
 @Component({
   selector: 'app-description-modal',
   imports: [DialogModule],

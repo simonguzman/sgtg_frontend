@@ -68,7 +68,6 @@ describe('Service: UsersMapperService', () => {
       expect(buscar('comite')).toEqual([comite]);
       expect(buscar('JEFE')).toEqual([jefe]);
       expect(buscar('consejo')).toEqual([consejo]);
-      // Sigue buscando por las columnas visibles
       expect(buscar('beto')).toEqual([jefe]);
     });
   });

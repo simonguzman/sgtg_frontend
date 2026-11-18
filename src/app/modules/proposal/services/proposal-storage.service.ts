@@ -7,7 +7,7 @@ import { Proposal } from '../interfaces/proposal.interface';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 
 /**
- * Propuestas del usuario en sesión. Ya no se guardan en el navegador: son la
+ * Propuestas del usuario en sesión: son la
  * vista "propuesta" de los trabajos de grado del backend
  * (`TrabajoGradoVistasService`), con el id del trabajo.
  */
@@ -25,10 +25,12 @@ export class ProposalStorageService {
 
   private readonly PRIVILEGED_ROLES = [UserRoleType.ADMINISTRADOR, UserRoleType.COMITE];
 
+  /** @returns true si el usuario ve todas las propuestas (administrador o Comité) */
   public hasPrivilegedAccess(): boolean {
     return this.authService.hasAnyRole(this.PRIVILEGED_ROLES);
   }
 
+  /** @returns true si el usuario es estudiante, director, codirector o asesor de la propuesta */
   public canUserAccessProposal(proposal: Proposal, userId: string): boolean {
     const isAuthor = proposal.authors?.some(author => author.id === userId);
     const isDirector = proposal.director?.id === userId;
@@ -37,6 +39,7 @@ export class ProposalStorageService {
     return isAuthor || isDirector || isCodirector || isAdvisor;
   }
 
+  /** @returns true si el usuario puede consultar la propuesta */
   public canUserViewProposal(proposal: Proposal, userId: string): boolean {
     return this.hasPrivilegedAccess() || this.canUserAccessProposal(proposal, userId);
   }

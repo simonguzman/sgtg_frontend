@@ -4,6 +4,7 @@ import { UserState } from "../enum/user-state.enum";
 import { ContractType } from "../enum/contract-type.enum";
 import { CatalogItem } from "./catalog-item.interface";
 
+/** Usuario del sistema con sus datos personales, perfil académico y roles. */
 export interface User {
   id: string;
   idType: IdentificationType | string;

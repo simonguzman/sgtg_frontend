@@ -35,7 +35,6 @@ interface MockDocumentResolverService {
   resolveLatestFinalDeliveryDocument: jest.Mock<FileDocument | null, [ThesisWork, string]>;
 }
 
-// Por defecto todos son del departamento del director (Sistemas)
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u-default',
   department: { id: 1, name: 'Sistemas' },
@@ -192,7 +191,6 @@ describe('RegisterSustentationFormService', () => {
 
       const result = service.getEligibleJurors(thesisWithConflicts);
 
-      // El jefe de departamento puede ser jurado; Comité y Decanatura no
       expect(result.map(u => u.id)).toEqual(['valid1', 'valid2', 'jefe1']);
     });
 

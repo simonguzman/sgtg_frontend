@@ -17,6 +17,10 @@ import { NotificationService } from '../../../../shared/components/notifications
 /** Lista de textos como opciones del buscador (el texto es a la vez el valor) */
 const comoOpciones = (valores: string[]): SelectOption[] => valores.map(valor => ({ id: valor, label: valor }));
 
+/**
+ * Página de estadísticas: indicadores, gráficos por estado, etapa, modalidad y programa, la tabla de trabajos
+ * próximos a vencer y los reportes en PDF, Excel o CSV.
+ */
 @Component({
   selector: 'app-statistics-page',
   standalone: true,
@@ -35,13 +39,11 @@ export class StatisticsPageComponent {
   protected readonly isDueSoonReportModalOpen = signal(false);
   protected readonly doughnutOptions = DOUGHNUT_CHART_OPTIONS;
   protected readonly barOptions = BAR_CHART_OPTIONS;
-  protected readonly archiveOptions = ARCHIVE_STATUS_OPTIONS;
-  protected readonly deadlineFilterOptions = DEADLINE_FILTER_OPTIONS;
   /** La tabla de trabajos próximos a vencer se abre con el ojo de su tarjeta */
   protected readonly isDueSoonOpen = signal(false);
   private readonly dueSoonSection = viewChild<ElementRef<HTMLElement>>('dueSoonSection');
 
-  // Opciones de los filtros para el buscador (app-searchable-select): se puede escribir para filtrar la lista
+  /** Opciones de los filtros para `app-searchable-select`, en el que se escribe para filtrar la lista. */
   protected readonly stageSelectOptions: SelectOption[] = this.facade.stagesOptions
     .map(option => ({ id: option.value, label: option.label }));
   protected readonly periodSelectOptions = computed(() => comoOpciones(this.facade.periodsOptions()));
@@ -84,9 +86,9 @@ export class StatisticsPageComponent {
     if (deadlineFilter) this.facade.updateFilters({ deadlineFilter: deadlineFilter as DeadlineFilterValue });
   }
 
+  /** Abre o cierra la tabla de próximos a vencer; al abrirla la desplaza a la vista, porque está debajo de las tarjetas. */
   toggleDueSoon(): void {
     this.isDueSoonOpen.update(abierta => !abierta);
-    // Al abrirla, la tabla queda a la vista (está debajo de las tarjetas)
     if (this.isDueSoonOpen()) setTimeout(() => this.dueSoonSection()?.nativeElement.scrollIntoView?.(
       { behavior: 'smooth', block: 'start' }));
   }

@@ -59,7 +59,6 @@ const createMockDocument = (overrides: Partial<FileDocument> = {}): FileDocument
 } as FileDocument);
 
 describe('PresentacionesTabConfig', () => {
-  // La pestaña usa los estados que envía el backend: no necesita el servicio
   const servicio = {} as PreliminaryDraftService;
 
   const anteproyecto = (version: number, status: stateList): FileDocument => createMockDocument({

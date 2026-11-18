@@ -10,10 +10,6 @@ import { FileDocument } from '../../../../../core/interfaces/file-document.inter
 import { stateList } from '../../../../../core/enums/state.enum';
 import { Advance } from '../../../interfaces/advance.interface';
 
-jest.mock('../../../../../core/utils/file-reader.utils', () => ({
-  readFileAsDataUrl: jest.fn()
-}));
-
 jest.mock('../../../helpers/thesis-date.helper', () => ({
   formatThesisDate: jest.fn().mockReturnValue('10 - 10 - 2026')
 }));

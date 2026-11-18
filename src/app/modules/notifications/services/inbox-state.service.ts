@@ -31,6 +31,7 @@ export class InboxStateService {
   private readonly notificationService = inject(NotificationService);
 
   private readonly _messages = signal<InboxMessage[]>([]);
+  /** Notificaciones del buzón, de la más reciente a la más antigua. */
   public readonly messagesSignal = this._messages.asReadonly();
 
   private consulta?: Subscription;
@@ -53,6 +54,7 @@ export class InboxStateService {
     );
   }
 
+  /** Marca una notificación como leída en pantalla y en el backend; si el backend falla, vuelve a consultar el buzón. */
   public markAsRead(id: string): void {
     const mensaje = this._messages().find(m => m.id === id);
     if (!mensaje || mensaje.status === 'leido') return;
@@ -60,11 +62,13 @@ export class InboxStateService {
     this.api.marcarLeida(id).subscribe({ error: () => this.refrescar().subscribe() });
   }
 
+  /** Elimina una notificación en pantalla y en el backend; si el backend falla, vuelve a consultar el buzón. */
   public deleteMessage(id: string): void {
     this.actualizar(messages => messages.filter(m => m.id !== id));
     this.api.eliminar(id).subscribe({ error: () => this.refrescar().subscribe() });
   }
 
+  /** Vacía el buzón en pantalla y en el backend; si el backend falla, vuelve a consultar el buzón. */
   public clearAllMessages(): void {
     this.actualizar(() => []);
     this.api.eliminarTodas().subscribe({ error: () => this.refrescar().subscribe() });

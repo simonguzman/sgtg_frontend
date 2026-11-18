@@ -6,11 +6,13 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
+/** Fachada de la radicación de los ajustes. */
 @Injectable({ providedIn: 'root' })
 export class RegisterCorrectedDocumentsFacadeService {
   private readonly thesisWorkService   = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Carga el trabajo de grado de la ruta; si no existe, avisa y llama a `onError`. */
   public loadThesisWork(
     id: string,
     onSuccess: (thesisWork: ThesisWork) => void,
@@ -32,6 +34,7 @@ export class RegisterCorrectedDocumentsFacadeService {
     });
   }
 
+  /** Radica los ajustes y sus anexos, y vuelve a los documentos corregidos. */
   public processCorrectedDocuments(
     thesisId: string,
     files: { monograph: File; annexes: File | null },
@@ -54,6 +57,7 @@ export class RegisterCorrectedDocumentsFacadeService {
       });
   }
 
+  /** Muestra el aviso «Error de navegación». */
   public showNavigationError(): void {
     this.showNotification('Error de navegación', 'No se pudo identificar el identificador del trabajo de grado.', NotificationType.ERROR);
   }

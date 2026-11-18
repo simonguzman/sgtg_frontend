@@ -27,7 +27,6 @@ describe('canEvaluateWork', () => {
     expect(canEvaluateWork(usuario('1', [UserRoleType.DOCENTE], TELEMATICA), SISTEMAS.id, ninguno)).toBe(false);
     expect(canEvaluateWork(usuario('1', [UserRoleType.ASESOR]), SISTEMAS.id, ninguno)).toBe(false);
     expect(canEvaluateWork(usuario('1', [UserRoleType.DOCENTE]), SISTEMAS.id, new Set(['1']))).toBe(false);
-    // Sin departamento del director no hay a quién asignar
     expect(canEvaluateWork(usuario('1', [UserRoleType.DOCENTE]), null, ninguno)).toBe(false);
   });
 });

@@ -1,0 +1,20 @@
+@startuml c4-nivel1-contexto
+' C4 nivel 1 (contexto) de SGTG
+!include <C4/C4_Context>
+LAYOUT_TOP_DOWN()
+skinparam dpi 110
+UpdateElementStyle("system", $bgColor="#438DD5", $fontColor="#FFFFFF", $borderColor="#2E6295")
+!include actores.iuml
+
+title SGTG — C4 nivel 1: diagrama de contexto
+
+Enterprise_Boundary(fiet, "Facultad de Ingeniería Electrónica y Telecomunicaciones (FIET)") {
+  System(sgtg, "Aplicación software para la gestión del proceso de trabajos de grado en la FIET", "Permite la gestión de las etapas del proceso de trabajo de grado (propuesta, anteproyecto y trabajo de grado).")
+}
+
+Rel(admin, sgtg, "Administra la configuración y los usuarios del sistema.", $tags="p")
+Rel(evaluadores, sgtg, "Realiza evaluaciones académicas y registra sus resultados.", $tags="p")
+Rel(estudiante, sgtg, "Gestiona el seguimiento de trabajos de grado y la carga de los informes mensuales.", $tags="p")
+Rel(equipo, sgtg, "Realiza el seguimiento académico y revisa los informes mensuales del estudiante.", $tags="p")
+Rel_U(organos, sgtg, "Intervienen en decisiones académicas y administrativas del proceso.", $tags="p")
+@enduml

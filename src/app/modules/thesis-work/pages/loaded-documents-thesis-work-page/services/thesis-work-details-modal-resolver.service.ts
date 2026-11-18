@@ -17,9 +17,11 @@ const FECHA_CONCEDIDA: Partial<Record<SpecialRequestType, string>> = {
   [SpecialRequestType.NUEVA_SUSTENTACION]: 'Nueva fecha de la sesión'
 };
 
+/** Arma los datos del modal de detalle de una fila según la pestaña. */
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkDetailsModalResolverService {
 
+  /** Detalle de la fila de la pestaña activa, o null si no se encuentra. */
   public resolve(rowId: string, activeTab: string, thesis: ThesisWork): RegisterDetail | null {
     switch (activeTab) {
       case 'AVANCES': return this.resolveAdvance(rowId, thesis);

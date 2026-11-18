@@ -37,12 +37,3 @@ export function jwtDebeCambiarPassword(token: string): boolean {
   return jwtPayload(token)?.['cambioPassword'] === true;
 }
 
-/**
- * @param token token JWT
- * @param ahora instante de referencia en milisegundos
- * @returns true si el token tiene vencimiento y aún no ha llegado
- */
-export function isJwtVigente(token: string, ahora: number = Date.now()): boolean {
-  const vencimiento = jwtExpiration(token);
-  return vencimiento !== null && vencimiento > ahora;
-}

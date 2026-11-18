@@ -9,6 +9,7 @@ import { TableButton } from '../../../../../shared/components/table-component/ta
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { PRELIMINARY_DRAFT_HEADER_BUTTONS, PreliminaryDraftTableRow } from '../models/preliminary-draft-page.model';
 
+/** Fachada de la lista de anteproyectos. */
 @Injectable({ providedIn: 'root' })
 export class PreliminaryDraftFacadeService {
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
@@ -16,6 +17,7 @@ export class PreliminaryDraftFacadeService {
   private readonly mapper = inject(PreliminaryDraftMapperService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Anteproyectos visibles como filas de la tabla. */
   public readonly tableData = computed<PreliminaryDraftTableRow[]>(() => {
     const currentUser = this.authService.currentUser();
     const isAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
@@ -37,6 +39,7 @@ export class PreliminaryDraftFacadeService {
     );
   });
 
+  /** Botones de la cabecera; registrar anteproyecto solo para el director y el administrador. */
   public readonly headerButtons = computed<TableButton[]>(() => {
     const canRegister = this.authService.hasAnyRole([
       UserRoleType.ADMINISTRADOR,
@@ -47,6 +50,7 @@ export class PreliminaryDraftFacadeService {
       : PRELIMINARY_DRAFT_HEADER_BUTTONS.filter(btn => btn.label !== 'Registrar anteproyecto');
   });
 
+  /** Anula el trabajo con la justificación del director; queda archivado en el historial. */
   public annulDraft(id: string, justification: string, onSuccess: () => void, onError: () => void): void {
     this.preliminaryDraftService.annulDraft(id, justification).subscribe({
       next: () => {
@@ -61,6 +65,7 @@ export class PreliminaryDraftFacadeService {
     });
   }
 
+  /** Avisa que el usuario no puede hacer la acción sobre el anteproyecto. */
   public showRestrictedAccessNotification(): void {
     this.showNotification(
       'Acceso denegado',

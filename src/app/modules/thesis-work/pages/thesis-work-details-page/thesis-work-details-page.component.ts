@@ -4,6 +4,7 @@ import { ButtonComponent } from "../../../../shared/components/button-component/
 import { WorkDetailsComponent } from '../../../../shared/components/work-details/work-details.component';
 import { ThesisWorkDetailsFacadeService } from './services/thesis-work-details-facade.service';
 
+/** Página de detalle de un trabajo de grado, también usada desde el historial. */
 @Component({
   selector: 'app-thesis-work-details-page',
   standalone: true,

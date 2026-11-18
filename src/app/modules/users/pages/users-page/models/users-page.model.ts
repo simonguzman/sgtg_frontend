@@ -2,6 +2,7 @@
 import { Column, TableButton } from "../../../../../shared/components/table-component/table-component.component";
 import { User } from "../../../interfaces/user.interface";
 
+/** Fila de la tabla de gestión de usuarios. */
 export interface UserTableRow {
   identificacion: string;
   nombre: string;
@@ -18,6 +19,7 @@ export interface UserTableRow {
   originalData: User;
 }
 
+/** Columnas de la tabla de gestión de usuarios. */
 export const USER_COLUMNS: Column[] = [
   { field: 'identificacion', header: 'Identificación', type: 'text', width: '15%' },
   { field: 'nombre', header: 'Nombres', type: 'text', width: '15%' },
@@ -52,6 +54,7 @@ export const USER_COLUMNS: Column[] = [
  */
 export const USER_FILTER_FIELDS = ['identificacion', 'nombre', 'apellidos', 'estado', 'hiddenRoles', 'hiddenProfile'];
 
+/** Botones de la cabecera de la gestión de usuarios. */
 export const USER_HEADER_BUTTONS: TableButton[] = [
   { label: 'Crear usuarios', variant: 'primary' }
 ];

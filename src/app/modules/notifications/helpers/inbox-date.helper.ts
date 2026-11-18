@@ -1,4 +1,5 @@
 
+/** Fecha y hora de una notificación como «dd/mm/aaaa hh:mm»; vacía si la fecha no es válida. */
 export function formatInboxDate(date: Date | string): string {
   const parsed = date instanceof Date ? date : new Date(date);
   if (Number.isNaN(parsed.getTime())) return '';

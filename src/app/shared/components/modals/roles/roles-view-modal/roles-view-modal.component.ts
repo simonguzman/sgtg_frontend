@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { ButtonComponent } from '../../../button-component/button-component.component';
 import { UserRole } from '../../../../../core/models/user-role';
 
+/** Modal que muestra los roles de un usuario y, si quien lo consulta puede, la opción de gestionarlos. */
 @Component({
   selector: 'app-roles-view-modal',
   imports: [DialogModule, CommonModule, ButtonComponent],

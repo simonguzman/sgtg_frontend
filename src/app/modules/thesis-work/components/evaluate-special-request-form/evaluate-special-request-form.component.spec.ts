@@ -99,7 +99,6 @@ describe('EvaluateSpecialRequestFormComponent', () => {
       expect(texto).toContain('Pertinente');
       expect(texto).toContain('No pertinente');
       expect(texto).not.toContain('Avalar');
-      // los objetivos propuestos se muestran como los demás campos (como en las vistas de detalle)
       const etiquetas = Array.from(fixture.nativeElement.querySelectorAll('app-readonly-field'))
         .map(campo => (campo as HTMLElement).getAttribute('label') ?? (campo as HTMLElement).textContent ?? '');
       expect(etiquetas.join('|')).toContain('Objetivo general propuesto');

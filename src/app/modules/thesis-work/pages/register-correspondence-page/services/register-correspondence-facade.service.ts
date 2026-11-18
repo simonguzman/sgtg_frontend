@@ -6,11 +6,13 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 
+/** Fachada de la carga de la versión definitiva. */
 @Injectable({ providedIn: 'root' })
 export class RegisterCorrespondenceFacadeService {
   private readonly thesisWorkService   = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Carga el trabajo de grado de la ruta; si no existe, avisa y llama a `onError`. */
   public loadThesisWork(id: string, onSuccess: (work: ThesisWork) => void, onError: () => void): void {
     this.thesisWorkService.getThesisWorkById(id).pipe(first()).subscribe({
       next: (data: ThesisWork | null | undefined) => {
@@ -53,6 +55,7 @@ export class RegisterCorrespondenceFacadeService {
     });
   }
 
+  /** Muestra el aviso «Identificador faltante». */
   public showNavigationError(): void {
     this.showNotification('Identificador faltante', 'No se pudo procesar la vista por falta de un ID válido.', NotificationType.ERROR);
   }

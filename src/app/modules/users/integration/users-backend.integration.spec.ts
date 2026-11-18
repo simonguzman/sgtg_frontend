@@ -121,7 +121,6 @@ describe('Integración [Users]: administración de usuarios contra el backend', 
 
     expect(exito).toBe(true);
     expect(router.navigate).toHaveBeenCalledWith(['/users']);
-    // La lista de usuarios ya lo tiene; la tabla lo trae al volver a la página (recarga la gestión)
     expect(storage.getUsersSnapshot().map(user => user.id)).toContain('9');
   });
 

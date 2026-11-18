@@ -7,6 +7,10 @@ import { UploadAdvanceFormComponent } from '../../components/upload-advance-form
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/**
+ * Página en la que un estudiante o el director radica el informe mensual de la reunión de seguimiento
+ * agendada.
+ */
 @Component({
   selector: 'app-upload-advance-page',
   imports: [UploadAdvanceFormComponent, ConfirmationActionModalComponent],

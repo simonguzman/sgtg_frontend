@@ -8,6 +8,7 @@ import { User } from '../../interfaces/user.interface';
 import { apiErrorMessage } from '../../../../core/utils/api-error.utils';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/** Fachada de la creación y la edición de usuarios. */
 @Injectable({ providedIn: 'root' })
 export class UserFormFacadeService {
   private readonly userService = inject(UserService);
@@ -15,15 +16,18 @@ export class UserFormFacadeService {
   private readonly router = inject(Router);
   private readonly navigation = inject(NavigationHistoryService);
 
+  /** Usuario por id desde el backend. */
   public getUserById(id: string): Observable<User | undefined> {
     return this.userService.getUserById(id);
   }
 
+  /** Avisa que el usuario no existe y vuelve a la gestión de usuarios. */
   public handleNotFound(message = 'Usuario no encontrado'): void {
     this.showNotification('Atención', message, NotificationType.ERROR);
     this.router.navigate(['/users']);
   }
 
+  /** Crea el usuario y avisa el resultado. */
   public createUser(userData: User, onSuccess: () => void): void {
     this.showNotification('Procesando registro', 'Estamos procesando la información del usuario...', NotificationType.INFO);
 
@@ -41,6 +45,7 @@ export class UserFormFacadeService {
   }
 
 
+  /** Actualiza el usuario y avisa el resultado. */
   public updateUser(id: string, userData: User, onSuccess: () => void, onError: () => void): void {
     this.showNotification('Procesando actualización', 'Estamos procesando la actualización de la información del usuario...', NotificationType.INFO);
 

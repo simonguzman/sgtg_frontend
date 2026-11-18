@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { ProcesoApi, TrabajoGradoResponse } from '../../interfaces/api/trabajo-grado-api.interface';
+import { TrabajoGradoResponse } from '../../interfaces/api/trabajo-grado-api.interface';
 
 /** Archivos de una operación multipart: nombre de la parte → archivo (los vacíos no se envían). */
 export type PartesArchivo = Record<string, File | Blob | null | undefined>;
@@ -19,9 +19,8 @@ export type PartesArchivo = Record<string, File | Blob | null | undefined>;
 @Injectable({ providedIn: 'root' })
 export class TrabajoGradoApiService {
   private readonly http = inject(HttpClient);
+  /** URL base de los trabajos de grado en el backend. */
   readonly apiUrl = `${environment.apiUrl}/trabajos-grado`;
-
-  // ── Consultas ──────────────────────────────────────────────────────────────
 
   /** Trabajos en los que participa el usuario autenticado. */
   misTrabajos(): Observable<TrabajoGradoResponse[]> {
@@ -38,11 +37,7 @@ export class TrabajoGradoApiService {
     return this.http.get<number[]>(`${this.apiUrl}/estudiantes-disponibles`);
   }
 
-  /** Trabajos en una etapa (mismos roles que `todos`). */
-  porEtapa(etapa: ProcesoApi): Observable<TrabajoGradoResponse[]> {
-    return this.http.get<TrabajoGradoResponse[]>(this.apiUrl, { params: { etapa } });
-  }
-
+  /** Un trabajo por id (403 si el usuario no lo puede ver, 404 si no existe). */
   consultar(id: number | string): Observable<TrabajoGradoResponse> {
     return this.http.get<TrabajoGradoResponse>(`${this.apiUrl}/${id}`);
   }
@@ -51,8 +46,6 @@ export class TrabajoGradoApiService {
   urlArchivo(id: number | string, ruta: string): string {
     return `${this.apiUrl}/${id}/archivos?ruta=${encodeURIComponent(ruta)}`;
   }
-
-  // ── Operaciones ────────────────────────────────────────────────────────────
 
   /** Operación sin archivos: `POST /trabajos-grado{/id}/{operacion}` con cuerpo JSON. */
   enviarJson(id: number | string | null, operacion: string, cuerpo: unknown): Observable<TrabajoGradoResponse> {

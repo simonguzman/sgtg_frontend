@@ -1,3 +1,4 @@
+/** Opciones de un gráfico de Chart.js que usa la página. */
 export interface ChartOptionsConfiguration {
   plugins?: {
     legend?: {

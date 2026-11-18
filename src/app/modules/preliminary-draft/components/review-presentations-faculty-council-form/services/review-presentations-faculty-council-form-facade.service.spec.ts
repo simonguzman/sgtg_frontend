@@ -49,7 +49,6 @@ const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
   title: 'Mock Proposal',
   authors: [createMockUser({ id: 'user-1' }), createMockUser({ id: 'user-2' })],
   director: createMockUser({ id: 'dir-1' }),
-  // El concepto del Comité llega del mapper como Pertinente, con el Formato A firmado
   evaluations: [createMockEvaluation({
     evaluatorName: 'Comité de Programa', veredict: stateList.PERTINENTE,
     signedDocuments: [{ name: 'Formato A firmado', url: '/api/v1/sgtg/trabajos-grado/15/archivos/acta-comite/v1' }]
@@ -142,7 +141,6 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
     });
 
     it('los formatos B de los dos evaluadores se distinguen por su evaluador y cada uno conserva su archivo', () => {
-      // El formato B de cada evaluador se guarda en su propia carpeta (v1, v2); ambos se llaman igual
       const formatoB = (carpeta: string) => ({ name: etiquetaDeRuta(`15/TI-B/${carpeta}/Formato B - ${carpeta}.pdf`),
         url: `/api/v1/sgtg/trabajos-grado/15/archivos/TI-B/${carpeta}` });
       facade.preliminaryDraft.set(createMockDraft({
@@ -219,7 +217,7 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
       expect(entrega.enabled).toBe(true);
       expect(entrega.valid).toBe(false);
       entrega.setValue(new Date(2028, 0, 23));
-      expect(facade.evaluationForm.valid).toBe(false); // faltan las observaciones
+      expect(facade.evaluationForm.valid).toBe(false);
       expect(inicio.valid && entrega.valid).toBe(true);
     });
 
@@ -307,7 +305,6 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
   });
 
   describe('Plazo de ejecución que fija el Consejo', () => {
-    // Hoy (backend): 28-jul-2027; remisión con el formato C: 20-jul-2027
     const term = { startMin: new Date(2027, 6, 20), startMax: new Date(2027, 6, 28), minMonths: 3, maxMonths: 9 };
 
     beforeEach(() => {
@@ -353,7 +350,6 @@ describe('ReviewPresentationsFacultyCouncilFormFacadeService', () => {
       facade.evaluationForm.controls.endDate.setValue(new Date(2028, 1, 2));
       expect(facade.termLength()).toBe('6 meses y 10 días');
 
-      // Con la reunión el 20-jul la entrega máxima es el 20-abr: el 23-abr ya no cabe y se limpia
       facade.evaluationForm.controls.endDate.setValue(new Date(2028, 3, 23));
       facade.evaluationForm.controls.startDate.setValue(new Date(2027, 6, 20));
       expect(facade.evaluationForm.controls.endDate.value).toBeNull();

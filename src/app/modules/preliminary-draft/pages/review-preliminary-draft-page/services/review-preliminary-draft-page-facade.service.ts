@@ -31,6 +31,7 @@ const MENSAJE_CONCEPTO: Record<ResultadoConceptoEvaluador, string> = {
     + 'y el director deberá radicar una nueva versión.'
 };
 
+/** Fachada de la evaluación del anteproyecto por un evaluador. */
 @Injectable()
 export class ReviewPreliminaryDraftPageFacadeService {
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
@@ -41,21 +42,25 @@ export class ReviewPreliminaryDraftPageFacadeService {
   private readonly router = inject(Router);
   private readonly navigation = inject(NavigationHistoryService);
 
+  /** Anteproyecto que se evalúa. */
   readonly preliminaryDraftState = signal<PreliminaryDraft | null>(null);
+  /** true con la confirmación del concepto abierta. */
   readonly isConfirmModalOpen = signal(false);
+  /** Concepto pendiente de confirmar. */
   readonly pendingReviewData = signal<PendingReviewData | null>(null);
   /** Mientras se guarda el concepto no se envía otro */
   readonly isSubmitting = signal(false);
 
+  /** Versión que se evalúa: la de mayor número. */
   readonly activeRevision = computed(() => {
     const preliminaryDraft = this.preliminaryDraftState();
     if (!preliminaryDraft?.documents) return null;
     return [...preliminaryDraft.documents]
       .filter(document => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION)
-      // La versión que se evalúa es la más reciente (por número de versión)
       .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0] ?? null;
   });
 
+  /** Carga el anteproyecto de la ruta. */
   init(): void {
     const id = this.route.snapshot.paramMap.get('id') ?? this.route.parent?.snapshot.paramMap.get('id');
     if (id) {
@@ -86,12 +91,14 @@ export class ReviewPreliminaryDraftPageFacadeService {
       });
   }
 
+  /** Pide confirmar el concepto; mientras se guarda uno no se envía otro. */
   handleRequestConfirmation(data: PendingReviewData): void {
     if (this.isSubmitting()) return;
     this.pendingReviewData.set(data);
     this.isConfirmModalOpen.set(true);
   }
 
+  /** Registra el concepto con el formato B firmado y, si se adjuntó, el documento con las anotaciones. */
   async processEvaluation(): Promise<void> {
     const data = this.pendingReviewData();
     const preliminaryDraft = this.preliminaryDraftState();
@@ -108,7 +115,6 @@ export class ReviewPreliminaryDraftPageFacadeService {
       return;
     }
     this.isSubmitting.set(true);
-    // Formato B firmado (obligatorio) y, si lo adjuntó, el documento con sus anotaciones
     this.preliminaryDraftService.registerEvaluatorConcept(preliminaryDraft.preliminaryDraftId,
       resultado, data.formValues.comments, data.file, data.annotatedFile ?? null)
       .pipe(first())
@@ -126,6 +132,7 @@ export class ReviewPreliminaryDraftPageFacadeService {
       });
   }
 
+  /** Descarga la versión que se evalúa. */
   async downloadCurrentDocument(): Promise<void> {
     const revision = this.activeRevision();
     if (!revision) {
@@ -140,6 +147,7 @@ export class ReviewPreliminaryDraftPageFacadeService {
     }
   }
 
+  /** Vuelve a la página anterior o, si no hay, a los documentos cargados. */
   goBack(): void {
     this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route }));
   }

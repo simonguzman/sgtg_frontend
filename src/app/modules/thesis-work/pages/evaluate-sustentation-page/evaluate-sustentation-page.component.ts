@@ -7,6 +7,7 @@ import { EvaluateSustentationFormComponent, SustentationEvaluationPayload } from
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/** Página en la que el jurado coordinador califica la sesión de sustentación. */
 @Component({
   selector: 'app-evaluate-sustentation-page',
   templateUrl: './evaluate-sustentation-page.component.html',

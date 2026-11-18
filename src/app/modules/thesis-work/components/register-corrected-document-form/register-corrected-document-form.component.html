@@ -6,7 +6,6 @@
     <strong>obligatorios</strong> para registrar la entrega de correcciones.
   </app-info-banner>
 
-  <!-- ── Información del trabajo de grado ──────────────────────────────────── -->
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
 
@@ -61,13 +60,11 @@
 
   <hr class="border-gray-200 mb-8">
 
-  <!-- ── Documentos corregidos ──────────────────────────────────────────────── -->
   <section>
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Documentos Corregidos</h3>
 
     <div class="flex flex-col gap-4">
 
-      <!-- Monografía corregida -->
       <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm transition-colors"
            [class.border]="!uploadedMonograph() || isSubmitAttempted()"
            [class.border-alert]="isSubmitAttempted() && !uploadedMonograph()"
@@ -103,7 +100,6 @@
         }
       </div>
 
-      <!-- Anexos (opcionales, PDF) -->
       <div class="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-gray-200 transition-colors"
            [class.border-l-4]="uploadedAnnexes()"
            [class.border-l-state-approved]="uploadedAnnexes()">

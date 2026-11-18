@@ -117,9 +117,9 @@ describe('StatisticsPageFacadeService', () => {
     };
     mockReportService = {
       downloadPdfReport: jest.fn(),
-      downloadExcelReport: jest.fn(() => Promise.resolve()),
+      downloadExcelReport: jest.fn().mockResolvedValue(undefined),
       downloadCsvReport: jest.fn(),
-      downloadDueSoonReport: jest.fn(() => Promise.resolve()),
+      downloadDueSoonReport: jest.fn().mockResolvedValue(undefined),
     };
     TestBed.configureTestingModule({
       providers: [

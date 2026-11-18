@@ -45,8 +45,10 @@ export interface ContextoMapeo {
   urlArchivo: (trabajoId: number, ruta: string) => string;
 }
 
-// ── Vistas ──────────────────────────────────────────────────────────────────
-
+/**
+ * Vista de propuesta de un trabajo. Los conceptos del Comité se emparejan con las versiones radicadas por
+ * posición: el Comité emite uno por cada versión, en el mismo orden.
+ */
 export function aPropuesta(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): Proposal {
   const id = String(trabajo.id);
   const versiones = trabajo.propuesta.versiones;
@@ -77,7 +79,6 @@ export function aPropuesta(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): P
     evaluationDeadline: aFecha(trabajo.propuesta.fechaLimiteConcepto) ?? undefined,
     evaluationRemainingDays: trabajo.propuesta.diasHabilesRestantesConcepto ?? null,
     documents: documentos,
-    // El Comité emite un concepto (pertinente o no) por cada versión radicada, en el mismo orden
     evaluations: trabajo.propuesta.decisiones.map((decision, i) => {
       const evaluacion = evaluacionDeDecision(trabajo, decision, i, ctx, versiones[i]?.ruta);
       return { ...evaluacion, veredict: comoPertinencia(evaluacion.veredict) };
@@ -88,6 +89,8 @@ export function aPropuesta(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): P
 }
 
 /**
+ * Vista de anteproyecto de un trabajo, con sus versiones, los formatos C de las remisiones al Consejo y las
+ * decisiones del Consejo, que se emparejan con las remisiones por posición.
  * @returns el anteproyecto, o null si la propuesta aún no está aprobada o el
  * director todavía no radica su primera versión (aún no está registrado)
  */
@@ -100,7 +103,6 @@ export function aAnteproyecto(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo)
       ...aDocumento(trabajo.id, v, ctx, DocumentType.ANTEPROYECTO),
       status: estadoDeEntrega(v.estado)
     })),
-    // Formato C de cada remisión al Consejo, con el estado de su decisión
     ...anteproyecto.remisiones.map(remision => ({
       ...aDocumento(trabajo.id, remision, ctx, DocumentType.FORMATO_C),
       status: estadoRemision(trabajo, remision.version)
@@ -130,7 +132,6 @@ export function aAnteproyecto(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo)
         date: aFecha(concepto.fecha) ?? new Date(),
         deadlineStatus: estadoDelPlazo(concepto.aTiempo)
       })),
-      // El Consejo decide sobre cada remisión (formato C), en el mismo orden
       ...anteproyecto.decisionesConsejo.map((decision, i) =>
         evaluacionDeDecision(trabajo, decision, i, ctx, anteproyecto.remisiones[i]?.ruta))
     ],
@@ -187,8 +188,6 @@ export function aTrabajoDeGrado(trabajo: TrabajoGradoResponse, ctx: ContextoMape
     isArchived: estaCerrado(trabajo)
   };
 }
-
-// ── Trabajo en curso ────────────────────────────────────────────────────────
 
 /** Informe mensual como avance: "En revisión" hasta que alguien lo revisa. */
 function aInforme(trabajo: TrabajoGradoResponse, informe: InformeMensualApi, ctx: ContextoMapeo): Advance {
@@ -386,8 +385,6 @@ export function solicitudesEspeciales(trabajo: TrabajoGradoResponse, ctx: Contex
   return solicitudes.sort((a, b) => b.requestDate.getTime() - a.requestDate.getTime());
 }
 
-// ── Sustentación ────────────────────────────────────────────────────────────
-
 /** Estado general de la sustentación: el de la sesión actual y sus plazos. */
 function procesoDeSustentacion(trabajo: TrabajoGradoResponse): SustentationProcess | null {
   const sustentacion = trabajo.sustentacion;
@@ -557,8 +554,7 @@ function documentosDeCierre(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): 
   }];
 }
 
-// ── Estados ─────────────────────────────────────────────────────────────────
-
+/** @returns true si el trabajo terminó (finalizado, no aprobado o cancelado) y pasa al historial */
 export function estaCerrado(trabajo: TrabajoGradoResponse): boolean {
   return ETAPAS_FINALES.includes(trabajo.etapa);
 }
@@ -610,7 +606,6 @@ export function estadoPropuesta(trabajo: TrabajoGradoResponse): stateList {
 export function estadoAnteproyecto(trabajo: TrabajoGradoResponse): stateList {
   if (trabajo.ejecucion) return stateList.APROBADO;
   if (trabajo.etapa === 'APROBACION_CONSEJO') return stateList.EVALUADO;
-  // Aprobado por ambos evaluadores, pendiente de que el Jefe lo remita al Consejo
   if (trabajo.etapa === 'EVALUACION' && ultimoEstado(trabajo.anteproyecto.versiones) === 'APROBADO') {
     return stateList.EVALUADO;
   }
@@ -674,8 +669,6 @@ export function veredicto(resultado: ResultadoConceptoApi | CalificacionApi): st
   }
 }
 
-// ── Personas, documentos y evaluaciones ─────────────────────────────────────
-
 /**
  * Participante como `User`: el usuario conocido si está en la lista; si no
  * (ej. asesor externo o usuario no cargado), uno armado con los datos del trabajo.
@@ -717,6 +710,9 @@ const TIPOS_DOCUMENTO: Record<string, DocumentType> = {
   AJUSTES_SUSTENTACION: DocumentType.CORRECCION
 };
 
+/**
+ * Tipo de documento del front para un tipo del backend; los tipos sin equivalente se muestran como formato.
+ */
 export function tipoDocumento(tipoBackend: string): DocumentType {
   return TIPOS_DOCUMENTO[tipoBackend] ?? DocumentType.FORMATO;
 }
@@ -779,8 +775,6 @@ function estadoDelPlazo(aTiempo: boolean | null | undefined): EvaluationDeadline
   return aTiempo ? EvaluationDeadlineStatus.ON_TIME : EvaluationDeadlineStatus.DELAYED;
 }
 
-// ── Apoyo ───────────────────────────────────────────────────────────────────
-
 /** "2026-07-15T14:00:00" → "15/07/2026 14:00" */
 function fechaYHora(valor: string): string {
   const fecha = aFecha(valor);
@@ -790,12 +784,14 @@ function fechaYHora(valor: string): string {
     + `${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
 }
 
-/** Nombre con que se muestra cada tipo de documento, según su carpeta en el servidor. */
+/**
+ * Nombre con que se muestra cada formato, según su carpeta en el servidor. La carpeta D corresponde a los
+ * informes mensuales cargados antes de que tuvieran su propia carpeta (INFORME_MENSUAL).
+ */
 const ETIQUETAS_POR_FORMATO: Record<string, string> = {
   A: 'Formato A (propuesta)',
   B: 'Formato B (concepto del evaluador)',
   C: 'Formato C (remisión al Consejo)',
-  // Los informes mensuales cargados antes se guardaron como formato D (hoy van a la carpeta INFORME_MENSUAL)
   D: 'Informe mensual',
   E: 'Formato E (documento final)',
   F: 'Formato F (paz y salvo)',
@@ -810,7 +806,6 @@ const ETIQUETAS_POR_CARPETA: Record<string, string> = {
   CARTA_ACEPTACION: 'Carta de aceptación',
   INFORME_MENSUAL: 'Informe mensual',
   RESOLUCION: 'Resolución del Consejo',
-  // Formato A con el concepto y la firma del Comité de Programa
   ACTA_COMITE: 'Formato A firmado',
   SOLICITUD_PRORROGA: 'Solicitud de prórroga',
   SOLICITUD_SUSPENSION: 'Solicitud de suspensión',

@@ -12,6 +12,10 @@ import { CorrectedDelivery } from '../../interfaces/corrected-delivery.interface
 import { ensureDate, formatThesisDate } from '../../helpers/thesis-date.helper';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/**
+ * Documentos corregidos después de la sustentación: los ajustes que radica el director y su verificación por
+ * el jurado. También se abre desde el historial.
+ */
 @Component({
   selector: 'app-corrected-documents-page',
   templateUrl: './corrected-documents-page.component.html',
@@ -55,19 +59,10 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
     this.breadcrumbService.setDynamicTitle(null);
   }
 
-  // ← FIX CENTRAL: thesisWorks() → allThesisWorks(). thesisWorks() es la
-  // señal filtrada (mismo patrón ya corregido en ArchivedProcessComponent
-  // para proposals/preliminaryDrafts) — al evaluar correcciones, el
-  // trabajo de grado deja de aparecer en esa lista filtrada, por lo que
-  // currentThesisWork() se vuelve null y buildTableData(null) devuelve []
-  // — de ahí que la tabla se vacíe por completo tras la evaluación.
-  // allThesisWorks() es exactamente lo que ya usa el componente hermano
-  // LoadedDocumentsThesisWorkPageComponent para este mismo propósito
-  // (buscar un trabajo de grado específico por ID en una página de
-  // gestión/detalle). Además, este mismo componente ya asume trabajar con
-  // registros archivados (ver isArchived más abajo, derivado de la ruta,
-  // no del campo thesis.isArchived) — reforzando que usar la señal sin
-  // filtrar es lo correcto aquí.
+  /**
+   * Trabajo de la ruta, buscado entre todos los trabajos (también los archivados): al verificar los ajustes el
+   * trabajo sale de la lista activa y la tabla no debe quedar vacía.
+   */
   readonly currentThesisWork = computed(() =>
     this.facade.findThesisWork(this.thesisWorkId(), this.thesisWorkService.allThesisWorks())
   );
@@ -121,7 +116,6 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ← void: downloadDocumentByName() del facade ahora es async.
   downloadDocumentByName(fileName: string): void {
     void this.facade.downloadDocumentByName(this.selectedDelivery(), fileName);
   }
@@ -134,9 +128,11 @@ export class CorrectedDocumentsPageComponent implements OnInit, OnDestroy {
     this.router.navigate(['evaluate_corrections'], { relativeTo: this.route });
   }
 
+  /**
+   * Vuelve a la página anterior o, si no hay, al detalle de la sesión calificada (o a la pestaña de
+   * sustentación). La ruta es relativa para que también sirva en el historial.
+   */
   goBack(): void {
-    // Se llega desde el detalle de la sesión calificada (o desde la pestaña de sustentación). Relativo a esta
-    // ruta, para que también sirva en el historial (/history/thesis-work-details/:id/...)
     this.navigation.back(() => {
       const sustentationId = this.currentThesisWork()?.sustentations?.[0]?.id;
       if (!this.thesisWorkId()) {

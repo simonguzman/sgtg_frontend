@@ -6,6 +6,7 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 import { UserFormFacadeService } from '../services/user-form-facade.service';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/** Página para crear un usuario. */
 @Component({
   selector: 'app-user-create-page',
   standalone: true,

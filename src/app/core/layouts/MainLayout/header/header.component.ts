@@ -9,6 +9,10 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 import { ChangePasswordModalComponent } from '../../../../shared/components/modals/change-password-modal/change-password-modal.component';
 import { InboxService } from '../../../../modules/notifications/services/inbox.service';
 
+/**
+ * Encabezado de la aplicación: bandeja de entrada con el indicador de notificaciones sin leer y menú del
+ * usuario (perfil, cambio de contraseña y cierre de sesión).
+ */
 @Component({
   selector: 'app-header',
   imports: [AvatarModule, MenuModule, ConfirmationActionModalComponent, ChangePasswordModalComponent],

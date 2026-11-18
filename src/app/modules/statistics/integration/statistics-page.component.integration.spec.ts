@@ -73,7 +73,6 @@ describe('StatisticsPageComponent - Integración UI', () => {
   it('debe renderizar los KPIs consumidos desde las señales de la fachada', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const cards = compiled.querySelectorAll('.text-3xl.font-bold');
-    // Las cuatro de resumen y la de próximos a vencer
     expect(cards).toHaveLength(5);
     expect(cards[0].textContent?.trim()).toBe('150');
     expect(cards[1].textContent?.trim()).toBe('100');

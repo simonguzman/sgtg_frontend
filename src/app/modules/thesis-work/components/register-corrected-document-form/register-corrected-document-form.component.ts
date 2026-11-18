@@ -9,6 +9,7 @@ import { ProposalContentFieldsComponent } from '../../../../shared/components/pr
 
 type FileSlot = 'MONOGRAPH' | 'ANNEXES';
 
+/** Formulario del director para radicar los ajustes pedidos en la sustentación, con anexos opcionales. */
 @Component({
   selector: 'app-register-corrected-document-form',
   templateUrl: './register-corrected-document-form.component.html',

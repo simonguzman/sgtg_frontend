@@ -1,8 +1,9 @@
 import { ChartOptionsConfiguration } from '../../../interfaces/chartOptionsConfiguration.interface';
 
-// Sin animación: con ella cada gráfico se redibuja durante un segundo al cargar la página y con cada
-// filtro, y los cuatro juntos eran la mayor parte del trabajo de la página en un equipo lento.
-
+/**
+ * Opciones de los gráficos circulares. Van sin animación: redibujar los cuatro gráficos con cada filtro era
+ * la mayor parte del trabajo de la página en un equipo lento.
+ */
 export const DOUGHNUT_CHART_OPTIONS: ChartOptionsConfiguration = {
   plugins: {
     legend: {
@@ -15,6 +16,7 @@ export const DOUGHNUT_CHART_OPTIONS: ChartOptionsConfiguration = {
   animation: false
 };
 
+/** Opciones de los gráficos de barras, también sin animación. */
 export const BAR_CHART_OPTIONS: ChartOptionsConfiguration = {
   plugins: {
     legend: { display: false }

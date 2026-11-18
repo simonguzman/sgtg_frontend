@@ -6,6 +6,7 @@ import { AnnulWorkModalComponent } from '../../../../shared/components/modals/an
 import { PreliminaryDraftFacadeService } from './services/preliminary-draft-facade.service';
 import { PRELIMINARY_DRAFT_COLUMNS, PreliminaryDraftTableRow } from './models/preliminary-draft-page.model';
 
+/** Lista de anteproyectos visibles para el usuario, con sus acciones según el rol. */
 @Component({
   selector: 'app-preliminary-draft-page',
   standalone: true,

@@ -17,12 +17,14 @@ export function fechaHoraLocal(valor: string | Date): string {
     + `T${dos(fecha.getHours())}:${dos(fecha.getMinutes())}:00`;
 }
 
+/** Fachada de la programación de la sustentación. */
 @Injectable({ providedIn: 'root' })
 export class RegisterSustentationFacadeService {
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Carga el trabajo de grado de la ruta; si no existe, avisa y llama a `onError`. */
   public loadThesisWork(
     id: string,
     onSuccess: (thesisWork: ThesisWork) => void,
@@ -79,6 +81,7 @@ export class RegisterSustentationFacadeService {
       });
   }
 
+  /** Descarga un documento de la solicitud de sustentación. */
   public async downloadDocument(document: FileDocument): Promise<void> {
     if (!document?.url) {
       this.showNotification('Error de descarga', 'No existe una URL válida vinculada a este archivo.', NotificationType.ERROR);

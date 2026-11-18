@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { LoginFacadeService } from './services/login-facade.service';
 
+/** Pantalla de inicio de sesión con correo institucional y contraseña. */
 @Component({
   selector: 'app-login',
   imports: [ReactiveFormsModule, ButtonComponent],

@@ -118,7 +118,6 @@ describe('Integración [Core]: Guards base de autenticación y roles', () => {
       const cambio = buildRouterState('/auth/cambiar-password');
       setup({ isAuthenticated: signal(true), debeCambiarPassword: signal(true) });
       expect(runInInjectionContext(injector, () => publicGuard(buildRoute(), cambio))).toBe(true);
-      // Desde el login lo lleva a cambiarla
       expect(runInInjectionContext(injector, () => publicGuard(buildRoute(), buildRouterState('/auth/login'))))
         .toBe(false);
       expect(routerMock.navigate).toHaveBeenCalledWith(['/auth/cambiar-password']);

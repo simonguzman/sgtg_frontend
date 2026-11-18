@@ -1,5 +1,6 @@
 import { TabItem } from '../../../../../shared/components/tabs/tabs.component';
 
+/** Pestañas de los documentos cargados del trabajo. */
 export const THESIS_TABS_CONFIG: TabItem[] = [
   { label: 'Informes mensuales',     value: 'AVANCES'         },
   { label: 'Entrega final',          value: 'ENTREGA FINAL'   },
@@ -9,6 +10,7 @@ export const THESIS_TABS_CONFIG: TabItem[] = [
   { label: 'Solicitudes especiales', value: 'SOLICITUDES'     },
 ];
 
+/** Título del modal de detalle de cada pestaña. */
 export const TAB_MODAL_HEADERS: Record<string, string> = {
   'AVANCES':         'Detalles del informe mensual',
   'ENTREGA FINAL':   'Detalles de la solicitud de sustentación',
@@ -17,6 +19,7 @@ export const TAB_MODAL_HEADERS: Record<string, string> = {
   'SOLICITUDES':     'Detalles de la Solicitud Especial',
 };
 
+/** Subtítulo del modal de detalle de cada pestaña. */
 export const TAB_MODAL_SUBTITLES: Record<string, string> = {
   'AVANCES':         'Información del informe mensual radicado',
   'ENTREGA FINAL':   'Documentos de la entrega final',

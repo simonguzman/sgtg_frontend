@@ -1,3 +1,4 @@
+/** Tipos de documento que maneja el front (propuesta, anteproyecto, formatos, monografía, anexos...). */
 export enum DocumentType{
   'PROPUESTA' = 'Propuesta',
   'ANTEPROYECTO' = 'Anteproyecto',

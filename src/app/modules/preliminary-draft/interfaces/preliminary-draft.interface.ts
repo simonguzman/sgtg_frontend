@@ -18,6 +18,7 @@ export interface CouncilTerm {
   maxMonths: number;
 }
 
+/** Vista de anteproyecto de un trabajo de grado. */
 export interface PreliminaryDraft extends Archivable {
   preliminaryDraftId?: string;
   proposalId: string;

@@ -7,11 +7,13 @@ import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { SustentationRequestFiles } from '../../../services/thesis-work-sustentation.service';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
+/** Fachada de la solicitud de sustentación. */
 @Injectable({ providedIn: 'root' })
 export class UploadFinalDeliveryFacadeService {
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Carga el trabajo de grado de la ruta; si no existe, avisa y llama a `onError`. */
   public loadThesisWork(
     id: string,
     onSuccess: (thesisWork: ThesisWork) => void,
@@ -62,6 +64,7 @@ export class UploadFinalDeliveryFacadeService {
       });
   }
 
+  /** Muestra el aviso «Error de navegación». */
   public showNavigationError(): void {
     this.showNotification(
       'Error de navegación',

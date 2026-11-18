@@ -48,6 +48,7 @@ export class ProposalApiService {
   private readonly vistas = inject(TrabajoGradoVistasService);
   private readonly authApi = inject(AuthApiService);
 
+  /** Propuesta por id, de memoria o del backend. */
   getProposalById(id: string): Observable<Proposal | undefined> {
     return this.storage.getById(id);
   }
@@ -116,9 +117,6 @@ export class ProposalApiService {
   annulProposal(id: string, justification: string): Observable<Proposal> {
     return this.anulacion.anular(id, justification).pipe(map(trabajo => this.vista(trabajo)));
   }
-
-  // ── Apoyo ─────────────────────────────────────────────────────────────────
-
 
   /** Asesor de la práctica profesional: usuario con rol ASESOR y su organización. */
   private asesor(proposal: Proposal) {

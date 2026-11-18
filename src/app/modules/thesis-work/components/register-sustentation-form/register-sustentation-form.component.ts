@@ -13,6 +13,7 @@ import { User } from '../../../users/interfaces/user.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
+/** Programación de la sesión que emite el formulario. */
 export interface SustentationFormPayload {
   sustentationDate: string | Date;
   location: string;
@@ -20,6 +21,7 @@ export interface SustentationFormPayload {
   juror2: string;
 }
 
+/** Formulario del Consejo para programar la sustentación: fecha, lugar y los dos jurados. */
 @Component({
   selector: 'app-register-sustentation-form',
   templateUrl: './register-sustentation-form.component.html',

@@ -14,6 +14,7 @@ import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { SaveEvaluationPayload } from '../../../components/review-presentations-faculty-council-form/models/council-evaluation.model';
 import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
+/** Fachada de la decisión del Consejo sobre el anteproyecto. */
 @Injectable()
 export class ReviewPresentationsFacultyCouncilPageFacadeService {
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
@@ -24,12 +25,16 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
   private readonly navigation = inject(NavigationHistoryService);
   private readonly destroyRef = inject(DestroyRef);
 
+  /** Anteproyecto remitido. */
   readonly preliminaryDraftState = signal<PreliminaryDraft | null>(null);
+  /** true con la confirmación de la decisión abierta. */
   readonly isConfirmModalOpen = signal(false);
+  /** Decisión pendiente de confirmar. */
   readonly pendingData = signal<SaveEvaluationPayload | null>(null);
   /** Mientras se guarda la decisión no se envía otra */
   readonly isSubmitting = signal(false);
 
+  /** Anteproyecto con solo los conceptos de la versión vigente. */
   readonly filteredPreliminaryDraft = computed(() => {
     const preliminaryDraft = this.preliminaryDraftState();
     if (!preliminaryDraft?.documents) return null;
@@ -68,6 +73,7 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
     };
   });
 
+  /** Carga el anteproyecto de la ruta. */
   loadData(): void {
     const id = this.route.snapshot.paramMap.get('id') ?? this.route.parent?.parent?.snapshot.paramMap.get('id');
     if (id) {
@@ -86,12 +92,14 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
     }
   }
 
+  /** Pide confirmar la decisión; mientras se guarda una no se envía otra. */
   handleRequestConfirmation(data: SaveEvaluationPayload): void {
     if (this.isSubmitting()) return;
     this.pendingData.set(data);
     this.isConfirmModalOpen.set(true);
   }
 
+  /** Registra la decisión con la resolución; al aprobar, el plazo corre desde la reunión del Consejo hasta la fecha máxima de entrega que fijó. */
   async processCouncilDecision(): Promise<void> {
     const data = this.pendingData();
     const preliminaryDraft = this.preliminaryDraftState();
@@ -103,7 +111,6 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
 
     this.isSubmitting.set(true);
     const finalState = data.formValues.result === stateList.APROBADO ? stateList.APROBADO : stateList.NO_APROBADO;
-    // El plazo corre desde la reunión del Consejo hasta la fecha máxima de entrega que fijó
     this.preliminaryDraftService.registerCouncilDecision(
         preliminaryDraft.preliminaryDraftId,
         finalState,
@@ -127,6 +134,7 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
       });
   }
 
+  /** Descarga un documento de la remisión. */
   downloadFile(document: FormattedDocument | FileDocument): void {
     if (document?.url) {
       this.downloadService.download(document.url, document.name);
@@ -139,6 +147,7 @@ export class ReviewPresentationsFacultyCouncilPageFacadeService {
     }
   }
 
+  /** Vuelve a la página anterior o, si no hay, a la pestaña de presentaciones. */
   goBack(): void {
     this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route, queryParams: { tab: 'PRESENTACIONES' } }));
   }

@@ -14,10 +14,12 @@ import { Proposal } from '../../../../modules/proposal/interfaces/proposal.inter
 import { PreliminaryDraft } from '../../../../modules/preliminary-draft/interfaces/preliminary-draft.interface';
 import { UserService } from '../../../../modules/users/services/user.service';
 
+/** Convierte las evaluaciones de cada etapa en filas de la tabla de evaluaciones realizadas. */
 @Injectable({ providedIn: 'root' })
 export class EvaluationsMapperService {
   private readonly userService = inject(UserService);
 
+  /** Conceptos del Comité sobre la propuesta. */
   public processProposalEvaluations(proposal: Proposal | undefined): EvaluationTableRow[] {
     if (!proposal) return [];
     return this.formatEvaluationsForTable(
@@ -27,6 +29,7 @@ export class EvaluationsMapperService {
     );
   }
 
+  /** Conceptos de los evaluadores y decisiones del Consejo sobre el anteproyecto. */
   public processDraftEvaluations(preliminaryDraft: PreliminaryDraft | undefined): EvaluationTableRow[] {
     if (!preliminaryDraft) return [];
     return this.formatEvaluationsForTable(
@@ -36,6 +39,11 @@ export class EvaluationsMapperService {
     );
   }
 
+  /**
+   * Evaluaciones del trabajo en curso: revisiones de los informes mensuales, verificaciones de las
+   * correcciones, calificaciones de los jurados y solicitudes que ya resolvió el Consejo (la reanudación
+   * solo se registra, no se resuelve). El documento evaluado de una solicitud es el que la acompaña.
+   */
   public processThesisEvaluations(thesisWork: ThesisWork | undefined): EvaluationTableRow[] {
     if (!thesisWork) return [];
     const defaultTitle = thesisWork.preliminaryDraftData?.proposalData?.title || 'Trabajo de Grado';
@@ -94,7 +102,6 @@ export class EvaluationsMapperService {
       });
     });
 
-    // Solicitudes que ya resolvió el Consejo (la reanudación solo se registra, no se resuelve)
     const specialRequestsEvaluations: RawEvaluationData[] = (thesisWork.specialRequests || [])
       .filter((request: SpecialRequest) => request.status !== stateList.EN_REVISION
         && request.requestType !== SpecialRequestType.REANUDACION)
@@ -110,7 +117,6 @@ export class EvaluationsMapperService {
           veredict: request.status,
           observations: request.resolutionDetails || 'Sin detalles de resolución registrados.',
           date: request.resolutionDate ?? request.requestDate,
-          // El documento evaluado es el de la solicitud (el cambio de título y objetivos no tiene)
           documentTargetName: request.documents?.[0]?.name ?? `Solicitud Especial (${capitalizedType})`,
           signedDocuments: request.resolution ? [{ name: request.resolution.name, url: request.resolution.url }] : []
         };

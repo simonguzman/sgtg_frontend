@@ -14,6 +14,7 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
 import { proposalContent } from '../../../../../shared/components/work-details/work-details.builder';
 
+/** Estado del formulario del anteproyecto. */
 @Injectable()
 export class PreliminaryDraftFormService {
   private readonly fb = inject(FormBuilder);
@@ -36,9 +37,12 @@ export class PreliminaryDraftFormService {
 
   private readonly editableFields = ['title', 'generalObjective', 'specificObjectives', 'description', 'lineOfResearch'];
 
+  /** Id de la propuesta elegida. */
   readonly selectedProposalId = signal<string>('');
+  /** Id del anteproyecto que se corrige, o null al registrar uno nuevo. */
   readonly currentPreliminaryDraftId = signal<string | null>(null);
 
+  /** Propuestas del director con concepto pertinente del Comité, que son las que pasan a anteproyecto. */
   readonly availableProposals = computed(() => {
     const allProposals = this.proposalService.proposals();
     const currentUser = this.authService.currentUser();
@@ -46,7 +50,6 @@ export class PreliminaryDraftFormService {
     const activeDraftId = this.currentPreliminaryDraftId();
     return allProposals.filter(proposal => {
       if (activeDraftId && proposal.id === this.form.get('proposalId')?.value) return true;
-      // Solo las propuestas con concepto pertinente del Comité pasan a anteproyecto
       const isPertinent = proposal.state === stateList.PERTINENTE;
       const isDirector = proposal.director?.id === currentUser?.id;
       const isAlreadyRegistered = existingPreliminaryDrafts.some(draft => draft.proposalId === proposal.id);
@@ -54,11 +57,13 @@ export class PreliminaryDraftFormService {
     });
   });
 
+  /** Propuesta elegida, o null. */
   readonly selectedProposal = computed(() => {
     const id = this.selectedProposalId();
     return this.availableProposals().find(proposal => proposal.id === id) || null;
   });
 
+  /** Formato A firmado del concepto pertinente más reciente de la propuesta elegida. */
   readonly proposalEvaluationDocument = computed<FormattedDocument | null>(() => {
     const proposal = this.selectedProposal();
     if (!proposal?.evaluations?.length) return null;
@@ -70,6 +75,7 @@ export class PreliminaryDraftFormService {
     return approvedEvaluation?.signedDocuments?.[0] ?? null;
   });
 
+  /** Propuestas disponibles como opciones de la lista. */
   readonly proposalOptions = computed<SelectOption[]>(() =>
     this.availableProposals().map(proposal => ({ id: proposal.id!, label: proposal.title }))
   );
@@ -84,18 +90,22 @@ export class PreliminaryDraftFormService {
       .subscribe(id => this.selectedProposalId.set(id ?? ''));
   }
 
+  /** Campos de los objetivos específicos. */
   get specificObjectives(): FormArray<FormControl<string>> {
     return this.form.controls.specificObjectives;
   }
 
+  /** Agrega un campo de objetivo específico. */
   addSpecificObjective(value = ''): void {
     this.specificObjectives.push(this.fb.nonNullable.control(value));
   }
 
+  /** Quita un objetivo específico; siempre queda al menos un campo. */
   removeSpecificObjective(index: number): void {
     if (this.specificObjectives.length > 1) this.specificObjectives.removeAt(index);
   }
 
+  /** Deja el formulario listo para registrar un anteproyecto nuevo. */
   initForCreate(): void {
     this.currentPreliminaryDraftId.set(null);
     this.form.reset();
@@ -163,6 +173,7 @@ export class PreliminaryDraftFormService {
     };
   }
 
+  /** Nombre completo de un participante, o «No asignado». */
   getMemberName(user: User | undefined): string {
     if (!user) return 'No asignado';
     return [user.firstName, user.secondName, user.lastName, user.secondLastName]
@@ -170,6 +181,7 @@ export class PreliminaryDraftFormService {
       .join(' ');
   }
 
+  /** Nombres de los estudiantes. */
   getAuthorsNames(authors: User[] | undefined): string {
     return this.userService.getAuthorsNames(authors);
   }

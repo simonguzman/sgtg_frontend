@@ -335,7 +335,6 @@ describe('LoadedDocumentsThesisWorkPageComponent', () => {
       fixture.detectChanges();
 
       setTimeout(() => {
-        // Sin acción propia, la ruta de la pestaña; con acción, la del botón (ej. las reuniones de seguimiento)
         component.handleHeaderButton({ label: 'Ir', variant: 'primary' } as TableButton);
         expect(routerSpy.navigate).toHaveBeenCalledWith(['upload_advance'], { relativeTo: routeMock.parent });
 

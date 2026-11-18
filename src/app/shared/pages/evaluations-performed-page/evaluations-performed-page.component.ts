@@ -10,6 +10,10 @@ import { TableComponent } from '../../components/table-component/table-component
 import { EvaluationModalComponent } from '../../components/modals/evaluation-modal/evaluation-modal.component';
 import { NavigationHistoryService } from '../../../core/services/navigation/navigation-history.service';
 
+/**
+ * Página con las evaluaciones realizadas sobre una propuesta, un anteproyecto o un trabajo de grado, según la
+ * ruta.
+ */
 @Component({
   selector: 'app-evaluations-performed-page',
   standalone: true,

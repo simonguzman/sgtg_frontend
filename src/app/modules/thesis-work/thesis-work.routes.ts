@@ -23,6 +23,12 @@ import { DownloadableFormatsPageComponent } from '../../shared/pages/downloadabl
 import { thesisWorkOwnershipGuard } from '../../core/guards/thesis-work-ownership.guard';
 import { MeetingsPageComponent } from './pages/meetings-page/meetings-page.component';
 
+/**
+ * Rutas del módulo de trabajos de grado: lista, detalle, documentos cargados, reuniones de seguimiento,
+ * informes mensuales, sustentación, solicitudes especiales y documentos corregidos. Los informes los radican
+ * los estudiantes o el director, y el registro de solicitudes sigue abierto con el trabajo suspendido para
+ * registrar la reanudación.
+ */
 export const thesisWorkRoutes: Routes = [
   {
     path: '',
@@ -108,7 +114,6 @@ export const thesisWorkRoutes: Routes = [
             title: 'Cargar informe mensual',
             data: {
               breadcrumb: 'Cargar informe mensual',
-              // Los estudiantes o el director radican los informes
               roles: [UserRoleType.ADMINISTRADOR, UserRoleType.ESTUDIANTE, UserRoleType.DIRECTOR]
             }
           },
@@ -189,7 +194,6 @@ export const thesisWorkRoutes: Routes = [
           {
             path: 'register_special_request',
             component: RegisterSpecialRequestPageComponent,
-            // Abierta también con el trabajo suspendido: allí se registra la reanudación
             canActivate: [roleGuard, thesisCanceledGuard],
             title: 'Registrar solicitud especial',
             data: {

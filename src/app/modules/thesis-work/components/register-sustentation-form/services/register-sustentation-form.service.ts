@@ -10,6 +10,7 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { canEvaluateWork } from '../../../../users/helpers/evaluator-eligibility.helper';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
 
+/** Datos, validaciones y avisos del formulario de programación de la sustentación. */
 @Injectable()
 export class RegisterSustentationFormService {
   private readonly fb = inject(FormBuilder);
@@ -18,6 +19,7 @@ export class RegisterSustentationFormService {
   private readonly documentResolver = inject(ThesisFinalDeliveryDocumentResolverService);
   private readonly participants = inject(ThesisParticipantsFormatterService);
 
+  /** Fecha, lugar y los dos jurados de la sesión. */
   readonly form = this.fb.nonNullable.group({
     sustentationDate: ['', Validators.required],
     location: ['', Validators.required],
@@ -58,6 +60,7 @@ export class RegisterSustentationFormService {
     return allUsers.filter(user => canEvaluateWork(user, departmentId, forbiddenIds));
   }
 
+  /** Nombre completo de un participante, o «No asignado». */
   getMemberFullName(user: User | undefined): string {
     if (!user) return 'No asignado';
     return [user.firstName, user.secondName, user.lastName, user.secondLastName]
@@ -65,14 +68,19 @@ export class RegisterSustentationFormService {
       .join(' ');
   }
 
+  /** Nombres de los estudiantes del trabajo. */
   getStudentNames(thesisWork: ThesisWork): string {
     return this.participants.getStudentNames(thesisWork);
   }
 
+  /** Nombre del director. */
   getDirectorName(thesisWork: ThesisWork): string   { return this.participants.getDirectorName(thesisWork); }
+  /** Nombre del codirector, o vacío si no tiene. */
   getCodirectorName(thesisWork: ThesisWork): string { return this.participants.getCodirectorName(thesisWork); }
+  /** Nombre del asesor, o vacío si no tiene. */
   getAdvisorName(thesisWork: ThesisWork): string     { return this.participants.getAdvisorName(thesisWork); }
 
+  /** Documento del trabajo del tipo indicado, o null. */
   getExistingDocument(thesisWork: ThesisWork, type: string): FileDocument | null {
     const targetType = type.toUpperCase().trim();
 
@@ -87,6 +95,7 @@ export class RegisterSustentationFormService {
     return null;
   }
 
+  /** Muestra el aviso «Formulario incompleto». */
   notifyIncompleteForm(): void {
     this.notificationService.show({
       title: 'Formulario incompleto',

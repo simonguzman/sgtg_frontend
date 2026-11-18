@@ -8,10 +8,15 @@ import { UserService } from '../../../../users/services/user.service';
 /** Mismo texto que toLocaleDateString('es-ES'), con un solo formateador para toda la tabla */
 const FECHA_CORTA = new Intl.DateTimeFormat('es-ES');
 
+/**
+ * Convierte los trabajos de grado en filas de la tabla con sus acciones; solo el director reanuda un trabajo
+ * suspendido, con el documento de reanudación.
+ */
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkPageMapperService {
   private readonly userService = inject(UserService);
 
+  /** Fila de un trabajo con su estado, su plazo y las acciones del usuario. */
   public mapThesisWorkToTable(
     thesisWork: ThesisWork,
     hasFullAccessRole: boolean,
@@ -80,7 +85,6 @@ export class ThesisWorkPageMapperService {
     const allowed: string[] = ['ver descripción'];
     if (hasViewPermission) allowed.push('ver');
     if (isOwnerOrAdmin) allowed.push('editar');
-    // Reanudar un trabajo suspendido: solo el director, con el documento de reanudación
     if (isSuspended && isDirector) allowed.push('reactivar');
     return allowed;
   }

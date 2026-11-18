@@ -23,7 +23,6 @@ describe('SessionInactivityService', () => {
 
     tick(MINUTO);
     expect(alInactivar).toHaveBeenCalledTimes(1);
-    // Deja de vigilar y olvida la actividad
     expect(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD)).toBeNull();
     tick(MINUTOS_INACTIVIDAD * MINUTO);
     expect(alInactivar).toHaveBeenCalledTimes(1);

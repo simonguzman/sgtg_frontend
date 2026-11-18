@@ -9,6 +9,7 @@ import { anteproyectoCorregible } from '../../../services/preliminary-draft-rule
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
+/** Fachada de la corrección del anteproyecto. */
 @Injectable()
 export class PreliminaryDraftEditPageService {
   private readonly route = inject(ActivatedRoute);
@@ -18,14 +19,17 @@ export class PreliminaryDraftEditPageService {
   private readonly notificationService = inject(NotificationService);
   private readonly authService = inject(AuthService);
 
+  /** Anteproyecto que se corrige. */
   readonly preliminaryDraftToEdit = signal<PreliminaryDraft | null>(null);
 
+  /** Estado del modal de confirmación: si está abierto, los datos pendientes y si la operación está en curso. */
   readonly confirmState = signal({
     isOpen: false,
     pendingData: null as PreliminaryDraft | null,
     isProcessing: false
   });
 
+  /** Carga el anteproyecto de la ruta. Solo el director radica versiones, y solo tras correcciones de los evaluadores o un «No aprobado» del Consejo; a los demás los devuelve a la lista con un aviso. */
   init(): void {
     const preliminaryDraftId = this.route.snapshot.paramMap.get('id');
     if (preliminaryDraftId) this.loadPreliminaryDraftData(preliminaryDraftId);
@@ -39,7 +43,6 @@ export class PreliminaryDraftEditPageService {
           const currentUser = this.authService.currentUser();
           const currentUserId = currentUser?.id;
 
-          // Solo el director radica versiones, y solo tras correcciones o un NO APROBADO del Consejo
           const isDraftOwner = foundPreliminaryDraft.proposalData.director?.id === currentUserId;
           if (!isDraftOwner) {
             this.handleUpdateError('Solo el director puede cargar una nueva versión del anteproyecto.');
@@ -61,8 +64,8 @@ export class PreliminaryDraftEditPageService {
     });
   }
 
+  /** Pide confirmar la nueva versión; mientras se guarda una no se abre otra confirmación. */
   handleUpdate(updatedData: PreliminaryDraft): void {
-    // Mientras se guarda la nueva versión no se abre otra confirmación
     if (this.confirmState().isProcessing) return;
     this.confirmState.set({
       isOpen: true,
@@ -71,6 +74,7 @@ export class PreliminaryDraftEditPageService {
     });
   }
 
+  /** Radica la nueva versión confirmada y vuelve a la lista. */
   confirmUpdate(): void {
     const currentPreliminaryDraft = this.preliminaryDraftToEdit();
     const { pendingData, isProcessing } = this.confirmState();
@@ -89,10 +93,12 @@ export class PreliminaryDraftEditPageService {
     });
   }
 
+  /** Cierra la confirmación sin guardar. */
   cancelUpdate(): void {
     this.confirmState.set({ isOpen: false, pendingData: null, isProcessing: false });
   }
 
+  /** Vuelve a la página anterior o, si no hay, a la lista de anteproyectos. */
   goBack(): void {
     this.navigation.back(() => this.router.navigate(['/preliminary-draft']));
   }
