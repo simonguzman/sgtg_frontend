@@ -12,7 +12,6 @@ export interface LoginResponse {
 /** Tipos de documento del backend (`TipoDocumentoIdentidad`). */
 export type TipoDocumentoApi = 'CC' | 'CE' | 'PASAPORTE';
 
-/** Respuesta de `GET /usuarios/me` y de las operaciones sobre usuarios (`UsuarioDTOResponse`). */
 /** Usuario de la gestión de usuarios (`GET /usuarios/gestion`): `UsuarioGestionadoDTOResponse`. */
 export interface UsuarioGestionadoResponse {
   usuario: UsuarioResponse;
@@ -20,6 +19,7 @@ export interface UsuarioGestionadoResponse {
   modificable: boolean;
 }
 
+/** Respuesta de `GET /usuarios/me` y de las operaciones sobre usuarios (`UsuarioDTOResponse`). */
 export interface UsuarioResponse {
   id: number;
   codigo: string;

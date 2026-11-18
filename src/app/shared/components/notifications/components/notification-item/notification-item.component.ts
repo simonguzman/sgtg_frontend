@@ -3,6 +3,7 @@ import { NgClass } from '@angular/common';
 import { Notification, NotificationType } from '../../models/notification.model';
 import { NOTIFICATION_CONFIG, NotificationConfig } from './models/notification-item.model';
 
+/** Un aviso emergente; emite su id al cerrarlo. */
 @Component({
   selector: 'app-notification-item',
   imports: [NgClass],

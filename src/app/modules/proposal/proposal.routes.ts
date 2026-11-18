@@ -11,6 +11,10 @@ import { roleGuard } from '../../core/guards/role.guard';
 import { UserRoleType } from '../../core/enums/user-role-type.enum';
 import { proposalOwnershipGuard } from '../../core/guards/proposal-ownership.guard';
 
+/**
+ * Rutas del módulo de propuestas: lista, registro, corrección, detalle, documentos cargados, evaluación y
+ * evaluaciones realizadas.
+ */
 export const proposalRoutes: Routes = [
   {
     path: '',

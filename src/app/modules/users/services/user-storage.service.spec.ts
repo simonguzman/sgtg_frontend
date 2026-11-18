@@ -1,4 +1,4 @@
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { UserStorageService } from './user-storage.service';
 import { User } from '../interfaces/user.interface';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
@@ -88,13 +88,12 @@ describe('UserStorageService', () => {
       service.updateUsersList(() => [mockStudent, mockTeacher]);
     });
 
-    it('debería segmentar correctamente al arreglo de estudiantes', () => {
-      expect(service.students()).toEqual([mockStudent]);
+    it('debería segmentar correctamente a los docentes', () => {
+      expect(service.teachers()).toEqual([mockTeacher]);
     });
 
-    it('debería segmentar correctamente a los docentes y posibles directores', () => {
-      expect(service.teachers()).toEqual([mockTeacher]);
-      expect(service.potentialDirectors()).toEqual([mockTeacher]);
+    it('debería segmentar correctamente al arreglo de estudiantes', () => {
+      expect(service.students()).toEqual([mockStudent]);
     });
 
     it('debería segmentar correctamente al arreglo de asesores', () => {
@@ -120,30 +119,5 @@ describe('UserStorageService', () => {
       service.updateCurrentUser(() => mockTeacher);
       expect(service.currentUser()).toEqual(mockTeacher);
     });
-
-    it('setCurrentUser() debería actualizar la sesión única y con null cerrarla', () => {
-      service.setCurrentUser(mockStudent);
-      expect(service.currentUser()).toEqual(mockStudent);
-      service.setCurrentUser(null);
-      expect(service.currentUser()).toBeNull();
-      // Cerrar la sesión borra la marca de sesión abierta
-      expect(Storage.prototype.removeItem).toHaveBeenCalledWith('sgtg_hay_sesion');
-    });
-  });
-
-  describe('Consultas Asíncronas (RxJS)', () => {
-    beforeEach(() => {
-      TestBed.configureTestingModule({ providers: [UserStorageService] });
-      service = TestBed.inject(UserStorageService);
-      service.updateUsersList(() => [mockStudent]);
-    });
-
-    it('getById() debería buscar al usuario y emitirlo tras un delay de 500ms', fakeAsync(() => {
-      let result: User | undefined;
-      service.getById('11111111-1111-1111-1111-111111111111').subscribe(res => result = res);
-      expect(result).toBeUndefined();
-      tick(500);
-      expect(result).toEqual(mockStudent);
-    }));
   });
 });

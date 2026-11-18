@@ -8,6 +8,7 @@ const INTERVALO_REVISION_MS = 30_000;
 /** La actividad se guarda como máximo una vez en este intervalo (no en cada movimiento del mouse). */
 const INTERVALO_REGISTRO_MS = 10_000;
 const EVENTOS_DE_ACTIVIDAD = ['pointerdown', 'keydown', 'wheel', 'scroll', 'touchstart', 'mousemove'];
+/** Clave de localStorage con el instante de la última actividad del usuario. */
 export const CLAVE_ULTIMA_ACTIVIDAD = 'sgtg_ultima_actividad';
 
 /**
@@ -27,12 +28,12 @@ export class SessionInactivityService {
   /**
    * Empieza a vigilar la sesión (al iniciarla o al recuperarla al abrir la
    * aplicación). Si ya llevaba el tiempo máximo sin actividad, se cierra enseguida.
+   * Los eventos y la revisión periódica corren fuera de Angular para no disparar la detección de cambios.
    */
   iniciar(alInactivar: () => void): void {
     this.dejarDeVigilar();
     this.alInactivar = alInactivar;
     if (ultimaActividad() === null) this.registrarActividad(true);
-    // Fuera de Angular: los eventos y la revisión periódica no disparan la detección de cambios
     this.zone.runOutsideAngular(() => {
       EVENTOS_DE_ACTIVIDAD.forEach(evento =>
         document.addEventListener(evento, this.registrar, { capture: true, passive: true }));
@@ -61,11 +62,14 @@ export class SessionInactivityService {
     localStorage.setItem(CLAVE_ULTIMA_ACTIVIDAD, String(ahora));
   }
 
+  /**
+   * Cierra la sesión si pasó el tiempo máximo sin actividad. Si otra pestaña cerró la sesión y borró la
+   * actividad, empieza a contar de nuevo.
+   */
   private revisar(): void {
     const alInactivar = this.alInactivar;
     if (!alInactivar) return;
     const ultima = ultimaActividad();
-    // Otra pestaña cerró la sesión y borró la actividad: se empieza a contar de nuevo
     if (ultima === null) {
       this.registrarActividad(true);
       return;

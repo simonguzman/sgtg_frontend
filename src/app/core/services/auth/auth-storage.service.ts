@@ -1,6 +1,6 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { User } from '../../../modules/users/interfaces/user.interface';
-import { isJwtVigente, jwtDebeCambiarPassword } from '../../utils/jwt-utils';
+import { jwtDebeCambiarPassword } from '../../utils/jwt-utils';
 
 /** Marca de que hay una sesión abierta en este navegador, para intentar recuperarla al recargar. */
 export const CLAVE_HAY_SESION = 'sgtg_hay_sesion';
@@ -23,12 +23,13 @@ export class AuthStorageService {
   private readonly _token = signal<string | null>(null);
   private readonly _currentUser = signal<User | null>(null);
 
+  /** Token de acceso vigente, o null sin sesión. */
   public readonly token = this._token.asReadonly();
+  /** Usuario autenticado, o null sin sesión. */
   public readonly currentUser = this._currentUser.asReadonly();
-
-  // Se mueven aquí porque dependen exclusivamente del signal de sesión —
-  // no hay lógica de negocio, solo derivación reactiva del estado almacenado.
+  /** true si hay usuario y token de acceso. */
   public readonly isAuthenticated = computed(() => !!this._currentUser() && !!this._token());
+  /** Roles del usuario autenticado. */
   public readonly userRoles       = computed(() => this._currentUser()?.roles ?? []);
   /** El usuario debe cambiar la contraseña que le asignó un administrador antes de usar el sistema */
   public readonly debeCambiarPassword = computed(() => {
@@ -36,6 +37,7 @@ export class AuthStorageService {
     return !!token && jwtDebeCambiarPassword(token);
   });
 
+  /** Borra del navegador las claves de sesión de versiones anteriores. */
   constructor() {
     CLAVES_ANTERIORES.forEach(clave => localStorage.removeItem(clave));
   }
@@ -52,10 +54,12 @@ export class AuthStorageService {
     this._token.set(token);
   }
 
+  /** Reemplaza los datos del usuario autenticado (roles, estado o perfil actualizados). */
   public setUser(user: User): void {
     this._currentUser.set(user);
   }
 
+  /** Igual que {@link setUser}: actualiza el usuario de la sesión tras editar su perfil. */
   public updateUser(updatedUser: User): void {
     this.setUser(updatedUser);
   }
@@ -65,12 +69,6 @@ export class AuthStorageService {
     this._token.set(null);
     this._currentUser.set(null);
     localStorage.removeItem(CLAVE_HAY_SESION);
-  }
-
-  /** @returns true si hay token y todavía no ha vencido */
-  public hasValidToken(): boolean {
-    const token = this._token();
-    return !!token && isJwtVigente(token);
   }
 
   /** @returns true si en este navegador hay una sesión abierta que recuperar con el token de renovación */

@@ -10,6 +10,7 @@ import { ThesisWorkDetailsView } from '../models/thesis-work-details-page.model'
 import { WorkDetailsDocument } from '../../../../../shared/components/work-details/work-details.model';
 import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
+/** Fachada del detalle del trabajo de grado. */
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkDetailsFacadeService {
   private readonly router = inject(Router);
@@ -19,9 +20,12 @@ export class ThesisWorkDetailsFacadeService {
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Detalle del trabajo para la vista, o null. */
   public readonly details = signal<ThesisWorkDetailsView | null>(null);
+  /** true mientras se carga el trabajo. */
   public readonly isLoading = signal<boolean>(true);
 
+  /** Carga el trabajo y fija la miga y el título de la página. */
   public loadThesisWorkDetails(id: string): void {
     this.isLoading.set(true);
     this.thesisWorkService.getThesisWorkById(id)
@@ -45,6 +49,7 @@ export class ThesisWorkDetailsFacadeService {
       });
   }
 
+  /** Descarga un documento del trabajo. */
   public async downloadDocument(document: WorkDetailsDocument): Promise<void> {
     if (!document?.url) {
       this.showNotification('Archivo no disponible', 'No se encontró el documento solicitado.', NotificationType.ERROR);
@@ -60,6 +65,7 @@ export class ThesisWorkDetailsFacadeService {
     }
   }
 
+  /** Vuelve a la página anterior o, si no hay, a la lista de trabajos o al historial. */
   public goBack(): void {
     this.navigation.back(() => {
       const currentUrl = this.router.url;
@@ -71,6 +77,7 @@ export class ThesisWorkDetailsFacadeService {
     });
   }
 
+  /** Avisa que la URL no trae el id del trabajo y vuelve atrás. */
   public handleMissingId(): void {
     this.showNotification('Identificador faltante', 'No se pudo procesar la solicitud debido a un ID inválido.', NotificationType.ERROR);
     this.goBack();

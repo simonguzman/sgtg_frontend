@@ -83,7 +83,6 @@ describe('FileDownloadService', () => {
       httpMock.expectOne(url).flush(new Blob(['%PDF'], { type: 'application/pdf' }));
       await descarga;
 
-      // Se descarga con el nombre que tiene en el servidor
       expect(anchor.download).toBe('Formato A - v2.pdf');
     });
   });

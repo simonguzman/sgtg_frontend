@@ -40,7 +40,6 @@
           class="text-textbox p-2 pr-10 border rounded-md w-full focus:outline-none focus:ring-1 focus:ring-primary"
           [class.input-success]="loginForm.get('password')?.valid && loginForm.get('password')?.touched"
         >
-        <!-- Botón propio para ver la contraseña (el del navegador se oculta en forms.css) -->
         <button type="button" class="absolute right-3 flex items-center text-gray-400 hover:text-primary transition-colors cursor-pointer"
                 [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
                 (click)="togglePassword()">

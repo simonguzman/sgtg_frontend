@@ -31,32 +31,56 @@ package "core/services/auth" {
     + currentUser : Signal<User | null>
     + isAuthenticated : Signal<boolean>
     + userRoles : Signal<UserRoleType[]>
+    + debeCambiarPassword : Signal<boolean>
     + setSession(token, user) : void
+    + setToken(token) : void
     + setUser(user) : void
+    + updateUser(user) : void
     + clearUser() : void
     + hasValidToken() : boolean
-    - restoreSession() : void
+    + haySesionGuardada() : boolean
   }
   note right of AuthStorageService
-    Guarda sgtg_token y sgtg_session
-    en localStorage
+    El token de acceso vive solo en memoria;
+    en localStorage queda únicamente la marca
+    sgtg_hay_sesion. El token de renovación
+    va en una cookie HttpOnly del BackEnd.
   end note
 
   class AuthApiService <<service>> {
     + login(credenciales) : Observable<{success, message?}>
+    + renovar() : Observable<ResultadoRenovacion>
     + refreshCurrentUser() : Observable<void>
     + changePassword(actual, nueva) : Observable<ChangePasswordResponse>
-    + logout() : void
+    + logout(motivo?) : void
+  }
+
+  class SessionInactivityService <<service>> {
+    + iniciar(alInactivar) : void
+    + detener() : void
+  }
+  note bottom of SessionInactivityService
+    Cierra la sesión tras 30 minutos
+    sin actividad (sgtg_ultima_actividad)
+  end note
+
+  enum ResultadoRenovacion {
+    renovada
+    vencida
   }
 
   class AuthService <<facade>> {
     + currentUser : Signal<User | null>
     + isAuthenticated : Signal<boolean>
     + userRoles : Signal<UserRoleType[]>
+    + debeCambiarPassword : Signal<boolean>
     + login(credenciales) : Observable<...>
     + logout() : void
+    + changePassword(actual, nueva) : Observable<...>
     + initialize() : Observable<unknown>
+    + renovarSesion() : Observable<ResultadoRenovacion>
     + expireSession() : void
+    + requirePasswordChange() : void
     + hasAnyRole(roles) : boolean
   }
 }
@@ -66,7 +90,9 @@ package "core/interceptors" {
     + (req, next) : Observable<HttpEvent>
     --
     agrega Authorization: Bearer
-    401 → expireSession()
+    401 → renovarSesion() y repite la petición
+    renovación vencida → expireSession()
+    403 GC-0012 → requirePasswordChange()
   }
 }
 
@@ -92,13 +118,22 @@ package "core/services/trabajo-grado" {
     + porId : Signal<Map<string, TrabajoGradoResponse>>
     + tieneConsultaGeneral() : boolean
     + cargar() : Observable<TrabajoGradoResponse[]>
+    + refrescarSiVencida() : void
     + obtener(id) : Observable<TrabajoGradoResponse | undefined>
     + upsert(trabajo) : void
   }
   note right of TrabajoGradoStoreService
     effect: carga al iniciar sesión
-    y se vacía al cerrarla
+    y se vacía al cerrarla.
+    Vigencia de la lista: 20 s
   end note
+
+  class "trabajo-grado-refresco" as Refresco <<function>> {
+    + iniciarRefrescoDeTrabajos() : void
+    --
+    al cambiar de página o volver
+    a la pestaña → refrescarSiVencida()
+  }
 
   class TrabajoGradoVistasService <<service>> {
     + contexto : Signal<ContextoMapeo>
@@ -121,9 +156,13 @@ package "core/mappers" {
     + aPropuesta(trabajo, ctx) : Proposal
     + aAnteproyecto(trabajo, ctx) : PreliminaryDraft | null
     + aTrabajoDeGrado(trabajo, ctx) : ThesisWork | null
+    + solicitudesEspeciales(trabajo, ctx) : SpecialRequest[]
+    + aDocumento(trabajoId, documento, ctx) : FileDocument
+    + estaCerrado(trabajo) : boolean
     + estadoPropuesta(trabajo) : stateList
     + estadoAnteproyecto(trabajo) : stateList
     + estadoTrabajo(etapa) : stateList
+    + veredicto(resultado) : stateList
     + etiquetaDeRuta(ruta) : string
     + aFecha(valor) : Date | null
   }
@@ -140,12 +179,15 @@ package "core/interfaces/api (contrato del BackEnd)" {
     + modalidad : ModalidadApi
     + titulo : string
     + objetivos : string[]
+    + descripcion : string | null
+    + lineaInvestigacion : string | null
     + etapa : ProcesoApi
     + motivoCierre : MotivoCierreApi | null
     + estudiantes : EstudianteApi[]
     + director : DirectorApi
     + codirector : DirectorApi | null
     + asesor : AsesorApi | null
+    + cartaAceptacion : DocumentoApi | null
     + propuesta : PropuestaApi
     + anteproyecto : AnteproyectoApi
     + ejecucion : EjecucionApi | null
@@ -155,29 +197,40 @@ package "core/interfaces/api (contrato del BackEnd)" {
   }
   interface PropuestaApi {
     + fechaLimiteConcepto : string | null
+    + diasHabilesRestantesConcepto? : number | null
     + versiones : VersionDocumentoApi[]
     + decisiones : DecisionApi[]
   }
   interface AnteproyectoApi {
+    + fechaLimiteEvaluacion : string | null
+    + fechaLimiteCorrecciones : string | null
     + versiones : VersionDocumentoApi[]
     + evaluadores : EvaluadorApi[]
     + conceptos : ConceptoEvaluacionApi[]
     + decisionesConsejo : DecisionApi[]
     + remisiones : DocumentoApi[]
+    + plazoConsejo? : PlazoConsejoApi
   }
   interface EjecucionApi {
     + fechaNotificacion : string
     + fechaFin : string
     + fechaMinimaSustentacion : string
+    + fechaLimiteCambioObjetivos : string | null
+    + fechaLimiteSolicitudProrroga : string | null
+    + cambiosObjetivos : CambioObjetivosApi[]
     + informesMensuales : InformeMensualApi[]
+    + reuniones? : ReunionApi[]
     + prorroga : ProrrogaApi | null
     + suspensiones : SuspensionApi[]
   }
   interface SustentacionApi {
     + estado : EstadoSustentacionApi
     + sesiones : SesionSustentacionApi[]
+    + solicitudesNuevaFecha : SolicitudNuevaFechaApi[]
     + calificaciones : CalificacionJuradoApi[]
+    + verificaciones : RegistroJuradoApi[]
     + revisionesPazYSalvo : RevisionPazYSalvoApi[]
+    + solicitudesAnteriores? : SolicitudSustentacionApi[]
   }
   enum ProcesoApi {
     PROPUESTA
@@ -198,6 +251,7 @@ package "core/interfaces/api (contrato del BackEnd)" {
 package "Modelos de las vistas" {
   interface Archivable {
     + isArchived? : boolean
+    + archivedAt? : Date | string
   }
   interface Proposal {
     + id : string
@@ -206,7 +260,10 @@ package "Modelos de las vistas" {
     + modality : Modality
     + authors : User[]
     + director : User
+    + codirector? : User
+    + advisor? : User
     + state : stateList
+    + evaluationDeadline? : Date
     + documents : FileDocument[]
     + evaluations : Evaluation[]
   }
@@ -215,6 +272,8 @@ package "Modelos de las vistas" {
     + proposalData : Proposal
     + evaluators : User[]
     + state : stateList
+    + evaluationDeadline? : Date | string
+    + councilTerm? : CouncilTerm | null
     + documents : FileDocument[]
     + evaluations : Evaluation[]
   }
@@ -224,15 +283,27 @@ package "Modelos de las vistas" {
     + stage : ProcesoApi
     + state : stateList
     + deadlines : ThesisWorkDeadlines
+    + documents : FileDocument[]
     + advances : Advance[]
+    + meetings : Meeting[]
     + specialRequests : SpecialRequest[]
     + sustentations : SustentationRegistry[]
     + sustentation : SustentationProcess | null
+  }
+  interface Meeting {
+    + number : number
+    + scheduledAt : Date | null
+    + place : string | null
+    + held : boolean
+    + hasReport : boolean
+    + acceptsReport : boolean
+    + status : stateList
   }
   interface FileDocument {
     + id : string
     + name : string
     + url : string
+    + uploadDate : string | Date
     + type : DocumentType
     + status? : stateList
     + version? : number
@@ -252,20 +323,24 @@ package "Consumidores (módulos)" {
   class ProposalStorageService <<service>>
   class PreliminaryDraftStorageService <<service>>
   class ThesisWorkStorageService <<service>>
+  class "StatisticsStateService\nArchivedWorksService" as ConsultaGeneral <<service>>
   class "Servicios de operación\n(ProposalApiService, PreliminaryDraftDocumentService,\nThesisWorkSustentationService, ...)" as ServiciosOperacion <<service>>
 }
 
 ' ── Sesión ──────────────────────────────────────────────
 AuthService --> AuthStorageService
 AuthService --> AuthApiService
-AuthApiService --> AuthStorageService : setSession / setUser
+AuthService --> SessionInactivityService : iniciar / detener
+AuthApiService --> AuthStorageService : setSession / setToken / setUser
+AuthApiService ..> ResultadoRenovacion
 authInterceptor ..> AuthStorageService : token()
-authInterceptor ..> AuthService : expireSession()
+authInterceptor ..> AuthService : renovarSesion()\nexpireSession()\nrequirePasswordChange()
 
 ' ── Trabajos de grado ───────────────────────────────────
 TrabajoGradoStoreService --> TrabajoGradoApiService
 TrabajoGradoStoreService ..> AuthStorageService : isAuthenticated\nuserRoles
 TrabajoGradoStoreService "1" o-- "*" TrabajoGradoResponse : trabajos
+Refresco ..> TrabajoGradoStoreService : refrescarSiVencida()
 TrabajoGradoVistasService --> TrabajoGradoStoreService
 TrabajoGradoVistasService --> TrabajoGradoApiService : urlArchivo
 TrabajoGradoVistasService --> UserStorageService : usuarios
@@ -294,6 +369,7 @@ Archivable <|-- PreliminaryDraft
 Archivable <|-- ThesisWork
 PreliminaryDraft *-- "1" Proposal : proposalData
 ThesisWork *-- "1" PreliminaryDraft : preliminaryDraftData
+ThesisWork *-- "*" Meeting : meetings
 Proposal o-- "*" FileDocument
 PreliminaryDraft o-- "*" FileDocument
 
@@ -305,6 +381,7 @@ UserStorageService -[hidden]down- TrabajoGradoMapper
 ProposalStorageService --> TrabajoGradoVistasService : propuestas
 PreliminaryDraftStorageService --> TrabajoGradoVistasService : anteproyectos
 ThesisWorkStorageService --> TrabajoGradoVistasService : trabajosDeGrado
+ConsultaGeneral --> TrabajoGradoVistasService : estadísticas\ne historial
 ServiciosOperacion --> TrabajoGradoApiService : enviarJson /\nenviarArchivos
 ServiciosOperacion --> TrabajoGradoStoreService : upsert(respuesta)
 

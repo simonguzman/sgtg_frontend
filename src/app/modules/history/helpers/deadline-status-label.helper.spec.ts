@@ -1,4 +1,4 @@
-import { getEvaluatorsDeadlineLabel, getSingleEvaluationDeadlineLabel, EvaluatorsDeadlineInput, remainingDaysLabel } from './deadline-status-label.helper';
+import { getSingleEvaluationDeadlineLabel, remainingDaysLabel } from './deadline-status-label.helper';
 import { stateList } from '../../../core/enums/state.enum';
 import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
@@ -16,7 +16,6 @@ const createMockEvaluation = (overrides: Partial<Evaluation> = {}): Evaluation =
 } as Evaluation);
 
 describe('Deadline Status Label Helpers', () => {
-
   beforeEach(() => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -27,99 +26,7 @@ describe('Deadline Status Label Helpers', () => {
     jest.restoreAllMocks();
   });
 
-  describe('getEvaluatorsDeadlineLabel()', () => {
-
-    it('debería retornar "Resolución emitida" sin sufijo si está finalizado y no hay evaluaciones previas', () => {
-      const input: EvaluatorsDeadlineInput = {
-        state: stateList.APROBADO,
-        evaluations: []
-      };
-      expect(getEvaluatorsDeadlineLabel(input)).toBe('Resolución emitida');
-    });
-
-    it('debería retornar "Resolución emitida" con estado "A tiempo" si finalizó y todos entregaron a tiempo', () => {
-      const input: EvaluatorsDeadlineInput = {
-        state: stateList.APROBADO,
-        documentId: 'doc-1',
-        evaluations: [
-          createMockEvaluation({ documentId: 'doc-1', deadlineStatus: EvaluationDeadlineStatus.ON_TIME })
-        ]
-      };
-      expect(getEvaluatorsDeadlineLabel(input)).toBe(`Resolución emitida (${EvaluationDeadlineStatus.ON_TIME})`);
-    });
-
-    it('debería retornar "Resolución emitida" con estado "Con retraso" si al menos uno se retrasó', () => {
-      const input: EvaluatorsDeadlineInput = {
-        state: stateList.NO_APROBADO,
-        documentId: 'doc-1',
-        evaluations: [
-          createMockEvaluation({ documentId: 'doc-1', deadlineStatus: EvaluationDeadlineStatus.ON_TIME }),
-          createMockEvaluation({ documentId: 'doc-1', deadlineStatus: EvaluationDeadlineStatus.DELAYED })
-        ]
-      };
-      expect(getEvaluatorsDeadlineLabel(input)).toBe(`Resolución emitida (${EvaluationDeadlineStatus.DELAYED})`);
-    });
-
-    it('debería ignorar evaluaciones que no correspondan al documentId actual', () => {
-      const input: EvaluatorsDeadlineInput = {
-        state: stateList.APROBADO,
-        documentId: 'doc-1',
-        evaluations: [
-          createMockEvaluation({ documentId: 'doc-viejo', deadlineStatus: EvaluationDeadlineStatus.DELAYED })
-        ]
-      };
-      expect(getEvaluatorsDeadlineLabel(input)).toBe('Resolución emitida');
-    });
-
-    it('debería retornar "Sin límite (Consejo)" si no está finalizado y no hay deadline asignado', () => {
-      const input: EvaluatorsDeadlineInput = {
-        state: stateList.EN_REVISION,
-        evaluationDeadline: undefined
-      };
-      expect(getEvaluatorsDeadlineLabel(input)).toBe('Sin límite (Consejo)');
-    });
-
-    it('debería retornar "Evaluación completada" si todos los evaluadores asignados ya entregaron veredicto', () => {
-      const input: EvaluatorsDeadlineInput = {
-        state: stateList.EN_REVISION,
-        evaluationDeadline: new Date(),
-        documentId: 'doc-1',
-        evaluators: [{}, {}],
-        evaluations: [
-          createMockEvaluation({ documentId: 'doc-1', deadlineStatus: EvaluationDeadlineStatus.ON_TIME }),
-          createMockEvaluation({ documentId: 'doc-1', deadlineStatus: EvaluationDeadlineStatus.ON_TIME })
-        ]
-      };
-      expect(getEvaluatorsDeadlineLabel(input)).toBe(`Evaluación completada — ${EvaluationDeadlineStatus.ON_TIME} (Esperando Consejo)`);
-    });
-
-    describe('Días restantes (los calcula el backend; cuando aún faltan evaluaciones)', () => {
-
-      it('debería retornar "Quedan X días hábiles" si el plazo es mayor a 0', () => {
-        const input: EvaluatorsDeadlineInput = {
-          state: stateList.EN_REVISION, evaluationDeadline: new Date(), remainingBusinessDays: 5
-        };
-        expect(getEvaluatorsDeadlineLabel(input)).toBe('Quedan 5 días hábiles');
-      });
-
-      it('debería retornar "¡Vence hoy!" si el plazo es exactamente 0', () => {
-        const input: EvaluatorsDeadlineInput = {
-          state: stateList.EN_REVISION, evaluationDeadline: new Date(), remainingBusinessDays: 0
-        };
-        expect(getEvaluatorsDeadlineLabel(input)).toBe('¡Vence hoy!');
-      });
-
-      it('debería retornar "Plazo vencido" con los días absolutos si es negativo', () => {
-        const input: EvaluatorsDeadlineInput = {
-          state: stateList.EN_REVISION, evaluationDeadline: new Date(), remainingBusinessDays: -3
-        };
-        expect(getEvaluatorsDeadlineLabel(input)).toBe('Plazo vencido (3 días hábiles de retraso)');
-      });
-    });
-  });
-
   describe('getSingleEvaluationDeadlineLabel()', () => {
-
     it('debería retornar el deadlineStatus de la evaluación si el estado está finalizado', () => {
       const evalMock = createMockEvaluation({ deadlineStatus: EvaluationDeadlineStatus.DELAYED });
       const label = getSingleEvaluationDeadlineLabel(stateList.APROBADO, null, evalMock);

@@ -6,7 +6,6 @@ import { PreliminaryDraftDocumentService } from './preliminary-draft-document.se
 import { UserService } from '../../users/services/user.service';
 import { TrabajoGradoStoreService } from '../../../core/services/trabajo-grado/trabajo-grado-store.service';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
-import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 import { crearTrabajoConAnteproyectoRadicado, crearTrabajoEnCurso, crearTrabajoEnEvaluacion } from '../../../testing/trabajo-grado-de-prueba';
 
@@ -96,39 +95,26 @@ describe('PreliminaryDraftDocumentService', () => {
   describe('registerCouncilDecision', () => {
     it('envía la decisión del Consejo con la resolución', async () => {
       let resultado: PreliminaryDraft | undefined;
-      service.registerCouncilDecision('15', stateList.APROBADO, 'Cumple', pdf('resolucion.pdf'), 9)
+      service.registerCouncilDecision('15', stateList.APROBADO, 'Cumple', pdf('resolucion.pdf'), new Date(2027, 6, 22),
+        new Date(2028, 0, 22))
         .subscribe(anteproyecto => resultado = anteproyecto);
 
       const req = http.expectOne(`${API}/15/anteproyecto/decisiones-consejo`);
       const body = req.request.body as FormData;
       expect((body.get('archivo') as File).name).toBe('resolucion.pdf');
-      expect(await leerDatos(body)).toEqual({ resultado: 'APROBADO', observaciones: 'Cumple', mesesEjecucion: 9 });
+      expect(await leerDatos(body)).toEqual({ resultado: 'APROBADO', observaciones: 'Cumple', fechaInicio: '2027-07-22',
+        fechaFin: '2028-01-22' });
       req.flush(crearTrabajoEnCurso());
 
       expect(resultado?.state).toBe(stateList.APROBADO);
     });
 
     it('cualquier otro veredicto se envía como NO_APROBADO, sin observaciones vacías ni plazo', async () => {
-      service.registerCouncilDecision('15', stateList.APROBADO_CON_OBSERVACIONES, '', pdf('r.pdf'), 9).subscribe();
+      service.registerCouncilDecision('15', stateList.APROBADO_CON_OBSERVACIONES, '', pdf('r.pdf'), new Date(2027, 6, 22),
+        new Date(2028, 0, 22)).subscribe();
       const req = http.expectOne(`${API}/15/anteproyecto/decisiones-consejo`);
-      expect(await leerDatos(req.request.body as FormData)).toEqual({ resultado: 'NO_APROBADO', observaciones: null, mesesEjecucion: null });
+      expect(await leerDatos(req.request.body as FormData)).toEqual({ resultado: 'NO_APROBADO', observaciones: null, fechaInicio: null, fechaFin: null });
       req.flush(crearTrabajoConAnteproyectoRadicado());
-    });
-  });
-
-  describe('calculateDocumentStatus', () => {
-    const evaluacion = (documentId: string, veredict: stateList) => ({ documentId, veredict } as Evaluation);
-
-    it('queda en revisión mientras falten conceptos', () => {
-      expect(service.calculateDocumentStatus('d1', [evaluacion('d1', stateList.APROBADO)], 2)).toBe(stateList.EN_REVISION);
-      expect(service.calculateDocumentStatus('d1', [], 0)).toBe(stateList.EN_REVISION);
-    });
-
-    it('aprobado si todos aprueban; no aprobado si alguno no', () => {
-      expect(service.calculateDocumentStatus('d1',
-        [evaluacion('d1', stateList.APROBADO), evaluacion('d1', stateList.APROBADO)], 2)).toBe(stateList.APROBADO);
-      expect(service.calculateDocumentStatus('d1',
-        [evaluacion('d1', stateList.APROBADO), evaluacion('d1', stateList.NO_APROBADO)], 2)).toBe(stateList.NO_APROBADO);
     });
   });
 });

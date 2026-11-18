@@ -53,7 +53,8 @@ export function buildWorkDetailsView(proposal: Proposal, options: WorkDetailsOpt
 
 /**
  * Objetivos, descripción, línea de investigación y organización registrados
- * en la propuesta; los opcionales vacíos quedan sin valor.
+ * en la propuesta; los opcionales vacíos quedan sin valor. La descripción no se
+ * muestra si es igual al objetivo general, con el que se llena cuando no se registró.
  */
 export function proposalContent(proposal: Proposal): ProposalContent {
   const objectives = (proposal.objectives ?? []).map(objective => objective.trim()).filter(Boolean);
@@ -62,7 +63,6 @@ export function proposalContent(proposal: Proposal): ProposalContent {
   return {
     generalObjective,
     specificObjectives: objectives.slice(1),
-    // La descripción es opcional: si no se registró, el front la llena con el objetivo general
     description: description && description !== generalObjective ? description : undefined,
     lineOfResearch: proposal.lineOfResearch?.trim() || undefined,
     organization: proposal.organization?.trim() || undefined

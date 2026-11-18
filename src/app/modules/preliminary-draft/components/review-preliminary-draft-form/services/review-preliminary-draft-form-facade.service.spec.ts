@@ -284,7 +284,6 @@ describe('ReviewPreliminaryDraftFormFacadeService', () => {
 
       expect(payload).toEqual({
         formValues: {
-          // No aprobado: el director corrige y radica una nueva versión (CON_CORRECCIONES en el backend)
           result: stateList.NO_APROBADO,
           comments: 'Requiere ajustes'
         },

@@ -1,6 +1,7 @@
 import { Column, TableButton } from '../../../../../shared/components/table-component/table-component.component';
 import { stateList } from '../../../../../core/enums/state.enum';
 
+/** Fila de la tabla de propuestas. */
 export interface ProposalTableRow {
   id?: string;
   title: string;
@@ -12,6 +13,7 @@ export interface ProposalTableRow {
   allowedActions: string[];
 }
 
+/** Columnas de la tabla de propuestas. */
 export const PROPOSAL_COLUMNS: Column[] = [
   { field: 'title',          header: 'Título',           type: 'text',    width: '25%', filterable: true },
   { field: 'modality',       header: 'Modalidad',        type: 'text',    width: '15%', filterable: true },
@@ -37,6 +39,7 @@ export const PROPOSAL_COLUMNS: Column[] = [
   }
 ];
 
+/** Botones de la cabecera de la tabla de propuestas. */
 export const PROPOSAL_HEADER_BUTTONS: TableButton[] = [
   { label: 'Formatos descargables', variant: 'primary' },
   { label: 'Registrar propuesta',   variant: 'primary' }

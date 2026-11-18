@@ -13,6 +13,7 @@ export interface ProposalAttachments {
   acceptanceLetter?: File | null;
 }
 
+/** Vista de propuesta de un trabajo de grado. */
 export interface Proposal extends Archivable {
   id?: string;
   title: string;

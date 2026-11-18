@@ -4,6 +4,7 @@ import { PreliminaryDraftFormComponent } from "../../components/preliminary-draf
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 import { InfoBannerComponent } from "../../../../shared/components/info-banner/info-banner.component";
 
+/** Página en la que el director radica una versión corregida del anteproyecto. */
 @Component({
   selector: 'app-preliminary-draft-edit-page',
   templateUrl: './preliminary-draft-edit-page.component.html',

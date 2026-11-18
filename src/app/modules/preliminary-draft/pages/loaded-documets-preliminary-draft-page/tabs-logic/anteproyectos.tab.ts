@@ -6,6 +6,11 @@ import { anteproyectoCorregible, versionesDelAnteproyecto } from '../../../servi
 import { stateList } from '../../../../../core/enums/state.enum';
 import { formatDisplayDate } from '../../../../../core/utils/date-utils';
 
+/**
+ * Pestaña de versiones del anteproyecto: el jefe de departamento asigna los evaluadores, los evaluadores
+ * conceptúan la versión vigente y el director radica una nueva versión tras correcciones de los evaluadores o
+ * un «No aprobado» del Consejo.
+ */
 export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
   tabValue: 'ANTEPROYECTOS',
 
@@ -69,7 +74,6 @@ export const AnteproyectosTabConfig: PreliminaryDraftTabConfiguration = {
     }
 
     if (context.isDirector) {
-      // El director radica una nueva versión tras correcciones de los evaluadores o un NO APROBADO del Consejo
       const puedeCorregir = anteproyectoCorregible(context.preliminaryDraft);
       actions.push({
         label: 'Cargar anteproyecto corregido',

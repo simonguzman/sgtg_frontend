@@ -58,7 +58,6 @@ describe('Integración [Trabajo de Grado]: Informes mensuales contra el backend'
 
   it('la estudiante radica el informe y la directora lo revisa con sus notas, sin cambiar la etapa', () => {
     const estudiante = usuario('10', [UserRoleType.ESTUDIANTE]);
-    // Con la reunión 1 agendada y por venir, la estudiante carga su informe
     iniciarSesionConTrabajos(estudiante, [conReunionAbierta()]);
     expect(AdvancesTabConfig.getHeaderButtons(contexto(trabajo(), estudiante, { isStudent: true }))
       .find(boton => boton.action === 'upload_advance'))
@@ -76,7 +75,6 @@ describe('Integración [Trabajo de Grado]: Informes mensuales contra el backend'
       ['Informe mensual 1', stateList.EN_REVISION, 'Eva Estudiante']
     ]);
 
-    // La directora ve la acción de revisar
     const directora = usuario('1', [UserRoleType.DOCENTE, UserRoleType.DIRECTOR]);
     expect(AdvancesTabConfig.getTableData([], contexto(trabajo(), directora, { isDirector: true }))[0].allowedActions)
       .toContain('evaluate-advance');
@@ -93,7 +91,6 @@ describe('Integración [Trabajo de Grado]: Informes mensuales contra el backend'
     expect(trabajo().evaluations[0]).toEqual(expect.objectContaining({
       advanceId: '1', evaluatorName: 'Dora Directora Pérez', observations: 'Ajustar el cronograma'
     }));
-    // Ya revisó: no puede repetir la revisión
     expect(AdvancesTabConfig.getTableData([], contexto(trabajo(), directora, { isDirector: true }))[0].allowedActions)
       .toEqual(['view-details']);
   });

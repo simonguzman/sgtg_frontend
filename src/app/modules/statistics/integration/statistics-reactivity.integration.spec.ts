@@ -47,7 +47,6 @@ describe('Estadísticas - Integración del motor reactivo con los trabajos del b
     state = TestBed.inject(StatisticsStateService);
     metrics = TestBed.inject(StatisticsMetricsService);
     charts = TestBed.inject(StatisticsChartDataService);
-    // Decanatura consulta todos los trabajos
     iniciarSesionConTrabajos(decanatura, trabajos());
   });
 
@@ -63,7 +62,6 @@ describe('Estadísticas - Integración del motor reactivo con los trabajos del b
   it('el gráfico por etapa cuenta un trabajo por la etapa que alcanzó', () => {
     const grafico = charts.stageChartData();
     const valor = (etiqueta: string) => grafico.datasets[0].data[grafico.labels.indexOf(etiqueta)];
-    // La propuesta aprobada y la anulada en propuesta
     expect(valor('Propuestas')).toBe(2);
     expect(valor('Anteproyectos')).toBe(1);
     expect(valor('Trabajos de Grado')).toBe(1);

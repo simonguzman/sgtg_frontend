@@ -199,7 +199,6 @@ describe('LoadedProposalsPageComponent', () => {
 
     beforeEach(() => {
       mockFacade.requiresAcceptanceLetter.mockReturnValue(true);
-      // El valor depende del id de la propuesta: se recalcula con uno distinto
       component.proposalId.set('prop-pp');
     });
 

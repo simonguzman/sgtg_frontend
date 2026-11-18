@@ -22,6 +22,10 @@ import { PreliminaryDraftService } from '../../../services/preliminary-draft.ser
 import { ReviewPresentationsFacultyCouncilPageFacadeService } from './review-presentations-faculty-council-page-facade.service';
 
 
+/** Reunión del Consejo (jueves) y fecha máxima de entrega que fijó */
+const REUNION = new Date(2027, 6, 22);
+const ENTREGA = new Date(2028, 0, 22);
+
 describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
   let facade: ReviewPresentationsFacultyCouncilPageFacadeService;
 
@@ -193,7 +197,7 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
 
   describe('Flujo de Confirmación y Decisión', () => {
     const mockPayload: SaveEvaluationPayload = {
-      formValues: { result: stateList.APROBADO, comments: 'Excelente', executionMonths: 9, document: null },
+      formValues: { result: stateList.APROBADO, comments: 'Excelente', startDate: REUNION, endDate: ENTREGA, document: null },
       file: new File([''], 'resolucion.pdf', { type: 'application/pdf' })
     };
 
@@ -221,7 +225,7 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
       await facade.processCouncilDecision();
 
       expect(mockPreliminaryDraftService.registerCouncilDecision)
-        .toHaveBeenCalledWith(mockDraft.preliminaryDraftId, stateList.APROBADO, 'Excelente', mockPayload.file, 9);
+        .toHaveBeenCalledWith(mockDraft.preliminaryDraftId, stateList.APROBADO, 'Excelente', mockPayload.file, REUNION, ENTREGA);
       expect(mockNotification.show).toHaveBeenCalledWith(
         expect.objectContaining({ type: NotificationType.CONFIRMATION })
       );
@@ -236,7 +240,7 @@ describe('ReviewPresentationsFacultyCouncilPageFacadeService', () => {
       await facade.processCouncilDecision();
 
       expect(mockPreliminaryDraftService.registerCouncilDecision)
-        .toHaveBeenCalledWith(mockDraft.preliminaryDraftId, stateList.NO_APROBADO, 'Excelente', mockPayload.file, 9);
+        .toHaveBeenCalledWith(mockDraft.preliminaryDraftId, stateList.NO_APROBADO, 'Excelente', mockPayload.file, REUNION, ENTREGA);
     });
 
     it('mientras se guarda la decisión no se envía otra; si falla, se puede reintentar', async () => {

@@ -20,12 +20,17 @@ export type SustentationVeredict =
 /** Inasistencia del estudiante: aplaza la primera sesión y cierra el trabajo en la segunda. */
 export const INASISTENCIA = 'INASISTENCIA' as const;
 
+/** Calificación o inasistencia que emite el formulario de evaluación de la sustentación. */
 export interface SustentationEvaluationPayload {
   veredict: SustentationVeredict;
   observations: string;
   evaluationDate: Date;
 }
 
+/**
+ * Formulario del jurado coordinador para calificar la sesión de sustentación con el acta firmada (formato G),
+ * o registrar la inasistencia.
+ */
 @Component({
   selector: 'app-evaluate-sustentation-form',
   templateUrl: './evaluate-sustentation-form.component.html',

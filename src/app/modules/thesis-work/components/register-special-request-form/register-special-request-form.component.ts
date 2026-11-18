@@ -21,6 +21,10 @@ const DOCUMENT_HINTS: Partial<Record<SpecialRequestType, string>> = {
   [SpecialRequestType.NUEVA_SUSTENTACION]: 'Solicitud de nueva fecha de sustentación firmada por el director (PDF)'
 };
 
+/**
+ * Formulario del director para registrar una solicitud especial (cambio de título y objetivos, prórroga,
+ * suspensión, reanudación o cancelación) con su documento.
+ */
 @Component({
   selector: 'app-register-special-request-form',
   templateUrl: './register-special-request-form.component.html',

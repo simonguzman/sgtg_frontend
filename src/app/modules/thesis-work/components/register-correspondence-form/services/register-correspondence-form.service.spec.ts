@@ -224,15 +224,5 @@ describe('RegisterCorrespondenceFormService', () => {
         type: NotificationType.ERROR
       });
     });
-
-    it('debería notificar formato de archivo inválido', () => {
-      service.notifyInvalidFileType();
-
-      expect(notificationServiceMock.show).toHaveBeenCalledWith({
-        title: 'Formato inválido',
-        message: 'Solo se permiten archivos en formato PDF.',
-        type: NotificationType.ERROR
-      });
-    });
   });
 });

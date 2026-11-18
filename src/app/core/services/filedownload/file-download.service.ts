@@ -5,23 +5,23 @@ import { NotificationService } from '../../../shared/components/notifications/se
 import { NotificationType } from '../../../shared/components/notifications/models/notification.model';
 import { environment } from '../../../../environments/environment';
 
-// Margen antes de liberar la Object URL del blob descargado — ver
-// comentario en el catch de download().
+/** Espera antes de liberar la URL del archivo descargado, para que el navegador termine de leerlo. */
 const REVOKE_OBJECT_URL_DELAY_MS = 100;
 
+/** Descarga de archivos del backend y de los formatos estáticos, con aviso al usuario si falla. */
 @Injectable({
   providedIn: 'root'
 })
 export class FileDownloadService {
   private readonly http = inject(HttpClient);
-  // ← NUEVO: cierra el TODO que el propio código dejaba pendiente. Antes,
-  // un fallo de red al descargar por blob solo se registraba en consola
-  // — el usuario nunca se enteraba de que la descarga había fallado.
   private readonly notificationService = inject(NotificationService);
 
   /**
-   * Descarga un archivo. Los del backend (`environment.apiUrl`) se piden
-   * siempre como blob por HttpClient, para que el interceptor envíe el token.
+   * Descarga un archivo. Los del backend (`environment.apiUrl`) se piden siempre como blob por HttpClient,
+   * para que el interceptor envíe el token, y se guardan con el nombre que tienen en el servidor.
+   * @param url dirección del archivo
+   * @param fileName nombre con que se guarda si el servidor no da uno
+   * @param useBlob descarga también como blob un archivo que no es del backend
    */
   async download(url: string, fileName: string, useBlob = false): Promise<void> {
     const esDelBackend = url.startsWith(environment.apiUrl);
@@ -33,13 +33,9 @@ export class FileDownloadService {
     try {
       const blob = await firstValueFrom(this.http.get(url, { responseType: 'blob' }));
       const objectUrl = window.URL.createObjectURL(blob);
-      // Los archivos del backend se guardan con su nombre (ej. "Formato A - v2.pdf"): se descargan con ese nombre
       this.directDownload(objectUrl, (esDelBackend ? nombreEnElServidor(url) : null)
         ?? nombreConExtension(fileName, blob.type));
 
-      // ← FIX: revocar en el mismo tick que el click() puede cancelar la
-      // descarga en navegadores que aún no terminaron de leer el blob
-      // desde esa URL. Se difiere para dar margen al navegador.
       setTimeout(() => window.URL.revokeObjectURL(objectUrl), REVOKE_OBJECT_URL_DELAY_MS);
     } catch (error) {
       console.error('Error al descargar el archivo:', error);
@@ -51,13 +47,12 @@ export class FileDownloadService {
     }
   }
 
+  /** Descarga con un enlace temporal; se agrega al documento porque Firefox lo exige para respetar `download`. */
   private directDownload(url: string, fileName: string): void {
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
     link.target = '_blank';
-    // ← FIX: se inserta en el DOM antes del click() — necesario para que
-    // Firefox respete el atributo `download` de forma confiable.
     document.body.appendChild(link);
     link.click();
     link.remove();

@@ -7,6 +7,7 @@ import { Advance } from '../../../interfaces/advance.interface';
 import { Evaluation } from '../../../../../core/interfaces/evaluation.interface';
 import { formatThesisDate } from '../../../helpers/thesis-date.helper';
 
+/** Fila de la tabla de informes mensuales. */
 export interface AdvanceTableRow {
   id: string;
   name: string;
@@ -50,7 +51,6 @@ export const AdvancesTabConfig: TabConfiguration<AdvanceTableRow> = {
 
     const advances: Advance[] = thesis.advances || [];
     const latestAdvance = advances.length > 0 ? advances[0] : null;
-    // Reunión a la que irá el informe que se radique ahora (la calcula el backend)
     const reportMeeting = thesis.meetings?.find(meeting => meeting.acceptsReport) ?? null;
 
     return {
@@ -98,7 +98,6 @@ export const AdvancesTabConfig: TabConfiguration<AdvanceTableRow> = {
   },
 
   getHeaderButtons: (context: ThesisEvaluationContext): TableButton[] => {
-    // Las reuniones de seguimiento (una por mes del plazo) las consultan todos los participantes
     const buttons: TableButton[] = (context.thesisWork?.meetings?.length ?? 0) > 0
       ? [{ action: 'meetings', label: 'Reuniones de seguimiento', variant: 'secondary', disabled: false }]
       : [];

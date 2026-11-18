@@ -18,15 +18,21 @@ export type ProcesoApi =
 /** Estado de una entrega dentro de su etapa (`Estado`). */
 export type EstadoApi = 'EN_REVISION' | 'CON_CORRECCIONES' | 'APROBADO' | 'RECHAZADO' | 'NO_APROBADO';
 
+/** Resultado de un concepto o decisión de un órgano o evaluador. */
 export type ResultadoConceptoApi = 'APROBADO' | 'CON_CORRECCIONES' | 'RECHAZADO' | 'EVALUADO' | 'NO_APROBADO';
+/** Calificación de un jurado en la sustentación. */
 export type CalificacionApi = 'APROBADO' | 'APROBADO_CON_OBSERVACIONES' | 'APLAZADO' | 'NO_APROBADO';
+/** Estado del proceso de sustentación. */
 export type EstadoSustentacionApi =
   | 'SOLICITADA' | 'PROGRAMADA' | 'EN_AJUSTES' | 'AJUSTES_RADICADOS' | 'APROBADA' | 'APLAZADA' | 'FINALIZADA' | 'NO_APROBADA';
+/** Motivo por el que se cerró un trabajo sin aprobarse. */
 export type MotivoCierreApi =
   | 'VENCIMIENTO_PLAZO' | 'SUSTENTACION_NO_APROBADA' | 'INASISTENCIA_SUSTENTACION' | 'CANCELACION_ESTUDIANTE'
   | 'CANCELACION_DIRECTOR' | 'ANULACION_DIRECTOR';
+/** Órgano que emite una decisión. */
 export type OrganoApi = 'COMITE_PROGRAMA' | 'DEPARTAMENTO' | 'CONSEJO_FACULTAD';
 
+/** Estudiante del trabajo, con su programa. */
 export interface EstudianteApi {
   usuarioId: number;
   codigo: string;
@@ -35,6 +41,7 @@ export interface EstudianteApi {
   programa: CatalogoResponse | null;
 }
 
+/** Director o codirector del trabajo, con su vinculación y departamento. */
 export interface DirectorApi {
   usuarioId: number;
   codigo: string;
@@ -44,6 +51,7 @@ export interface DirectorApi {
   departamento: CatalogoResponse | null;
 }
 
+/** Asesor del trabajo; si es externo (de la organización de la práctica), puede no tener usuario. */
 export interface AsesorApi {
   usuarioId: number | null;
   codigo: string | null;
@@ -71,6 +79,7 @@ export interface DocumentoApi {
   fechaCarga: string;
 }
 
+/** Decisión de un órgano (Comité, departamento o Consejo) con su acta, documento y observaciones. */
 export interface DecisionApi {
   organo: OrganoApi;
   resultado: ResultadoConceptoApi;
@@ -103,6 +112,7 @@ export interface PropuestaApi {
   decisiones: DecisionApi[];
 }
 
+/** Concepto de un evaluador sobre una versión del anteproyecto. */
 export interface ConceptoEvaluacionApi {
   version: number;
   evaluadorUsuarioId: number;
@@ -121,9 +131,19 @@ export interface ConceptoEvaluacionApi {
 }
 
 /** Plazo que puede fijar el Consejo al aprobar, con la fecha máxima de entrega que resultaría hoy. */
-export interface OpcionPlazoApi {
-  meses: number;
-  fechaFin: string;
+/**
+ * Fechas entre las que el Consejo fija el plazo al aprobar el anteproyecto: la
+ * fecha de su reunión (entre la remisión con el formato C y hoy) y la fecha
+ * máxima de entrega (entre 3 y 9 meses después de esa reunión).
+ */
+export interface PlazoConsejoApi {
+  fechaInicioMinima: string | null;
+  fechaInicioMaxima: string;
+  mesesMinimos: number;
+  mesesMaximos: number;
+  /** Entrega más cercana y más lejana si la reunión fue hoy */
+  fechaFinMinima: string;
+  fechaFinMaxima: string;
 }
 
 /** Anteproyecto: su estado es el de la última versión radicada (sin versiones no hay estado). */
@@ -141,9 +161,11 @@ export interface AnteproyectoApi {
   /** Formatos C con los que el Jefe de departamento remitió al Consejo cada versión aprobada (`version` = versión remitida) */
   remisiones: DocumentoApi[];
   /** Plazos que puede fijar el Consejo; vacía fuera de la aprobación del Consejo */
-  opcionesPlazo?: OpcionPlazoApi[];
+  /** Solo en la aprobación del Consejo */
+  plazoConsejo?: PlazoConsejoApi | null;
 }
 
+/** Cambio aprobado de título y objetivos, con los valores anteriores. */
 export interface CambioObjetivosApi {
   tituloAnterior: string;
   objetivosAnteriores: string[];
@@ -178,6 +200,7 @@ export interface InformeMensualApi {
   revisiones: RevisionInformeApi[];
 }
 
+/** Solicitud de suspensión del trabajo, su decisión y los datos de la reanudación. */
 export interface SuspensionApi {
   rutaSolicitud: string;
   fechaSolicitud: string;
@@ -191,6 +214,7 @@ export interface SuspensionApi {
   reanudacionAutomatica: boolean;
 }
 
+/** Solicitud de prórroga del plazo de ejecución y su decisión. */
 export interface ProrrogaApi {
   meses: number;
   rutaSolicitud: string;
@@ -198,6 +222,7 @@ export interface ProrrogaApi {
   decision: DecisionApi | null;
 }
 
+/** Etapa de ejecución del trabajo: plazos, informes mensuales, reuniones de seguimiento y solicitudes. */
 export interface EjecucionApi {
   fechaNotificacion: string;
   fechaFin: string;
@@ -210,6 +235,10 @@ export interface EjecucionApi {
   suspensiones: SuspensionApi[];
   /** Calendario de reuniones de seguimiento: una por cada mes del plazo */
   reuniones?: ReunionApi[];
+  /** Días calendario hasta el fin del plazo con el reloj del backend (negativo si ya pasó) */
+  diasParaEntrega?: number;
+  /** En curso o en prórroga y a 30 días o menos del fin del plazo (lo decide el backend) */
+  proximoAVencer?: boolean;
 }
 
 /** Estado de una reunión de seguimiento en la fecha de la consulta (lo calcula el backend). */
@@ -257,6 +286,7 @@ export interface SolicitudNuevaFechaApi {
   nuevoSalon: string | null;
 }
 
+/** Calificación de un jurado en una sesión de sustentación. */
 export interface CalificacionJuradoApi {
   sesion: number;
   juradoUsuarioId: number;
@@ -267,6 +297,7 @@ export interface CalificacionJuradoApi {
   fecha: string;
 }
 
+/** Registro de un jurado en una sesión: una inasistencia o la verificación (favorable o no) de los ajustes. */
 export interface RegistroJuradoApi {
   sesion: number;
   juradoUsuarioId: number;
@@ -284,6 +315,7 @@ export interface RevisionPazYSalvoApi {
   fecha: string;
 }
 
+/** Proceso de sustentación: estado, sesiones, calificaciones, solicitudes y revisiones del paz y salvo. */
 export interface SustentacionApi {
   estado: EstadoSustentacionApi;
   /** Monografía que acompaña al formato E */
@@ -330,6 +362,7 @@ export interface SolicitudSustentacionApi {
   fechaSolicitud: string;
 }
 
+/** Solicitud de cancelación del trabajo y su decisión. */
 export interface CancelacionApi {
   rutaSolicitud: string;
   fechaSolicitud: string;
@@ -337,6 +370,7 @@ export interface CancelacionApi {
   decision: DecisionApi | null;
 }
 
+/** Cambio de etapa del historial del trabajo, con su responsable. */
 export interface CambioEtapaApi {
   origen: ProcesoApi;
   destino: ProcesoApi;

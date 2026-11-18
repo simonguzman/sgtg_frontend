@@ -7,6 +7,7 @@ import { ThesisWorkPageMapperService } from './thesis-work-page-mapper.service';
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { THESIS_WORK_HEADER_BUTTONS, ThesisWorkTableRow } from '../models/thesis-work-page.model';
 
+/** Fachada de la lista de trabajos de grado. */
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkPageFacadeService {
   private readonly thesisWorkService = inject(ThesisWorkService);
@@ -14,13 +15,14 @@ export class ThesisWorkPageFacadeService {
   private readonly mapper = inject(ThesisWorkPageMapperService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Botones de la cabecera. */
   public readonly headerButtons = computed(() => THESIS_WORK_HEADER_BUTTONS);
 
+  /** Trabajos visibles como filas. El Comité los ve todos porque el backend ya le entrega solo los de su programa, que consulta para conceptuar las solicitudes. */
   public readonly tableData = computed<ThesisWorkTableRow[]>(() => {
     const currentUser = this.authService.currentUser();
     const isAdmin = this.authService.hasAnyRole([UserRoleType.ADMINISTRADOR]);
     const isConsejo = this.authService.hasAnyRole([UserRoleType.CONSEJO]);
-    // El backend ya entrega al Comité solo los trabajos de su programa; los ve para avalar solicitudes
     const hasFullAccessRole = this.authService.hasAnyRole([
       UserRoleType.ADMINISTRADOR,
       UserRoleType.DECANATURA,
@@ -33,6 +35,7 @@ export class ThesisWorkPageFacadeService {
     );
   });
 
+  /** Muestra el aviso «Acceso denegado». */
   public showRestrictedAccessNotification(): void {
     this.showNotification(
       'Acceso denegado',

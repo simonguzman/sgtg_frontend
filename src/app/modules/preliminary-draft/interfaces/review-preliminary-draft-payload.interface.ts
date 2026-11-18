@@ -1,18 +1,15 @@
 import { stateList } from "../../../core/enums/state.enum";
 
-/**
- * Forma de los datos que ReviewPreliminaryDraftFormComponent emite al
- * confirmar una evaluación de anteproyecto. Vive junto a PreliminaryDraft
- * (no dentro de components/review-preliminary-draft-form/ ni de
- * pages/review-preliminary-draft-page/) porque tanto el componente de
- * formulario como el facade de página lo necesitan — mismo criterio ya
- * aplicado con SaveProposalEvaluationEvent en el módulo de Propuestas.
- */
+/** Concepto del evaluador sobre el anteproyecto y sus observaciones. */
 export interface ReviewEvaluationFormValues {
   result: stateList;
   comments: string;
 }
 
+/**
+ * Concepto que emite el formulario de evaluación, con el formato B firmado y, si se adjuntó, el documento con
+ * las anotaciones.
+ */
 export interface PendingReviewData {
   formValues: ReviewEvaluationFormValues;
   file: File;

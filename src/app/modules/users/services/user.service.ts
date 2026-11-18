@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, untracked } from '@angular/core';
+import { effect, inject, Injectable, untracked } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { UserStorageService } from './user-storage.service';
@@ -10,6 +10,10 @@ import { ManagedUser } from '../helpers/user-management.helper';
 import { UserRoleType } from '../../../core/enums/user-role-type.enum';
 import { AuthStorageService } from '../../../core/services/auth/auth-storage.service';
 
+/**
+ * Fachada del módulo de usuarios. La lista de usuarios se carga del backend al iniciar sesión (o al abrir la
+ * aplicación con sesión) y se vacía al cerrarla.
+ */
 @Injectable({
   providedIn: 'root'
 })
@@ -19,29 +23,16 @@ export class UserService {
   private readonly formatter = inject(UserFormatterService);
   private readonly authStorage = inject(AuthStorageService);
 
-  // ==========================================
-  // ESTADO REACTIVO
-  // ==========================================
+  /** Usuarios cargados. */
   readonly users = this.storage.users;
-  readonly currentUser = this.storage.currentUser;
+  /** Usuarios con rol de estudiante. */
   readonly students = this.storage.students;
+  /** Usuarios con rol de docente. */
   readonly teachers = this.storage.teachers;
+  /** Usuarios con rol de asesor. */
   readonly advisors = this.storage.advisors;
-  readonly potentialDirectors = this.storage.potentialDirectors;
-
-  readonly currentUserFullName = computed(() => {
-    const user = this.storage.currentUser();
-    return user ? this.formatter.formatFullName(user) : 'Invitado';
-  });
-
-  readonly currentDirectorName = computed(() => {
-    const user = this.storage.currentUser();
-    return user ? this.formatter.formatFullName(user) : 'No identificado';
-  });
 
   constructor() {
-    // La lista de usuarios viene del backend: se carga al iniciar sesión (o al
-    // abrir la aplicación con sesión) y se vacía al cerrarla
     let autenticadoAntes = false;
     effect(() => {
       const autenticado = this.authStorage.isAuthenticated();
@@ -60,31 +51,7 @@ export class UserService {
     });
   }
 
-  // ==========================================
-  // SESIÓN
-  // ==========================================
-  public login(user: User): void {
-    this.storage.setCurrentUser(user);
-  }
-
-  public logout(): void {
-    this.storage.setCurrentUser(null);
-  }
-
-  // ==========================================
-  // QUERIES — nombres originales conservados
-  // ==========================================
-
-  /** Acceso síncrono a todos los usuarios. Alias de getUsersSnapshot para compatibilidad. */
-  public getAllUsers(): User[] {
-    return this.storage.getUsersSnapshot();
-  }
-
-  /** Alias síncrono de getUsersSnapshot para módulos que lo llaman directamente. */
-  public getUsersSnapshot(): User[] {
-    return this.storage.getUsersSnapshot();
-  }
-
+  /** Usuario por id desde el backend. */
   public getUserById(id: string): Observable<User | undefined> {
     return this.api.getUserById(id);
   }
@@ -94,26 +61,22 @@ export class UserService {
     return this.api.loadManagedUsers();
   }
 
-  public getUsersByRole(role: UserRoleType): Observable<User[]> {
-    return this.api.getUsersByRole(role);
-  }
-
-  // ==========================================
-  // MUTATIONS
-  // ==========================================
-
+  /** Crea un usuario. */
   public createUser(user: User): Observable<User> {
     return this.api.createUser(user);
   }
 
+  /** Actualiza un usuario. */
   public updateUser(id: string, changes: Partial<User>): Observable<User> {
     return this.api.updateUser(id, changes);
   }
 
+  /** Activa o inactiva un usuario según su estado actual; los usuarios no se borran. */
   public softDeleteUser(id: string): Observable<void> {
     return this.api.softDeleteUser(id);
   }
 
+  /** Reemplaza los roles de un usuario. */
   public updateUserRoles(userId: string, newRoles: UserRoleType[]): Observable<void> {
     return this.api.updateUserRoles(userId, newRoles);
   }
@@ -123,17 +86,17 @@ export class UserService {
     return this.api.changeCommittee(userId);
   }
 
-  // ==========================================
-  // FORMATO
-  // ==========================================
+  /** Nombre completo de un usuario. */
   public formatFullName(user: User): string {
     return this.formatter.formatFullName(user);
   }
 
+  /** Nombre completo de un usuario por su id, o «No asignado». */
   public getUserFullName(id: string | undefined): string {
     return this.formatter.getUserFullName(id);
   }
 
+  /** Nombres de los estudiantes. */
   public getAuthorsNames(authors: (string | User)[] | undefined): string {
     return this.formatter.getAuthorsNames(authors);
   }

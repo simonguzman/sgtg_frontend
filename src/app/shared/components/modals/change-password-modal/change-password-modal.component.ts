@@ -9,6 +9,7 @@ import { NotificationService } from '../../notifications/services/notification.s
 import { PasswordRequirementsComponent } from '../../password-requirements/password-requirements.component';
 import { PASSWORD_PREDECIBLE, passwordPolicyValidator } from '../../../../core/utils/password-policy';
 
+/** Validador del formulario: la contraseña nueva y su confirmación deben coincidir. */
 export const passwordMatchValidator = (control: AbstractControl): ValidationErrors | null => {
   const newPassword = control.get('newPassword');
   const confirmPassword = control.get('confirmPassword');
@@ -19,6 +20,10 @@ export const passwordMatchValidator = (control: AbstractControl): ValidationErro
   return null;
 };
 
+/**
+ * Modal para cambiar la contraseña del usuario autenticado, con los requisitos de la política a la vista. Si
+ * el backend la rechaza, el modal sigue abierto para corregirla.
+ */
 @Component({
   selector: 'app-change-password-modal',
   imports: [DialogModule, CommonModule, ReactiveFormsModule, ButtonComponent, ConfirmationActionModalComponent,
@@ -27,7 +32,6 @@ export const passwordMatchValidator = (control: AbstractControl): ValidationErro
   styleUrls: ['./change-password-modal.component.css']
 })
 export class ChangePasswordModalComponent {
-
   /**
    * Si la ventana está abierta. El p-dialog se crea la primera vez que se abre ({@link yaSeAbrio}): las
    * páginas tienen varias ventanas que casi nunca se abren y crearlas todas al cargar hacía más lenta la página.
@@ -49,7 +53,7 @@ export class ChangePasswordModalComponent {
   private readonly notificationService = inject(NotificationService);
 
   readonly mensajePredecible = PASSWORD_PREDECIBLE;
-  // Signal: se apaga dentro de la respuesta del backend y la vista debe enterarse (sin zone.js)
+  /** Señal para que la vista se actualice al terminar la petición (la aplicación no usa zone.js). */
   readonly isLoading = signal(false);
   isConfirmActionOpen = false;
   showCurrentPassword = false;
@@ -98,7 +102,6 @@ export class ChangePasswordModalComponent {
         this.closeModal();
       },
       error: (err: Error) => {
-        // El modal sigue abierto para que el usuario corrija los datos
         this.isLoading.set(false);
         this.notificationService.error('No se cambió la contraseña', err.message);
       }

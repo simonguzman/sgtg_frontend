@@ -25,14 +25,17 @@ export class TrabajoGradoVistasService {
     urlArchivo: (id, ruta) => this.api.urlArchivo(id, ruta)
   }));
 
+  /** Vista de propuesta de todos los trabajos del almacén. */
   readonly propuestas = computed<Proposal[]>(() =>
     this.store.trabajos().map(trabajo => aPropuesta(trabajo, this.contexto())));
 
+  /** Vista de anteproyecto de los trabajos cuya propuesta ya fue aprobada. */
   readonly anteproyectos = computed<PreliminaryDraft[]>(() =>
     this.store.trabajos()
       .map(trabajo => aAnteproyecto(trabajo, this.contexto()))
       .filter((anteproyecto): anteproyecto is PreliminaryDraft => anteproyecto !== null));
 
+  /** Vista de trabajo de grado de los trabajos que ya llegaron a la ejecución. */
   readonly trabajosDeGrado = computed<ThesisWork[]>(() =>
     this.store.trabajos()
       .map(trabajo => aTrabajoDeGrado(trabajo, this.contexto()))

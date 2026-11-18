@@ -4,7 +4,6 @@
     Seleccione el resultado definitivo de la sustentación acordado por el cuerpo de jurados, ingrese las observaciones correspondientes y adjunte el <strong>acta firmada</strong> para completar el registro.
   </app-info-banner>
 
-  <!-- ── Información del trabajo de grado ──────────────────────────────────── -->
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Información del trabajo de grado</h3>
 
@@ -59,7 +58,6 @@
 
   <hr class="border-gray-200 mb-8">
 
-  <!-- ── Programación de la sustentación ───────────────────────────────────── -->
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Programación de la sustentación</h3>
 
@@ -86,13 +84,11 @@
 
   <hr class="border-gray-200 mb-8">
 
-  <!-- ── Archivos adjuntos ──────────────────────────────────────────────────── -->
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Archivos adjuntos</h3>
 
     <div class="flex flex-col gap-4">
 
-      <!-- Monografía -->
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
         <div class="flex items-center gap-3 overflow-hidden">
           <span class="material-symbols-outlined text-danger text-file shrink-0">picture_as_pdf</span>
@@ -111,7 +107,6 @@
         </app-button-component>
       </div>
 
-      <!-- Anexos -->
       <div class="flex items-center justify-between p-4 bg-white border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm">
         <div class="flex items-center gap-3 overflow-hidden">
           <span class="material-symbols-outlined text-danger text-file shrink-0">folder_open</span>
@@ -154,7 +149,6 @@
 
   <hr class="border-gray-200 mb-8">
 
-  <!-- ── Evaluación del jurado ──────────────────────────────────────────────── -->
   <section class="mb-10">
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-4">Evaluación del jurado</h3>
 
@@ -162,7 +156,6 @@
          [class.border-alert]="isSubmitAttempted() && verdictSelected() === null"
          [class.border-blue-100]="!(isSubmitAttempted() && verdictSelected() === null)">
 
-      <!-- Mensaje informativo -->
       <div class="information-block p-4 rounded-lg text-size-body text-text-body mb-6">
         Como jurado coordinador, registre la calificación de la sesión con el acta (formato G). Las observaciones son
         obligatorias si no se aprueba. Si el estudiante no se presentó, registre la inasistencia: en la primera sesión
@@ -205,7 +198,6 @@
         <p class="text-size-role-footer text-textbox-alert text-center mb-4">Debe seleccionar una calificación para proceder</p>
       }
 
-      <!-- Observaciones -->
       <div class="flex flex-col gap-1">
         <label for="observations" class="font-display font-semibold text-primary text-size-section">Observaciones y comentarios descriptivos</label>
         <textarea id="observations" rows="4"
@@ -218,7 +210,6 @@
 
   <hr class="border-gray-200 mb-8">
 
-  <!-- ── Carga del acta ─────────────────────────────────────────────────────── -->
   @if (!isNonAttendance) {
   <section>
     <h3 class="font-display font-semibold text-primary text-size-header-title mb-6">Acta de sustentación (formato G)</h3>
@@ -275,7 +266,7 @@
 
 <app-file-upload-modal
   [isOpen]="isModalOpen()"
-  description="Subir Acta de Calificación de Sustentación diligenciada (PDF)"
+  description="Subir Acta de Calificación de Sustentación diligenciada"
   (onFileUploaded)="handleFileUploaded($event)"
   (onClose)="isModalOpen.set(false)">
 </app-file-upload-modal>

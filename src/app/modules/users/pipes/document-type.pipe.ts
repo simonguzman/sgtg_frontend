@@ -1,6 +1,7 @@
 import { Pipe, PipeTransform } from '@angular/core';
 import { IdentificationType } from '../enum/identification-type.enum';
 
+/** Muestra el nombre completo del tipo de documento de identidad a partir de su código o nombre. */
 @Pipe({
   name: 'documentType',
   standalone: true

@@ -6,6 +6,7 @@ import { ButtonComponent } from '../../../../shared/components/button-component/
 import { WorkDetailsComponent } from '../../../../shared/components/work-details/work-details.component';
 import { WorkDetailsView } from '../../../../shared/components/work-details/work-details.model';
 
+/** Página de detalle de una propuesta, también usada desde el historial. */
 @Component({
   selector: 'app-proposal-details-page',
   imports: [ButtonComponent, WorkDetailsComponent],

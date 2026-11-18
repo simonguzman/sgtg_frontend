@@ -1,6 +1,7 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { StatisticsStateService } from './statistics-state.service';
 import { ProjectStatus } from '../enum/projectStatus.enum';
+import { RawProjectData } from '../interfaces/rawProjectData.interface';
 
 /** Estados de un trabajo que sigue su proceso */
 const EN_PROCESO: ProjectStatus[] = [
@@ -17,10 +18,12 @@ const EN_PROCESO: ProjectStatus[] = [
 export class StatisticsMetricsService {
   private readonly state = inject(StatisticsStateService);
 
+  /** Trabajos que cumplen los filtros. */
   public readonly totalLoaded = computed<number>(() =>
     this.state.filteredData().length
   );
 
+  /** Trabajos aprobados. */
   public readonly totalApproved = computed<number>(() =>
     this.state.filteredData().filter(p => p.status === ProjectStatus.APROBADO).length
   );
@@ -30,9 +33,23 @@ export class StatisticsMetricsService {
     this.state.filteredData().filter(p => EN_PROCESO.includes(p.status)).length
   );
 
+  /** Trabajos no aprobados o cancelados. */
   public readonly totalNotApproved = computed<number>(() =>
     this.state.filteredData().filter(p =>
       p.status === ProjectStatus.NO_APROBADO || p.status === ProjectStatus.CANCELADO
     ).length
   );
+
+  /**
+   * Trabajos de grado próximos a vencer (en curso o en prórroga, a 30 días o
+   * menos de la fecha máxima de entrega), del más urgente al menos urgente.
+   * Respetan los filtros, como las demás tarjetas.
+   */
+  public readonly dueSoonProjects = computed<RawProjectData[]>(() =>
+    this.state.filteredData()
+      .filter(p => p.dueSoon && !p.isArchived)
+      .sort((a, b) => (a.daysUntilDelivery ?? 0) - (b.daysUntilDelivery ?? 0)));
+
+  /** Cantidad de trabajos próximos a vencer. */
+  public readonly totalDueSoon = computed<number>(() => this.dueSoonProjects().length);
 }

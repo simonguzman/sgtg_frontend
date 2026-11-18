@@ -1,6 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { stateList } from '../../../../core/enums/state.enum';
 import { UserRoleType } from '../../../../core/enums/user-role-type.enum';
 import { UserRole } from '../../../../core/models/user-role';
 import { User } from '../../interfaces/user.interface';
@@ -14,6 +13,10 @@ import { puedeAsignarRol } from '../../helpers/user-management.helper';
 import { CHANGE_COMMITTEE_ACTION, USER_COLUMNS, USER_FILTER_FIELDS, USER_HEADER_BUTTONS, UserTableRow } from './models/users-page.model';
 import { ChangeCommitteeModalComponent } from '../../components/change-committee-modal/change-committee-modal.component';
 
+/**
+ * Gestión de usuarios: la tabla se refresca al abrir la página, y quien no es el administrador solo asigna o
+ * quita los roles de estudiante y docente.
+ */
 @Component({
   selector: 'app-users-page',
   standalone: true,
@@ -40,7 +43,6 @@ export class UsersPageComponent implements OnInit {
     variant: 'secondary'
   }];
   showCommitteeModal = false;
-  protected readonly stateList = stateList;
 
   showRolesModal = false;
   showConfirmation = false;
@@ -54,7 +56,6 @@ export class UsersPageComponent implements OnInit {
   showDisabledConfirmation = false;
 
   ngOnInit(): void {
-    // La lista se carga al iniciar sesión; aquí se refresca con los últimos cambios
     this.facade.loadUsers();
   }
   idUserToDisabled: string | null = null;
@@ -96,7 +97,6 @@ export class UsersPageComponent implements OnInit {
     this.selectedUser = `${row.nombre} ${row.apellidos}`;
     const userRolesType = user.roles || [];
 
-    // Quien no es el administrador solo asigna o quita Estudiante y Docente
     const gestor = this.authStorage.currentUser();
     this.rolesUser = Object.values(UserRoleType).map(type => ({
       type,

@@ -1,7 +1,7 @@
 import {
   CalificacionApi, CambioObjetivosApi, DecisionApi, DocumentoApi, EstadoApi, EstadoReunionApi, EstadoSustentacionApi, InformeMensualApi,
   ReunionApi, VersionDocumentoApi,
-  ETAPAS_FINALES, ProcesoApi, ResultadoConceptoApi, SolicitudSustentacionApi, TrabajoGradoResponse
+  ETAPAS_FINALES, ProcesoApi, ResultadoConceptoApi, SolicitudSustentacionApi, TrabajoGradoResponse, PlazoConsejoApi
 } from '../interfaces/api/trabajo-grado-api.interface';
 import { stateList } from '../enums/state.enum';
 import { DocumentType } from '../enums/document-type.enum';
@@ -14,7 +14,8 @@ import { User } from '../../modules/users/interfaces/user.interface';
 import { UserState } from '../../modules/users/enum/user-state.enum';
 import { Modality } from '../../modules/proposal/enums/modality.enum';
 import { Proposal } from '../../modules/proposal/interfaces/proposal.interface';
-import { PreliminaryDraft } from '../../modules/preliminary-draft/interfaces/preliminary-draft.interface';
+import { CouncilTerm, PreliminaryDraft } from '../../modules/preliminary-draft/interfaces/preliminary-draft.interface';
+import { desdeFechaIso } from '../utils/date-utils';
 import { Meeting, SustentationProcess, ThesisWork } from '../../modules/thesis-work/interfaces/thesis-work.interface';
 import { Advance } from '../../modules/thesis-work/interfaces/advance.interface';
 import { CommitteeEndorsement, SpecialRequest } from '../../modules/thesis-work/interfaces/special-request.interface';
@@ -44,8 +45,10 @@ export interface ContextoMapeo {
   urlArchivo: (trabajoId: number, ruta: string) => string;
 }
 
-// ── Vistas ──────────────────────────────────────────────────────────────────
-
+/**
+ * Vista de propuesta de un trabajo. Los conceptos del Comité se emparejan con las versiones radicadas por
+ * posición: el Comité emite uno por cada versión, en el mismo orden.
+ */
 export function aPropuesta(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): Proposal {
   const id = String(trabajo.id);
   const versiones = trabajo.propuesta.versiones;
@@ -76,7 +79,6 @@ export function aPropuesta(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): P
     evaluationDeadline: aFecha(trabajo.propuesta.fechaLimiteConcepto) ?? undefined,
     evaluationRemainingDays: trabajo.propuesta.diasHabilesRestantesConcepto ?? null,
     documents: documentos,
-    // El Comité emite un concepto (pertinente o no) por cada versión radicada, en el mismo orden
     evaluations: trabajo.propuesta.decisiones.map((decision, i) => {
       const evaluacion = evaluacionDeDecision(trabajo, decision, i, ctx, versiones[i]?.ruta);
       return { ...evaluacion, veredict: comoPertinencia(evaluacion.veredict) };
@@ -87,6 +89,8 @@ export function aPropuesta(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): P
 }
 
 /**
+ * Vista de anteproyecto de un trabajo, con sus versiones, los formatos C de las remisiones al Consejo y las
+ * decisiones del Consejo, que se emparejan con las remisiones por posición.
  * @returns el anteproyecto, o null si la propuesta aún no está aprobada o el
  * director todavía no radica su primera versión (aún no está registrado)
  */
@@ -99,7 +103,6 @@ export function aAnteproyecto(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo)
       ...aDocumento(trabajo.id, v, ctx, DocumentType.ANTEPROYECTO),
       status: estadoDeEntrega(v.estado)
     })),
-    // Formato C de cada remisión al Consejo, con el estado de su decisión
     ...anteproyecto.remisiones.map(remision => ({
       ...aDocumento(trabajo.id, remision, ctx, DocumentType.FORMATO_C),
       status: estadoRemision(trabajo, remision.version)
@@ -129,7 +132,6 @@ export function aAnteproyecto(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo)
         date: aFecha(concepto.fecha) ?? new Date(),
         deadlineStatus: estadoDelPlazo(concepto.aTiempo)
       })),
-      // El Consejo decide sobre cada remisión (formato C), en el mismo orden
       ...anteproyecto.decisionesConsejo.map((decision, i) =>
         evaluacionDeDecision(trabajo, decision, i, ctx, anteproyecto.remisiones[i]?.ruta))
     ],
@@ -138,10 +140,7 @@ export function aAnteproyecto(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo)
     createdData: aFecha(anteproyecto.versiones[0]?.fechaCarga ?? fechaDeEntrada(trabajo, 'ANTEPROYECTO')) ?? new Date(),
     evaluationDeadline: aFecha(anteproyecto.fechaLimiteEvaluacion) ?? undefined,
     evaluationRemainingDays: anteproyecto.diasHabilesRestantesEvaluacion ?? null,
-    executionOptions: (anteproyecto.opcionesPlazo ?? []).map(opcion => ({
-      months: opcion.meses,
-      deadline: aFecha(opcion.fechaFin) ?? new Date()
-    })),
+    councilTerm: plazoDelConsejo(anteproyecto.plazoConsejo),
     maximumDeliveryDate: aFecha(trabajo.ejecucion?.fechaFin) ?? undefined,
     isArchived: estaCerrado(trabajo)
   };
@@ -181,14 +180,14 @@ export function aTrabajoDeGrado(trabajo: TrabajoGradoResponse, ctx: ContextoMape
       maximumDeliveryDate: aFecha(ejecucion.fechaFin),
       minimumSustentationDate: aFecha(ejecucion.fechaMinimaSustentacion),
       objectivesChangeDeadline: aFecha(ejecucion.fechaLimiteCambioObjetivos),
-      extensionRequestDeadline: aFecha(ejecucion.fechaLimiteSolicitudProrroga)
+      extensionRequestDeadline: aFecha(ejecucion.fechaLimiteSolicitudProrroga),
+      daysUntilDelivery: ejecucion.diasParaEntrega ?? null,
+      dueSoon: !!ejecucion.proximoAVencer
     },
     sustentation: procesoDeSustentacion(trabajo),
     isArchived: estaCerrado(trabajo)
   };
 }
-
-// ── Trabajo en curso ────────────────────────────────────────────────────────
 
 /** Informe mensual como avance: "En revisión" hasta que alguien lo revisa. */
 function aInforme(trabajo: TrabajoGradoResponse, informe: InformeMensualApi, ctx: ContextoMapeo): Advance {
@@ -271,18 +270,18 @@ function decisionDeSolicitud(trabajo: TrabajoGradoResponse, decision: DecisionAp
 }
 
 /**
- * Estado del cambio de título y objetivos: pendiente del Comité, avalado y
- * pendiente del Consejo, no avalado (no aprobado) o decidido por el Consejo.
+ * Estado del cambio de título y objetivos: pendiente del Comité, pertinente y
+ * pendiente del Consejo, no pertinente (cerrada) o decidido por el Consejo.
  */
 function estadoCambioObjetivos(cambio: CambioObjetivosApi): Pick<SpecialRequest, 'status' | 'pendingWith'> {
   if (cambio.decision) return { status: estadoSolicitud(cambio.decision) };
   if (!cambio.avalComite) return { status: stateList.EN_REVISION, pendingWith: 'COMITE' };
   return cambio.avalComite.resultado === 'APROBADO'
     ? { status: stateList.EN_REVISION, pendingWith: 'CONSEJO' }
-    : { status: stateList.NO_APROBADO };
+    : { status: stateList.NO_PERTINENTE };
 }
 
-/** Aval del Comité del programa sobre el cambio de título y objetivos. */
+/** Concepto de pertinencia del Comité del programa sobre el cambio de título y objetivos. */
 function avalDelComite(trabajo: TrabajoGradoResponse, aval: DecisionApi | null,
   ctx: ContextoMapeo): CommitteeEndorsement | undefined {
   if (!aval) return undefined;
@@ -385,8 +384,6 @@ export function solicitudesEspeciales(trabajo: TrabajoGradoResponse, ctx: Contex
   }));
   return solicitudes.sort((a, b) => b.requestDate.getTime() - a.requestDate.getTime());
 }
-
-// ── Sustentación ────────────────────────────────────────────────────────────
 
 /** Estado general de la sustentación: el de la sesión actual y sus plazos. */
 function procesoDeSustentacion(trabajo: TrabajoGradoResponse): SustentationProcess | null {
@@ -557,8 +554,7 @@ function documentosDeCierre(trabajo: TrabajoGradoResponse, ctx: ContextoMapeo): 
   }];
 }
 
-// ── Estados ─────────────────────────────────────────────────────────────────
-
+/** @returns true si el trabajo terminó (finalizado, no aprobado o cancelado) y pasa al historial */
 export function estaCerrado(trabajo: TrabajoGradoResponse): boolean {
   return ETAPAS_FINALES.includes(trabajo.etapa);
 }
@@ -571,6 +567,18 @@ export function estadoActualPropuesta(trabajo: TrabajoGradoResponse): EstadoApi 
 /** Estado de la última versión radicada, null si no hay ninguna. */
 function ultimoEstado(versiones: VersionDocumentoApi[]): EstadoApi | null {
   return versiones.length > 0 ? versiones[versiones.length - 1].estado : null;
+}
+
+/** Fechas entre las que el Consejo fija el plazo (las calcula el backend con su reloj); null fuera de esa etapa. */
+function plazoDelConsejo(plazo: PlazoConsejoApi | null | undefined): CouncilTerm | null {
+  const hoy = desdeFechaIso(plazo?.fechaInicioMaxima);
+  if (!plazo || !hoy) return null;
+  return {
+    startMin: desdeFechaIso(plazo.fechaInicioMinima),
+    startMax: hoy,
+    minMonths: plazo.mesesMinimos,
+    maxMonths: plazo.mesesMaximos
+  };
 }
 
 /**
@@ -598,7 +606,6 @@ export function estadoPropuesta(trabajo: TrabajoGradoResponse): stateList {
 export function estadoAnteproyecto(trabajo: TrabajoGradoResponse): stateList {
   if (trabajo.ejecucion) return stateList.APROBADO;
   if (trabajo.etapa === 'APROBACION_CONSEJO') return stateList.EVALUADO;
-  // Aprobado por ambos evaluadores, pendiente de que el Jefe lo remita al Consejo
   if (trabajo.etapa === 'EVALUACION' && ultimoEstado(trabajo.anteproyecto.versiones) === 'APROBADO') {
     return stateList.EVALUADO;
   }
@@ -630,14 +637,15 @@ export function estadoTrabajo(etapa: ProcesoApi): stateList {
 }
 
 /**
- * Estado de una versión radicada. Con correcciones (un evaluador no aprobó el
- * anteproyecto) se muestra como no aprobado: no puede seguir y el director
- * radica una nueva versión.
+ * Estado de una versión radicada. Con correcciones (ningún evaluador lo
+ * rechazó, pero alguno pidió correcciones) se muestra como "Evaluado con
+ * observaciones": va bien, pero el director radica la versión corregida. Tras
+ * un no aprobado también radica una nueva versión.
  */
 function estadoDeEntrega(estado: EstadoApi | null): stateList {
   switch (estado) {
     case 'APROBADO': return stateList.APROBADO;
-    case 'CON_CORRECCIONES':
+    case 'CON_CORRECCIONES': return stateList.EVALUADO_CON_OBSERVACIONES;
     case 'NO_APROBADO':
     case 'RECHAZADO': return stateList.NO_APROBADO;
     default: return stateList.EN_REVISION;
@@ -646,20 +654,20 @@ function estadoDeEntrega(estado: EstadoApi | null): stateList {
 
 /**
  * Resultado de un concepto, decisión o calificación del backend como veredicto
- * del front. El concepto con correcciones de un evaluador es un no aprobado;
- * "aprobado con observaciones" solo es una calificación de la sustentación.
+ * del front. El concepto de un evaluador puede ser aprobado, con correcciones o
+ * no aprobado; "aprobado con observaciones" solo es una calificación de la
+ * sustentación.
  */
 export function veredicto(resultado: ResultadoConceptoApi | CalificacionApi): stateList {
   switch (resultado) {
     case 'APROBADO': return stateList.APROBADO;
+    case 'CON_CORRECCIONES': return stateList.CON_CORRECCIONES;
     case 'APROBADO_CON_OBSERVACIONES': return stateList.APROBADO_CON_OBSERVACIONES;
     case 'APLAZADO': return stateList.APLAZADO;
     case 'EVALUADO': return stateList.EVALUADO;
     default: return stateList.NO_APROBADO;
   }
 }
-
-// ── Personas, documentos y evaluaciones ─────────────────────────────────────
 
 /**
  * Participante como `User`: el usuario conocido si está en la lista; si no
@@ -702,6 +710,9 @@ const TIPOS_DOCUMENTO: Record<string, DocumentType> = {
   AJUSTES_SUSTENTACION: DocumentType.CORRECCION
 };
 
+/**
+ * Tipo de documento del front para un tipo del backend; los tipos sin equivalente se muestran como formato.
+ */
 export function tipoDocumento(tipoBackend: string): DocumentType {
   return TIPOS_DOCUMENTO[tipoBackend] ?? DocumentType.FORMATO;
 }
@@ -764,8 +775,6 @@ function estadoDelPlazo(aTiempo: boolean | null | undefined): EvaluationDeadline
   return aTiempo ? EvaluationDeadlineStatus.ON_TIME : EvaluationDeadlineStatus.DELAYED;
 }
 
-// ── Apoyo ───────────────────────────────────────────────────────────────────
-
 /** "2026-07-15T14:00:00" → "15/07/2026 14:00" */
 function fechaYHora(valor: string): string {
   const fecha = aFecha(valor);
@@ -775,12 +784,14 @@ function fechaYHora(valor: string): string {
     + `${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
 }
 
-/** Nombre con que se muestra cada tipo de documento, según su carpeta en el servidor. */
+/**
+ * Nombre con que se muestra cada formato, según su carpeta en el servidor. La carpeta D corresponde a los
+ * informes mensuales cargados antes de que tuvieran su propia carpeta (INFORME_MENSUAL).
+ */
 const ETIQUETAS_POR_FORMATO: Record<string, string> = {
   A: 'Formato A (propuesta)',
   B: 'Formato B (concepto del evaluador)',
   C: 'Formato C (remisión al Consejo)',
-  // Los informes mensuales cargados antes se guardaron como formato D (hoy van a la carpeta INFORME_MENSUAL)
   D: 'Informe mensual',
   E: 'Formato E (documento final)',
   F: 'Formato F (paz y salvo)',
@@ -795,7 +806,6 @@ const ETIQUETAS_POR_CARPETA: Record<string, string> = {
   CARTA_ACEPTACION: 'Carta de aceptación',
   INFORME_MENSUAL: 'Informe mensual',
   RESOLUCION: 'Resolución del Consejo',
-  // Formato A con el concepto y la firma del Comité de Programa
   ACTA_COMITE: 'Formato A firmado',
   SOLICITUD_PRORROGA: 'Solicitud de prórroga',
   SOLICITUD_SUSPENSION: 'Solicitud de suspensión',
@@ -806,7 +816,7 @@ const ETIQUETAS_POR_CARPETA: Record<string, string> = {
   SOLICITUD_NUEVA_FECHA: 'Solicitud de nueva fecha',
   AJUSTES_SUSTENTACION: 'Ajustes de la sustentación',
   SOLICITUD_CANCELACION: 'Solicitud de cancelación',
-  AVAL_CAMBIO_OBJETIVOS: 'Aval del Comité al cambio de título y objetivos'
+  AVAL_CAMBIO_OBJETIVOS: 'Concepto de pertinencia del Comité sobre el cambio de título y objetivos'
 };
 
 /**

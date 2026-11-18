@@ -63,7 +63,6 @@ export const SustentationTabConfig: TabConfiguration<SustentationTableRow> = {
 
     return thesis.sustentations.map((sustentation: SustentationRegistry, index: number): SustentationTableRow => {
       const allowedActions: string[] = ['view_sustentation_details'];
-      // Solo la sesión actual (la primera de la lista) se califica
       if (canGrade && index === 0) allowedActions.push('evaluate_sustentation');
       const date = sustentation.sustentationDate
         ? `${formatThesisDate(new Date(sustentation.sustentationDate))} ${sustentation.sustentationTime ?? ''}`.trim()

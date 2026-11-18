@@ -1,16 +1,18 @@
+import { By } from '@angular/platform-browser';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 import { ComponentFixture, DeferBlockBehavior, DeferBlockState, TestBed } from '@angular/core/testing';
-import { signal, WritableSignal, Component, Input, Output, EventEmitter, forwardRef } from '@angular/core';
-import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
+import { signal, WritableSignal, Component, Input, Output, EventEmitter } from '@angular/core';
 import { StatisticsPageComponent } from './statistics-page.component';
 import { StatisticsPageFacadeService } from './services/statistics-page-facade.service';
 import { ProjectStage } from '../../enum/projectStage.enum';
 import { DEFAULT_STATISTICS_FILTERS, DeadlineFilterValue, StatisticsFilters } from '../../interfaces/statisticsFilters.interface';
 import { EvaluationDeadlineStatus } from '../../../../core/enums/evaluation-deadline-status.enum';
 import { ChartModule } from 'primeng/chart';
-import { SelectModule } from 'primeng/select';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
+import { RawProjectData } from '../../interfaces/rawProjectData.interface';
+import { ProjectStatus } from '../../enum/projectStatus.enum';
+import { provideRouter, Router } from '@angular/router';
 
 interface MockChartData {
   labels: string[];
@@ -22,31 +24,6 @@ interface MockOption {
   value: string | null;
 }
 
-
-@Component({
-  selector: 'p-select',
-  standalone: true,
-  template: '',
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => MockPSelectComponent),
-      multi: true,
-    },
-  ],
-})
-
-class MockPSelectComponent implements ControlValueAccessor {
-  @Input() options!: unknown[];
-  @Input() optionLabel!: string;
-  @Input() optionValue!: string;
-  @Input() placeholder!: string;
-  @Input() showClear!: boolean;
-  @Input() styleClass!: string;
-  writeValue(_value: unknown): void {}
-  registerOnChange(_fn: unknown): void {}
-  registerOnTouched(_fn: unknown): void {}
-}
 
 @Component({ selector: 'p-chart', standalone: true, template: '' })
 class MockPChartComponent {
@@ -60,6 +37,8 @@ class MockButtonComponent {
   @Input() label!: string;
   @Input() variant!: string;
   @Input() icon!: string;
+  @Input() ariaLabel?: string;
+  @Input() disabled = false;
   @Output() onClick = new EventEmitter<void>();
 }
 
@@ -69,6 +48,7 @@ describe('StatisticsPageComponent', () => {
   let mockFacadeService: {
     updateFilters: jest.Mock<void, [Partial<StatisticsFilters>]>;
     downloadReport: jest.Mock<Promise<void>, [string]>;
+    downloadDueSoonReport: jest.Mock<Promise<void>, [string]>;
     reportRows: WritableSignal<number>;
     clearFilters: jest.Mock<void, []>;
     currentFilters: WritableSignal<StatisticsFilters>;
@@ -86,6 +66,14 @@ describe('StatisticsPageComponent', () => {
     modalityOptions: WritableSignal<string[]>;
     programOptions: WritableSignal<string[]>;
     scope: WritableSignal<string>;
+    totalDueSoon: WritableSignal<number>;
+    dueSoonProjects: WritableSignal<RawProjectData[]>;
+    canRemind: WritableSignal<boolean>;
+    canOpenDetails: WritableSignal<boolean>;
+    sendingReminder: WritableSignal<ReadonlySet<string>>;
+    remindedToday: WritableSignal<ReadonlySet<string>>;
+    remind: jest.Mock<void, [RawProjectData]>;
+    remindAll: jest.Mock<void, []>;
   };
   const initialFilters: StatisticsFilters = { ...DEFAULT_STATISTICS_FILTERS };
   beforeEach(async () => {
@@ -93,7 +81,8 @@ describe('StatisticsPageComponent', () => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
     mockFacadeService = {
       updateFilters: jest.fn(),
-      downloadReport: jest.fn(() => Promise.resolve()),
+      downloadReport: jest.fn().mockResolvedValue(undefined),
+      downloadDueSoonReport: jest.fn().mockResolvedValue(undefined),
       reportRows: signal(3),
       clearFilters: jest.fn(),
       currentFilters: signal<StatisticsFilters>(initialFilters),
@@ -111,19 +100,27 @@ describe('StatisticsPageComponent', () => {
       modalityOptions: signal<string[]>([]),
       programOptions: signal<string[]>([]),
       scope: signal('Todos los trabajos de grado de la facultad.'),
+      totalDueSoon: signal(0),
+      dueSoonProjects: signal<RawProjectData[]>([]),
+      canRemind: signal(false),
+      canOpenDetails: signal(false),
+      sendingReminder: signal<ReadonlySet<string>>(new Set()),
+      remindedToday: signal<ReadonlySet<string>>(new Set()),
+      remind: jest.fn(),
+      remindAll: jest.fn(),
     };
     await TestBed.configureTestingModule({
       imports: [StatisticsPageComponent],
-      // Las gráficas van en @defer (on viewport): cada prueba decide cuándo se dibujan
       deferBlockBehavior: DeferBlockBehavior.Manual,
       providers: [
         { provide: StatisticsPageFacadeService, useValue: mockFacadeService },
+        provideRouter([]),
         provideNoopAnimations(),
       ],
     })
     .overrideComponent(StatisticsPageComponent, {
-      remove: { imports: [ChartModule, SelectModule, ButtonComponent] },
-      add: { imports: [MockPChartComponent, MockPSelectComponent, MockButtonComponent] }
+      remove: { imports: [ChartModule, ButtonComponent] },
+      add: { imports: [MockPChartComponent, MockButtonComponent] }
     })
     .compileComponents();
     fixture = TestBed.createComponent(StatisticsPageComponent);
@@ -147,7 +144,6 @@ describe('StatisticsPageComponent', () => {
 
       mockFacadeService.totalLoaded.set(5);
       fixture.detectChanges();
-      // Hasta llegar a la pantalla, cada gráfica es solo su espacio reservado
       expect(fixture.nativeElement.querySelectorAll('p-chart').length).toBe(0);
       const bloques = await fixture.getDeferBlocks();
       expect(bloques.length).toBe(4);
@@ -204,6 +200,145 @@ describe('StatisticsPageComponent', () => {
       expect(mockFacadeService.updateFilters).toHaveBeenCalledWith({
         deadlineFilter: deadlineValue,
       });
+    });
+  });
+  describe('Filtros con buscador', () => {
+    const escribir = (id: string, texto: string): HTMLElement[] => {
+      const input = fixture.nativeElement.querySelector(`#${id}`) as HTMLInputElement;
+      input.click();
+      input.value = texto;
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+      return Array.from(input.closest('app-searchable-select')!.querySelectorAll('li')) as HTMLElement[];
+    };
+
+    it('el director se busca escribiendo parte del nombre y al elegirlo filtra', () => {
+      mockFacadeService.directorsOptions.set([
+        { id: 'd1', name: 'Javier Burbano Morales' }, { id: 'd2', name: 'Cristian Rodríguez Ramírez' },
+        { id: 'd3', name: 'Luis Narváez Díaz' }
+      ]);
+      fixture.detectChanges();
+
+      const opciones = escribir('directorFilter', 'rodr');
+      expect(opciones.map(o => o.textContent?.trim())).toEqual(['Cristian Rodríguez Ramírez']);
+      opciones[0].click();
+      expect(mockFacadeService.updateFilters).toHaveBeenCalledWith({ directorId: 'd2' });
+    });
+
+    it('todos los filtros se pueden escribir: programa, periodo, modalidad, etapa, estado y plazo', () => {
+      mockFacadeService.programOptions.set(['Ingeniería de Sistemas', 'Ingeniería en Automática Industrial']);
+      mockFacadeService.periodsOptions.set(['2027-1', '2026-2']);
+      mockFacadeService.modalityOptions.set(['Práctica profesional', 'Trabajo de investigación']);
+      mockFacadeService.stagesOptions = [];
+      fixture.detectChanges();
+
+      expect(escribir('programFilter', 'autom').map(o => o.textContent?.trim())).toEqual(['Ingeniería en Automática Industrial']);
+      expect(escribir('periodFilter', '2026').map(o => o.textContent?.trim())).toEqual(['2026-2']);
+      expect(escribir('modalityFilter', 'práct').map(o => o.textContent?.trim())).toEqual(['Práctica profesional']);
+      expect(escribir('archiveFilter', 'histor').map(o => o.textContent?.trim())).toEqual(['Cerrados (historial)']);
+      expect(escribir('deadlineFilter', 'retraso').map(o => o.textContent?.trim())).toEqual(['Evaluado con retraso']);
+    });
+
+    it('limpiar un filtro lo quita (null); el estado y el plazo no se pueden dejar vacíos', () => {
+      component.onDirectorChange('');
+      component.onStageChange('');
+      expect(mockFacadeService.updateFilters).toHaveBeenCalledWith({ directorId: null });
+      expect(mockFacadeService.updateFilters).toHaveBeenCalledWith({ stage: null });
+
+      mockFacadeService.updateFilters.mockClear();
+      component.onArchiveStatusChange('');
+      component.onDeadlineFilterChange('');
+      expect(mockFacadeService.updateFilters).not.toHaveBeenCalled();
+    });
+  });
+  describe('Próximos a vencer', () => {
+    const trabajo = (id: string, dias: number): RawProjectData => ({
+      id, title: `Trabajo ${id}`, stage: ProjectStage.TRABAJO_GRADO, status: ProjectStatus.EN_DESARROLLO,
+      period: '2027-1', directorId: 'd1', directorName: 'Javier Burbano', registrationDate: new Date(),
+      isArchived: false, deadlineStatus: null, modality: 'Trabajo de investigación', program: 'Automática',
+      dueSoon: true, daysUntilDelivery: dias, deliveryDate: new Date(2027, 7, 20), studentNames: 'Ana Mora'
+    } as RawProjectData);
+    const texto = () => fixture.nativeElement.textContent as string;
+    const ojo = () => fixture.nativeElement.querySelector('.due-soon-eye') as HTMLElement | null;
+    /** Pulsa un app-button-component (simulado) por su clase */
+    const pulsar = (selector: string, dentro: HTMLElement | null = null) => {
+      const elemento = (dentro ?? fixture.nativeElement).querySelector(selector) as HTMLElement;
+      fixture.debugElement.queryAll(By.css(selector)).find(d => d.nativeElement === elemento)!
+        .componentInstance.onClick.emit();
+      fixture.detectChanges();
+    };
+
+    it('sin trabajos próximos a vencer la tarjeta lo dice, sin alerta ni ojo', () => {
+      expect(texto()).toContain('Ninguna entrega en los próximos 30 días');
+      expect(ojo()).toBeNull();
+    });
+
+    it('con trabajos próximos a vencer la tarjeta roja muestra el número y el ojo abre y cierra la tabla', () => {
+      mockFacadeService.dueSoonProjects.set([trabajo('7', 4), trabajo('8', 21)]);
+      mockFacadeService.totalDueSoon.set(2);
+      fixture.detectChanges();
+
+      const tarjeta = fixture.nativeElement.querySelector('.due-soon-card') as HTMLElement;
+      expect(tarjeta.textContent).toContain('Próximos a vencer');
+      expect(tarjeta.textContent).toContain('2');
+      expect(fixture.nativeElement.querySelector('#dueSoonSection')).toBeNull();
+
+      pulsar('.due-soon-eye');
+      const filas = Array.from(fixture.nativeElement.querySelectorAll('.due-soon-table tbody tr')) as HTMLElement[];
+      expect(filas).toHaveLength(2);
+      expect(filas[0].textContent).toContain('Trabajo 7');
+      expect(filas[0].textContent).toContain('20/08/2027');
+      expect(filas[0].querySelector('.due-soon-badge--critical')?.textContent?.trim()).toBe('4 días');
+      expect(filas[1].querySelector('.due-soon-badge--critical')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.due-soon-view')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.due-soon-remind')).toBeNull();
+      expect(texto()).not.toContain('Recordar a todos');
+
+      pulsar('.due-soon-eye');
+      expect(fixture.nativeElement.querySelector('#dueSoonSection')).toBeNull();
+    });
+
+    it('quien puede recordar envía uno o todos; un trabajo recordado hoy lo indica', () => {
+      mockFacadeService.dueSoonProjects.set([trabajo('7', 0), trabajo('8', 10)]);
+      mockFacadeService.totalDueSoon.set(2);
+      mockFacadeService.canRemind.set(true);
+      mockFacadeService.canOpenDetails.set(true);
+      mockFacadeService.remindedToday.set(new Set(['8']));
+      fixture.detectChanges();
+      pulsar('.due-soon-eye');
+
+      const filas = Array.from(fixture.nativeElement.querySelectorAll('.due-soon-table tbody tr')) as HTMLElement[];
+      expect(filas[0].textContent).toContain('Vence hoy');
+      const navegar = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+      pulsar('.due-soon-view', filas[0]);
+      expect(navegar).toHaveBeenCalledWith(['/thesis-work/details', '7']);
+      pulsar('.due-soon-remind', filas[0]);
+      expect(mockFacadeService.remind).toHaveBeenCalledWith(mockFacadeService.dueSoonProjects()[0]);
+      expect(filas[1].textContent).toContain('Recordado hoy');
+      expect(filas[1].querySelector('.due-soon-remind')).toBeNull();
+
+      const todos = fixture.debugElement.queryAll(By.css('app-button-component'))
+        .find(boton => boton.componentInstance.label === 'Recordar a todos');
+      todos!.componentInstance.onClick.emit();
+      expect(mockFacadeService.remindAll).toHaveBeenCalled();
+    });
+
+    it('"Generar reporte" de la tabla abre su modal y descarga solo los próximos a vencer', async () => {
+      mockFacadeService.dueSoonProjects.set([trabajo('7', 4)]);
+      mockFacadeService.totalDueSoon.set(1);
+      fixture.detectChanges();
+      pulsar('.due-soon-eye');
+
+      pulsar('.due-soon-report');
+      expect(component['isDueSoonReportModalOpen']()).toBe(true);
+      expect(component['isReportModalOpen']()).toBe(false);
+      const modal = fixture.debugElement.queryAll(By.css('app-report-format-modal'))
+        .find(m => m.componentInstance.kind === 'dueSoon')!;
+      expect(modal.componentInstance.rows).toBe(1);
+
+      await component.onDueSoonReportFormatSelected('pdf');
+      expect(mockFacadeService.downloadDueSoonReport).toHaveBeenCalledWith('pdf');
+      expect(mockFacadeService.downloadReport).not.toHaveBeenCalled();
     });
   });
   describe('Acciones', () => {

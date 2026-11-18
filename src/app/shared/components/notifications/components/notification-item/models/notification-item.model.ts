@@ -1,5 +1,6 @@
 import { NotificationType } from '../../../models/notification.model';
 
+/** Clases de Tailwind e icono de un tipo de aviso. */
 export interface NotificationConfig {
   containerClass: string;
   titleClass: string;
@@ -9,6 +10,7 @@ export interface NotificationConfig {
   closeClass: string;
 }
 
+/** Apariencia de cada tipo de aviso. */
 export const NOTIFICATION_CONFIG: Record<NotificationType, NotificationConfig> = {
   [NotificationType.CONFIRMATION]: {
     containerClass: 'notification--confirmation',

@@ -12,10 +12,15 @@ import { DocumentType } from '../../../core/enums/document-type.enum';
 import { resolveAcademicPeriod } from '../helpers/academic-period.helper';
 import { mapStateToProjectStatus } from '../helpers/project-status.helper';
 
+/**
+ * Convierte la propuesta, el anteproyecto o el trabajo de grado en el registro de un trabajo para las
+ * estadísticas.
+ */
 @Injectable({ providedIn: 'root' })
 export class ProjectDataMapperService {
   private readonly userService = inject(UserService);
 
+  /** Registro de una propuesta; su plazo es el de la decisión más reciente del Comité. */
   mapProposal(proposal: Proposal): ProjectStageData {
     const creationDate = this.resolveDate(proposal.createdAt);
     return {
@@ -29,11 +34,11 @@ export class ProjectDataMapperService {
       directorName: this.resolveDirectorName(proposal.director),
       registrationDate: creationDate,
       isArchived: !!proposal.isArchived,
-      // Mismo criterio que getSingleEvaluationDeadlineLabel: el estado del plazo de la decisión más reciente
       deadlineStatus: this.resolveProposalDeadlineStatus(proposal)
     };
   }
 
+  /** Registro de un anteproyecto; su plazo es el de los conceptos de la versión vigente, y un evaluador con retraso marca el conjunto como retrasado. */
   mapPreliminaryDraft(draft: PreliminaryDraft): ProjectStageData {
     const creationDate = this.resolveDate(draft.createdData ?? draft.proposalData?.createdAt);
     const director = draft.proposalData?.director;
@@ -48,16 +53,11 @@ export class ProjectDataMapperService {
       directorName: this.resolveDirectorName(director),
       registrationDate: creationDate,
       isArchived: !!draft.isArchived,
-      // ← NUEVO: mismo criterio ya aplicado en
-      // ArchivedPreliminaryDraftsTabService (filtra por tipo de
-      // documento, no por índice) y en resolveEvaluationsStatusLabel de
-      // deadline-status-label.helper.ts (un evaluador en retraso marca
-      // todo el conjunto como retrasado). Reimplementado aquí en vez de
-      // importar esa función porque no está exportada.
       deadlineStatus: this.resolveDraftDeadlineStatus(draft)
     };
   }
 
+  /** Registro de un trabajo de grado. Los informes mensuales se revisan sin plazo, así que se muestra como «sin evaluar»; si está próximo a vencer lo dice el backend, que usa su propio reloj. */
   mapThesisWork(thesis: ThesisWork): ProjectStageData {
     const creationDate = this.resolveDate(thesis.createdDate);
     const director = thesis.preliminaryDraftData?.proposalData?.director;
@@ -72,15 +72,16 @@ export class ProjectDataMapperService {
       directorName: this.resolveDirectorName(director),
       registrationDate: creationDate,
       isArchived: !!thesis.isArchived,
-      // Sin plazo de evaluación: los informes mensuales del trabajo en curso
-      // se revisan sin plazo (a diferencia de la propuesta y el anteproyecto),
-      // así que estos registros se muestran como "Sin evaluar".
-      deadlineStatus: null
+      deadlineStatus: null,
+      dueSoon: !!thesis.deadlines?.dueSoon,
+      deliveryDate: thesis.deadlines?.maximumDeliveryDate ?? null,
+      daysUntilDelivery: thesis.deadlines?.daysUntilDelivery ?? null,
+      inExtension: thesis.stage === 'PRORROGA',
+      studentNames: this.userService.getAuthorsNames(thesis.preliminaryDraftData?.proposalData?.authors)
     };
   }
 
   private resolveProposalDeadlineStatus(proposal: Proposal): EvaluationDeadlineStatus | null {
-    // Las decisiones del Comité van de la más antigua a la más reciente; `deadlineStatus` sale del `aTiempo` del backend
     return proposal.evaluations?.[proposal.evaluations.length - 1]?.deadlineStatus ?? null;
   }
 

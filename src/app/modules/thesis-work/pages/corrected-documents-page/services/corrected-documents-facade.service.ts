@@ -1,5 +1,4 @@
 import { inject, Injectable } from '@angular/core';
-import { ThesisWorkService } from '../../../services/thesis-work.service';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
 import { FileDownloadService } from '../../../../../core/services/filedownload/file-download.service';
@@ -12,19 +11,21 @@ import { stateList } from '../../../../../core/enums/state.enum';
 import { CorrectedDeliveryTableRow } from '../models/corrected-documents-page.model';
 import { formatThesisDate } from '../../../helpers/thesis-date.helper';
 
+/** Fachada de los documentos corregidos de la sustentación. */
 @Injectable({ providedIn: 'root' })
 export class CorrectedDocumentsFacadeService {
-  private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly authService = inject(AuthService);
   private readonly participants = inject(ThesisParticipantsFormatterService);
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Trabajo por id en la lista dada, o null. */
   findThesisWork(id: string | null, allThesisWorks: ThesisWork[]): ThesisWork | null {
     if (!id) return null;
     return allThesisWorks.find(thesisWork => thesisWork.thesisWorkId === id) ?? null;
   }
 
+  /** @returns true si el usuario es el director del trabajo */
   isDirector(thesisWork: ThesisWork | null): boolean {
     const user = this.authService.currentUser();
     return thesisWork?.preliminaryDraftData?.proposalData?.director?.id === user?.id;
@@ -46,6 +47,7 @@ export class CorrectedDocumentsFacadeService {
     return !isArchived && isJuror && thesisWork?.sustentation?.state === 'AJUSTES_RADICADOS';
   }
 
+  /** Ajustes radicados como filas de la tabla. */
   buildTableData(thesisWork: ThesisWork | null): CorrectedDeliveryTableRow[] {
     if (!thesisWork?.correctedDeliveries) return [];
     return thesisWork.correctedDeliveries.map((delivery, index) => ({
@@ -58,6 +60,7 @@ export class CorrectedDocumentsFacadeService {
     }));
   }
 
+  /** Nombres de los documentos de una entrega de ajustes. */
   getDeliveryDocumentNames(delivery: CorrectedDelivery | null): string[] {
     if (!delivery) return [];
     const docs: string[] = [];
@@ -66,22 +69,27 @@ export class CorrectedDocumentsFacadeService {
     return docs;
   }
 
+  /** Nombres de los estudiantes del trabajo. */
   getStudentName(thesisWork: ThesisWork | null): string {
     return this.participants.getStudentNames(thesisWork);
   }
 
+  /** Nombre del director. */
   getDirectorName(thesisWork: ThesisWork | null): string {
     return this.participants.getDirectorName(thesisWork);
   }
 
+  /** Nombre del codirector, o vacío si no tiene. */
   getCodirectorName(thesisWork: ThesisWork | null): string | undefined {
     return this.participants.getCodirectorName(thesisWork) || undefined;
   }
 
+  /** Nombre del asesor, o vacío si no tiene. */
   getAdvisorName(thesisWork: ThesisWork | null): string | undefined {
     return this.participants.getAdvisorName(thesisWork) || undefined;
   }
 
+  /** Descarga un documento de la entrega por su nombre. */
   async downloadDocumentByName(delivery: CorrectedDelivery | null, fileName: string): Promise<void> {
     if (!delivery) return;
 
@@ -111,6 +119,7 @@ export class CorrectedDocumentsFacadeService {
     }
   }
 
+  /** Muestra el aviso «Error de navegación». */
   showNavigationError(): void {
     this.showNotification('Error de navegación', 'No se pudo identificar el código del trabajo de grado actual.', NotificationType.ERROR);
   }

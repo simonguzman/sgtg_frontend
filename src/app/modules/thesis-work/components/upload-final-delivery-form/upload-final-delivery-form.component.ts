@@ -9,7 +9,9 @@ import { SustentationRequestFiles } from '../../services/thesis-work-sustentatio
 import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
+/** Documentos de la solicitud de sustentación: monografía, formato E, concepto del asesor y anexos. */
 export type FileSlot = 'MONOGRAPH' | 'FORMAT_E' | 'ADVISOR_CONCEPT' | 'ANNEXES';
+/** Archivo elegido para un documento de la solicitud. */
 export interface UploadedFile { fileName: string; file: File }
 
 /** Documento que se adjunta a la solicitud de sustentación. */

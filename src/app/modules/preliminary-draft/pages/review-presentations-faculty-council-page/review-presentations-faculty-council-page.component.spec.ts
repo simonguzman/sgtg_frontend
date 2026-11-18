@@ -65,7 +65,8 @@ const createMockPayload = (): SaveEvaluationPayload => ({
   formValues: {
     result: stateList.APROBADO,
     comments: 'Excelente',
-    executionMonths: 9,
+    startDate: null,
+    endDate: null,
     document: null
   },
   file: new File([''], 'resolucion.pdf', { type: 'application/pdf' })
@@ -99,7 +100,6 @@ describe('ReviewPresentationsFacultyCouncilPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ReviewPresentationsFacultyCouncilPageComponent],
       providers: [
-        // El componente usa UserService (real), que consulta el backend
         provideHttpClient(),
         provideHttpClientTesting(),
         provideNoopAnimations()

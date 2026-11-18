@@ -3,9 +3,14 @@ import { User } from '../../../interfaces/user.interface';
 import { UserTableRow } from '../models/users-page.model';
 import { UserState } from '../../../enum/user-state.enum';
 
+/**
+ * Convierte los usuarios en filas de la tabla. Los dos nombres van en una columna y los dos apellidos en
+ * otra; los roles y el perfil (departamento y programa) van en columnas ocultas para que la búsqueda, que
+ * ignora tildes y mayúsculas, los encuentre (ej. «sistemas» encuentra el Departamento de Sistemas y la
+ * Ingeniería de Sistemas).
+ */
 @Injectable({ providedIn: 'root' })
 export class UsersMapperService {
-
   /**
    * @param editable false si el gestor solo lo consulta (tiene roles
    *        administrativos y no es el administrador quien gestiona)
@@ -19,13 +24,10 @@ export class UsersMapperService {
 
     return {
       identificacion: user.idNumber?.toString() || '',
-      // Primer y segundo nombre en la misma columna, como los dos apellidos
       nombre: [user.firstName, user.secondName].filter(Boolean).join(' '),
       apellidos: [user.lastName, user.secondLastName].filter(Boolean).join(' '),
       estado: isInactive ? 'Inactivo' : 'Activo',
-      // La búsqueda ignora tildes y mayúsculas: "comite" encuentra "Comité del programa"
       hiddenRoles: user.roles.join(', '),
-      // "sistemas" encuentra a los docentes del Departamento de Sistemas y a los estudiantes de Ingeniería de Sistemas
       hiddenProfile: [user.department?.name, user.program?.name].filter(Boolean).join(', '),
       allowedActions: allowed,
       originalData: user

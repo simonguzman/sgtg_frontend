@@ -12,7 +12,6 @@ import { Proposal } from '../../../../proposal/interfaces/proposal.interface';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { stateList } from '../../../../../core/enums/state.enum';
 
-// Por defecto todos son del departamento del director (Sistemas)
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'u1',
   firstName: 'Nombre',

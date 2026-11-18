@@ -25,6 +25,16 @@ const alMenosUnObjetivoEspecifico: ValidatorFn = control =>
     ? null
     : { objetivosEspecificos: true };
 
+/**
+ * Estado del formulario de la propuesta y sus reglas:
+ * - La práctica profesional es de un solo estudiante y exige el asesor y la organización; el trabajo de
+ *   investigación exige la línea de investigación.
+ * - El segundo estudiante debe ser otro y del mismo programa que el primero; al editar, los estudiantes del
+ *   propio trabajo siguen en la lista.
+ * - Al cambiar el programa se quitan el segundo estudiante y el codirector que ya no sean opción (el
+ *   codirector no puede ser del Comité que evalúa).
+ * - Los participantes se fijan al crear el trabajo, por lo que no se editan al corregir la propuesta.
+ */
 @Injectable()
 export class ProposalFormService {
   private readonly fb = inject(FormBuilder);
@@ -35,6 +45,7 @@ export class ProposalFormService {
   private readonly trabajoApi = inject(TrabajoGradoApiService);
   private readonly catalogApi = inject(CatalogApiService);
 
+  /** Campos de la propuesta. */
   readonly form = this.fb.nonNullable.group({
     title: ['', Validators.required],
     /** Objetivo general (primer objetivo del trabajo) */
@@ -52,8 +63,10 @@ export class ProposalFormService {
     organization: ['']
   });
 
+  /** Id del primer estudiante, del que dependen las opciones del segundo y del codirector. */
   readonly selectedStudent1Id = signal<string>('');
 
+  /** Modalidades del trabajo. */
   readonly modalityOptions: SelectOption[] = [
     { id: Modality.PP, label: 'Práctica profesional' },
     { id: Modality.TI, label: 'Trabajo de investigación' }
@@ -81,15 +94,16 @@ export class ProposalFormService {
   private readonly availableStudents = computed(() => {
     const activeStudents = this.userService.students().filter(student => student.state === UserState.active);
     const currentId = this.currentProposalId();
-    // Al editar, los estudiantes del propio trabajo siguen en la lista
     const propios = new Set(this.proposalService.proposals().find(proposal => proposal.id === currentId)?.authors
       .map(author => author.id) ?? []);
 
     return activeStudents.filter(student => this.disponibles().has(student.id) || propios.has(student.id));
   });
 
+  /** Id de la propuesta que se corrige, o null al registrar una nueva. */
   readonly currentProposalId = signal<string | null>(null);
 
+  /** Estudiantes disponibles para el primer lugar. */
   readonly student1Options = computed<SelectOption[]>(() =>
     this.availableStudents().map(student => this.mapUserToOption(student))
   );
@@ -102,6 +116,7 @@ export class ProposalFormService {
   readonly student1Program = computed(() =>
     this.userService.students().find(student => student.id === this.selectedStudent1Id())?.program ?? null);
 
+  /** Estudiantes disponibles para el segundo lugar: otro estudiante del mismo programa. */
   readonly student2Options = computed<SelectOption[]>(() => {
     const programa = this.student1Program();
     return this.availableStudents()
@@ -116,6 +131,7 @@ export class ProposalFormService {
     return !!contractType && contractType !== ContractType.PLANTA;
   });
 
+  /** Departamento del director que registra la propuesta. */
   readonly directorDepartment = computed(() => this.authService.currentUser()?.department ?? null);
 
   /** Programas del catálogo con su departamento (vacío si no responde) */
@@ -163,6 +179,7 @@ export class ProposalFormService {
     return this.currentProposalId() !== null;
   }
 
+  /** Asesores disponibles. */
   readonly advisorOptions = computed<SelectOption[]>(() =>
     this.availableAdvisors().map(advisor => this.mapUserToOption(advisor))
   );
@@ -171,10 +188,12 @@ export class ProposalFormService {
     this.setupDynamicLogic();
   }
 
+  /** Campos de los objetivos específicos. */
   get specificObjectives(): FormArray<FormControl<string>> {
     return this.form.controls.specificObjectives;
   }
 
+  /** Agrega un campo de objetivo específico. */
   addSpecificObjective(value = ''): void {
     this.specificObjectives.push(this.fb.nonNullable.control(value));
   }
@@ -204,7 +223,6 @@ export class ProposalFormService {
     this.form.get('modality')?.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(modality => {
-        // La práctica profesional exige asesor de la organización y la organización
         const esPractica = modality === Modality.PP;
         for (const campo of ['advisor', 'organization'] as const) {
           const control = this.form.get(campo);
@@ -216,9 +234,7 @@ export class ProposalFormService {
           }
           control?.updateValueAndValidity({ emitEvent: false });
         }
-        // La práctica profesional es de un solo estudiante
         if (esPractica) this.form.get('student2')?.setValue('', { emitEvent: false });
-        // El trabajo de investigación exige su línea de investigación
         const lineOfResearch = this.form.controls.lineOfResearch;
         lineOfResearch.setValidators(modality === Modality.TI ? Validators.required : []);
         lineOfResearch.updateValueAndValidity({ emitEvent: false });
@@ -228,12 +244,10 @@ export class ProposalFormService {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(id => {
         this.selectedStudent1Id.set(id ?? '');
-        // El estudiante 2 debe ser otro y del mismo programa: si ya no lo es, se quita
         const student2 = this.form.get('student2')?.value;
         if (student2 && !this.student2Options().some(option => option.id === student2)) {
           this.form.get('student2')?.setValue('');
         }
-        // Con otro programa, el codirector elegido puede ser del Comité que evalúa: si ya no es opción, se quita
         const codirector = this.form.get('codirector')?.value;
         if (codirector && !this.codirectorOptions().some(option => option.id === codirector)) {
           this.form.get('codirector')?.setValue('');
@@ -241,6 +255,7 @@ export class ProposalFormService {
       });
   }
 
+  /** Deja el formulario listo para registrar una propuesta nueva. */
   initForCreate(): void {
     this.currentProposalId.set(null);
     this.form.reset();
@@ -251,6 +266,7 @@ export class ProposalFormService {
     codirector.updateValueAndValidity({ emitEvent: false });
   }
 
+  /** Carga la propuesta que se corrige, con los participantes bloqueados. */
   initForEdit(proposal: Proposal): void {
     this.currentProposalId.set(proposal.id ?? null);
     const student1 = proposal.authors[0]?.id ?? '';
@@ -271,7 +287,6 @@ export class ProposalFormService {
       advisor: proposal.advisor?.id ?? '',
       organization: proposal.organization ?? ''
     });
-    // Los participantes se fijan al crear el trabajo de grado
     CAMPOS_PARTICIPANTES.forEach(campo => this.form.get(campo)?.disable({ emitEvent: false }));
   }
 

@@ -10,6 +10,10 @@ import { InfoBannerComponent } from "../../../../shared/components/info-banner/i
 import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
+/**
+ * Formulario del evaluador para conceptuar el anteproyecto con el formato B firmado y, si quiere, el
+ * documento con sus anotaciones.
+ */
 @Component({
   selector: 'app-review-preliminary-draft-form',
   imports: [ProposalContentFieldsComponent, CommonModule, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],

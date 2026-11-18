@@ -7,6 +7,7 @@ import { SustentationDetailsMapperService } from './sustentation-details-mapper.
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { SustentationDetailsView } from '../models/sustentation-details.model';
 
+/** Fachada del detalle de una sesión de sustentación. */
 @Injectable({ providedIn: 'root' })
 export class SustentationDetailsFacadeService {
   private readonly thesisWorkService = inject(ThesisWorkService);
@@ -14,9 +15,12 @@ export class SustentationDetailsFacadeService {
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Detalle de la sesión, o null si no se encontró. */
   public readonly viewData = signal<SustentationDetailsView | null>(null);
+  /** true mientras se carga el trabajo. */
   public readonly isLoading = signal<boolean>(true);
 
+  /** Carga el trabajo y arma el detalle de la sesión indicada. */
   public loadDetails(thesisWorkId: string, sustentationId: string): void {
     this.isLoading.set(true);
     this.thesisWorkService.getThesisWorkById(thesisWorkId)
@@ -42,6 +46,7 @@ export class SustentationDetailsFacadeService {
       });
   }
 
+  /** Descarga un documento de la sesión. */
   public downloadDocument(url?: string, name?: string): void {
     if (!url) {
       this.showError('Error', 'Documento no encontrado o ruta inválida.');
@@ -50,6 +55,7 @@ export class SustentationDetailsFacadeService {
     this.downloadService.download(url, name || 'documento');
   }
 
+  /** Muestra un aviso de error. */
   public showError(title: string, message: string): void {
     this.notificationService.show({ title, message, type: NotificationType.ERROR });
   }

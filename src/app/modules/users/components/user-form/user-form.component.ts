@@ -22,6 +22,10 @@ import { departamentoDelGestor, esAdministrador, puedeAsignarRol } from '../../h
 import { PASSWORD_PREDECIBLE, passwordPolicyValidator } from '../../../../core/utils/password-policy';
 import { PasswordRequirementsComponent } from '../../../../shared/components/password-requirements/password-requirements.component';
 
+/**
+ * Formulario para crear o editar un usuario: datos personales, perfil académico (departamento o programa) y
+ * roles. Quien no es el administrador solo asigna o quita los roles de estudiante y docente.
+ */
 @Component({
   selector: 'app-user-form',
   imports: [ReactiveFormsModule, ButtonComponent, RolesSelectionModalComponent, CatalogSelectionModalComponent,
@@ -293,7 +297,6 @@ export class UserFormComponent  {
   openRolesModal() {
     const currentSelected = this.userForm.controls.roles.value;
 
-    // Quien no es el administrador solo asigna o quita Estudiante y Docente
     this.currentRolesForModal = Object.values(UserRoleType).map(type => ({
       type: type,
       assigned: currentSelected.includes(type),

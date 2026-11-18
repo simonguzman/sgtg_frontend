@@ -752,3 +752,102 @@ Detalle del backend: `sgtg_backend/docs/ajustes-2026-10-24.md`.
       clave actual equivocada y la ventana de reuniones.
     - Se descartó: cambiar `p-button` por un botón propio (sus estilos dependen de PrimeNG y se usa en 168 lugares) y
       devolver el usuario en `/auth/renovar` (tocaba la sesión y ganaba 1 o 2 puntos).
+60. **Concepto de pertinencia del Comité sobre el cambio de título y objetivos (2026-11-07):**
+    - El Comité ya no "avala": emite un **concepto de pertinencia**, como con la propuesta. En el formulario
+      (`evaluate-special-request-form`) la sección se llama "Concepto de pertinencia" y las opciones son "Pertinente" y
+      "No pertinente". El flujo no cambia: si es pertinente pasa al Consejo de Facultad; si no, la solicitud se cierra.
+    - La solicitud no pertinente queda con el estado `stateList.NO_PERTINENTE` ("No pertinente"), no "No aprobado"
+      (`estadoCambioObjetivos` en el mapper; se amplió el tipo de `SpecialRequest.status`).
+    - Los objetivos propuestos se muestran con `app-readonly-field`, como en las vistas de detalle: "Objetivo general
+      propuesto" y "Objetivos específicos propuestos" (antes era una lista suelta, sin recuadro).
+    - Textos cambiados también en la confirmación, el mensaje de éxito, la ventana de detalle de la solicitud y el
+      nombre del acta ("Concepto de pertinencia del Comité sobre el cambio de título y objetivos").
+    - El API no cambia: siguen `avalComite`, `cambio-objetivos/decisiones-comite` y los eventos
+      `CAMBIO_OBJETIVOS_AVALADO`/`NO_AVALADO` (el backend cambió solo los textos; ver
+      `sgtg_backend/docs/ajustes-2026-11-07.md`).
+61. **Carga de archivos: solo PDF y máximo 20 MB (2026-11-07):**
+    - **Mensaje explícito:** el modal de carga (`file-upload-modal`) muestra siempre, debajo del título, "Solo se permite
+      un archivo en formato PDF de máximo 20 MB." (`REQUISITOS_ARCHIVO`). Se quitaron de los títulos los "(PDF)" y
+      "en PDF" sueltos, que no eran uniformes.
+    - **Tamaño máximo:** 20 MB por archivo (`TAMANO_MAXIMO_ARCHIVO_MB`), el mismo del backend
+      (`spring.servlet.multipart.max-file-size`, `SGTG_ARCHIVOS_TAMANO_MAXIMO`). Se calculó para la monografía, el
+      documento más pesado: unas 200 páginas con tablas, imágenes y gráficos quedan por debajo. Si se cambia en el
+      backend, hay que cambiar también la constante del front.
+    - **Validación en el navegador:** un archivo de más de 20 MB se rechaza al seleccionarlo, con su tamaño y el máximo
+      ("El archivo pesa 25,0 MB y el máximo permitido es de 20 MB…"), sin intentar subirlo.
+    - **Sin ZIP:** los anexos de los documentos corregidos aceptaban "PDF o ZIP" en el modal, pero el backend siempre
+      exigió PDF (`validarPdf`), así que un ZIP fallaba al enviar. Se quitó la opción `pdf-zip`: todo es PDF.
+62. **El Consejo ve el Formato A firmado por el Comité (2026-11-09):**
+    - En "Evaluar presentación" (`review-presentations-faculty-council-form`) no aparecía el Formato A firmado: la vista
+      buscaba el concepto del Comité como "Aprobado", pero desde la decisión de pertinencia el mapper lo entrega como
+      "Pertinente". Ahora usa `resolveApprovedEvaluationDocument`, como las demás vistas.
+    - La vista muestra y deja descargar: Formato A firmado, carta de aceptación (solo práctica profesional), los dos
+      Formatos B aprobatorios, la versión vigente del anteproyecto y el Formato C.
+63. **Tres conceptos del evaluador y "Evaluado con observaciones" (2026-11-09):**
+    - El formulario del evaluador (`review-preliminary-draft-form`) ofrece **Aprobado**, **Con correcciones** y **No
+      aprobado**; se envían como `APROBADO`, `CON_CORRECCIONES` y `NO_APROBADO`.
+    - Con los dos conceptos (regla del backend): ambos aprueban → **Aprobado**; alguno no aprueba → **No aprobado**; en
+      otro caso → **Evaluado con observaciones** (`stateList.EVALUADO_CON_OBSERVACIONES`, el `CON_CORRECCIONES` de la
+      versión). Antes ese caso se mostraba como "No aprobado".
+    - El concepto individual con correcciones se muestra como **"Con correcciones"** (`stateList.CON_CORRECCIONES`) en
+      "Evaluaciones realizadas". Los dos usan el color del "aprobado con observaciones".
+    - El director radica la versión corregida con "Evaluado con observaciones" o "No aprobado"
+      (`anteproyectoCorregible`). En las estadísticas el evaluado con observaciones cuenta como en revisión.
+    - Detalle del backend: `sgtg_backend/docs/ajustes-2026-11-09.md`.
+64. **Listas con buscador (2026-11-09):**
+    - Los **filtros de estadísticas** (etapa, periodo, director, modalidad, programa, estado y plazo) usan
+      `app-searchable-select` en lugar del `p-select` de PrimeNG: se puede escribir para filtrar las opciones, como en
+      los formularios. Etapa, periodo, director, modalidad y programa se limpian con la "x"; estado y plazo siempre
+      tienen un valor ("Todos" por defecto).
+    - El **cambio de Comité** (`change-committee-modal`) busca el docente con `app-searchable-select`: la lista son
+      todos los docentes activos del departamento.
+    - Ya tenían buscador: estudiantes, codirector y asesor de la propuesta, evaluadores, jurados y el registro del
+      anteproyecto. Siguen como lista simple (`<select>`) las listas cortas y fijas: tipo de documento, tipo de
+      vinculación, tipo de solicitud, meses de prórroga y departamento en el cambio de Comité.
+65. **Trabajos próximos a vencer en estadísticas (2026-11-09, pedido del decano):**
+    - **Tarjeta de alerta:** quinta tarjeta, roja con degradado y un ícono que parpadea (sin animación si el usuario
+      pide menos movimiento), con el número de trabajos de grado en curso o en prórroga a 30 días o menos de su fecha
+      máxima de entrega. Respeta los filtros, como las demás. Sin trabajos en esa condición se ve en verde ("Ninguna
+      entrega en los próximos 30 días") y sin ojo.
+    - **Ojo:** abre y cierra, debajo de las tarjetas, la tabla "Trabajos de grado próximos a vencer" (las gráficas
+      siguen debajo): trabajo y estudiantes, director, programa, fecha máxima de entrega y días que quedan (en rojo los
+      de 7 días o menos), del más urgente al menos urgente.
+    - **Acciones:** el ojo de cada fila lleva al detalle del trabajo (solo a los roles que tienen esa ruta; el jefe no).
+      La campana envía el recordatorio y "Recordar a todos" lo envía a los que faltan (de a tres) con un resumen; los
+      recordados quedan como "Recordado hoy". Los ven Decanatura, Consejo, administrador, Comité y jefe
+      (`StatisticsRemindersService`); el backend valida el departamento del Comité y del jefe.
+    - **Datos:** el backend decide qué está próximo a vencer y cuántos días quedan (`ejecucion.proximoAVencer` y
+      `diasParaEntrega`, con su reloj): el front no usa la fecha del navegador.
+    - **Bandeja:** la notificación `RECORDATORIO_ENTREGA` lleva a la pestaña "Entrega final" del trabajo, donde se
+      solicita la sustentación.
+    - Íconos nuevos en `index.html`: `alarm`, `event_available`, `notifications_active` y `warning`.
+    - Detalle del backend: `sgtg_backend/docs/ajustes-2026-11-09.md`.
+    - **Botones (2026-11-09):** el ojo de la tarjeta, el de cada fila, la campana y el de cerrar usan
+      `app-button-component` con solo ícono, para tener el mismo hover y clic de los botones de toda la aplicación.
+      `app-button-component` tiene dos variantes nuevas: `danger` (rojo, `--color-danger` con `--color-danger-hover` y
+      `--color-danger-active`) y `light` (blanco con ícono rojo, sobre fondos de color).
+66. **El Consejo fija la fecha de su reunión y la fecha máxima de entrega (2026-11-09):**
+    - En "Evaluar presentación", al aprobar, el Consejo elige con calendarios (`p-datepicker`, como la sustentación) la
+      **fecha de la reunión** en que aprobó (desde la remisión con el Formato C hasta hoy) y la **fecha máxima de
+      entrega** (entre 3 y 9 meses después de la reunión, en las dos modalidades). La de entrega se habilita al elegir la
+      reunión; el formulario muestra su rango y la duración ("Plazo de ejecución: 6 meses" o "6 meses y 10 días"). Si
+      la reunión cambia y la entrega ya no cabe, se limpia.
+    - Los rangos salen de `anteproyecto.plazoConsejo` (mapeado a `PreliminaryDraft.councilTerm`), calculados con el
+      reloj del backend; los calendarios abren en ese mes (`defaultDate`), no en el del navegador.
+    - Se envían `fechaInicio` y `fechaFin` como fechas locales (`fechaLocalIso`); `sumarMeses` replica
+      `LocalDate.plusMonths` y `desdeFechaIso` lee los `LocalDate` sin corrimiento de zona (`core/utils/date-utils.ts`).
+    - **Calendarios en español:** `providePrimeNG` traduce días, meses y "Hoy", y la semana empieza el lunes (afecta
+      también al calendario de la sustentación).
+    - Detalle del backend: `sgtg_backend/docs/ajustes-2026-11-09.md`.
+67. **Reporte de los trabajos próximos a vencer (2026-11-10, pedido del decano):**
+    - La tabla de próximos a vencer tiene un botón "Generar reporte" (junto a "Recordar a todos"; lo ve todo el que ve
+      la tabla). Abre el mismo modal de formato del reporte general (`app-report-format-modal` con `kind="dueSoon"`, que
+      cambia el título, el texto y la descripción de cada formato) y descarga en PDF, Excel o CSV solo los trabajos de
+      la tabla, con los filtros actuales.
+    - Columnas: #, título, estudiantes, director, programa, modalidad, estado (En curso o En prórroga, de
+      `RawProjectData.inExtension` = etapa `PRORROGA`), fecha máxima de entrega y días restantes.
+    - El PDF va en horizontal, con encabezado rojo, el criterio, los filtros y un resumen (total, vencen en 7 días o
+      menos, en curso, en prórroga). El Excel lleva la hoja "Próximos a vencer" (la fecha como fecha y los días como
+      número, para ordenar y filtrar) y la hoja "Resumen". El CSV, solo la tabla.
+    - `StatisticsReportService.downloadDueSoonReport`; archivos `Reporte_Proximos_a_Vencer_<marca>.<ext>`. Solo front:
+      usa los datos que ya trae el backend.

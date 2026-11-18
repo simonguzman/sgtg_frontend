@@ -23,6 +23,7 @@ export class PreliminaryDraftApiService {
   private readonly store = inject(TrabajoGradoStoreService);
   private readonly vistas = inject(TrabajoGradoVistasService);
 
+  /** Anteproyecto por id, de memoria o del backend. */
   public getPreliminaryDraftById(id: string): Observable<PreliminaryDraft | undefined> {
     return this.storage.getById(id);
   }

@@ -176,7 +176,6 @@ describe('RegisterCorrespondenceFormComponent', () => {
         verdicts: acta ? [{ jurorId: 'j1', veredict: stateList.APLAZADO, observations: '', evaluationDate: new Date(),
           attachedDocument: acta }] : []
       } as Partial<SustentationRegistry>);
-      // La segunda sesión (más reciente, primero) aún sin calificar; la primera se aplazó con su acta
       fixture.componentRef.setInput('thesisWork', createMockThesisWork({
         sustentations: [sesion('sesion-2', formatoE2), sesion('sesion-1', formatoE1, actaSesion1)],
         finalDeliveries: [{ id: 'entrega-final', uploadDate: new Date(), monograph: formatoSolicitud,

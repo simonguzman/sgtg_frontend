@@ -102,7 +102,6 @@ describe('Service: UsersFacadeService', () => {
     });
 
     service = TestBed.inject(UsersFacadeService);
-    // La tabla muestra los usuarios que gestiona el usuario de la sesión
     service.loadUsers();
   });
 
@@ -140,6 +139,18 @@ describe('Service: UsersFacadeService', () => {
       expect(tableData).toEqual([mockMappedTableData]);
       expect(mockMapper.mapUserToTable).toHaveBeenCalledWith(otro, false);
     });
+
+    it('debería mostrar primero el usuario más reciente (id mayor)', () => {
+      const antiguo = createMockUser({ id: '5' });
+      const nuevo = createMockUser({ id: '120' });
+      const medio = createMockUser({ id: '40' });
+      mockUserService.loadManagedUsers.mockReturnValue(of([
+        { user: antiguo, editable: true }, { user: nuevo, editable: true }, { user: medio, editable: true }
+      ]));
+      mockMapper.mapUserToTable.mockImplementation((user: { id: string }) => ({ id: user.id }));
+      service.loadUsers();
+      expect(service.usersTableData().map((fila: any) => fila.id)).toEqual(['120', '40', '5']);
+    });
   });
 
   describe('Método: findUserById', () => {
@@ -163,7 +174,6 @@ describe('Service: UsersFacadeService', () => {
       expect(mockNotificationService.show).toHaveBeenNthCalledWith(2, expect.objectContaining({ type: NotificationType.CONFIRMATION }));
       expect(mockUserService.updateUserRoles).toHaveBeenCalledWith('123', [UserRoleType.ADMINISTRADOR]);
       expect(onSuccessSpy).toHaveBeenCalled();
-      // La tabla se recarga con los roles nuevos
       expect(mockUserService.loadManagedUsers).toHaveBeenCalledTimes(2);
     });
 

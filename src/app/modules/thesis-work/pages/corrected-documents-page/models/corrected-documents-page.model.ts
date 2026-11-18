@@ -2,6 +2,7 @@ import { Column } from '../../../../../shared/components/table-component/table-c
 import { CorrectedDelivery } from '../../../interfaces/corrected-delivery.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 
+/** Fila de la tabla de ajustes radicados. */
 export interface CorrectedDeliveryTableRow {
   id: string;
   name: string;
@@ -11,6 +12,7 @@ export interface CorrectedDeliveryTableRow {
   rawDelivery: CorrectedDelivery;
 }
 
+/** Columnas de la tabla de ajustes radicados. */
 export const CORRECTED_DOCUMENTS_COLUMNS: Column[] = [
   { field: 'name',   header: 'Nombre de la Entrega', type: 'text',  width: '40%' },
   { field: 'date',   header: 'Fecha de Carga',       type: 'text',  width: '20%' },

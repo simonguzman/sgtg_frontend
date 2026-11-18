@@ -5,6 +5,7 @@ import { User } from '../../interfaces/user.interface';
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { UserFormFacadeService } from '../services/user-form-facade.service';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
+/** Página para editar un usuario o el perfil propio. */
 @Component({
   selector: 'app-user-edit-page',
   standalone: true,

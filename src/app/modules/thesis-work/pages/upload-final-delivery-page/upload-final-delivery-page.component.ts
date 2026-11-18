@@ -7,6 +7,10 @@ import { UploadFinalDeliveryFormComponent } from '../../components/upload-final-
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/**
+ * Página en la que el director solicita la sustentación con la monografía, el formato E, el concepto del
+ * asesor y los anexos.
+ */
 @Component({
   selector: 'app-upload-final-delivery-page',
   imports: [UploadFinalDeliveryFormComponent, ConfirmationActionModalComponent],

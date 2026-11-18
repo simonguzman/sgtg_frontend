@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from
 import { DialogModule } from 'primeng/dialog';
 import { ButtonComponent } from '../../button-component/button-component.component';
 
+/** Modal que pide confirmar una acción antes de ejecutarla. */
 @Component({
   selector: 'app-confirmation-action-modal',
   imports: [DialogModule, ButtonComponent],

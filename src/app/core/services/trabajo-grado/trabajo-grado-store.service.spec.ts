@@ -131,7 +131,6 @@ describe('TrabajoGradoStoreService', () => {
       expect(etapa).toBe('EN_CURSO');
       expect(store.porId().get('15')?.etapa).toBe('EN_CURSO');
 
-      // La copia recién recibida vuelve a ser vigente
       store.obtener('15').subscribe();
     });
 

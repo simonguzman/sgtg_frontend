@@ -10,6 +10,7 @@ import { ConfirmationActionModalComponent } from '../../../../shared/components/
 import { FormattedDocument } from '../../../../core/interfaces/formatted-document.interface';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/** Página en la que el director, el codirector o el asesor revisa un informe mensual. */
 @Component({
   selector: 'app-evaluate-advance-page',
   imports: [EvaluateAdvanceFormComponent, ConfirmationActionModalComponent],
@@ -60,7 +61,7 @@ export class EvaluateAdvancePageComponent implements OnInit {
     this.facade.loadThesisWork(
       thesisId,
       (thesisWork) => this.thesisWorkState.set(thesisWork),
-      () => { /* El facade ya mostró el aviso; la página queda sin trabajo cargado */ }
+      () => undefined
     );
   }
 

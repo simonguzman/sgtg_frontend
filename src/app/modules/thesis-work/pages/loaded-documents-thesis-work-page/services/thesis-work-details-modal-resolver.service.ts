@@ -17,9 +17,11 @@ const FECHA_CONCEDIDA: Partial<Record<SpecialRequestType, string>> = {
   [SpecialRequestType.NUEVA_SUSTENTACION]: 'Nueva fecha de la sesión'
 };
 
+/** Arma los datos del modal de detalle de una fila según la pestaña. */
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkDetailsModalResolverService {
 
+  /** Detalle de la fila de la pestaña activa, o null si no se encuentra. */
   public resolve(rowId: string, activeTab: string, thesis: ThesisWork): RegisterDetail | null {
     switch (activeTab) {
       case 'AVANCES': return this.resolveAdvance(rowId, thesis);
@@ -117,10 +119,10 @@ export class ThesisWorkDetailsModalResolverService {
       const aval = request.committeeEndorsement;
       if (aval) {
         const fecha = aval.date ? ` (${formatThesisDate(aval.date)})` : '';
-        fields.push({ label: 'Aval del Comité del programa', value: `${aval.endorsed ? 'Avalado' : 'No avalado'}${fecha}` });
+        fields.push({ label: 'Concepto de pertinencia del Comité', value: `${aval.endorsed ? 'Pertinente' : 'No pertinente'}${fecha}` });
         if (aval.observations) fields.push({ label: 'Observaciones del Comité', value: aval.observations });
       } else if (request.pendingWith === 'COMITE') {
-        fields.push({ label: 'Aval del Comité del programa', value: 'Pendiente' });
+        fields.push({ label: 'Concepto de pertinencia del Comité', value: 'Pendiente' });
       }
     } else {
       fields.push({ label: 'Descripción', value: request.description });

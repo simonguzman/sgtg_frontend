@@ -20,6 +20,12 @@ import { LoadedDocumentsPreliminaryDraftMapperService } from './loaded-documents
 import { LOADED_DOCUMENTS_TABS, LoadedDocumentsTabType, UploadContext } from '../models/loaded-documents-preliminary-draft-page.model';
 import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
+/**
+ * Fachada de los documentos cargados del anteproyecto. Cada pestaña tiene su estrategia (`tabs-logic`) con
+ * sus columnas, filas y botones según el rol; la versión vigente es la de mayor número y la remisión vigente,
+ * la más reciente. Desde aquí el director radica una versión corregida y el jefe de departamento remite el
+ * anteproyecto al Consejo con el formato C.
+ */
 @Injectable()
 export class LoadedDocumentsPreliminaryDraftFacadeService {
   private readonly route = inject(ActivatedRoute);
@@ -33,6 +39,7 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
   private readonly titleService = inject(Title);
   private readonly mapperService = inject(LoadedDocumentsPreliminaryDraftMapperService);
 
+  /** Pestañas de la página. */
   readonly tabs = LOADED_DOCUMENTS_TABS;
 
   private readonly tabStrategies: Record<string, PreliminaryDraftTabConfiguration> = {
@@ -40,10 +47,15 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     [LoadedDocumentsTabType.PRESENTACIONES]: PresentacionesTabConfig
   };
 
+  /** Pestaña visible. */
   readonly activeTab = signal<string>(LoadedDocumentsTabType.ANTEPROYECTOS);
+  /** Id del anteproyecto, tomado de la ruta. */
   readonly preliminaryDraftId = signal<string | null>(null);
+  /** Archivo elegido para cargar, pendiente de confirmar. */
   readonly uploadContext = signal<UploadContext | null>(null);
+  /** true con el modal de carga abierto. */
   readonly isUploadModalOpen = signal<boolean>(false);
+  /** true con la confirmación de la carga abierta. */
   readonly isConfirmModalOpen = signal<boolean>(false);
   /** Mientras se carga un documento no se abre otra carga (se enviaría dos veces) */
   readonly isUploading = signal<boolean>(false);
@@ -68,10 +80,12 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     );
   });
 
+  /** Estrategia de la pestaña visible. */
   readonly currentStrategy = computed<PreliminaryDraftTabConfiguration>(() => {
     return this.tabStrategies[this.activeTab()] || AnteproyectosTabConfig;
   });
 
+  /** Datos del usuario y del anteproyecto que usan las estrategias para decidir filas y botones. */
   readonly evaluationContext = computed<PreliminaryDraftEvaluationContext | null>(() => {
     const preliminaryDraft = this.currentPreliminaryDraft();
     if (!preliminaryDraft) return null;
@@ -86,11 +100,9 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
       isAssignedEvaluator: preliminaryDraft?.evaluators?.some((evaluation: { id: string }) => evaluation.id === user?.id) ?? false,
       isConsejoMember: this.authService.hasAnyRole([UserRoleType.CONSEJO]),
       totalEvaluatorsCount: preliminaryDraft?.evaluators?.length || 0,
-      // Versión vigente del anteproyecto: la de mayor número de versión
       latestAnteproyectoId: documents
         .filter(document => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION)
         .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0]?.id,
-      // Remisión vigente: la de la versión más reciente
       latestPresentacionId: documents
         .filter(document => document.type === DocumentType.FORMATO_C)
         .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0]?.id
@@ -98,14 +110,17 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     return this.currentStrategy().enrichEvaluationContext(baseContext);
   });
 
+  /** Columnas de la pestaña visible. */
   readonly currentColumns = computed(() => this.currentStrategy().columns);
 
+  /** Botones de cabecera de la pestaña visible. */
   readonly currentHeaderButtons = computed(() => {
     const context = this.evaluationContext();
     if (!context) return [];
     return this.currentStrategy().getHeaderButtons(context, this.preliminaryDraftService);
   });
 
+  /** Filas de la pestaña visible. */
   readonly currentTableData = computed(() => {
     const context = this.evaluationContext();
     if (!context?.preliminaryDraft?.documents) return [];
@@ -116,15 +131,19 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     );
   });
 
+  /** Mensaje de la pestaña sin documentos. */
   readonly emptyMessage = computed(() => this.mapperService.getEmptyMessage(this.activeTab()));
+  /** Texto del modal de carga según la pestaña. */
   readonly uploadModalDescription = computed(() => this.mapperService.getUploadModalDescription(this.activeTab()));
+  /** Rol que carga el documento según la pestaña. */
   readonly uploadModalUserRole = computed(() => this.mapperService.getUploadModalUserRole(this.activeTab()));
+  /** Texto de la confirmación de la carga según la pestaña. */
   readonly confirmModalDescription = computed(() => this.mapperService.getConfirmModalDescription(this.activeTab()));
 
+  /** Carga el anteproyecto de la ruta y abre la pestaña indicada en la URL (ej. `?tab=PRESENTACIONES` desde una notificación). */
   init(): void {
     const preliminaryDraftId = this.route.snapshot.paramMap.get('id') || this.route.parent?.snapshot.paramMap.get('id');
     if (preliminaryDraftId) this.preliminaryDraftId.set(preliminaryDraftId);
-    // Pestaña indicada en la URL (ej. ?tab=PRESENTACIONES desde una notificación)
     const tab = this.route.snapshot.queryParamMap.get('tab');
     if (tab && Object.values(LoadedDocumentsTabType).includes(tab as LoadedDocumentsTabType)) this.activeTab.set(tab);
   }
@@ -135,11 +154,13 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     void this.router.navigate([], { relativeTo: this.route, queryParams: { tab }, replaceUrl: true });
   }
 
+  /** Quita la miga propia de la página al salir. */
   destroy(): void {
     this.breadcrumbService.clearDynamicBreadcrumb();
     this.breadcrumbService.setDynamicTitle(null);
   }
 
+  /** Abre el modal de carga del botón de cabecera. */
   handleHeaderButton(button: TableButton): void {
     if (button.action === 'upload_document') {
       if (!this.isUploading()) this.isUploadModalOpen.set(true);
@@ -148,6 +169,7 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     }
   }
 
+  /** Ejecuta la acción de una fila si está permitida (descargar, evaluar, decidir...). */
   handleTableAction(event: { action: string; row: FileDocument & { allowedActions?: string[] } }): void {
     if (event.row.allowedActions && !event.row.allowedActions.includes(event.action)) {
       this.showRestrictedActionNotification();
@@ -166,12 +188,14 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     }
   }
 
+  /** Guarda el archivo elegido y pide confirmar la carga. */
   onFileSelected(event: UploadContext): void {
     this.uploadContext.set(event);
     this.isUploadModalOpen.set(false);
     this.isConfirmModalOpen.set(true);
   }
 
+  /** Radica la versión corregida o el formato C de la remisión, según la pestaña. */
   async confirmUpload(): Promise<void> {
     const selectedFileData = this.uploadContext();
     const preliminaryDraft = this.currentPreliminaryDraft();
@@ -180,7 +204,6 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
     this.isUploading.set(true);
     this.showProcessingNotification();
 
-    // Corrección = nueva versión del anteproyecto; formato C = presentación al Consejo
     const esFormatoC = this.currentStrategy().modalConfig.uploadDocumentType === DocumentType.FORMATO_C;
     const carga = esFormatoC
       ? this.preliminaryDraftService.uploadCouncilPresentation(preliminaryDraft.preliminaryDraftId, selectedFileData.file)
@@ -202,11 +225,13 @@ export class LoadedDocumentsPreliminaryDraftFacadeService {
       });
   }
 
+  /** Descarta la carga pendiente. */
   cancelUpload(): void {
     this.isConfirmModalOpen.set(false);
     this.uploadContext.set(null);
   }
 
+  /** Vuelve a la página anterior o, si no hay, al detalle del anteproyecto. */
   goBack(): void {
     this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route }));
   }

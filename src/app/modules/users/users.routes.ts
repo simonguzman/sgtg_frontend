@@ -7,6 +7,7 @@ import { roleGuard } from '../../core/guards/role.guard';
 import { UserRoleType } from '../../core/enums/user-role-type.enum';
 import { ROLES_GESTORES_DE_USUARIOS } from './helpers/user-management.helper';
 
+/** Rutas del módulo de usuarios: perfil propio, gestión de usuarios, creación, edición y detalle. */
 export const usersRoutes: Routes = [
   {
     path:'profile',

@@ -3,6 +3,7 @@ import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../services/auth/auth.service';
 import { SIDEBAR_MENU_ITEMS, SidebarMenuItem } from './models/sidebar-menu.model';
 
+/** Menú lateral con las opciones que corresponden a los roles del usuario. */
 @Component({
   selector: 'app-sidebar',
   imports: [RouterModule],

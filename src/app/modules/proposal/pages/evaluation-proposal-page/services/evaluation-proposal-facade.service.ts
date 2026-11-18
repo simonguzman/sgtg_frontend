@@ -19,6 +19,7 @@ const RESULT_TO_STATE: Record<string, stateList> = {
   'No pertinente': stateList.NO_PERTINENTE
 };
 
+/** Fachada de la evaluación de la propuesta por el Comité. */
 @Injectable({ providedIn: 'root' })
 export class EvaluationProposalFacadeService {
   private readonly proposalService = inject(ProposalService);
@@ -27,6 +28,7 @@ export class EvaluationProposalFacadeService {
   private readonly router = inject(Router);
   private readonly navigation = inject(NavigationHistoryService);
 
+  /** Carga la propuesta que se evalúa; si no existe, llama a `onNotFound`. */
   public load(
     id: string,
     onSuccess: (proposal: Proposal) => void,
@@ -40,8 +42,8 @@ export class EvaluationProposalFacadeService {
       });
   }
 
+  /** Descarga la versión que el Comité evalúa (la que está en revisión), no la primera radicada. */
   public async downloadOriginalDocument(proposal: Proposal): Promise<void> {
-    // Se descarga la versión que el Comité evalúa (En revisión), no la primera radicada
     const document = versionEnRevision(proposal);
     if (!document?.url?.trim()) {
       this.showNotification(
@@ -79,6 +81,7 @@ export class EvaluationProposalFacadeService {
     }
   }
 
+  /** Registra el concepto del Comité con el formato A firmado y vuelve a la lista de propuestas. */
   public async saveEvaluation(
     event: SaveProposalEvaluationEvent,
     proposal: Proposal,

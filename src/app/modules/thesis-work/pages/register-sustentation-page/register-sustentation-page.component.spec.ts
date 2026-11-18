@@ -21,7 +21,7 @@ class MockRegisterSustentationFormComponent {
   @Input() isSubmitting = false;
   @Output() onSave = new EventEmitter<{ payload: SustentationFormPayload; file: File }>();
   @Output() onBack = new EventEmitter<void>();
-  @Output() onDownloadFile = new EventEmitter<FileDocument>(); // Agregado para soportar la descarga
+  @Output() onDownloadFile = new EventEmitter<FileDocument>();
 }
 
 @Component({ selector: 'app-confirmation-action-modal', template: '', standalone: true })

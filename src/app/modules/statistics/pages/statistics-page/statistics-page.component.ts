@@ -1,7 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ChartModule } from 'primeng/chart';
-import { SelectModule } from 'primeng/select';
+import { SearchableSelectComponent, SelectOption } from '../../../../shared/components/searchable-select/searchable-select.component';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { StatisticsPageFacadeService } from './services/statistics-page-facade.service';
 import { ProjectStage } from '../../enum/projectStage.enum';
@@ -12,49 +14,94 @@ import { ReportFormatModalComponent } from '../../components/report-format-modal
 import { StatisticsReportFormat } from '../../services/statistics-reports.service';
 import { NotificationService } from '../../../../shared/components/notifications/services/notification.service';
 
+/** Lista de textos como opciones del buscador (el texto es a la vez el valor) */
+const comoOpciones = (valores: string[]): SelectOption[] => valores.map(valor => ({ id: valor, label: valor }));
+
+/**
+ * Página de estadísticas: indicadores, gráficos por estado, etapa, modalidad y programa, la tabla de trabajos
+ * próximos a vencer y los reportes en PDF, Excel o CSV.
+ */
 @Component({
   selector: 'app-statistics-page',
   standalone: true,
-  imports: [FormsModule, ChartModule, SelectModule, ButtonComponent, ReportFormatModalComponent],
+  imports: [FormsModule, DatePipe, ChartModule, SearchableSelectComponent, ButtonComponent,
+    ReportFormatModalComponent],
   templateUrl: './statistics-page.component.html',
   styleUrl: './statistics-page.component.css',
 })
 export class StatisticsPageComponent {
   protected readonly facade = inject(StatisticsPageFacadeService);
   private readonly notification = inject(NotificationService);
+  private readonly router = inject(Router);
   /** Modal para elegir el formato del reporte */
   protected readonly isReportModalOpen = signal(false);
+  /** Modal del reporte de los trabajos próximos a vencer */
+  protected readonly isDueSoonReportModalOpen = signal(false);
   protected readonly doughnutOptions = DOUGHNUT_CHART_OPTIONS;
   protected readonly barOptions = BAR_CHART_OPTIONS;
-  protected readonly archiveOptions = ARCHIVE_STATUS_OPTIONS;
-  protected readonly deadlineFilterOptions = DEADLINE_FILTER_OPTIONS;
+  /** La tabla de trabajos próximos a vencer se abre con el ojo de su tarjeta */
+  protected readonly isDueSoonOpen = signal(false);
+  private readonly dueSoonSection = viewChild<ElementRef<HTMLElement>>('dueSoonSection');
 
-  onStageChange(stage: ProjectStage | null): void {
-    this.facade.updateFilters({ stage });
+  /** Opciones de los filtros para `app-searchable-select`, en el que se escribe para filtrar la lista. */
+  protected readonly stageSelectOptions: SelectOption[] = this.facade.stagesOptions
+    .map(option => ({ id: option.value, label: option.label }));
+  protected readonly periodSelectOptions = computed(() => comoOpciones(this.facade.periodsOptions()));
+  protected readonly directorSelectOptions = computed<SelectOption[]>(() =>
+    this.facade.directorsOptions().map(director => ({ id: director.id, label: director.name })));
+  protected readonly modalitySelectOptions = computed(() => comoOpciones(this.facade.modalityOptions()));
+  protected readonly programSelectOptions = computed(() => comoOpciones(this.facade.programOptions()));
+  protected readonly archiveSelectOptions: SelectOption[] = ARCHIVE_STATUS_OPTIONS
+    .map(option => ({ id: option.value, label: option.label }));
+  protected readonly deadlineSelectOptions: SelectOption[] = DEADLINE_FILTER_OPTIONS
+    .map(option => ({ id: option.value, label: option.label }));
+
+  /** Al limpiar un filtro el buscador entrega '': sin filtro */
+  onStageChange(stage: ProjectStage | string | null): void {
+    this.facade.updateFilters({ stage: (stage || null) as ProjectStage | null });
   }
 
   onPeriodChange(period: string | null): void {
-    this.facade.updateFilters({ period });
+    this.facade.updateFilters({ period: period || null });
   }
 
   onDirectorChange(directorId: string | null): void {
-    this.facade.updateFilters({ directorId });
+    this.facade.updateFilters({ directorId: directorId || null });
   }
 
   onModalityChange(modality: string | null): void {
-    this.facade.updateFilters({ modality });
+    this.facade.updateFilters({ modality: modality || null });
   }
 
   onProgramChange(program: string | null): void {
-    this.facade.updateFilters({ program });
+    this.facade.updateFilters({ program: program || null });
   }
 
-  onArchiveStatusChange(archiveStatus: 'ACTIVE' | 'ARCHIVED' | 'ALL'): void {
-    this.facade.updateFilters({ archiveStatus });
+  /** Estado y plazo siempre tienen un valor ("Todos" por defecto): no se pueden dejar vacíos */
+  onArchiveStatusChange(archiveStatus: 'ACTIVE' | 'ARCHIVED' | 'ALL' | string): void {
+    if (archiveStatus) this.facade.updateFilters({ archiveStatus: archiveStatus as 'ACTIVE' | 'ARCHIVED' | 'ALL' });
   }
 
-  onDeadlineFilterChange(deadlineFilter: DeadlineFilterValue): void {
-    this.facade.updateFilters({ deadlineFilter });
+  onDeadlineFilterChange(deadlineFilter: DeadlineFilterValue | string): void {
+    if (deadlineFilter) this.facade.updateFilters({ deadlineFilter: deadlineFilter as DeadlineFilterValue });
+  }
+
+  /** Abre o cierra la tabla de próximos a vencer; al abrirla la desplaza a la vista, porque está debajo de las tarjetas. */
+  toggleDueSoon(): void {
+    this.isDueSoonOpen.update(abierta => !abierta);
+    if (this.isDueSoonOpen()) setTimeout(() => this.dueSoonSection()?.nativeElement.scrollIntoView?.(
+      { behavior: 'smooth', block: 'start' }));
+  }
+
+  /** Detalle del trabajo de grado (el ojo de cada fila de próximos a vencer) */
+  openThesisWork(id: string): void {
+    this.router.navigate(['/thesis-work/details', id]);
+  }
+
+  /** "Vence hoy", "1 día" o "N días" */
+  protected daysLabel(days: number | null | undefined): string {
+    if (!days) return 'Vence hoy';
+    return days === 1 ? '1 día' : `${days} días`;
   }
 
   handleDownloadReport(): void {
@@ -62,8 +109,16 @@ export class StatisticsPageComponent {
   }
 
   async onReportFormatSelected(format: StatisticsReportFormat): Promise<void> {
+    await this.generateReport(() => this.facade.downloadReport(format));
+  }
+
+  async onDueSoonReportFormatSelected(format: StatisticsReportFormat): Promise<void> {
+    await this.generateReport(() => this.facade.downloadDueSoonReport(format));
+  }
+
+  private async generateReport(download: () => Promise<void>): Promise<void> {
     try {
-      await this.facade.downloadReport(format);
+      await download();
     } catch (error) {
       console.error('No se pudo generar el reporte', error);
       this.notification.error('No se generó el reporte', 'Ocurrió un error al generar el archivo. Intenta de nuevo.');

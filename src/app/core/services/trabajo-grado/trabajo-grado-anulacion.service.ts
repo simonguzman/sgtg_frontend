@@ -14,6 +14,7 @@ export class TrabajoGradoAnulacionService {
   private readonly api = inject(TrabajoGradoApiService);
   private readonly store = inject(TrabajoGradoStoreService);
 
+  /** Anula el trabajo con la justificación del director y actualiza el almacén con la respuesta. */
   anular(id: string, justificacion: string): Observable<TrabajoGradoResponse> {
     return this.api.enviarJson(id, 'anulacion', { justificacion: justificacion.trim() })
       .pipe(tap(trabajo => this.store.upsert(trabajo)));

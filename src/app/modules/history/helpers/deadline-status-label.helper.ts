@@ -1,16 +1,5 @@
 import { stateList } from '../../../core/enums/state.enum';
-import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
-
-export interface EvaluatorsDeadlineInput {
-  state: stateList;
-  evaluationDeadline?: Date | string;
-  /** Días hábiles restantes del plazo (negativo si venció), calculados por el backend */
-  remainingBusinessDays?: number | null;
-  evaluators?: unknown[];
-  evaluations?: Evaluation[];
-  documentId?: string;
-}
 
 /**
  * Texto del plazo a partir de los días hábiles restantes que calcula el
@@ -25,39 +14,6 @@ export function remainingDaysLabel(remainingDays: number | null | undefined, wit
   if (remainingDays < 0) return `Plazo vencido (${Math.abs(remainingDays)} días hábiles de retraso)`;
   if (remainingDays === 0) return '¡Vence hoy!';
   return `Quedan ${remainingDays} días hábiles`;
-}
-
-export function getEvaluatorsDeadlineLabel(input: EvaluatorsDeadlineInput): string {
-  const totalEvaluators = input.evaluators?.length ?? 0;
-  const relevantEvaluations = input.evaluations?.filter(
-    evaluation => input.documentId && evaluation.documentId === input.documentId
-  ) ?? [];
-
-  const statusLabel = resolveEvaluationsStatusLabel(relevantEvaluations);
-
-  const isFinalized = [
-    stateList.APROBADO,
-    stateList.APROBADO_CON_OBSERVACIONES,
-    stateList.NO_APROBADO
-  ].includes(input.state);
-
-  if (isFinalized) {
-    return statusLabel ? `Resolución emitida (${statusLabel})` : 'Resolución emitida';
-  }
-
-  if (!input.evaluationDeadline) return 'Sin límite (Consejo)';
-
-  if (totalEvaluators > 0 && relevantEvaluations.length >= totalEvaluators) {
-    return `Evaluación completada — ${statusLabel} (Esperando Consejo)`;
-  }
-
-  return remainingDaysLabel(input.remainingBusinessDays);
-}
-
-function resolveEvaluationsStatusLabel(evaluations: Evaluation[]): string {
-  if (evaluations.length === 0) return '';
-  const hasDelayed = evaluations.some(e => e.deadlineStatus === EvaluationDeadlineStatus.DELAYED);
-  return hasDelayed ? EvaluationDeadlineStatus.DELAYED : EvaluationDeadlineStatus.ON_TIME;
 }
 
 /**

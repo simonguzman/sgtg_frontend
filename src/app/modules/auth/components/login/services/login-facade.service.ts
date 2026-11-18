@@ -5,6 +5,10 @@ import { NotificationService } from '../../../../../shared/components/notificati
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { CAMBIO_PASSWORD_URL } from '../../../../../core/guards/public.guard';
 
+/**
+ * Fachada del inicio de sesión: autentica, avisa el resultado y lleva al usuario a su bandeja de entrada o,
+ * si la contraseña se la asignó un administrador, a cambiarla.
+ */
 @Injectable({ providedIn: 'root' })
 export class LoginFacadeService {
   private readonly authService         = inject(AuthService);
@@ -37,7 +41,6 @@ export class LoginFacadeService {
       next: (response) => {
         onComplete();
         if (response.success && this.authService.debeCambiarPassword()) {
-          // La contraseña la asignó un administrador: primero debe cambiarla
           this.router.navigate([CAMBIO_PASSWORD_URL]);
         } else if (response.success) {
           this.showNotification('¡Bienvenido!', 'Sesión iniciada correctamente.', NotificationType.CONFIRMATION);

@@ -44,7 +44,6 @@ describe('ThesisWorkService (fachada)', () => {
   it('expone las señales del almacenamiento', () => {
     expect(service.thesisWorks).toBe(storage['thesisWorks']);
     expect(service.allThesisWorks).toBe(storage['allThesisWorks']);
-    expect(service.isHydrated).toBe(storage['isHydrated']);
   });
 
   it('consulta el trabajo en el almacenamiento (vista del backend)', () => {

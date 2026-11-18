@@ -3,6 +3,7 @@ import { ReviewPresentationsFacultyCouncilPageFacadeService } from './services/r
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { ReviewPresentationsFacultyCouncilFormComponent } from '../../components/review-presentations-faculty-council-form/review-presentations-faculty-council-form.component';
 
+/** Página en la que el Consejo de Facultad decide sobre el anteproyecto remitido. */
 @Component({
   selector: 'app-review-presentations-faculty-council-page',
   standalone: true,

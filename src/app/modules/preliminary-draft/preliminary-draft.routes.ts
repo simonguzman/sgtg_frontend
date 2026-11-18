@@ -13,6 +13,10 @@ import { ReviewPresentationsFacultyCouncilPageComponent } from './pages/review-p
 import { AssignEvaluatorsPageComponent } from './pages/assign-evaluators-page/assign-evaluators-page.component';
 import { preliminaryDraftOwnershipGuard } from '../../core/guards/preliminary-draft-ownership.guard';
 
+/**
+ * Rutas del módulo de anteproyectos: lista, registro, corrección, detalle, evaluaciones realizadas y
+ * documentos cargados, con la asignación de evaluadores, la evaluación y la decisión del Consejo.
+ */
 export const preliminaryDraftRoutes: Routes = [
   {
     path: '',

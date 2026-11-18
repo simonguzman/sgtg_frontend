@@ -7,8 +7,7 @@ import { ThesisWork } from '../interfaces/thesis-work.interface';
 import { User } from '../../users/interfaces/user.interface';
 
 /**
- * Trabajos de grado del usuario en sesión. Ya no se guardan en el navegador:
- * son la vista "trabajo de grado" de los trabajos del backend
+ * Trabajos de grado del usuario en sesión: son la vista "trabajo de grado" de los trabajos del backend
  * (`TrabajoGradoVistasService`), con el id del trabajo. Un trabajo existe
  * desde que el Consejo aprueba su anteproyecto.
  */
@@ -28,10 +27,12 @@ export class ThesisWorkStorageService {
     UserRoleType.CONSEJO
   ];
 
+  /** @returns true si el usuario ve todos los trabajos por su rol */
   public hasPrivilegedAccess(): boolean {
     return this.authService.hasAnyRole(this.PRIVILEGED_ROLES);
   }
 
+  /** @returns true si el usuario puede consultar el trabajo; el Comité ve los que le entrega el backend, que son los de los programas de su departamento */
   public canUserViewThesisWork(work: ThesisWork, userId: string): boolean {
     return this.hasPrivilegedAccess() || this.canUserAccessThesisWork(work, userId);
   }
@@ -55,7 +56,6 @@ export class ThesisWorkStorageService {
   }
 
   private canUserAccessThesisWork(work: ThesisWork, userId: string): boolean {
-    // El backend ya entrega al Comité solo los trabajos de los programas de su departamento
     if (this.authService.hasAnyRole([UserRoleType.COMITE])) return true;
     const proposal = work.preliminaryDraftData?.proposalData;
     if (!proposal) return false;

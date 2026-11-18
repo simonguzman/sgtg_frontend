@@ -11,12 +11,14 @@ import { FileDocument } from '../../../../../core/interfaces/file-document.inter
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { stateList } from '../../../../../core/enums/state.enum';
 
+/** Fachada de la decisión de una solicitud especial. */
 @Injectable({ providedIn: 'root' })
 export class EvaluateSpecialRequestFacadeService {
   private readonly thesisWorkService   = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
   private readonly downloadService     = inject(FileDownloadService);
 
+  /** Carga el trabajo y la solicitud de la ruta; si no existen, avisa y llama a `onError`. */
   public loadThesisWorkAndRequest(
     thesisId: string,
     requestId: string,
@@ -59,10 +61,10 @@ export class EvaluateSpecialRequestFacadeService {
         next: () => {
           this.notificationService.show(request.pendingWith === 'COMITE'
             ? {
-              title: 'Aval registrado',
+              title: 'Concepto registrado',
               message: decision.status === stateList.APROBADO
-                ? 'El Comité avaló el cambio de título y objetivos; ahora lo decide el Consejo de Facultad.'
-                : 'El Comité no avaló el cambio de título y objetivos; la solicitud quedó no aprobada.',
+                ? 'El Comité consideró pertinente el cambio de título y objetivos; ahora lo decide el Consejo de Facultad.'
+                : 'El Comité consideró no pertinente el cambio de título y objetivos; la solicitud quedó cerrada.',
               type: NotificationType.CONFIRMATION
             }
             : {
@@ -83,6 +85,7 @@ export class EvaluateSpecialRequestFacadeService {
       });
   }
 
+  /** Descarga el documento de la solicitud. */
   public async downloadDocument(document: FileDocument): Promise<void> {
     try {
       await this.downloadService.download(document.url, `${document.name}.pdf`);

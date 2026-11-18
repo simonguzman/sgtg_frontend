@@ -30,6 +30,7 @@ export interface ManagedUser {
   editable: boolean;
 }
 
+/** @returns true si el gestor tiene el rol de administrador */
 export function esAdministrador(gestor: User | null | undefined): boolean {
   return !!gestor?.roles?.includes(UserRoleType.ADMINISTRADOR);
 }

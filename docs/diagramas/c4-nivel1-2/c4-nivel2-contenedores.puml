@@ -1,0 +1,26 @@
+@startuml c4-nivel2-contenedores
+' C4 nivel 2 (contenedores) de SGTG
+!include <C4/C4_Container>
+LAYOUT_TOP_DOWN()
+skinparam dpi 110
+UpdateElementStyle("container", $bgColor="#438DD5", $fontColor="#FFFFFF", $borderColor="#2E6295")
+!include actores.iuml
+
+title SGTG — C4 nivel 2: diagrama de contenedores
+
+System_Boundary(sgtg, "Aplicación software para la gestión del proceso de trabajos de grado en la FIET") {
+  Container(spa, "Aplicación de página única", "Angular", "Provee todas las funcionalidades de gestión del proceso de trabajos de grado en la FIET.")
+  Container(api, "API de la aplicación", "Java y Spring Boot", "Provee las funcionalidades de gestión del proceso de trabajos de grado en la FIET por internet mediante una API JSON/HTTPS.")
+  ContainerDb(db, "Base de datos", "MySQL", "Almacena la información de los usuarios, los registros, las evaluaciones, las notificaciones, las sesiones y la auditoría.")
+  ContainerDb(fs, "Almacenamiento de archivos", "Sistema de archivos del servidor", "Guarda los documentos PDF (máximo 20 MB) de cada trabajo de grado, por tipo y versión.")
+}
+
+Rel(admin, spa, "Administra la configuración y los usuarios del sistema.", $tags="p")
+Rel(evaluadores, spa, "Realiza evaluaciones académicas y registra sus resultados.", $tags="p")
+Rel(estudiante, spa, "Gestiona el seguimiento de trabajos de grado y la carga de los informes mensuales.", $tags="p")
+Rel(equipo, spa, "Realiza el seguimiento académico y revisa los informes mensuales del estudiante.", $tags="p")
+Rel_U(organos, spa, "Intervienen en decisiones académicas y administrativas del proceso.", $tags="p")
+Rel(spa, api, "Hace llamados a la API", "JSON, HTTPS, modelo REST", $tags="p")
+Rel_L(api, db, "Lee y escribe", "Hibernate y JPA", $tags="p")
+Rel_R(api, fs, "Guarda y entrega los documentos", "E/S de archivos", $tags="p")
+@enduml

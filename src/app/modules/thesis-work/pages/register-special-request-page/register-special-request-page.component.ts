@@ -7,6 +7,10 @@ import { RegisterSpecialRequestFormComponent } from '../../components/register-s
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/**
+ * Página en la que el director registra una solicitud especial; con el trabajo suspendido, aquí se registra
+ * la reanudación.
+ */
 @Component({
   selector: 'app-register-special-request-page',
   templateUrl: './register-special-request-page.component.html',

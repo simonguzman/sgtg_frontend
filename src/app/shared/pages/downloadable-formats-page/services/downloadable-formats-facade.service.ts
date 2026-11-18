@@ -4,11 +4,13 @@ import { NotificationService } from '../../../components/notifications/services/
 import { NotificationType } from '../../../components/notifications/models/notification.model';
 import { DownloadableFormat } from '../models/downloadable-formats-page.model';
 
+/** Fachada de la página de formatos descargables. */
 @Injectable({ providedIn: 'root' })
 export class DownloadableFormatsFacadeService {
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Descarga el PDF de un formato, avisando al usuario que la descarga empezó. */
   public async downloadFormat(format: DownloadableFormat): Promise<void> {
     const formatCode = format.id.toUpperCase();
 

@@ -52,7 +52,6 @@ export class RequiredPasswordChangeComponent {
         this.router.navigate(['/notifications']);
       },
       error: (err: Error) => {
-        // Sigue en la pantalla para que corrija los datos
         this.isLoading.set(false);
         this.notificationService.error('No se cambió la contraseña', err.message);
       }

@@ -1,0 +1,42 @@
+@startuml c4-nivel3-5-auditoria-seguridad
+' C4 nivel 3 (componentes) de la API de SGTG. Generado por generar.py: no editar a mano.
+!include <C4/C4_Component>
+LAYOUT_TOP_DOWN()
+skinparam dpi 110
+UpdateElementStyle("component", $bgColor="#1E5A8E", $fontColor="#FFFFFF", $borderColor="#0B3D66")
+UpdateElementStyle("container", $bgColor="#438DD5", $fontColor="#FFFFFF", $borderColor="#2E6295")
+AddRelTag("p", $lineStyle=DashedLine())
+
+title SGTG API — C4 nivel 3: Auditoría y alertas de seguridad
+
+ContainerDb(db, "Base de datos", "MySQL", "Usuarios, trabajos de grado, notificaciones, sesiones y auditoría.")
+ContainerDb(fs, "Almacenamiento de archivos", "Sistema de archivos del servidor", "Documentos PDF (máximo 20 MB) de cada trabajo, por tipo y versión.")
+Container_Boundary(api, "API de la aplicación (Java y Spring Boot)") {
+  Boundary(filtros, "Filtros de entrada") {
+    Component(fAud, "Filtro de auditoría", "Servlet filter · AuditoriaFilter", "Registra las operaciones que modifican datos, las descargas y los inicios de sesión.")
+  }
+  Boundary(casos, "Casos de uso (dominio)") {
+    Component(uSeg, "Casos de uso de seguridad", "ManageSeguridadCUImplAdapter", "Detecta alertas a partir de la auditoría reciente.")
+  }
+  Boundary(salida, "Adaptadores de salida") {
+    Component(gNot, "Adaptador de notificaciones", "ManageNotificacionGatewayImplAdapter · JPA", "Notificaciones de la bandeja.")
+    Component(gArch, "Adaptador de archivos", "ManageArchivoGatewayImplAdapter", "Guarda y entrega los PDF y calcula su huella.")
+    Component(gAud, "Adaptador de auditoría", "ManageAuditoriaGatewayImplAdapter · JPA", "Auditoría encadenada con el estado antes y después de cada operación.")
+    Component(gAle, "Adaptador de alertas", "ManageAlertaGatewayImplAdapter · JPA", "Guarda las alertas y avisa a los administradores.")
+  }
+  Boundary(tareas, "Tareas programadas") {
+    Component(sSeg, "Tareas de seguridad", "Spring @Scheduled · cada 5 min y 03:30", "Detección de alertas e integridad de la auditoría y los archivos.")
+  }
+}
+Rel(fAud, gAud, "Registra la operación", "", $tags="p")
+Rel(sSeg, uSeg, "Detecta alertas", "", $tags="p")
+Rel(sSeg, gAud, "Verifica la cadena", "", $tags="p")
+Rel(sSeg, gArch, "Verifica las huellas", "", $tags="p")
+Rel(uSeg, gAud, "Lee la auditoría reciente", "", $tags="p")
+Rel(uSeg, gAle, "Registra alertas", "", $tags="p")
+Rel(gAle, gNot, "Avisa a los administradores", "", $tags="p")
+Rel(gNot, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gAud, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gAle, db, "Lee y escribe", "JPA/Hibernate", $tags="p")
+Rel(gArch, fs, "Lee y escribe", "E/S de archivos", $tags="p")
+@enduml

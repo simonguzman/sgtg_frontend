@@ -6,7 +6,6 @@ import { AuthService } from '../../../../../core/services/auth/auth.service';
 import { ThesisParticipantsFormatterService } from '../../../services/thesis-participants-formatter.service';
 import { NotificationType } from '../../../../../shared/components/notifications/models/notification.model';
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
-import { CorrectedDelivery } from '../../../interfaces/corrected-delivery.interface';
 import { stateList } from '../../../../../core/enums/state.enum';
 import { User } from '../../../../users/interfaces/user.interface';
 import { FileDocument } from '../../../../../core/interfaces/file-document.interface';
@@ -105,15 +104,6 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
   return { ...baseThesis, ...overrides };
 };
 
-const createMockCorrectedDelivery = (overrides: Partial<CorrectedDelivery> = {}): CorrectedDelivery => ({
-  id: 'delivery-1',
-  uploadDate: new Date(),
-  monograph: createMockFileDocument({ id: 'doc-mono', name: 'Monografia Corregida' }),
-  annexes: createMockFileDocument({ id: 'doc-anexos', name: 'Anexos Corregidos' }),
-  status: stateList.EN_DESARROLLO,
-  ...overrides
-});
-
 describe('EvaluateCorrectionsFormService', () => {
   let service: EvaluateCorrectionsFormService;
 
@@ -192,47 +182,6 @@ describe('EvaluateCorrectionsFormService', () => {
       expect(service.isObservationsValid('Corta')).toBe(false);
       expect(service.isObservationsValid('    Vacía    ')).toBe(false);
       expect(service.isObservationsValid('Esta es una observación válida')).toBe(true);
-    });
-  });
-
-  describe('Construcción del Payload de Evaluación', () => {
-    it('debería construir el payload correctamente con un usuario en sesión y entregas válidas', () => {
-      const mockUser = createMockUser({ id: 'u1', firstName: 'John', lastName: 'Doe' });
-      authServiceMock.currentUser.mockReturnValue(mockUser);
-
-      const mockThesisWork = createMockThesisWork();
-      const mockDeliveries = [createMockCorrectedDelivery({ monograph: createMockFileDocument({ id: 'doc1' }) })];
-
-      const payload = service.buildEvaluationPayload(mockThesisWork, stateList.APROBADO, 'Todo bien', mockDeliveries);
-
-      expect(payload).toEqual({
-        documentId: 'doc1',
-        proposalId: 'prop-1',
-        evaluatorId: 'u1',
-        evaluatorName: 'John Doe',
-        evaluatorRole: 'JURADO',
-        veredict: stateList.APROBADO,
-        observations: 'Todo bien'
-      });
-    });
-
-    it('debería manejar casos donde el usuario no esté en sesión o falten entregas/datos (Fallback seguro)', () => {
-      authServiceMock.currentUser.mockReturnValue(null);
-
-      const mockThesisWithoutData = createMockThesisWork();
-      mockThesisWithoutData.preliminaryDraftData.proposalData.id = '';
-
-      const payload = service.buildEvaluationPayload(mockThesisWithoutData, stateList.NO_APROBADO, 'Falta info', []);
-
-      expect(payload).toEqual({
-        documentId: '',
-        proposalId: '',
-        evaluatorId: '',
-        evaluatorName: 'Jurado Asignado',
-        evaluatorRole: 'JURADO',
-        veredict: stateList.NO_APROBADO,
-        observations: 'Falta info'
-      });
     });
   });
 

@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 
+/** Campo de solo lectura con su etiqueta, para los datos que se muestran en las vistas de consulta. */
 @Component({
   selector: 'app-readonly-field',
   standalone: true,

@@ -46,6 +46,7 @@ export class ArchivedWorksService {
     new Set(this.vistas.anteproyectos().map(anteproyecto => anteproyecto.preliminaryDraftId)));
   private readonly conTrabajo = computed(() => new Set(this.vistas.trabajosDeGrado().map(t => t.thesisWorkId)));
 
+  /** Columnas de la tabla del historial; la de consulta tiene un botón por cada etapa que alcanzó el trabajo. */
   readonly columns: Column[] = [
     { field: 'title', header: 'Título', type: 'text', width: '20%' },
     { field: 'modality', header: 'Modalidad', type: 'text', width: '10%' },
@@ -60,7 +61,6 @@ export class ArchivedWorksService {
     { field: 'reason', header: 'Motivo', type: 'text', width: '11%' },
     { field: 'closingDate', header: 'Fecha', type: 'text', width: '8%' },
     {
-      // Cada etapa con el icono de su sección en la barra lateral
       field: 'acciones', header: 'Consultar', type: 'actions', width: '10%',
       actions: [
         { action: ARCHIVED_WORK_ACTIONS.PROPUESTA, icon: 'article', tooltip: 'Consultar la propuesta',
@@ -91,6 +91,7 @@ export class ArchivedWorksService {
     return this.store.trabajos().filter(trabajo => !archivados.has(trabajo.id) && yaEvaluo(trabajo, userId));
   });
 
+  /** Filas del historial: los trabajos archivados visibles y, para el evaluador, los anteproyectos que ya evaluó. */
   readonly tableData = computed<TableRow[]>(() => {
     const userId = this.authService.currentUser()?.id;
     return [

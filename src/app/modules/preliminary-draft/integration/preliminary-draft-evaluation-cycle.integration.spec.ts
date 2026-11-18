@@ -54,31 +54,26 @@ describe('Integración [Anteproyectos]: Ciclo de asignación, evaluación, corre
     iniciarSesionConTrabajos(usuario('60', [UserRoleType.DOCENTE, UserRoleType.JEFE_DEP]), [crearTrabajoConAnteproyectoRadicado()]);
     expect(estados()).toEqual([stateList.EN_REVISION]);
 
-    // El Jefe asigna los evaluadores
     service.assignReviewers('15', ['20', '21']).subscribe();
     http.expectOne(`${API}/15/anteproyecto/evaluadores`).flush(crearTrabajoEnEvaluacion());
     expect(vigente().evaluators?.map(e => e.id)).toEqual(['20', '21']);
 
-    // Un evaluador pide correcciones: la versión 1 queda con correcciones
     service.registerEvaluatorConcept('15', 'CON_CORRECCIONES', 'Ajustar', pdf('formato-b.pdf')).subscribe();
     http.expectOne(`${API}/15/anteproyecto/conceptos`)
       .flush(conVersiones(crearTrabajoEnEvaluacion(), 'ANTEPROYECTO', version(1, 'CON_CORRECCIONES')));
-    expect(estados()).toEqual([stateList.NO_APROBADO]);
+    expect(estados()).toEqual([stateList.EVALUADO_CON_OBSERVACIONES]);
 
-    // El director radica la versión 2: vuelve a revisión
     service.uploadCorrection('15', pdf('anteproyecto-v2.pdf')).subscribe();
     http.expectOne(`${API}/15/anteproyecto`)
       .flush(conVersiones(crearTrabajoEnEvaluacion(), 'EVALUACION', version(1, 'CON_CORRECCIONES'), version(2, 'EN_REVISION')));
-    expect(estados()).toEqual([stateList.NO_APROBADO, stateList.EN_REVISION]);
+    expect(estados()).toEqual([stateList.EVALUADO_CON_OBSERVACIONES, stateList.EN_REVISION]);
     expect(vigente().state).toBe(stateList.EN_REVISION);
 
-    // Ambos aprueban: queda en el Departamento hasta que el Jefe lo remita
     service.registerEvaluatorConcept('15', 'APROBADO', '', pdf('formato-b.pdf')).subscribe();
     http.expectOne(`${API}/15/anteproyecto/conceptos`)
       .flush(conVersiones(crearTrabajoEnEvaluacion(), 'EVALUACION', version(1, 'CON_CORRECCIONES'), version(2, 'APROBADO')));
     expect(vigente().state).toBe(stateList.EVALUADO);
 
-    // El Jefe lo remite al Consejo con el formato C
     service.uploadCouncilPresentation('15', pdf('formato-c.pdf')).subscribe();
     const remitido = conVersiones(crearTrabajoEnEvaluacion(), 'APROBACION_CONSEJO', version(1, 'CON_CORRECCIONES'),
       version(2, 'APROBADO'));
@@ -87,7 +82,6 @@ describe('Integración [Anteproyectos]: Ciclo de asignación, evaluación, corre
     http.expectOne(`${API}/15/anteproyecto/remision`).flush(remitido);
     expect(vigente().documents.find(d => d.type === DocumentType.FORMATO_C)?.status).toBe(stateList.EN_REVISION);
 
-    // El Consejo aprueba con la resolución: el trabajo queda en curso
     service.registerCouncilDecision('15', stateList.APROBADO, 'Cumple', pdf('resolucion.pdf')).subscribe();
     http.expectOne(`${API}/15/anteproyecto/decisiones-consejo`).flush(crearTrabajoEnCurso());
     expect(vigente().state).toBe(stateList.APROBADO);

@@ -8,7 +8,6 @@ import { PreliminaryDraftAssignmentService } from './preliminary-draft-assignmen
 import { PreliminaryDraftDocumentService } from './preliminary-draft-document.service';
 import { PreliminaryDraft } from '../interfaces/preliminary-draft.interface';
 import { Proposal } from '../../proposal/interfaces/proposal.interface';
-import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { stateList } from '../../../core/enums/state.enum';
 
 function createMockDraft(overrides: Partial<PreliminaryDraft> = {}): PreliminaryDraft {
@@ -27,15 +26,6 @@ function createMockProposal(overrides: Partial<Proposal> = {}): Proposal {
     title: 'Proposal Mock',
     ...overrides
   } as Proposal;
-}
-
-function createMockEvaluation(overrides: Partial<Evaluation> = {}): Evaluation {
-  return {
-    id: 'eval-default-id',
-    evaluatorId: 'evaluator-1',
-    veredict: stateList.APROBADO,
-    ...overrides
-  } as Evaluation;
 }
 
 describe('PreliminaryDraftService (Facade)', () => {
@@ -214,20 +204,11 @@ describe('PreliminaryDraftService (Facade)', () => {
 
     it('debería delegar registerCouncilDecision', () => {
       mockDocumentService.registerCouncilDecision.mockReturnValue(of(draft));
-      service.registerCouncilDecision('draft-1', stateList.APROBADO, 'Cumple', pdf, 12).subscribe(res => {
+      service.registerCouncilDecision('draft-1', stateList.APROBADO, 'Cumple', pdf, new Date(2027, 6, 22), new Date(2028, 0, 22)).subscribe(res => {
         expect(res).toEqual(draft);
       });
-      expect(mockDocumentService.registerCouncilDecision).toHaveBeenCalledWith('draft-1', stateList.APROBADO, 'Cumple', pdf, 12);
-    });
-
-    it('debería delegar calculateDocumentStatus', () => {
-      const mockEvals = [createMockEvaluation(), createMockEvaluation()];
-      mockDocumentService.calculateDocumentStatus.mockReturnValue(stateList.APROBADO);
-
-      const result = service.calculateDocumentStatus('doc-1', mockEvals, 2);
-
-      expect(result).toBe(stateList.APROBADO);
-      expect(mockDocumentService.calculateDocumentStatus).toHaveBeenCalledWith('doc-1', mockEvals, 2);
+      expect(mockDocumentService.registerCouncilDecision).toHaveBeenCalledWith('draft-1', stateList.APROBADO, 'Cumple', pdf,
+        new Date(2027, 6, 22), new Date(2028, 0, 22));
     });
   });
 });

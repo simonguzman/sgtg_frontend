@@ -152,3 +152,59 @@
   height: 300px;
   width: 100%;
 }
+
+.due-soon-card {
+  background: linear-gradient(135deg, #c62828 0%, #8e0000 100%);
+  color: #ffffff;
+  border: 1px solid #8e0000;
+}
+.due-soon-pulse {
+  animation: due-soon-pulse 1.6s ease-in-out infinite;
+}
+@keyframes due-soon-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .due-soon-pulse { animation: none; }
+}
+.due-soon-section {
+  border: 1px solid #f5c2c2;
+  border-left: 4px solid #c62828;
+  scroll-margin-top: 96px;
+}
+.due-soon-table th {
+  text-align: left;
+  padding: 10px 12px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--color-primary);
+  border-bottom: 2px solid #e5e7eb;
+  white-space: nowrap;
+}
+.due-soon-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f1f1;
+  vertical-align: middle;
+}
+.due-soon-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: #fff3e0;
+  color: #b45309;
+}
+.due-soon-badge--critical {
+  background: #c62828;
+  color: #ffffff;
+}
+.due-soon-reminded {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #2e7d32;
+  font-weight: 600;
+  white-space: nowrap;
+}

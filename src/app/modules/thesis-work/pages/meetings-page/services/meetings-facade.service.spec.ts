@@ -69,7 +69,6 @@ describe('MeetingsFacadeService', () => {
     iniciar(usuario('10', [UserRoleType.ESTUDIANTE]), [crearTrabajoEnCursoCon({
       reuniones: [
         reunionDePrueba(1, { fechaHora: '2026-04-20T10:00:00', lugar: 'Sala', realizada: true, estado: 'REALIZADA' }),
-        // Agendada para hoy y su hora ya llegó: el backend ya no la ofrece para el informe
         reunionDePrueba(2, { fechaHora: '2026-05-20T08:00:00', lugar: 'Sala', estado: 'AGENDADA' }),
         reunionDePrueba(3, { estado: 'VENCIDA' })
       ]

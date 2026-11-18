@@ -5,6 +5,10 @@ import { DescriptionModalComponent } from '../../../../shared/components/modals/
 import { ThesisWorkPageFacadeService } from './services/thesis-work-page-facade.service';
 import { THESIS_WORK_COLUMNS, ThesisWorkTableRow } from './models/thesis-work-page.model';
 
+/**
+ * Lista de trabajos de grado visibles para el usuario. La reanudación de un trabajo suspendido se registra
+ * como una solicitud del trabajo.
+ */
 @Component({
   selector: 'app-thesis-work-page',
   standalone: true,
@@ -37,7 +41,6 @@ export class ThesisWorkPageComponent {
         this.router.navigate(['/thesis-work/edit', event.row.id]);
         break;
       case 'reactivar':
-        // Reanudación: el director la registra con su documento como solicitud del trabajo
         this.router.navigate(['/thesis-work/details', event.row.id, 'register_special_request']);
         break;
     }

@@ -27,15 +27,12 @@ describe('TrabajoGradoApiService', () => {
 
   afterEach(() => http.verify());
 
-  it('consulta los trabajos propios, todos, por etapa y uno', () => {
+  it('consulta los trabajos propios, todos y uno', () => {
     service.misTrabajos().subscribe();
     http.expectOne(`${API}/mis-trabajos`).flush([]);
 
     service.todos().subscribe();
     http.expectOne(API).flush([]);
-
-    service.porEtapa('ANTEPROYECTO').subscribe();
-    http.expectOne(`${API}?etapa=ANTEPROYECTO`).flush([]);
 
     let id = 0;
     service.consultar('15').subscribe(trabajo => id = trabajo.id);

@@ -102,13 +102,6 @@ describe('UserApiService', () => {
       http.expectOne(`${API}/404`).flush({ message: 'No se encontró' }, { status: 404, statusText: 'Not Found' });
       expect(user).toBeUndefined();
     });
-
-    it('getUsersByRole filtra la lista cargada', () => {
-      cargarLista();
-      let docentes: User[] = [];
-      service.getUsersByRole(UserRoleType.DIRECTOR).subscribe(lista => docentes = lista);
-      expect(docentes.map(u => u.id)).toEqual(['5']);
-    });
   });
 
   describe('crear y editar', () => {
@@ -193,5 +186,4 @@ describe('UserApiService', () => {
       expect(storage.getUsersSnapshot()[0].state).toBe(UserState.active);
     });
   });
-
 });

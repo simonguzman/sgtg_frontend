@@ -12,9 +12,26 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { PendingReviewData, ReviewEvaluationFormValues } from '../../../interfaces/review-preliminary-draft-payload.interface';
 import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
+import { ResultadoConceptoEvaluador } from '../../../services/preliminary-draft-document.service';
 
 export type { ReviewEvaluationFormValues, PendingReviewData };
 
+/** Veredicto del formulario → concepto del evaluador en el backend */
+const RESULTADO_BACKEND: Partial<Record<stateList, ResultadoConceptoEvaluador>> = {
+  [stateList.APROBADO]: 'APROBADO',
+  [stateList.CON_CORRECCIONES]: 'CON_CORRECCIONES',
+  [stateList.NO_APROBADO]: 'NO_APROBADO'
+};
+
+const MENSAJE_CONCEPTO: Record<ResultadoConceptoEvaluador, string> = {
+  APROBADO: 'Su concepto aprobatorio quedó registrado.',
+  CON_CORRECCIONES: 'Su concepto con correcciones quedó registrado. Si el otro evaluador no lo rechaza, el anteproyecto '
+    + 'quedará evaluado con observaciones y el director radicará la versión corregida.',
+  NO_APROBADO: 'Su concepto de no aprobado quedó registrado. Con los dos conceptos, el anteproyecto quedará no aprobado '
+    + 'y el director deberá radicar una nueva versión.'
+};
+
+/** Fachada de la evaluación del anteproyecto por un evaluador. */
 @Injectable()
 export class ReviewPreliminaryDraftPageFacadeService {
   private readonly preliminaryDraftService = inject(PreliminaryDraftService);
@@ -25,21 +42,25 @@ export class ReviewPreliminaryDraftPageFacadeService {
   private readonly router = inject(Router);
   private readonly navigation = inject(NavigationHistoryService);
 
+  /** Anteproyecto que se evalúa. */
   readonly preliminaryDraftState = signal<PreliminaryDraft | null>(null);
+  /** true con la confirmación del concepto abierta. */
   readonly isConfirmModalOpen = signal(false);
+  /** Concepto pendiente de confirmar. */
   readonly pendingReviewData = signal<PendingReviewData | null>(null);
   /** Mientras se guarda el concepto no se envía otro */
   readonly isSubmitting = signal(false);
 
+  /** Versión que se evalúa: la de mayor número. */
   readonly activeRevision = computed(() => {
     const preliminaryDraft = this.preliminaryDraftState();
     if (!preliminaryDraft?.documents) return null;
     return [...preliminaryDraft.documents]
       .filter(document => document.type === DocumentType.ANTEPROYECTO || document.type === DocumentType.CORRECCION)
-      // La versión que se evalúa es la más reciente (por número de versión)
       .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))[0] ?? null;
   });
 
+  /** Carga el anteproyecto de la ruta. */
   init(): void {
     const id = this.route.snapshot.paramMap.get('id') ?? this.route.parent?.snapshot.paramMap.get('id');
     if (id) {
@@ -70,12 +91,14 @@ export class ReviewPreliminaryDraftPageFacadeService {
       });
   }
 
+  /** Pide confirmar el concepto; mientras se guarda uno no se envía otro. */
   handleRequestConfirmation(data: PendingReviewData): void {
     if (this.isSubmitting()) return;
     this.pendingReviewData.set(data);
     this.isConfirmModalOpen.set(true);
   }
 
+  /** Registra el concepto con el formato B firmado y, si se adjuntó, el documento con las anotaciones. */
   async processEvaluation(): Promise<void> {
     const data = this.pendingReviewData();
     const preliminaryDraft = this.preliminaryDraftState();
@@ -86,16 +109,19 @@ export class ReviewPreliminaryDraftPageFacadeService {
       return;
     }
 
+    const resultado = RESULTADO_BACKEND[data.formValues.result];
+    if (!resultado) {
+      this.showValidationErrorNotification();
+      return;
+    }
     this.isSubmitting.set(true);
-    const isApproved = data.formValues.result === stateList.APROBADO;
-    // Formato B firmado (obligatorio) y, si lo adjuntó, el documento con sus anotaciones
     this.preliminaryDraftService.registerEvaluatorConcept(preliminaryDraft.preliminaryDraftId,
-      isApproved ? 'APROBADO' : 'CON_CORRECCIONES', data.formValues.comments, data.file, data.annotatedFile ?? null)
+      resultado, data.formValues.comments, data.file, data.annotatedFile ?? null)
       .pipe(first())
       .subscribe({
         next: () => {
           this.isSubmitting.set(false);
-          this.showEvaluationSuccessNotification(isApproved);
+          this.showEvaluationSuccessNotification(resultado);
           this.isConfirmModalOpen.set(false);
           this.goBack();
         },
@@ -106,6 +132,7 @@ export class ReviewPreliminaryDraftPageFacadeService {
       });
   }
 
+  /** Descarga la versión que se evalúa. */
   async downloadCurrentDocument(): Promise<void> {
     const revision = this.activeRevision();
     if (!revision) {
@@ -120,16 +147,15 @@ export class ReviewPreliminaryDraftPageFacadeService {
     }
   }
 
+  /** Vuelve a la página anterior o, si no hay, a los documentos cargados. */
   goBack(): void {
     this.navigation.back(() => this.router.navigate(['../'], { relativeTo: this.route }));
   }
 
-  private showEvaluationSuccessNotification(isApproved: boolean): void {
+  private showEvaluationSuccessNotification(resultado: ResultadoConceptoEvaluador): void {
     this.notification.show({
       title: 'Evaluación Registrada',
-      message: isApproved
-        ? 'El veredicto positivo ha sido guardado exitosamente.'
-        : 'Se ha registrado el veredicto negativo y se solicitarán correcciones.',
+      message: MENSAJE_CONCEPTO[resultado],
       type: NotificationType.CONFIRMATION
     });
   }

@@ -34,6 +34,10 @@ const ALL_ROLES = [
  */
 const ROLES_ANTEPROYECTO = [...ALL_ROLES, UserRoleType.EVALUADOR, UserRoleType.DOCENTE];
 
+/**
+ * Rutas del historial: la lista de trabajos archivados y el detalle de cada etapa (propuesta, anteproyecto y
+ * trabajo de grado) con sus documentos y evaluaciones.
+ */
 export const historyRoutes: Routes = [
   {
     path: '',
@@ -46,9 +50,6 @@ export const historyRoutes: Routes = [
         data: { breadcrumb: null }
       },
 
-      // ==========================================
-      // 1. RAMA DE PROPUESTAS ARCHIVADAS
-      // ==========================================
       {
         path: 'proposal-details/:id',
         canActivate: [archivedWorkGuard],
@@ -90,9 +91,6 @@ export const historyRoutes: Routes = [
         ]
       },
 
-      // ==========================================
-      // 2. RAMA DE ANTEPROYECTOS ARCHIVADOS
-      // ==========================================
       {
         path: 'preliminary-draft-details/:id',
         canActivate: [archivedWorkGuard],
@@ -134,9 +132,6 @@ export const historyRoutes: Routes = [
         ]
       },
 
-      // ==========================================
-      // 3. RAMA DE TRABAJOS DE GRADO ARCHIVADOS
-      // ==========================================
       {
         path: 'thesis-work-details/:id',
         canActivate: [archivedWorkGuard],

@@ -4,6 +4,10 @@ import { AuthLayoutComponent } from './layouts/AuthLayout/auth-layout/auth-layou
 import { authGuard } from './guards/auth.guard';
 import { publicGuard } from './guards/public.guard';
 
+/**
+ * Rutas de los dos diseños: el de autenticación (`/auth`, solo sin sesión) y el principal, con la barra
+ * lateral, para los módulos que requieren sesión.
+ */
 export const layoutsRoutes: Routes = [
   {
     path: 'auth',
@@ -19,7 +23,7 @@ export const layoutsRoutes: Routes = [
     children: [
       {
         path: '',
-        redirectTo: 'notifications',  // ← ruta por defecto
+        redirectTo: 'notifications',
         pathMatch: 'full'
       },
       {

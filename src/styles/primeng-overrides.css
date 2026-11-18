@@ -45,6 +45,28 @@
   border:           var(--secondary-border-width) solid var(--color-secondary-border-color-disabled) !important;
 }
 
+.btn-danger.p-button {
+  background-color: var(--color-danger);
+  color:            var(--color-text-white);
+  padding:          var(--padding-pill-y) var(--padding-pill-x);
+}
+.btn-danger.p-button:hover    { background-color: var(--color-danger-hover)  !important; }
+.btn-danger.p-button:active   { background-color: var(--color-danger-active) !important; }
+.btn-danger.p-button:disabled {
+  background-color: var(--color-primary-disabled) !important;
+  color:            var(--color-text-disabled)    !important;
+}
+
+/* Botón claro sobre fondos de color (ej. la tarjeta de alerta de estadísticas) */
+.btn-light.p-button {
+  background-color: var(--color-text-white);
+  color:            var(--color-danger);
+  padding:          var(--padding-pill-y) var(--padding-pill-x);
+  box-shadow:       0 2px 6px rgba(0, 0, 0, 0.25);
+}
+.btn-light.p-button:hover  { background-color: #FDE7E8 !important; color: var(--color-danger)        !important; }
+.btn-light.p-button:active { background-color: #F9C9CB !important; color: var(--color-danger-active) !important; }
+
 .btn-icon.p-button {
   width:      var(--height-pill);
   height:     var(--height-pill);

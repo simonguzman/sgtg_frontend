@@ -6,11 +6,13 @@ import { NotificationType } from '../../../../../shared/components/notifications
 import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
+/** Fachada de la verificación de los ajustes. */
 @Injectable({ providedIn: 'root' })
 export class EvaluateCorrectionsFacadeService {
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Carga el trabajo de grado de la ruta; si no existe, avisa y llama a `onError`. */
   public loadThesisWork(id: string, onSuccess: (work: ThesisWork) => void, onError: () => void): void {
     this.thesisWorkService.getThesisWorkById(id).pipe(first()).subscribe({
       next: (data) => {
@@ -52,6 +54,7 @@ export class EvaluateCorrectionsFacadeService {
       });
   }
 
+  /** Muestra el aviso «Error de navegación». */
   public showNavigationError(): void {
     this.showNotification('Error de navegación', 'No se pudo mapear la información técnica del trabajo de grado.', NotificationType.ERROR);
   }

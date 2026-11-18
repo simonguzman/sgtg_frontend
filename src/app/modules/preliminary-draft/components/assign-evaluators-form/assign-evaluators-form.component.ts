@@ -9,6 +9,7 @@ import { SearchableSelectComponent } from '../../../../shared/components/searcha
 import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
+/** Formulario del jefe de departamento para asignar los dos evaluadores de un anteproyecto radicado. */
 @Component({
   selector: 'app-assign-evaluators-form',
   imports: [ProposalContentFieldsComponent, ReactiveFormsModule, ButtonComponent, DatePipe, InfoBannerComponent, SearchableSelectComponent, ReadonlyFieldComponent],

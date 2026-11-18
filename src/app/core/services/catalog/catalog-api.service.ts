@@ -16,6 +16,7 @@ export class CatalogApiService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/catalogos`;
 
+  /** Departamentos registrados. */
   getDepartments(): Observable<CatalogItem[]> {
     return this.http.get<CatalogoResponse[]>(`${this.apiUrl}/departamentos`).pipe(map(lista => lista.map(aItem)));
   }
@@ -25,6 +26,7 @@ export class CatalogApiService {
     return this.http.get<ProgramaResponse[]>(`${this.apiUrl}/programas`).pipe(map(lista => lista.map(aPrograma)));
   }
 
+  /** Crea un departamento (solo el administrador). */
   createDepartment(name: string): Observable<CatalogItem> {
     return this.http.post<CatalogoResponse>(`${this.apiUrl}/departamentos`, { nombre: name }).pipe(map(aItem));
   }

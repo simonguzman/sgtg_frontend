@@ -6,6 +6,11 @@ import { NotificationService } from '../../shared/components/notifications/servi
 import { NotificationType } from '../../shared/components/notifications/models/notification.model';
 import { resolveEntityForGuard } from '../helpers/resolve-entity-for-guard.helper';
 
+/**
+ * Detalle de un anteproyecto: solo para quien tiene relación con él (estudiantes, director, codirector,
+ * asesor, evaluadores o un rol de consulta general). Si el anteproyecto no existe, deja que la página muestre
+ * el aviso.
+ */
 export const preliminaryDraftOwnershipGuard: CanActivateFn = (route) => {
   const router = inject(Router);
   const authService = inject(AuthService);

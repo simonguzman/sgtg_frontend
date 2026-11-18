@@ -9,6 +9,7 @@ import { ThesisWork } from '../../interfaces/thesis-work.interface';
 import { FileDocument } from '../../../../core/interfaces/file-document.interface';
 import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
+/** Formulario del jurado para cargar la versión definitiva del trabajo (formato H). */
 @Component({
   selector: 'app-register-correspondence-form',
   templateUrl: './register-correspondence-form.component.html',

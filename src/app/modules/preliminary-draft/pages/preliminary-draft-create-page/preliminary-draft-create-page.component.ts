@@ -3,6 +3,7 @@ import { PreliminaryDraftCreatePageService } from './services/preliminary-draft-
 import { PreliminaryDraftFormComponent } from "../../components/preliminary-draft-form/preliminary-draft-form.component";
 import { ConfirmationActionModalComponent } from "../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component";
 
+/** Página para registrar el anteproyecto de una propuesta pertinente. */
 @Component({
   selector: 'app-preliminary-draft-create-page',
   templateUrl: './preliminary-draft-create-page.component.html',

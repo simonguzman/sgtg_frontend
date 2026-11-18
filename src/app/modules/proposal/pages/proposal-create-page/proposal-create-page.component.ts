@@ -6,6 +6,7 @@ import { ProposalFormComponent } from '../../components/proposal-form/proposal-f
 import { ConfirmationActionModalComponent } from '../../../../shared/components/modals/confirmation-action-modal/confirmation-action-modal.component';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/** Página para registrar una propuesta. */
 @Component({
   selector: 'app-proposal-create-page',
   standalone: true,

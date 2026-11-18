@@ -4,7 +4,6 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { Router } from '@angular/router';
 import { AuthService } from '../auth.service';
 import { AuthStorageService } from '../auth-storage.service';
-import { UserService } from '../../../../modules/users/services/user.service';
 import { authInterceptor } from '../../../interceptors/auth.interceptor';
 import { UserRoleType } from '../../../enums/user-role-type.enum';
 import { crearJwtDePrueba } from '../../../../testing/jwt-de-prueba';
@@ -22,7 +21,6 @@ const API = '/api/v1/sgtg';
 describe('Integración [Auth]: sesión con el backend (Core ➔ Users)', () => {
   let auth: AuthService;
   let storage: AuthStorageService;
-  let userService: UserService;
   let httpClient: HttpClient;
   let http: HttpTestingController;
   let router: { navigate: jest.Mock };
@@ -41,7 +39,6 @@ describe('Integración [Auth]: sesión con el backend (Core ➔ Users)', () => {
     });
     auth = TestBed.inject(AuthService);
     storage = TestBed.inject(AuthStorageService);
-    userService = TestBed.inject(UserService);
     httpClient = TestBed.inject(HttpClient);
     http = TestBed.inject(HttpTestingController);
   });
@@ -61,13 +58,11 @@ describe('Integración [Auth]: sesión con el backend (Core ➔ Users)', () => {
     });
   };
 
-  it('la sesión del login es la misma que leen el guard de roles y el módulo de usuarios', () => {
+  it('la sesión del login es la misma que lee el guard de roles', () => {
     iniciarSesion();
 
     expect(auth.isAuthenticated()).toBe(true);
     expect(auth.hasAnyRole([UserRoleType.JEFE_DEP])).toBe(true);
-    expect(userService.currentUser()?.id).toBe('3');
-    expect(userService.currentUserFullName()).toContain('Luis');
   });
 
   it('el interceptor envía el token en las peticiones al backend', () => {
@@ -158,9 +153,8 @@ describe('Integración [Auth]: sesión con el backend (Core ➔ Users)', () => {
     iniciarSesion();
     auth.logout();
 
-    // El backend también cierra la sesión del token
     http.expectOne(`${API}/auth/logout`).flush(null, { status: 204, statusText: 'No Content' });
-    expect(userService.currentUser()).toBeNull();
+    expect(auth.currentUser()).toBeNull();
     expect(router.navigate).toHaveBeenCalledWith(['/auth/login']);
   });
 });

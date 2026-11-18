@@ -23,6 +23,10 @@ export interface ThesisWorkDeadlines {
   objectivesChangeDeadline: Date | null;
   /** Hasta cuándo se puede solicitar la prórroga (null si ya no aplica) */
   extensionRequestDeadline: Date | null;
+  /** Días calendario que faltan para la fecha máxima de entrega (del backend; negativo si ya pasó) */
+  daysUntilDelivery?: number | null;
+  /** En curso o en prórroga y a 30 días o menos de la fecha máxima de entrega */
+  dueSoon?: boolean;
 }
 
 /** Estado general de la sustentación (desde que el director la solicita). */
@@ -67,6 +71,7 @@ export interface Meeting {
   status: stateList;
 }
 
+/** Vista de trabajo de grado (etapa de ejecución) de un trabajo. */
 export interface ThesisWork extends Archivable {
   thesisWorkId: string;
   preliminaryDraftId: string;

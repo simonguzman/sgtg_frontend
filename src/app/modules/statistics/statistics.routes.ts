@@ -3,6 +3,7 @@ import { StatisticsPageComponent } from './pages/statistics-page/statistics-page
 import { roleGuard } from '../../core/guards/role.guard';
 import { STATISTICS_ROLES } from './models/statistics-options.model';
 
+/** Ruta de la página de estadísticas. */
 export const statisticsRoutes: Routes = [
   {
     path: '',

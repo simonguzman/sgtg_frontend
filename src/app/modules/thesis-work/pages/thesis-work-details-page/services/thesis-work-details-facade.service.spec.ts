@@ -113,7 +113,7 @@ describe('ThesisWorkDetailsFacadeService', () => {
   describe('loadThesisWorkDetails', () => {
     it('debería cargar los detalles y mapearlos exitosamente', () => {
       const mockData = createMockThesisWork({ thesisWorkId: '1' });
-      const mockView = createMockThesisWorkDetailsView({ id: '1', title: 'Test Title' });
+      const mockView = createMockThesisWorkDetailsView({ title: 'Test Title' });
 
       thesisServiceMock.getThesisWorkById.mockReturnValue(of(mockData));
       mapperMock.mapToView.mockReturnValue(mockView);

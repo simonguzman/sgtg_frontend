@@ -9,10 +9,8 @@ import { ProjectStage } from '../enum/projectStage.enum';
 import { ProjectStatus } from '../enum/projectStatus.enum';
 import { EvaluationDeadlineStatus } from '../../../core/enums/evaluation-deadline-status.enum';
 
-// Hacemos mock de las librerías externas para evitar renderizados reales
 jest.mock('jspdf');
 jest.mock('jspdf-autotable');
-// La librería de Excel se reemplaza: la prueba revisa las hojas que recibe
 const mockWriteXlsxFile = jest.fn();
 jest.mock('write-excel-file/browser', () => ({ __esModule: true, default: (...args: unknown[]) => mockWriteXlsxFile(...args) }));
 
@@ -38,7 +36,6 @@ const context: StatisticsReportContext = { scope: 'Todos los trabajos de grado d
 describe('StatisticsReportService', () => {
   let service: StatisticsReportService;
 
-  // Objeto espía tipado para interceptar los llamados internos de jsPDF
   let mockJsPdfInstance: {
     setFontSize: jest.Mock;
     setTextColor: jest.Mock;
@@ -59,7 +56,6 @@ describe('StatisticsReportService', () => {
       save: jest.fn(),
     };
 
-    // El tipo de 'jsPDF' no se superpone con el de una función espía de Jest
     (jsPDF as unknown as jest.Mock).mockImplementation(() => mockJsPdfInstance);
     (autoTable as unknown as jest.Mock).mockClear();
 
@@ -182,7 +178,6 @@ describe('StatisticsReportService', () => {
     beforeEach(() => {
       descargas = [];
       let ultimo: Blob | undefined;
-      // jsdom no implementa las URL de objetos: se guarda el archivo que se iba a descargar
       URL.createObjectURL = jest.fn((blob: Blob) => { ultimo = blob; return 'blob:prueba'; });
       URL.revokeObjectURL = jest.fn();
       jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
@@ -213,7 +208,6 @@ describe('StatisticsReportService', () => {
       expect(trabajos.stickyRowsCount).toBe(1);
       expect(trabajos.data[0].map((celda: { value: string }) => celda.value)).toEqual(
         ['#', 'Título del trabajo', 'Modalidad', 'Programa', 'Etapa', 'Estado', 'Director', 'Periodo']);
-      // El número de fila va como número, para poder ordenar y filtrar en Excel
       expect(trabajos.data[1][0]).toBe(1);
       expect(trabajos.data[1][1]).toBe('Sistema; de "gestión"');
       expect(trabajos.data).toHaveLength(3);
@@ -233,16 +227,95 @@ describe('StatisticsReportService', () => {
       service.downloadCsvReport({ ...DEFAULT_STATISTICS_FILTERS }, datos, kpis, context);
 
       expect(descargas[0].nombre).toMatch(/^Reporte_Academico_\d+\.csv$/);
-      // BOM UTF-8: Excel lee bien las tildes
       expect(Array.from((await bytes(descargas[0].blob)).slice(0, 3))).toEqual([0xEF, 0xBB, 0xBF]);
       const lineas = (await leer(descargas[0].blob)).replace(/^\uFEFF/, '').split('\r\n');
       expect(lineas[0]).toBe('#;Título del trabajo;Modalidad;Programa;Etapa;Estado;Director;Periodo');
-      // Con el separador o comillas: entre comillas y con las comillas dobladas
       expect(lineas[1]).toBe('1;"Sistema; de ""gestión""";Trabajo de investigación;Ingeniería de Sistemas;'
         + 'Propuesta;En desarrollo;Ana Gómez;2026-1');
-      // Lo que Excel tomaría como fórmula queda como texto
       expect(lineas[2].split(';')[1]).toBe('"\'=HIPERVINCULO(""x"")"');
       expect(lineas[3]).toBe('');
+    });
+  });
+
+  describe('Reporte de próximos a vencer', () => {
+    const proximos: RawProjectData[] = [
+      createMockRawProjectData({ id: '7', title: 'Riego automático', studentNames: 'Ana Mora, Luis Paz',
+        directorName: 'Javier Burbano', program: 'Automática', modality: 'Práctica profesional', dueSoon: true,
+        deliveryDate: new Date(2027, 7, 20), daysUntilDelivery: 0, inExtension: true }),
+      createMockRawProjectData({ id: '8', title: 'Visión artificial', studentNames: 'Eva Ruiz',
+        directorName: 'Ana Gómez', program: 'Electrónica', dueSoon: true,
+        deliveryDate: new Date(2027, 8, 5), daysUntilDelivery: 16 })
+    ];
+    const encabezados = ['#', 'Título del trabajo', 'Estudiantes', 'Director', 'Programa', 'Modalidad', 'Estado',
+      'Fecha máxima de entrega', 'Días restantes'];
+    let descargas: { nombre: string; blob: Blob }[];
+
+    beforeEach(() => {
+      descargas = [];
+      let ultimo: Blob | undefined;
+      URL.createObjectURL = jest.fn((blob: Blob) => { ultimo = blob; return 'blob:prueba'; });
+      URL.revokeObjectURL = jest.fn();
+      jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+        descargas.push({ nombre: this.download, blob: ultimo! });
+      });
+      mockWriteXlsxFile.mockReset();
+      mockWriteXlsxFile.mockReturnValue({ toBlob: () => Promise.resolve(new Blob(['xlsx'])) });
+    });
+
+    const leer = (blob: Blob) => new Promise<string>(resolve => {
+      const lector = new FileReader();
+      lector.onload = () => resolve(lector.result as string);
+      lector.readAsText(blob, 'utf-8');
+    });
+
+    it('el PDF (horizontal) lleva el criterio, los filtros, el resumen y la tabla con fecha y días restantes', async () => {
+      await service.downloadDueSoonReport('pdf', { ...DEFAULT_STATISTICS_FILTERS }, proximos, context);
+
+      expect(jsPDF).toHaveBeenCalledWith('l', 'mm', 'a4');
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('Reporte de trabajos de grado próximos a vencer', 14, 20);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith([expect.stringContaining('Criterio: En curso o en prórroga')], 14, 40);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Director: Todos los directores', 14, 72);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Trabajos próximos a vencer: 2', 150, 60);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• Vencen en 7 días o menos: 1', 150, 66);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• En curso: 1', 150, 72);
+      expect(mockJsPdfInstance.text).toHaveBeenCalledWith('• En prórroga: 1', 150, 78);
+
+      const [, tabla] = (autoTable as unknown as jest.Mock).mock.calls[0];
+      expect(tabla.head).toEqual([encabezados]);
+      expect(tabla.body).toEqual([
+        ['1', 'Riego automático', 'Ana Mora, Luis Paz', 'Javier Burbano', 'Automática', 'Práctica profesional',
+          'En prórroga', '20/08/2027', 'Vence hoy'],
+        ['2', 'Visión artificial', 'Eva Ruiz', 'Ana Gómez', 'Electrónica', 'Trabajo de investigación',
+          'En curso', '05/09/2027', '16 días']
+      ]);
+      expect(mockJsPdfInstance.save).toHaveBeenCalledWith(expect.stringMatching(/^Reporte_Proximos_a_Vencer_\d+\.pdf$/));
+    });
+
+    it('el Excel lleva la fecha como fecha y los días como número, y la hoja de resumen', async () => {
+      await service.downloadDueSoonReport('excel', { ...DEFAULT_STATISTICS_FILTERS }, proximos, context);
+
+      const [[tabla, resumen]] = mockWriteXlsxFile.mock.calls[0];
+      expect(tabla.sheet).toBe('Próximos a vencer');
+      expect(tabla.data[0].map((celda: { value: string }) => celda.value)).toEqual(encabezados);
+      expect(tabla.data[1][0]).toBe(1);
+      expect(tabla.data[1][6]).toBe('En prórroga');
+      expect(tabla.data[1][7]).toEqual({ value: new Date(Date.UTC(2027, 7, 20)), type: Date, format: 'dd/mm/yyyy' });
+      expect(tabla.data[2][8]).toBe(16);
+      const textos = resumen.data.flat().map((celda: unknown) =>
+        celda && typeof celda === 'object' ? (celda as { value: unknown }).value : celda);
+      expect(textos).toEqual(expect.arrayContaining(['Criterio', 'Trabajos próximos a vencer', 2, 'En prórroga', 1]));
+      expect(descargas[0].nombre).toMatch(/^Reporte_Proximos_a_Vencer_\d+\.xlsx$/);
+    });
+
+    it('el CSV lleva solo la tabla con los días como número', async () => {
+      await service.downloadDueSoonReport('csv', { ...DEFAULT_STATISTICS_FILTERS }, proximos, context);
+
+      expect(descargas[0].nombre).toMatch(/^Reporte_Proximos_a_Vencer_\d+\.csv$/);
+      const lineas = (await leer(descargas[0].blob)).replace(/^\uFEFF/, '').split('\r\n');
+      expect(lineas[0]).toBe(encabezados.join(';'));
+      expect(lineas[1]).toBe('1;Riego automático;Ana Mora, Luis Paz;Javier Burbano;Automática;Práctica profesional;'
+        + 'En prórroga;20/08/2027;0');
+      expect(lineas[2].endsWith(';En curso;05/09/2027;16')).toBe(true);
     });
   });
 });

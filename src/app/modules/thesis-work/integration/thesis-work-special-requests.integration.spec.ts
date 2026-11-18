@@ -66,7 +66,6 @@ describe('Integración [Trabajo de Grado]: Solicitudes del director y decisiones
     expect(solicitud('cambio-objetivos-0').pendingWith).toBe('COMITE');
     expect(availableRequestTypes(trabajo())).not.toContain(SpecialRequestType.CAMBIO_TITULO);
 
-    // El Comité lo avala (el acta es opcional) y pasa al Consejo
     service.evaluateSpecialRequest('15', solicitud('cambio-objetivos-0'), {
       status: stateList.APROBADO, resolutionDetails: '', resolution: null
     }).subscribe();
@@ -86,7 +85,6 @@ describe('Integración [Trabajo de Grado]: Solicitudes del director y decisiones
 
     expect(solicitud('cambio-objetivos-0').status).toBe(stateList.APROBADO);
     expect(trabajo().preliminaryDraftData.proposalData.title).toBe('Nuevo título');
-    // Solo una vez
     expect(availableRequestTypes(trabajo())).not.toContain(SpecialRequestType.CAMBIO_TITULO);
   });
 
@@ -98,7 +96,6 @@ describe('Integración [Trabajo de Grado]: Solicitudes del director y decisiones
     http.expectOne(`${API}/15/suspension`).flush(crearTrabajoEnCursoCon({ suspensiones: [suspension()] }));
     expect(solicitud('suspension-0').status).toBe(stateList.EN_REVISION);
 
-    // El Consejo aprueba: el trabajo queda suspendido con la fecha máxima de reanudación
     service.evaluateSpecialRequest('15', solicitud('suspension-0'), {
       status: stateList.APROBADO, resolutionDetails: '', resolution: pdf('r.pdf')
     }).subscribe();
@@ -111,7 +108,6 @@ describe('Integración [Trabajo de Grado]: Solicitudes del director y decisiones
     expect(solicitud('suspension-0').grantedDeadline).toEqual(new Date(2026, 11, 5));
     expect(availableRequestTypes(trabajo())).toEqual([SpecialRequestType.REANUDACION, SpecialRequestType.CANCELACION]);
 
-    // El director reanuda con su documento: vuelve a estar en curso
     service.createSpecialRequest('15', { requestType: SpecialRequestType.REANUDACION, document: pdf('reanudacion.pdf') })
       .subscribe();
     const reanudada = { ...aprobada, fechaReanudacion: '2026-07-01', rutaReanudacion: '15/REANUDACION/v1/reanudacion.pdf' };

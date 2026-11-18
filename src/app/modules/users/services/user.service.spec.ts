@@ -142,48 +142,10 @@ describe('UserService', () => {
     expect(service).toBeTruthy();
   });
 
-  describe('Estado Reactivo y Señales Computadas', () => {
-    it('debería retornar textos por defecto ("Invitado", "No identificado") si no hay sesión', () => {
-      mockCurrentUserSignal.set(null);
-      expect(service.currentUserFullName()).toBe('Invitado');
-      expect(service.currentDirectorName()).toBe('No identificado');
-    });
-
-    it('debería retornar el nombre formateado si existe un usuario en sesión', () => {
-      mockCurrentUserSignal.set(mockUser);
-      expect(service.currentUserFullName()).toBe('Juan Pérez');
-      expect(service.currentDirectorName()).toBe('Juan Pérez');
-      expect(formatterSpy.formatFullName).toHaveBeenCalledWith(mockUser);
-    });
-  });
-
-  describe('Gestión de Sesión', () => {
-    it('login() debería delegar a storage.setCurrentUser() con el usuario completo', () => {
-      service.login(mockUser);
-      expect(storageSpy.setCurrentUser).toHaveBeenCalledWith(mockUser);
-    });
-
-    it('logout() debería delegar a storage.setCurrentUser() enviando null', () => {
-      service.logout();
-      expect(storageSpy.setCurrentUser).toHaveBeenCalledWith(null);
-    });
-  });
-
   describe('Delegación de Consultas y Mutaciones', () => {
-    it('getAllUsers() y getUsersSnapshot() deberían llamar al snapshot del storage', () => {
-      expect(service.getAllUsers()).toEqual([mockUser]);
-      expect(service.getUsersSnapshot()).toEqual([mockUser]);
-      expect(storageSpy.getUsersSnapshot).toHaveBeenCalledTimes(2);
-    });
-
     it('getUserById() debería delegar al API Service', () => {
       service.getUserById('111').subscribe();
       expect(apiSpy.getUserById).toHaveBeenCalledWith('111');
-    });
-
-    it('getUsersByRole() debería delegar al API Service', () => {
-      service.getUsersByRole(UserRoleType.DOCENTE).subscribe();
-      expect(apiSpy.getUsersByRole).toHaveBeenCalledWith(UserRoleType.DOCENTE);
     });
 
     it('createUser() debería delegar la creación al API Service', () => {
@@ -206,7 +168,6 @@ describe('UserService', () => {
       service.updateUserRoles('111', [UserRoleType.ADMINISTRADOR]).subscribe();
       expect(apiSpy.updateUserRoles).toHaveBeenCalledWith('111', [UserRoleType.ADMINISTRADOR]);
     });
-
   });
 
   describe('Delegación de Formateo de Texto', () => {

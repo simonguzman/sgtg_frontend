@@ -6,6 +6,9 @@ import { versionVigente } from '../../../../preliminary-draft/services/prelimina
 import { buildWorkDetailsView, fullName } from '../../../../../shared/components/work-details/work-details.builder';
 import { WorkDetailsDocument, WorkDetailsItem } from '../../../../../shared/components/work-details/work-details.model';
 
+/**
+ * Arma la vista de detalle del trabajo de grado: datos de la propuesta, plazos que aplican y versión vigente.
+ */
 @Injectable({ providedIn: 'root' })
 export class ThesisWorkDetailsMapperService {
 

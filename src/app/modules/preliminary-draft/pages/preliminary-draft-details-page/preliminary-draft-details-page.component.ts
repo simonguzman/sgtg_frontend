@@ -3,6 +3,7 @@ import { PreliminaryDraftDetailsPageService } from './services/preliminary-draft
 import { ButtonComponent } from "../../../../shared/components/button-component/button-component.component";
 import { WorkDetailsComponent } from '../../../../shared/components/work-details/work-details.component';
 
+/** Página de detalle de un anteproyecto, también usada desde el historial. */
 @Component({
   selector: 'app-preliminary-draft-details-page',
   templateUrl: './preliminary-draft-details-page.component.html',

@@ -12,7 +12,8 @@ export const CAMBIO_PASSWORD_PENDIENTE = 'GC-0012';
  * Agrega el token de la sesión a las peticiones al backend. Si el backend
  * responde 401 (el token de acceso venció, la sesión se cerró o el usuario se
  * inactivó), intenta renovar la sesión una vez y repite la petición; si no se
- * puede renovar, cierra la sesión. Las peticiones de `/auth/...` (login,
+ * puede renovar, cierra la sesión, y sin conexión con el backend la deja abierta y propaga el error
+ * original. Las peticiones de `/auth/...` (login,
  * renovación, cierre) y las que ya traen su propio token se excluyen: sus 401
  * los atiende quien las hizo. Un 403 porque falta cambiar la contraseña
  * asignada lleva a cambiarla.
@@ -33,7 +34,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: unknown) => {
       if (esApi && !esAutenticacion && !tokenPropio && error instanceof HttpErrorResponse && error.status === 401) {
         return authService.renovarSesion().pipe(
-          // Sin conexión con el backend la sesión no se cierra: se informa el error original
           catchError(() => of('sin-conexion' as const)),
           switchMap(resultado => {
             if (resultado === 'renovada') return next(conToken(req, storage.token()));

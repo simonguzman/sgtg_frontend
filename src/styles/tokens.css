@@ -86,6 +86,9 @@
                archivo, contador de notificaciones).                        */
   --color-alert:             #ED7D31;
   --color-danger:            #DB141C;
+  /* Botón de alerta (variante danger): hover más claro y active más oscuro, como el primario */
+  --color-danger-hover:      #E8545A;
+  --color-danger-active:     #A80F15;
 
   /* ── Espaciado Pill ───────────────────────────────────────────────────────
      Padding interno estandarizado para botones y badges de tipo pill.      */

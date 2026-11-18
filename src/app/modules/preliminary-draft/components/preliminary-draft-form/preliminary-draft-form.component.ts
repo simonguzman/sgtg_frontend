@@ -13,6 +13,10 @@ import { SearchableSelectComponent, SelectOption } from '../../../../shared/comp
 import { FileDownloadService } from '../../../../core/services/filedownload/file-download.service';
 import { proposalContent } from '../../../../shared/components/work-details/work-details.builder';
 
+/**
+ * Formulario para registrar el anteproyecto de una propuesta pertinente o radicar una versión corregida. Al
+ * corregir, la propuesta ya está elegida y, sin un PDF nuevo, no hay versión que radicar.
+ */
 @Component({
   selector: 'app-preliminary-draft-form',
   standalone: true,
@@ -111,7 +115,6 @@ export class PreliminaryDraftFormComponent {
   submit(): void {
     this.form.markAllAsTouched();
     if (this.form.invalid) {
-      // En edición la propuesta ya está elegida: solo se revisan los campos
       const message = this.isEditMode
         ? 'Por favor, diligencie correctamente los campos obligatorios del anteproyecto.'
         : 'Por favor, asegúrese de seleccionar una propuesta y adjuntar el anteproyecto.';
@@ -119,7 +122,6 @@ export class PreliminaryDraftFormComponent {
       return;
     }
 
-    // Se envía el PDF elegido; en edición, sin archivo nuevo no hay versión que radicar
     const payload = this.formService.buildPreliminaryDraftPayload(this.preliminaryDraft(), this.attachedFile.file);
     if (!payload) return;
     this.onSave.emit(payload);

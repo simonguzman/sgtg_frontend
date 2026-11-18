@@ -1,3 +1,4 @@
+/** Estado de un trabajo agrupado para las estadísticas. */
 export enum ProjectStatus {
   APROBADO = 'APROBADO',
   APROBADO_OBSERVACIONES = 'APROBADO_OBSERVACIONES',

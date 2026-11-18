@@ -65,7 +65,7 @@ describe('PreliminaryDraftCreatePageService', () => {
     };
 
     mockNavigation = {
-      back: jest.fn((respaldo: () => unknown) => respaldo()) // sin página anterior: usa la navegación de respaldo
+      back: jest.fn((respaldo: () => unknown) => respaldo())
     };
 
     TestBed.configureTestingModule({
@@ -138,7 +138,7 @@ describe('PreliminaryDraftCreatePageService', () => {
     it('mientras se registra no abre otra confirmación (el formulario podría enviarse de nuevo)', () => {
       service.confirmState.set({ isOpen: false, pendingData: mockDraft, isProcessing: true });
 
-      service.openConfirmation({ ...mockDraft, title: 'Otro' });
+      service.openConfirmation({ ...mockDraft, proposalId: 'otra-propuesta' });
 
       expect(service.confirmState()).toEqual({ isOpen: false, pendingData: mockDraft, isProcessing: true });
     });

@@ -6,6 +6,10 @@ import { stateList } from '../enums/state.enum';
 import { NotificationType } from '../../shared/components/notifications/models/notification.model';
 import { resolveEntityForGuard } from '../helpers/resolve-entity-for-guard.helper';
 
+/**
+ * Bloquea las acciones sobre un trabajo de grado cancelado o suspendido y vuelve a la lista de trabajos con
+ * un aviso.
+ */
 export const thesisRestrictedStatusGuard: CanActivateFn = (route) => {
   const router = inject(Router);
   const thesisStorage = inject(ThesisWorkStorageService);

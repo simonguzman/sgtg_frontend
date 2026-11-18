@@ -6,6 +6,11 @@ import { User } from '../../../../users/interfaces/user.interface';
 import { propuestaEditable } from '../../../services/proposal-rules.service';
 import { getSingleEvaluationDeadlineLabel } from '../../../../history/helpers/deadline-status-label.helper';
 
+/**
+ * Convierte las propuestas en filas de la tabla con sus acciones: solo el director corrige su propuesta,
+ * cuando el estado lo permite, y la anula antes de la aprobación del Consejo. El plazo se toma de la decisión
+ * más reciente del Comité.
+ */
 @Injectable({ providedIn: 'root' })
 export class ProposalMapperService {
   /**
@@ -17,7 +22,6 @@ export class ProposalMapperService {
     currentUserId: string | undefined,
     annullable = proposal.state !== stateList.PERTINENTE
   ): ProposalTableRow {
-    // Solo el director corrige su propuesta, y solo cuando el estado lo permite
     const canEdit = proposal.director?.id === currentUserId && propuestaEditable(proposal);
     return {
       id: proposal.id,
@@ -28,14 +32,12 @@ export class ProposalMapperService {
       deadlineStatus: getSingleEvaluationDeadlineLabel(
         proposal.state,
         proposal.evaluationRemainingDays,
-        // Las decisiones del Comité van de la más antigua a la más reciente
         proposal.evaluations?.[proposal.evaluations.length - 1]
       ),
       hiddenParticipants: this.buildHiddenParticipants(proposal),
       allowedActions: [
         'ver descripcion', 'ver',
         ...(canEdit ? ['editar'] : []),
-        // El director anula antes de la aprobación del Consejo
         ...(proposal.director?.id === currentUserId && annullable ? ['anular'] : [])
       ]
     };

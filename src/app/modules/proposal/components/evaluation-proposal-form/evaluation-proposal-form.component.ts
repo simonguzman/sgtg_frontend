@@ -11,6 +11,10 @@ import { InfoBannerComponent } from '../../../../shared/components/info-banner/i
 import { ReadonlyFieldComponent } from '../../../../shared/components/readonly-field/readonly-field.component';
 import { proposalContent } from '../../../../shared/components/work-details/work-details.builder';
 
+/**
+ * Formulario del Comité del programa para conceptuar la propuesta (pertinente o no pertinente) con sus
+ * observaciones y el formato A firmado.
+ */
 @Component({
   selector: 'app-evaluation-proposal-form',
   standalone: true,

@@ -8,6 +8,7 @@ import { Proposal } from '../../../interfaces/proposal.interface';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
+/** Fachada del registro de la propuesta. */
 @Injectable({ providedIn: 'root' })
 export class ProposalCreateFacadeService {
   private readonly proposalService = inject(ProposalService);
@@ -15,6 +16,7 @@ export class ProposalCreateFacadeService {
   private readonly router = inject(Router);
   private readonly navigation = inject(NavigationHistoryService);
 
+  /** Revisa las reglas de la propuesta y avisa la primera que no se cumple. */
   public validate(proposal: Proposal): boolean {
     const error = this.proposalService.validateProposalRules(proposal);
     if (error) {
@@ -24,6 +26,7 @@ export class ProposalCreateFacadeService {
     return true;
   }
 
+  /** Registra la propuesta en el backend y avisa el resultado. */
   public save(
     proposal: Proposal,
     onSuccess: () => void,

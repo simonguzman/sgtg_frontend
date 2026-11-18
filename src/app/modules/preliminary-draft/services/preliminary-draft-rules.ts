@@ -16,10 +16,11 @@ export function versionVigente(preliminaryDraft: Pick<PreliminaryDraft, 'documen
 }
 
 /**
- * El director radica una nueva versión solo si la vigente no se aprobó: un
- * evaluador pidió correcciones o el Consejo no la aprobó (regla del backend).
+ * El director radica una nueva versión solo si la vigente no se aprobó: quedó
+ * evaluada con observaciones, los evaluadores no la aprobaron o el Consejo no
+ * la aprobó (regla del backend).
  */
 export function anteproyectoCorregible(preliminaryDraft: Pick<PreliminaryDraft, 'documents'> | null | undefined): boolean {
   const estado = versionVigente(preliminaryDraft)?.status;
-  return estado === stateList.NO_APROBADO;
+  return estado === stateList.NO_APROBADO || estado === stateList.EVALUADO_CON_OBSERVACIONES;
 }

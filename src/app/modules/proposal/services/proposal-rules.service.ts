@@ -1,4 +1,3 @@
-// src/app/modules/proposal/services/proposal-rules.service.ts
 import { inject, Injectable } from '@angular/core';
 import { ProposalStorageService } from './proposal-storage.service';
 import { UserService } from '../../users/services/user.service';
@@ -39,6 +38,7 @@ export function propuestaEditable(proposal: Pick<Proposal, 'state' | 'documents'
   return proposal.state === stateList.NO_PERTINENTE || !proposal.documents?.length;
 }
 
+/** Reglas de la propuesta que se revisan antes de enviarla al backend. */
 @Injectable({
   providedIn: 'root'
 })
@@ -46,6 +46,11 @@ export class ProposalRulesService {
   private readonly storage = inject(ProposalStorageService);
   private readonly userService = inject(UserService);
 
+  /**
+   * Revisa que el director y el codirector sean personas distintas y que ningún estudiante supere el límite
+   * institucional de 2 propuestas registradas.
+   * @returns el mensaje del primer error, o null si la propuesta cumple
+   */
   validateProposalRules(proposal: Partial<Proposal>): string | null {
     if (proposal.director?.id && proposal.director.id === proposal.codirector?.id) {
       return 'Un docente no puede ser Director y Codirector simultáneamente.';

@@ -11,6 +11,10 @@ import { CatalogItem } from '../../../interfaces/catalog-item.interface';
 import { UserState } from '../../../enum/user-state.enum';
 import { AuthService } from '../../../../../core/services/auth/auth.service';
 
+/**
+ * Fachada de la gestión de usuarios: lista del alcance del gestor, cambio de roles y activación o
+ * inactivación.
+ */
 @Injectable({ providedIn: 'root' })
 export class UsersFacadeService {
   private readonly userService = inject(UserService);
@@ -20,10 +24,14 @@ export class UsersFacadeService {
   /** Usuarios del alcance del gestor (todos para el administrador, Consejo y Decanatura) */
   private readonly managedUsers = signal<ManagedUser[]>([]);
 
+  /** Del usuario más reciente al más antiguo: el que se acaba de crear queda arriba */
   public readonly usersTableData = computed(() =>
-    this.managedUsers().map(({ user, editable }) => this.mapper.mapUserToTable(user, editable))
+    [...this.managedUsers()]
+      .sort((a, b) => Number(b.user.id) - Number(a.user.id))
+      .map(({ user, editable }) => this.mapper.mapUserToTable(user, editable))
   );
 
+  /** Carga los usuarios que gestiona el usuario en sesión. */
   public loadUsers(): void {
     this.userService.loadManagedUsers().subscribe({
       next: users => this.managedUsers.set(users),
@@ -86,10 +94,12 @@ export class UsersFacadeService {
     });
   }
 
+  /** Usuario gestionado por id, o undefined. */
   public findUserById(id: string): User | undefined {
     return this.managedUsers().find(({ user }) => user.id === id)?.user;
   }
 
+  /** Guarda los roles del usuario y avisa el resultado. */
   public updateRoles(userId: string, finalRoles: UserRoleType[], onSuccess: () => void): void {
     this.showNotification('Actualizando roles y permisos', 'Guardando la nueva configuración...', NotificationType.INFO);
 
@@ -106,6 +116,7 @@ export class UsersFacadeService {
     });
   }
 
+  /** Activa o inactiva al usuario y avisa el resultado. */
   public toggleUserStatus(userId: string, isEnabling: boolean, onSuccess: () => void): void {
     const infoMsg = isEnabling ? 'Estamos habilitando al usuario...' : 'Estamos deshabilitando al usuario...';
     this.showNotification('Procesando acción', infoMsg, NotificationType.INFO);

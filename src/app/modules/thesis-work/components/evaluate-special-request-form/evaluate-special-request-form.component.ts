@@ -20,9 +20,10 @@ type SpecialRequestVerdict = stateList.APROBADO | stateList.NO_APROBADO;
  * no aprueba, con la resolución en PDF (obligatoria) y observaciones opcionales.
  * Las fechas resultantes (nuevo plazo, reanudación) las calcula el backend.
  *
- * Si el cambio de título y objetivos espera el aval del Comité del programa,
- * el formulario es el del Comité: avala o no avala, con el acta opcional y
- * observaciones obligatorias si no lo avala.
+ * Si el cambio de título y objetivos espera el concepto del Comité del
+ * programa, el formulario es el del Comité: pertinente (pasa al Consejo) o no
+ * pertinente (la solicitud se cierra), con el acta opcional y observaciones
+ * obligatorias si no es pertinente.
  */
 @Component({
   selector: 'app-evaluate-special-request-form',
@@ -59,19 +60,29 @@ export class EvaluateSpecialRequestFormComponent {
 
   get states(): typeof stateList { return stateList; }
 
-  /** La solicitud espera el aval del Comité (no la decisión del Consejo) */
+  /** La solicitud espera el concepto de pertinencia del Comité (no la decisión del Consejo) */
   get isCommitteeStep(): boolean {
     return this.specialRequest.pendingWith === 'COMITE';
   }
 
-  /** El Comité debe explicar por qué no avala el cambio */
+  /** El Comité debe explicar por qué el cambio no es pertinente */
   get requiresObservations(): boolean {
     return this.isCommitteeStep && this.verdictSelected() === stateList.NO_APROBADO;
   }
 
   endorsementSummary(aval: CommitteeEndorsement): string {
     const fecha = aval.date ? ` el ${formatThesisDate(aval.date)}` : '';
-    return `${aval.endorsed ? 'Avalado' : 'No avalado'}${fecha}`;
+    return `${aval.endorsed ? 'Pertinente' : 'No pertinente'}${fecha}`;
+  }
+
+  /** Primer objetivo propuesto: el general */
+  get proposedGeneralObjective(): string {
+    return this.specialRequest.proposedObjectives?.[0] ?? '';
+  }
+
+  /** Los demás objetivos propuestos: los específicos */
+  get proposedSpecificObjectives(): string[] {
+    return this.specialRequest.proposedObjectives?.slice(1) ?? [];
   }
 
   getStudentNames(): string { return this.formService.getStudentNames(this.thesisWork); }

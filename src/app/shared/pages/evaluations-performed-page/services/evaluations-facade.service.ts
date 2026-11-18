@@ -16,6 +16,10 @@ const tiempo = (fecha: Date | string | undefined): number => {
   return Number.isNaN(valor) ? 0 : valor;
 };
 
+/**
+ * Fachada de la página de evaluaciones realizadas: arma las filas según la etapa de la ruta y descarga los
+ * documentos.
+ */
 @Injectable({ providedIn: 'root' })
 export class EvaluationsFacadeService {
   private readonly mapper = inject(EvaluationsMapperService);
@@ -25,6 +29,13 @@ export class EvaluationsFacadeService {
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
+  /**
+   * Evaluaciones de la propuesta, el anteproyecto o el trabajo de grado (según la URL), de la más reciente
+   * a la más antigua. Las fechas no tienen hora, así que entre las del mismo día va primero la última
+   * registrada.
+   * @param id id del trabajo
+   * @param currentUrl URL de la página, que indica la etapa
+   */
   public getMappedEvaluations(id: string, currentUrl: string): EvaluationTableRow[] {
     let mappedEvaluations: EvaluationTableRow[] = [];
     if (currentUrl.includes('proposal')) {
@@ -39,11 +50,10 @@ export class EvaluationsFacadeService {
         mappedEvaluations = this.mapper.processThesisEvaluations(thesis);
       }
     }
-    // La más reciente primero. Las fechas no tienen hora: entre las del mismo día va primero la última
-    // registrada (los mappers las entregan en el orden en que se registraron)
     return [...mappedEvaluations].reverse().sort((a, b) => tiempo(b.date) - tiempo(a.date));
   }
 
+  /** Descarga un documento firmado de una evaluación. */
   public async handleDownload(document: FormattedDocument): Promise<void> {
     if (!document.url?.trim()) {
       this.showNotification('Error', 'No se pudo localizar el documento.', NotificationType.ERROR);

@@ -174,7 +174,6 @@ describe('UserFormComponent', () => {
       expect(component.isEditMode).toBeTruthy();
       expect(component.userForm.get('firstName')?.value).toBe('Juan');
       expect(component.userForm.get('email')?.value).toBe('juan@test.com');
-      // La contraseña nunca se precarga
       expect(component.userForm.get('password')?.value).toBe('');
     });
 
@@ -428,7 +427,6 @@ describe('UserFormComponent', () => {
       component.openRolesModal();
       const asignables = component.currentRolesForModal.filter(role => !role.locked).map(role => role.type);
       expect([...asignables].sort()).toEqual([...[UserRoleType.ESTUDIANTE, UserRoleType.DOCENTE, UserRoleType.DIRECTOR, UserRoleType.ASESOR]].sort());
-      // El rol que ya tiene se conserva aunque no lo pueda quitar
       expect(component.currentRolesForModal.find(role => role.type === UserRoleType.CODIRECTOR))
         .toEqual({ type: UserRoleType.CODIRECTOR, assigned: true, locked: true });
     });

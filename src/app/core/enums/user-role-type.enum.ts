@@ -1,3 +1,4 @@
+/** Roles de los usuarios, con el nombre que se muestra. */
 export enum UserRoleType {
   ADMINISTRADOR = 'Administrador',
   DOCENTE = 'Docente',

@@ -2,11 +2,16 @@ import { Component, ElementRef, HostListener, forwardRef, input, signal, compute
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
+/** Opción de la lista: id que se guarda en el formulario y texto que se muestra. */
 export interface SelectOption {
   id: string;
   label: string;
 }
 
+/**
+ * Lista desplegable en la que se escribe para filtrar las opciones (sin distinguir tildes ni mayúsculas).
+ * Funciona como control de formulario reactivo y guarda el id de la opción elegida.
+ */
 @Component({
   selector: 'app-searchable-select',
   standalone: true,

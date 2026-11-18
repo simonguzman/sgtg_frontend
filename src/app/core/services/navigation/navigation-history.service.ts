@@ -67,6 +67,11 @@ export class NavigationHistoryService {
     respaldo();
   }
 
+  /**
+   * Agrega la página visitada a la pila. Al ir atrás sale la página actual; si la página no coincide con la
+   * anterior (se fue adelante o se volvió por el respaldo) ya no se sabe qué hay antes, así que la pila se
+   * reinicia y "Regresar" usa el respaldo.
+   */
   private registrar(url: string): void {
     if (url.startsWith('/auth')) {
       this.visitadas.length = 0;
@@ -74,8 +79,6 @@ export class NavigationHistoryService {
     }
     const actual = this.visitadas.at(-1);
     if (this.desdeHistorial) {
-      // Atrás: sale la página actual. Si no coincide (adelante, o una página que salió por un regreso de
-      // respaldo), ya no se sabe qué hay antes: se empieza de nuevo y "Regresar" usa el respaldo
       if (this.visitadas.at(-2) === url) this.visitadas.pop();
       else this.visitadas.splice(0, this.visitadas.length, url);
     } else if (this.reemplaza && actual !== undefined) {

@@ -6,6 +6,10 @@ import { TabsComponent } from '../../../../shared/components/tabs/tabs.component
 import { LoadedDocumentsPreliminaryDraftFacadeService } from './services/loaded-documents-preliminary-draft-facade.service';
 import { LoadedDocumentsPreliminaryDraftMapperService } from './services/loaded-documents-preliminary-draft-mapper.service';
 
+/**
+ * Documentos cargados del anteproyecto en dos pestañas: las versiones del anteproyecto y las presentaciones
+ * al Consejo (formato C).
+ */
 @Component({
   selector: 'app-loaded-documents-preliminary-draft-page',
   templateUrl: './loaded-documents-preliminary-draft-page.component.html',

@@ -1,5 +1,6 @@
 import { FileDocument } from "../../../core/interfaces/file-document.interface";
 
+/** Revisión del paz y salvo (formato F) por Decanatura. */
 export interface PazYSalvoRegistry {
   id: string;
   academicApproved: boolean;

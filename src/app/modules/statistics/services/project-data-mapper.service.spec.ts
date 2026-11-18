@@ -15,11 +15,8 @@ import { User } from '../../users/interfaces/user.interface';
 import { Evaluation } from '../../../core/interfaces/evaluation.interface';
 import { FileDocument } from '../../../core/interfaces/file-document.interface';
 
-// Importamos los helpers como módulos para poder espiarlos
 import * as academicPeriodHelper from '../helpers/academic-period.helper';
 import * as projectStatusHelper from '../helpers/project-status.helper';
-
-// ── Funciones Fábrica fuertemente tipadas (Zero 'any', 'unknown') ─────────────
 
 const createMockUser = (overrides: Partial<User> = {}): User => ({
   id: 'usr-default',
@@ -55,7 +52,7 @@ const createMockDocument = (overrides: Partial<FileDocument> = {}): FileDocument
 const createMockProposal = (overrides: Partial<Proposal> = {}): Proposal => ({
   id: 'prop-123',
   title: 'Default Title',
-  state: stateList.EN_REVISION, // FIX: Usamos un estado válido del enum
+  state: stateList.EN_REVISION,
   createdAt: new Date('2026-03-01T00:00:00.000Z'),
   director: createMockUser(),
   authors: [],
@@ -88,13 +85,10 @@ const createMockThesisWork = (overrides: Partial<ThesisWork> = {}): ThesisWork =
 } as ThesisWork);
 
 
-// ── Inicio de la Suite de Pruebas ───────────────────────────────────────────
-
 describe('ProjectDataMapperService', () => {
   let service: ProjectDataMapperService;
 
-  // 🔹 REFACTOR: Tipado estricto para el mock
-  let mockUserService: { formatFullName: jest.Mock<string, [User]> };
+  let mockUserService: { formatFullName: jest.Mock<string, [User]>; getAuthorsNames: jest.Mock<string, [unknown]> };
 
   let resolveAcademicPeriodSpy: jest.SpyInstance;
   let mapStateToProjectStatusSpy: jest.SpyInstance;
@@ -111,12 +105,12 @@ describe('ProjectDataMapperService', () => {
   });
 
   beforeEach(() => {
-    // 🔕 Silenciar consola para mantener terminal limpia
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
 
     mockUserService = {
       formatFullName: jest.fn((user: User) => `${user.firstName} ${user.lastName}`),
+      getAuthorsNames: jest.fn().mockReturnValue('Ana Mora, Luis Paz'),
     };
 
     resolveAcademicPeriodSpy = jest.spyOn(academicPeriodHelper, 'resolveAcademicPeriod')
@@ -146,7 +140,7 @@ describe('ProjectDataMapperService', () => {
       const mockProposal = createMockProposal({
         id: 'prop-123',
         title: 'Sistema de Gestión',
-        state: stateList.EN_REVISION, // FIX: Usamos un estado real
+        state: stateList.EN_REVISION,
         createdAt: new Date('2026-03-01T00:00:00.000Z'),
         director: mockUser,
         isArchived: false,
@@ -164,7 +158,7 @@ describe('ProjectDataMapperService', () => {
         title: 'Sistema de Gestión',
         stage: ProjectStage.PROPUESTA,
         status: ProjectStatus.EN_DESARROLLO,
-        originalState: stateList.EN_REVISION, // FIX
+        originalState: stateList.EN_REVISION,
         period: '2026-1',
         directorId: 'usr-1',
         directorName: 'Ana Pérez',
@@ -190,7 +184,7 @@ describe('ProjectDataMapperService', () => {
       const mockProposal = createMockProposal({
         id: undefined,
         title: 'Propuesta sin director',
-        state: stateList.EN_DESARROLLO, // FIX: Reemplazo del falso 'BORRADOR'
+        state: stateList.EN_DESARROLLO,
         createdAt: undefined,
         director: undefined,
         isArchived: true,
@@ -311,6 +305,28 @@ describe('ProjectDataMapperService', () => {
       expect(result.directorName).toBe('Sin Asignar');
       expect(result.registrationDate).toEqual(FIXED_SYSTEM_DATE);
       expect(result.deadlineStatus).toBeNull();
+      expect(result.dueSoon).toBe(false);
+      expect(result.daysUntilDelivery).toBeNull();
+    });
+
+    it('lleva la fecha máxima de entrega, los días que quedan y si está próximo a vencer (del backend)', () => {
+      const entrega = new Date('2027-08-20T00:00:00');
+      const result = service.mapThesisWork(createMockThesisWork({
+        thesisWorkId: 'thesis-1',
+        deadlines: { startDate: null, maximumDeliveryDate: entrega, minimumSustentationDate: null,
+          objectivesChangeDeadline: null, extensionRequestDeadline: null, daysUntilDelivery: 12, dueSoon: true }
+      }));
+
+      expect(result.dueSoon).toBe(true);
+      expect(result.daysUntilDelivery).toBe(12);
+      expect(result.deliveryDate).toBe(entrega);
+      expect(result.studentNames).toBe('Ana Mora, Luis Paz');
+      expect(result.inExtension).toBe(false);
+    });
+
+    it('indica si el trabajo está en prórroga (para el reporte de próximos a vencer)', () => {
+      expect(service.mapThesisWork(createMockThesisWork({ stage: 'PRORROGA' })).inExtension).toBe(true);
+      expect(service.mapThesisWork(createMockThesisWork({ stage: 'EN_CURSO' })).inExtension).toBe(false);
     });
   });
 });

@@ -56,7 +56,6 @@ export const PazYSalvoTabConfig: TabConfiguration<PazYSalvoTableRow> = {
     if (sustentation?.pazYSalvoApproved) {
       label = 'Paz y salvo aprobado';
     } else if (sustentation?.requestNotApproved) {
-      // La solicitud no sigue: se revisa el paz y salvo de la nueva que radique el director
       label = 'Esperando una nueva solicitud de sustentación';
     } else if (sustentation?.state === 'SOLICITADA') {
       label = 'Revisar paz y salvo';

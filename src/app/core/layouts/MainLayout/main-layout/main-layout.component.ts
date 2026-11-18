@@ -7,6 +7,7 @@ import { BreadcrumbComponent } from '../../../components/breadcrumb/breadcrumb.c
 import { BreadcrumbService } from '../../../services/breadcrumb/breadcrumb.service';
 import { getDeepestRouteTitle } from './helpers/deepest-route-title.helper';
 
+/** Diseño principal: encabezado, menú lateral, migas de pan, título de la página y contenido de la ruta. */
 @Component({
   selector: 'app-main-layout',
   imports: [FooterComponent, RouterModule, HeaderComponent, SidebarComponent, BreadcrumbComponent],

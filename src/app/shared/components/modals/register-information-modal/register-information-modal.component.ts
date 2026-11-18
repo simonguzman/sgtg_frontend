@@ -13,6 +13,10 @@ export interface RegisterDetailField {
   values?: string[];
 }
 
+/**
+ * Modal con los datos de un registro del trabajo (entrega, solicitud o sesión) y sus documentos para
+ * descargar.
+ */
 @Component({
   selector: 'app-register-information-modal',
   imports: [DialogModule, CommonModule, StateComponent, ButtonComponent, TooltipModule],
@@ -20,8 +24,6 @@ export interface RegisterDetailField {
   styleUrls: ['./register-information-modal.component.css']
 })
 export class RegisterInformationModalComponent  {
-  protected stateList = stateList;
-
   @Input() modalHeader = 'Detalles de la entrega';
   @Input() subTitle = 'Información del trabajo de grado';
   /**

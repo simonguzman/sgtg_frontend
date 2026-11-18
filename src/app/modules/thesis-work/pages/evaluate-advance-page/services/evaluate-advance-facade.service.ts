@@ -10,12 +10,14 @@ import { SubmitAdvanceEvaluationPayload } from '../../../interfaces/advance-play
 import { FormattedDocument } from '../../../../../core/interfaces/formatted-document.interface';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
+/** Fachada de la revisión de un informe mensual. */
 @Injectable({ providedIn: 'root' })
 export class EvaluateAdvanceFacadeService {
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly downloadService = inject(FileDownloadService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Carga el trabajo de la ruta y el informe que se revisa; si no existen, avisa y llama a `onError`. */
   public loadThesisWork(
     id: string,
     onSuccess: (thesisWork: ThesisWork) => void,
@@ -69,6 +71,7 @@ export class EvaluateAdvanceFacadeService {
       });
   }
 
+  /** Descarga el informe mensual. */
   public async downloadAdvance(document: FormattedDocument): Promise<void> {
     if (!document?.url) {
       this.showNotification('Error de descarga', 'No existe un documento válido para descargar.', NotificationType.ERROR);
@@ -82,6 +85,7 @@ export class EvaluateAdvanceFacadeService {
     }
   }
 
+  /** Muestra el aviso «Error de navegación». */
   public showNavigationError(): void {
     this.showNotification('Error de navegación', 'No se pudieron identificar los parámetros del informe en la ruta.', NotificationType.ERROR);
   }

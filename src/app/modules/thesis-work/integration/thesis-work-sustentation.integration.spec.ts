@@ -46,14 +46,12 @@ describe('Integración [Trabajo de Grado]: Sustentación con jurado coordinador 
   it('solicitud, programación, nueva fecha, calificación con observaciones, ajustes y versión definitiva', () => {
     iniciarSesionConTrabajos(usuario('1', [UserRoleType.DOCENTE, UserRoleType.DIRECTOR]), [crearTrabajoEnCurso()]);
 
-    // El director solicita la sustentación (sin paz y salvo)
     expect(FinalDeliveryTabConfig.getHeaderButtons(FinalDeliveryTabConfig.enrichEvaluationContext(
       contextoDePestana(trabajo(), { isDirector: true })))[0].disabled).toBe(false);
     service.requestSustentation('15', { monograph: pdf('m.pdf'), formatE: pdf('e.pdf') }).subscribe();
     http.expectOne(`${API}/15/sustentacion`).flush(crearTrabajoEnSustentacion({ estado: 'SOLICITADA', sesiones: [],
       rutaPazYSalvo: null, revisionesPazYSalvo: [] }));
     expect(trabajo().sustentation?.state).toBe('SOLICITADA');
-    // Sin paz y salvo aprobado el Consejo espera; Decanatura lo revisa
     expect(SustentationTabConfig.getHeaderButtons(contextoDePestana(trabajo(), { isConsejo: true }))[0])
       .toEqual(expect.objectContaining({ label: 'Esperando el paz y salvo de Decanatura', disabled: true }));
     expect(PazYSalvoTabConfig.getHeaderButtons(contextoDePestana(trabajo(), { isDecanatura: true }))[0])
@@ -64,13 +62,11 @@ describe('Integración [Trabajo de Grado]: Sustentación con jurado coordinador 
     expect(SustentationTabConfig.getHeaderButtons(contextoDePestana(trabajo(), { isConsejo: true }))[0])
       .toEqual(expect.objectContaining({ label: 'Programar sustentación', disabled: false }));
 
-    // El Consejo programa con el coordinador 30 y el formato E
     service.scheduleSustentation('15', { coordinatorId: '30', jurorId: '31', dateTime: '2026-07-15T09:30:00',
       location: 'Sala 1', formatE: pdf('e.pdf') }).subscribe();
     http.expectOne(`${API}/15/sustentacion/programacion`).flush(crearTrabajoEnSustentacion());
     expect(trabajo().sustentation?.coordinatorId).toBe('30');
 
-    // El director pide una nueva fecha; el Consejo la aprueba con la nueva fecha y hora
     expect(availableRequestTypes(trabajo())).toContain(SpecialRequestType.NUEVA_SUSTENTACION);
     service.createSpecialRequest('15', { requestType: SpecialRequestType.NUEVA_SUSTENTACION, document: pdf('n.pdf') })
       .subscribe();
@@ -79,7 +75,6 @@ describe('Integración [Trabajo de Grado]: Sustentación con jurado coordinador 
     http.expectOne(`${API}/15/sustentacion/nueva-fecha`).flush(crearTrabajoEnSustentacion({
       solicitudesNuevaFecha: [{ ...solicitud, decision: null, nuevaFechaHora: null }]
     }));
-    // Con la solicitud pendiente el coordinador no califica
     expect(SustentationTabConfig.getTableData([], contextoDePestana(trabajo(), { isCoordinator: true }))[0]
       .allowedActions).not.toContain('evaluate_sustentation');
 
@@ -98,7 +93,6 @@ describe('Integración [Trabajo de Grado]: Sustentación con jurado coordinador 
     expect(SustentationTabConfig.getTableData([], contextoDePestana(trabajo(), { isCoordinator: true }))[0]
       .allowedActions).toContain('evaluate_sustentation');
 
-    // El coordinador califica con observaciones; el director radica los ajustes; el coordinador los verifica
     service.gradeSustentation('15', 'APROBADO_CON_OBSERVACIONES', 'Ajustar', pdf('acta.pdf')).subscribe();
     http.expectOne(`${API}/15/sustentacion/calificaciones`).flush(crearTrabajoEnSustentacion({ estado: 'EN_AJUSTES' }));
     service.submitAdjustments('15', pdf('ajustes.pdf'), pdf('anexos.pdf')).subscribe();
@@ -114,7 +108,6 @@ describe('Integración [Trabajo de Grado]: Sustentación con jurado coordinador 
     expect(CorrespondenceTabConfig.getHeaderButtons(contextoDePestana(trabajo(), { isCoordinator: true }))[0])
       .toEqual(expect.objectContaining({ label: 'Cargar versión definitiva', disabled: false }));
 
-    // El coordinador carga la versión definitiva: el trabajo finaliza y sale de la lista activa
     service.uploadFinalVersion('15', pdf('definitiva.pdf')).subscribe();
     http.expectOne(`${API}/15/sustentacion/version-definitiva`).flush(crearTrabajoEnSustentacion({
       estado: 'FINALIZADA', rutaVersionDefinitiva: '15/TI-H/v1/definitiva.pdf', fechaVersionDefinitiva: '2026-07-25'

@@ -85,7 +85,6 @@ describe('PreliminaryDraftMapperService', () => {
     // @ts-expect-error Acceso intencional a método privado para testing de caja blanca
     const allowed = service.calculateAllowedActions(mockDraft, true, true, 'admin-1');
 
-    // Solo el director anula
     expect(allowed).toEqual(['ver descripción', 'ver', 'editar']);
   });
 
@@ -143,7 +142,6 @@ describe('PreliminaryDraftMapperService', () => {
       evaluationRemainingDays: 7
     });
 
-    // Los conceptos de la versión 1 no cuentan para la ronda de la versión 2
     expect(service.mapPreliminaryDraftToTable(draft, false, false, 'user-1').remainingTime).toBe('Quedan 7 días hábiles');
   });
 });

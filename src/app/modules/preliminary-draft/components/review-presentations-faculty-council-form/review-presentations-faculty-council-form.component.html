@@ -60,23 +60,62 @@
         </div>
 
         @if (facade.evaluationForm.get('result')?.value === 'Aprobado') {
-          <div class="flex flex-col gap-1 max-w-md mx-auto w-full bg-blue-50/50 p-6 rounded-xl border border-blue-100 transition-all shadow-sm my-4">
-            <span class="font-display font-semibold text-size-section text-primary mb-2 flex items-center gap-1">
-              Fecha máxima de entrega del Trabajo de Grado <span class="text-alert">*</span>
+          <div class="flex flex-col gap-4 max-w-2xl mx-auto w-full bg-blue-50/50 p-6 rounded-xl border border-blue-100 transition-all shadow-sm my-4">
+            <span class="font-display font-semibold text-size-section text-primary flex items-center gap-1">
+              Plazo de ejecución del Trabajo de Grado
+            </span>
+            <span class="font-sans text-size-body text-text-body">
+              El plazo corre desde la reunión del Consejo en que se aprobó el anteproyecto, aunque la resolución se cargue después.
             </span>
 
-            <span class="font-sans text-size-body text-text-body mb-2">Plazo de ejecución contado desde hoy.</span>
-            <div class="flex flex-col gap-2">
-              @for (option of facade.executionMonthOptions(); track option.months) {
-                <label class="flex items-center gap-2 cursor-pointer font-sans text-size-body">
-                  <input type="radio" formControlName="executionMonths" [value]="option.months" />
-                  {{ option.months }} meses <span class="text-text-body">(vence el {{ option.deadline }})</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              <div class="flex flex-col gap-1">
+                <label for="councilStartDate" class="font-display font-semibold text-size-section text-primary">
+                  Fecha de la reunión del Consejo <span class="text-alert">*</span>
                 </label>
-              }
+                <p-datepicker
+                  inputId="councilStartDate"
+                  formControlName="startDate"
+                  dateFormat="dd/mm/yy"
+                  [showIcon]="true"
+                  [minDate]="facade.startDateMin()"
+                  [maxDate]="facade.startDateMax()"
+                  [defaultDate]="facade.startDateMax()"
+                  placeholder="dd/mm/aaaa"
+                  styleClass="w-full"
+                  [inputStyleClass]="'text-size-body p-2 border rounded-md w-full bg-white focus:outline-none focus:ring-1 focus:ring-primary ' + (facade.isFieldInvalid('startDate') ? 'border-alert' : 'border-gray-200')">
+                </p-datepicker>
+                <span class="font-sans text-size-role-footer text-text-body">Desde la remisión con el Formato C hasta hoy.</span>
+                @if (facade.isFieldInvalid('startDate')) {
+                  <span class="text-textbox-alert">Seleccione la fecha de la reunión en que se aprobó (no puede ser futura ni anterior a la remisión)</span>
+                }
+              </div>
+
+              <div class="flex flex-col gap-1">
+                <label for="councilEndDate" class="font-display font-semibold text-size-section text-primary">
+                  Fecha máxima de entrega <span class="text-alert">*</span>
+                </label>
+                <p-datepicker
+                  inputId="councilEndDate"
+                  formControlName="endDate"
+                  dateFormat="dd/mm/yy"
+                  [showIcon]="true"
+                  [minDate]="facade.endDateMin()"
+                  [maxDate]="facade.endDateMax()"
+                  [defaultDate]="facade.endDateMin()"
+                  placeholder="dd/mm/aaaa"
+                  styleClass="w-full"
+                  [inputStyleClass]="'text-size-body p-2 border rounded-md w-full bg-white focus:outline-none focus:ring-1 focus:ring-primary ' + (facade.isFieldInvalid('endDate') ? 'border-alert' : 'border-gray-200')">
+                </p-datepicker>
+                <span class="font-sans text-size-role-footer text-text-body">{{ facade.endDateHint() }}</span>
+                @if (facade.isFieldInvalid('endDate')) {
+                  <span class="text-textbox-alert">Seleccione la fecha máxima de entrega: entre 3 y 9 meses después de la reunión</span>
+                }
+              </div>
             </div>
 
-            @if (facade.isFieldInvalid('executionMonths')) {
-              <span class="text-textbox-alert mt-1">Seleccione el plazo de ejecución del trabajo de grado</span>
+            @if (facade.termLength(); as duracion) {
+              <span class="font-sans text-size-body text-primary font-semibold">Plazo de ejecución: {{ duracion }}</span>
             }
           </div>
         }

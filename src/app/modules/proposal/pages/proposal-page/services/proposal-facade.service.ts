@@ -11,6 +11,7 @@ import { TableButton } from '../../../../../shared/components/table-component/ta
 import { UserRoleType } from '../../../../../core/enums/user-role-type.enum';
 import { PROPOSAL_HEADER_BUTTONS, ProposalTableRow } from '../models/proposal-page.model';
 
+/** Fachada de la lista de propuestas. */
 @Injectable({ providedIn: 'root' })
 export class ProposalFacadeService {
   private readonly proposalService = inject(ProposalService);
@@ -24,6 +25,7 @@ export class ProposalFacadeService {
     .filter(trabajo => ETAPAS_ANULABLES.includes(trabajo.etapa))
     .map(trabajo => String(trabajo.id))));
 
+  /** Propuestas visibles como filas de la tabla. */
   public readonly proposalsTableData = computed<ProposalTableRow[]>(() => {
     const currentUser = this.authService.currentUser();
     return this.proposalService.proposals().map(proposal =>
@@ -31,8 +33,11 @@ export class ProposalFacadeService {
     );
   });
 
+  /**
+   * Botones de la cabecera. Registrar propuesta solo para el director y el administrador: el jefe de
+   * departamento no dirige trabajos (asigna sus evaluadores y los remite al Consejo).
+   */
   public readonly headerButtons = computed<TableButton[]>(() => {
-    // El jefe de departamento no dirige trabajos de grado (asigna sus evaluadores y los remite al Consejo)
     const canRegister = this.authService.hasAnyRole([
       UserRoleType.ADMINISTRADOR,
       UserRoleType.DIRECTOR
@@ -42,6 +47,7 @@ export class ProposalFacadeService {
       : PROPOSAL_HEADER_BUTTONS.filter(btn => btn.label !== 'Registrar propuesta');
   });
 
+  /** Anula el trabajo con la justificación del director; queda archivado en el historial. */
   public annulProposal(id: string, justification: string, onSuccess: () => void, onError: () => void): void {
     this.proposalService.annulProposal(id, justification).subscribe({
       next: () => {
@@ -56,6 +62,7 @@ export class ProposalFacadeService {
     });
   }
 
+  /** Avisa que el usuario no puede hacer la acción sobre la propuesta. */
   public showRestrictedAccessNotification(): void {
     this.showNotification(
       'Acceso restringido',

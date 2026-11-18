@@ -1,11 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 
+/** Pestaña: texto y valor que la identifica. */
 export interface TabItem{
   label: string;
   value: string;
 }
 
+/** Barra de pestañas; emite el valor de la pestaña elegida. */
 @Component({
   selector: 'app-tabs',
   imports: [CommonModule],

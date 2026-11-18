@@ -5,6 +5,7 @@ import { EvaluationProposalFacadeService, SaveProposalEvaluationEvent } from './
 import { EvaluationProposalFormComponent } from '../../components/evaluation-proposal-form/evaluation-proposal-form.component';
 import { NavigationHistoryService } from '../../../../core/services/navigation/navigation-history.service';
 
+/** Página en la que el Comité del programa evalúa una propuesta. */
 @Component({
   selector: 'app-evaluation-proposal-page',
   standalone: true,

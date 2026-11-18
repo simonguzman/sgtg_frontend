@@ -71,7 +71,7 @@ describe('ProposalEditPageComponent', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     mockRouter = { navigate: jest.fn() };
     mockRoute = { snapshot: { paramMap: { get: jest.fn() } } };
-    mockNavigation = { back: jest.fn((respaldo: () => unknown) => respaldo()) }; // sin página anterior: usa la navegación de respaldo
+    mockNavigation = { back: jest.fn((respaldo: () => unknown) => respaldo()) };
     mockFacade = {
       loadAndAuthorize: jest.fn(),
       validateRules: jest.fn(),

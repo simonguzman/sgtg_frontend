@@ -52,7 +52,6 @@
   </div>
 </div>
 
-<!-- Agendar o reprogramar. Sin foco al abrir: si no, el calendario de la fecha se despliega solo y tapa el lugar -->
 <p-dialog [visible]="!!scheduleTarget()" (visibleChange)="!$event && scheduleTarget.set(null)" [modal]="true"
           [draggable]="false" [resizable]="false" [focusOnShow]="false" [style]="{ width: '500px' }"
           styleClass="custom-modal">
@@ -73,7 +72,6 @@
     </div>
     <div class="flex flex-col gap-1">
       <label for="meetingPlace" class="title-textbox">Lugar o enlace <span class="text-alert">*</span></label>
-      <!-- Mismo aspecto que el campo de fecha (pInputText) -->
       <input id="meetingPlace" type="text" pInputText [(ngModel)]="schedulePlace" maxlength="500"
              placeholder="Ej: Sala de reuniones 2 o https://meet.google.com/..."
              class="text-size-body p-2 border border-gray-200 rounded-md w-full bg-white">
@@ -85,7 +83,6 @@
   </div>
 </p-dialog>
 
-<!-- Registrar como realizada -->
 <p-dialog [visible]="!!heldTarget()" (visibleChange)="!$event && heldTarget.set(null)" [modal]="true"
           [draggable]="false" [resizable]="false" [style]="{ width: '500px' }" styleClass="custom-modal">
   <ng-template pTemplate="header">
@@ -111,7 +108,6 @@
   </div>
 </p-dialog>
 
-<!-- Confirmación de agendar, reprogramar o registrar como realizada -->
 <app-confirmation-action-modal
   [isOpen]="!!pendingConfirmation()"
   [description]="confirmationMessage()"
@@ -119,7 +115,6 @@
   (confirm)="onConfirmed()">
 </app-confirmation-action-modal>
 
-<!-- Detalles -->
 <p-dialog [visible]="!!detailTarget()" (visibleChange)="!$event && detailTarget.set(null)" [modal]="true"
           [draggable]="false" [resizable]="false" [style]="{ width: '500px' }" styleClass="custom-modal">
   <ng-template pTemplate="header">

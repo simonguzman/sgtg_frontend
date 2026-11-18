@@ -60,6 +60,10 @@ const NOMBRE_ETAPA: Record<ProcesoApi, string> = {
   CANCELADO: 'Cancelado'
 };
 
+/**
+ * Nombre de la etapa para mostrar; las etapas internas del anteproyecto y de la sustentación se agrupan con
+ * su etapa.
+ */
 export function nombreEtapa(etapa: ProcesoApi): string {
   return NOMBRE_ETAPA[etapa];
 }

@@ -24,7 +24,6 @@ describe('archived-work.helper', () => {
       asesor: { usuarioId: 3, codigo: null, nombreCompleto: 'Asesor', email: null, organizacion: null, externo: false }
     });
     expect(['10', '1', '2', '3'].every(id => participoEnElTrabajo(trabajo, id))).toBe(true);
-    // Evaluador del anteproyecto
     expect(participoEnElTrabajo(trabajo, '20')).toBe(false);
     expect(participoEnElTrabajo(trabajo, undefined)).toBe(false);
   });

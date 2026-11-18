@@ -18,13 +18,12 @@ function countBy(data: RawProjectData[], field: 'modality' | 'program'): { label
 const colorsFor = (count: number) =>
   Array.from({ length: count }, (_, i) => CATEGORY_CHART_COLORS[i % CATEGORY_CHART_COLORS.length]);
 
+/** Datos de los gráficos de la página de estadísticas, calculados sobre los trabajos filtrados. */
 @Injectable({ providedIn: 'root' })
 export class StatisticsChartDataService {
   private readonly state = inject(StatisticsStateService);
 
-  // ← Antes: 8 líneas de `.filter(p => p.status === X).length` escritas a
-  // mano. Ahora: un solo .map() sobre STATUS_CHART_ORDER — agregar un
-  // ProjectStatus nuevo al gráfico solo requiere tocar el modelo.
+  /** Trabajos por estado, en el orden de `STATUS_CHART_ORDER`. */
   public readonly statusChartData = computed<ChartDataConfiguration>(() => {
     const data = this.state.filteredData();
 
@@ -39,6 +38,7 @@ export class StatisticsChartDataService {
     };
   });
 
+  /** Trabajos por etapa. */
   public readonly stageChartData = computed<ChartDataConfiguration>(() => {
     const data = this.state.filteredData();
 
@@ -53,6 +53,7 @@ export class StatisticsChartDataService {
     };
   });
 
+  /** Trabajos por modalidad. */
   public readonly modalityChartData = computed<ChartDataConfiguration>(() => {
     const { labels, counts } = countBy(this.state.filteredData(), 'modality');
     return {
@@ -61,6 +62,7 @@ export class StatisticsChartDataService {
     };
   });
 
+  /** Trabajos por programa. */
   public readonly programChartData = computed<ChartDataConfiguration>(() => {
     const { labels, counts } = countBy(this.state.filteredData(), 'program');
     return {

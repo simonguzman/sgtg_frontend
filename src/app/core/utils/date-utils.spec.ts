@@ -1,4 +1,4 @@
-import { formatDisplayDate, parseDisplayDate } from './date-utils';
+import { formatDisplayDate, parseDisplayDate, fechaLocalIso, sumarMeses, desdeFechaIso } from './date-utils';
 
 describe('Date Utils', () => {
 
@@ -56,6 +56,23 @@ describe('Date Utils', () => {
       const resultUndefined = parseDisplayDate(undefined);
       expect(resultNull.getTime()).toBeNaN();
       expect(resultUndefined.getTime()).toBeNaN();
+    });
+  });
+
+  describe('fechas para el plazo del Consejo', () => {
+    it('fechaLocalIso usa la fecha local, sin corrimiento de zona', () => {
+      expect(fechaLocalIso(new Date(2027, 6, 23, 23, 30))).toBe('2027-07-23');
+    });
+
+    it('sumarMeses se comporta como LocalDate.plusMonths (fin de mes)', () => {
+      expect(sumarMeses(new Date(2027, 0, 31), 1)).toEqual(new Date(2027, 1, 28));
+      expect(sumarMeses(new Date(2027, 6, 23), 9)).toEqual(new Date(2028, 3, 23));
+      expect(sumarMeses(new Date(2027, 10, 30), 3)).toEqual(new Date(2028, 1, 29));
+    });
+
+    it('desdeFechaIso lee el LocalDate del backend como fecha local', () => {
+      expect(desdeFechaIso('2027-07-23')).toEqual(new Date(2027, 6, 23));
+      expect(desdeFechaIso(null)).toBeNull();
     });
   });
 });

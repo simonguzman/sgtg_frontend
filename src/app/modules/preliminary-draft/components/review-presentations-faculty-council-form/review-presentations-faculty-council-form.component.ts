@@ -1,5 +1,6 @@
 import { Component, effect, inject, input, output, OnInit } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
+import { DatePicker } from 'primeng/datepicker';
 import { ReviewPresentationsFacultyCouncilFormFacadeService } from './services/review-presentations-faculty-council-form-facade.service';
 import { ButtonComponent } from '../../../../shared/components/button-component/button-component.component';
 import { FileUploadModalComponent } from '../../../../shared/components/modals/file-upload-modal/file-upload-modal.component';
@@ -10,10 +11,14 @@ import { FormattedDocument } from '../../../../core/interfaces/formatted-documen
 import { SaveEvaluationPayload } from './models/council-evaluation.model';
 import { ProposalContentFieldsComponent } from '../../../../shared/components/proposal-content-fields/proposal-content-fields.component';
 
+/**
+ * Formulario del Consejo de Facultad para decidir sobre el anteproyecto remitido con el formato C; al
+ * aprobarlo fija la fecha de su reunión y la fecha máxima de entrega.
+ */
 @Component({
   selector: 'app-review-presentations-faculty-council-form',
   standalone: true,
-  imports: [ProposalContentFieldsComponent, ReactiveFormsModule, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],
+  imports: [ProposalContentFieldsComponent, ReactiveFormsModule, DatePicker, ButtonComponent, FileUploadModalComponent, InfoBannerComponent, ReadonlyFieldComponent],
   providers: [ReviewPresentationsFacultyCouncilFormFacadeService],
   templateUrl: './review-presentations-faculty-council-form.component.html',
   styleUrls: ['./review-presentations-faculty-council-form.component.css']

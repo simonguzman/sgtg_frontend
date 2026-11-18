@@ -6,6 +6,7 @@ import { StateComponent } from '../state/state.component';
 import { ButtonComponent } from '../button-component/button-component.component';
 import { EmptyStateComponent } from '../empty-state/empty-state.component';
 
+/** Botón de la cabecera de la tabla. */
 export interface TableButton{
   action?: string;
   label?: string;
@@ -14,6 +15,7 @@ export interface TableButton{
   disabled?: boolean;
 }
 
+/** Botón de acción de una fila; la fila lo muestra solo si su acción está en `allowedActions`. */
 export interface ActionButton{
   action: string;
   label?: string;
@@ -24,6 +26,7 @@ export interface ActionButton{
   disabled: boolean;
 }
 
+/** Columna de la tabla: campo de la fila, encabezado y tipo (texto, estado o acciones). */
 export interface Column{
   field: string;
   header: string;
@@ -33,14 +36,18 @@ export interface Column{
   filterable?: boolean;
 }
 
+/** Fila de la tabla. `allowedActions` indica qué botones de acción se muestran en ella. */
 export interface TableRow {
-  // any a propósito: las páginas pasan sus filas tipadas (ProposalTableRow, InboxMessageTableRow...) y las
-  // reciben de vuelta en actionClick; con unknown ninguna interfaz concreta encaja sin volver genérica la tabla
+  // any: las páginas pasan filas con su propia interfaz y con unknown ninguna encajaría en la tabla.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
   allowedActions?: string[];
 }
 
+/**
+ * Tabla de PrimeNG con paginación, filtros por columna, estados y botones de acción por fila. Emite la acción
+ * pulsada junto con su fila.
+ */
 @Component({
   selector: 'app-table-component',
   imports: [
@@ -54,11 +61,7 @@ export interface TableRow {
   templateUrl: './table-component.component.html',
   styleUrl: './table-component.component.css'
 })
-
 export class TableComponent<T extends TableRow = TableRow> {
-
-  protected Array = Array;
-
   @Input() value: T[] = [];
   @Input() columns: Column[] = [];
   @Input() rows = 5;

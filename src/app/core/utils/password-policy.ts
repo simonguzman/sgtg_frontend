@@ -1,12 +1,14 @@
 import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 
 /**
- * Política de contraseñas, la misma del backend (`PoliticaPassword`). El
- * backend la vuelve a revisar y además impide repetir las últimas 5
- * contraseñas; aquí solo se adelanta para avisar mientras se escribe.
+ * @fileoverview Política de contraseñas, la misma del backend (`PoliticaPassword`). El backend la vuelve a
+ * revisar y además impide repetir las últimas 5 contraseñas; aquí solo se adelanta para avisar mientras se
+ * escribe.
  */
 
+/** Longitud mínima de la contraseña, en caracteres. */
 export const PASSWORD_MIN_LENGTH = 8;
+/** Longitud máxima de la contraseña, en caracteres. */
 export const PASSWORD_MAX_LENGTH = 64;
 /** Límite de BCrypt en el backend */
 const PASSWORD_MAX_BYTES = 72;
@@ -21,6 +23,7 @@ const bytesUtf8 = (texto: string): number => Array.from(texto).reduce((total, ca
   return total + (codigo < 0x80 ? 1 : codigo < 0x800 ? 2 : codigo < 0x10000 ? 3 : 4);
 }, 0);
 
+/** Requisito de la contraseña: el texto que se muestra y la función que dice si se cumple. */
 export interface PasswordRequirement {
   texto: string;
   cumple: (password: string) => boolean;

@@ -70,7 +70,7 @@ describe('RegisterSpecialRequestFacadeService', () => {
       facade.processSaveRequest('15', { requestType: SpecialRequestType.CAMBIO_TITULO, title: 'Nuevo',
         objectives: ['G'], justification: 'J' }, jest.fn(), jest.fn());
       expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'La solicitud quedó registrada y se notificó al Comité del programa, que debe avalarla.'
+        message: 'La solicitud quedó registrada y se notificó al Comité del programa, que debe emitir su concepto de pertinencia.'
       }));
     });
 

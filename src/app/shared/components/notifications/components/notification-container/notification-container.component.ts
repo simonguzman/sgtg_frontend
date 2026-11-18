@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { NotificationService } from '../../services/notification.service';
 import { NotificationItemComponent } from '../notification-item/notification-item.component';
 
+/** Contenedor de los avisos emergentes de NotificationService. */
 @Component({
   selector: 'app-notification-container',
   imports: [NotificationItemComponent],

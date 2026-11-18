@@ -6,6 +6,7 @@ import { AnnulWorkModalComponent } from '../../../../shared/components/modals/an
 import { ProposalFacadeService } from './services/proposal-facade.service';
 import { PROPOSAL_COLUMNS, ProposalTableRow } from './models/proposal-page.model';
 
+/** Lista de propuestas visibles para el usuario, con sus acciones según el rol. */
 @Component({
   selector: 'app-proposal-page',
   imports: [TableComponent, DescriptionModalComponent, AnnulWorkModalComponent],

@@ -10,6 +10,11 @@ import { PreliminaryDraftService } from '../../../services/preliminary-draft.ser
 import { NotificationService } from '../../../../../shared/components/notifications/services/notification.service';
 import { SelectOption } from '../../../../../shared/components/searchable-select/searchable-select.component';
 
+/**
+ * Estado del formulario de asignación de evaluadores. Los candidatos son los docentes del departamento del
+ * director, sin el jefe, el Comité ni el Consejo y sin los participantes del trabajo (la misma regla del
+ * backend); el segundo evaluador debe ser distinto del primero.
+ */
 @Injectable()
 export class AssignEvaluatorsFormFacadeService {
   private readonly fb = inject(FormBuilder);
@@ -18,9 +23,11 @@ export class AssignEvaluatorsFormFacadeService {
   private readonly notificationService = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
 
+  /** Anteproyecto al que se asignan los evaluadores. */
   readonly preliminaryDraft = signal<PreliminaryDraft | null>(null);
   private readonly firstEvaluatorSelectedId = signal<string>('');
 
+  /** Los dos evaluadores, ambos obligatorios. */
   readonly form = this.fb.group({
     evaluator1: ['', Validators.required],
     evaluator2: ['', Validators.required]
@@ -47,7 +54,6 @@ export class AssignEvaluatorsFormFacadeService {
       if (id) forbiddenIds.add(id);
     });
 
-    // Docentes del departamento del director, sin jefe, Comité ni Consejo (misma regla del backend)
     const departmentId = allUsers.find(user => user.id === data.director?.id)?.department?.id
       ?? data.director?.department?.id;
     return allUsers.filter(user => canEvaluateWork(user, departmentId, forbiddenIds));
@@ -59,6 +65,7 @@ export class AssignEvaluatorsFormFacadeService {
     return available.filter(user => user.id !== firstId);
   });
 
+  /** Candidatos para el primer evaluador. */
   readonly evaluator1Options = computed<SelectOption[]>(() =>
     this.availableEvaluators().map(user => ({
       id: user.id!,
@@ -66,6 +73,7 @@ export class AssignEvaluatorsFormFacadeService {
     }))
   );
 
+  /** Candidatos para el segundo evaluador, sin el primero. */
   readonly evaluator2Options = computed<SelectOption[]>(() =>
     this.filteredEvaluatorsForE2().map(user => ({
       id: user.id!,
@@ -85,6 +93,7 @@ export class AssignEvaluatorsFormFacadeService {
       });
   }
 
+  /** Nombre completo de un participante, o «No asignado». */
   getMemberFullName(user: User | undefined): string {
     if (!user) return 'No asignado';
     return [user.firstName, user.secondName, user.lastName, user.secondLastName]
@@ -92,20 +101,24 @@ export class AssignEvaluatorsFormFacadeService {
       .join(' ');
   }
 
+  /** Nombres de los estudiantes, o «No asignado». */
   getAuthorsNames(authors: User[] | undefined): string {
     return this.userService.getAuthorsNames(authors) || 'No asignado';
   }
 
+  /** @returns true si el campo fue tocado y no es válido */
   isFieldInvalid(fieldName: string): boolean {
     const control = this.form.get(fieldName);
     return !!(control?.invalid && control?.touched);
   }
 
+  /** @returns true si el campo fue tocado y es válido */
   isFieldValid(fieldName: string): boolean {
     const control = this.form.get(fieldName);
     return !!(control?.valid && control?.touched);
   }
 
+  /** Valida el formulario y devuelve los ids de los dos evaluadores, o null avisando qué falta. */
   validateAndGetPayload(): { ev1: string, ev2: string } | null {
     this.form.markAllAsTouched();
 

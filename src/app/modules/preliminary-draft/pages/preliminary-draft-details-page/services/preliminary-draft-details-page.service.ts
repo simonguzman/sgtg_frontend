@@ -15,6 +15,7 @@ import {
 import { WorkDetailsDocument, WorkDetailsView } from '../../../../../shared/components/work-details/work-details.model';
 import { NavigationHistoryService } from '../../../../../core/services/navigation/navigation-history.service';
 
+/** Fachada del detalle del anteproyecto. */
 @Injectable()
 export class PreliminaryDraftDetailsPageService {
   private readonly route = inject(ActivatedRoute);
@@ -24,8 +25,10 @@ export class PreliminaryDraftDetailsPageService {
   private readonly notificationService = inject(NotificationService);
   private readonly downloadService = inject(FileDownloadService);
 
+  /** Anteproyecto que se consulta. */
   readonly preliminaryDraftDetails = signal<PreliminaryDraft | null>(null);
 
+  /** Formato A firmado con el que el Comité consideró pertinente la propuesta. */
   readonly approvedProposalDocument = computed<FormattedDocument | null>(() => {
     const evaluations = this.preliminaryDraftDetails()?.proposalData?.evaluations;
     return resolveApprovedEvaluationDocument(evaluations);
@@ -64,6 +67,7 @@ export class PreliminaryDraftDetailsPageService {
     });
   });
 
+  /** Carga el anteproyecto de la ruta y fija la miga y el título de la página. */
   init(): void {
     const preliminaryDraftId = this.route.snapshot.paramMap.get('id') || this.route.parent?.snapshot.paramMap.get('id');
 
@@ -89,6 +93,7 @@ export class PreliminaryDraftDetailsPageService {
     });
   }
 
+  /** Descarga un documento del anteproyecto. */
   async downloadDocument(targetDocument: WorkDetailsDocument): Promise<void> {
     if (!targetDocument?.url) {
       this.showDownloadFileErrorNotification();
@@ -104,6 +109,7 @@ export class PreliminaryDraftDetailsPageService {
     }
   }
 
+  /** Vuelve a la página anterior o, si no hay, a la lista de anteproyectos o al historial. */
   goBack(): void {
     this.navigation.back(() => {
       const currentUrl = this.router.url;
@@ -115,10 +121,12 @@ export class PreliminaryDraftDetailsPageService {
     });
   }
 
+  /** Abre las evaluaciones realizadas del anteproyecto. */
   navigateToEvaluations(): void {
     void this.router.navigate(['evaluations_performed'], { relativeTo: this.route });
   }
 
+  /** Abre los documentos cargados del anteproyecto. */
   navigateToDocuments(): void {
     void this.router.navigate(['loaded_documents'], { relativeTo: this.route });
   }

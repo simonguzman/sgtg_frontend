@@ -7,11 +7,13 @@ import { ThesisWork } from '../../../interfaces/thesis-work.interface';
 import { UploadAdvancePayload } from '../../../interfaces/advance-playload.interface';
 import { apiErrorMessage } from '../../../../../core/utils/api-error.utils';
 
+/** Fachada de la carga de un informe mensual. */
 @Injectable({ providedIn: 'root' })
 export class UploadAdvancePageFacadeService {
   private readonly thesisWorkService = inject(ThesisWorkService);
   private readonly notificationService = inject(NotificationService);
 
+  /** Carga el trabajo de grado de la ruta; si no existe, avisa y llama a `onError`. */
   public loadThesisWork(
     id: string,
     onSuccess: (thesisWork: ThesisWork) => void,
@@ -64,6 +66,7 @@ export class UploadAdvancePageFacadeService {
       });
   }
 
+  /** Muestra el aviso «Error de navegación». */
   public showNavigationError(): void {
     this.showNotification('Error de navegación', 'No se pudo identificar el identificador del trabajo de grado.', NotificationType.ERROR);
   }

@@ -109,7 +109,6 @@ describe('PreliminaryDraftAssignmentService', () => {
 
       expect(terminado).toBe(true);
       expect(TestBed.inject(TrabajoGradoStoreService).porId().get('15')?.etapa).toBe('EVALUACION');
-      // Los evaluadores ganaron el rol EVALUADOR en el backend
       expect(userSpy.loadUsers).toHaveBeenCalled();
     });
 

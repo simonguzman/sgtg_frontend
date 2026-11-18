@@ -27,6 +27,13 @@
     (onClose)="isReportModalOpen.set(false)"
     (selectFormat)="onReportFormatSelected($event)"
   ></app-report-format-modal>
+  <app-report-format-modal
+    kind="dueSoon"
+    [isOpen]="isDueSoonReportModalOpen()"
+    [rows]="facade.totalDueSoon()"
+    (onClose)="isDueSoonReportModalOpen.set(false)"
+    (selectFormat)="onDueSoonReportFormatSelected($event)"
+  ></app-report-format-modal>
   <div class="bg-blue-50/50 p-6 rounded-xl border border-blue-100 shadow-sm flex flex-col gap-4">
     <h3 class="font-display font-semibold text-primary text-size-section mb-2 flex items-center gap-2">
       <span class="material-symbols-outlined text-size-sidebar-title">filter_alt</span> Filtros de Búsqueda
@@ -36,105 +43,92 @@
         <label for="stageFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Etapa del Proceso
         </label>
-        <p-select
-          id="stageFilter"
-          [options]="facade.stagesOptions"
-          [ngModel]="facade.currentFilters().stage"
+        <app-searchable-select
+          inputId="stageFilter"
+          [options]="stageSelectOptions"
+          [ngModel]="facade.currentFilters().stage ?? ''"
           (ngModelChange)="onStageChange($event)"
-          optionLabel="label"
-          optionValue="value"
           placeholder="Todas las etapas"
-          [showClear]="true"
-          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
-        </p-select>
+          [isClearable]="true">
+        </app-searchable-select>
       </div>
       <div class="flex flex-col gap-1">
         <label for="periodFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Periodo Académico
         </label>
-        <p-select
-          id="periodFilter"
-          [options]="facade.periodsOptions()"
-          [ngModel]="facade.currentFilters().period"
+        <app-searchable-select
+          inputId="periodFilter"
+          [options]="periodSelectOptions()"
+          [ngModel]="facade.currentFilters().period ?? ''"
           (ngModelChange)="onPeriodChange($event)"
           placeholder="Todos los periodos"
-          [showClear]="true"
-          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
-        </p-select>
+          [isClearable]="true">
+        </app-searchable-select>
       </div>
       <div class="flex flex-col gap-1">
         <label for="directorFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Director Asignado
         </label>
-        <p-select
-          id="directorFilter"
-          [options]="facade.directorsOptions()"
-          [ngModel]="facade.currentFilters().directorId"
+        <app-searchable-select
+          inputId="directorFilter"
+          [options]="directorSelectOptions()"
+          [ngModel]="facade.currentFilters().directorId ?? ''"
           (ngModelChange)="onDirectorChange($event)"
-          optionLabel="name"
-          optionValue="id"
           placeholder="Todos los directores"
-          [showClear]="true"
-          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
-        </p-select>
+          [isClearable]="true">
+        </app-searchable-select>
       </div>
       <div class="flex flex-col gap-1">
         <label for="modalityFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Modalidad
         </label>
-        <p-select
-          id="modalityFilter"
-          [options]="facade.modalityOptions()"
-          [ngModel]="facade.currentFilters().modality"
+        <app-searchable-select
+          inputId="modalityFilter"
+          [options]="modalitySelectOptions()"
+          [ngModel]="facade.currentFilters().modality ?? ''"
           (ngModelChange)="onModalityChange($event)"
           placeholder="Todas las modalidades"
-          [showClear]="true"
-          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
-        </p-select>
+          [isClearable]="true">
+        </app-searchable-select>
       </div>
       <div class="flex flex-col gap-1">
         <label for="programFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Programa
         </label>
-        <p-select
-          id="programFilter"
-          [options]="facade.programOptions()"
-          [ngModel]="facade.currentFilters().program"
+        <app-searchable-select
+          inputId="programFilter"
+          [options]="programSelectOptions()"
+          [ngModel]="facade.currentFilters().program ?? ''"
           (ngModelChange)="onProgramChange($event)"
           placeholder="Todos los programas"
-          [showClear]="true"
-          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
-        </p-select>
+          [isClearable]="true">
+        </app-searchable-select>
       </div>
       <div class="flex flex-col gap-1">
         <label for="archiveFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Estado del trabajo
         </label>
-        <p-select
-          id="archiveFilter"
-          [options]="archiveOptions"
-          [ngModel]="facade.currentFilters().archiveStatus"
+        <app-searchable-select
+          inputId="archiveFilter"
+          [options]="archiveSelectOptions"
+          [ngModel]="facade.currentFilters().archiveStatus ?? ''"
           (ngModelChange)="onArchiveStatusChange($event)"
-          optionLabel="label"
-          optionValue="value"
-          [showClear]="false"
-          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
-        </p-select>
+          placeholder="Estado del trabajo"
+          [isClearable]="false">
+        </app-searchable-select>
       </div>
       <div class="flex flex-col gap-1">
         <label for="deadlineFilter" class="font-display font-semibold text-size-role-footer text-primary">
           Plazo de Evaluación
         </label>
-        <p-select
-          id="deadlineFilter"
-          [options]="deadlineFilterOptions"
-          [ngModel]="facade.currentFilters().deadlineFilter"
+        <app-searchable-select
+          inputId="deadlineFilter"
+          [options]="deadlineSelectOptions"
+          [ngModel]="facade.currentFilters().deadlineFilter ?? ''"
           (ngModelChange)="onDeadlineFilterChange($event)"
-          optionLabel="label"
-          optionValue="value"
-          [showClear]="false"
-          styleClass="w-full text-size-body border-gray-200 rounded-md focus:ring-1 focus:ring-primary">
-        </p-select>
+          placeholder="Plazo de evaluación"
+          [isClearable]="false">
+        </app-searchable-select>
       </div>
       <div class="flex justify-start md:justify-end">
         <app-button-component
@@ -146,7 +140,7 @@
       </div>
     </div>
   </div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
     <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-primary rounded-xl shadow-sm flex items-center justify-between">
       <div class="flex flex-col gap-1">
         <span class="text-size-role-footer text-text-body font-medium">Trabajos registrados</span>
@@ -183,14 +177,123 @@
         <span class="material-symbols-outlined text-size-modal-title">cancel</span>
       </div>
     </div>
+    @if (facade.totalDueSoon() > 0) {
+      <div class="due-soon-card p-5 rounded-xl shadow-md flex items-center justify-between gap-3" role="status">
+        <div class="flex flex-col gap-1">
+          <span class="text-size-role-footer font-semibold flex items-center gap-1">
+            <span class="material-symbols-outlined due-soon-pulse text-size-section">warning</span>
+            Próximos a vencer
+          </span>
+          <span class="text-3xl font-display font-bold">{{ facade.totalDueSoon() }}</span>
+          <span class="text-size-role-footer opacity-90">Entrega en 30 días o menos</span>
+        </div>
+        <app-button-component class="due-soon-eye" variant="light" (onClick)="toggleDueSoon()"
+          [icon]="isDueSoonOpen() ? 'visibility_off' : 'visibility'"
+          [ariaLabel]="isDueSoonOpen() ? 'Ocultar los trabajos próximos a vencer' : 'Ver los trabajos próximos a vencer'"
+          [title]="isDueSoonOpen() ? 'Ocultar' : 'Ver los trabajos'">
+        </app-button-component>
+      </div>
+    } @else {
+      <div class="bg-white p-5 border border-gray-200 border-l-4 border-l-[#2e7d32] rounded-xl shadow-sm flex items-center justify-between">
+        <div class="flex flex-col gap-1">
+          <span class="text-size-role-footer text-text-body font-medium">Próximos a vencer</span>
+          <span class="text-3xl font-display font-bold text-[#2e7d32]">0</span>
+          <span class="text-size-role-footer text-text-body">Ninguna entrega en los próximos 30 días</span>
+        </div>
+        <div class="p-3 bg-green-50 text-[#2e7d32] rounded-lg flex items-center justify-center">
+          <span class="material-symbols-outlined text-size-modal-title">event_available</span>
+        </div>
+      </div>
+    }
   </div>
+
+  @if (isDueSoonOpen() && facade.totalDueSoon() > 0) {
+    <section #dueSoonSection id="dueSoonSection" class="due-soon-section bg-white rounded-xl shadow-sm p-5 flex flex-col gap-4">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="flex flex-col gap-1">
+          <h3 class="font-display font-semibold text-danger text-size-section flex items-center gap-2 m-0">
+            <span class="material-symbols-outlined">alarm</span>
+            Trabajos de grado próximos a vencer
+          </h3>
+          <p class="text-size-role-footer text-text-body m-0">
+            En curso o en prórroga, a 30 días o menos de su fecha máxima de entrega y sin la sustentación solicitada.
+            @if (facade.canRemind()) {
+              El recordatorio llega a la bandeja de los estudiantes y de la dirección del trabajo (una vez al día).
+            }
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <app-button-component class="due-soon-report" label="Generar reporte" variant="secondary" icon="download"
+            (onClick)="isDueSoonReportModalOpen.set(true)"></app-button-component>
+          @if (facade.canRemind()) {
+            <app-button-component label="Recordar a todos" variant="primary" icon="notifications_active"
+              (onClick)="facade.remindAll()"></app-button-component>
+          }
+          <app-button-component class="due-soon-close" variant="secondary" icon="close" ariaLabel="Cerrar la lista"
+            title="Cerrar" (onClick)="toggleDueSoon()"></app-button-component>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="due-soon-table w-full text-size-body">
+          <thead>
+            <tr>
+              <th scope="col">Trabajo de grado</th>
+              <th scope="col">Director</th>
+              <th scope="col">Programa</th>
+              <th scope="col">Fecha máxima de entrega</th>
+              <th scope="col">Quedan</th>
+              <th scope="col" class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (project of facade.dueSoonProjects(); track project.id) {
+              <tr>
+                <td>
+                  <span class="block font-semibold text-primary">{{ project.title }}</span>
+                  <span class="block text-size-role-footer text-text-body">{{ project.studentNames }}</span>
+                </td>
+                <td>{{ project.directorName }}</td>
+                <td>{{ project.program }}</td>
+                <td class="whitespace-nowrap">{{ project.deliveryDate | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  <span class="due-soon-badge" [class.due-soon-badge--critical]="(project.daysUntilDelivery ?? 0) <= 7">
+                    {{ daysLabel(project.daysUntilDelivery) }}
+                  </span>
+                </td>
+                <td>
+                  <div class="flex items-center justify-center gap-2">
+                    @if (facade.canOpenDetails()) {
+                      <app-button-component class="due-soon-view" icon="visibility" title="Ver el trabajo de grado"
+                        [ariaLabel]="'Ver el trabajo ' + project.title" (onClick)="openThesisWork(project.id)">
+                      </app-button-component>
+                    }
+                    @if (facade.canRemind()) {
+                      @if (facade.remindedToday().has(project.id)) {
+                        <span class="due-soon-reminded" title="Ya se recordó hoy">
+                          <span class="material-symbols-outlined">check_circle</span> Recordado hoy
+                        </span>
+                      } @else {
+                        <app-button-component class="due-soon-remind" variant="danger" icon="notifications_active"
+                          [disabled]="facade.sendingReminder().has(project.id)" (onClick)="facade.remind(project)"
+                          [ariaLabel]="'Enviar recordatorio de entrega a ' + project.title"
+                          title="Enviar recordatorio a estudiantes y dirección">
+                        </app-button-component>
+                      }
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
   @if (facade.totalLoaded() === 0) {
     <div class="information-block p-6 rounded-xl text-size-body text-text-body text-center">
       No hay trabajos de grado con los filtros seleccionados.
     </div>
   } @else {
-  <!-- Cada gráfico se dibuja al llegar a la pantalla: en el celular quedan debajo de los filtros y
-       dibujarlos al cargar era la mayor parte del trabajo de la página. El espacio ya está reservado (h-80). -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <div class="bg-white p-6 border border-gray-200 rounded-xl shadow-sm flex flex-col gap-4">
       <h3 class="font-display font-semibold text-primary text-size-section">

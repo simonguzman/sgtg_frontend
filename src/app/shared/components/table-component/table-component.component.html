@@ -66,7 +66,6 @@
                     [showAddButton]="false"
                     [ariaLabel]="'Buscar por ' + col.header.toLowerCase()"
                     placeholder="Buscar {{ col.header.toLowerCase() }}...">
-                    <!-- Lupa en lugar del embudo; con un filtro aplicado queda resaltada -->
                     <ng-template #filtericon let-hasFilter="hasFilter">
                       <span class="material-symbols-outlined column-filter-icon" [class.column-filter-icon--active]="hasFilter">search</span>
                     </ng-template>
