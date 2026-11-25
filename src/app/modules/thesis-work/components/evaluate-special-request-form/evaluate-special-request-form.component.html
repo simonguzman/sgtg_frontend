@@ -151,7 +151,9 @@
         } @else {
           <div class="information-block flex items-center justify-between gap-3 p-4 bg-white rounded-xl shadow-sm"
                [class.border-alert]="isSubmitAttempted() && !isCommitteeStep" [class.border-gray-200]="!isSubmitAttempted() || isCommitteeStep">
-            <span class="text-size-body text-text-body font-sans">
+            <span class="text-size-body font-sans"
+                  [class.text-textbox-alert]="isSubmitAttempted() && !isCommitteeStep"
+                  [class.text-text-body]="!isSubmitAttempted() || isCommitteeStep">
               {{ isCommitteeStep ? 'Si lo considera necesario, adjunte el acta o concepto del Comité.' : 'Adjunte la resolución del Consejo de Facultad.' }}
             </span>
             <app-button-component [label]="isCommitteeStep ? 'Cargar acta' : 'Cargar resolución'" variant="secondary" type="button" (onClick)="isUploadModalOpen.set(true)"></app-button-component>

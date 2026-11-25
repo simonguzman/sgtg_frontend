@@ -149,7 +149,9 @@
           } @else {
             <div class="information-block flex items-center justify-between gap-3 p-4 bg-white rounded-xl shadow-sm"
                  [class.border-alert]="isSubmitAttempted()" [class.border-gray-200]="!isSubmitAttempted()">
-              <span class="text-size-body text-text-body font-sans">{{ documentHint }}</span>
+              <span class="text-size-body font-sans"
+                    [class.text-textbox-alert]="isSubmitAttempted()"
+                    [class.text-text-body]="!isSubmitAttempted()">{{ documentHint }}</span>
               <app-button-component label="Cargar documento" variant="secondary" type="button" (onClick)="isUploadModalOpen.set(true)"></app-button-component>
             </div>
           }

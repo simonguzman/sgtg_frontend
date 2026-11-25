@@ -46,6 +46,17 @@ describe('UploadAdvanceFormComponent', () => {
     expect(notification.show).toHaveBeenCalledWith(expect.objectContaining({ title: 'Archivo requerido' }));
   });
 
+  it('sin el PDF marca el recuadro de carga como requerido', () => {
+    expect(fixture.nativeElement.textContent).not.toContain('Este archivo es requerido');
+
+    component.submit();
+    fixture.detectChanges();
+
+    expect(component.isSubmitAttempted()).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('Este archivo es requerido');
+    expect(fixture.nativeElement.querySelector('.information-block.border-alert')).not.toBeNull();
+  });
+
   it('con el PDF envía el archivo y las observaciones (opcionales)', () => {
     const informe = pdf('informe.pdf');
     component.handleFileUploaded({ fileName: 'informe.pdf', file: informe });

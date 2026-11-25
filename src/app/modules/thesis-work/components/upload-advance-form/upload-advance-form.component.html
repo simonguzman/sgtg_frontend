@@ -72,10 +72,19 @@
               </button>
             </div>
           } @else {
-            <div class="information-block flex items-center p-4 bg-white border-gray-200 rounded-xl shadow-sm transition-colors">
+            <div class="information-block flex items-center p-4 bg-white rounded-xl shadow-sm transition-colors"
+                 [class.border-alert]="isSubmitAttempted()" [class.border-gray-200]="!isSubmitAttempted()">
               <div class="flex items-center gap-3">
-                <span class="material-symbols-outlined text-gray-400 text-file shrink-0">upload_file</span>
-                <span class="text-size-body text-text-body font-sans">No ha adjuntado el informe. Cárguelo con el botón "Cargar informe" al final del formulario.</span>
+                <span class="material-symbols-outlined text-file shrink-0"
+                      [class.text-alert]="isSubmitAttempted()" [class.text-gray-400]="!isSubmitAttempted()">upload_file</span>
+                <div class="flex flex-col">
+                  <span class="text-size-body font-sans"
+                        [class.text-textbox-alert]="isSubmitAttempted()"
+                        [class.text-text-body]="!isSubmitAttempted()">No ha adjuntado el informe. Cárguelo con el botón "Cargar informe" al final del formulario.</span>
+                  @if (isSubmitAttempted()) {
+                    <span class="text-size-role-footer text-textbox-alert mt-1">Este archivo es requerido</span>
+                  }
+                </div>
               </div>
             </div>
           }
