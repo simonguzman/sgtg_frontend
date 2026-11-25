@@ -29,6 +29,8 @@ export class UploadAdvanceFormComponent {
 
   readonly uploadedFile = signal<{ fileName: string; file: File } | null>(null);
   readonly isUploadModalOpen = signal(false);
+  /** true después de intentar radicar sin el documento: el recuadro de carga se marca como faltante. */
+  readonly isSubmitAttempted = signal(false);
 
   get advanceForm() { return this.formService.advanceForm; }
   /** Número que tendrá el informe: el siguiente al último radicado. */
@@ -60,6 +62,7 @@ export class UploadAdvanceFormComponent {
     }
     const uploaded = this.uploadedFile();
     if (!uploaded) {
+      this.isSubmitAttempted.set(true);
       this.formService.notifyMissingFiles();
       return;
     }

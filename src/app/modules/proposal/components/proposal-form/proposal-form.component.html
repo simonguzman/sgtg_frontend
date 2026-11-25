@@ -279,7 +279,9 @@
                 {{ acceptanceLetter.hasFile ? 'task' : 'picture_as_pdf' }}
               </span>
               <div class="flex flex-col">
-                <span class="text-size-body font-bold" [class.text-primary]="acceptanceLetter.hasFile">
+                <span class="text-size-body font-bold"
+                      [class.text-primary]="acceptanceLetter.hasFile"
+                      [class.text-alert]="isLetterFieldInvalid">
                   {{ acceptanceLetter.name || 'Carta de aceptación de la organización' }}
                 </span>
                 <span class="text-size-role-footer text-text-body">Obligatoria en práctica profesional</span>

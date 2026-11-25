@@ -83,7 +83,8 @@
             </span>
             <div class="flex flex-col overflow-hidden">
               <span class="text-size-body font-bold truncate" [class.text-primary]="uploaded()[slot.key]"
-                    [class.text-text-body]="!uploaded()[slot.key]">
+                    [class.text-alert]="isMissing(slot.key)"
+                    [class.text-text-body]="!uploaded()[slot.key] && !isMissing(slot.key)">
                 {{ uploaded()[slot.key]?.fileName || slot.label }}
               </span>
               <span class="text-size-role-footer text-text-body">{{ slot.hint }} ({{ slot.required ? 'Obligatorio' : 'Opcional' }})</span>
